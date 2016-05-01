@@ -9,8 +9,9 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
+import exastencils.util._
 
-import scala.collection.mutable.{ HashMap, HashSet, ListBuffer }
+import scala.collection.mutable.{HashMap, HashSet, ListBuffer}
 
 case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
@@ -340,18 +341,20 @@ case class ExpKernel(var identifier : String,
     var lowerBounds : ListBuffer[Expression],
     var upperBounds : ListBuffer[Expression],
     var increments : ListBuffer[Expression],
-    var loopBody : ListBuffer[Statement],
+    var body : ListBuffer[Statement],
     var loop : ForLoopStatement,
     var innerLoops : ListBuffer[ForLoopStatement],
     var reduction : Option[Reduction] = None) extends Node {
 
   import Kernel._
 
-  val CudaMaxDimensionality = 3
-  val executionConfigurationDimensionality = math.min(CudaMaxDimensionality, loopVariables.size)
+  val executionConfigurationDimensionality = math.min(Platform.hw_cuda_maxNumDimsBlock, loopVariables.size)
   var evaluatedAccesses = false
   var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = HashMap[String, iv.InternalVariable]()
+  var evaluatedOffsets = false
+  var minIndices = Array[Long]()
+  var maxIndices = Array[Long]()
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -362,11 +365,11 @@ case class ExpKernel(var identifier : String,
   def evalAccesses = {
     if (!evaluatedAccesses) {
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
-      GatherLocalLinearizedFieldAccess.applyStandalone(new Scope(loopBody))
+      GatherLocalLinearizedFieldAccess.applyStandalone(new Scope(body))
       fieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
 
       GatherLocalIVs.ivAccesses.clear
-      GatherLocalIVs.applyStandalone(new Scope(loopBody))
+      GatherLocalIVs.applyStandalone(new Scope(body))
       ivAccesses = GatherLocalIVs.ivAccesses
 
       // postprocess iv's -> generate parameter names
@@ -379,6 +382,30 @@ case class ExpKernel(var identifier : String,
       ivAccesses = processedIVs
 
       evaluatedAccesses = true
+    }
+  }
+
+  def evalOffsets = {
+    if (!evaluatedOffsets) {
+      minIndices = (0 until executionConfigurationDimensionality).map(dim =>
+        try {
+          SimplifyExpression.evalIntegralExtrema(lowerBounds(dim))._1
+        } catch {
+          case _ : EvaluationException =>
+            Logger.warn(s"Start index for dimension $dim (${lowerBounds(dim)}) could not be evaluated")
+            0
+        }).toArray
+
+      maxIndices = (0 until executionConfigurationDimensionality).map(dim =>
+        try {
+          SimplifyExpression.evalIntegralExtrema(upperBounds(dim))._2
+        } catch {
+          case _ : EvaluationException =>
+            Logger.warn(s"End index for dimension $dim (${upperBounds(dim)}) could not be evaluated")
+            0
+        }).toArray
+
+      evaluatedOffsets = true
     }
   }
 
@@ -416,27 +443,29 @@ case class ExpKernel(var identifier : String,
         ReturnStatement())
     })
 
-    statements ++= loopBody
-    loopBody = statements
+    statements ++= body
+    body = statements
   }
 
   def compileKernelBody : ListBuffer[Statement] = {
     evalAccesses // ensure that field accesses have been mapped
+    evalOffsets // ensure that minimal and maximal indices are set correctly
 
     // add actual body after replacing field and iv accesses
     ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
-    ReplacingLocalLinearizedFieldAccess.applyStandalone(new Scope(loopBody))
+    ReplacingLocalLinearizedFieldAccess.applyStandalone(new Scope(body))
     ReplacingLocalIVs.ivAccesses = ivAccesses
-    ReplacingLocalIVs.applyStandalone(new Scope(loopBody))
-    ReplacingLocalIVArrays.applyStandalone(new Scope(loopBody))
+    ReplacingLocalIVs.applyStandalone(new Scope(body))
+    ReplacingLocalIVArrays.applyStandalone(new Scope(body))
     ReplacingArraySubscripts.loopVariables = loopVariables
-    ReplacingArraySubscripts.applyStandalone(new Scope(loopBody))
+    ReplacingArraySubscripts.applyStandalone(new Scope(body))
 
-    loopBody
+    body
   }
 
   def compileWrapperFunction : FunctionStatement = {
     evalAccesses // ensure that field accesses have been mapped
+    evalOffsets // ensure that minimal and maximal indices are set correctly
 
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
@@ -445,25 +474,22 @@ case class ExpKernel(var identifier : String,
       val fieldSelection = fieldAccess._2.fieldSelection
       callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
     }
+
     for (ivAccess <- ivAccesses) {
       val access = Duplicate(ivAccess._2)
       // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
       access.resolveDataType match {
-        case SpecialDatatype("Vec3") => callArgs ++= (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer]
+        case SpecialDatatype("Vec3") => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer])
         case SpecialDatatype("Vec3i") => callArgs ++= (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer]
-
         case _ => callArgs += ivAccess._2
       }
     }
+
     for (variableAccess <- passThroughArgs) {
       callArgs += Duplicate(variableAccess)
     }
 
-    // evaluate required thread counts
-    val minIndex = Array.fill[Long](executionConfigurationDimensionality) { 0 }
-    val maxIndex = (0 until executionConfigurationDimensionality).map(dim => 1).toArray
-
-    var numThreadsPerDim = (maxIndex, minIndex).zipped.map(_ - _)
+    var numThreadsPerDim = (maxIndices, minIndices).zipped.map(_ - _)
 
     if (null == numThreadsPerDim || numThreadsPerDim.product <= 0) {
       Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
@@ -485,6 +511,7 @@ case class ExpKernel(var identifier : String,
   def compileKernelFunction : FunctionStatement = {
     completeKernelBody
     evalAccesses // ensure that field accesses have been mapped
+    evalOffsets // ensure that minimal and maximal indices are set correctly
 
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
@@ -495,11 +522,13 @@ case class ExpKernel(var identifier : String,
     }
 
     for (ivAccess <- ivAccesses) {
+      var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
       val datatype = ivAccess._2.resolveDataType
 
       datatype match {
         case SpecialDatatype("Vec3") =>
-          fctParams ++= (0 until 3).map(dim => VariableAccess(ivAccess._1 + '_' + dim, Some(SpecialDatatype("double")))).to[ListBuffer]
+          access.dType = Some(SpecialDatatype("double3"))
+          fctParams += access
         case SpecialDatatype("Vec3i") =>
           fctParams ++= (0 until 3).map(dim => VariableAccess(ivAccess._1 + '_' + dim, Some(SpecialDatatype("double")))).to[ListBuffer]
         case _ => fctParams += VariableAccess(ivAccess._1, Some(datatype))
@@ -611,7 +640,6 @@ object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local Inte
     case ivArray : ArrayAccess if checkAccess(ivArray) =>
       val iv = ivArray.base.asInstanceOf[VariableAccess]
       val i = ivArray.index.asInstanceOf[IntegerConstant]
-
       VariableAccess(iv.name + '_' + i.v, Some(SpecialDatatype("double")))
   })
 }
