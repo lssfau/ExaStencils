@@ -10,7 +10,6 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
-import exastencils.omp._
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util._
 
@@ -23,9 +22,9 @@ object Vectorization extends DefaultStrategy("Vectorization") {
 
 private final case class VectorizationException(msg : String) extends Exception(msg)
 
-private final object VectorizeInnermost extends PartialFunction[Node, Transformation.OutputType] {
+private object VectorizeInnermost extends PartialFunction[Node, Transformation.OutputType] {
 
-  private final val DEBUG : Boolean = false
+  private val DEBUG : Boolean = false
 
   override def isDefinedAt(node : Node) : Boolean = {
     node.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
@@ -92,13 +91,13 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     val preLoopStmts = new ListBuffer[Statement]()
 
-    private final val temporaryMapping = new HashMap[Expression, String]
-    private final val temporaryProperties = new HashMap[String, (Boolean, Boolean)]
+    private val temporaryMapping = new HashMap[Expression, String]
+    private val temporaryProperties = new HashMap[String, (Boolean, Boolean)]
     private var isStore_ : Boolean = false
     private var varID : Int = -1
     private var incrVectDeclared : Boolean = false
     private var alignedResidue : Long = -1
-    private final val nameTempl : String = "_vec%02d"
+    private val nameTempl : String = "_vec%02d"
 
     def getName(expr : Expression) : (String, Boolean) = {
       var nju : Boolean = false
@@ -209,7 +208,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           case AssignmentStatement(acc @ ArrayAccess(_, index, true), _, _) =>
             val annot = acc.getAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
             val ind : Expression = if (annot.isDefined) annot.get.asInstanceOf[Expression] else index
-            val const : Long = SimplifyExpression.extractIntegralSum(ind).get(SimplifyExpression.constName).getOrElse(0L)
+            val const : Long = SimplifyExpression.extractIntegralSum(ind).getOrElse(SimplifyExpression.constName, 0L)
             val residue : Long = (const % vs + vs) % vs
             ctx.setAlignedResidue(residue)
             alignmentExpr = ind
@@ -457,8 +456,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_FloatConstant(value))
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
-      case NegativeExpression(expr) =>
-        SIMD_NegateExpression(vectorizeExpr(expr, ctx))
+      case NegativeExpression(nExpr) =>
+        SIMD_NegateExpression(vectorizeExpr(nExpr, ctx))
 
       case AdditionExpression(sums) =>
         if (sums.isEmpty)
