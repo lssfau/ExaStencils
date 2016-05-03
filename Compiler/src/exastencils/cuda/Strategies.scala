@@ -130,18 +130,12 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
   val collector = new FctNameCollector
   this.register(collector)
 
-  def annotateInnerLoops(loop : ForLoopStatement) : ForLoopStatement = {
-    val loops : ListBuffer[ForLoopStatement] = loop.body.filter(_.isInstanceOf[ForLoopStatement])
-      .asInstanceOf[ListBuffer[ForLoopStatement]]
-    loops.foreach(_.annotate(PrepareCudaRelevantCode.CudaLoopAnnotation))
-    loops.map(annotateInnerLoops(_))
-    loop
-  }
-
   def verifyLoopSuitability(loop : ForLoopStatement) : Boolean = {
     loop.begin.isInstanceOf[VariableDeclarationStatement] &&
       (loop.end.isInstanceOf[LowerExpression] || loop.end.isInstanceOf[LowerEqualExpression]) &&
       loop.inc.isInstanceOf[AssignmentStatement] &&
+      loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
+      loop.inc.asInstanceOf[AssignmentStatement].src.asInstanceOf[IntegerConstant].value == 1 &&
       loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
   }
 
@@ -150,8 +144,9 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     val loops = ListBuffer[ForLoopStatement](loop)
 
     innerLoopCandidate match {
-      case innerLoop : ForLoopStatement if recursionDepth < 3 && loop.body.size == 1 && verifyLoopSuitability(innerLoop) => loops ++
-        calculateCollapsingLoops(innerLoop, recursionDepth + 1)
+      case innerLoop : ForLoopStatement if recursionDepth < Platform.hw_cuda_maxNumDimsBlock && loop.body.size == 1 &&
+        verifyLoopSuitability(innerLoop) =>
+        loops ++ calculateCollapsingLoops(innerLoop, recursionDepth + 1)
       case _ => loops
     }
   }
@@ -169,7 +164,6 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     var loopVariables = ListBuffer[String]()
     var lowerBounds = ListBuffer[Expression]()
     var upperBounds = ListBuffer[Expression]()
-    var increments = ListBuffer[Expression]()
 
     loops foreach { loop =>
       val loopDeclaration = loop.begin.asInstanceOf[VariableDeclarationStatement]
@@ -180,10 +174,9 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         case e : LowerEqualExpression => e.right
         case o => o
       })
-      increments += loop.inc.asInstanceOf[AssignmentStatement].src
     }
 
-    (loopVariables, lowerBounds, upperBounds, increments)
+    (loopVariables, lowerBounds, upperBounds)
   }
 
   this += new Transformation("Transform annotated CUDA loops in CUDA kernel code", {
@@ -193,11 +186,8 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       // remove the annotation first to guarantee single application of this transformation.
       loop.removeAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation)
 
-      // annotate inner loops to avoid openmp pragmas
-      annotateInnerLoops(loop)
-
       val innerLoops = calculateCollapsingLoops(loop)
-      val (loopVariables, lowerBounds, upperBounds, increments) = createLoopBounds(innerLoops)
+      val (loopVariables, lowerBounds, upperBounds) = createLoopBounds(innerLoops)
       val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops)
       val deviceStatements = ListBuffer[Statement]()
 
@@ -215,24 +205,19 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         loopVariables,
         lowerBounds,
         upperBounds,
-        increments,
         kernelBody,
-        loop,
-        innerLoops,
         loop.reduction)
 
       kernelFunctions.addKernel(Duplicate(kernel))
 
-      deviceStatements += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
-
-      if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
-        deviceStatements += CUDA_DeviceSynchronize()
-
-      // update flags for written fields
-      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-        val fieldSelection = access._2.fieldSelection
-        if (access._1.startsWith("write"))
-          deviceStatements += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+      // process return value of kernel wrapper call if reduction is required
+      if (loop.reduction.isDefined) {
+        val red = loop.reduction.get
+        deviceStatements += AssignmentStatement(red.target,
+          BinaryOperators.CreateExpression(red.op, red.target,
+            FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))))
+      } else {
+        deviceStatements += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
       }
 
       deviceStatements
@@ -367,12 +352,13 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
 
 object HandleKernelReductions extends DefaultStrategy("Handle reductions in device kernels") {
   this += new Transformation("Process kernel nodes", {
-    case kernel : Kernel if kernel.reduction.isDefined =>
+    case kernel : ExpKernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
-      val index = LoopOverDimensions.defIt(kernel.numDimensions)
-      val stride = (
-        LoopOverDimensions.evalMaxIndex(kernel.indices.end, kernel.numDimensions, printWarnings = true),
-        LoopOverDimensions.evalMinIndex(kernel.indices.begin, kernel.numDimensions, printWarnings = true)).zipped.map(_ - _)
+      kernel.evalIndexBounds
+      val index = new MultiIndex((0 until kernel.executionConfigurationDimensionality).map(dim =>
+        new VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
+
+      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map(_ - _)
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
       ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(stride.product), index, new MultiIndex(stride))
       ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))

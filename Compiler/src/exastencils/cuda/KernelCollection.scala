@@ -11,7 +11,7 @@ import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-import scala.collection.mutable.{HashMap, HashSet, ListBuffer}
+import scala.collection.mutable.{ HashMap, HashSet, ListBuffer }
 
 case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
@@ -203,7 +203,7 @@ case class Kernel(var identifier : String,
     var statements = ListBuffer[Statement]()
 
     // add index calculation
-    val minIndices = LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, printWarnings = true)
+    val minIndices : Array[Long] = LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, printWarnings = true)
     statements ++= (0 until numDimensions).map(dim => {
       val it = dimToString(dim)
       // FIXME: datatype for VariableAccess
@@ -341,19 +341,16 @@ case class ExpKernel(var identifier : String,
     var loopVariables : ListBuffer[String],
     var lowerBounds : ListBuffer[Expression],
     var upperBounds : ListBuffer[Expression],
-    var increments : ListBuffer[Expression],
     var body : ListBuffer[Statement],
-    var loop : ForLoopStatement,
-    var innerLoops : ListBuffer[ForLoopStatement],
     var reduction : Option[Reduction] = None) extends Node {
 
-  import Kernel._
+  import ExpKernel._
 
   val executionConfigurationDimensionality = math.min(Platform.hw_cuda_maxNumDimsBlock, loopVariables.size)
   var evaluatedAccesses = false
   var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = HashMap[String, iv.InternalVariable]()
-  var evaluatedOffsets = false
+  var evaluatedIndexBounds = false
   var minIndices = Array[Long]()
   var maxIndices = Array[Long]()
 
@@ -386,8 +383,12 @@ case class ExpKernel(var identifier : String,
     }
   }
 
-  def evalOffsets = {
-    if (!evaluatedOffsets) {
+  /**
+   * Evaluate the index bounds to calculate minimal and maximal valid index. Required to check if some thread is out
+   * of bounds or not.
+   */
+  def evalIndexBounds = {
+    if (!evaluatedIndexBounds) {
       minIndices = (0 until executionConfigurationDimensionality).map(dim =>
         try {
           SimplifyExpression.evalIntegralExtrema(lowerBounds(dim))._1
@@ -406,10 +407,14 @@ case class ExpKernel(var identifier : String,
             0
         }).toArray
 
-      evaluatedOffsets = true
+      evaluatedIndexBounds = true
     }
   }
 
+  /**
+   * Add global thread id calculation to the kernel body and bounds checks to guarantee that there are no invalid
+   * memory accesses.
+   */
   def completeKernelBody = {
     var statements = ListBuffer[Statement]()
 
@@ -419,7 +424,7 @@ case class ExpKernel(var identifier : String,
     // global thread id z = blockIdx.z *blockDim.z + threadIdx.z + offset3;
     statements ++= (0 until executionConfigurationDimensionality).map(dim => {
       val it = dimToString(dim)
-      val variableName = ExpKernel.KernelVariablePrefix + it
+      val variableName = KernelVariablePrefix + it
       VariableDeclarationStatement(IntegerDatatype, variableName,
         Some(MemberAccess(VariableAccess("blockIdx", Some(SpecialDatatype("dim3"))), it) *
           MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it) +
@@ -430,7 +435,7 @@ case class ExpKernel(var identifier : String,
     // add dimension index start and end point
     // add index bounds conditions
     val bounds = (0 until executionConfigurationDimensionality).map(dim => {
-      (s"${ExpKernel.KernelVariablePrefix}begin_$dim", s"${ExpKernel.KernelVariablePrefix}end_$dim")
+      (s"${KernelVariablePrefix}begin_$dim", s"${KernelVariablePrefix}end_$dim")
     })
 
     (0 until executionConfigurationDimensionality).foreach(dim => {
@@ -439,7 +444,7 @@ case class ExpKernel(var identifier : String,
     })
 
     statements ++= (0 until executionConfigurationDimensionality).map(dim => {
-      val variableAccess = VariableAccess(ExpKernel.KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype))
+      val variableAccess = VariableAccess(KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype))
       new ConditionStatement(
         OrOrExpression(LowerExpression(variableAccess, bounds(dim)_1), GreaterEqualExpression(variableAccess, bounds(dim)_2)),
         ReturnStatement())
@@ -451,7 +456,7 @@ case class ExpKernel(var identifier : String,
 
   def compileKernelBody : ListBuffer[Statement] = {
     evalAccesses // ensure that field accesses have been mapped
-    evalOffsets // ensure that minimal and maximal indices are set correctly
+    evalIndexBounds // ensure that minimal and maximal indices are set correctly
 
     // add actual body after replacing field and iv accesses
     ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
@@ -459,15 +464,15 @@ case class ExpKernel(var identifier : String,
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(new Scope(body))
     ReplacingLocalIVArrays.applyStandalone(new Scope(body))
-    ReplacingArraySubscripts.loopVariables = loopVariables
-    ReplacingArraySubscripts.applyStandalone(new Scope(body))
+    ReplacingLoopVariables.loopVariables = loopVariables
+    ReplacingLoopVariables.applyStandalone(new Scope(body))
 
     body
   }
 
   def compileWrapperFunction : FunctionStatement = {
     evalAccesses // ensure that field accesses have been mapped
-    evalOffsets // ensure that minimal and maximal indices are set correctly
+    evalIndexBounds // ensure that minimal and maximal indices are set correctly
 
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
@@ -499,10 +504,22 @@ case class ExpKernel(var identifier : String,
     }
 
     var body = ListBuffer[Statement]()
-    body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
+
+    if (reduction.isDefined) {
+      def bufSize = numThreadsPerDim.product
+      def bufAccess = iv.ReductionDeviceData(bufSize)
+      body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.dType.get)
+      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
+      body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${BinaryOperators.opAsIdent(reduction.get.op)}_wrapper",
+        ListBuffer[Expression](bufAccess, bufSize))))
+
+      StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
+    } else {
+      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
+    }
 
     FunctionStatement(
-      UnitDatatype,
+      if (reduction.isDefined) reduction.get.target.dType.get else UnitDatatype,
       getWrapperFctName,
       Duplicate(passThroughArgs),
       body,
@@ -513,7 +530,7 @@ case class ExpKernel(var identifier : String,
   def compileKernelFunction : FunctionStatement = {
     completeKernelBody
     evalAccesses // ensure that field accesses have been mapped
-    evalOffsets // ensure that minimal and maximal indices are set correctly
+    evalIndexBounds // ensure that minimal and maximal indices are set correctly
 
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
@@ -625,7 +642,6 @@ object ReplacingLocalIVs extends QuietDefaultStrategy("Replacing local InternalV
 }
 
 object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local InternalVariable nodes") {
-
   def checkAccess(ivArray : ArrayAccess) : Boolean = {
     var result = false
 
@@ -646,13 +662,15 @@ object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local Inte
   })
 }
 
-object ReplacingArraySubscripts extends QuietDefaultStrategy("Replacing array subscripts with dimensionality " +
-  "depending indexing") {
+object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop variables with generated kernel variables") {
   var loopVariables = ListBuffer[String]()
 
   this += new Transformation("Searching", {
     case VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
       val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(name))
+      VariableAccess(newName, Some(IntegerDatatype))
+    case GreaterExpression(StringLiteral(l), _) =>
+      val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(l))
       VariableAccess(newName, Some(IntegerDatatype))
   })
 }

@@ -225,9 +225,6 @@ object MainChristoph {
       AddPerformanceEstimates()
     if (Knowledge.experimental_cuda_enabled) {
       PrepareCudaRelevantCode.apply()
-      //SplitLoopsForHostAndDevice.apply()
-      //AdaptKernelDimensionalities.apply()
-      //HandleKernelReductions.apply()
     }
 
     ResolveContractingLoop.apply()
@@ -259,6 +256,7 @@ object MainChristoph {
 
     if (Knowledge.experimental_cuda_enabled) {
       ExtractHostAndDeviceCode.apply()
+      HandleKernelReductions.apply()
     }
 
     TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
