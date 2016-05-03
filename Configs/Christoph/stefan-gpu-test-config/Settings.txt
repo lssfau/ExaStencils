@@ -1,2 +1,0 @@
-outputPath = "T:\delme"
-l4file = "C:\temp\l4.exa"

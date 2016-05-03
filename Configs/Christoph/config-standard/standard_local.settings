@@ -1,7 +1,7 @@
 user                        = "Christoph"
-basePathPrefix              = "../CompilerRun/smoother-test/"
+basePathPrefix              = "../generator-result/standard/cpu"
 l3file                      = ""
-l4file                      = "../../Configs/Christoph/performance-tests/smoother/Smoother_3D_ConstCoeff.exa4"
+l4file                      = "/dsl/Layer4.exa"
 outputPath                  = "/generated/"
 htmlLogFile                 = "/log/log.html"
 produceHtmlLog              = true
