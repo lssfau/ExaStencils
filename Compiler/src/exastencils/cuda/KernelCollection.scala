@@ -11,7 +11,9 @@ import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-import scala.collection.mutable.{ HashMap, HashSet, ListBuffer }
+import scala.collection._
+import scala.collection.mutable._
+import scala.language.postfixOps
 
 case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
@@ -26,9 +28,9 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     externalDependencies += "cuda_runtime.h"
   }
 
-  var kernelCollection = ListBuffer[ExpKernel]()
-  var requiredRedKernels = HashSet[String]()
-  var counterMap = HashMap[String, Int]()
+  var kernelCollection = ListBuffer[Kernel]()
+  var requiredRedKernels = mutable.HashSet[String]()
+  var counterMap = mutable.HashMap[String, Int]()
 
   def getIdentifier(fctName : String) : String = {
     val cnt = counterMap.getOrElse(fctName, -1) + 1
@@ -37,14 +39,14 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   }
 
   def addKernel(kernel : Kernel) = {
-    //kernelCollection += kernel
-  }
-
-  def addKernel(kernel : ExpKernel) = {
     kernelCollection += kernel
   }
 
-  def convertToFunctions = {
+  def addKernel(kernel : ExpKernel) = {
+    //kernelCollection += kernel
+  }
+
+  def convertToFunctions() = {
     for (kernel <- kernelCollection) {
       functions += kernel.compileKernelFunction
       functions += kernel.compileWrapperFunction
@@ -168,13 +170,13 @@ case class Kernel(var identifier : String,
   import Kernel._
 
   var evaluatedAccesses = false
-  var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
-  var ivAccesses = HashMap[String, iv.InternalVariable]()
+  var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
+  var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
 
-  def evalFieldAccesses = {
+  def evalFieldAccesses() = {
     if (!evaluatedAccesses) {
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
       GatherLocalLinearizedFieldAccess.applyStandalone(Scope(body))
@@ -186,7 +188,7 @@ case class Kernel(var identifier : String,
 
       // postprocess iv's -> generate parameter names
       var cnt = 0
-      val processedIVs = HashMap[String, iv.InternalVariable]()
+      val processedIVs = mutable.HashMap[String, iv.InternalVariable]()
       for (ivAccess <- ivAccesses) {
         processedIVs.put(ivAccess._2.resolveName + "_" + cnt, ivAccess._2)
         cnt += 1
@@ -198,7 +200,7 @@ case class Kernel(var identifier : String,
   }
 
   def compileKernelBody : ListBuffer[Statement] = {
-    evalFieldAccesses // ensure that field accesses have been mapped
+    evalFieldAccesses() // ensure that field accesses have been mapped
 
     var statements = ListBuffer[Statement]()
 
@@ -238,7 +240,7 @@ case class Kernel(var identifier : String,
   }
 
   def compileWrapperFunction : FunctionStatement = {
-    evalFieldAccesses // ensure that field accesses have been mapped
+    evalFieldAccesses() // ensure that field accesses have been mapped
 
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
@@ -296,7 +298,7 @@ case class Kernel(var identifier : String,
   }
 
   def compileKernelFunction : FunctionStatement = {
-    evalFieldAccesses // ensure that field accesses have been mapped
+    evalFieldAccesses() // ensure that field accesses have been mapped
 
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
@@ -348,8 +350,8 @@ case class ExpKernel(var identifier : String,
 
   val executionConfigurationDimensionality = math.min(Platform.hw_cuda_maxNumDimsBlock, loopVariables.size)
   var evaluatedAccesses = false
-  var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
-  var ivAccesses = HashMap[String, iv.InternalVariable]()
+  var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
+  var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
   var evaluatedIndexBounds = false
   var minIndices = Array[Long]()
   var maxIndices = Array[Long]()
@@ -360,7 +362,7 @@ case class ExpKernel(var identifier : String,
   /**
    * Check the accesses in the loop to create valid function calls.
    */
-  def evalAccesses = {
+  def evalAccesses() = {
     if (!evaluatedAccesses) {
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
       GatherLocalLinearizedFieldAccess.applyStandalone(new Scope(body))
@@ -372,7 +374,7 @@ case class ExpKernel(var identifier : String,
 
       // postprocess iv's -> generate parameter names
       var cnt = 0
-      val processedIVs = HashMap[String, iv.InternalVariable]()
+      val processedIVs = mutable.HashMap[String, iv.InternalVariable]()
       for (ivAccess <- ivAccesses) {
         processedIVs.put(ivAccess._2.resolveName + "_" + cnt, ivAccess._2)
         cnt += 1
@@ -387,7 +389,7 @@ case class ExpKernel(var identifier : String,
    * Evaluate the index bounds to calculate minimal and maximal valid index. Required to check if some thread is out
    * of bounds or not.
    */
-  def evalIndexBounds = {
+  def evalIndexBounds() = {
     if (!evaluatedIndexBounds) {
       minIndices = (0 until executionConfigurationDimensionality).map(dim =>
         try {
@@ -415,7 +417,7 @@ case class ExpKernel(var identifier : String,
    * Add global thread id calculation to the kernel body and bounds checks to guarantee that there are no invalid
    * memory accesses.
    */
-  def completeKernelBody = {
+  def completeKernelBody() = {
     var statements = ListBuffer[Statement]()
 
     // add CUDA global Thread ID (x,y,z) calculation for a dim3 execution configuration
@@ -455,8 +457,8 @@ case class ExpKernel(var identifier : String,
   }
 
   def compileKernelBody : ListBuffer[Statement] = {
-    evalAccesses // ensure that field accesses have been mapped
-    evalIndexBounds // ensure that minimal and maximal indices are set correctly
+    evalAccesses() // ensure that field accesses have been mapped
+    evalIndexBounds() // ensure that minimal and maximal indices are set correctly
 
     // add actual body after replacing field and iv accesses
     ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
@@ -471,8 +473,8 @@ case class ExpKernel(var identifier : String,
   }
 
   def compileWrapperFunction : FunctionStatement = {
-    evalAccesses // ensure that field accesses have been mapped
-    evalIndexBounds // ensure that minimal and maximal indices are set correctly
+    evalAccesses() // ensure that field accesses have been mapped
+    evalIndexBounds() // ensure that minimal and maximal indices are set correctly
 
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
@@ -528,9 +530,9 @@ case class ExpKernel(var identifier : String,
   }
 
   def compileKernelFunction : FunctionStatement = {
-    completeKernelBody
-    evalAccesses // ensure that field accesses have been mapped
-    evalIndexBounds // ensure that minimal and maximal indices are set correctly
+    completeKernelBody()
+    evalAccesses() // ensure that field accesses have been mapped
+    evalIndexBounds() // ensure that minimal and maximal indices are set correctly
 
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
@@ -570,7 +572,7 @@ case class ExpKernel(var identifier : String,
 }
 
 object GatherLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering local LinearizedFieldAccess nodes") {
-  var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
+  var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
 
   def mapFieldAccess(access : LinearizedFieldAccess) = {
     val field = access.fieldSelection.field
@@ -596,7 +598,7 @@ object GatherLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering 
 }
 
 object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replacing local LinearizedFieldAccess nodes") {
-  var fieldAccesses = HashMap[String, LinearizedFieldAccess]()
+  var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
 
   def extractIdentifier(access : LinearizedFieldAccess) = {
     val field = access.fieldSelection.field
@@ -622,7 +624,7 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
 }
 
 object GatherLocalIVs extends QuietDefaultStrategy("Gathering local InternalVariable nodes") {
-  var ivAccesses = HashMap[String, iv.InternalVariable]()
+  var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
 
   this += new Transformation("Searching", {
     case iv : iv.InternalVariable =>
@@ -632,7 +634,7 @@ object GatherLocalIVs extends QuietDefaultStrategy("Gathering local InternalVari
 }
 
 object ReplacingLocalIVs extends QuietDefaultStrategy("Replacing local InternalVariable nodes") {
-  var ivAccesses = HashMap[String, iv.InternalVariable]()
+  var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
 
   this += new Transformation("Searching", {
     case iv : iv.InternalVariable =>
@@ -669,8 +671,8 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
     case VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
       val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(name))
       VariableAccess(newName, Some(IntegerDatatype))
-    case GreaterExpression(StringLiteral(l), _) =>
-      val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(l))
+    case StringLiteral(v @ value) if loopVariables.contains(v) =>
+      val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(v))
       VariableAccess(newName, Some(IntegerDatatype))
   })
 }

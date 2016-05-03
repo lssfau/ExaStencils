@@ -14,6 +14,7 @@ import exastencils.polyhedron._
 
 import scala.annotation._
 import scala.collection.mutable._
+import scala.collection.{ SortedSet => _, _ }
 
 /**
  * This transformation annotates LoopOverDimensions and LoopOverDimensions enclosed with ContractingLoops.
@@ -195,7 +196,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       val kernelFunctions = StateManager.findFirst[KernelFunctions]().get
 
       // collect local variable accesses because these variables need to be passed to the kernel at call
-      GatherLocalVariableAccesses.clear
+      GatherLocalVariableAccesses.clear()
       GatherLocalVariableAccesses.applyStandalone(new Scope(loop))
       val variableAccesses = GatherLocalVariableAccesses.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]
 
@@ -285,7 +286,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
         // add kernel and kernel call
         val kernelFunctions = StateManager.findFirst[KernelFunctions]().get
 
-        GatherLocalVariableAccesses.clear
+        GatherLocalVariableAccesses.clear()
         GatherLocalVariableAccesses.applyStandalone(Scope(loop.body))
         val variableAccesses = GatherLocalVariableAccesses.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]
 
@@ -354,11 +355,21 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
   this += new Transformation("Process kernel nodes", {
     case kernel : ExpKernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
-      kernel.evalIndexBounds
+      kernel.evalIndexBounds()
       val index = new MultiIndex((0 until kernel.executionConfigurationDimensionality).map(dim =>
         new VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map(_ - _)
+      ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
+      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(stride.product), index, new MultiIndex(stride))
+      ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
+      kernel
+    case kernel : Kernel if kernel.reduction.isDefined =>
+      // update assignments according to reduction clauses
+      val index = LoopOverDimensions.defIt(kernel.numDimensions)
+      val stride = (
+        LoopOverDimensions.evalMaxIndex(kernel.indices.end, kernel.numDimensions, printWarnings = true),
+        LoopOverDimensions.evalMinIndex(kernel.indices.begin, kernel.numDimensions, printWarnings = true)).zipped.map(_ - _)
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
       ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(stride.product), index, new MultiIndex(stride))
       ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
@@ -383,7 +394,7 @@ object ReplaceReductionAssignements extends QuietDefaultStrategy("Replace assign
 }
 
 object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local FieldAccess nodes") {
-  var fieldAccesses = HashMap[String, FieldAccessLike]()
+  var fieldAccesses = mutable.HashMap[String, FieldAccessLike]()
   var inWriteOp = false
 
   def mapFieldAccess(access : FieldAccessLike) = {
@@ -420,12 +431,12 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
 }
 
 object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local VariableAccess nodes") {
-  var accesses = HashMap[String, VariableAccess]()
-  var ignoredAccesses = SortedSet[String]()
+  var accesses = mutable.HashMap[String, VariableAccess]()
+  var ignoredAccesses = mutable.SortedSet[String]()
 
-  def clear = {
-    accesses = HashMap[String, VariableAccess]()
-    ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */ ).map(dim => dimToString(dim)).to[SortedSet]
+  def clear() = {
+    accesses = mutable.HashMap[String, VariableAccess]()
+    ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */ ).map(dim => dimToString(dim)).to[mutable.SortedSet]
   }
 
   this += new Transformation("Searching", {
