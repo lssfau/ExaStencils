@@ -333,6 +333,7 @@ case class Kernel(var identifier : String,
 
 object ExpKernel {
   def wrapperPostfix = "_wrapper"
+  val KernelVariablePrefix = "_cu_"
 }
 
 case class ExpKernel(var identifier : String,
@@ -418,7 +419,8 @@ case class ExpKernel(var identifier : String,
     // global thread id z = blockIdx.z *blockDim.z + threadIdx.z + offset3;
     statements ++= (0 until executionConfigurationDimensionality).map(dim => {
       val it = dimToString(dim)
-      VariableDeclarationStatement(IntegerDatatype, it,
+      val variableName = ExpKernel.KernelVariablePrefix + it
+      VariableDeclarationStatement(IntegerDatatype, variableName,
         Some(MemberAccess(VariableAccess("blockIdx", Some(SpecialDatatype("dim3"))), it) *
           MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it) +
           MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), it) +
@@ -428,7 +430,7 @@ case class ExpKernel(var identifier : String,
     // add dimension index start and end point
     // add index bounds conditions
     val bounds = (0 until executionConfigurationDimensionality).map(dim => {
-      (s"begin_$dim", s"end_$dim")
+      (s"${ExpKernel.KernelVariablePrefix}begin_$dim", s"${ExpKernel.KernelVariablePrefix}end_$dim")
     })
 
     (0 until executionConfigurationDimensionality).foreach(dim => {
@@ -437,9 +439,9 @@ case class ExpKernel(var identifier : String,
     })
 
     statements ++= (0 until executionConfigurationDimensionality).map(dim => {
-      def it = Duplicate(LoopOverDimensions.defItForDim(dim))
+      val variableAccess = VariableAccess(ExpKernel.KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype))
       new ConditionStatement(
-        OrOrExpression(LowerExpression(it, bounds(dim)_1), GreaterEqualExpression(it, bounds(dim)_2)),
+        OrOrExpression(LowerExpression(variableAccess, bounds(dim)_1), GreaterEqualExpression(variableAccess, bounds(dim)_2)),
         ReturnStatement())
     })
 
@@ -650,7 +652,7 @@ object ReplacingArraySubscripts extends QuietDefaultStrategy("Replacing array su
 
   this += new Transformation("Searching", {
     case VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
-      val newName = dimToString(loopVariables.indexOf(name))
+      val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(name))
       VariableAccess(newName, Some(IntegerDatatype))
   })
 }
