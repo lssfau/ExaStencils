@@ -28,7 +28,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     externalDependencies += "cuda_runtime.h"
   }
 
-  var kernelCollection = ListBuffer[Kernel]()
+  var kernelCollection = ListBuffer[ExpKernel]()
   var requiredRedKernels = mutable.HashSet[String]()
   var counterMap = mutable.HashMap[String, Int]()
 
@@ -39,11 +39,11 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   }
 
   def addKernel(kernel : Kernel) = {
-    kernelCollection += kernel
+    //kernelCollection += kernel
   }
 
   def addKernel(kernel : ExpKernel) = {
-    //kernelCollection += kernel
+    kernelCollection += kernel
   }
 
   def convertToFunctions() = {
