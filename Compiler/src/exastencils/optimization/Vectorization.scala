@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
 import exastencils.core.Duplicate
+import exastencils.cuda
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
@@ -18,7 +19,7 @@ object Vectorization extends DefaultStrategy("Vectorization") {
 
   final val VECT_ANNOT = "VECT"
 
-  this += new Transformation("optimize", VectorizeInnermost)
+  this += new Transformation("optimize", VectorizeInnermost, false)
 }
 
 final class VectorizationException(val msg : String) extends Exception(msg)
@@ -27,7 +28,18 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   private val DEBUG : Boolean = false
 
+  private var skipSubTree : Boolean = false
+
   override def isDefinedAt(node : Node) : Boolean = {
+    // do not vectorize device code!
+    node match {
+      case _ : cuda.Kernel               => skipSubTree = true
+      case _ : AbstractFunctionStatement => skipSubTree = false
+      case _                             => // no change in skipSubTree
+    }
+    if (skipSubTree)
+      return false
+
     node.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
     return node match {
       case loop : ForLoopStatement with OptimizationHint =>
