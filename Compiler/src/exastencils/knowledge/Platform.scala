@@ -42,6 +42,14 @@ object Platform {
       case "QPX"                                       => null
     }
   }
+  var simd_mathLibrary : String = "none" // currently allowed: "none", "svml", "vecmathlib", "vectorclass", "mass_simd"; ensure the libraries are installed system-wide, or set Settings.{pathsInc|pathsLib} accordingly
+  def simd_mathLibHeader : Seq[String] = {
+    simd_mathLibrary match {
+      case "none" | "svml" => null
+      case "vectorclass"   => "vectorclass.h" :: "vectormath_exp.h" :: "vectormath_trig.h" :: "vectormath_hyp.h" :: Nil
+      case _               => simd_mathLibrary + ".h" :: Nil
+    }
+  }
 
   /// OMP
   def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
@@ -211,5 +219,6 @@ object Platform {
 
   def update() : Unit = {
     Constraints.condEnsureValue(hw_cpu_numHWThreads, hw_cpu_numCoresPerCPU, hw_cpu_numHWThreads < hw_cpu_numCoresPerCPU, "The number of hardware threads has at least to be equal to the number of physical cores")
+    Constraints.condEnsureValue(simd_mathLibrary, "none", simd_mathLibrary == "svml" && !(simd_instructionSet.startsWith("SSE") || simd_instructionSet.startsWith("AVX")), "intel svml only supports SSE* and AVX* instruction sets")
   }
 }

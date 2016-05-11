@@ -32,6 +32,7 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
 }
 
 case class VariableDeclarationStatement(var dataType : Datatype, var name : String, var expression : Option[Expression] = None) extends Statement {
+  var alignment : Int = 1
   def this(dT : Datatype, n : String, e : Expression) = this(dT, n, Option(e))
   def this(va : VariableAccess) = this(va.dType.get, va.name, None)
   def this(va : VariableAccess, e : Expression) = this(va.dType.get, va.name, Option(e))
@@ -56,6 +57,8 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
       }
       case _ => {
         out << dataType.resolveDeclType << ' ' << name << dataType.resolveDeclPostscript
+        if (alignment > 1)
+          out << " __attribute__((aligned(" << alignment * 8 << ")))"
         if (expression.isDefined)
           out << " = " << expression.get
       }
@@ -407,7 +410,7 @@ case class SIMD_IncrementVectorDeclaration(var name : String) extends Statement 
 
       case "IMCI" =>
         out << " (" << SIMD_RealDatatype << ") { 0"
-        for (i <- 1 to Platform.simd_vectorSize - 1)
+        for (i <- 1 until Platform.simd_vectorSize)
           out << ", " << i
         out << " };"
 
