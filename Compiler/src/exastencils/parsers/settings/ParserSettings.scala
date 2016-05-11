@@ -37,7 +37,7 @@ class ParserSettings extends ExaParser {
       UniversalSetter(exastencils.core.Settings, ident, value)
     } catch {
       case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Settings.${ident} to ${value} but this parameter is undefined")
-      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ident} to ${value} but data types are incompatible")
+      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Settings.${ident} to ${value} but data types are incompatible")
     }
   }
 
@@ -46,7 +46,7 @@ class ParserSettings extends ExaParser {
       UniversalSetter.addToListBuffer(exastencils.core.Settings, ident, value)
     } catch {
       case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Settings.${ident} to ${value} but this parameter is undefined")
-      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ident} to ${value} but data types are incompatible")
+      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Settings.${ident} to ${value} but data types are incompatible")
     }
   }
 
