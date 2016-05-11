@@ -86,5 +86,7 @@ object Settings {
           if (!additionalLibs.contains("cudart")) additionalLibs += "cudart"
       }
     }
+    if (Platform.simd_mathLibrary == "mass_simd")
+      additionalLibs += "mass_simd"
   }
 }

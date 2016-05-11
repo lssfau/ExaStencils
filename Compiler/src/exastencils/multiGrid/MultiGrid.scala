@@ -3,6 +3,7 @@ package exastencils.multiGrid
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core.Settings
 import exastencils.core.StateManager
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -64,12 +65,16 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
   }
   if (Knowledge.opt_vectorize) {
     val header = Platform.simd_header
-    if (header != null) externalDependencies += header
+    if (header != null)
+      externalDependencies += header
+    if (Platform.simd_instructionSet == "NEON")
+      functions += NEONDivision
+    val mathLibHeader = Platform.simd_mathLibHeader
+    if (mathLibHeader != null)
+      externalDependencies ++= mathLibHeader
   }
   if (Knowledge.data_initAllFieldsWithZero)
     functions += new InitFieldsWithZero()
-  if (Knowledge.opt_vectorize && Platform.simd_instructionSet == "NEON")
-    functions += NEONDivision
 }
 
 object SIMD_MathFunctions {
@@ -108,9 +113,8 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
         defineMacro(out, func, conv)
 
       case "vectorclass" =>
-        out << "#define VCL_NAMESPACE vectorclass\n" // maybe just before the first one? but which is the first one? prettyprint could be called several times...
-        val func = "vectorclass::" + libmName
-        val conv = "vectorclass::Vec" + Platform.simd_vectorSize + (if (Knowledge.useDblPrecision) "d" else "f")
+        val func = "VCL_NAMESPACE::" + libmName
+        val conv = "VCL_NAMESPACE::Vec" + Platform.simd_vectorSize + (if (Knowledge.useDblPrecision) "d" else "f")
         defineMacro(out, func, conv)
 
       case "svml" =>
@@ -122,6 +126,11 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
             case "AVX512"       => "_mm512_" + libmName + "_p" + prec
             case _              => Logger.error("intel svml only supports SSE* and AVX*")
           }
+        val conv = "" // no conversion required
+        defineMacro(out, func, conv)
+
+      case "mass_simd" =>
+        val func = libmName + (if (Knowledge.useDblPrecision) "d" else "f") + "4"
         val conv = "" // no conversion required
         defineMacro(out, func, conv)
     }
