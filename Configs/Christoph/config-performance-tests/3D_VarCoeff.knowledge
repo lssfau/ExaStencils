@@ -47,6 +47,8 @@ l3tmp_genTimersPerLevel     = true
 l3tmp_printAllTimers        = true
 l3tmp_printError            = true
 
+l3tmp_genTemporalBlocking  = false
+
 ///////////////////
 /// Parallelism ///
 ///////////////////
