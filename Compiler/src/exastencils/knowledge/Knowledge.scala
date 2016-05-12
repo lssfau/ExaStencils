@@ -239,6 +239,7 @@ object Knowledge {
   var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
   var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
   var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
+  var l3tmp_genCommTimersPerField : Boolean = false // generates different communication timers for each field
   var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
 
   var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
