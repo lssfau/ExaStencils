@@ -536,8 +536,8 @@ case class LoopOverDimensions(var numDimensions : Int,
   }
 
   def expandSpecial : ListBuffer[Statement] = {
-    val parallelizable = Knowledge.omp_parallelizeLoopOverDimensions && (this match { case _ : OMP_PotentiallyParallel => true; case _ => false })
-    val parallelize = parallelizable && parallelizationIsReasonable
+    val parallelizable = this.isInstanceOf[OMP_PotentiallyParallel]
+    val parallelize = parallelizable && Knowledge.omp_parallelizeLoopOverDimensions && parallelizationIsReasonable
     val resolveOmpReduction = (
       parallelize
       && Knowledge.omp_enabled

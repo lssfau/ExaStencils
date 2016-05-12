@@ -36,7 +36,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       StrategyTimer.startTiming(name)
 
     // contains function name, actual loop node, (loop iterator, begin, end, and increment)*, and shortcut to its body buffer
-    val scopes = new ArrayBuffer[(String, Node, Array[(String, Expression, Expression, Long)], () => ListBuffer[Statement])]()
+    val scopes = new ArrayBuffer[(String, LoopOverDimensions, Array[(String, Expression, Expression, Long)], () => ListBuffer[Statement])]()
     var curFunc : String = null
     this.execute(new Transformation("find and extract relevant scopes", {
       case f : FunctionStatement =>
@@ -56,13 +56,19 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     Logger.debug(s"Perform common subexpression elimination on ${scopes.length} scopes...")
     val bak = Logger.getLevel
     Logger.setLevel(Logger.WARNING) // be quiet! (R)
-    for ((curFunc, parent, loopIt, body) <- scopes) {
+    for ((curFunc, parentLoop, loopIt, body) <- scopes) {
       // inline declarations with no additional write to the same variable first (CSE afterwards may find larger CSes)
-      inlineDecls(parent, body())
-      val njuScopes : Seq[ListBuffer[Statement]] = loopCarriedCSE(curFunc, body(), loopIt)
-      conventionalCSE(curFunc, body())
-      for (njuBody <- njuScopes)
-        conventionalCSE(curFunc, njuBody)
+      inlineDecls(parentLoop, body())
+      val njuScopes : Seq[ListBuffer[Statement]] =
+        if (Knowledge.opt_loopCarriedCSE && parentLoop.condition.isEmpty)
+          loopCarriedCSE(curFunc, body(), loopIt)
+        else
+          Nil
+      if (Knowledge.opt_conventionalCSE) {
+        conventionalCSE(curFunc, body())
+        for (njuBody <- njuScopes)
+          conventionalCSE(curFunc, njuBody)
+      }
       removeAnnotations(body())
     }
     Logger.setLevel(bak) // restore verbosity
@@ -118,7 +124,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 
   private def loopCarriedCSE(curFunc : String, body : ListBuffer[Statement], loopIt : Array[(String, Expression, Expression, Long)]) : Seq[ListBuffer[Statement]] = {
-    if (!Knowledge.opt_loopCarriedCSE || loopIt == null || loopIt.forall(_ == null))
+    if (loopIt == null || loopIt.forall(_ == null))
       return Nil
 
     // first, number all nodes for overlap-test later
@@ -209,6 +215,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
               new AdditionExpression(strLit, IntegerConstant(loopIncr))
           }, false), Some(csNext))
           csNext = SimplifyExpression.simplifyFloatingExpr(csNext)
+          val csNextWrap = ExpressionStatement(csNext)
+          SimplifyStrategy.doUntilDoneStandalone(csNextWrap, true)
+          csNext = csNextWrap.expression
 
           // FIXME: fix datatypes
           val decl : VariableDeclarationStatement = commonExp.declaration
@@ -268,8 +277,8 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 
   private def conventionalCSE(curFunc : String, body : ListBuffer[Statement]) : Unit = {
-    var repeat : Boolean = Knowledge.opt_conventionalCSE
-    while (repeat) {
+    var repeat : Boolean = false
+    do {
       val coll = new CollectBaseCSes(curFunc)
       this.register(coll)
       this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(Scope(body)))
@@ -281,7 +290,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         findCommonSubs(curFunc, commonSubs)
         repeat = updateAST(body, commonSubs)
       }
-    }
+    } while (repeat)
   }
 
   private def findCommonSubs(curFunc : String, commonSubs : HashMap[Node, Subexpression]) : Unit = {
@@ -336,11 +345,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
               Logger.warn("  wat?! node type is no Product:  " + par)
           }
 
-      for ((key, value) <- njuCommSubs.view.filter { case (_, sExpr) => sExpr.getPositions().size > 1 }) {
-        val old = commonSubs.get(key)
-        if (old.isEmpty)
+      for ((key, value) <- njuCommSubs.view.filter { case (_, sExpr) => sExpr.getPositions().size > 1 })
+        if (!commonSubs.contains(key))
           commonSubs.put(key, value)
-      }
       njuCommSubs.clear()
       processedChildren.clear() // we can clear the set of processed nodes, they cannot appear in nju again (this keeps the size of the map small)
     }

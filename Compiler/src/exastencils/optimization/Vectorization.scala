@@ -4,34 +4,46 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
-import exastencils.core._
+import exastencils.core.Duplicate
+import exastencils.cuda
 import exastencils.datastructures._
-import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.knowledge._
-import exastencils.logger._
-import exastencils.omp._
+import exastencils.knowledge.Knowledge
+import exastencils.knowledge.Platform
+import exastencils.logger.Logger
+import exastencils.multiGrid.SIMD_MathFunctions
 import exastencils.strategies.SimplifyStrategy
-import exastencils.util._
+import exastencils.util.SimplifyExpression
 
 object Vectorization extends DefaultStrategy("Vectorization") {
 
   final val VECT_ANNOT = "VECT"
 
-  this += new Transformation("optimize", VectorizeInnermost)
+  this += new Transformation("optimize", VectorizeInnermost, false)
 }
 
-private final case class VectorizationException(msg : String) extends Exception(msg)
+final class VectorizationException(val msg : String) extends Exception(msg)
 
-private final object VectorizeInnermost extends PartialFunction[Node, Transformation.OutputType] {
+private object VectorizeInnermost extends PartialFunction[Node, Transformation.OutputType] {
 
-  private final val DEBUG : Boolean = false
+  private val DEBUG : Boolean = false
+
+  private var skipSubTree : Boolean = false
 
   override def isDefinedAt(node : Node) : Boolean = {
+    // do not vectorize device code!
+    node match {
+      case _ : cuda.Kernel               => skipSubTree = true
+      case _ : AbstractFunctionStatement => skipSubTree = false
+      case _                             => // no change in skipSubTree
+    }
+    if (skipSubTree)
+      return false
+
     node.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
     return node match {
       case loop : ForLoopStatement with OptimizationHint =>
-        loop.isInnermost && loop.isParallel
+        loop.isInnermost && loop.isParallel && !loop.hasAnnotation(Vectorization.VECT_ANNOT)
       case _ =>
         false
     }
@@ -92,13 +104,13 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
     val preLoopStmts = new ListBuffer[Statement]()
 
-    private final val temporaryMapping = new HashMap[Expression, String]
-    private final val temporaryProperties = new HashMap[String, (Boolean, Boolean)]
+    private val temporaryMapping = new HashMap[Expression, String]
+    private val temporaryProperties = new HashMap[String, (Boolean, Boolean)]
     private var isStore_ : Boolean = false
     private var varID : Int = -1
     private var incrVectDeclared : Boolean = false
     private var alignedResidue : Long = -1
-    private final val nameTempl : String = "_vec%02d"
+    private val nameTempl : String = "_vec%02d"
 
     def getName(expr : Expression) : (String, Boolean) = {
       var nju : Boolean = false
@@ -209,7 +221,7 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           case AssignmentStatement(acc @ ArrayAccess(_, index, true), _, _) =>
             val annot = acc.getAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
             val ind : Expression = if (annot.isDefined) annot.get.asInstanceOf[Expression] else index
-            val const : Long = SimplifyExpression.extractIntegralSum(ind).get(SimplifyExpression.constName).getOrElse(0L)
+            val const : Long = SimplifyExpression.extractIntegralSum(ind).getOrElse(SimplifyExpression.constName, 0L)
             val residue : Long = (const % vs + vs) % vs
             ctx.setAlignedResidue(residue)
             alignmentExpr = ind
@@ -358,6 +370,14 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
           ctx.vectStmts += ctx.storesTmp
         ctx.storesTmp = null
 
+      case VariableDeclarationStatement(dataType, name, Some(init)) =>
+        ctx.vectStmts += new CommentStatement(stmt.prettyprint())
+        val initWrap = new ExpressionStatement(Duplicate(init))
+        SimplifyStrategy.doUntilDoneStandalone(initWrap)
+        val initVec = vectorizeExpr(initWrap.expression, ctx.setLoad())
+        val (vecTmp : String, true) = ctx.getName(new VariableAccess(name, Some(dataType)))
+        ctx.vectStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, Some(initVec))
+
       case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.prettyprint())
     }
   }
@@ -375,7 +395,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             expr match {
               case VariableAccess(name, Some(IntegerDatatype)) =>
                 if (name == ctx.itName) {
-                  if (value != 1L || ctx.incr != 1L) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
+                  if (value != 1L || ctx.incr != 1L)
+                    throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
                   access1 = false
                 }
 
@@ -383,7 +404,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 VariableAccess(name, Some(IntegerDatatype)),
                 IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
-                  if (value != 1L || ctx.incr != divs) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
+                  if (value != 1L || ctx.incr != divs)
+                    throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
                   access1 = false
                 }
 
@@ -391,7 +413,8 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 AdditionExpression(ListBuffer(VariableAccess(name, Some(IntegerDatatype)), IntegerConstant(_))),
                 IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
-                  if (value != 1L || ctx.incr != divs) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
+                  if (value != 1L || ctx.incr != divs)
+                    throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
                   access1 = false
                 }
 
@@ -399,12 +422,14 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
                 AdditionExpression(ListBuffer(IntegerConstant(_), VariableAccess(name, Some(IntegerDatatype)))),
                 IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
-                  if (value != 1L || ctx.incr != divs) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
+                  if (value != 1L || ctx.incr != divs)
+                    throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
                   access1 = false
                 }
 
               case _ =>
-                if (containsVarAcc(expr, ctx.itName)) throw new VectorizationException("no linear memory access;  " + expr.prettyprint())
+                if (containsVarAcc(expr, ctx.itName))
+                  throw new VectorizationException("no linear memory access;  " + index.prettyprint())
             }
 
           val vs = Platform.simd_vectorSize
@@ -439,26 +464,24 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
             if (ctx.isStore()) throw new VectorizationException("iteration variable is modified inside the loop body...")
             ctx.vectStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
               new SIMD_AdditionExpression(new SIMD_Scalar2VectorExpression(new VariableAccess(name, dType)), ctx.getIncrVector()))
-
           } else
-            ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
-              SIMD_Scalar2VectorExpression(VariableAccess(name, dType)))
+            ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(VariableAccess(name, dType)))
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
       case FloatConstant(value) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_FloatConstant(value))
+          ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_FloatConstant(value))
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
       case IntegerConstant(value) => // TODO: ensure type safety
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_FloatConstant(value))
+          ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_FloatConstant(value))
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
-      case NegativeExpression(expr) =>
-        SIMD_NegateExpression(vectorizeExpr(expr, ctx))
+      case NegativeExpression(nExpr) =>
+        SIMD_NegateExpression(vectorizeExpr(nExpr, ctx))
 
       case AdditionExpression(sums) =>
         if (sums.isEmpty)
@@ -489,6 +512,16 @@ private final object VectorizeInnermost extends PartialFunction[Node, Transforma
 
       case DivisionExpression(left, right) =>
         SIMD_DivisionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+
+      case FunctionCallExpression(func, args) if (SIMD_MathFunctions.isAllowed(func)) =>
+        FunctionCallExpression(SIMD_MathFunctions.addUsage(func), args.map { arg => vectorizeExpr(arg, ctx) })
+
+      case mAcc : MemberAccess =>
+        val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
+        if (njuTmp)
+          ctx.preLoopStmts += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
+            SIMD_Scalar2VectorExpression(mAcc))
+        new VariableAccess(vecTmp, SIMD_RealDatatype)
 
       case _ =>
         throw new VectorizationException("cannot deal with " + expr.getClass() + "; " + expr.prettyprint())
