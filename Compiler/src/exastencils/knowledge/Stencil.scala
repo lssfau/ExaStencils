@@ -116,37 +116,85 @@ case class StencilFieldSelection(
 
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   var changed : Boolean = false
+
+  def transformMultiplication(exp : MultiplicationExpression) : MultiplicationExpression = {
+    val facts : ListBuffer[Expression] = exp.factors
+    var result = new ListBuffer[Expression]()
+    var prev : Expression = null
+
+    // check for StencilLike * FieldLike
+    result = ListBuffer[Expression]()
+    prev = null
+    for (f <- facts)
+      (prev, f) match {
+        case (StencilAccess(stencil), fieldAccess : FieldAccess) =>
+          result += StencilConvolution(stencil, fieldAccess)
+          prev = null
+        case (stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
+          result += StencilFieldConvolution(stencilFieldAccess, fieldAccess)
+          prev = null
+        case _ =>
+          if (prev != null) result += prev
+          prev = f
+      }
+    if (prev != null)
+      result += prev
+    changed |= facts.length != result.length
+    if (facts.length != result.length)
+      return MultiplicationExpression(result)
+
+    // check for StencilLike * Stencil
+    result = ListBuffer[Expression]()
+    prev = null
+    for (f <- facts)
+      (prev, f) match {
+        case (StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
+          result += StencilStencilConvolution(stencilLeft, stencilRight)
+          prev = null
+        case (stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
+          result += StencilFieldStencilConvolution(stencilLeft, stencilRight)
+          prev = null
+        case _ =>
+          if (prev != null) result += prev
+          prev = f
+      }
+    if (prev != null)
+      result += prev
+    changed |= facts.length != result.length
+    if (facts.length != result.length)
+      return MultiplicationExpression(result)
+
+    // check for other convolutions
+    result = ListBuffer[Expression]()
+    prev = null
+    for (f <- facts)
+      (prev, f) match {
+        case (StencilAccess(stencilLeft), stencilRight : StencilFieldAccess) =>
+          ??? // TODO
+        case (stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) =>
+          ??? // TODO
+        case _ =>
+          if (prev != null) result += prev
+          prev = f
+      }
+    if (prev != null)
+      result += prev
+    changed |= facts.length != result.length
+    if (facts.length != result.length)
+      return MultiplicationExpression(result)
+
+    exp
+  }
+
   this += new Transformation("SearchAndMark", {
-    case MultiplicationExpression(facts) =>
-      val result = new ListBuffer[Expression]()
-      var prev : Expression = null
-      for (f <- facts)
-        (prev, f) match {
-          case (StencilAccess(stencil), fieldAccess : FieldAccess) =>
-            result += StencilConvolution(stencil, fieldAccess)
-            prev = null
-          case (stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
-            result += StencilFieldConvolution(stencilFieldAccess, fieldAccess)
-            prev = null
-          case (StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
-            result += StencilStencilConvolution(stencilLeft, stencilRight)
-            prev = null
-          case (stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
-            result += StencilFieldStencilConvolution(stencilLeft, stencilRight)
-            prev = null
-          case (StencilAccess(stencilLeft), stencilRight : StencilFieldAccess) =>
-            ??? // TODO
-          case (stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) =>
-            ??? // TODO
-          case _ =>
-            if (prev != null)
-              result += prev
-            prev = f
-        }
-      if (prev != null)
-        result += prev
-      changed |= facts.length != result.length
-      new MultiplicationExpression(result)
+    case exp : MultiplicationExpression => {
+      val newMult = transformMultiplication(exp)
+      newMult.factors.size match {
+        case 0 => NullExpression
+        case 1 => newMult.factors(0)
+        case _ => newMult
+      }
+    }
   })
 }
 
