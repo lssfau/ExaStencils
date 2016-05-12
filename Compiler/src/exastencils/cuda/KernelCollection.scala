@@ -17,7 +17,7 @@ import scala.language.postfixOps
 
 case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "MultiGrid/MultiGrid.h")) {
+  ListBuffer("Globals/Globals.h")) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"

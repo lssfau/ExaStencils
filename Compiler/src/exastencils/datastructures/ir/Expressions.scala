@@ -348,6 +348,8 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
   def +(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ + _)
   def -(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ - _)
 
+  def ==(other : MultiIndex) : Boolean = indices.sameElements(other.indices)
+
   // expose array functions
   override def iterator() : scala.collection.Iterator[Expression] = indices.iterator
 

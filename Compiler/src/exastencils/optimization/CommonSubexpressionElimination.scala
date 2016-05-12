@@ -215,6 +215,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
               new AdditionExpression(strLit, IntegerConstant(loopIncr))
           }, false), Some(csNext))
           csNext = SimplifyExpression.simplifyFloatingExpr(csNext)
+          val csNextWrap = ExpressionStatement(csNext)
+          SimplifyStrategy.doUntilDoneStandalone(csNextWrap, true)
+          csNext = csNextWrap.expression
 
           // FIXME: fix datatypes
           val decl : VariableDeclarationStatement = commonExp.declaration
@@ -342,11 +345,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
               Logger.warn("  wat?! node type is no Product:  " + par)
           }
 
-      for ((key, value) <- njuCommSubs.view.filter { case (_, sExpr) => sExpr.getPositions().size > 1 }) {
-        val old = commonSubs.get(key)
-        if (old.isEmpty)
+      for ((key, value) <- njuCommSubs.view.filter { case (_, sExpr) => sExpr.getPositions().size > 1 })
+        if (!commonSubs.contains(key))
           commonSubs.put(key, value)
-      }
       njuCommSubs.clear()
       processedChildren.clear() // we can clear the set of processed nodes, they cannot appear in nju again (this keeps the size of the map small)
     }

@@ -22,10 +22,7 @@ import exastencils.strategies._
 import exastencils.util._
 
 object Main {
-  def main(args : Array[String]) : Unit = {
-    // for runtime measurement
-    val start : Long = System.nanoTime()
-
+  def initialize(args : Array[String]) = {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
 
@@ -57,8 +54,6 @@ object Main {
         platformParser.parseFile(args(2))
     }
 
-    //    try {
-
     // validate knowledge, etc.
     Knowledge.update()
     Settings.update()
@@ -79,9 +74,17 @@ object Main {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")
+  }
 
-    // L1
+  def shutdown() = {
+    if (Settings.timeStrategies)
+      StrategyTimer.print
 
+    if (Settings.produceHtmlLog)
+      Logger_HTML.finish
+  }
+
+  def handleL1() = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 1")
 
@@ -89,9 +92,9 @@ object Main {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 1")
+  }
 
-    // L2
-
+  def handleL2() = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 2")
 
@@ -109,9 +112,9 @@ object Main {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 2")
+  }
 
-    // L3
-
+  def handleL3() = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 3")
 
@@ -124,9 +127,9 @@ object Main {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 3")
+  }
 
-    // L4
-
+  def handleL4() = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
@@ -170,7 +173,9 @@ object Main {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")
+  }
 
+  def handleIR() = {
     // add some more nodes
     AddDefaultGlobals.apply()
     SetupDataStructures.apply()
@@ -322,32 +327,33 @@ object Main {
 
     if (Knowledge.generateFortranInterface)
       Fortranify.apply()
+  }
 
+  def print() = {
     Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
     PrintStrategy.apply()
     PrettyprintingManager.finish
+  }
+
+  def main(args : Array[String]) : Unit = {
+    // for runtime measurement
+    val start : Long = System.nanoTime()
+
+    initialize(args)
+
+    handleL1()
+    handleL2()
+    handleL3()
+    handleL4()
+    handleIR()
+
+    print()
 
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
     (new CountingStrategy("number of printed nodes")).apply()
 
-    if (Settings.timeStrategies)
-      StrategyTimer.print
-
-    //    } catch {
-    //      case t : Throwable =>
-    //        Logger.dbg("An error occured: ")
-    //        var tt = t
-    //        while (tt != null) {
-    //          val sw = new StringWriter
-    //          tt.printStackTrace(new PrintWriter(sw))
-    //          Logger.warn("Stack trace:\n" + sw.toString)
-    //          tt = tt.getCause
-    //        }
-    //    }
-
-    if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+    shutdown()
   }
 }

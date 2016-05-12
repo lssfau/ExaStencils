@@ -76,10 +76,13 @@ object Platform {
 
   /// hardware options
 
+  var hw_numNodesAvailable : Int = 1 // available resources
+  var hw_numNodes : Int = 1 // actually used resources
+
   var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
   def hw_numCoresPerNode : Int = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
   def hw_numHWThreadsPerNode : Int = hw_cpu_numHWThreads * hw_cpu_numCPUs
-  var hw_numNodes : Int = 1
+
   var hw_cpu_name : String = "Intel Xeon E5620"
   var hw_cpu_numCoresPerCPU : Int = 4
   var hw_cpu_numHWThreads : Int = 8 // number of hardware threads per cpu

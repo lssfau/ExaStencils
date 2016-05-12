@@ -239,6 +239,7 @@ object Knowledge {
   var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
   var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
   var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
+  var l3tmp_genCommTimersPerField : Boolean = false // generates different communication timers for each field
   var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
 
   var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
@@ -255,7 +256,7 @@ object Knowledge {
   var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
   var l3tmp_genVectorFields : Boolean = false // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
   var l3tmp_numVecDims : Int = (if (l3tmp_genVectorFields) 2 else 1) // number of components the PDE is to be solved for
-  var l3tmp_genFragLoops : Boolean = true // adds fragment loops to the L4 DSL file
+  var l3tmp_genFragLoops : Boolean = false // adds fragment loops to the L4 DSL file
   var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
   var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization

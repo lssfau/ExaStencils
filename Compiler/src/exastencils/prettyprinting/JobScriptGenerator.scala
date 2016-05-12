@@ -15,7 +15,8 @@ object JobScriptGenerator {
 
         val printer = PrettyprintingManager.getPrinter("runJuQueen")
         printer <<< s"#@ shell = /bin/bash"
-        printer <<< s"#@ job_name = GENERATED_$numNodes"
+        //printer <<< s"#@ job_name = GENERATED_$numNodes"
+        printer <<< s"#@ job_name = ${Settings.configName}"
         printer <<< "#@ error = $(job_name).$(jobid).out"
         printer <<< "#@ output = $(job_name).$(jobid).out"
         printer <<< s"#@ environment = COPY_ALL"
@@ -41,7 +42,7 @@ object JobScriptGenerator {
         printer <<< ""
 
         // TODO: tune the next 4 parameters
-        val srcFolder = "$HOME/Exa" + (if ("" != Settings.configName) "/Generated_" + Settings.configName else "")
+        val srcFolder = "$HOME/Exa" + (if ("" != Settings.configName) "/" + Settings.configName else "")
         val srcBinary = Settings.binary
         val destFolder = "$WORK/ExaTemp"
         val destBinary = Settings.binary + (if ("" != Settings.configName) "_" + Settings.configName else "")
