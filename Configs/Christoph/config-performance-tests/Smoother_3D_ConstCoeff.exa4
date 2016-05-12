@@ -54,10 +54,19 @@ Function InitFields ( ) : Unit {
 }
 
 Function BenchmarkT() : Unit {
-	print('Cache warmup')
+	print('Perform one smoother step for cache warmup')
 	repeat 1 times {
 		SmootherT()
 	}
+
+    print('Start measuring 10 smoother runs...')
+    startTimer (smoother)
+    repeat 10 times { // marker
+        SmootherT()
+    }
+    stopTimer(smoother)
+    print ('Total time spent on smoothing: ', getTotalFromTimer(smoother))
+    print()
 	print('Starting benchmark (temporal blocking)')
 	startTimer(benchTTimer)
 	repeat 10 times { // marker
