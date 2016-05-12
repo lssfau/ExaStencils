@@ -380,17 +380,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     live = live.intersect(scop.domain)
     live = live.coalesce()
 
-    if (!scop.domain.isEqual(live)) { // the new one could be more complex, so keep old ;)
-      scop.domain = live.coalesce()
-
-      // update schedule and dependencies
-      scop.schedule = scop.schedule.intersectDomain(scop.domain)
-      if (scop.deps.flow != null)
-        scop.deps.flow = scop.deps.flow.intersectDomain(scop.domain).intersectRange(scop.domain)
-      if (scop.deps.antiOut != null)
-        scop.deps.antiOut = scop.deps.antiOut.intersectDomain(scop.domain).intersectRange(scop.domain)
-      scop.deps.mapInputLazy { input => input.intersectDomain(scop.domain) }
-    }
+    if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old if possible
+      scop.domain = live
   }
 
   private def handleReduction(scop : Scop) : Unit = {
