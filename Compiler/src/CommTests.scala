@@ -6,6 +6,19 @@ import exastencils.constraints.Constraints
 object CommTests {
   var numDims = 2
 
+  // memory estimation:
+  // CC 2D/3D
+  // 2+2=4 fields
+  // 8*4*2^(3*level) * 4/3 Bytes
+  // 16384/64-50 = 200 MB avail
+  // 3D: 128^3 grid points per dim/frag
+  // => ~90MB pro rank
+  // with fragLenTotal == 2 => ~180MB pro rank
+  // 2D: 2048^2 grid points per dim/frag
+  // => ~180MB pro rank
+  //
+  // 2^22 grid points per frag == ~16M points per core == ~256M points per node
+
   def initFixedSettingsParams = {
     var fixedParams = Map[String, Any]()
 
