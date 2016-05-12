@@ -28,7 +28,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     externalDependencies += "cuda_runtime.h"
   }
 
-  var kernelCollection = ListBuffer[ExpKernel]()
+  var kernelCollection = ListBuffer[Kernel]()
   var requiredRedKernels = mutable.HashSet[String]()
   var counterMap = mutable.HashMap[String, Int]()
 
@@ -39,11 +39,11 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   }
 
   def addKernel(kernel : Kernel) = {
-    //kernelCollection += kernel
+    kernelCollection += kernel
   }
 
   def addKernel(kernel : ExpKernel) = {
-    kernelCollection += kernel
+    //kernelCollection += kernel
   }
 
   def convertToFunctions() = {
@@ -355,6 +355,8 @@ case class ExpKernel(var identifier : String,
   var evaluatedIndexBounds = false
   var minIndices = Array[Expression]()
   var maxIndices = Array[Expression]()
+  var minIndicesWrapper = Array[Expression]()
+  var maxIndicesWrapper = Array[Expression]()
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -393,31 +395,25 @@ case class ExpKernel(var identifier : String,
     if (!evaluatedIndexBounds) {
       minIndices = (0 until executionConfigurationDimensionality).map(dim =>
         try {
-          SimplifyExpression.evalIntegralExtremaToIntegerConstant(lowerBounds(dim))._1
+          SimplifyExpression.evalExpressionExtrema(lowerBounds(dim))._1
         } catch {
-          case _ : EvaluationException =>
-            try {
-              SimplifyExpression.evalIntegralExtremaToIntegerConstant(lowerBounds(dim))._1
-            } catch {
-              case _ : EvaluationException =>
-                Logger.warn(s"Start index for dimension $dim (${lowerBounds(dim)}) could not be evaluated")
-                new IntegerConstant(0)
-            }
+          case e : EvaluationException =>
+            Logger.warn(s"Start index for dimension $dim (${lowerBounds(dim)}) could not be evaluated")
+            e.printStackTrace()
+            new IntegerConstant(0)
         }).toArray
+      minIndicesWrapper = Duplicate(minIndices)
 
       maxIndices = (0 until executionConfigurationDimensionality).map(dim =>
         try {
-          SimplifyExpression.evalIntegralExtremaToIntegerConstant(upperBounds(dim))._2
+          SimplifyExpression.evalExpressionExtrema(upperBounds(dim))._2
         } catch {
-          case _ : EvaluationException =>
-            try {
-              SimplifyExpression.evalIntegralExtremaToIntegerConstant(upperBounds(dim))._2
-            } catch {
-              case _ : EvaluationException =>
-                Logger.warn(s"End index for dimension $dim (${upperBounds(dim)}) could not be evaluated")
-                new IntegerConstant(0)
-            }
+          case e : EvaluationException =>
+            Logger.warn(s"End index for dimension $dim (${upperBounds(dim)}) could not be evaluated")
+            e.printStackTrace()
+            new IntegerConstant(0)
         }).toArray
+      maxIndicesWrapper = Duplicate(maxIndices)
 
       evaluatedIndexBounds = true
     }
@@ -441,7 +437,7 @@ case class ExpKernel(var identifier : String,
         Some(MemberAccess(VariableAccess("blockIdx", Some(SpecialDatatype("dim3"))), it) *
           MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it) +
           MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), it) +
-          lowerBounds(dim)))
+          minIndices(dim)))
     })
 
     // add dimension index start and end point
@@ -451,8 +447,8 @@ case class ExpKernel(var identifier : String,
     })
 
     (0 until executionConfigurationDimensionality).foreach(dim => {
-      statements += VariableDeclarationStatement(IntegerDatatype, bounds(dim)_1, Some(lowerBounds(dim)))
-      statements += VariableDeclarationStatement(IntegerDatatype, bounds(dim)_2, Some(upperBounds(dim)))
+      statements += VariableDeclarationStatement(IntegerDatatype, bounds(dim)_1, Some(minIndices(dim)))
+      statements += VariableDeclarationStatement(IntegerDatatype, bounds(dim)_2, Some(maxIndices(dim)))
     })
 
     statements ++= (0 until executionConfigurationDimensionality).map(dim => {
@@ -486,6 +482,14 @@ case class ExpKernel(var identifier : String,
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
     evalAccesses() // ensure that field accesses have been mapped
 
+    ReplacingLoopVariablesInWrapper.loopVariables.clear
+    ReplacingLoopVariablesInWrapper.loopVariables = loopVariables
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(minIndicesWrapper)
+    ReplacingLoopVariablesInWrapper.applyStandalone(minIndicesWrapper)
+
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(maxIndicesWrapper)
+    ReplacingLoopVariablesInWrapper.applyStandalone(maxIndicesWrapper)
+
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
 
@@ -508,7 +512,7 @@ case class ExpKernel(var identifier : String,
       callArgs += Duplicate(variableAccess)
     }
 
-    var numThreadsPerDim : Array[Expression] = (maxIndices, minIndices).zipped.map((x, y) => new SubtractionExpression(x, y) : Expression)
+    var numThreadsPerDim : Array[Expression] = (maxIndicesWrapper, minIndicesWrapper).zipped.map((x, y) => new SubtractionExpression(x, y) : Expression)
 
     if (null == numThreadsPerDim) {
       Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
@@ -518,7 +522,7 @@ case class ExpKernel(var identifier : String,
     var body = ListBuffer[Statement]()
 
     if (reduction.isDefined) {
-      def bufSize = new MultiplicationExpression(ListBuffer[Expression](numThreadsPerDim: _ *))
+      def bufSize = new MultiplicationExpression(ListBuffer[Expression](numThreadsPerDim : _*))
       def bufAccess = iv.ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.dType.get)
       body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
@@ -540,8 +544,8 @@ case class ExpKernel(var identifier : String,
   }
 
   def compileKernelFunction : FunctionStatement = {
-    completeKernelBody()
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
+    completeKernelBody()
     evalAccesses() // ensure that field accesses have been mapped
 
     // compile parameters for device function
@@ -684,5 +688,15 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
     case StringLiteral(v @ value) if loopVariables.contains(v) =>
       val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(v))
       VariableAccess(newName, Some(IntegerDatatype))
+  })
+}
+
+object ReplacingLoopVariablesInWrapper extends QuietDefaultStrategy("Replacing loop variables in wrapper execution configuration with provided bounds expressions") {
+  var loopVariables = ListBuffer[String]()
+  var bounds = Array[Expression]()
+
+  this += new Transformation("Searching", {
+    case StringLiteral(v @ value) if loopVariables.contains(v) =>
+      bounds(loopVariables.indexOf(v))
   })
 }

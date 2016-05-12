@@ -359,9 +359,10 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
       val index = new MultiIndex((0 until kernel.executionConfigurationDimensionality).map(dim =>
         new VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
 
-      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map(_ - _)
+      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => new SubtractionExpression(x, y) : Expression)
+
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
-      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(stride.product), index, new MultiIndex(stride))
+      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(new MultiplicationExpression(ListBuffer[Expression](stride : _*))), index, new MultiIndex(stride))
       ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
       kernel
     case kernel : Kernel if kernel.reduction.isDefined =>

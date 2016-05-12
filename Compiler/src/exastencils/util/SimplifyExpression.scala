@@ -97,76 +97,71 @@ object SimplifyExpression {
   }
 
   /**
-   * Completely evaluates an integral expression and computes a lower bound and an upper bound
-   *   for its value depending on the minOffset and maxOffset in potential OffsetIndex nodes.
-   * Only IntegerConstants are allowed! (Except for the offset field in OffsetIndex, which is not evaluated at all.)
-   * Other scalar constants or variable accesses lead to an EvaluationException.
-   */
-  def evalIntegralExtremaToIntegerConstant(expr : Expression) : (IntegerConstant, IntegerConstant) = expr match {
-    case c : IntegerConstant =>
-      (c, c)
-
-    case AdditionExpression(sums : ListBuffer[Expression]) =>
-      sums.view.map(s => evalIntegralExtremaToIntegerConstant(s)).reduce { (x, y) =>
-        (new IntegerConstant(x._1.v + y._1.v), new IntegerConstant(x._2.v + y._2.v))
-      }
-
-    case SubtractionExpression(l : Expression, r : Expression) =>
-      val x = evalIntegralExtremaToIntegerConstant(l)
-      val y = evalIntegralExtremaToIntegerConstant(r)
-      (new IntegerConstant(x._1.v - y._2.v), new IntegerConstant(x._2.v - y._1.v))
-
-    case MultiplicationExpression(facs : ListBuffer[Expression]) =>
-      facs.view.map(s => evalIntegralExtremaToIntegerConstant(s)).reduce { (x, y) =>
-        val a = x._1.v * y._1.v
-        val b = x._1.v * y._2.v
-        val c = x._2.v * y._1.v
-        val d = x._2.v * y._2.v
-        (new IntegerConstant(a min b min c min d), new IntegerConstant(a max b max c max d))
-      }
-
-    case DivisionExpression(l : Expression, r : Expression) =>
-      val x = evalIntegralExtremaToIntegerConstant(l)
-      val y = evalIntegralExtremaToIntegerConstant(r)
-      val a = x._1.v / y._1.v
-      val b = x._1.v / y._2.v
-      val c = x._2.v / y._1.v
-      val d = x._2.v / y._2.v
-      (new IntegerConstant(a min b min c min d), new IntegerConstant(a max b max c max d))
-
-    case ModuloExpression(l : Expression, r : Expression) =>
-      val x = evalIntegralExtremaToIntegerConstant(l)
-      val y = evalIntegralExtremaToIntegerConstant(r)
-      val a = x._1.v % y._1.v
-      val b = x._1.v % y._2.v
-      val c = x._2.v % y._1.v
-      val d = x._2.v % y._2.v
-      (new IntegerConstant(a min b min c min d), new IntegerConstant(a max b max c max d))
-
-    case MinimumExpression(l : ListBuffer[Expression]) =>
-      l.view.map(e => evalIntegralExtremaToIntegerConstant(e)).reduce { (x, y) =>
-        (new IntegerConstant(x._1.v min y._1.v), new IntegerConstant(x._2.v min y._2.v))
-      }
-
-    case MaximumExpression(l : ListBuffer[Expression]) =>
-      l.view.map(e => evalIntegralExtremaToIntegerConstant(e)).reduce { (x, y) =>
-        (new IntegerConstant(x._1.v max y._1.v), new IntegerConstant(x._2.v max y._2.v))
-      }
-
-    case OffsetIndex(minOffset, maxOffset, index, _) =>
-      val x = evalIntegralExtremaToIntegerConstant(index)
-      (new IntegerConstant(x._1.v + minOffset), new IntegerConstant(x._2.v + maxOffset))
-
-    case _ =>
-      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
-  }
-
-  /**
    * Evaluates an expression as far as possible and computes a lower bound and an upper bound for its value.
    */
   def evalExpressionExtrema(expr : Expression) : (Expression, Expression) = expr match {
+    case c : IntegerConstant =>
+      (c, c)
+
+    case s : StringLiteral =>
+      (s, s)
+
     case a @ ArrayAccess(i : IterationOffsetBegin, c : IntegerConstant, _) =>
       (a, a)
+
+    case a @ ArrayAccess(i : IterationOffsetEnd, c : IntegerConstant, _) =>
+      (a, a)
+
+    case AdditionExpression(sums : ListBuffer[Expression]) =>
+      sums.view.map(s => evalExpressionExtrema(s)).reduce { (x, y) =>
+        (new AdditionExpression(x._1, y._1), new AdditionExpression(x._2, y._2))
+      }
+
+    case SubtractionExpression(l : Expression, r : Expression) =>
+      val x = evalExpressionExtrema(l)
+      val y = evalExpressionExtrema(r)
+      (new SubtractionExpression(x._1, y._2), new SubtractionExpression(x._2, y._1))
+
+    case MultiplicationExpression(facs : ListBuffer[Expression]) =>
+      facs.view.map(s => evalExpressionExtrema(s)).reduce { (x, y) =>
+        val a = new MultiplicationExpression(x._1, y._1)
+        val b = new MultiplicationExpression(x._1, y._2)
+        val c = new MultiplicationExpression(x._2, y._1)
+        val d = new MultiplicationExpression(x._2, y._2)
+        (new MinimumExpression(a, b, c, d), new MaximumExpression(a, b, c, d))
+      }
+
+    case DivisionExpression(l : Expression, r : Expression) =>
+      val x = evalExpressionExtrema(l)
+      val y = evalExpressionExtrema(r)
+      val a = new DivisionExpression(x._1, y._1)
+      val b = new DivisionExpression(x._1, y._2)
+      val c = new DivisionExpression(x._2, y._1)
+      val d = new DivisionExpression(x._2, y._2)
+      (new MinimumExpression(a, b, c, d), new MaximumExpression(a, b, c, d))
+
+    case ModuloExpression(l : Expression, r : Expression) =>
+      val x = evalExpressionExtrema(l)
+      val y = evalExpressionExtrema(r)
+      val a = new ModuloExpression(x._1, y._1)
+      val b = new ModuloExpression(x._1, y._2)
+      val c = new ModuloExpression(x._2, y._1)
+      val d = new ModuloExpression(x._2, y._2)
+      (new MinimumExpression(a, b, c, d), new MaximumExpression(a, b, c, d))
+
+    case MinimumExpression(l : ListBuffer[Expression]) =>
+      l.view.map(e => evalExpressionExtrema(e)).reduce { (x, y) =>
+        (new MinimumExpression(x._1, y._1), new MinimumExpression(x._2, y._2))
+      }
+
+    case MaximumExpression(l : ListBuffer[Expression]) =>
+      l.view.map(e => evalExpressionExtrema(e)).reduce { (x, y) =>
+        (new MaximumExpression(x._1, y._1), new MaximumExpression(x._2, y._2))
+      }
+
+    case OffsetIndex(minOffset, maxOffset, index, _) =>
+      val x = evalExpressionExtrema(index)
+      (new AdditionExpression(x._1, new IntegerConstant(minOffset)), new AdditionExpression(x._2, new IntegerConstant(maxOffset)))
 
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
