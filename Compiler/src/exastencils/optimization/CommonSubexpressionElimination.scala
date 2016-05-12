@@ -215,6 +215,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
               new AdditionExpression(strLit, IntegerConstant(loopIncr))
           }, false), Some(csNext))
           csNext = SimplifyExpression.simplifyFloatingExpr(csNext)
+          val csNextWrap = ExpressionStatement(csNext)
+          SimplifyStrategy.doUntilDoneStandalone(csNextWrap, true)
+          csNext = csNextWrap.expression
 
           // FIXME: fix datatypes
           val decl : VariableDeclarationStatement = commonExp.declaration
