@@ -46,5 +46,6 @@ l3tmp_numPre               = 3
 l3tmp_numPost              = 3
 l3tmp_genTemporalBlocking  = true
 l3tmp_tempBlockingMinLevel = 5
+l3tmp_genFragLoops         = true
 
 l3tmp_genForAutoTests      = true
