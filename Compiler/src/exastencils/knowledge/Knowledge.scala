@@ -468,6 +468,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1 + minLevel, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
 
       Constraints.condEnsureValue(l3tmp_numPost, l3tmp_numPre, l3tmp_genTemporalBlocking, "l3tmp_numPre and l3tmp_numPost have to be equal")
+      Constraints.condEnsureValue(l3tmp_genFragLoops, true, l3tmp_genTemporalBlocking, "l3tmp_genTemporalBlocking requires l3tmp_genFragLoops")
 
       // l3tmp - parallelization
       Constraints.condEnsureValue(l3tmp_genAsyncCommunication, false, 26 != comm_strategyFragment, "invalid comm_strategyFragment")
