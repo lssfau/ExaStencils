@@ -13,14 +13,15 @@ object MakefileGenerator extends BuildfileGenerator {
 
     printer <<< "CXX = " + Platform.resolveCompiler
     if (Knowledge.experimental_cuda_enabled)
-      printer <<< "NVCC = nvcc" // TODO: TPDL
+      printer <<< "CUDAXX = " + Platform.resolveCudaCompiler
     printer <<< ""
 
     printer <<< "CFLAGS = " + Platform.resolveCFlags + " " +
       Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
     if (Knowledge.experimental_cuda_enabled)
-      printer <<< "NVCCFLAGS = -std=c++11 -O3 -DNDEBUG -lineinfo " + Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " // TODO: TPDL
+      printer <<< "CUDAFLAGS = " + Platform.resolveCudaFlags + " " +
+        Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " // TODO: TPDL
     printer <<< "LFLAGS = " + Platform.resolveLdFlags + " " +
       Settings.pathsLib.map(path => s"-L$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
@@ -75,7 +76,7 @@ object MakefileGenerator extends BuildfileGenerator {
         printer << s"${pp.filename.replace(".cu", ".o")}: ${pp.filename} "
         PrettyprintingManager.Prettyprinter.gatherDependencies(pp).foreach(dep => printer << s"$dep ")
         printer <<< " "
-        printer <<< "\t${NVCC} ${NVCCFLAGS} -c -o " + pp.filename.replace(".cu", ".o") + " -I. " + pp.filename
+        printer <<< "\t${CUDAXX} ${CUDAFLAGS} -c -o " + pp.filename.replace(".cu", ".o") + " -I. " + pp.filename
       })
     }
 

@@ -6,6 +6,7 @@ targetCompiler             = "GCC"
 targetCompilerVersion      = 4
 targetCompilerVersionMinor = 8
 targetHardware             = "CPU"
+targetCudaCompiler         = "NVCC"
 simd_instructionSet        = "AVX"
 
 hw_cpu_name                = "Intel Xeon E5-2690 v2"

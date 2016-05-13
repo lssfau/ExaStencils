@@ -12,6 +12,8 @@ object Platform {
 
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
 
+  var targetCudaCompiler : String = "NVCC" // target cuda compiler; may be "NVCC", "PGI"
+
   def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
     targetCompiler match {
       case "MSVC"            => targetCompilerVersion >= 12
@@ -19,6 +21,7 @@ object Platform {
       case "IBMXL" | "IBMBG" => false // TODO: does it support initializer lists? since which version?
       case "ICC"             => targetCompilerVersion >= 14
       case "CLANG"           => targetCompilerVersion >= 3 // TODO: check if some minor version fails to compile
+      case "PGI"             => targetCompilerVersion >= 16
       case _                 => Logger.error("Unsupported target compiler"); false
     }
   }
@@ -113,7 +116,7 @@ object Platform {
   def resolveCompiler = {
     targetCompiler match {
       case "IBMBG" =>
-        var base = if (Knowledge.mpi_enabled) "mpixlcxx" else "bgxlc++"
+        val base = if (Knowledge.mpi_enabled) "mpixlcxx" else "bgxlc++"
         if (Knowledge.omp_enabled) base + "_r" else base
       case "IBMXL" =>
         if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
@@ -130,7 +133,27 @@ object Platform {
         if (Knowledge.mpi_enabled) "mpicxx" else "icc"
       case "CLANG" =>
         "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
+      case "PGI" =>
+        "pgc++"
     }
+  }
+
+  def resolveCudaCompiler = {
+    targetCudaCompiler match {
+      case "NVCC" => "nvcc"
+      case "PGI"  => "pgc++"
+    }
+  }
+
+  def resolveCudaFlags = {
+    var flags : String = ""
+
+    targetCudaCompiler match {
+      case "NVCC" => flags += " -std=c++11 -O3 -DNDEBUG -lineinfo"
+      case "PGI"  => flags += " -fast -Mipa=fast,inline -Mcudax86"
+    }
+
+    flags
   }
 
   def resolveCFlags = {
@@ -188,6 +211,8 @@ object Platform {
             case "IMCI"   => Logger.error("clang does not support IMCI")
           }
         }
+      case "PGI" =>
+        flags += " -fast -Mipa=fast,inline"
     }
 
     flags
@@ -215,6 +240,8 @@ object Platform {
         if (Knowledge.omp_enabled) flags += " -openmp"
       case "CLANG" =>
         if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
+      case "PGI" =>
+        flags += ""
     }
 
     flags
