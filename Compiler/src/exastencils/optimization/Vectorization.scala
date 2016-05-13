@@ -11,7 +11,7 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
 import exastencils.knowledge.Platform
 import exastencils.logger.Logger
-import exastencils.multiGrid.SIMD_MathFunctions
+import exastencils.performance.SIMD_MathFunctions
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util.SimplifyExpression
 

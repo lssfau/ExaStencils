@@ -1,16 +1,13 @@
 package exastencils.multiGrid
 
-import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.StateManager
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.performance.NEONDivision
-import exastencils.performance.SIMD_MathFunc
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 
@@ -75,26 +72,4 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
   }
   if (Knowledge.data_initAllFieldsWithZero)
     functions += new InitFieldsWithZero()
-}
-
-object SIMD_MathFunctions {
-
-  private val numberArgs = Map("exp" -> 1, "exp2" -> 1, "exp10" -> 1, "log" -> 1, "log10" -> 1, "ldexp" -> 2, "pow" -> 2, "sqrt" -> 1,
-    "sin" -> 1, "cos" -> 1, "tan" -> 1, "asin" -> 1, "acos" -> 1, "atan" -> 1, "sinh" -> 1, "cosh" -> 1, "tanh" -> 1, "atan2" -> 2)
-
-  private val functionNameMapping = new HashMap[String, String]()
-  private lazy val multigridCollection = StateManager.findFirst[MultiGridFunctions].get // there must be a MultiGridFunctions object
-
-  def isAllowed(func : String) : Boolean = {
-    return numberArgs.contains(func)
-  }
-
-  def addUsage(func : String) : String = {
-    val nrArgs = numberArgs(func) // expected fail if !isAllowed(func)
-    return functionNameMapping.getOrElseUpdate(func, {
-      val funcStmt : AbstractFunctionStatement = new SIMD_MathFunc(func, nrArgs)
-      multigridCollection.functions += funcStmt
-      funcStmt.name
-    })
-  }
 }
