@@ -24,7 +24,7 @@ import exastencils.util._
 object MainStefan {
   private var polyOptExplID : Int = 0
 
-  def initialize(args : Array[String]) = {
+  def initialize(args : Array[String]) : Unit = {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
 
@@ -80,7 +80,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Initializing")
   }
 
-  def shutdown() = {
+  def shutdown() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.print
 
@@ -88,7 +88,7 @@ object MainStefan {
       Logger_HTML.finish
   }
 
-  def handleL1() = {
+  def handleL1() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 1")
 
@@ -98,7 +98,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Handling Layer 1")
   }
 
-  def handleL2() = {
+  def handleL2() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 2")
 
@@ -118,7 +118,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Handling Layer 2")
   }
 
-  def handleL3() = {
+  def handleL3() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 3")
 
@@ -133,7 +133,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Handling Layer 3")
   }
 
-  def handleL4() = {
+  def handleL4() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
@@ -179,7 +179,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Progressing from L4 to IR")
   }
 
-  def handleIR() = {
+  def handleIR() : Unit = {
     // add some more nodes
     AddDefaultGlobals.apply()
     SetupDataStructures.apply()
@@ -333,7 +333,7 @@ object MainStefan {
       Fortranify.apply()
   }
 
-  def print() = {
+  def print() : Unit = {
     Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
     PrintStrategy.apply()
     PrettyprintingManager.finish
