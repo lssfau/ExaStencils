@@ -582,11 +582,16 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     eConfOut.println(Knowledge.poly_exploration_extended)
     eConfOut.println()
     var i : Int = 0
+    Console.println("         1k          2k          3k          4k          5k")
     Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, {
       (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int]) =>
         i += 1
         if (i % 100 == 0) {
           Console.print('.')
+          Console.flush()
+        }
+        if (i % 500 == 0) {
+          Console.print(' ')
           Console.flush()
         }
         if (i % 5000 == 0) {
