@@ -25,7 +25,7 @@ object Settings {
 
   /// output
   var outputPath : String = ""
-  def defOutputPath : String = if ("" == basePathPrefix) { if ("MSVC" == Knowledge.targetCompiler) "../generated" else "/tmp/" } else getBasePath + "generated/"
+  def defOutputPath : String = if ("" == basePathPrefix) { if ("MSVC" == Platform.targetCompiler) "../generated" else "/tmp/" } else getBasePath + "generated/"
   def getOutputPath : String = if (outputPath.isEmpty) defOutputPath else getBasePath + (if (outputPath.endsWith("/") || outputPath.endsWith("\\")) outputPath else outputPath + "/")
   var cancelIfOutFolderExists : Boolean = false
 
@@ -71,4 +71,22 @@ object Settings {
   var printNodeCountAfterTransformation : Boolean = false // print number of nodes after each transformation
   var printNodeCountAfterStrategy : Boolean = false // print number of nodes after each strategy
   var printTransformationTime : Boolean = false
+
+  def update() : Unit = {
+    // handle CUDA
+    if (Knowledge.experimental_cuda_enabled) {
+      Platform.targetOS match {
+        case "Windows" =>
+          if (!additionalLibs.contains("cuda.lib")) additionalLibs += "cuda.lib"
+          if (!additionalLibs.contains("cudart.lib")) additionalLibs += "cudart.lib"
+          if (!pathsInc.contains("$(CUDA_INC_PATH)")) pathsInc += "$(CUDA_INC_PATH)"
+          if (!pathsLib.contains("$(CUDA_LIB_PATH)")) pathsLib += "$(CUDA_LIB_PATH)"
+        case "Linux" | "OSX" =>
+          if (!additionalLibs.contains("cuda")) additionalLibs += "cuda"
+          if (!additionalLibs.contains("cudart")) additionalLibs += "cudart"
+      }
+    }
+    if (Platform.simd_mathLibrary == "mass_simd")
+      additionalLibs += "mass_simd"
+  }
 }

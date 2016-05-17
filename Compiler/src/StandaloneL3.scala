@@ -21,10 +21,9 @@ object StandaloneL3 extends App {
 
     val tcRoot = scRoot.progressToL4
 
-    val printer = new PpStream()
-    tcRoot.prettyprint(printer)
+    val printer = tcRoot.prettyprint()
 
-    println(printer.toString)
+    println(printer)
     println("Done!")
   }
 

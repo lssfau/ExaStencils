@@ -8,7 +8,7 @@ import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.prettyprinting._
 
-case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
+case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with PrettyPrintable {
 
   var domains : ListBuffer[DomainDeclarationStatement] = new ListBuffer()
   var fieldLayouts : ListBuffer[LayoutDeclarationStatement] = new ListBuffer()
@@ -20,34 +20,32 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
   var functionTemplates : ListBuffer[FunctionTemplateStatement] = new ListBuffer()
   var statements : ListBuffer[Statement] = new ListBuffer()
 
-  {
-    nodes.foreach(n => n match {
-      case p : DomainDeclarationStatement        => domains.+=(p)
-      case p : LayoutDeclarationStatement        => fieldLayouts.+=(p)
-      case p : FieldDeclarationStatement         => fields.+=(p)
-      case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
-      case p : ExternalFieldDeclarationStatement => externalFields.+=(p)
-      case p : StencilDeclarationStatement       => stencils.+=(p)
-      case p : GlobalDeclarationStatement        => globals.+=(p)
-      case p : FunctionTemplateStatement         => functionTemplates.+=(p)
-      case p : Statement                         => statements.+=(p)
-    })
+  nodes.foreach(n => n match {
+    case p : DomainDeclarationStatement        => domains.+=(p)
+    case p : LayoutDeclarationStatement        => fieldLayouts.+=(p)
+    case p : FieldDeclarationStatement         => fields.+=(p)
+    case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
+    case p : ExternalFieldDeclarationStatement => externalFields.+=(p)
+    case p : StencilDeclarationStatement       => stencils.+=(p)
+    case p : GlobalDeclarationStatement        => globals.+=(p)
+    case p : FunctionTemplateStatement         => functionTemplates.+=(p)
+    case p : Statement                         => statements.+=(p)
+  })
 
-    // set domain indices -> just number consecutively
-    var i = 0
-    for (d <- domains) {
-      d.index = i
-      i += 1
-    }
-    // set field indices -> just number consecutively
-    i = 0
-    for (f <- fields) {
-      f.index = i
-      i += 1
-    }
+  // set domain indices -> just number consecutively
+  var i = domains.size
+  for (d <- domains) {
+    d.index = i
+    i += 1
+  }
+  // set field indices -> just number consecutively
+  i = fields.size
+  for (f <- fields) {
+    f.index = i
+    i += 1
   }
 
-  def prettyprint(out : PpStream) : Unit = {
+  override def prettyprint(out : PpStream) : Unit = {
     if (!domains.isEmpty)
       out <<< domains << '\n'
     if (!fieldLayouts.isEmpty)
@@ -66,7 +64,7 @@ case class Root(nodes : List[Node]) extends Node with ProgressableToIr {
       out <<< (statements, "\n") << '\n'
   }
 
-  def progressToIr : Node = {
+  override def progressToIr : Node = {
     var newRoot = new ir.Root
 
     // Domains

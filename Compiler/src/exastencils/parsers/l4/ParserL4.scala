@@ -1,13 +1,14 @@
 package exastencils.parsers.l4
 
 import scala.collection.immutable.PagedSeq
+import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input.PagedSeqReader
 
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.parsers._
 
-class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
+class ParserL4 extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = new LexerL4()
 
   def parse(s : String) : Node = {
@@ -38,9 +39,8 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   //###########################################################
 
-  lazy val program = definition.* ^^ { case d => Root(d) }
-
-  lazy val definition = domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation
+  lazy val program = ((domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
+    ^^ { case d => Root()(d) })
 
   //###########################################################
 
@@ -200,13 +200,14 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val applyBCsStatement = locationize(("apply" ~ "bc" ~ "to") ~> genericAccess //fieldAccess
     ^^ { case field => ApplyBCsStatement(field) })
   lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ ("communicate" ||| "communicating")) ~ communicateTarget.* ~ (("of").? ~> genericAccess) //fieldAccess
-    ^^ { case op ~ targets ~ field => CommunicateStatement(field, op.getOrElse("both"), targets) })
+    ~ ("where" ~> booleanexpression).?
+    ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
     ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
-  lazy val precomm = locationize("precomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess)
-    ^^ { case targets ~ field => CommunicateStatement(field, "both", targets) })
-  lazy val postcomm = locationize("postcomm" ~> communicateTarget.* ~ (("of").? ~> genericAccess)
-    ^^ { case targets ~ field => CommunicateStatement(field, "both", targets) })
+  lazy val precomm = locationize("precomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
+    ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
+  lazy val postcomm = locationize("postcomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
+    ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
 
@@ -246,9 +247,13 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   lazy val fieldBoundary = binaryexpression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[Index] = (
-    locationize("[" ~> integerLit <~ "]" ^^ { case n1 => Index1D(n1) })
-    ||| locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 => Index2D(n1, n2) })
-    ||| locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => Index3D(n1, n2, n3) }))
+    index1d
+    ||| index2d
+    ||| index3d)
+
+  lazy val index1d = locationize("[" ~> integerLit <~ "]" ^^ { case n1 => Index1D(n1) })
+  lazy val index2d = locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 => Index2D(n1, n2) })
+  lazy val index3d = locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => Index3D(n1, n2, n3) })
 
   lazy val realIndex : PackratParser[RealIndex] = (
     locationize("[" ~> realLit <~ "]" ^^ { case n1 => RealIndex1D(n1) })
@@ -281,8 +286,11 @@ class ParserL4 extends ExaParser with scala.util.parsing.combinator.PackratParse
   // ##### Object Access
   // ######################################
 
-  lazy val slotAccess = (
-    locationize("[" ~> slotModifier <~ "]" ^^ { case s => s }))
+  lazy val componentAccess = index1d ||| index2d
+
+  lazy val slotAccess = locationize(
+    "$" ~> slotModifier ^^ { case s => s }
+      ||| "[" ~> slotModifier <~ "]" ^^ { case s => s })
 
   lazy val slotModifier = locationize("active" ^^ { case _ => SlotModifier.Active() }
     ||| "activeSlot" ^^ { case _ => SlotModifier.Active() }

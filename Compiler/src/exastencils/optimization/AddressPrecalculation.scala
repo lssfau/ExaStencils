@@ -45,7 +45,7 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
 private final class ArrayBases(val arrayName : String) {
 
   private val inits = new HashMap[HashMap[Expression, Long], (String, Expression)]()
-  private var idCount = 0
+  private var idCount = -1
 
   def getName(initVec : HashMap[Expression, Long], base : Expression, al : Boolean) : String = {
     inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
@@ -75,19 +75,27 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     return res.toString()
   }
 
-  def containsLoopVar(expr : Expression) : Boolean = {
-    object Search extends QuietDefaultStrategy("Anonymous") {
+  def containsLoopVar(expr : Expression, allowed : String = null) : Boolean = {
+    object Search extends QuietDefaultStrategy("Anonymous search") {
       var res : Boolean = false
+      var allowed : String = null
       this += new Transformation("contains loop var", {
         case strC : StringLiteral =>
-          res |= inVars.contains(strC.value)
+          val name = strC.value
+          res |= (allowed != name) && inVars.contains(name)
           strC
         case varA : VariableAccess =>
-          res |= inVars.contains(varA.name)
+          val name = varA.name
+          res |= (allowed != name) && inVars.contains(name)
           varA
+        case i : iv.InternalVariable =>
+          val name = i.resolveName
+          res |= (allowed != name) && inVars.contains(name)
+          i
       })
     }
     Search.res = false
+    Search.allowed = allowed
     Search.applyStandalone(new ReturnStatement(expr)) // wrap to ensure ALL nodes of expr are visited
     return Search.res
   }
@@ -103,11 +111,17 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       try {
         SimplifyExpression.extractIntegralSum(ind)
       } catch {
-        case EvaluationException(msg) =>
-          Logger.dbg("[APC]  cannot deal with index expression  (" + msg + ")  in  " + ind.prettyprint())
+        case ex : EvaluationException =>
+          var cause : Throwable = ex
+          while (cause.getCause() != null)
+            cause = cause.getCause()
+          val stackTraceHead = cause.getStackTrace()(0)
+          Logger.dbg("[APC]  cannot deal with index expression  (" + ex.msg + ")  in  " + ind.prettyprint() +
+            "  (" + stackTraceHead.getFileName() + ':' + stackTraceHead.getLineNumber() + ')')
           return (ind, outMap)
       }
 
+    // constant part should stay inside the loop, as this reduces the number of required pointers outside
     for ((expr, value) <- inMap)
       if (expr != SimplifyExpression.constName && !containsLoopVar(expr))
         outMap.put(expr, value)
@@ -115,23 +129,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       inMap.remove(expr)
 
     return (SimplifyExpression.recreateExprFromIntSum(inMap), outMap)
-  }
-
-  private var count : Int = 0
-
-  private def checkId(
-    curDecls : HashMap[String, (Expression, HashMap[Expression, Long])],
-    name : String,
-    outMap : HashMap[Expression, Long]) : String = {
-
-    val d : Option[(Expression, HashMap[Expression, Long])] = curDecls.get(name)
-    if (d.isEmpty || d.get._2 == outMap)
-      return name
-
-    val newName = "p_" + count
-    count += 1
-
-    return null
   }
 
   private final val SKIP_SUBTREE_ANNOT = "APCSST"
@@ -154,7 +151,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           return
         }
         val d = new HashMap[String, ArrayBases]()
-        l.inc match { // TODO: remove StringConstant
+        l.inc match { // TODO: remove StringLiteral
           case AssignmentStatement(VariableAccess(name, _), _, _) =>
             decls = d
             inVars = Set(name)
@@ -199,11 +196,10 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
       case AssignmentStatement(dst, _, _) if (decls != null && inVars != null) =>
         dst match {
-          case StringLiteral(name) => inVars += name
-          case VariableAccess(name, _) => inVars += name
-          case ArrayAccess(StringLiteral(name), _, _) => inVars += name
-          case ArrayAccess(VariableAccess(name, _), _, _) => inVars += name
-          // name of ArrayAccess(ArrayAccess(..), ..) is explicitly NOT extracted, see leave(..)
+          case _ : StringLiteral
+            | _ : VariableAccess
+            | _ : ArrayAccess
+            | _ : iv.InternalVariable => inVars += resolveName(dst)
           case _ => // nothing; expand match here, if more vars should stay inside the loop
         }
 
@@ -223,18 +219,20 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
         // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
-        for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!base.isInstanceOf[ArrayAccess] || !containsLoopVar(base)) {
-          var name : String = generateName(base)
+        for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
           val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index)
+          // if (!outMap.isEmpty) {
+          var name : String = generateName(base)
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
           name = bases.getName(outMap, base, al)
           val dType : Option[Datatype] = base match {
-            case fd : FieldData => Some(ConstPointerDatatype(fd.field.dataType.resolveUnderlyingDatatype))
+            case fd : FieldData => Some(ConstPointerDatatype(fd.field.resolveDeclType))
             case _              => None
           }
           val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)
-          newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index))
+          newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
           acc.annotate(REPL_ANNOT, newAcc)
+          // }
         }
         decls = null
         inVars = null
@@ -249,6 +247,15 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     inVars = null
     toAnalyze.clear()
   }
+
+  private def resolveName(expr : Expression) : String = {
+    expr match {
+      case ArrayAccess(base, _, _) => resolveName(base)
+      case VariableAccess(name, _) => name
+      case StringLiteral(str)      => str
+      case i : iv.InternalVariable => i.resolveName
+    }
+  }
 }
 
 private final object IntegrateAnnotations extends PartialFunction[Node, Transformation.OutputType] {
@@ -262,9 +269,9 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
 
     val repl = node.removeAnnotation(REPL_ANNOT)
     if (repl.isDefined)
-      return repl.get.value.asInstanceOf[Node]
+      return repl.get.asInstanceOf[Node]
 
-    val decls = node.removeAnnotation(DECLS_ANNOT).get.value.asInstanceOf[HashMap[String, ArrayBases]]
+    val decls = node.removeAnnotation(DECLS_ANNOT).get.asInstanceOf[HashMap[String, ArrayBases]]
     if (decls.isEmpty)
       return node
 

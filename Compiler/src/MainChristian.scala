@@ -50,7 +50,7 @@ object MainChristian {
     Knowledge.update()
 
     // init buildfile generator
-    if ("MSVC" == Knowledge.targetCompiler)
+    if ("MSVC" == Platform.targetCompiler)
       Settings.buildfileGenerator = ProjectfileGenerator
     else
       Settings.buildfileGenerator = MakefileGenerator
@@ -113,11 +113,10 @@ object MainChristian {
 
     if (false) // re-print the merged L4 state
     {
-      val l4_printed = new PpStream()
-      StateManager.root_.asInstanceOf[l4.Root].prettyprint(l4_printed)
+      val l4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(l4_printed.toString)))
+      outFile.write((Indenter.addIndentations(l4_printed)))
       outFile.close
 
       // re-parse the file to check for errors
@@ -162,15 +161,16 @@ object MainChristian {
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
-    var numConvFound = 0
+    var convChanged = false
     do {
+      FindStencilConvolutions.changed = false
       FindStencilConvolutions.apply()
-      numConvFound = FindStencilConvolutions.results.last._2.matches
+      convChanged = FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
         ExpandOnePassStrategy.apply()
       else
         ExpandStrategy.doUntilDone()
-    } while (numConvFound > 0)
+    } while (convChanged)
 
     ResolveDiagFunction.apply()
     CreateGeomCoordinates.apply()

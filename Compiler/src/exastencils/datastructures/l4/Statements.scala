@@ -36,7 +36,7 @@ case class DomainDeclarationStatement(var name : String, var lower : Any, var up
           case (_ : RealIndex, _ : RealIndex) => {
             val sep = lo.map(m => ", ").dropRight(1) :+ " >\n"
             out << "Domain " << name << "< "
-            for (i <- 0 until lo.length) { out << lo(i) << " to " << up(i) << sep(i) }
+            for (i <- lo.indices) { out << lo(i) << " to " << up(i) << sep(i) }
             //out << "Domain " << name << "< " << l(0) << " to " << u(0) << ", " << l(1) << " to " << u(1) << " ," << l(2) << " to " << u(2) << " >\n"
           }
         }
@@ -75,7 +75,7 @@ case class StencilEntry(var offset : ExpressionIndex, var coeff : Expression) ex
 
   override def progressToIr : knowledge.StencilEntry = {
     var off = offset.progressToIr
-    if (off(knowledge.Knowledge.dimensionality) == null) off(knowledge.Knowledge.dimensionality) = ir.IntegerConstant(0)
+    while (off.length < knowledge.Knowledge.dimensionality + 1) off.indices :+= ir.IntegerConstant(0)
     knowledge.StencilEntry(off, coeff.progressToIr)
   }
 }
@@ -177,17 +177,37 @@ case class LoopOverPointsStatement(
       case _                           => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 
-    ir.LoopOverPoints(resolvedField,
+    val numDims = resolvedField.fieldLayout.numDimsGrid
+    val procStartOffset = new ir.MultiIndex(Array.fill(numDims)(0))
+    val procEndOffset = new ir.MultiIndex(Array.fill(numDims)(0))
+    val procIncrement = new ir.MultiIndex(Array.fill(numDims)(1))
+    if (startOffset.isDefined) {
+      val newOffset = startOffset.get.progressToIr
+      for (i <- 0 until newOffset.length) procStartOffset(i) = newOffset(i)
+    }
+    if (endOffset.isDefined) {
+      val newOffset = endOffset.get.progressToIr
+      for (i <- 0 until newOffset.length) procEndOffset(i) = newOffset(i)
+    }
+    if (increment.isDefined) {
+      val newIncrement = increment.get.progressToIr
+      for (i <- 0 until newIncrement.length) procIncrement(i) = newIncrement(i)
+    }
+
+    val loop = ir.LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progressToIr) else None,
       seq,
-      if (startOffset.isDefined) startOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
-      if (endOffset.isDefined) endOffset.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(0)),
-      if (increment.isDefined) increment.get.progressToIr else new ir.MultiIndex(Array.fill(knowledge.Knowledge.dimensionality)(1)),
+      procStartOffset,
+      procEndOffset,
+      procIncrement,
       statements.map(_.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       preComms.map(_.progressToIr).to[ListBuffer],
       postComms.map(_.progressToIr).to[ListBuffer],
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None,
       if (condition.isDefined) Some(condition.get.progressToIr) else None)
+
+    loop.annotate("l4_fromDSL") // experimental annotation -> if successful and performance impacts are ok annotate all l4 statements
+    loop
   }
 }
 
@@ -308,12 +328,16 @@ case class RepeatTimesStatement(var number : Int,
         (ir.StringLiteral(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
       }
 
-    return ir.ForLoopStatement(
+    val ret = ir.ForLoopStatement(
       begin,
       loopVar < ir.IntegerConstant(number),
       ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: to[ListBuffer]
       None)
+
+    ret.annotate("numLoopIterations", number)
+
+    ret
   }
 }
 

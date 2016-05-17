@@ -1,5 +1,6 @@
 import exastencils.communication._
 import exastencils.core._
+import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
@@ -13,28 +14,54 @@ import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.optimization._
 import exastencils.parsers.l4._
+import exastencils.parsers.settings._
+import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
 object MainStefan {
-  def main(args : Array[String]) : Unit = {
+  private var polyOptExplID : Int = 0
 
-    // for runtime measurement
-    val start : Long = System.nanoTime()
-
+  def initialize(args : Array[String]) : Unit = {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
 
-    // init Settings
-    if (args.length >= 1) {
-      val s = new exastencils.parsers.settings.ParserSettings
-      s.parseFile(args(0))
+    // check from where to read input
+    val settingsParser = new ParserSettings
+    val knowledgeParser = new ParserKnowledge
+    val platformParser = new ParserPlatform
+    if (args.length == 1 && args(0) == "--json-stdin") {
+      InputReader.read
+      settingsParser.parse(InputReader.settings)
+      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      knowledgeParser.parse(InputReader.knowledge)
+      platformParser.parse(InputReader.platform)
+      Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
+    } else if (args.length == 2 && args(0) == "--json-file") {
+      InputReader.read(args(1))
+      settingsParser.parse(InputReader.settings)
+      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      knowledgeParser.parse(InputReader.knowledge)
+      platformParser.parse(InputReader.platform)
+      Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
+    } else {
+      if (args.length >= 1)
+        settingsParser.parseFile(args(0))
+      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (args.length >= 2)
+        knowledgeParser.parseFile(args(1))
+      if (args.length >= 3)
+        platformParser.parseFile(args(2))
+      if (args.length >= 4)
+        polyOptExplID = args(3).toInt
     }
 
-    if (Settings.produceHtmlLog)
-      Logger_HTML.init
+    // validate knowledge, etc.
+    Knowledge.update()
+    Settings.update()
+    Platform.update()
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
@@ -43,24 +70,25 @@ object MainStefan {
       }
     }
 
-    // init Knowledge
-    if (args.length >= 2) {
-      val k = new exastencils.parsers.settings.ParserKnowledge
-      k.parseFile(args(1))
-    }
-    Knowledge.update()
-
     // init buildfile generator
-    if ("MSVC" == Knowledge.targetCompiler)
+    if ("MSVC" == Platform.targetCompiler)
       Settings.buildfileGenerator = ProjectfileGenerator
     else
       Settings.buildfileGenerator = MakefileGenerator
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")
+  }
 
-    // L1
+  def shutdown() : Unit = {
+    if (Settings.timeStrategies)
+      StrategyTimer.print
 
+    if (Settings.produceHtmlLog)
+      Logger_HTML.finish
+  }
+
+  def handleL1() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 1")
 
@@ -68,9 +96,9 @@ object MainStefan {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 1")
+  }
 
-    // L2
-
+  def handleL2() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 2")
 
@@ -88,9 +116,9 @@ object MainStefan {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 2")
+  }
 
-    // L3
-
+  def handleL3() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 3")
 
@@ -103,23 +131,26 @@ object MainStefan {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 3")
+  }
 
-    // L4
-
+  def handleL4() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
-    StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+    if (Settings.inputFromJson) {
+      StateManager.root_ = (new ParserL4).parseFile(InputReader.layer4)
+    } else {
+      StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+    }
     ValidationL4.apply
 
     if (false) // re-print the merged L4 state
     {
-      val l4_printed = new PpStream()
-      StateManager.root_.asInstanceOf[l4.Root].prettyprint(l4_printed)
+      val l4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(l4_printed.toString)))
-      outFile.close
+      outFile.write((Indenter.addIndentations(l4_printed)))
+      outFile.close()
 
       // re-parse the file to check for errors
       var parserl4 = new ParserL4
@@ -138,7 +169,20 @@ object MainStefan {
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
     ResolveBoundaryHandlingFunctions.apply()
+
+    if (Settings.timeStrategies)
+      StrategyTimer.startTiming("Progressing from L4 to IR")
+
     StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+
+    if (Settings.timeStrategies)
+      StrategyTimer.stopTiming("Progressing from L4 to IR")
+  }
+
+  def handleIR() : Unit = {
+    // add some more nodes
+    AddDefaultGlobals.apply()
+    SetupDataStructures.apply()
 
     // add remaining nodes
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
@@ -149,15 +193,18 @@ object MainStefan {
       // Util
       Stopwatch(),
       TimerFunctions(),
-      Vector())
+      Vector(),
+      Matrix(), // TODO: only if required
+      CImg() // TODO: only if required
+    )
 
-    // apply strategies
+    if (Knowledge.experimental_cuda_enabled)
+      StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
 
-    AddDefaultGlobals.apply()
-
+    if (Knowledge.experimental_mergeCommIntoLoops)
+      MergeCommunicatesAndLoops.apply()
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
-
-    SetupDataStructures.apply()
+    SetupCommunication.firstCall = true
     SetupCommunication.apply()
 
     ResolveSpecialFunctionsAndConstants.apply()
@@ -165,21 +212,36 @@ object MainStefan {
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
-    var numConvFound = 0
+    var convChanged = false
     do {
+      FindStencilConvolutions.changed = false
       FindStencilConvolutions.apply()
-      numConvFound = FindStencilConvolutions.results.last._2.matches
+      convChanged = FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
         ExpandOnePassStrategy.apply()
       else
         ExpandStrategy.doUntilDone()
-    } while (numConvFound > 0)
+    } while (convChanged)
 
     ResolveDiagFunction.apply()
     Grid.applyStrategies()
-    CreateGeomCoordinates.apply()
+    if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
+
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
+
+    SetupCommunication.apply() // handle communication statements generated by loop resolution
+
+    TypeInference.warnMissingDeclarations = false
+    TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
+
+    if (Knowledge.experimental_addPerformanceEstimate)
+      AddPerformanceEstimates()
+    if (Knowledge.experimental_cuda_enabled) {
+      SplitLoopsForHostAndDevice.apply()
+      AdaptKernelDimensionalities.apply()
+      HandleKernelReductions.apply()
+    }
 
     MapStencilAssignments.apply()
     ResolveFieldAccess.apply()
@@ -193,22 +255,29 @@ object MainStefan {
     ResolveConstInternalVariables.apply()
     SimplifyStrategy.doUntilDone()
 
+    if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
+      new DuplicateNodes().apply() // FIXME: only debug
+      Inlining.apply(true)
+      CommonSubexpressionElimination.apply()
+    }
+
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
-      if (args.length >= 3)
-        PolyOpt.apply(args(2).toInt)
-      else
-        PolyOpt.apply()
+      PolyOpt.apply(polyOptExplID)
     ResolveLoopOverDimensions.apply()
 
-    TypeInference.apply()
+    TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
 
-    ResolveSlotOperationsStrategy.apply()
-    ResolveIndexOffsets.apply()
-    LinearizeFieldAccesses.apply()
+    LinearizeFieldAccesses.apply() // before converting kernel functions -> requires linearized accesses
+
+    if (Knowledge.experimental_cuda_enabled)
+      StateManager.findFirst[KernelFunctions]().get.convertToFunctions
+
+    ResolveIndexOffsets.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
+    ResolveSlotOperationsStrategy.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
 
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
@@ -262,19 +331,33 @@ object MainStefan {
 
     if (Knowledge.generateFortranInterface)
       Fortranify.apply()
+  }
 
+  def print() : Unit = {
+    Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
     PrintStrategy.apply()
     PrettyprintingManager.finish
+  }
+
+  def main(args : Array[String]) : Unit = {
+    // for runtime measurement
+    val start : Long = System.nanoTime()
+
+    initialize(args)
+
+    handleL1()
+    handleL2()
+    handleL3()
+    handleL4()
+    handleIR()
+
+    print()
 
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
     (new CountingStrategy("number of printed nodes")).apply()
 
-    if (Settings.timeStrategies)
-      StrategyTimer.print
-
-    if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+    shutdown()
   }
 }

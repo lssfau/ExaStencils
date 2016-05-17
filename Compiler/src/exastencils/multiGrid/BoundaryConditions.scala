@@ -54,55 +54,64 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     val bc = Duplicate(field.field.boundaryConditions.get)
     strat.applyStandalone(ExpressionStatement(bc))
 
-    for (vecDim <- 0 until field.field.vectorSize) { // FIXME: this works for now, but users may want to specify bc's per vector element
-      var index = LoopOverDimensions.defIt
-      index(Knowledge.dimensionality) = vecDim
-      var fieldSel = new FieldSelection(field.field, field.level, field.slot, Some(vecDim), field.fragIdx)
+    // FIXME: this works for now, but users may want to specify bc's per vector element
+    // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
+    var index = LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
+    var fieldSel = new FieldSelection(field.field, field.level, field.slot, None, field.fragIdx) // TODO: check
 
-      field.fieldLayout.discretization match {
-        case d if "node" == d
-          || ("face_x" == d && 0 != neigh.dir(0))
-          || ("face_y" == d && 0 != neigh.dir(1))
-          || ("face_z" == d && 0 != neigh.dir(2)) =>
-          if (StringLiteral("Neumann") == bc)
-            Knowledge.experimental_NeumannOrder match {
-              case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index), new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
-              case 2 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index),
-                ((4.0 / 3.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -i))))
-                  + ((-1.0 / 3.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i)))))
-              case 3 => // TODO: do we want this? what do we do on the coarser levels?
-                statements += new AssignmentStatement(new FieldAccess(fieldSel, index),
-                  (((3.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -1 * i))))
-                    + ((-3.0 / 2.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -2 * i))))
-                    + ((1.0 / 3.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)).map(i => -3 * i))))))
-            }
-          else
-            statements += new AssignmentStatement(new FieldAccess(fieldSel, index), bc)
-        case d if "cell" == d
-          || ("face_x" == d && 0 == neigh.dir(0))
-          || ("face_y" == d && 0 == neigh.dir(1))
-          || ("face_z" == d && 0 == neigh.dir(2)) =>
-          if (StringLiteral("Neumann") == bc)
-            Knowledge.experimental_NeumannOrder match {
-              case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)))),
-                new FieldAccess(fieldSel, index))
-            }
-          else
-            statements += new AssignmentStatement(new FieldAccess(fieldSel, index + new MultiIndex((neigh.dir ++ Array(0)))),
-              (2.0 * bc) - new FieldAccess(fieldSel, index))
-      }
+    def offsetIndex = new MultiIndex(neigh.dir ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
+    def offsetIndexWithTrafo(f : (Int => Int)) = new MultiIndex(neigh.dir.map(f) ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
+
+    field.fieldLayout.discretization match {
+      case d if "node" == d
+        || ("face_x" == d && 0 != neigh.dir(0))
+        || ("face_y" == d && 0 != neigh.dir(1))
+        || ("face_z" == d && 0 != neigh.dir(2)) =>
+        if (StringLiteral("Neumann") == bc)
+          Knowledge.experimental_NeumannOrder match {
+            case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index), new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+            case 2 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index),
+              ((4.0 / 3.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+                + ((-1.0 / 3.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i))))
+            case 3 => // TODO: do we want this? what do we do on the coarser levels?
+              statements += new AssignmentStatement(new FieldAccess(fieldSel, index),
+                (((3.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -1 * i)))
+                  + ((-3.0 / 2.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i)))
+                  + ((1.0 / 3.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -3 * i)))))
+          }
+        else
+          statements += new AssignmentStatement(new FieldAccess(fieldSel, index), bc)
+      case d if "cell" == d
+        || ("face_x" == d && 0 == neigh.dir(0))
+        || ("face_y" == d && 0 == neigh.dir(1))
+        || ("face_z" == d && 0 == neigh.dir(2)) =>
+        if (StringLiteral("Neumann") == bc)
+          Knowledge.experimental_NeumannOrder match {
+            case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index + offsetIndex),
+              new FieldAccess(fieldSel, index))
+          }
+        else
+          statements += new AssignmentStatement(new FieldAccess(fieldSel, index + offsetIndex),
+            (2.0 * bc) - new FieldAccess(fieldSel, index))
     }
 
     statements
   }
 
   override def expand : Output[Statement] = {
+    val layout = field.field.fieldLayout
     if (field.field.boundaryConditions.isDefined) {
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
           neighbors.map({ neigh =>
-            val adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
-            val loopOverDims = new LoopOverDimensions(Knowledge.dimensionality, adaptedIndexRange, setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessable
+            var adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
+            // TODO: assumes equal bc's for all components
+            adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : Expression)
+            adaptedIndexRange.end.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => layout.idxById("TOT", dim))
+            val loopOverDims = new LoopOverDimensions(
+              field.fieldLayout.numDimsData,
+              adaptedIndexRange,
+              setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
             loopOverDims.optLevel = 1
             new ConditionStatement(NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : Statement
           }))) with OMP_PotentiallyParallel

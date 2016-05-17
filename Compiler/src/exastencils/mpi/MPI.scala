@@ -5,13 +5,15 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.StatementList
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
 
 trait MPI_Statement extends Statement
+
+// TODO: replace pp with expand where suitable
 
 case class MPI_IsRootProc() extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "0 == mpiRank"
@@ -68,6 +70,29 @@ object MPI_Allreduce {
   }
 }
 
+case class MPI_Reduce(var root : Expression, var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression, var op : Expression) extends MPI_Statement {
+  def this(root : Expression, sendbuf : Expression, recvbuf : Expression, datatype : Datatype, count : Expression, op : String) = this(root, sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
+  def this(root : Expression, buf : Expression, datatype : Datatype, count : Expression, op : Expression) = this(root, "MPI_IN_PLACE", buf, datatype, count, op)
+  def this(root : Expression, buf : Expression, datatype : Datatype, count : Expression, op : String) = this(root, "MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
+
+  def reallyPrint(out : PpStream) : Unit = {
+    out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", mpiCommunicator);"
+  }
+
+  override def prettyprint(out : PpStream) : Unit = {
+    sendbuf match {
+      case StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
+        out << "if (" << EqEqExpression(root, "mpiRank") << ") {\n"
+        MPI_Reduce(root, sendbuf, recvbuf, datatype, count, op).reallyPrint(out) // MPI_IN_PLACE for root proc
+        out << "\n} else {\n"
+        MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
+        out << "\n}"
+      case _ => reallyPrint(out) // otherwise a simple print suffices
+    }
+
+  }
+}
+
 case class MPI_Gather(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression) extends MPI_Statement {
   def this(buf : Expression, datatype : Datatype, count : Expression) = this("MPI_IN_PLACE", buf, datatype, count)
 
@@ -83,79 +108,73 @@ case class MPI_Barrier() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
 
-case class MPI_DataType(var field : FieldSelection, var indices : IndexRange) extends Datatype {
+case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange, var condition : Option[Expression]) extends Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi = generateName
 
-  var count : Int = 0
-  var blocklen : Int = 0
-  var stride : Int = 0
+  override def dimensionality : Int = ???
+  override def getSizeArray : Array[Int] = ???
+  override def resolveBaseDatatype : Datatype = field.field.resolveBaseDatatype
+  override def resolveDeclType : Datatype = this
+  override def resolveDeclPostscript : String = ""
+  override def resolveFlattendSize : Int = ???
+  override def typicalByteSize = ???
 
-  // this assumes that the conditions implied by 'shouldBeUsed' are fulfilled
-  if (1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))) {
-    count = SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)).toInt
-    blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.fieldLayout.defIdxById("TOT", 0)
-  } else if (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1))) {
-    count = SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)).toInt
-    blocklen = SimplifyExpression.evalIntegral(indices.end(0) - indices.begin(0)).toInt
-    stride = field.fieldLayout.defIdxById("TOT", 0) * field.fieldLayout.defIdxById("TOT", 1)
+  if (!MPI_DataType.shouldBeUsed(indexRange, condition))
+    Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${indexRange.print}")
+
+  // determine data type parameters
+  var blockLengthExp : Expression = indexRange.end(0) - indexRange.begin(0)
+  var blockCountExp : Expression = 1
+  var strideExp : Expression = field.fieldLayout(0).total
+
+  var done = false
+  for (dim <- 1 until indexRange.size; if !done) {
+    if (1 == SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
+      strideExp *= field.fieldLayout.defIdxById("TOT", dim)
+    } else {
+      blockCountExp = indexRange.end(dim) - indexRange.begin(dim)
+      done = true // break
+    }
   }
 
-  def generateName : String = {
-    s"mpiDatatype_${count}_${blocklen}_${stride}"
-  }
+  val blockLength = SimplifyExpression.evalIntegral(blockLengthExp)
+  val blockCount = SimplifyExpression.evalIntegral(blockCountExp)
+  val stride = SimplifyExpression.evalIntegral(strideExp)
+
+  def generateName : String = s"mpiDatatype_${blockCount}_${blockLength}_${stride}"
+  def mpiTypeNameArg : Expression = AddressofExpression(generateName)
 
   def generateDecl : VariableDeclarationStatement = {
     VariableDeclarationStatement("MPI_Datatype", generateName)
   }
 
   def generateCtor : ListBuffer[Statement] = {
+    val scalarDatatype = field.field.resolveBaseDatatype.prettyprint_mpi
+
+    // compile statement(s)
     ListBuffer[Statement](
-      s"MPI_Type_vector($count, $blocklen, $stride, MPI_DOUBLE, &${generateName})",
-      s"MPI_Type_commit(&${generateName})")
+      FunctionCallExpression("MPI_Type_vector", ListBuffer(blockCount, blockLength, stride, scalarDatatype, mpiTypeNameArg)),
+      FunctionCallExpression("MPI_Type_commit", ListBuffer(mpiTypeNameArg)))
   }
 
   def generateDtor : ListBuffer[Statement] = {
     ListBuffer[Statement](
-      s"MPI_Type_free(&${generateName})")
+      FunctionCallExpression("MPI_Type_free", ListBuffer(mpiTypeNameArg)))
   }
 }
 
 object MPI_DataType {
-  def shouldBeUsed(indices : IndexRange) : Boolean = {
+  def shouldBeUsed(indexRange : IndexRange, condition : Option[Expression]) : Boolean = {
     if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
       false
-    else
-      Knowledge.dimensionality match {
-        case 2 => (
-          1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)) || 1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2)))
-        case 3 => (
-          1 == SimplifyExpression.evalIntegral(indices.end(3) - indices.begin(3)) &&
-          (1 == SimplifyExpression.evalIntegral(indices.end(1) - indices.begin(1)) || 1 == SimplifyExpression.evalIntegral(indices.end(2) - indices.begin(2))))
-      }
-  }
-}
-
-case class InitMPIDataType(mpiTypeName : String, field : Field, indexRange : IndexRange) extends MPI_Statement with Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitMPIDataType\n"
-
-  override def expand: Output[StatementList] = {
-    if (indexRange.begin(2) == indexRange.end(2)) {
-      ListBuffer[Statement](s"MPI_Type_vector(" ~
-        (indexRange.end(1) - indexRange.begin(1) + 1) ~ ", " ~
-        (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        (field.fieldLayout(0).total) ~
-        s", MPI_DOUBLE, &$mpiTypeName)",
-        s"MPI_Type_commit(&$mpiTypeName)")
-    } else if (indexRange.begin(1) == indexRange.end(1)) {
-      ListBuffer[Statement](s"MPI_Type_vector(" ~
-        (indexRange.end(2) - indexRange.begin(2) + 1) ~ ", " ~
-        (indexRange.end(0) - indexRange.begin(0) + 1) ~ ", " ~
-        (field.fieldLayout(0).total * field.fieldLayout(1).total) ~
-        s", MPI_DOUBLE, &$mpiTypeName)",
-        s"MPI_Type_commit(&$mpiTypeName)")
-    } else return ListBuffer[Statement]()
+    else if (condition.isDefined) // skip communication steps with conditions for now
+      false
+    else {
+      val numNonDummyDims = (1 until indexRange.size).map(dim => // size in the zero dimension is irrelevant
+        if (SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim)) > 1) 1 else 0).reduce(_ + _)
+      return (numNonDummyDims <= 1) // avoid nested data types for now
+    }
   }
 }
 
@@ -164,7 +183,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = MPI_Sequential\n"
 
-  override def expand: Output[ForLoopStatement] = {
+  override def expand : Output[ForLoopStatement] = {
     ForLoopStatement(
       VariableDeclarationStatement(IntegerDatatype, "curRank", Some(0)),
       LowerExpression("curRank", Knowledge.mpi_numThreads),
@@ -178,6 +197,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
 case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = WaitForMPIReq\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "waitForMPIReq"
 
   override def expand : Output[FunctionStatement] = {
     def request = VariableAccess("request", Some(PointerDatatype(SpecialDatatype("MPI_Request"))))
@@ -189,7 +209,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
     def len = VariableAccess("len", Some(IntegerDatatype))
 
     if (Knowledge.mpi_useBusyWait) {
-      FunctionStatement(UnitDatatype, s"waitForMPIReq", ListBuffer(request),
+      FunctionStatement(UnitDatatype, name, ListBuffer(request),
         ListBuffer[Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
@@ -201,7 +221,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
               new VariableDeclarationStatement(msg),
               new VariableDeclarationStatement(len),
               new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
-                MemberAccess(stat, VariableAccess("MPI_ERROR", Some(IntegerDatatype))), msg, AddressofExpression(len))),
+                MemberAccess(stat, "MPI_ERROR"), msg, AddressofExpression(len))),
               new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
@@ -215,7 +235,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
             new VariableDeclarationStatement(msg),
             new VariableDeclarationStatement(len),
             new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
-              MemberAccess(stat, VariableAccess("MPI_ERROR", Some(IntegerDatatype))), msg, AddressofExpression(len))),
+              MemberAccess(stat, "MPI_ERROR"), msg, AddressofExpression(len))),
             new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)

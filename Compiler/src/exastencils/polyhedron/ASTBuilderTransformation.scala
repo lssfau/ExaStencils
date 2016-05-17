@@ -31,6 +31,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   private var seqDims : TreeSet[String] = null
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
+  private var privateVars : ListBuffer[VariableAccess] = null
   private var condition : Expression = null
 
   private def invalidateScop(scop : Scop) : Unit = {
@@ -43,18 +44,18 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   }
 
   override def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : LoopOverDimensions with PolyhedronAccessable =>
+    case loop : LoopOverDimensions with PolyhedronAccessible =>
       loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
     case _ => false
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
 
-    val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.value.asInstanceOf[Scop]
+    val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
       return NullStatement
     reduction = scop.root.reduction
-    condition = scop.root.condition.getOrElse(null)
+    condition = scop.root.condition.orNull
 
     // find all sequential loops
     parallelize_omp = scop.parallelize
@@ -97,6 +98,11 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       sched : isl.Map => dims = math.max(dims, sched.dim(isl.DimType.Out))
     })
 
+    // mark all additionally declared variables as private
+    privateVars = new ListBuffer[VariableAccess]()
+    for (VariableDeclarationStatement(dt, name, _) <- scop.decls)
+      privateVars += VariableAccess(name, Some(dt))
+
     // build AST generation options
     val options = new StringBuilder()
     options.append("[")
@@ -125,7 +131,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.getContext())
     islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(Isl.ctx, options.toString()))
     islBuild = islBuild.setIterators(itersId)
-    var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
+    val scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
     val islNode : isl.AstNode = islBuild.astFromSchedule(scattering)
     var nju : ListBuffer[Statement] =
       try {
@@ -140,7 +146,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     // mark innermost loops
     var i : Int = scop.njuLoopVars.size - 1
     while (i >= 0) {
-      var innermostLoops = loopStmts.get(scop.njuLoopVars(i))
+      val innermostLoops = loopStmts.get(scop.njuLoopVars(i))
       if (innermostLoops.isDefined) {
         for (l <- innermostLoops.get)
           l.isInnermost = true
@@ -195,6 +201,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
             else
               new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
           loop.isParallel = seqDims != null && !seqDims.contains(itStr)
+          loop.privateVars ++= privateVars
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
           ListBuffer[Statement](loop)
         }

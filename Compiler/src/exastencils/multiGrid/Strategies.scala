@@ -6,6 +6,7 @@ import exastencils.communication._
 import exastencils.core._
 import exastencils.core.collectors.IRLevelCollector
 import exastencils.core.collectors.StackCollector
+import exastencils.cuda._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -95,7 +96,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       StringLiteral(args(0).asInstanceOf[StringConstant].value)
 
     case FunctionCallExpression("concat", args) =>
-      ConcatenationExpression(args.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value) else a))
+      new ConcatenationExpression(args.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value) else a))
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
@@ -205,6 +206,10 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       //CallTracker::ClearCallStack();
       //#endif""")
       //}
+      if (Knowledge.experimental_cuda_enabled) {
+        func.body.prepend(new CUDA_Init)
+        func.body.append(new CUDA_Finalize)
+      }
       if (Knowledge.mpi_enabled) {
         func.body.prepend(new MPI_Init)
         func.body.append(new MPI_Finalize)

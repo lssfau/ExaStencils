@@ -63,7 +63,7 @@ abstract class GridGeometry() {
   }
 
   // injection of  missing l4 information for virtual fields and generation of setup code
-  def initL4()
+  def initL4() : Unit
   def generateInitCode() : ListBuffer[Statement]
 }
 
@@ -92,7 +92,8 @@ trait GridGeometry_uniform extends GridGeometry {
   }
 
   override def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
-    index(dim) * cellWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
+    //index(dim) * cellWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
+    index(dim) * cellWidth(level, index, arrayIndex, dim) + MemberAccess(iv.PrimitivePositionBegin(), dimToString(dim)) // FIXME: HACK
   }
 
   override def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
@@ -231,12 +232,13 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val zoneSize = numCells / 4
     val step = 1.0 / zoneSize
 
+    val zoneLength = 0.0095 * 8 / zoneSize
+
     val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
-    var baseIndex = LoopOverDimensions.defIt
-    baseIndex(Knowledge.dimensionality) = 0
+    val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
-    val innerIt = LoopOverDimensions.defIt(dim)
+    val innerIt = LoopOverDimensions.defItForDim(dim)
 
     var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -1
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
@@ -247,24 +249,24 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     ListBuffer(
       LoopOverPoints(field, None, true,
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-        MultiIndex(1, 1, 1),
+        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+        new MultiIndex(1, 1, 1),
         ListBuffer[Statement](
           new ConditionStatement(LowerEqualExpression(innerIt, 0),
             AssignmentStatement(Duplicate(baseAccess), 0.0),
             new ConditionStatement(LowerEqualExpression(innerIt, 1 * zoneSize),
               AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
-                + 0.0095 * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defIt(dim) - 0.0 * zoneSize), expo))),
+                + zoneLength * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
               new ConditionStatement(LowerEqualExpression(innerIt, 2 * zoneSize),
                 AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
-                  + 0.0095 * step * (LoopOverDimensions.defIt(dim) - 1.0 * zoneSize)),
+                  + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
                 new ConditionStatement(LowerEqualExpression(innerIt, 3 * zoneSize),
                   AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
-                    + 0.0095 * step * (LoopOverDimensions.defIt(dim) - 2.0 * zoneSize)),
+                    + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
                   new ConditionStatement(LowerEqualExpression(innerIt, 4 * zoneSize),
                     AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
-                      + 0.0095 * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defIt(dim) - 3.0 * zoneSize), expo)))),
+                      + zoneLength * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
                     AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))),
       AssignmentStatement(Duplicate(leftGhostAccess),
         2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
@@ -304,21 +306,20 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // look up field and compile access to base element
     val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
-    var baseIndex = LoopOverDimensions.defIt
-    baseIndex(Knowledge.dimensionality) = 0
+    val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        LoopOverDimensions.defIt(dim)
+        LoopOverDimensions.defItForDim(dim)
       else
         VariableAccess(s"global_${dimToString(dim)}", Some(IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defIt(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0); leftDir(dim) = -1
@@ -353,9 +354,9 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     ListBuffer[Statement](
       LoopOverFragments(ListBuffer[Statement](
         LoopOverPoints(field, None, true,
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -2, dim),
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -2, dim),
-          MultiIndex(1, 1, 1),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
+          new MultiIndex(1, 1, 1),
           ListBuffer[Statement](
             innerItDecl,
             new ConditionStatement(LowerEqualExpression(innerIt, xf + 1),
@@ -377,8 +378,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
     // look up field and compile access to base element
-    var baseIndex = LoopOverDimensions.defIt
-    baseIndex(Knowledge.dimensionality) = 0
+    val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val field = FieldCollection.getFieldByIdentifier(s"stag_cv_width_${dimToString(dim)}", level).get
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), Duplicate(baseIndex))
     val npField = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
@@ -387,14 +387,14 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     // fix the inner iterator -> used for zone checks
     def innerIt =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        LoopOverDimensions.defIt(dim)
+        LoopOverDimensions.defItForDim(dim)
       else
         VariableAccess(s"global_${dimToString(dim)}", Some(IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defIt(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0); leftDir(dim) = -1
@@ -425,9 +425,9 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     ListBuffer[Statement](
       LoopOverFragments(ListBuffer[Statement](
         LoopOverPoints(field, None, true,
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-          GridUtil.offsetIndex(MultiIndex(0, 0, 0), -1, dim),
-          MultiIndex(1, 1, 1),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+          new MultiIndex(1, 1, 1),
           ListBuffer[Statement](
             innerItDecl,
             new ConditionStatement(EqEqExpression(0, innerIt),

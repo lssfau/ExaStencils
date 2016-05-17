@@ -24,9 +24,10 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
+
 import isl.Conversions._
 
-trait PolyhedronAccessable {
+trait PolyhedronAccessible {
   var optLevel : Int = 3 // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
 }
 
@@ -34,6 +35,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   final val SCOP_ANNOT : String = "PolyScop"
   final val IMPL_CONDITION_ANNOT : String = "ImplCondition"
+
+  var timeSingleSteps : Boolean = false
 
   import scala.language.implicitConversions
   implicit def convertIntToVal(i : Int) : isl.Val = isl.Val.intFromSi(Isl.ctx, i)
@@ -84,19 +87,30 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     //    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
     //    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
-    var scops : Seq[Scop] = extractPolyModel()
-    for (scop <- scops if (!scop.remove)) {
-      mergeLocalScalars(scop)
-      mergeScops(scop)
-      simplifyModel(scop)
-      computeDependences(scop)
-      deadCodeElimination(scop)
-      handleReduction(scop)
-      simplifyModel(scop)
-      if (scop.optLevel >= 2)
-        optimize(scop, confID)
+    def time[T](op : => T, name : String) : T = {
+      if (timeSingleSteps) {
+        StrategyTimer.startTiming(name)
+        val res = op
+        StrategyTimer.stopTiming(name)
+        return res
+      } else
+        return op
     }
-    recreateAndInsertAST()
+
+    val scops : Seq[Scop] = time(extractPolyModel(), "po:extractPolyModel")
+    for (scop <- scops if (!scop.remove)) {
+      time(mergeLocalScalars(scop), "po:mergeLocalScalars")
+      time(mergeScops(scop), "po:mergeScops")
+      time(simplifyModel(scop), "po:simplifyModel")
+      time(computeDependences(scop), "po:computeDependences")
+      time(deadCodeElimination(scop), "po:deadCodeElimination")
+      time(handleReduction(scop), "po:handleReduction")
+      time(simplifyModel(scop), "po:simplifyModel")
+
+      if (scop.optLevel >= 2)
+        time(optimize(scop, confID), "po:optimize")
+    }
+    time(recreateAndInsertAST(), "po:recreateAndInsertAST")
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
@@ -116,7 +130,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     scop.deps.flow = Isl.simplify(scop.deps.flow)
     scop.deps.antiOut = Isl.simplify(scop.deps.antiOut)
-    scop.deps.updateInput += { inp => Isl.simplify(inp) }
+    scop.deps.mapInputLazy { input => Isl.simplify(input) }
   }
 
   private def extractPolyModel() : Seq[Scop] = {
@@ -195,7 +209,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         mergedStmts ++= stmt
         if (mergedLoopIts == null)
           mergedLoopIts = loopIts
-        else if (!mergedLoopIts.sameElements(loopIts))
+        else if (!mergedLoopIts.equals(loopIts))
           Breaks.break() // continue... loopIts must be identical?!
       }
       scop.domain =
@@ -269,7 +283,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deadAfterScop = unionNull(scop.deadAfterScop, toMerge.deadAfterScop)
       scop.deps.flow = unionNull(scop.deps.flow, toMerge.deps.flow)
       scop.deps.antiOut = unionNull(scop.deps.antiOut, toMerge.deps.antiOut)
-      scop.deps.updateInput += { inp => unionNull(inp, toMerge.deps.input) }
+      scop.deps.mapInputLazy { input => unionNull(input, toMerge.deps.input) }
       if (scop.origIterationCount == null && toMerge.origIterationCount != null)
         scop.origIterationCount = toMerge.origIterationCount
       scop.parallelize &= toMerge.parallelize
@@ -283,7 +297,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var s = isl.UnionMap.empty(sched.getSpace())
     sched.foreachMap({
       map : isl.Map =>
-        var nju = map.insertDims(T_OUT, 0, 1)
+        val nju = map.insertDims(T_OUT, 0, 1)
         s = s.addMap(nju.fixVal(T_OUT, 0, i))
     })
     return s
@@ -343,7 +357,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       })
 
       // input
-      scop.deps.updateInput += { _ =>
+      scop.deps.setInputLazy { () =>
         readArrays.computeFlow(readArrays, empty, schedule,
           depArr, null, null, null) // output params (C-style)
         depArr(0)
@@ -356,7 +370,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     } else {
       val noDeps = isl.UnionMap.empty(scop.deps.antiOut.getSpace())
-      scop.deps.updateInput += { _ => noDeps }
+      scop.deps.input = noDeps
       scop.deps.flow = noDeps
     }
   }
@@ -366,24 +380,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var live = scop.writes.intersectDomain(scop.domain).reverse().lexmax().range()
     if (scop.deadAfterScop != null)
       live = live.subtract(scop.deadAfterScop)
-    live = live.union(scop.deps.flow.domain().intersect(scop.domain)) // keeps even dead instances?
-    // live = live.apply(scop.deps.flow.reverse().transitiveClosure(null)) // better? test!
+    // live = live.union(scop.deps.flow.domain().intersect(scop.domain)) // keeps even dead instances?
+    val trans = scop.deps.flow.reverse().transitiveClosure(new Array[Int](1))
+    live = live.union(live.apply(trans))
+    live = live.intersect(scop.domain)
+    live = live.coalesce()
 
-    if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old ;)
+    if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old if possible
       scop.domain = live
-
-    // update schedule and dependencies
-    scop.schedule = scop.schedule.intersectDomain(live)
-    if (scop.deps.flow != null)
-      scop.deps.flow = scop.deps.flow.intersectDomain(live)
-    if (scop.deps.antiOut != null)
-      scop.deps.antiOut = scop.deps.antiOut.intersectDomain(live)
-    scop.deps.updateInput += { inp =>
-      if (inp != null)
-        scop.deps.input.intersectDomain(live)
-      else
-        null
-    }
   }
 
   private def handleReduction(scop : Scop) : Unit = {
@@ -406,7 +410,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.deps.flow = scop.deps.flow.subtract(toRemove)
     // filter others too, as we do not have an ordering between read and write in the same statement
     scop.deps.antiOut = scop.deps.antiOut.subtract(toRemove)
-    scop.deps.updateInput += { inp => inp.subtract(toRemove) }
+    scop.deps.mapInputLazy { input => input.subtract(toRemove) }
   }
 
   private def optimize(scop : Scop, confID : Int) : Unit = {
@@ -638,7 +642,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val ctx : isl.Ctx = sample.getCtx()
     var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
     for (i <- 0 until tilableDims) {
-      var tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 0
+      val tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 0
       // if we don't want to tile a dimension, leave the outer tile loop constant 0
       if (tileSize > 0 && (scop.origIterationCount == null || tileSize < 100 + scop.origIterationCount(tilableDims - 1 - i))) {
         var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
@@ -648,7 +652,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       }
     }
     for (i <- 0 until domSp.dim(T_SET)) {
-      var aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
+      val aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(domSp), T_SET, i)
       mAff = mAff.setAff(tilableDims + i, aff)
     }
     val trafo = isl.BasicMap.fromMultiAff(mAff)

@@ -4,17 +4,27 @@ trait FilePrettyPrintable {
   def printToFile() : Unit
 }
 
+object PrintEnvironment extends Enumeration {
+  type PrintEnvironment = Value
+  val CPP = Value
+  val CUDA = Value
+}
+import PrintEnvironment._
+
 trait PrettyPrintable {
   def prettyprint(out : PpStream) : Unit
 
-  final def prettyprint() : String = {
-    val out = new PpStream()
+  final def prettyprint : String = prettyprint() // FIXME: HACK: allow usage of prettyprint without braces... -.-
+  final def prettyprint(env : PrintEnvironment = CPP) : String = {
+    val out = new PpStream(env)
     prettyprint(out)
     return out.toString()
   }
 }
 
-abstract class RawStream[PP <: PrettyPrintable](sb : StringBuilder) {
+abstract class RawStream[PP <: PrettyPrintable]() {
+  val sb : StringBuilder = new StringBuilder()
+
   def <<(node : PP) : this.type
 
   def <<(c : Char) : this.type = {
@@ -55,7 +65,7 @@ abstract class RawStream[PP <: PrettyPrintable](sb : StringBuilder) {
   override def toString() : String = sb.toString()
 }
 
-final class PpStream(sb : StringBuilder = new StringBuilder()) extends RawStream[PrettyPrintable](sb) {
+final class PpStream(val env : PrintEnvironment) extends RawStream[PrettyPrintable]() {
   override def <<(node : PrettyPrintable) : this.type = {
     node.prettyprint(this)
     return this

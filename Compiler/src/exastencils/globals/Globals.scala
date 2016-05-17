@@ -2,7 +2,7 @@ package exastencils.globals
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Settings
+import exastencils.core._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
@@ -20,8 +20,12 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
+  if (Knowledge.experimental_cuda_enabled) {
+    externalDependencies += "cuda.h"
+    externalDependencies += "cuda_runtime.h"
+  }
   if (Knowledge.data_alignFieldPointers || Knowledge.data_alignTmpBufferPointers)
-    externalDependencies += "stddef.h" // TODO: please note why this is required; delete if it is not required
+    externalDependencies += "cstddef" // type ptrdiff_t (used when aligning pointer) is defined in stddef.h/cstddef
   internalDependencies += "Util/Stopwatch.h"
   if (Knowledge.library_CImg)
     internalDependencies += "Util/CImg.h"

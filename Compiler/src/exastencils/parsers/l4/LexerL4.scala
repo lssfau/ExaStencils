@@ -1,9 +1,13 @@
 package exastencils.parsers.l4
 
+import exastencils.parsers.ExaLexer
+
 /**
   * Defines a basic standard lexical parser for Layer 4
   */
-class LexerL4 extends exastencils.parsers.ExaLexer {
+class LexerL4 extends ExaLexer {
+  // general delimiters
+  delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
   // function keywords
   reserved += ("Func", "Function", "return")
@@ -21,12 +25,16 @@ class LexerL4 extends exastencils.parsers.ExaLexer {
   reserved += ("repeat", "times", "count", "with", "contraction", "break")
   reserved += ("loop", "until", "over", "fragments", "only", "on", "boundary", "where", "starting", "ending", "stepping", "reduction")
   reserved += ("sequentially") // FIXME: seq HACK
+  reserved += ("precomm", "postcomm") // temporary loop annotation
 
   // condition keywords
   reserved += ("if", "else", "and", "or")
 
   // language datatypes
   reserved += ("Unit", "String", "Integer", "Int", "Real", "Complex", "Array", "Vector", "ColumnVector", "CVector", "Matrix", "Boolean", "Bool", "T")
+
+  // boolean keywords
+  reserved += ("true", "false")
 
   // level specification keywords
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")

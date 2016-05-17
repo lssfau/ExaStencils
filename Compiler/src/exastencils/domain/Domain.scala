@@ -2,6 +2,7 @@ package exastencils.domain
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -12,39 +13,53 @@ import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-case class PointOutsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
+case class PointOutsideDomain(var pos : Access, var domain : Domain) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
 
   override def expand : Output[Expression] = {
     val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
+    def posD = Duplicate(pos)
     Knowledge.dimensionality match {
-      case 1 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) ~ ")"
-      case 2 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
-        ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) ~ ")"
-      case 3 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
-        ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) Or
-        ((pos ~ ".z") < size.lower_z) Or ((pos ~ ".z") > size.upper_z) ~ ")"
+      // case 1 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) ~ ")"
+      case 1 => (MemberAccess(posD, "x") < size.lower_x) Or (MemberAccess(posD, "x") > size.upper_x)
+      // case 2 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
+      //   ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) ~ ")"
+      case 2 => (MemberAccess(posD, "x") < size.lower_x) Or (MemberAccess(posD, "x") > size.upper_x) Or
+        (MemberAccess(posD, "y") < size.lower_y) Or (MemberAccess(posD, "y") > size.upper_y)
+      // case 3 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
+      //   ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) Or
+      //   ((pos ~ ".z") < size.lower_z) Or ((pos ~ ".z") > size.upper_z) ~ ")"
+      case 3 => (MemberAccess(posD, "x") < size.lower_x) Or (MemberAccess(posD, "x") > size.upper_x) Or
+        (MemberAccess(posD, "y") < size.lower_y) Or (MemberAccess(posD, "y") > size.upper_y) Or
+        (MemberAccess(posD, "z") < size.lower_z) Or (MemberAccess(posD, "z") > size.upper_z)
     }
   }
 }
 
-case class PointInsideDomain(var pos : Expression, var domain : Domain) extends Expression with Expandable {
+case class PointInsideDomain(var pos : Access, var domain : Domain) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
 
   override def expand : Output[Expression] = {
     val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
+    def posD = Duplicate(pos)
     Knowledge.dimensionality match {
-      case 1 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) ~ ")"
-      case 2 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
-        ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) ~ ")"
-      case 3 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
-        ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) And
-        ((pos ~ ".z") >= size.lower_z) And ((pos ~ ".z") <= size.upper_z) ~ ")"
+      // case 1 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) ~ ")"
+      case 1 => (MemberAccess(posD, "x") >= size.lower_x) And (MemberAccess(posD, "x") <= size.upper_x)
+      // case 2 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
+      //   ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) ~ ")"
+      case 2 => (MemberAccess(posD, "x") >= size.lower_x) And (MemberAccess(posD, "x") <= size.upper_x) And
+        (MemberAccess(posD, "y") >= size.lower_y) And (MemberAccess(posD, "y") <= size.upper_y)
+      // case 3 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
+      //   ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) And
+      //   ((pos ~ ".z") >= size.lower_z) And ((pos ~ ".z") <= size.upper_z) ~ ")"
+      case 3 => (MemberAccess(posD, "x") >= size.lower_x) And (MemberAccess(posD, "x") <= size.upper_x) And
+        (MemberAccess(posD, "y") >= size.lower_y) And (MemberAccess(posD, "y") <= size.upper_y) And
+        (MemberAccess(posD, "z") >= size.lower_z) And (MemberAccess(posD, "z") <= size.upper_z)
     }
   }
 }
 
-case class PointToFragmentId(var pos : Expression) extends Expression with Expandable {
+case class PointToFragmentId(var pos : Access) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Output[Expression] = {
@@ -54,18 +69,25 @@ case class PointToFragmentId(var pos : Expression) extends Expression with Expan
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
     val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
 
+    def posD = Duplicate(pos)
     Knowledge.dimensionality match {
-      case 1 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 2 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
-        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 3 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
-        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
-        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
+      // case 1 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
+      case 1 => CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      // case 2 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
+      //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
+      case 2 => CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      // case 3 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
+      //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
+      //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
+      case 3 => CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
     }
   }
 }
 
-case class PointToFragmentIndex(var pos : Expression) extends Expression with Expandable {
+case class PointToFragmentIndex(var pos : Access) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentIndex\n"
 
   override def expand : Output[Expression] = {
@@ -75,26 +97,34 @@ case class PointToFragmentIndex(var pos : Expression) extends Expression with Ex
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
     val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
 
+    def posD = Duplicate(pos)
     val entries = Knowledge.dimensionality match {
       case 1 => ListBuffer[Expression](
-        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
+        // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         0,
         0)
       case 2 => ListBuffer[Expression](
-        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
+        // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
         0)
       case 3 => ListBuffer[Expression](
-        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
-        "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z))
+        // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
+        // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z))
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)))
     }
 
-    "Vec3i(" ~ entries.reduceLeft((l, r) => l ~ ", " ~ r) ~ ")"
+    // "Vec3i(" ~ entries.reduceLeft((l, r) => l ~ ", " ~ r) ~ ")"
+    FunctionCallExpression("Vec3i", entries) // FIXME: Constructor?
   }
 }
 
-case class PointToLocalFragmentId(var pos : Expression) extends Expression with Expandable {
+case class PointToLocalFragmentId(var pos : Access) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Output[Expression] = {
@@ -104,18 +134,25 @@ case class PointToLocalFragmentId(var pos : Expression) extends Expression with 
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
     val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
 
+    def posD = Duplicate(pos)
     Knowledge.dimensionality match {
-      case 1 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 2 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 3 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z)) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
-        (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      // case 1 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 1 => ((CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      // case 2 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+      //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 2 => ((CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      // case 3 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z)) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
+      //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+      //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 3 => ((CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z))) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
     }
   }
 }
 
-case class PointToOwningRank(var pos : Expression, var domain : Domain) extends Expression with Expandable {
+case class PointToOwningRank(var pos : Access, var domain : Domain) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
 
   override def expand : Output[Expression] = {
@@ -125,29 +162,27 @@ case class PointToOwningRank(var pos : Expression, var domain : Domain) extends 
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
     val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
 
+    def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       case 1 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
-        ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
       case 2 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
-        ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
-          + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
+        //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
+          CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
       case 3 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
-        ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x
-          + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
-          + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x
+        //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
+        //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x +
+          CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
+          CastExpression(IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
     }
-  }
-}
-
-case class AssertStatement(var check : Expression, var msg : ListBuffer[Expression], var abort : Statement) extends Statement with Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
-
-  override def expand : Output[ConditionStatement] = {
-    new ConditionStatement(check,
-      ListBuffer[Statement](new PrintStatement(msg), abort))
   }
 }
 
@@ -193,21 +228,22 @@ case class ConnectFragments() extends Statement with Expandable {
           statements += new ConditionStatement(LowerExpression("offsetPos.z", gSize.lower_z), AssignmentStatement("offsetPos.z", gSize.upper_z - gSize.lower_z, "+="))
         }
 
+        // FIXME: datatype for VariableAccesses
         statements ++= (0 until domains.size).toArray[Int].map(d =>
-          new ConditionStatement(iv.IsValidForSubdomain(d) AndAnd PointInsideDomain(s"offsetPos", domains(d)),
+          new ConditionStatement(iv.IsValidForSubdomain(d) AndAnd PointInsideDomain(VariableAccess("offsetPos", None), domains(d)),
             (if (Knowledge.domain_canHaveRemoteNeighs) {
               if (Knowledge.domain_canHaveLocalNeighs)
-                new ConditionStatement(s"mpiRank ==" ~ PointToOwningRank("offsetPos", domains(d)),
+                new ConditionStatement(EqEqExpression("mpiRank", PointToOwningRank(VariableAccess("offsetPos", None), domains(d))),
                   FunctionCallExpression("connectLocalElement", ListBuffer[Expression](
-                    LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), neigh.index, d)),
+                    LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), neigh.index, d)),
                   FunctionCallExpression("connectRemoteElement", ListBuffer[Expression](
-                    LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), PointToOwningRank("offsetPos", domains(d)), neigh.index, d)))
+                    LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), PointToOwningRank(VariableAccess("offsetPos", None), domains(d)), neigh.index, d))) // FIXME: datatype for VariableAccess
               else
                 FunctionCallExpression("connectRemoteElement", ListBuffer[Expression](
-                  LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), PointToOwningRank("offsetPos", domains(d)), neigh.index, d))
+                  LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), PointToOwningRank(VariableAccess("offsetPos", None), domains(d)), neigh.index, d)) // FIXME: datatype for VariableAccess
             } else {
               FunctionCallExpression("connectLocalElement", ListBuffer[Expression](
-                LoopOverFragments.defIt, PointToLocalFragmentId("offsetPos"), neigh.index, d))
+                LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), neigh.index, d))
             }) : Statement))
 
         body += Scope(statements)
@@ -221,6 +257,7 @@ case class ConnectFragments() extends Statement with Expandable {
 case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
+  override def name = "initDomain"
 
   override def expand : Output[FunctionStatement] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -228,12 +265,14 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
     val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
-    val vecDelta = "Vec3(" ~ (0.5 * fragWidth_x) ~ "," ~ (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0) ~ "," ~ (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0) ~ ")"
+    // val vecDelta = "Vec3(" ~ (0.5 * fragWidth_x) ~ "," ~ (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0) ~ "," ~ (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0) ~ ")"
+    // FIXME: Constructor?
+    val vecDelta = new FunctionCallExpression("Vec3", (0.5 * fragWidth_x), (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0), (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0))
 
     var body = ListBuffer[Statement]()
 
     if (Knowledge.mpi_enabled)
-      body += AssertStatement(NeqExpression(s"mpiSize", Knowledge.domain_numBlocks),
+      body += AssertStatement(EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
         ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
         new FunctionCallExpression("exit", 1))
 
@@ -245,11 +284,11 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
       else
         s"Vec3 rankPos(0, 0, 0)")
 
-    body += new LoopOverDimensions(Knowledge.dimensionality, IndexRange(MultiIndex(0, 0, 0), MultiIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
-      new AssignmentStatement("positions[posWritePos++]", "Vec3("
-        ~ ((("rankPos.x" : Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x ~ ","
-        ~ (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0) ~ ","
-        ~ (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0) ~ ")"))
+    body += new LoopOverDimensions(Knowledge.dimensionality, IndexRange(new MultiIndex(0, 0, 0), new MultiIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
+      new AssignmentStatement("positions[posWritePos++]", new FunctionCallExpression("Vec3",
+        ((("rankPos.x" : Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x,
+        (if (Knowledge.dimensionality > 1) ((("rankPos.y" : Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0),
+        (if (Knowledge.dimensionality > 2) ((("rankPos.z" : Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0)))) // FIXME: Constructor?
     body += LoopOverFragments(ListBuffer(
       AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
       AssignmentStatement(iv.PrimitiveIndex(), PointToFragmentIndex(ArrayAccess("positions", LoopOverFragments.defIt))),
@@ -262,22 +301,23 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
     body += new ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
 
-    FunctionStatement(UnitDatatype, s"initDomain", ListBuffer(), body)
+    FunctionStatement(UnitDatatype, name, ListBuffer(), body)
   }
 }
 
 case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
+  override def name = "initDomain"
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(UnitDatatype, s"initDomain", ListBuffer(),
+    FunctionStatement(UnitDatatype, name, ListBuffer(),
       (if (Knowledge.mpi_enabled) {
         ListBuffer(
           VariableDeclarationStatement(IntegerDatatype, "numFragments", Some("0")),
           VariableDeclarationStatement(IntegerDatatype, "bufsize", Some("0")),
           VariableDeclarationStatement(IntegerDatatype, "fileOffset", Some("0")),
-          AssertStatement(NeqExpression("mpiSize", Knowledge.mpi_numThreads),
+          AssertStatement(EqEqExpression("mpiSize", Knowledge.mpi_numThreads),
             ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.domain_numBlocks),
             "return"),
           ConditionStatement("mpiRank == 0",
@@ -302,7 +342,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
                       MPI_Send("&n", "1", IntegerDatatype, "i", 0, "mpiRequest_Send_0[i][0]"),
                       MPI_Send("&fileOffset", "1", IntegerDatatype, "i", 1, "mpiRequest_Send_0[i][1]"),
                       MPI_Send("&b", "1", IntegerDatatype, "i", 2, "mpiRequest_Send_0[i][2]"),
-                      AssignmentStatement("fileOffset", AdditionExpression("fileOffset", "b"))))
+                      AssignmentStatement("fileOffset", new AdditionExpression("fileOffset", "b"))))
                   } else NullStatement),
                   "file.close()"), ListBuffer[Statement]()),
               AssignmentStatement("fileOffset", 0)),
@@ -349,6 +389,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
 case class SetValues() extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetValues\n"
   override def prettyprint_decl = prettyprint
+  override def name = "setValues"
 
   override def expand : Output[FunctionStatement] = {
     var body = new ListBuffer[Statement]
@@ -358,8 +399,10 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
     body += Scope(ListBuffer(
       AssignmentStatement(iv.PrimitiveId(), ReadValueFrom(IntegerDatatype, "data")),
       AssignmentStatement(iv.CommId(), ReadValueFrom(IntegerDatatype, "data")),
-      ForLoopStatement("int i = 0", " i <" ~ math.pow(2, Knowledge.dimensionality), "++i", ListBuffer(
-        s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
+      ForLoopStatement(VariableDeclarationStatement(IntegerDatatype, "i", Some(0)), LowerExpression(VariableAccess("i", Some(IntegerDatatype)), math.pow(2, Knowledge.dimensionality)), PreIncrementExpression(VariableAccess("i", Some(IntegerDatatype))), ListBuffer(
+        // FIXME: Constructor?
+        // s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
+        VariableDeclarationStatement(SpecialDatatype("Vec3"), "vertPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(RealDatatype, "data"), 0, 0))),
         (if (Knowledge.dimensionality == 2) AssignmentStatement("vertPos.y", ReadValueFrom(RealDatatype, "data")) else NullStatement),
         (if (Knowledge.dimensionality == 3) AssignmentStatement("vertPos.z", ReadValueFrom(RealDatatype, "data")) else NullStatement),
         SwitchStatement("i", ListBuffer(
@@ -367,7 +410,9 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
           CaseStatement("1", ListBuffer(AssignmentStatement(iv.PrimitivePositionEnd(), "vertPos"))),
           CaseStatement("3", ListBuffer(AssignmentStatement(iv.PrimitivePositionEnd(), "vertPos"))),
           CaseStatement("7", ListBuffer(AssignmentStatement(iv.PrimitivePositionEnd(), "vertPos"))))))),
-      s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
+      // FIXME: Constructor?
+      // s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
+      VariableDeclarationStatement(SpecialDatatype("Vec3"), "fragPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(RealDatatype, "data"), 0, 0))),
       (if (Knowledge.dimensionality == 2) AssignmentStatement("fragPos.y", ReadValueFrom(RealDatatype, "data")) else NullStatement),
       (if (Knowledge.dimensionality == 3) AssignmentStatement("fragPos.z", ReadValueFrom(RealDatatype, "data")) else NullStatement),
       AssignmentStatement(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
@@ -394,9 +439,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
           AssignmentStatement("trafoTmp[i]", ReadValueFrom(RealDatatype, "data")))),
         AssignmentStatement(iv.PrimitiveTransformation(), "trafoTmp")),
       ListBuffer(NullStatement))
-    FunctionStatement(
-      UnitDatatype,
-      s"setValues",
+    FunctionStatement(UnitDatatype, name,
       ListBuffer[VariableAccess](VariableAccess("data", Some("char*")), VariableAccess("numFragments", Some(IntegerDatatype))),
       //      ListBuffer((LoopOverFragments(body))))
       ListBuffer(ForLoopStatement(" int fragmentIdx = 0 ", " fragmentIdx < numFragments ", " ++fragmentIdx ", body)))

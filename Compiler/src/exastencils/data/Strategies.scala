@@ -5,12 +5,14 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
+import exastencils.cuda._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.globals._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.util._
@@ -39,6 +41,10 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
     case access : ExternalFieldAccess =>
       access.linearize
     case access : TempBufferAccess =>
+      access.linearize
+    case access : ReductionDeviceDataAccess =>
+      access.linearize
+    case access : LoopCarriedCSBufferAccess =>
       access.linearize
   })
 }
@@ -109,6 +115,8 @@ object ResolveFieldAccess extends DefaultStrategy("Resolving FieldAccess nodes")
   })
 }
 
+/// internal variables
+
 object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant internal variables") {
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
@@ -168,6 +176,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   var bufferAllocs : HashMap[String, Statement] = HashMap()
   var fieldAllocs : HashMap[String, Statement] = HashMap()
 
+  var deviceBufferSizes : HashMap[String, Expression] = HashMap()
+  var deviceBufferAllocs : HashMap[String, Statement] = HashMap()
+  var deviceFieldAllocs : HashMap[String, Statement] = HashMap()
+
   var counter : Int = 0
 
   override def apply(node : Option[Node] = None) = {
@@ -183,7 +195,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   }
 
   this += new Transformation("Collecting buffer sizes", {
-    case buf : iv.TmpBuffer =>
+    case buf : iv.TmpBuffer => {
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (bufferSizes.contains(id))
@@ -195,12 +207,14 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
       }
       buf
+    }
+
     case field : iv.FieldData => {
       val cleanedField = Duplicate(field)
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = LoopOverFragments.defIt
 
-      var numDataPoints : Expression = (0 to Knowledge.dimensionality).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _) * field.field.dataType.resolveFlattendSize
+      var numDataPoints : Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
       var statements : ListBuffer[Statement] = ListBuffer()
 
       val newFieldData = Duplicate(cleanedField)
@@ -211,13 +225,13 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           counter += 1
           ListBuffer(
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"vs_$counter",
-              Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype))),
-            AssignmentStatement(newFieldData.basePtr, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints + Knowledge.simd_vectorSize - 1)),
+              Some(Platform.simd_vectorSize * SizeOfExpression(RealDatatype))),
+            AssignmentStatement(newFieldData.basePtr, Allocation(field.field.resolveDeclType, numDataPoints + Platform.simd_vectorSize - 1)),
             VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"offset_$counter",
               Some(((s"vs_$counter" - (CastExpression(SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(RealDatatype))),
             AssignmentStatement(newFieldData, newFieldData.basePtr + s"offset_$counter"))
         } else {
-          ListBuffer(AssignmentStatement(newFieldData, Allocation(field.field.dataType.resolveUnderlyingDatatype, numDataPoints)))
+          ListBuffer(AssignmentStatement(newFieldData, Allocation(field.field.resolveDeclType, numDataPoints)))
         }
 
       if (field.field.numSlots > 1)
@@ -231,7 +245,66 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       fieldAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
+
       field
+    }
+
+    case field : iv.FieldDeviceData => {
+      val cleanedField = Duplicate(field)
+      cleanedField.slot = "slot"
+      cleanedField.fragmentIdx = LoopOverFragments.defIt
+
+      var numDataPoints : Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+      var statements : ListBuffer[Statement] = ListBuffer()
+
+      val newFieldData = Duplicate(cleanedField)
+      newFieldData.slot = (if (field.field.numSlots > 1) "slot" else 0)
+
+      var innerStmts = ListBuffer[Statement](
+        CUDA_AllocateStatement(newFieldData, numDataPoints, field.field.resolveBaseDatatype))
+
+      if (field.field.numSlots > 1)
+        statements += new ForLoopStatement(
+          VariableDeclarationStatement(IntegerDatatype, "slot", Some(0)),
+          LowerExpression("slot", field.field.numSlots),
+          PreIncrementExpression("slot"),
+          innerStmts)
+      else
+        statements ++= innerStmts
+
+      deviceFieldAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
+        new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
+
+      field
+    }
+
+    case buf : iv.ReductionDeviceData => {
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, NullExpression, NullExpression, NullExpression).prettyprint
+      if (Knowledge.data_genVariableFieldSizes) {
+        if (deviceBufferSizes.contains(id))
+          deviceBufferSizes.get(id).get.asInstanceOf[MaximumExpression].args += Duplicate(buf.size)
+        else
+          deviceBufferSizes += (id -> MaximumExpression(ListBuffer(Duplicate(buf.size))))
+      } else {
+        val size = SimplifyExpression.evalIntegral(buf.size).toLong
+        deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
+      }
+      buf
+    }
+
+    case buf : iv.LoopCarriedCSBuffer => {
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, null, null, null, null).prettyprint()
+      val size : Expression =
+        if (buf.dimSizes.isEmpty)
+          IntegerConstant(1)
+        else
+          Duplicate(buf.dimSizes.reduce(_ * _))
+      bufferSizes.get(id) match {
+        case Some(MaximumExpression(maxList)) => maxList += size
+        case None                             => bufferSizes += (id -> MaximumExpression(ListBuffer(size)))
+        case _                                => Logger.error("should not happen...")
+      }
+      buf
     }
   })
 
@@ -244,8 +317,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         counter += 1
         bufferAllocs += (id -> new LoopOverFragments(ListBuffer[Statement](
           VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"vs_$counter",
-            Some(Knowledge.simd_vectorSize * SizeOfExpression(RealDatatype))),
-          AssignmentStatement(buf.basePtr, Allocation(RealDatatype, size + Knowledge.simd_vectorSize - 1)),
+            Some(Platform.simd_vectorSize * SizeOfExpression(RealDatatype))),
+          AssignmentStatement(buf.basePtr, Allocation(RealDatatype, size + Platform.simd_vectorSize - 1)),
           VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"offset_$counter",
             Some(((s"vs_$counter" - (CastExpression(SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(RealDatatype))),
           AssignmentStatement(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
@@ -254,10 +327,29 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       }
 
       buf
+
+    case buf : iv.ReductionDeviceData =>
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, NullExpression, NullExpression, NullExpression).prettyprint
+      val size = deviceBufferSizes(id)
+
+      deviceBufferAllocs += (id -> new LoopOverFragments(CUDA_AllocateStatement(buf, size, RealDatatype /*FIXME*/ )) with OMP_PotentiallyParallel)
+
+      buf
+
+    case buf : iv.LoopCarriedCSBuffer =>
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, null, null, null, null).prettyprint
+      var size = bufferSizes(id)
+      try {
+        size = SimplifyExpression.simplifyIntegralExpr(size)
+      } catch {
+        case ex : EvaluationException => // what a pitty...
+      }
+      bufferAllocs += (id -> new LoopOverFragments(new AssignmentStatement(buf, Allocation(buf.baseDatatype, size))) with OMP_PotentiallyParallel)
+      buf
   })
 
   this += new Transformation("Extending SetupBuffers function", {
-    case func @ FunctionStatement(_, "setupBuffers", _, _, _, _) => {
+    case func @ FunctionStatement(_, "setupBuffers", _, _, _, _, _) => {
       if (Knowledge.experimental_useLevelIndepFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {
@@ -268,17 +360,11 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           s.applyStandalone(buf._2)
       }
 
-      for (bufferAlloc <- bufferAllocs.toSeq.sortBy(_._1))
-        if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
-          func.body += new Scope(bufferAlloc._2)
+      for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
+        if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+          func.body += new Scope(genericAlloc._2)
         else
-          func.body += bufferAlloc._2
-
-      for (fieldAlloc <- fieldAllocs.toSeq.sortBy(_._1))
-        if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
-          func.body += new Scope(fieldAlloc._2)
-        else
-          func.body += fieldAlloc._2
+          func.body += genericAlloc._2
 
       func
     }
@@ -295,13 +381,13 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       globals.variables ++= declarationMap.toSeq.sortBy(_._1).map(_._2)
       globals
     case func : FunctionStatement if ("initGlobals" == func.name) =>
-      if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+      if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         func.body ++= ctorMap.toSeq.sortBy(_._1).map(s => new Scope(s._2))
       else
         func.body ++= ctorMap.toSeq.sortBy(_._1).map(_._2)
       func
     case func : FunctionStatement if ("destroyGlobals" == func.name) =>
-      if ("MSVC" == Knowledge.targetCompiler /*&& Knowledge.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
+      if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         func.body ++= dtorMap.toSeq.sortBy(_._1).map(s => new Scope(s._2))
       else
         func.body ++= dtorMap.toSeq.sortBy(_._1).map(_._2)

@@ -5,17 +5,18 @@ import exastencils.knowledge._
 
 object JobScriptGenerator {
   def write : Unit = {
-    Knowledge.targetCompiler match {
+    Platform.targetCompiler match {
       case "IBMBG" | "IBMXL" => {
         val numOMP = Knowledge.omp_numThreads
         val numMPI = Knowledge.mpi_numThreads
-        val numThreadsPerNode = Knowledge.hw_numThreadsPerNode
+        val numThreadsPerNode = Platform.hw_numThreadsPerNode
         val numMPIRanksPerNode = numThreadsPerNode / numOMP
         val numNodes = (numOMP * numMPI) / numThreadsPerNode
 
         val printer = PrettyprintingManager.getPrinter("runJuQueen")
         printer <<< s"#@ shell = /bin/bash"
-        printer <<< s"#@ job_name = GENERATED_$numNodes"
+        //printer <<< s"#@ job_name = GENERATED_$numNodes"
+        printer <<< s"#@ job_name = ${Settings.configName}"
         printer <<< "#@ error = $(job_name).$(jobid).out"
         printer <<< "#@ output = $(job_name).$(jobid).out"
         printer <<< s"#@ environment = COPY_ALL"
@@ -41,7 +42,7 @@ object JobScriptGenerator {
         printer <<< ""
 
         // TODO: tune the next 4 parameters
-        val srcFolder = "$HOME/Exa" + (if ("" != Settings.configName) "/Generated_" + Settings.configName else "")
+        val srcFolder = "$HOME/Exa" + (if ("" != Settings.configName) "/" + Settings.configName else "")
         val srcBinary = Settings.binary
         val destFolder = "$WORK/ExaTemp"
         val destBinary = Settings.binary + (if ("" != Settings.configName) "_" + Settings.configName else "")
@@ -60,7 +61,7 @@ object JobScriptGenerator {
   }
 
   def write(numMPI : Int, numOMP : Int, ranksPerNode : Int, sourcePath : Array[String], number : Int, suffix : String) : Unit = {
-    Knowledge.targetCompiler match {
+    Platform.targetCompiler match {
       case "IBMBG" | "IBMXL" => {
         val numThreadsPerNode = ranksPerNode
         val numMPIRanksPerNode = numThreadsPerNode / numOMP

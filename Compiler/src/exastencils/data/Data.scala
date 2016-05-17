@@ -14,28 +14,26 @@ import exastencils.prettyprinting._
 case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetupBuffers\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "setupBuffers"
 
   override def expand : Output[FunctionStatement] = {
     var body = ListBuffer[Statement]()
 
     // add static allocations here
 
-    return FunctionStatement(UnitDatatype, s"setupBuffers", ListBuffer(), body)
+    return FunctionStatement(UnitDatatype, name, ListBuffer(), body)
   }
 }
 
 case class GetFromExternalField(var src : Field, var dest : ExternalField) extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "get" + dest.identifier
 
   def getFortranCompDT() : Datatype = {
-    var dt : Datatype = dest.dataType
-    for (dim <- 0 until Knowledge.dimensionality)
+    var dt : Datatype = dest.resolveBaseDatatype
+    for (dim <- 0 until dest.fieldLayout.numDimsData)
       dt = ArrayDatatype_VS(dt, dest.fieldLayout.idxById("TOT", dim))
-
-    if (dest.vectorSize > 1)
-      dt = ArrayDatatype(dt, dest.vectorSize)
-
     dt
   }
 
@@ -43,20 +41,19 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
-      PointerDatatype(src.dataType)
+      PointerDatatype(src.resolveBaseDatatype)
 
-    val loopDim = Knowledge.dimensionality + (if (src.vectorSize > 1) 1 else 0)
-    var multiIndex = LoopOverDimensions.defIt
-    if (src.vectorSize <= 1) multiIndex(Knowledge.dimensionality) = 0
+    val loopDim = dest.fieldLayout.numDimsData
+    var multiIndex = LoopOverDimensions.defIt(loopDim)
 
-    new FunctionStatement(UnitDatatype, "get" + dest.identifier,
+    new FunctionStatement(UnitDatatype, name,
       ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           new MultiIndex((0 until loopDim).toArray.map(dim => src.fieldLayout.idxById("GLB", dim))),
           new MultiIndex((0 until loopDim).toArray.map(dim => src.fieldLayout.idxById("GRE", dim)))),
           new AssignmentStatement(ExternalFieldAccess("dest", dest, Duplicate(multiIndex)),
-            DirectFieldAccess(FieldSelection(src, src.level, "slot"), Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable),
+            DirectFieldAccess(FieldSelection(src, src.level, "slot"), Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }
 }
@@ -64,15 +61,12 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
 case class SetFromExternalField(var dest : Field, var src : ExternalField) extends AbstractFunctionStatement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
+  override def name = "set" + src.identifier
 
   def getFortranCompDT() : Datatype = {
-    var dt : Datatype = src.dataType
-    for (dim <- 0 until Knowledge.dimensionality)
+    var dt : Datatype = src.resolveBaseDatatype
+    for (dim <- 0 until src.fieldLayout.numDimsData)
       dt = ArrayDatatype_VS(dt, src.fieldLayout.idxById("TOT", dim))
-
-    if (src.vectorSize > 1)
-      dt = ArrayDatatype(dt, src.vectorSize)
-
     dt
   }
 
@@ -80,20 +74,19 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
-      PointerDatatype(dest.dataType)
+      PointerDatatype(dest.resolveBaseDatatype)
 
-    val loopDim = Knowledge.dimensionality + (if (src.vectorSize > 1) 1 else 0)
-    var multiIndex = LoopOverDimensions.defIt
-    if (src.vectorSize <= 1) multiIndex(Knowledge.dimensionality) = 0
+    val loopDim = src.fieldLayout.numDimsData
+    var multiIndex = LoopOverDimensions.defIt(loopDim)
 
-    new FunctionStatement(UnitDatatype, "set" + src.identifier,
+    new FunctionStatement(UnitDatatype, name,
       ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           new MultiIndex((0 until loopDim).toArray.map(dim => dest.fieldLayout.idxById("GLB", dim))),
           new MultiIndex((0 until loopDim).toArray.map(dim => dest.fieldLayout.idxById("GRE", dim)))),
           new AssignmentStatement(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), Duplicate(multiIndex)),
-            ExternalFieldAccess("src", src, Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessable),
+            ExternalFieldAccess("src", src, Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }
 }

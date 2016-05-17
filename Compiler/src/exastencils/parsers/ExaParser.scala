@@ -1,12 +1,12 @@
 package exastencils.parsers
 
+import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
 import exastencils.datastructures._
+import exastencils.knowledge._
 
-class ExaParser extends StandardTokenParsers {
-  override val lexical : ExaLexer = new ExaLexer()
-
+class ExaParser extends StandardTokenParsers with PackratParsers {
   val IntRegEx = """[+-]?(\d+)""".r
   val DoubleRegEx = """[+-]?\d+(\.\d*)?""".r
 
@@ -22,7 +22,7 @@ class ExaParser extends StandardTokenParsers {
 
   def locationize[T <: Annotatable](p : => Parser[T]) : Parser[T] = Parser { in =>
     p(in) match {
-      case Success(t, in1) => Success(if (!t.hasAnnotation("location")) { t.add(new Annotation("location", Some(in.pos))); t } else t, in1)
+      case Success(t, in1) => Success({ if (Knowledge.parser_annotateLocation) { t.annotate("location", Some(in.pos)) }; t }, in1)
       case ns : NoSuccess  => ns
     }
   }

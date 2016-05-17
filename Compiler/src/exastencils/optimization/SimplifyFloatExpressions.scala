@@ -32,7 +32,11 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       a
 
     case a @ AssignmentStatement(ArrayAccess(fd : iv.FieldData, _, _), src, op) //
-    if (fd.field.dataType.resolveUnderlyingDatatype == RealDatatype) =>
+    if (fd.field.resolveBaseDatatype == RealDatatype) =>
+      a.src = simplify(src)
+      a
+
+    case a @ AssignmentStatement(fa : FieldAccessLike, src, op) =>
       a.src = simplify(src)
       a
   })

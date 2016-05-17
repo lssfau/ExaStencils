@@ -22,7 +22,6 @@ case class Matrix() extends Node with FilePrettyPrintable {
 /// \brief  Header file for Matrix class
 /// \author Christian Schmitt
 
-
 #include <iostream>
 #include <vector>
 #include <cassert>
@@ -93,7 +92,7 @@ public:
     }
 
     size_t cols() const {
-        return this->columns;
+        return this->columns();
     }
 
     friend void swap ( Matrix<T, M, N>& a, Matrix<T, M, N>& b ) {
@@ -145,6 +144,7 @@ public:
         for ( size_t i = 0; i < this->columns(); ++i ) {
             out ( 0, i ) = ( *this ) ( row, i );
         }
+        return out;
     }
 
     Matrix<T, 1, N> getColumn ( const size_t column ) {
@@ -152,6 +152,7 @@ public:
         for ( size_t i = 0; i < this->rows(); ++i ) {
             out ( i, 0 ) = ( *this ) ( i, column );
         }
+        return out;
     }
 
     void swapRows ( const size_t a, const size_t b, const size_t start_elem = 0, const size_t elems = N ) {
@@ -160,7 +161,7 @@ public:
         }
     }
 
-    const size_t getRowWithMax ( const size_t column, const size_t start_row ) const {
+    size_t getRowWithMax ( const size_t column, const size_t start_row ) const {
         T mymax = std::abs ( ( *this ) ( start_row, column ) );
         T row = start_row;
         for ( size_t i = start_row + 1; i < N; ++i ) {
@@ -207,7 +208,6 @@ public:
             }
         }
     }
-
 
     T determinant() const {
         assert ( M == N ); // "determinant() is only defined for square matrices!" );
@@ -393,7 +393,6 @@ Matrix<T, M, N> operator- ( Matrix<T, M, N> a, const Matrix<T, M, N>& b )   // p
     return a;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 ////// Multiplication operators
 ////////////////////////////////////////////////////////////////////////////////
@@ -432,15 +431,15 @@ Matrix<T, M, N> operator*= ( Matrix<T, M, A>& a, const T& b )
 // Matrix * Scalar
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> operator* ( const Matrix<T, M, N> a, const T& b ) { // pass 'a' by value for implicit copy
-	    a *= b;
-	    return a;
+      a *= b;
+      return a;
 }
 
 // Scalar * Matrix
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> operator* ( const T& b, Matrix<T, M, N> a ) { // pass 'a' by value for implicit copy
-	    a *= b;
-	    return a;
+      a *= b;
+      return a;
 }
 */
 // Matrix * Scalar
@@ -495,9 +494,6 @@ Matrix<T, M, N> operator* ( const double b, const Matrix<T, M, N>& a )
     return out;
 }
 
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
 ////// Divison operators
 ////////////////////////////////////////////////////////////////////////////////
@@ -522,7 +518,6 @@ Matrix<T, M, N> operator/ ( Matrix<T, M, N> a, const T& b )   // pass 'a' by val
     return a;
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 ////// Element-wise functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -531,24 +526,24 @@ Matrix<T, M, N> operator/ ( Matrix<T, M, N> a, const T& b )   // pass 'a' by val
 /*
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> elementwiseAdd(const Matrix<T, M, N>& a, const T& b) {
-	    Matrix<T, M, N> out;
-	    for ( size_t i = 0; i < M; ++i) {
-		        for ( size_t j = 0; j < N; ++j) {
-			            out ( i, j ) = a ( i, j ) + b;
-			        }
-		    }
-	    return out;
+      Matrix<T, M, N> out;
+      for ( size_t i = 0; i < M; ++i) {
+            for ( size_t j = 0; j < N; ++j) {
+                  out ( i, j ) = a ( i, j ) + b;
+              }
+        }
+      return out;
 }
 
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> elementwiseAdd(const T& b, const Matrix<T, M, N>& a) {
-	    Matrix<T, M, N> out;
-	    for ( size_t i = 0; i < M; ++i) {
-		        for ( size_t j = 0; j < N; ++j) {
-			            out ( i, j ) = a ( i, j ) + b;
-			        }
-		    }
-	    return out;
+      Matrix<T, M, N> out;
+      for ( size_t i = 0; i < M; ++i) {
+            for ( size_t j = 0; j < N; ++j) {
+                  out ( i, j ) = a ( i, j ) + b;
+              }
+        }
+      return out;
 }
 */
 template<typename T, size_t M, size_t N>
@@ -600,23 +595,23 @@ Matrix<T, M, N> elementwiseAdd ( const int b, const Matrix<T, M, N>& a )
 /*
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> elementwiseSub(const Matrix<T, M, N>& a, const T& b) {
-	    Matrix<T, M, N> out;
-	    for ( size_t i = 0; i < M; ++i) {
-		        for ( size_t j = 0; j < N; ++j) {
-			            out ( i, j ) = a ( i, j ) - b;
-			        }
-		    }
-	    return out;
+      Matrix<T, M, N> out;
+      for ( size_t i = 0; i < M; ++i) {
+            for ( size_t j = 0; j < N; ++j) {
+                  out ( i, j ) = a ( i, j ) - b;
+              }
+        }
+      return out;
 }
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> elementwiseSub(const T& b, const Matrix<T, M, N>& a) {
-	    Matrix<T, M, N> out;
-	    for ( size_t i = 0; i < M; ++i) {
-		        for ( size_t j = 0; j < N; ++j) {
-			            out ( i, j ) = a ( i, j ) - b;
-			        }
-		    }
-	    return out;
+      Matrix<T, M, N> out;
+      for ( size_t i = 0; i < M; ++i) {
+            for ( size_t j = 0; j < N; ++j) {
+                  out ( i, j ) = a ( i, j ) - b;
+              }
+        }
+      return out;
 }
 */
 template<typename T, size_t M, size_t N>
@@ -664,8 +659,6 @@ Matrix<T, M, N> elementwiseSub ( const int b, const Matrix<T, M, N>& a )
     return out;
 }
 
-
-
 // Matrix * Matrix element-wise
 template<typename T, size_t M, size_t N>
 Matrix<T, M, N> elementwiseMul ( const Matrix<T, M, N>& a, const Matrix<T, M, N>& b )
@@ -705,7 +698,6 @@ Matrix<T, M, N> elementwiseMod ( const Matrix<T, M, N>& a, const Matrix<T, M, N>
     return out;
 }
 
-
 // #####################################################################################
 
 template<typename T, size_t M, size_t N>
@@ -735,7 +727,7 @@ std::ostream& operator<< ( std::ostream &os, const Matrix<T, M, N>& other )
 template<size_t M, size_t N>
 Matrix<double, M, N>& operator+ ( Matrix<double, M, N>& a, const Matrix<int, M, N>& b )
 {
-    assert ( a.rows() == b.rows() && a.columns == b.columns() );
+    assert ( a.rows() == b.rows() && a.columns() == b.columns() );
     Matrix<double, M, N> out;
     for ( size_t i = 0; i < a.rows(); ++i ) {
         for ( size_t j = 0; j < a.columns(); ++j ) {
@@ -748,7 +740,7 @@ Matrix<double, M, N>& operator+ ( Matrix<double, M, N>& a, const Matrix<int, M, 
 template<size_t M, size_t N>
 Matrix<double, M, N>& operator+ ( Matrix<int, M, N>& a, const Matrix<double, M, N>& b )
 {
-    assert ( a.rows() == b.rows() && a.columns == b.columns() );
+    assert ( a.rows() == b.rows() && a.columns() == b.columns() );
     Matrix<double, M, N> out;
     for ( size_t i = 0; i < a.rows(); ++i ) {
         for ( size_t j = 0; j < a.columns(); ++j ) {
@@ -761,7 +753,7 @@ Matrix<double, M, N>& operator+ ( Matrix<int, M, N>& a, const Matrix<double, M, 
 template<size_t M, size_t N>
 Matrix<double, M, N>& operator- ( Matrix<double, M, N>& a, const Matrix<int, M, N>& b )
 {
-    assert ( a.rows() == b.rows() && a.columns == b.columns() );
+    assert ( a.rows() == b.rows() && a.columns() == b.columns() );
     Matrix<double, M, N> out;
     for ( size_t i = 0; i < a.rows(); ++i ) {
         for ( size_t j = 0; j < a.columns(); ++j ) {
@@ -774,7 +766,7 @@ Matrix<double, M, N>& operator- ( Matrix<double, M, N>& a, const Matrix<int, M, 
 template<size_t M, size_t N>
 Matrix<double, M, N>& operator- ( Matrix<int, M, N>& a, const Matrix<double, M, N>& b )
 {
-    assert ( a.rows() == b.rows() && a.columns == b.columns() );
+    assert ( a.rows() == b.rows() && a.columns() == b.columns() );
     Matrix<double, M, N> out;
     for ( size_t i = 0; i < a.rows(); ++i ) {
         for ( size_t j = 0; j < a.columns(); ++j ) {
@@ -817,7 +809,6 @@ Matrix<double, M, N> operator* ( const Matrix<double, M, A>& a, const Matrix<int
     }
     return out;
 }
-
 
 template<typename T, size_t M>
 Matrix<T, M, M> inverse ( const Matrix<T, M, M>& o )

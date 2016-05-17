@@ -102,7 +102,7 @@ object StateManager {
       Logger.warning("Transaction has been aborted")
     }
 
-    def isValid(token : TransactionToken) = { currentToken != None && token == currentToken.get }
+    def isValid(token : TransactionToken) = { currentToken != None && (token eq currentToken.get) }
   }
   def transaction(strategy : Strategy) = History.transaction(strategy)
   def commit(token : History.TransactionToken) = History.commit(token)
@@ -183,18 +183,26 @@ object StateManager {
         // ###############################################################################################
         case n : Node => {
           val ret = applyAtNode(n, transformation).inner
-          var nextNode = ret
-
+          var nextNode : Node = n
           ret match {
-            case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
+            case NoMatch => // do nothing, next is already set
             case m : Node => {
-              if (ret != n && !Vars.set(node, field, m)) {
-                Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+              if (m ne n) {
+                nextNode = m
+                m.annotate(n)
+                if (!Vars.set(node, field, m)) {
+                  Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+                }
               }
             }
             case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
-              if (m.nodes.toSeq(0) != n && !Vars.set(node, field, m.nodes.toSeq(0))) {
-                Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+              val mNode : Node = m.nodes.toSeq(0)
+              if (mNode ne n) {
+                nextNode = mNode
+                mNode.annotate(n)
+                if (!Vars.set(node, field, mNode)) {
+                  Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+                }
               }
             }
             case None => Logger.error(s"""Could not remove node "${field.getName()}"" from "${n}"" as it is not optional!""")
@@ -202,28 +210,36 @@ object StateManager {
 
           // Apply transformation to sub-elements
           if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-            replace(nextNode.asInstanceOf[Node], transformation) // can safely downcast because of type matching above erroring out for unfitting types
+            replace(nextNode, transformation)
           }
         }
         case Some(any) => any match {
           case n : Node => {
             val ret = applyAtNode(n, transformation).inner
-            var nextNode = ret
-
+            var nextNode : Node = n
             ret match {
-              case NoMatch => nextNode = n // do nothing, but set next node for recursive matching
+              case NoMatch => // do nothing, next is already set
               case m : Node => {
-                if (ret != n && !Vars.set(node, field, Some(m))) {
-                  Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
-                }
-              }
-              case m : NodeList if m.nodes.size == 1 =>
-                { // Only valid if list contains a single element
-                  if (m.nodes.toSeq(0) != n && !Vars.set(node, field, Some(m.nodes.toSeq(0)))) {
+                if (m ne n) {
+                  nextNode = m
+                  m.annotate(n)
+                  if (!Vars.set(node, field, Some(m))) {
                     Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                   }
                 }
+              }
+              case m : NodeList if m.nodes.size == 1 => { // Only valid if list contains a single element
+                val mNode : Node = m.nodes.toSeq(0)
+                if (mNode != n) {
+                  nextNode = mNode
+                  mNode.annotate(n)
+                  if (!Vars.set(node, field, Some(mNode))) {
+                    Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
+                  }
+                }
+              }
               case None => {
+                nextNode = null
                 if (!Vars.set(node, field, None)) {
                   Logger.error(s"""Could not set "$field" in transformation ${transformation.name}""")
                 }
@@ -232,7 +248,9 @@ object StateManager {
 
             // Apply transformation to sub-elements
             if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-              replace(nextNode.asInstanceOf[Node], transformation) // can safely downcast because of type matching above erroring out for unfitting types
+              if (nextNode != null) {
+                replace(nextNode, transformation)
+              }
             }
           }
           case _ => // "any" is not of type Node, thus not interesting to us
@@ -242,27 +260,28 @@ object StateManager {
         // ###############################################################################################
         case set : scala.collection.mutable.Set[_] => {
           var newSet = set.flatMap(f => f match {
-            case n : Node => applyAtNode(n, transformation).inner match {
+            case n: Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); List(n) // no match occured => use old element
-              case newN : Node => {
+                replace(n, transformation); List(n) // no match occurred => use old element
+              case newN: Node => {
+                newN.annotate(n)
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
                 }
                 List(newN) // element of type Node was returned => use it
               }
-              case newN : NodeList => {
+              case newN: NodeList => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                 }
+                newN.nodes.foreach(_.annotate(n))
                 newN.nodes // elements of type Node were returned => use them
               }
               case None => List()
             }
             case _ => List(f) // current element "f" is not of interest to us - put it back into (new) set
           })
-
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
+          if (previousMatches < progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
@@ -270,17 +289,19 @@ object StateManager {
           var newSet = set.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); List(n) // no match occured => use old element
+                replace(n, transformation); List(n) // no match occurred => use old element
               case newN : Node => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
                 }
+                newN.annotate(n)
                 List(newN) // element of type Node was returned => use it
               }
               case newN : NodeList => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                 }
+                newN.nodes.foreach(_.annotate(n))
                 newN.nodes // elements of type Node were returned => use them
               }
               case None => List()
@@ -288,7 +309,7 @@ object StateManager {
             case _ => List(f)
           })
 
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
+          if (previousMatches < progresses_(transformation).getMatches && !Vars.set(node, field, newSet)) {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
@@ -299,17 +320,19 @@ object StateManager {
           var newSeq = seq.flatMap(f => f match {
             case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
-                replace(n, transformation); List(n) // no match occured => use old element
+                replace(n, transformation); List(n) // no match occurred => use old element
               case newN : Node => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
                 }
+                newN.annotate(n)
                 List(newN) // element of type Node was returned => use it
               }
               case newN : NodeList => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                 }
+                newN.nodes.foreach(_.annotate(n))
                 newN.nodes // elements of type Node were returned => use them
               }
               case None => List()
@@ -318,17 +341,19 @@ object StateManager {
               var _newSeq = _seq.flatMap(_f => _f match {
                 case n : Node => applyAtNode(n, transformation).inner match {
                   case NoMatch =>
-                    replace(n, transformation); List(n) // no match occured => use old element 
+                    replace(n, transformation); List(n) // no match occurred => use old element
                   case newN : Node => {
                     if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                       replace(newN, transformation) // Recursive call for new element
                     }
+                    newN.annotate(n)
                     List(newN) // element of type Node was returned => use it
                   }
                   case newN : NodeList => {
                     if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                       newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                     }
+                    newN.nodes.foreach(_.annotate(n))
                     newN.nodes // elements of type Node were returned => use them
                   }
                   case None => List(_f)
@@ -340,74 +365,95 @@ object StateManager {
             case _ => List(f)
           })
 
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newSeq)) {
+          if (previousMatches < progresses_(transformation).getMatches && !Vars.set(node, field, newSeq)) {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
+
+        // ###############################################################################################
+        // #### Arrays ###################################################################################
+        // ###############################################################################################
+        case array : scala.Array[_] => {
+          var list = array.map(a => a match {
+            case n : Node => {
+              val o = applyAtNode(n, transformation)
+              o.inner match {
+                case NoMatch =>
+                  replace(n, transformation); n
+                case newN : Node => {
+                  if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                    replace(newN, transformation) // Recursive call for new element
+                  }
+                  newN.annotate(n)
+                  newN
+                }
+              }
+            }
+            case _ => // "any" is not of type Node, thus not interesting to us
+          })
+          if (previousMatches < progresses_(transformation).getMatches) {
+            var newarray = java.lang.reflect.Array.newInstance(array.getClass().getComponentType(), list.length)
+            System.arraycopy(list, 0, newarray, 0, list.length)
+            if (!Vars.set(node, field, newarray)) {
+              Logger.error(s"Could not set $field in transformation ${transformation.name}")
+            }
+          }
+        }
+
         // ###############################################################################################
         // #### Maps #####################################################################################
         // ###############################################################################################
         case map : scala.collection.mutable.Map[_, _] => {
-          var newMap = map.mapValues(f => f match {
-            case n : Node => applyAtNode(n, transformation).inner match {
-              case NoMatch =>
-                replace(n, transformation); n // no match occured => use old element
-              case newN : Node => {
-                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-                  replace(newN, transformation) // Recursive call for new element
+          var newMap = map.map(f => (f._1, {
+            f._2 match {
+              case n : Node => applyAtNode(n, transformation).inner match {
+                case NoMatch =>
+                  replace(n, transformation); n // no match occurred => use old element
+                case newN : Node => {
+                  if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                    replace(newN, transformation) // Recursive call for new element
+                  }
+                  newN.annotate(n)
+                  newN // element of type Node was returned => use it
                 }
-                newN // element of type Node was returned => use it
+                case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
+                case None            =>
               }
-              case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
-              case None            =>
+              case _ =>
             }
-          })
+          }))
 
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
+          if (previousMatches < progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
         // Unfortunately mutable and immutable set have no common supertype
         case map : scala.collection.immutable.Map[_, _] => {
-          var newMap = map.mapValues(f => f match {
-            case n : Node => applyAtNode(n, transformation).inner match {
-              case NoMatch =>
-                replace(n, transformation); n // no match occured => use old element
-              case newN : Node => {
-                if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
-                  replace(newN, transformation) // Recursive call for new element
+          var newMap = map.map(f => (f._1, {
+            f._2 match {
+              case n : Node => applyAtNode(n, transformation).inner match {
+                case NoMatch =>
+                  replace(n, transformation); n // no match occurred => use old element
+                case newN : Node => {
+                  if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
+                    replace(newN, transformation) // Recursive call for new element
+                  }
+                  newN.annotate(n)
+                  newN // element of type Node was returned => use it
                 }
-                newN // element of type Node was returned => use it
+                case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
+                case None            =>
               }
-              case newN : NodeList => Logger.error("Unable to replace single element of map value by List")
-              case None            =>
+              case _ =>
             }
-          })
+          }))
 
-          if (previousMatches <= progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
+          if (previousMatches < progresses_(transformation).getMatches && !Vars.set(node, field, newMap)) {
             Logger.error(s"Could not set $field in transformation ${transformation.name}")
           }
         }
-        case array : Array[_] => {
-          Logger.warn("Arrays are currently not supported for matching!")
-        }
-        //        case list : Array[_] => {
-        //          val arrayType = list.getClass().getComponentType()
-        //          val invalids = list.filter(p => !(p.isInstanceOf[Node] || p.isInstanceOf[Some[_]] && p.asInstanceOf[Some[Object]].get.isInstanceOf[Node]))
-        //          if (invalids.size <= 0) {
-        //            var tmpArray = list.asInstanceOf[Array[Node]].flatMap(listitem => processOutput(applyAtNode(listitem, transformation)))
-        //            var changed = tmpArray.diff(list)
-        //            if (changed.size > 0) {
-        //              var newArray = java.lang.reflect.Array.newInstance(arrayType, tmpArray.length)
-        //              System.arraycopy(tmpArray, 0, newArray, 0, tmpArray.length)
-        //              if (!Vars.set(node, setter, newArray)) {
-        //                Logger.error(s"""Could not set "$getter" in transformation ${transformation.name}""")
-        //              }
-        //            }
-        //            if (transformation.recursive || (!transformation.recursive && changed.size <= 0)) tmpArray.asInstanceOf[Array[Node]].foreach(f => replace(f, transformation))
-        //          }
-        //        }
-        case _ => //
+
+        case _ => // No Node, Seq[_], Map, ... => Leave it alone
       }
     })
     strategies_.top.notifyLeave(node)
@@ -471,7 +517,7 @@ object StateManager {
         println("transformationtimer;" + strategies_.top.name + ";" + transformation.name + ";" + time + "\\\\")
       }
       var s = strategies_.pop()
-      if (s != strategy) {
+      if (s ne strategy) {
         Logger.error(s"""Mismatch of Standalone Strategy: Expected "${strategy.name}", got "${s.name}"""")
       }
       return new TransformationResult(true, progresses_(transformation).getMatches)

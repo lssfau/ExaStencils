@@ -1,5 +1,5 @@
 Chimaira (Cluster)
-  Constraint: E5
+  Constraints: E5, AVX
   16 Nodes mit je:
     1 Xeon E5-2690 v2 (http://ark.intel.com/de/products/75279/Intel-Xeon-Processor-E5-2690-v2-25M-Cache-3_00-GHz)
       Ivy Bridge EP
@@ -10,18 +10,64 @@ Chimaira (Cluster)
       25 MB L3-Cache
       AVX
     64 GB RAM (DDR3 1866 - quadchannel)
-    1 GeForce GTX Titan Black
+    1 GeForce GTX Titan Black (http://www.nvidia.de/object/geforce-gtx-titan-black-de.html#pdpContent=2)
+      Constraint: GPU (obligatorisch für Zugriff)
+      GK110 (Kepler)
+      Compute Capability: 3.5
+      2880 CUDA-Cores
+      677 MHz  (ca. in FP64-mode; FP32: 889 - 980 MHz)
+      1/3 FP64 Performance  (in FP64-mode; FP32: 1/24)
+      6 GB GDDR5 (348-bit: 336 GB/s)
   "Frontend" (17. Node) identisch zu oben, Ausnahme: keine GPU, sondern
     1 Xeon Phi 3120 (http://ark.intel.com/products/75798/Intel-Xeon-Phi-Coprocessor-3120P-6GB-1_100-GHz-57-core)
       57 Kerne
       228 Threads
       1,1 GHz
       6 GB GDDR5 (240 GB/s)
-      AVX512
+      IMCI
+
+
+Zmiy (Pseudo-Cluster)
+  4 Systeme mit je:
+    Constraints: AVX, AVX2
+    Intel Core i7-4790 (http://ark.intel.com/de/products/80806/Intel-Core-i7-4790-Processor-8M-Cache-up-to-4_00-GHz)
+      Haswell
+      4 Kerne
+      8 Threads
+      3,6 GHz Basis
+      4,0 GHz Turbo
+      8 MB L3-Cache
+      AVX2 (& FMA)
+    16 GB RAM (dualchannel)
+  14 Systeme mit je:
+    Constraints: AVX, AVX2
+    Intel Core i5-4590 (http://ark.intel.com/de/products/80815/Intel-Core-i5-4590-Processor-6M-Cache-up-to-3_70-GHz)
+      Haswell
+      4 Kerne
+      4 Threads
+      3,3 GHz Basis
+      3,7 GHz Turbo
+      6 MB L3-Cache
+      AVX2 (& FMA)
+    16 GB RAM (dualchannel)
+
+
+Sphinx (Compute-Server)
+  Constraints: AVX
+  2 Sockel mit je:
+    Intel Xeon E5-2609 v2 (http://ark.intel.com/de/products/75787/Intel-Xeon-Processor-E5-2609-v2-10M-Cache-2_50-GHz)
+      Ivy Bridge EP
+      4 Kerne
+      4 Threads
+      2,5 GHz Basis
+      2,5 GHz Turbo
+      10 MB L3-Cache
+      AVX
+    64 GB RAM (quadchannel)
 
 
 Workstations (neu)
-  Constraint: i7
+  Constraints: AVX, AVX2
   Core i7-4770 (http://ark.intel.com/de/products/75122/Intel-Core-i7-4770-Processor-8M-Cache-up-to-3_90-GHz)
     Haswell
     4 Kerne
@@ -34,7 +80,7 @@ Workstations (neu)
 
 
 Workstations (alt)
-  Constraint:
+  Constraints:
   Core2Quad Q6600 (http://ark.intel.com/de/products/29765/Intel-Core2-Quad-Processor-Q6600-8M-Cache-2_40-GHz-1066-MHz-FSB)
     4 Kerne
     2,4 GHz

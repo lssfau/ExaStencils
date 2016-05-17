@@ -67,7 +67,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
           bound
 
         case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) =>
-          AdditionExpression(bound, IntegerConstant(1))
+          new AdditionExpression(bound, IntegerConstant(1))
 
         case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
       }
@@ -138,7 +138,9 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     loop.begin = new VariableDeclarationStatement(IntegerDatatype, itVar, Unrolling.startVarAcc)
     loop.end = new LowerExpression(itVarAcc, Unrolling.intermVarAcc)
     loop.inc = new AssignmentStatement(itVarAcc, IntegerConstant(newStride), "+=")
-    loop.body = duplicateStmts(loop.body, Knowledge.opt_unroll, itVar, oldStride, loop.isParallel && Knowledge.opt_unroll_interleave)
+    // duplicate private vars would also be possible...
+    val interleave : Boolean = Knowledge.opt_unroll_interleave && loop.isParallel && loop.privateVars.isEmpty
+    loop.body = duplicateStmts(loop.body, Knowledge.opt_unroll, itVar, oldStride, interleave)
 
     val annot = loop.removeAnnotation(Unrolling.UNROLLED_ANNOT)
     val unrolled : Boolean = annot.isDefined
@@ -147,7 +149,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     var postLoop : Statement = null
     if (unrolled) {
       res = new ListBuffer[Statement]()
-      intermDecl = annot.get.value.asInstanceOf[VariableDeclarationStatement]
+      intermDecl = annot.get.asInstanceOf[VariableDeclarationStatement]
       intermDecl.expression = Some(Unrolling.getIntermExpr(newStride))
     } else {
       val (boundsDecls, postLoop_) : (ListBuffer[Statement], Statement) =
@@ -176,12 +178,12 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)), IntegerConstant(incr), "+=") => (itVar, incr)
 
       case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)),
-        AdditionExpression(VariableAccess(itVar2, Some(IntegerDatatype)), IntegerConstant(incr)),
+        AdditionExpression(ListBuffer(VariableAccess(itVar2, Some(IntegerDatatype)), IntegerConstant(incr))),
         "=") if (itVar == itVar2) =>
         (itVar, incr)
 
       case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)),
-        AdditionExpression(IntegerConstant(incr), VariableAccess(itVar2, Some(IntegerDatatype))),
+        AdditionExpression(ListBuffer(IntegerConstant(incr), VariableAccess(itVar2, Some(IntegerDatatype)))),
         "=") if (itVar == itVar2) =>
         (itVar, incr)
 
@@ -199,7 +201,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     val upperExcl : Expression =
       end match {
         case LowerExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => bound
-        case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => AdditionExpression(bound, IntegerConstant(1))
+        case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => new AdditionExpression(bound, IntegerConstant(1))
         case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
       }
 
@@ -247,10 +249,11 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     var offset : Long = 0
 
     this += new Transformation("apply", {
-      case vAcc @ VariableAccess(v, Some(IntegerDatatype)) if (v == itVar) =>
+      case vAcc @ VariableAccess(v, _) if (v == itVar) =>
         if (offset != 0 && !vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
           vAcc.annotate(SKIP_ANNOT) // already done
-          AdditionExpression(vAcc, IntegerConstant(offset))
+          vAcc.dType = Some(IntegerDatatype) // fix type, if required
+          new AdditionExpression(vAcc, IntegerConstant(offset))
         } else
           vAcc
 

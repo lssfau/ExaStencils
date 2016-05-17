@@ -40,7 +40,7 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
     }
 
     Logger.warn(s"Trying to find stencil entry for invalid offset ${offset.prettyprint()} in stencil:\n" +
-      entries.map(e => s"\t${e.offset.prettyprint()} -> ${e.coefficient.prettyprint()}").mkString("\n"))
+      entries.map(e => s"\t${e.offset.prettyprint : String} -> ${e.coefficient.prettyprint : String}").mkString("\n"))
 
     None
   }
@@ -56,7 +56,10 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
           s += "\t" +
             entries.find(
               e => e.offset match {
-                case MultiIndex(IntegerConstant(xOff), IntegerConstant(yOff), IntegerConstant(zOff), _) if (x == xOff && y == yOff && z == zOff) => true
+                case index : MultiIndex if index.length >= 3 => (
+                  (index(0) match { case IntegerConstant(xOff) if x == xOff => true; case _ => false })
+                  && (index(1) match { case IntegerConstant(yOff) if y == yOff => true; case _ => false })
+                  && (index(2) match { case IntegerConstant(zOff) if z == zOff => true; case _ => false }))
                 case _ => false
               }).getOrElse(StencilEntry(new MultiIndex, 0)).coefficient.prettyprint
         s += "\n"
@@ -107,23 +110,91 @@ case class StencilFieldSelection(
 
   // shortcuts to Field members
   def codeName = field.codeName
-  def dataType = field.dataType
   def fieldLayout = field.fieldLayout
   def referenceOffset = field.referenceOffset
 }
 
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
+  var changed : Boolean = false
+
+  def transformMultiplication(exp : MultiplicationExpression) : MultiplicationExpression = {
+    val facts : ListBuffer[Expression] = exp.factors
+    var result = new ListBuffer[Expression]()
+    var prev : Expression = null
+
+    // check for StencilLike * FieldLike
+    result = ListBuffer[Expression]()
+    prev = null
+    for (f <- facts)
+      (prev, f) match {
+        case (StencilAccess(stencil), fieldAccess : FieldAccess) =>
+          result += StencilConvolution(stencil, fieldAccess)
+          prev = null
+        case (stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
+          result += StencilFieldConvolution(stencilFieldAccess, fieldAccess)
+          prev = null
+        case _ =>
+          if (prev != null) result += prev
+          prev = f
+      }
+    if (prev != null)
+      result += prev
+    changed |= facts.length != result.length
+    if (facts.length != result.length)
+      return MultiplicationExpression(result)
+
+    // check for StencilLike * Stencil
+    result = ListBuffer[Expression]()
+    prev = null
+    for (f <- facts)
+      (prev, f) match {
+        case (StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
+          result += StencilStencilConvolution(stencilLeft, stencilRight)
+          prev = null
+        case (stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
+          result += StencilFieldStencilConvolution(stencilLeft, stencilRight)
+          prev = null
+        case _ =>
+          if (prev != null) result += prev
+          prev = f
+      }
+    if (prev != null)
+      result += prev
+    changed |= facts.length != result.length
+    if (facts.length != result.length)
+      return MultiplicationExpression(result)
+
+    // check for other convolutions
+    result = ListBuffer[Expression]()
+    prev = null
+    for (f <- facts)
+      (prev, f) match {
+        case (StencilAccess(stencilLeft), stencilRight : StencilFieldAccess) =>
+          ??? // TODO
+        case (stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) =>
+          ??? // TODO
+        case _ =>
+          if (prev != null) result += prev
+          prev = f
+      }
+    if (prev != null)
+      result += prev
+    changed |= facts.length != result.length
+    if (facts.length != result.length)
+      return MultiplicationExpression(result)
+
+    exp
+  }
+
   this += new Transformation("SearchAndMark", {
-    case MultiplicationExpression(StencilAccess(stencil), fieldAccess : FieldAccess) =>
-      StencilConvolution(stencil, fieldAccess)
-    case MultiplicationExpression(stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
-      StencilFieldConvolution(stencilFieldAccess, fieldAccess)
-    case MultiplicationExpression(StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
-      StencilStencilConvolution(stencilLeft, stencilRight)
-    case MultiplicationExpression(stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
-      StencilFieldStencilConvolution(stencilLeft, stencilRight)
-    case MultiplicationExpression(StencilAccess(stencilLeft), stencilRight : StencilFieldAccess)       => ??? // TODO
-    case MultiplicationExpression(stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) => ??? // TODO
+    case exp : MultiplicationExpression => {
+      val newMult = transformMultiplication(exp)
+      newMult.factors.size match {
+        case 0 => NullExpression
+        case 1 => newMult.factors(0)
+        case _ => newMult
+      }
+    }
   })
 }
 

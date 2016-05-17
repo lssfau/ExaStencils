@@ -9,14 +9,22 @@ object MakefileGenerator extends BuildfileGenerator {
 
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
     val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
+    val cuFileNames = filesToConsider.filter(file => file.endsWith(".cu")).toList.sorted
 
-    printer <<< "CXX = " + Platform.compiler
-    printer <<< "CFLAGS = " + Platform.cflags + " " + Platform.addcflags + " " +
+    printer <<< "CXX = " + Platform.resolveCompiler
+    if (Knowledge.experimental_cuda_enabled)
+      printer <<< "NVCC = nvcc" // TODO: TPDL
+    printer <<< ""
+
+    printer <<< "CFLAGS = " + Platform.resolveCFlags + " " +
       Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
-    printer <<< "LFLAGS = " + Platform.ldflags + " " + Platform.addldflags + " " +
+    if (Knowledge.experimental_cuda_enabled)
+      printer <<< "NVCCFLAGS = -std=c++11 -O3 -DNDEBUG " + Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " // TODO: TPDL
+    printer <<< "LFLAGS = " + Platform.resolveLdFlags + " " +
       Settings.pathsLib.map(path => s"-L$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
+    printer <<< ""
 
     printer <<< "BINARY = " + Settings.binary
     printer <<< ""
@@ -29,14 +37,21 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< "clean:"
     printer << "\trm -f "
     cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
+    if (Knowledge.experimental_cuda_enabled)
+      cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
     printer <<< "${BINARY}"
     printer <<< ""
 
     printer << "${BINARY}: "
     cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
+    if (Knowledge.experimental_cuda_enabled)
+      cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
     printer <<< ""
-    printer << "\t${CXX} -o ${BINARY} -I. "
+    printer << "\t${CXX}"
+    printer << " -o ${BINARY} -I. "
     cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
+    if (Knowledge.experimental_cuda_enabled)
+      cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
     Settings.additionalLibs.foreach(lib => { printer << s"-l$lib " })
     printer <<< " ${LFLAGS}"
     printer <<< ""
@@ -54,6 +69,15 @@ object MakefileGenerator extends BuildfileGenerator {
       printer <<< s"${file.replace(".cpp", ".o")}: ${file} "
       printer <<< "\t${CXX} ${CFLAGS} -c -o " + file.replace(".cpp", ".o") + " -I. " + file
     })
+
+    if (Knowledge.experimental_cuda_enabled) {
+      PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cu")).toList.sortBy(f => f.filename).foreach(pp => {
+        printer << s"${pp.filename.replace(".cu", ".o")}: ${pp.filename} "
+        PrettyprintingManager.Prettyprinter.gatherDependencies(pp).foreach(dep => printer << s"$dep ")
+        printer <<< " "
+        printer <<< "\t${NVCC} ${NVCCFLAGS} -c -o " + pp.filename.replace(".cu", ".o") + " -I. " + pp.filename
+      })
+    }
 
     printer <<< ""
     printer <<< ""

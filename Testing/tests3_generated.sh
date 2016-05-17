@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --qos=norm
 #SBATCH --hint=nomultithread
 #SBATCH --nice=100
 #SBATCH --time=15
@@ -8,18 +9,30 @@
 
 BIN=${1}
 EXP_RESULT=${2}
-ERROR_MARKER=${3}
-LOG_ALL=${4}
-LINK=${5}
-PROGRESS=${6}
+TEMP_DIR=${3}
+ERROR_MARKER=${4}
+LOG_ALL=${5}
+LINK=${6}
+PROGRESS=${7}
+BRANCH=${8}
 
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+function update_progress {
+  if [[ "${1}" -eq 0 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n  Done!</div></body></html>" > "${PROGRESS}"
+  elif [[ "${1}" -eq 1 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
+  else
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
+  fi
+}
+
+update_progress 1
 
 echo "Running test on machine(s) ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
-RESULT=$(mktemp --tmpdir=/scratch/exatest test_res_XXXXXXXX.txt) || { # should not be placed in ram, since all nodes must have access to the same file
+RESULT=$(mktemp --tmpdir=${TEMP_DIR} test_res_XXXXXXXX.txt) || { # should not be placed in ram, since all nodes must have access to the same file
     echo "ERROR: Failed to create temporary file."
     touch ${ERROR_MARKER}
     echo "${LINK}" >> "${LOG_ALL}"
@@ -48,7 +61,7 @@ trap cleanup EXIT
 
 # run generated code
 echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
-srun "${BIN}" 2>&1 | grep -v -e "No protocol specified" -e "fglrx" | tee "${RESULT}" # HACK: filter strange X server error...
+srun --cpu_bind=socket "${BIN}" 2>&1 | grep -v -e "No protocol specified" -e "fglrx" | tee "${RESULT}" # HACK: filter strange X server error...
 echo ""
 
 if grep -q "Communication connection failure" ${RESULT}; then
@@ -68,4 +81,5 @@ else
   echo "${LINK}" >> "${LOG_ALL}"
 fi
 echo ""
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+
+update_progress 2

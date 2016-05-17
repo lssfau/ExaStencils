@@ -3,6 +3,7 @@ package exastencils.communication
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
+import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -12,21 +13,40 @@ import exastencils.mpi._
 import exastencils.omp._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
-import exastencils.strategies._
 import exastencils.util._
 
 case class CommunicateTarget(var target : String, var begin : Option[MultiIndex], var end : Option[MultiIndex]) extends Expression {
-  if (begin.isDefined && !end.isDefined) end = {
-    var newEnd = Duplicate(begin.get)
-    for (dim <- 0 until Knowledge.dimensionality)
-      newEnd(dim) += 1
-    Some(newEnd)
-  }
+  if (begin.isDefined && !end.isDefined) // create end if only one 'index' is to be communicated
+    end = Some(Duplicate(begin.get) + new MultiIndex(Array.fill(begin.get.length)(1)))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CommunicateTarget\n"
 }
 
-case class CommunicateStatement(var field : FieldSelection, var op : String, var targets : ListBuffer[CommunicateTarget]) extends Statement {
+case class CommunicateStatement(var field : FieldSelection, var op : String, var targets : ListBuffer[CommunicateTarget], var condition : Option[Expression]) extends Statement {
+  object ShiftIndexAccesses extends QuietDefaultStrategy("Shifting index accesses") {
+    this += new Transformation("SearchAndReplace", {
+      case s : StringLiteral => {
+        var ret : Expression = s
+        val numDims = field.field.fieldLayout.numDimsData
+        for (dim <- 0 until numDims)
+          if (dimToString(dim) == s.value)
+            ret = VariableAccess(dimToString(dim), Some(IntegerDatatype)) - field.field.referenceOffset(dim)
+        ret
+      }
+      case va : VariableAccess => {
+        var ret : Expression = va
+        val numDims = field.field.fieldLayout.numDimsData
+        for (dim <- 0 until numDims)
+          if (dimToString(dim) == va.name)
+            ret = VariableAccess(dimToString(dim), Some(IntegerDatatype)) - field.field.referenceOffset(dim)
+        ret
+      }
+    }, false)
+  }
+
+  // shift all index accesses in condition as later functions will generate direct field accesses and according loop bounds
+  if (condition.isDefined) ShiftIndexAccesses.applyStandalone(ExpressionStatement(condition.get))
+
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CommunicateStatement\n"
 }
 
@@ -61,7 +81,7 @@ abstract class LocalTransfers extends Statement with Expandable {
 case class StartLocalComm(var field : FieldSelection,
     var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
-    var insideFragLoop : Boolean) extends LocalTransfers {
+    var insideFragLoop : Boolean, var cond : Option[Expression]) extends LocalTransfers {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StartLocalComm\n"
 
   def setLocalCommReady(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[Statement] = {
@@ -88,13 +108,13 @@ case class StartLocalComm(var field : FieldSelection,
       // distribute this fragment's data - if enabled
       output += wrapFragLoop(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-          sendNeighbors.map(neigh => LocalSend(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
+          sendNeighbors.map(neigh => LocalSend(field, neigh._1, neigh._2, neigh._3, insideFragLoop, cond) : Statement)),
         true)
     } else {
       // pull data for this fragment - otherwise
       output += wrapFragLoop(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
-          recvNeighbors.map(neigh => LocalRecv(field, neigh._1, neigh._2, neigh._3, insideFragLoop) : Statement)),
+          recvNeighbors.map(neigh => LocalRecv(field, neigh._1, neigh._2, neigh._3, insideFragLoop, cond) : Statement)),
         true)
     }
 
@@ -105,8 +125,8 @@ case class StartLocalComm(var field : FieldSelection,
 case class FinishLocalComm(var field : FieldSelection,
     var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
-    var insideFragLoop : Boolean) extends LocalTransfers {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StartLocalComm\n"
+    var insideFragLoop : Boolean, var cond : Option[Expression]) extends LocalTransfers {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FinishLocalComm\n"
 
   def waitForLocalComm(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[Statement] = {
     wrapFragLoop(
@@ -137,40 +157,50 @@ case class FinishLocalComm(var field : FieldSelection,
 }
 
 case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, var dest : IndexRange, var src : IndexRange,
-    var insideFragLoop : Boolean) extends Statement with Expandable {
+    var insideFragLoop : Boolean, var condition : Option[Expression]) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalSend\n"
 
+  def numDims = field.field.fieldLayout.numDimsData
+
   override def expand : Output[Statement] = {
+    var innerStmt : Statement = new AssignmentStatement(
+      new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), new MultiIndex(
+        new MultiIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)),
+      new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)))
+
+    if (condition.isDefined)
+      innerStmt = new ConditionStatement(condition.get, innerStmt)
+
     new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[Statement](
         // wait until the fragment to be written to is ready for communication
         new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
-        new LoopOverDimensions(Knowledge.dimensionality + 1,
-          dest,
-          new AssignmentStatement(
-            new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), new MultiIndex(
-              new MultiIndex(LoopOverDimensions.defIt, src.begin, _ + _), dest.begin, _ - _)),
-            new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt))) with OMP_PotentiallyParallel with PolyhedronAccessable,
+        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
   }
 }
 
 case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : IndexRange, var src : IndexRange,
-    var insideFragLoop : Boolean) extends Statement with Expandable {
+    var insideFragLoop : Boolean, var condition : Option[Expression]) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalRecv\n"
 
+  def numDims = field.field.fieldLayout.numDimsData
+
   override def expand : Output[Statement] = {
+    var innerStmt : Statement = AssignmentStatement(
+      DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)),
+      DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
+        new MultiIndex(new MultiIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
+
+    if (condition.isDefined)
+      innerStmt = new ConditionStatement(condition.get, innerStmt)
+
     new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[Statement](
         // wait until the fragment to be read from is ready for communication
         new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
-        new LoopOverDimensions(Knowledge.dimensionality + 1,
-          dest,
-          AssignmentStatement(
-            DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt),
-            DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
-              new MultiIndex(new MultiIndex(LoopOverDimensions.defIt, src.begin, _ + _), dest.begin, _ - _)))) with OMP_PotentiallyParallel with PolyhedronAccessable,
+        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
   }
@@ -203,12 +233,12 @@ abstract class RemoteTransfers extends Statement with Expandable {
 }
 
 case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean,
-    var concurrencyId : Int, var insideFragLoop : Boolean) extends RemoteTransfers {
+    var concurrencyId : Int, var insideFragLoop : Boolean, var condition : Option[Expression]) extends RemoteTransfers {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSends\n"
 
   override def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
-      var body = CopyToSendBuffer(field, neighbor, indices, concurrencyId)
+    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
+      var body = CopyToSendBuffer(field, neighbor, indices, concurrencyId, condition)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
       NullStatement
@@ -217,14 +247,17 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   override def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
-        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
-      } else if (MPI_DataType.shouldBeUsed(indices)) {
-        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
+      val maxCnt = indices.getTotalSize
+      val cnt = (if (condition.isDefined)
+        iv.TmpBufferIterator(field.field, s"Send_${concurrencyId}", neighbor.index)
+      else
+        maxCnt)
+      if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == SimplifyExpression.evalIntegral(cnt))) {
+        RemoteSend(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, RealDatatype, concurrencyId)
+      } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
+        RemoteSend(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
-        SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", cnt, neighbor.index), cnt, RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", maxCnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
@@ -267,12 +300,12 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
 }
 
 case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean,
-    var concurrencyId : Int, var insideFragLoop : Boolean) extends RemoteTransfers {
+    var concurrencyId : Int, var insideFragLoop : Boolean, var condition : Option[Expression]) extends RemoteTransfers {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecvs\n"
 
   override def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
-    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices) && SimplifyExpression.evalIntegral(indices.getSizeHigher) > 1)) {
-      var body = CopyFromRecvBuffer(field, neighbor, indices, concurrencyId)
+    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
+      var body = CopyFromRecvBuffer(field, neighbor, indices, concurrencyId, condition)
       if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
     } else {
       NullStatement
@@ -281,14 +314,14 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
 
   override def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : Statement = {
     var body = {
-      if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(indices.getSizeHigher)) {
-        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
-      } else if (MPI_DataType.shouldBeUsed(indices)) {
-        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices), concurrencyId)
+      val maxCnt = indices.getTotalSize
+      val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
+      if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(cnt)) {
+        RemoteRecv(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, RealDatatype, concurrencyId)
+      } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
+        RemoteRecv(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        var cnt = DimArrayHigher().map(i => (indices.end(i) - indices.begin(i)).asInstanceOf[Expression]).reduceLeft(_ * _)
-        SimplifyStrategy.doUntilDoneStandalone(cnt)
-        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", cnt, neighbor.index), cnt, RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", maxCnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
@@ -330,29 +363,72 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
   }
 }
 
-case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange, var concurrencyId : Int) extends Statement with Expandable {
+case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange,
+    var concurrencyId : Int, var condition : Option[Expression]) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CopyToSendBuffer\n"
 
-  override def expand : Output[Statement] = {
-    val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getSizeHigher, neighbor.index),
-      new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _),
-      new MultiIndex(indices.end, indices.begin, _ - _))
-    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt)
+  def numDims = field.field.fieldLayout.numDimsData
 
-    new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
+  override def expand : Output[StatementList] = {
+    var ret = ListBuffer[Statement]()
+
+    if (condition.isDefined) {
+      // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
+      def it = iv.TmpBufferIterator(field.field, s"Send_${concurrencyId}", neighbor.index)
+
+      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getTotalSize, neighbor.index),
+        new MultiIndex(it), new MultiIndex(0) /* dummy stride */ )
+      val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
+
+      ret += AssignmentStatement(it, 0)
+      ret += new LoopOverDimensions(numDims, indices, new ConditionStatement(
+        condition.get, ListBuffer[Statement](
+          AssignmentStatement(tmpBufAccess, fieldAccess),
+          AssignmentStatement(it, 1, "+="))))
+    } else {
+      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getTotalSize, neighbor.index),
+        new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
+        new MultiIndex(indices.end, indices.begin, _ - _))
+      val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
+      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
+    }
+
+    ret
   }
 }
 
-case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange, var concurrencyId : Int) extends Statement with Expandable {
+case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange,
+    var concurrencyId : Int, var condition : Option[Expression]) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
 
-  override def expand : Output[Statement] = {
-    val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getSizeHigher, neighbor.index),
-      new MultiIndex(LoopOverDimensions.defIt, indices.begin, _ - _),
-      new MultiIndex(indices.end, indices.begin, _ - _))
-    val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt)
+  def numDims = field.field.fieldLayout.numDimsData
 
-    new LoopOverDimensions(Knowledge.dimensionality + 1, indices, new AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
+  override def expand : Output[StatementList] = {
+    var ret = ListBuffer[Statement]()
+
+    if (condition.isDefined) {
+      // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
+      def it = iv.TmpBufferIterator(field.field, s"Recv_${concurrencyId}", neighbor.index)
+
+      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getTotalSize, neighbor.index),
+        new MultiIndex(it), new MultiIndex(0) /* dummy stride */ )
+      val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
+
+      ret += AssignmentStatement(it, 0)
+      ret += new LoopOverDimensions(numDims, indices, new ConditionStatement(
+        condition.get, ListBuffer[Statement](
+          AssignmentStatement(fieldAccess, tmpBufAccess),
+          AssignmentStatement(it, 1, "+="))))
+    } else {
+      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getTotalSize, neighbor.index),
+        new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
+        new MultiIndex(indices.end, indices.begin, _ - _))
+      val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
+
+      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
+    }
+
+    ret
   }
 }
 
@@ -401,10 +477,10 @@ case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo
     // should work for node, cell and face discretizations
 
     var conditions = ListBuffer[Expression](NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh.index)))
-    for (dim <- 0 until Knowledge.dimensionality) {
+    for (dim <- 0 until field.field.fieldLayout.numDimsGrid) {
       neigh.dir(dim) match {
-        case -1 => conditions += LowerExpression(LoopOverDimensions.defIt(dim), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
-        case 1  => conditions += GreaterEqualExpression(LoopOverDimensions.defIt(dim), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))
+        case -1 => conditions += LowerExpression(LoopOverDimensions.defItForDim(dim), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
+        case 1  => conditions += GreaterEqualExpression(LoopOverDimensions.defItForDim(dim), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))
         case 0  => // true
       }
     }
