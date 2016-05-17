@@ -88,6 +88,7 @@ object CommTests {
     fixedParams += "l3tmp_genCommTimersPerLevel" -> true
 
     fixedParams += "l3tmp_printTimersToFile" -> true
+    fixedParams += "l3tmp_printTimersToFileForEachRank" -> false // not enough memory on JuQueen
     fixedParams += "l3tmp_printAllTimers" -> true
 
     fixedParams
@@ -157,7 +158,8 @@ object CommTests {
           28672 -> ((112, 128, 128), (1, 1, 1), (2, 1, 1)))
       }
 
-      for (numNodes <- Stream.iterate(16)(_ * 2).takeWhile(_ <= 256)) {
+      for (n <- Stream.iterate(1)(_ * 2).takeWhile(_ <= 32 * 1024)) {
+        val numNodes = if (n > 28672) 28672 else n // limit node number
         val configName = s"commTest_${numDims}_${numNodes}_${if (useMPITypes) "t" else "f"}"
 
         val outSettingsFile = { val tmp = settingsFile.split("\\."); tmp.dropRight(1).mkString(".") + "_" + configName + "." + tmp.last }

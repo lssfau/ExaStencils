@@ -211,6 +211,7 @@ object Knowledge {
   // for both CSE: WARNING: experimental, may break things!  currently assumes RealDatatype for ALL common subexpressions
   var opt_conventionalCSE : Boolean = false // [true|false] // apply a conventional common subexpression elimination
   var opt_loopCarriedCSE : Boolean = false // [true|false] // apply a loop carried common subexpression elimination; this effectively serializes optimized loop-nests, so parallelize LoopOverFragments!
+  var opt_loopCarriedCSE_skipOuter : Int = 0 // [0~dimensionality] // do not take this number of outer dimensions into account when performing a loop carried CSE
 
   /// BEGIN HACK config options for generating L4 DSL file
   var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
@@ -243,6 +244,7 @@ object Knowledge {
   var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
 
   var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
+  var l3tmp_printTimersToFileForEachRank : Boolean = false // prints separate timer values for each rank -> requires some additional memory for the gather op
   var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
   var l3tmp_timerOuputFile : String = "timings.csv" // the file timer data is to be written to if l3tmp_printTimersToFile is activated
 

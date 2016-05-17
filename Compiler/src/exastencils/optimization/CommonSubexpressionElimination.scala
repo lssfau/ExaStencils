@@ -43,7 +43,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         curFunc = f.name
         f
       case l : LoopOverDimensions =>
-        val incr = (0 until l.stepSize.length).view.map { d =>
+        val incr = (0 until l.stepSize.length - Knowledge.opt_loopCarriedCSE_skipOuter).view.map { d =>
           l.stepSize(d) match {
             case IntegerConstant(i) if (i > 0) => (dimToString(d), l.indices.begin(d), l.indices.end(d), i)
             case _                             => null

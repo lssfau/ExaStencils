@@ -248,7 +248,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
   def genPrint(timers : HashMap[String, iv.Timer]) : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
 
-    val stride : Expression = if (Knowledge.mpi_enabled) "mpiIt" else 0
+    val stride : Expression = if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) "mpiIt" else 0
 
     var it = 0
     var toPrint : ListBuffer[Expression] = ListBuffer()
@@ -262,7 +262,8 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     // toPrint.dropRight(1) // remove last seperator
     statements += PrintStatement(toPrint, "outFile")
 
-    if (Knowledge.mpi_enabled) {
+    // wrap in loop over each rank if required
+    if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) {
       statements = ListBuffer[Statement](
         ForLoopStatement(
           VariableDeclarationStatement(IntegerDatatype, stride.prettyprint, Some(0)),
@@ -284,16 +285,27 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
 
     var statements : ListBuffer[Statement] = ListBuffer()
 
-    if (!timers.isEmpty)
-      statements += ConditionStatement(MPI_IsRootProc(),
-        ListBuffer[Statement](
-          VariableDeclarationStatement(ArrayDatatype(DoubleDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
-          ++ genDataCollect(timers)
-          ++ ListBuffer[Statement](new MPI_Gather("timesToPrint", DoubleDatatype, 2 * timers.size))
-          ++ genPrint(timers),
-        ListBuffer[Statement](VariableDeclarationStatement(ArrayDatatype(DoubleDatatype, 2 * timers.size), "timesToPrint"))
-          ++ genDataCollect(timers)
-          ++ ListBuffer[Statement](MPI_Gather("timesToPrint", "timesToPrint", DoubleDatatype, 2 * timers.size)))
+    if (!timers.isEmpty) {
+      if (Knowledge.l3tmp_printTimersToFileForEachRank) {
+        statements += ConditionStatement(MPI_IsRootProc(),
+          ListBuffer[Statement](
+            VariableDeclarationStatement(ArrayDatatype(DoubleDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
+            ++ genDataCollect(timers)
+            ++ ListBuffer[Statement](new MPI_Gather("timesToPrint", DoubleDatatype, 2 * timers.size))
+            ++ genPrint(timers),
+          ListBuffer[Statement](VariableDeclarationStatement(ArrayDatatype(DoubleDatatype, 2 * timers.size), "timesToPrint"))
+            ++ genDataCollect(timers)
+            ++ ListBuffer[Statement](MPI_Gather("timesToPrint", "timesToPrint", DoubleDatatype, 2 * timers.size)))
+      } else {
+        statements += VariableDeclarationStatement(ArrayDatatype(DoubleDatatype, 2 * timers.size), "timesToPrint")
+        statements ++= genDataCollect(timers)
+        statements += new MPI_Reduce(0, "timesToPrint", DoubleDatatype, 2 * timers.size, "+")
+        def timerId = VariableAccess("timerId", Some(IntegerDatatype))
+        statements += new ForLoopStatement(new VariableDeclarationStatement(timerId, 0), LowerExpression(timerId, 2 * timers.size), PreIncrementExpression(timerId),
+          AssignmentStatement(ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
+        statements += new ConditionStatement(MPI_IsRootProc(), genPrint(timers))
+      }
+    }
 
     FunctionStatement(UnitDatatype, name, ListBuffer(), statements, true, false)
   }
