@@ -188,6 +188,7 @@ object Knowledge {
   var poly_optLevel_fine : Int = 0 // [0~3§poly_optLevel_fine+1] // poly opt-level for poly_numFinestLevels finest fields
   var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine§poly_optLevel_coarse+1] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
   var poly_numFinestLevels : Int = 2 // [1~numLevels§poly_numFinestLevels+1] // number of levels that should be optimized in PolyOpt (starting from the finest)
+  var poly_performDCE : Boolean = true // [true|false] // specifies if the polyhedral dead code elimination should be performed (which can increase the generation time)
   var poly_tileSize_x : Int = 0 // [112~1000000000 $32§poly_tileSize_x+32] // '0' means no tiling at all in this dimension
   var poly_tileSize_y : Int = 0 // [16~1000000000 $32§poly_tileSize_y+32]
   var poly_tileSize_z : Int = 0 // [16~1000000000 $32§poly_tileSize_z+32]
