@@ -94,8 +94,8 @@ object SimplifyExpression {
       val x = evalIntegralExtrema(index)
       (x._1 + minOffset, x._2 + maxOffset)
 
-    case n if (n.hasAnnotation(EXTREMA_ANNOT)) =>
-      n.getAnnotation(EXTREMA_ANNOT).asInstanceOf[(Long, Long)]
+    case n if n.hasAnnotation(EXTREMA_ANNOT) =>
+      n.getAnnotation(EXTREMA_ANNOT).get.asInstanceOf[(Long, Long)]
 
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
