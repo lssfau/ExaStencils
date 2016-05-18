@@ -97,7 +97,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       time(mergeScops(scop), "po:mergeScops")
       time(simplifyModel(scop), "po:simplifyModel")
       time(computeDependences(scop), "po:computeDependences")
-      time(deadCodeElimination(scop), "po:deadCodeElimination")
+      if (Knowledge.poly_performDCE)
+        time(deadCodeElimination(scop), "po:deadCodeElimination")
       time(handleReduction(scop), "po:handleReduction")
       time(simplifyModel(scop), "po:simplifyModel")
 

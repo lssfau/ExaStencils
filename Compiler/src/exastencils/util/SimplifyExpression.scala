@@ -31,6 +31,8 @@ object SimplifyExpression {
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
 
+  final val EXTREMA_ANNOT : String = "extrema" // associated value must be (Long, Long)
+
   /**
    * Completely evaluates an integral expression and computes a lower bound and an upper bound
    *   for its value depending on the minOffset and maxOffset in potential OffsetIndex nodes.
@@ -91,6 +93,9 @@ object SimplifyExpression {
     case OffsetIndex(minOffset, maxOffset, index, _) =>
       val x = evalIntegralExtrema(index)
       (x._1 + minOffset, x._2 + maxOffset)
+
+    case n if (n.hasAnnotation(EXTREMA_ANNOT)) =>
+      n.getAnnotation(EXTREMA_ANNOT).asInstanceOf[(Long, Long)]
 
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
@@ -605,8 +610,8 @@ object SimplifyExpression {
                 arg
             }.to[ListBuffer]
         }
-        if (call.name == "exp")
-          simplifyFloatingArgs(List(RealDatatype))
+        if (MathFunctions.signatures.contains(call.name))
+          simplifyFloatingArgs(MathFunctions.signatures(call.name)._1)
         else for (func <- StateManager.findFirst({ f : FunctionStatement => f.name == call.name }))
           simplifyFloatingArgs(func.parameters.view.map(_.dType.orNull))
         res = new mutable.HashMap[Expression, Double]()

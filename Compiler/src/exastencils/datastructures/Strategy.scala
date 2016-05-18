@@ -38,7 +38,7 @@ object StrategyTimer {
     } else if (0 == thisData.entries) {
       thisData.totalDuration += System.nanoTime() - thisData.start
       thisData.count += 1
-    } // otherwise nothing to do due to inclusive regions    
+    } // otherwise nothing to do due to inclusive regions
   }
 
   def print = {
