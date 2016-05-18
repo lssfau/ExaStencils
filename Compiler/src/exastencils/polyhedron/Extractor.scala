@@ -13,6 +13,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.util._
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -30,7 +31,7 @@ object Extractor {
   private final val SKIP_ANNOT : String = "PolySkip"
 
   /** set of all functions that are allowed in a scop (these must not have side effects) */
-  private final val allowedFunctions = HashSet[String]("sin", "cos", "tan", "sinh", "cosh", "tanh", "exp", "sqrt", "abs", "fabs")
+  private final val allowedFunctions = Set[String]("abs", "fabs") ++= MathFunctions.signatures.keys
 
   /** set of symbolic constants that must not be modeled as read accesses (these must be constant inside a scop) */
   private final val symbolicConstants = HashSet[String]()
@@ -84,6 +85,11 @@ object Extractor {
         constraints.append('(').append(islStr).append("=1)")
 
       case OffsetIndex(min, max, ind, off) =>
+        off match {
+          case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) =>
+            off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
+          case _ => // nothing to do
+        }
         constraints.append('(')
         bool |= extractConstraints(ind, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('+')
