@@ -391,18 +391,24 @@ case class ExpKernel(var identifier : String,
    */
   def evalIndexBounds() = {
     if (!evaluatedIndexBounds) {
+      var loopVariableIndexMinima = mutable.Map[String, (Long, Long)]()
       minIndices = (0 until executionConfigurationDimensionality).map(dim =>
         try {
-          SimplifyExpression.evalIntegralExtrema(lowerBounds(dim))._1
+          val extrema = SimplifyExpression.evalIntegralExtrema(lowerBounds(dim), loopVariableIndexMinima)
+          loopVariableIndexMinima += (loopVariables(dim) -> extrema)
+          extrema._1
         } catch {
           case _ : EvaluationException =>
             Logger.warn(s"Start index for dimension $dim (${lowerBounds(dim)}) could not be evaluated")
             0
         }).toArray
 
+      var loopVariableIndexMaxima = mutable.Map[String, (Long, Long)]()
       maxIndices = (0 until executionConfigurationDimensionality).map(dim =>
         try {
-          SimplifyExpression.evalIntegralExtrema(upperBounds(dim))._2
+          val extrema = SimplifyExpression.evalIntegralExtrema(upperBounds(dim), loopVariableIndexMaxima)
+          loopVariableIndexMaxima += (loopVariables(dim) -> extrema)
+          extrema._2
         } catch {
           case _ : EvaluationException =>
             Logger.warn(s"End index for dimension $dim (${upperBounds(dim)}) could not be evaluated")
