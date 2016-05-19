@@ -49,8 +49,8 @@ mpi_numThreads = 1
 // Optimizations //
 ///////////////////
 // Polyhedron optimizations
-poly_optLevel_fine     = 3
-poly_optLevel_coarse   = 1
+poly_optLevel_fine     = 0 // define levels that should be optimized; here = 3
+poly_optLevel_coarse   = 0 // define coarse level; here = 1
 poly_numFinestLevels   = 1
 poly_tileSize_x        = 0
 poly_tileSize_y        = 128

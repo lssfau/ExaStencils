@@ -140,14 +140,14 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
   }
 
-  def calculateCollapsingLoops(loop : ForLoopStatement, recursionDepth : Int = 1) : ListBuffer[ForLoopStatement] = {
+  def calculateCollapsingLoops(loop : ForLoopStatement) : ListBuffer[ForLoopStatement] = {
     val innerLoopCandidate = loop.body.head
     val loops = ListBuffer[ForLoopStatement](loop)
 
     innerLoopCandidate match {
-      case innerLoop : ForLoopStatement if recursionDepth < Platform.hw_cuda_maxNumDimsBlock && loop.body.size == 1 &&
+      case innerLoop : ForLoopStatement if loop.body.size == 1 &&
         verifyLoopSuitability(innerLoop) =>
-        loops ++ calculateCollapsingLoops(innerLoop, recursionDepth + 1)
+        loops ++ calculateCollapsingLoops(innerLoop)
       case _ => loops
     }
   }
@@ -187,9 +187,9 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       // remove the annotation first to guarantee single application of this transformation.
       loop.removeAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation)
 
-      val innerLoops = calculateCollapsingLoops(loop)
+      val innerLoops = calculateCollapsingLoops(loop).reverse
       val (loopVariables, lowerBounds, upperBounds) = createLoopBounds(innerLoops)
-      val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops)
+      val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.take(Platform.hw_cuda_maxNumDimsBlock))
       val deviceStatements = ListBuffer[Statement]()
 
       // add kernel and kernel call
