@@ -136,10 +136,15 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       (loop.end.isInstanceOf[LowerExpression] || loop.end.isInstanceOf[LowerEqualExpression]) &&
       loop.inc.isInstanceOf[AssignmentStatement] &&
       loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
-      loop.inc.asInstanceOf[AssignmentStatement].src.asInstanceOf[IntegerConstant].value == 1 &&
       loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
   }
 
+  /**
+   * Calculate the collapsing loops beginning with the innermost loop that is free to collapse with the surrounding loops.
+   *
+   * @param loop the outer loop
+   * @return list of collapsing loops starting with the innermost loop
+   */
   def calculateCollapsingLoops(loop : ForLoopStatement) : ListBuffer[ForLoopStatement] = {
     val innerLoopCandidate = loop.body.head
     val loops = ListBuffer[ForLoopStatement](loop)
@@ -147,7 +152,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     innerLoopCandidate match {
       case innerLoop : ForLoopStatement if loop.body.size == 1 &&
         verifyLoopSuitability(innerLoop) =>
-        loops ++ calculateCollapsingLoops(innerLoop)
+        calculateCollapsingLoops(innerLoop) ++ loops
       case _ => loops
     }
   }
@@ -161,10 +166,16 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     }
   }
 
+  def removeInnerLoops(body : ListBuffer[Statement], collapsingLoops : ListBuffer[ForLoopStatement], depth : Int = 1) : ListBuffer[Statement] = {
+
+    body
+  }
+
   def createLoopBounds(loops : ListBuffer[ForLoopStatement]) = {
     var loopVariables = ListBuffer[String]()
     var lowerBounds = ListBuffer[Expression]()
     var upperBounds = ListBuffer[Expression]()
+    var stepSize = ListBuffer[Expression]()
 
     loops foreach { loop =>
       val loopDeclaration = loop.begin.asInstanceOf[VariableDeclarationStatement]
@@ -175,9 +186,13 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         case e : LowerEqualExpression => e.right
         case o => o
       })
+      stepSize += (loop.inc match {
+        case AssignmentStatement(_, src : Expression, "=") => src
+        case _ => new IntegerConstant(1)
+      })
     }
 
-    (loopVariables, lowerBounds, upperBounds)
+    (loopVariables, lowerBounds, upperBounds, stepSize)
   }
 
   this += new Transformation("Transform annotated CUDA loops in CUDA kernel code", {
@@ -187,9 +202,9 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       // remove the annotation first to guarantee single application of this transformation.
       loop.removeAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation)
 
-      val innerLoops = calculateCollapsingLoops(loop).reverse
-      val (loopVariables, lowerBounds, upperBounds) = createLoopBounds(innerLoops)
-      val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.take(Platform.hw_cuda_maxNumDimsBlock))
+      val innerLoops = calculateCollapsingLoops(loop)
+      val (loopVariables, lowerBounds, upperBounds, stepSize) = createLoopBounds(innerLoops)
+      val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.reverse)
       val deviceStatements = ListBuffer[Statement]()
 
       // add kernel and kernel call
@@ -206,6 +221,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         loopVariables,
         lowerBounds,
         upperBounds,
+        stepSize,
         kernelBody,
         loop.reduction)
 
@@ -348,6 +364,20 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
         kernel.numDimensions -= 1
       }
       kernel
+    case kernel : ExpKernel =>
+      while (kernel.dimensionality > Platform.hw_cuda_maxNumDimsBlock) {
+        def it = new VariableAccess(ExpKernel.KernelVariablePrefix + dimToString(kernel.dimensionality - 1), Some(IntegerDatatype))
+        kernel.body = ListBuffer[Statement](ForLoopStatement(
+          new VariableDeclarationStatement(it, kernel.lowerBounds.last),
+          LowerExpression(it, kernel.upperBounds.last),
+          AssignmentStatement(it, kernel.stepSize.last, "+="),
+          kernel.body))
+        kernel.lowerBounds.dropRight(1)
+        kernel.upperBounds.dropRight(1)
+        kernel.stepSize.dropRight(1)
+        kernel.dimensionality -= 1
+      }
+      kernel
   })
 }
 
@@ -356,7 +386,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
     case kernel : ExpKernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
-      val index = new MultiIndex((0 until kernel.executionConfigurationDimensionality).map(dim =>
+      val index = new MultiIndex((0 until kernel.dimensionality).map(dim =>
         new VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => new SubtractionExpression(x, y) : Expression)

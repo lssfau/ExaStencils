@@ -256,6 +256,7 @@ object MainChristoph {
 
     if (Knowledge.experimental_cuda_enabled) {
       ExtractHostAndDeviceCode.apply()
+      AdaptKernelDimensionalities.apply()
       HandleKernelReductions.apply()
     }
 

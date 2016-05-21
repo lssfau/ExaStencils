@@ -343,12 +343,13 @@ case class ExpKernel(var identifier : String,
     var loopVariables : ListBuffer[String],
     var lowerBounds : ListBuffer[Expression],
     var upperBounds : ListBuffer[Expression],
+    var stepSize : ListBuffer[Expression],
     var body : ListBuffer[Statement],
     var reduction : Option[Reduction] = None) extends Node {
 
   import ExpKernel._
 
-  val executionConfigurationDimensionality = math.min(Platform.hw_cuda_maxNumDimsBlock, loopVariables.size)
+  var dimensionality = loopVariables.size
   var evaluatedAccesses = false
   var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
@@ -392,7 +393,7 @@ case class ExpKernel(var identifier : String,
   def evalIndexBounds() = {
     if (!evaluatedIndexBounds) {
       var loopVariableIndexMinima = mutable.Map[String, (Long, Long)]()
-      minIndices = (0 until executionConfigurationDimensionality).map(dim =>
+      minIndices = (0 until dimensionality).map(dim =>
         try {
           val extrema = SimplifyExpression.evalIntegralExtrema(lowerBounds(dim), loopVariableIndexMinima)
           loopVariableIndexMinima += (loopVariables(dim) -> extrema)
@@ -404,7 +405,7 @@ case class ExpKernel(var identifier : String,
         }).toArray
 
       var loopVariableIndexMaxima = mutable.Map[String, (Long, Long)]()
-      maxIndices = (0 until executionConfigurationDimensionality).map(dim =>
+      maxIndices = (0 until dimensionality).map(dim =>
         try {
           val extrema = SimplifyExpression.evalIntegralExtrema(upperBounds(dim), loopVariableIndexMaxima)
           loopVariableIndexMaxima += (loopVariables(dim) -> extrema)
@@ -430,7 +431,7 @@ case class ExpKernel(var identifier : String,
     // global thread id x = blockIdx.x *blockDim.x + threadIdx.x + offset1;
     // global thread id y = blockIdx.y *blockDim.y + threadIdx.y + offset2;
     // global thread id z = blockIdx.z *blockDim.z + threadIdx.z + offset3;
-    statements ++= (0 until executionConfigurationDimensionality).map(dim => {
+    statements ++= (0 until dimensionality).map(dim => {
       val it = dimToString(dim)
       val variableName = KernelVariablePrefix + it
       VariableDeclarationStatement(IntegerDatatype, variableName,
@@ -442,7 +443,7 @@ case class ExpKernel(var identifier : String,
 
     // add dimension index start and end point
     // add index bounds conditions
-    statements ++= (0 until executionConfigurationDimensionality).map(dim => {
+    statements ++= (0 until dimensionality).map(dim => {
       val variableAccess = VariableAccess(KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype))
       new ConditionStatement(
         OrOrExpression(LowerExpression(variableAccess, s"${KernelVariablePrefix}begin_$dim"), GreaterEqualExpression(variableAccess, s"${KernelVariablePrefix}end_$dim")),
@@ -476,7 +477,7 @@ case class ExpKernel(var identifier : String,
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
 
-    for (dim <- 0 until executionConfigurationDimensionality) {
+    for (dim <- 0 until dimensionality) {
       callArgs += lowerBounds(dim)
       callArgs += upperBounds(dim)
     }
@@ -505,7 +506,7 @@ case class ExpKernel(var identifier : String,
 
     if (null == numThreadsPerDim || numThreadsPerDim.product <= 0) {
       Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
-      numThreadsPerDim = (0 until executionConfigurationDimensionality).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
+      numThreadsPerDim = (0 until dimensionality).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
     }
 
     var body = ListBuffer[Statement]()
@@ -540,7 +541,7 @@ case class ExpKernel(var identifier : String,
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
 
-    for (dim <- 0 until executionConfigurationDimensionality) {
+    for (dim <- 0 until dimensionality) {
       fctParams += VariableAccess(s"${KernelVariablePrefix}begin_$dim", Some(IntegerDatatype))
       fctParams += VariableAccess(s"${KernelVariablePrefix}end_$dim", Some(IntegerDatatype))
     }
@@ -676,10 +677,10 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
   var loopVariables = ListBuffer[String]()
 
   this += new Transformation("Searching", {
-    case VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) && loopVariables.indexOf(name) < Platform.hw_cuda_maxNumDimsBlock =>
+    case VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
       val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(name))
       VariableAccess(newName, Some(IntegerDatatype))
-    case StringLiteral(v @ value) if loopVariables.contains(v) && loopVariables.indexOf(v) < Platform.hw_cuda_maxNumDimsBlock =>
+    case StringLiteral(v @ value) if loopVariables.contains(v) =>
       val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(v))
       VariableAccess(newName, Some(IntegerDatatype))
   })
