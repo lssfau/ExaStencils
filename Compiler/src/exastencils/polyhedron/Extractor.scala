@@ -86,7 +86,7 @@ object Extractor {
 
       case OffsetIndex(min, max, ind, off) =>
         off match {
-          case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) | ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
+          case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) =>
             off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
           case _ => // nothing to do
         }

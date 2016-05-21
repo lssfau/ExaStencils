@@ -11,6 +11,12 @@ import scala.collection.mutable.TreeSet
 import scala.io.Source
 import scala.util.control.Breaks
 
+import org.exastencils.schedopt.exploration.DomainCoeffInfo
+import org.exastencils.schedopt.exploration.Exploration
+import org.exastencils.schedopt.exploration.PartialSchedule
+import org.exastencils.schedopt.exploration.ScheduleSpace
+import org.exastencils.schedopt.exploration.StmtCoeffInfo
+
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
@@ -409,10 +415,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def optimize(scop : Scop, confID : Int) : Unit = {
-    if (Knowledge.poly_scheduleAlgorithm == "exploration")
-      optimizeExpl(scop, confID)
-    else
-      optimizeIsl(scop)
+    Knowledge.poly_scheduleAlgorithm match {
+      case "exploration" => optimizeExpl(scop, confID)
+      case "test"        => optimizeTest(scop)
+      case _             => optimizeIsl(scop)
+    }
   }
 
   private def optimizeIsl(scop : Scop) : Unit = {
@@ -470,64 +477,144 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.updateLoopVars()
   }
 
-  private def optimizeExpl(scop : Scop, confID : Int) : Unit = {
+  private def optimizeTest(scop : Scop) : Unit = {
+    val domain = scop.domain.intersectParams(scop.getContext())
+    var validity = scop.deps.validity()
 
-    Logger.warn("[PolyOpt] Exploration not possible, since it requires external code (this is subject to change); fall back to standard isl optimization")
-    optimizeIsl(scop)
+    if (Knowledge.poly_simplifyDeps) {
+      validity = validity.gistRange(domain)
+      validity = validity.gistDomain(domain)
+    }
 
-    //    val df = new DecimalFormat()
-    //    df.setMinimumIntegerDigits(5)
-    //    df.setGroupingUsed(false)
-    //    Settings.outputPath += df.format(confID)
-    //
-    //    val explConfig = new File(Settings.poly_explorationConfig)
-    //    if (!explConfig.exists()) {
-    //      Logger.debug("[PolyOpt] Exploration: no configuration file found, so perform exploration and create it, progress:")
-    //      performExploration(scop, explConfig, df)
-    //      Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
-    //    } else
-    //      applyConfig(scop, explConfig, df.format(confID))
+    val depList : ArrayBuffer[isl.BasicMap] = Exploration.preprocess(validity)
+
+    val domInfo = DomainCoeffInfo(domain)
+    val sched = new PartialSchedule(domInfo, depList)
+    var coeffSpace : isl.Set = sched.computeLinIndepSpace()
+
+    // all dependences must be satisfied at least weakly
+    for (dep <- depList) {
+      val constr : isl.BasicSet = ScheduleSpace.compSchedConstrForDep(dep, sched.domInfo, false)
+      coeffSpace = coeffSpace.intersect(constr)
+    }
+
+    val zeroVal = isl.Val.zero(scop.domain.getCtx())
+    for ((stmt, StmtCoeffInfo(itStart, nrIt, _, cstIdx)) <- domInfo.stmtInfo) {
+      coeffSpace = coeffSpace.fixVal(T_SET, itStart + nrIt - 1, zeroVal)
+      coeffSpace = coeffSpace.lowerBoundVal(T_SET, cstIdx, zeroVal)
+    }
+    val addDims : Int = domInfo.nrIt - domInfo.nrStmts + 2 // sum of abs coeffs and sum of paramcoeffs
+    coeffSpace = coeffSpace.insertDims(T_SET, 0, addDims)
+
+    var idx : Int = 1
+    var i : Int = 0
+    while (idx < addDims - 1) {
+      for ((stmt, StmtCoeffInfo(itStart, nrIt, parStart, cstIdx)) <- domInfo.stmtInfo)
+        if (i < nrIt - 1) {
+          var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace()))
+          aff = aff.setCoefficientSi(T_IN, addDims + itStart + i, -2)
+          aff = aff.setCoefficientSi(T_IN, idx, -1)
+          var set : isl.Set = aff.zeroBasicSet() // p = -2*c
+          aff = aff.setCoefficientSi(T_IN, addDims + itStart + i, 2)
+          aff = aff.setConstantSi(-1)
+          set = set.union(aff.zeroBasicSet()) // p = 2*c - 1
+          set = set.lowerBoundVal(T_SET, idx, zeroVal) // p >= 0
+          coeffSpace = coeffSpace.intersect(set)
+          idx += 1
+        }
+      i += 1
+    }
+
+    // set coeffSpace[idx] to sum of parameter coeffs and restrict the latter to natural numbers
+    var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace()))
+    aff = aff.setCoefficientSi(T_IN, idx, -1)
+    for (pi <- 0 until domInfo.nrParPS * domInfo.nrStmts) {
+      val pos : Int = addDims + domInfo.nrIt + pi
+      coeffSpace = coeffSpace.lowerBoundVal(T_SET, pos, zeroVal)
+      aff = aff.setCoefficientSi(T_IN, pos, 1)
+    }
+    coeffSpace = coeffSpace.intersect(aff.zeroBasicSet())
+    coeffSpace = coeffSpace.lowerBoundVal(T_SET, 0, isl.Val.one(coeffSpace.getCtx())) // prevent 0 solution
+
+    // set coeffSpace[0] to sum of abs coeffs
+    aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace()))
+    aff = aff.setCoefficientSi(T_IN, 0, -1)
+    for (i <- 1 until addDims - 1)
+      aff = aff.setCoefficientSi(T_IN, i, 1)
+    coeffSpace = coeffSpace.intersect(aff.zeroBasicSet())
+    val schedPoint = coeffSpace.lexmin().removeDims(T_SET, 0, addDims).samplePoint()
+    println(schedPoint)
+    System.exit(42)
   }
 
-  //  private def performExploration(scop : Scop, explConfig : File, df : DecimalFormat) : Unit = {
-  //    var validity = scop.deps.validity()
-  //
-  //    if (Knowledge.poly_simplifyDeps) {
-  //      validity = validity.gistRange(scop.domain)
-  //      validity = validity.gistDomain(scop.domain)
-  //    }
-  //
-  //    explConfig.getParentFile().mkdirs()
-  //    val eConfOut = new java.io.PrintWriter(explConfig)
-  //    var i : Int = 0
-  //    Exploration.guidedExploration(scop.domain, validity, {
-  //      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int]) =>
-  //        i += 1
-  //        if (i % 100 == 0) {
-  //          Console.print('.')
-  //          Console.flush()
-  //        }
-  //        if (i % 5000 == 0) {
-  //          Console.println()
-  //          Console.flush()
-  //        }
-  //        eConfOut.print(df.format(i))
-  //        eConfOut.print('\t')
-  //        eConfOut.print(bands.mkString(","))
-  //        eConfOut.print('\t')
-  //        eConfOut.print(sched)
-  //        eConfOut.print('\t')
-  //        eConfOut.print(schedVect.map(arr => java.util.Arrays.toString(arr)).mkString(", "))
-  //        eConfOut.println()
-  //    })
-  //    if (i % 5000 != 0) {
-  //      Console.println()
-  //      Console.flush()
-  //    }
-  //    eConfOut.flush()
-  //    eConfOut.close()
-  //    Logger.debug(s"[PolyOpt] Exploration: found $i configurations")
-  //  }
+  private def optimizeExpl(scop : Scop, confID : Int) : Unit = {
+
+    val df = new DecimalFormat()
+    df.setMinimumIntegerDigits(5)
+    df.setGroupingUsed(false)
+
+    val explConfig = new File(Settings.poly_explorationConfig)
+    if (!explConfig.exists() || explConfig.length() == 0) {
+      Logger.debug("[PolyOpt] Exploration: no configuration file found or file empty, perform exploration and create it, progress:")
+      performExploration(scop, explConfig, df)
+      Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
+      Settings.outputPath += df.format(0)
+    } else {
+      applyConfig(scop, explConfig, df.format(confID))
+      Settings.outputPath += df.format(confID)
+    }
+  }
+
+  private def performExploration(scop : Scop, explConfig : File, df : DecimalFormat) : Unit = {
+
+    val domain = scop.domain.intersectParams(scop.getContext())
+    var validity = scop.deps.validity()
+
+    if (Knowledge.poly_simplifyDeps) {
+      validity = validity.gistRange(domain)
+      validity = validity.gistDomain(domain)
+    }
+
+    explConfig.getParentFile().mkdirs()
+    val eConfOut = new java.io.PrintWriter(explConfig)
+    eConfOut.println(domain)
+    eConfOut.println(validity)
+    eConfOut.println(Knowledge.poly_exploration_extended)
+    eConfOut.println()
+    var i : Int = 0
+    Console.println("         1k          2k          3k          4k          5k")
+    Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, {
+      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int]) =>
+        i += 1
+        if (i % 100 == 0) {
+          Console.print('.')
+          Console.flush()
+        }
+        if (i % 500 == 0) {
+          Console.print(' ')
+          Console.flush()
+        }
+        if (i % 5000 == 0) {
+          Console.println()
+          Console.flush()
+        }
+        eConfOut.print(df.format(i))
+        eConfOut.print('\t')
+        eConfOut.print(bands.mkString(","))
+        eConfOut.print('\t')
+        eConfOut.print(sched)
+        eConfOut.print('\t')
+        eConfOut.print(schedVect.map(arr => java.util.Arrays.toString(arr)).mkString(", "))
+        eConfOut.println()
+    })
+    if (i % 5000 != 0) {
+      Console.println()
+      Console.flush()
+    }
+    eConfOut.flush()
+    eConfOut.close()
+    Logger.debug(s"[PolyOpt] Exploration: found $i configurations")
+  }
 
   private def applyConfig(scop : Scop, explConfig : File, confID : String) : Unit = {
     var lines : Iterator[String] = Source.fromFile(explConfig).getLines()
