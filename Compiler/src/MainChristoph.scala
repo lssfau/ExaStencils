@@ -22,10 +22,9 @@ import exastencils.strategies._
 import exastencils.util._
 
 object MainChristoph {
-  def main(args : Array[String]) : Unit = {
-    // for runtime measurement
-    val start : Long = System.nanoTime()
+  private var polyOptExplID : Int = 0
 
+  def initialize(args : Array[String]) : Unit = {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
 
@@ -55,18 +54,20 @@ object MainChristoph {
         knowledgeParser.parseFile(args(1))
       if (args.length >= 3)
         platformParser.parseFile(args(2))
+      if (args.length >= 4)
+        polyOptExplID = args(3).toInt
     }
-
-    //    try {
 
     // validate knowledge, etc.
     Knowledge.update()
     Settings.update()
     Platform.update()
 
-    if (Settings.cancelIfOutFolderExists) if (new java.io.File(Settings.getOutputPath).exists) {
-      Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
-      sys.exit(0)
+    if (Settings.cancelIfOutFolderExists) {
+      if (new java.io.File(Settings.getOutputPath).exists) {
+        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        sys.exit(0)
+      }
     }
 
     // init buildfile generator
@@ -77,9 +78,17 @@ object MainChristoph {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")
+  }
 
-    // L1
+  def shutdown() : Unit = {
+    if (Settings.timeStrategies)
+      StrategyTimer.print
 
+    if (Settings.produceHtmlLog)
+      Logger_HTML.finish
+  }
+
+  def handleL1() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 1")
 
@@ -87,9 +96,9 @@ object MainChristoph {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 1")
+  }
 
-    // L2
-
+  def handleL2() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 2")
 
@@ -107,9 +116,9 @@ object MainChristoph {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 2")
+  }
 
-    // L3
-
+  def handleL3() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 3")
 
@@ -122,9 +131,9 @@ object MainChristoph {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 3")
+  }
 
-    // L4
-
+  def handleL4() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
@@ -168,7 +177,9 @@ object MainChristoph {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")
+  }
 
+  def handleIR() : Unit = {
     // add some more nodes
     AddDefaultGlobals.apply()
     SetupDataStructures.apply()
@@ -255,8 +266,10 @@ object MainChristoph {
 
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
-      PolyOpt.apply()
+      PolyOpt.apply(polyOptExplID)
     ResolveLoopOverDimensions.apply()
+
+    TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements and to
     // take advantage of the schedule exploration.
@@ -265,8 +278,6 @@ object MainChristoph {
       AdaptKernelDimensionalities.apply()
       HandleKernelReductions.apply()
     }
-
-    TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
@@ -331,32 +342,33 @@ object MainChristoph {
 
     if (Knowledge.generateFortranInterface)
       Fortranify.apply()
+  }
 
+  def print() : Unit = {
     Logger.dbg("Prettyprinting to folder " + new java.io.File(Settings.getOutputPath).getAbsolutePath)
     PrintStrategy.apply()
     PrettyprintingManager.finish
+  }
+
+  def main(args : Array[String]) : Unit = {
+    // for runtime measurement
+    val start : Long = System.nanoTime()
+
+    initialize(args)
+
+    handleL1()
+    handleL2()
+    handleL3()
+    handleL4()
+    handleIR()
+
+    print()
 
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
     new CountingStrategy("number of printed nodes").apply()
 
-    if (Settings.timeStrategies)
-      StrategyTimer.print
-
-    //    } catch {
-    //      case t : Throwable =>
-    //        Logger.dbg("An error occured: ")
-    //        var tt = t
-    //        while (tt != null) {
-    //          val sw = new StringWriter
-    //          tt.printStackTrace(new PrintWriter(sw))
-    //          Logger.warn("Stack trace:\n" + sw.toString)
-    //          tt = tt.getCause
-    //        }
-    //    }
-
-    if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+    shutdown()
   }
 }
