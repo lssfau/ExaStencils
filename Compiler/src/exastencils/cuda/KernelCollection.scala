@@ -387,7 +387,7 @@ case class ExpKernel(var identifier : String,
   }
 
   /**
-   * Evaluate the index bounds to calculate minimal and maximal valid index. Required to check if some thread is out
+   * Evaluate the index bounds to calculate minimal and maximal valid indices. Required to check if some thread is out
    * of bounds or not.
    */
   def evalIndexBounds() = {
@@ -652,7 +652,7 @@ object ReplacingLocalIVs extends QuietDefaultStrategy("Replacing local InternalV
   })
 }
 
-object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local InternalVariable nodes") {
+object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local ArrayAccess nodes with special vector datatype") {
   def checkAccess(ivArray : ArrayAccess) : Boolean = {
     var result = false
 
@@ -686,7 +686,7 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
   })
 }
 
-object ReplacingLoopVariablesInWrapper extends QuietDefaultStrategy("Replacing loop variables in wrapper execution configuration with provided bounds expressions") {
+object ReplacingLoopVariablesInWrapper extends QuietDefaultStrategy("Replacing loop variables in wrapper with provided bounds expressions") {
   var loopVariables = ListBuffer[String]()
   var bounds = Array[Expression]()
 

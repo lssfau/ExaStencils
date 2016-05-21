@@ -17,12 +17,11 @@ import scala.collection.mutable._
 import scala.collection.{ SortedSet => _, _ }
 
 /**
- * This transformation annotates LoopOverDimensions and LoopOverDimensions enclosed with ContractingLoops.
- * Additionally required statements for memory transfer are added. This transformation is applied before resolving
- * ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
- * ContractingLoop (required for temporal blocking).
+ * This transformation annotates LoopOverDimensions and LoopOverDimensions enclosed within ContractingLoops.
+ * Additionally required statements for memory transfer are added.
  */
-object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant code") {
+object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
+  "and annotating for later kernel transformation") {
   val CudaLoopAnnotation = "CUDALoop"
   val CudaLoopTransformAnnotation = "CUDALoopToTransform"
   val collector = new FctNameCollector
@@ -105,8 +104,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     }
   }
 
-  this += new Transformation("Prepare CUDA relevant code by adding memory transfer statements and annotating for " +
-    "later kernel transformation", {
+  this += new Transformation("Processing ContractingLoop and LoopOverDimensions nodes", {
     case contractingLoop : ContractingLoop =>
       val content = contractingLoop.statements.find(s =>
         s.isInstanceOf[ConditionStatement] || s.isInstanceOf[LoopOverDimensions])
@@ -124,8 +122,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 }
 
 /**
- * This transformation is used to convert annotated code into CUDA kernel code and is applied after the polyhedral
- * optimization to work on optimized for loops.
+ * This transformation is used to convert annotated code into CUDA kernel code.
  */
 object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUDA loop in kernel code") {
   val collector = new FctNameCollector
@@ -136,6 +133,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       (loop.end.isInstanceOf[LowerExpression] || loop.end.isInstanceOf[LowerEqualExpression]) &&
       loop.inc.isInstanceOf[AssignmentStatement] &&
       loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
+      IntegerConstant(1).equals(loop.inc.asInstanceOf[AssignmentStatement].src.asInstanceOf[IntegerConstant]) &&
       loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
   }
 
@@ -166,12 +164,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     }
   }
 
-  def removeInnerLoops(body : ListBuffer[Statement], collapsingLoops : ListBuffer[ForLoopStatement], depth : Int = 1) : ListBuffer[Statement] = {
-
-    body
-  }
-
-  def createLoopBounds(loops : ListBuffer[ForLoopStatement]) = {
+  def extractRelevantLoopInformation(loops : ListBuffer[ForLoopStatement]) = {
     var loopVariables = ListBuffer[String]()
     var lowerBounds = ListBuffer[Expression]()
     var upperBounds = ListBuffer[Expression]()
@@ -195,7 +188,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     (loopVariables, lowerBounds, upperBounds, stepSize)
   }
 
-  this += new Transformation("Transform annotated CUDA loops in CUDA kernel code", {
+  this += new Transformation("Processing ForLoopStatement nodes", {
     case loop : ForLoopStatement if loop.hasAnnotation(PrepareCudaRelevantCode.CudaLoopAnnotation) && loop
       .hasAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation) && verifyLoopSuitability(loop) =>
 
@@ -203,7 +196,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       loop.removeAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation)
 
       val innerLoops = calculateCollapsingLoops(loop)
-      val (loopVariables, lowerBounds, upperBounds, stepSize) = createLoopBounds(innerLoops)
+      val (loopVariables, lowerBounds, upperBounds, stepSize) = extractRelevantLoopInformation(innerLoops)
       val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.reverse)
       val deviceStatements = ListBuffer[Statement]()
 
@@ -383,6 +376,16 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
 
 object HandleKernelReductions extends DefaultStrategy("Handle reductions in device kernels") {
   this += new Transformation("Process kernel nodes", {
+    case kernel : Kernel if kernel.reduction.isDefined =>
+      // update assignments according to reduction clauses
+      val index = LoopOverDimensions.defIt(kernel.numDimensions)
+      val stride = (
+        LoopOverDimensions.evalMaxIndex(kernel.indices.end, kernel.numDimensions, printWarnings = true),
+        LoopOverDimensions.evalMinIndex(kernel.indices.begin, kernel.numDimensions, printWarnings = true)).zipped.map(_ - _)
+      ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
+      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(stride.product), index, new MultiIndex(stride))
+      ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
+      kernel
     case kernel : ExpKernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
@@ -393,16 +396,6 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
 
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
       ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(new MultiplicationExpression(ListBuffer[Expression](stride : _*))), index, new MultiIndex(stride))
-      ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
-      kernel
-    case kernel : Kernel if kernel.reduction.isDefined =>
-      // update assignments according to reduction clauses
-      val index = LoopOverDimensions.defIt(kernel.numDimensions)
-      val stride = (
-        LoopOverDimensions.evalMaxIndex(kernel.indices.end, kernel.numDimensions, printWarnings = true),
-        LoopOverDimensions.evalMinIndex(kernel.indices.begin, kernel.numDimensions, printWarnings = true)).zipped.map(_ - _)
-      ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
-      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(stride.product), index, new MultiIndex(stride))
       ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
       kernel
   })

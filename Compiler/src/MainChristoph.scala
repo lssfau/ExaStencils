@@ -223,6 +223,10 @@ object MainChristoph {
 
     if (Knowledge.experimental_addPerformanceEstimate)
       AddPerformanceEstimates()
+
+    // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
+    // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
+    // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
     if (Knowledge.experimental_cuda_enabled) {
       PrepareCudaRelevantCode.apply()
     }
@@ -254,6 +258,8 @@ object MainChristoph {
       PolyOpt.apply()
     ResolveLoopOverDimensions.apply()
 
+    // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements and to
+    // take advantage of the schedule exploration.
     if (Knowledge.experimental_cuda_enabled) {
       ExtractHostAndDeviceCode.apply()
       AdaptKernelDimensionalities.apply()
