@@ -349,6 +349,7 @@ case class ExpKernel(var identifier : String,
 
   import ExpKernel._
 
+  var originalDimensionality = loopVariables.size
   var dimensionality = loopVariables.size
   var evaluatedAccesses = false
   var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
@@ -393,7 +394,7 @@ case class ExpKernel(var identifier : String,
   def evalIndexBounds() = {
     if (!evaluatedIndexBounds) {
       var loopVariableIndexMinima = mutable.Map[String, (Long, Long)]()
-      minIndices = (0 until dimensionality).map(dim =>
+      minIndices = (originalDimensionality - 1 to 0 by -1).map(dim =>
         try {
           val extrema = SimplifyExpression.evalIntegralExtrema(lowerBounds(dim), loopVariableIndexMinima)
           loopVariableIndexMinima += (loopVariables(dim) -> extrema)
@@ -402,10 +403,10 @@ case class ExpKernel(var identifier : String,
           case _ : EvaluationException =>
             Logger.warn(s"Start index for dimension $dim (${lowerBounds(dim)}) could not be evaluated")
             0
-        }).toArray
+        }).toArray.reverse.take(dimensionality)
 
       var loopVariableIndexMaxima = mutable.Map[String, (Long, Long)]()
-      maxIndices = (0 until dimensionality).map(dim =>
+      maxIndices = (originalDimensionality - 1 to 0 by -1).map(dim =>
         try {
           val extrema = SimplifyExpression.evalIntegralExtrema(upperBounds(dim), loopVariableIndexMaxima)
           loopVariableIndexMaxima += (loopVariables(dim) -> extrema)
@@ -414,7 +415,7 @@ case class ExpKernel(var identifier : String,
           case _ : EvaluationException =>
             Logger.warn(s"End index for dimension $dim (${upperBounds(dim)}) could not be evaluated")
             0
-        }).toArray
+        }).toArray.reverse.take(dimensionality)
 
       evaluatedIndexBounds = true
     }
@@ -474,12 +475,23 @@ case class ExpKernel(var identifier : String,
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
     evalAccesses() // ensure that field accesses have been mapped
 
+    // substitute loop variable in bounds with appropriate fix values to get valid code in wrapper function
+    ReplacingLoopVariablesInWrapper.loopVariables.clear
+    ReplacingLoopVariablesInWrapper.loopVariables = loopVariables
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(lowerBounds)
+    val lowerArgs = Duplicate(lowerBounds)
+    ReplacingLoopVariablesInWrapper.applyStandalone(lowerArgs)
+
+    val upperArgs = Duplicate(upperBounds)
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(upperBounds)
+    ReplacingLoopVariablesInWrapper.applyStandalone(upperArgs)
+
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
 
     for (dim <- 0 until dimensionality) {
-      callArgs += lowerBounds(dim)
-      callArgs += upperBounds(dim)
+      callArgs += lowerArgs(dim)
+      callArgs += upperArgs(dim)
     }
 
     for (fieldAccess <- fieldAccesses) {
@@ -688,10 +700,13 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
 
 object ReplacingLoopVariablesInWrapper extends QuietDefaultStrategy("Replacing loop variables in wrapper with provided bounds expressions") {
   var loopVariables = ListBuffer[String]()
-  var bounds = Array[Expression]()
+  var bounds = ListBuffer[Expression]()
 
   this += new Transformation("Searching", {
     case StringLiteral(v @ value) if loopVariables.contains(v) =>
       bounds(loopVariables.indexOf(v))
+
+    case VariableAccess(n, Some(IntegerDatatype)) if loopVariables.contains(n) =>
+      bounds(loopVariables.indexOf(n))
   })
 }

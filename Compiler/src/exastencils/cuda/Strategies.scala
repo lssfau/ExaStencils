@@ -365,9 +365,6 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
           LowerExpression(it, kernel.upperBounds.last),
           AssignmentStatement(it, kernel.stepSize.last, "+="),
           kernel.body))
-        kernel.lowerBounds.dropRight(1)
-        kernel.upperBounds.dropRight(1)
-        kernel.stepSize.dropRight(1)
         kernel.dimensionality -= 1
       }
       kernel

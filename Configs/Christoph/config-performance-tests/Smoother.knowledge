@@ -67,7 +67,7 @@ opt_unroll_interleave  = false
 // HACK configuration options for generating L4 DSL file //
 ///////////////////////////////////////////////////////////
 l3tmp_generateL4 = false
-l3tmp_genTemporalBlocking  = false
+l3tmp_genTemporalBlocking  = true
 
 //////////
 // CUDA //

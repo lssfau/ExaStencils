@@ -53,6 +53,9 @@ object SimplifyExpression {
     case StringLiteral(value) if extremaLookup.contains(value) =>
       extremaLookup(value)
 
+    case VariableAccess(name, dType) if extremaLookup.contains(name) =>
+      extremaLookup(name)
+
     case AdditionExpression(sums : ListBuffer[Expression]) =>
       sums.view.map(s => evalIntegralExtrema(s, extremaLookup)).reduce { (x, y) =>
         (x._1 + y._1, x._2 + y._2)
