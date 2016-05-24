@@ -394,7 +394,7 @@ case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var in
     if (buffer.dimSizes.isEmpty)
       return new ArrayAccess(buffer, IntegerConstant(0), false)
 
-    return new ArrayAccess(buffer, Mapping.resolveMultiIdx(index, MultiIndex(buffer.dimSizes)), false)
+    return new ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), false)
   }
 }
 

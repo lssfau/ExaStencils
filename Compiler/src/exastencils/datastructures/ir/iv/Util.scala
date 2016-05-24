@@ -59,14 +59,18 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
   }
 }
 
-case class LoopCarriedCSBuffer(var identifier : Int, val baseDatatype : Datatype, val dimSizes : Array[Expression]) extends InternalVariable(true, false, false, false, false) {
+object LoopCarriedCSBuffer {
+  final val commonPrefix = "_lcs"
+}
+
+case class LoopCarriedCSBuffer(var identifier : Int, val baseDatatype : Datatype, val dimSizes : MultiIndex) extends InternalVariable(true, false, false, false, false) {
 
   override def prettyprint(out : PpStream) : Unit = {
     out << resolveAccess(resolveName, LoopOverFragments.defIt, null, null, null, null)
   }
 
   override def resolveName() : String = {
-    return "_lcs" + identifier
+    return LoopCarriedCSBuffer.commonPrefix + identifier
   }
 
   override def resolveDataType() : Datatype = {

@@ -1,13 +1,12 @@
 package exastencils.polyhedron
 
 import java.io.File
-import java.text.DecimalFormat
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import scala.collection.mutable.TreeSet
+import scala.collection.mutable.Set
 import scala.io.Source
 import scala.util.control.Breaks
 
@@ -123,8 +122,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     scop.deadAfterScop = Isl.simplify(scop.deadAfterScop)
 
-    scop.deps.flow = Isl.simplify(scop.deps.flow)
-    scop.deps.antiOut = Isl.simplify(scop.deps.antiOut)
+    scop.deps.flowPar = Isl.simplify(scop.deps.flowPar)
+    scop.deps.flowParVec = Isl.simplify(scop.deps.flowParVec)
+    scop.deps.antiOutParVec = Isl.simplify(scop.deps.antiOutParVec)
+    scop.deps.antiOutPar = Isl.simplify(scop.deps.antiOutPar)
     scop.deps.mapInputLazy { input => Isl.simplify(input) }
   }
 
@@ -217,32 +218,23 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         else
           scop.stmts -= lab
       // adjust read and write accesses
-      var nju : isl.UnionMap = null
-      scop.reads.foreachMap({
-        map : isl.Map =>
-          if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
+      def adjust(umap : isl.UnionMap) : isl.UnionMap = {
+        var nju : isl.UnionMap = null
+        umap.foreachMap({
+          map : isl.Map =>
+            if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
             val oldLabel : String = map.getTupleName(T_IN)
-            var toAdd : isl.Map = map
-            if (oldLabel != njuLabel)
-              for ((lab, _) <- stmts if (oldLabel == lab))
-                toAdd = toAdd.setTupleName(T_IN, njuLabel)
-            nju = if (nju == null) toAdd else nju.addMap(toAdd)
-          }
-      })
-      scop.reads = nju
-      nju = null
-      scop.writes.foreachMap({
-        map : isl.Map =>
-          if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
-            val oldLabel : String = map.getTupleName(T_IN)
-            var toAdd : isl.Map = map
-            if (oldLabel != njuLabel)
-              for ((lab, _) <- stmts if (oldLabel == lab))
-                toAdd = toAdd.setTupleName(T_IN, njuLabel)
-            nju = if (nju == null) toAdd else nju.addMap(toAdd)
-          }
-      })
-      scop.writes = nju
+              var toAdd : isl.Map = map
+              if (oldLabel != njuLabel)
+                for ((lab, _) <- stmts if (oldLabel == lab))
+                  toAdd = toAdd.setTupleName(T_IN, njuLabel)
+              nju = if (nju == null) toAdd else nju.addMap(toAdd)
+            }
+        })
+        return nju
+      }
+      scop.reads = adjust(scop.reads)
+      scop.writes = adjust(scop.writes)
 
       // update scop.deadAfterScop
       var resurrect : Boolean = false
@@ -276,8 +268,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.reads = unionNull(scop.reads, toMerge.reads)
       scop.writes = unionNull(scop.writes, toMerge.writes)
       scop.deadAfterScop = unionNull(scop.deadAfterScop, toMerge.deadAfterScop)
-      scop.deps.flow = unionNull(scop.deps.flow, toMerge.deps.flow)
-      scop.deps.antiOut = unionNull(scop.deps.antiOut, toMerge.deps.antiOut)
+      scop.deps.flowParVec = unionNull(scop.deps.flowParVec, toMerge.deps.flowParVec)
+      scop.deps.flowPar = unionNull(scop.deps.flowPar, toMerge.deps.flowPar)
+      scop.deps.antiOutParVec = unionNull(scop.deps.antiOutParVec, toMerge.deps.antiOutParVec)
+      scop.deps.antiOutPar = unionNull(scop.deps.antiOutPar, toMerge.deps.antiOutPar)
       scop.deps.mapInputLazy { input => unionNull(input, toMerge.deps.input) }
       if (scop.origIterationCount == null && toMerge.origIterationCount != null)
         scop.origIterationCount = toMerge.origIterationCount
@@ -330,17 +324,33 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val domain : isl.UnionSet = scop.domain.intersectParams(scop.getContext())
 
     val schedule = Isl.simplify(scop.schedule.intersectDomain(domain))
-    //    val schedule = scop.schedule
 
     val writes = (scop.writes.intersectDomain(domain))
-    //    val writes = scop.writes
     val reads = if (scop.reads == null) empty else Isl.simplify(scop.reads.intersectDomain(domain))
-    //    val reads = if (scop.reads == null) empty else scop.reads
+
+    var writesToVec, writesNotVec : isl.UnionMap = empty
+    var readsToVec, readsNotVec : isl.UnionMap = empty
+
+    writes.foreachMap { map : isl.Map =>
+      if (map.getTupleName(isl.DimType.Out).startsWith(iv.LoopCarriedCSBuffer.commonPrefix))
+        writesToVec = writesToVec.addMap(map)
+      else
+        writesNotVec = writesNotVec.addMap(map)
+    }
+    reads.foreachMap { map : isl.Map =>
+      if (map.getTupleName(isl.DimType.Out).startsWith(iv.LoopCarriedCSBuffer.commonPrefix))
+        readsToVec = readsToVec.addMap(map)
+      else
+        readsNotVec = readsNotVec.addMap(map)
+    }
 
     // anti & output
-    writes.computeFlow(writes, reads, schedule,
+    writesNotVec.computeFlow(writesNotVec, readsNotVec, schedule,
       depArr, depArr2, null, null) // output params
-    scop.deps.antiOut = depArr(0).union(depArr2(0))
+    scop.deps.antiOutParVec = depArr(0).union(depArr2(0))
+    writesToVec.computeFlow(writesToVec, readsToVec, schedule,
+      depArr, depArr2, null, null) // output params
+    scop.deps.antiOutPar = depArr(0).union(depArr2(0))
 
     if (scop.reads != null) {
       var readArrays : isl.UnionMap = empty
@@ -359,14 +369,18 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       }
 
       // flow
-      reads.computeFlow(writes, empty, schedule,
+      readsNotVec.computeFlow(writesNotVec, empty, schedule,
         depArr, null, null, null) // output params (C-style)
-      scop.deps.flow = depArr(0)
+      scop.deps.flowParVec = depArr(0)
+      readsToVec.computeFlow(writesToVec, empty, schedule,
+        depArr, null, null, null) // output params (C-style)
+      scop.deps.flowPar = depArr(0)
 
     } else {
-      val noDeps = isl.UnionMap.empty(scop.deps.antiOut.getSpace())
+      val noDeps = isl.UnionMap.empty(scop.deps.antiOutParVec.getSpace())
       scop.deps.input = noDeps
-      scop.deps.flow = noDeps
+      scop.deps.flowParVec = noDeps
+      scop.deps.flowPar = noDeps
     }
   }
 
@@ -386,25 +400,30 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def handleReduction(scop : Scop) : Unit = {
-
     if (scop.root.reduction.isEmpty)
       return
 
     val name : String = Extractor.replaceSpecial(scop.root.reduction.get.target.prettyprint())
-    val stmts = new TreeSet[String]()
+    val stmts = Set[String]()
     scop.writes.foreachMap({ map : isl.Map =>
       if (map.getTupleName(T_OUT) == name)
         stmts += map.getTupleName(T_IN)
     } : isl.Map => Unit)
 
-    var toRemove = isl.UnionMap.empty(scop.deps.flow.getSpace())
-    scop.deps.flow.foreachMap({ dep : isl.Map =>
+    var toRemove = isl.UnionMap.empty(scop.deps.flowParVec.getSpace())
+    scop.deps.flowParVec.foreachMap({ dep : isl.Map =>
       if (stmts.contains(dep.getTupleName(T_IN)))
         toRemove = toRemove.addMap(isl.Map.identity(dep.getSpace()).complement())
     } : isl.Map => Unit)
-    scop.deps.flow = scop.deps.flow.subtract(toRemove)
+    scop.deps.flowPar.foreachMap({ dep : isl.Map =>
+      if (stmts.contains(dep.getTupleName(T_IN)))
+        toRemove = toRemove.addMap(isl.Map.identity(dep.getSpace()).complement())
+    } : isl.Map => Unit)
+    scop.deps.flowParVec = scop.deps.flowParVec.subtract(toRemove)
+    scop.deps.flowPar = scop.deps.flowPar.subtract(toRemove)
     // filter others too, as we do not have an ordering between read and write in the same statement
-    scop.deps.antiOut = scop.deps.antiOut.subtract(toRemove)
+    scop.deps.antiOutParVec = scop.deps.antiOutParVec.subtract(toRemove)
+    scop.deps.antiOutPar = scop.deps.antiOutPar.subtract(toRemove)
     scop.deps.mapInputLazy { input => input.subtract(toRemove) }
   }
 

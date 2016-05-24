@@ -1,0 +1,22 @@
+outputPath = "C:\Users\Stefan\work\Generated\Benchmark"
+//outputPath = "S:\tmp\Bench"
+outputPath = "D:\tmp\Benchmark"
+//outputPath = "S:\tmp\ExaExpl\var"
+outputPath = "T:\delme"
+//outputPath = "C:\temp\delme"
+//outputPath = "D:\delme"
+
+l4file = "C:\Users\Stefan\work\ScalaExaStencil\Compiler\dsl\Layer4Stefan.exa"
+l4file = "C:\Users\Stefan\work\ScalaExaStencil\Configs\Stefan\Smoother_3D_ConstCoeff.exa4"
+l4file = "C:\temp\l4.exa"
+//l4file = "C:\temp\l4_2.exa"
+//l4file = "C:\temp\l4_perf.exa"
+//l4file = "T:\delme\l4.exa"
+
+poly_explorationConfig = "S:\tmp\ExaExpl\expl_config.txt"
+poly_explorationConfig = "T:\work\poly_expl\jacobi_2D_cc_dense\ExaExpl\expl_config.txt"
+poly_explorationConfig = "C:\temp\nix.txt"
+
+timeStrategies = true
+
+pathsInc += "/home/kronast/work/vecmathlib"

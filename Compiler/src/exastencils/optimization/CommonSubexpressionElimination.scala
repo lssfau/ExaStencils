@@ -150,7 +150,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
     var tmpBufLen = new Array[Expression](0)
     var tmpBufInd = new Array[Expression](0)
-    for ((loopItVar, loopBegin, loopEnd, loopIncr) <- loopIt.view.filter(_._1 != null)) {
+    for ((loopItVar, loopBegin, loopEnd, loopIncr) <- loopIt) {
       val prevItBody = Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
       this.execute(new Transformation("create previous iteration body", {
         case varAcc : VariableAccess if (varAcc.name == loopItVar) =>
@@ -221,7 +221,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
           // FIXME: fix datatypes
           val decl : VariableDeclarationStatement = commonExp.declaration
-          val tmpBuf = new iv.LoopCarriedCSBuffer(bufferCounter, decl.dataType, Duplicate(tmpBufLen))
+          val tmpBuf = new iv.LoopCarriedCSBuffer(bufferCounter, decl.dataType, MultiIndex(Duplicate(tmpBufLen)))
           bufferCounter += 1
           val tmpBufAcc = new LoopCarriedCSBufferAccess(tmpBuf, new MultiIndex(Duplicate(tmpBufInd)))
           decl.expression = Some(tmpBufAcc)
@@ -233,8 +233,11 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       }
 
       if (!decls.isEmpty) {
+        val cond = new ConditionStatement(EqEqExpression(new VariableAccess(loopItVar, IntegerDatatype), loopBegin), firstInits)
+        cond.annotate(Vectorization.COND_VECTABLE) // mark that this condition can be fully vectorized (which breaks some data dependences, but that doesn't matter)
+        // prepend to body
         decls ++=:
-          new ConditionStatement(EqEqExpression(new VariableAccess(loopItVar, IntegerDatatype), loopBegin), firstInits) +=:
+          cond +=:
           nextUpdates ++=:
           body
         njuScopes += firstInits

@@ -6,6 +6,7 @@ import exastencils.datastructures.ir.VariableAccess
 
 trait OptimizationHint {
   var isParallel : Boolean = false
+  var isVectorizable : Boolean = false
   val privateVars = new ListBuffer[VariableAccess]()
   var isInnermost : Boolean = false
 }
