@@ -348,7 +348,18 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
   def +(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ + _)
   def -(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ - _)
 
-  def ==(other : MultiIndex) : Boolean = indices.sameElements(other.indices)
+  override def equals(other : Any) : Boolean = {
+    if (this eq other.asInstanceOf[AnyRef])
+      return true
+    return other match {
+      case MultiIndex(oIndices) => java.util.Arrays.equals(this.indices.asInstanceOf[Array[Object]], oIndices.asInstanceOf[Array[Object]])
+      case _                    => false
+    }
+  }
+
+  override def hashCode() : Int = {
+    return java.util.Arrays.hashCode(indices.asInstanceOf[Array[Object]]) * 31 + 42 // random modification to ensure the hashcode of this element differs from the hashcode of the array itself
+  }
 
   // expose array functions
   override def iterator() : scala.collection.Iterator[Expression] = indices.iterator
