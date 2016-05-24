@@ -1,5 +1,5 @@
 user                        = "Christoph"
-basePathPrefix              = "../generator-result/standard/cpu"
+basePathPrefix              = "../generator-result/std/sisc"
 l3file                      = ""
 l4file                      = "/dsl/Layer4.exa"
 outputPath                  = "/generated/"

@@ -1,7 +1,7 @@
 user                        = "Christoph"
 basePathPrefix              = "../generator-result/exp/smoother"
 l3file                      = ""
-l4file                      = "../../../Configs/Christoph/config-performance-tests/Smoother_3D_ConstCoeff.exa4"
+l4file                      = "../../../Configs/Christoph/config-knowledges/Smoother_3D_ConstCoeff.exa4"
 outputPath                  = "/generated/"
 htmlLogFile                 = "/log/log.html"
 produceHtmlLog              = true
