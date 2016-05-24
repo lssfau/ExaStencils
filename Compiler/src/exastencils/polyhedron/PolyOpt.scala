@@ -1,6 +1,7 @@
 package exastencils.polyhedron
 
 import java.io.File
+import java.text._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Buffer
@@ -9,13 +10,11 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 import scala.io.Source
 import scala.util.control.Breaks
-
 import org.exastencils.schedopt.exploration.DomainCoeffInfo
 import org.exastencils.schedopt.exploration.Exploration
 import org.exastencils.schedopt.exploration.PartialSchedule
 import org.exastencils.schedopt.exploration.ScheduleSpace
 import org.exastencils.schedopt.exploration.StmtCoeffInfo
-
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
@@ -23,7 +22,6 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
-
 import isl.Conversions._
 
 trait PolyhedronAccessible {
