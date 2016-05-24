@@ -30,8 +30,22 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
   var deadAfterScop : isl.UnionSet = null
 
   object deps {
-    var flow : isl.UnionMap = null
-    var antiOut : isl.UnionMap = null
+    // dependences, which prevent parallelization AND vectorization
+    var flowParVec : isl.UnionMap = null
+    var antiOutParVec : isl.UnionMap = null
+    // dependences, which prevent only parallelization, but NOT vectorization
+    var flowPar : isl.UnionMap = null
+    var antiOutPar : isl.UnionMap = null
+
+    def flow : isl.UnionMap = {
+      if (flowParVec == null)
+        return flowPar
+      else if (flowPar == null)
+        return flowParVec
+      else
+        return Isl.simplify(flowParVec.union(flowPar))
+    }
+
     private var inputCache : isl.UnionMap = null
     private var lazySetInput : () => isl.UnionMap = null
     private val lazyUpdateInputs = new ArrayBuffer[isl.UnionMap => isl.UnionMap]()
@@ -65,7 +79,15 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
     }
 
     def validity() : isl.UnionMap = {
-      return Isl.simplify(flow.union(antiOut))
+      return Isl.simplify(flowParVec.union(flowPar).union(antiOutParVec).union(antiOutPar))
+    }
+
+    def validityParVec() : isl.UnionMap = {
+      return Isl.simplify(flowParVec.union(antiOutParVec))
+    }
+
+    def validityPar() : isl.UnionMap = {
+      return Isl.simplify(flowPar.union(antiOutPar))
     }
   }
 

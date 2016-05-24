@@ -212,6 +212,7 @@ object Knowledge {
   var opt_useColorSplitting : Boolean = false // [true|false] // only relevant for RBGS smoother currently
   // for both CSE: WARNING: experimental, may break things!  currently assumes RealDatatype for ALL common subexpressions
   var opt_conventionalCSE : Boolean = false // [true|false] // apply a conventional common subexpression elimination
+  // FIXME: loop carried CSE introduces data dependences, which may be violated, when poly opt are disabled! use with caution!
   var opt_loopCarriedCSE : Boolean = false // [true|false] // apply a loop carried common subexpression elimination; this effectively serializes optimized loop-nests, so parallelize LoopOverFragments!
   var opt_loopCarriedCSE_skipOuter : Int = 0 // [0~dimensionality] // do not take this number of outer dimensions into account when performing a loop carried CSE
 
@@ -530,6 +531,8 @@ object Knowledge {
     Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother != "RBGS", "color splitting is only relevant for RBGS smoother")
 
     Constraints.condEnsureValue(ir_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")
+
+    Constraints.condWarn(l3tmp_genTemporalBlocking && opt_loopCarriedCSE, "temporal blocking may interfere with loop carried CSE and therefore generated code may be broken")
 
     // timer configuration
     Constraints.condEnsureValue(timer_type, "Chrono", !mpi_enabled && "MPI_TIME" == timer_type, "MPI_TIME is not supported for codes generated without MPI")
