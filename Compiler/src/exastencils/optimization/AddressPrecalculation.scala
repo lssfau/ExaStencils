@@ -52,13 +52,15 @@ private final class ArrayBases(val arrayName : String) {
   }
 
   def addToDecls(decls : ListBuffer[Statement]) : Unit = {
-    for ((_, (name : String, init : Expression)) <- inits)
+    for ((name : String, init : Expression) <- inits.values.toArray.sortBy(_._1))
       decls += new VariableDeclarationStatement(ConstPointerDatatype(RealDatatype), name, AddressofExpression(init))
   }
 }
 
 private final class AnnotateLoopsAndAccesses extends Collector {
-  import AddressPrecalculation._
+  import AddressPrecalculation.DECLS_ANNOT
+  import AddressPrecalculation.ORIG_IND_ANNOT
+  import AddressPrecalculation.REPL_ANNOT
 
   private def generateName(expr : Expression) : String = {
     return filter('_' + expr.prettyprint())
@@ -276,7 +278,7 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
       return node
 
     val stmts = new ListBuffer[Statement]()
-    for ((_, bases : ArrayBases) <- decls)
+    for ((_, bases : ArrayBases) <- decls.toArray.sortBy(_._1))
       bases.addToDecls(stmts)
 
     stmts += node.asInstanceOf[Statement]
