@@ -6,8 +6,8 @@ import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
-
 import exastencils.core.collectors.Collector
+import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -452,7 +452,7 @@ class Extractor extends Collector {
     try {
       if (!curScop.exists())
         node match {
-          case loop : LoopOverDimensions with PolyhedronAccessible =>
+          case loop : LoopOverDimensions with PolyhedronAccessible if !loop.hasAnnotation(PrepareCudaRelevantCode.CudaLoopAnnotation) || (loop.hasAnnotation(PrepareCudaRelevantCode.CudaLoopAnnotation) && loop.hasAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation)) =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)

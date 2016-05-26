@@ -31,6 +31,16 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     GatherLocalFieldAccess.fieldAccesses.clear
     GatherLocalFieldAccess.applyStandalone(Scope(originalLoop.body))
 
+    // every LoopOverDimensions statement is potentially worse to transform in CUDA code
+    // Exceptions:
+    // 1. this loop is a special one and cannot be optimized in polyhedral model
+    // 2. this loop has no parallel potential
+    // use the host for dealing with the two exceptional cases
+    val cudaSuitable = originalLoop.isInstanceOf[PolyhedronAccessible] && originalLoop.isInstanceOf[OMP_PotentiallyParallel]
+
+    if (cudaSuitable)
+      originalLoop.annotate(CudaLoopAnnotation)
+
     /// compile host statements
     var hostStmts = ListBuffer[Statement]()
 
@@ -54,13 +64,6 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       if (access._1.startsWith("write"))
         hostStmts += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
     }
-
-    // every LoopOverDimensions statement is potentially worse to transform in CUDA code
-    // Exceptions:
-    // 1. this loop is a special one and cannot be optimized in polyhedral model
-    // 2. this loop has no parallel potential
-    // use the host for dealing with the two exceptional cases
-    val cudaSuitable = originalLoop.isInstanceOf[PolyhedronAccessible] && originalLoop.isInstanceOf[OMP_PotentiallyParallel]
 
     /// compile device statements
     if (!cudaSuitable) {
