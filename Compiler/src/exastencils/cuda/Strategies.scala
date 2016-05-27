@@ -124,6 +124,39 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
   }, false)
 }
 
+
+/**
+  * This transformation is used to annotate nested loops of a CUDA loop.
+  */
+object AnnotateNestedCudaLoops extends DefaultStrategy("Annotate nested loops of a CUDA annotated loop") {
+  val collector = new FctNameCollector
+  this.register(collector)
+
+  /**
+    * Annotate inner loops of a ForLoopStatement.
+    *
+    * @param loop the outer loop
+    */
+  def annotateInnerLoops(loop : ForLoopStatement) : Unit = {
+    val innerLoopCandidate = loop.body.find(x => x.isInstanceOf[ForLoopStatement])
+
+    innerLoopCandidate match {
+      case Some(innerLoop : ForLoopStatement) =>
+        innerLoop.annotate(PrepareCudaRelevantCode.CudaLoopAnnotation)
+        innerLoop.annotate(PrepareCudaRelevantCode.CudaLoopTransformAnnotation)
+        annotateInnerLoops(innerLoop)
+      case _ =>
+    }
+  }
+
+  this += new Transformation("Processing ForLoopStatement nodes", {
+    case loop : ForLoopStatement if loop.hasAnnotation(PrepareCudaRelevantCode.CudaLoopAnnotation) && loop
+      .hasAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation) =>
+      annotateInnerLoops(loop)
+      loop
+  }, false)
+}
+
 /**
  * This transformation is used to convert annotated code into CUDA kernel code.
  */

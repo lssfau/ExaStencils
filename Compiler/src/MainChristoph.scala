@@ -274,6 +274,7 @@ object MainChristoph {
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements and to
     // take advantage of the schedule exploration.
     if (Knowledge.experimental_cuda_enabled) {
+      AnnotateNestedCudaLoops.apply()
       ExtractHostAndDeviceCode.apply()
       AdaptKernelDimensionalities.apply()
       HandleKernelReductions.apply()
