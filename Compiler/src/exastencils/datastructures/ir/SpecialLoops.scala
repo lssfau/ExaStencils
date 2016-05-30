@@ -551,7 +551,7 @@ case class LoopOverDimensions(var numDimensions : Int,
         body)
 
     var anyPar : Boolean = false
-    val outerPar = parDims.max
+    val outerPar = if (parDims.isEmpty) -1 else parDims.max
     // compile loop(s)
     var compiledLoop : ForLoopStatement with OptimizationHint = null
     for (d <- 0 until numDimensions) {
