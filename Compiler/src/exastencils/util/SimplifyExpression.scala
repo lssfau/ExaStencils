@@ -4,7 +4,6 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.iv._
 import exastencils.logger._
 import exastencils.strategies._
 
@@ -34,12 +33,12 @@ object SimplifyExpression {
   final val EXTREMA_ANNOT : String = "extrema" // associated value must be (Long, Long)
 
   def evalIntegralExtrema(expr : Expression) : (Long, Long) = {
-    evalIntegralExtrema(expr, mutable.Map[String,(Long,Long)]())
+    evalIntegralExtrema(expr, mutable.Map[String, (Long, Long)]())
   }
 
   /**
    * Completely evaluates an integral expression and computes a lower bound and an upper bound
-   *   for its value depending on the minOffset and maxOffset in potential OffsetIndex nodes.
+   * for its value depending on the minOffset and maxOffset in potential OffsetIndex nodes.
    * Only IntegerConstants are allowed! (Except for the offset field in OffsetIndex, which is not evaluated at all.)
    * Other scalar constants or variable accesses lead to an EvaluationException.
    */
@@ -115,77 +114,6 @@ object SimplifyExpression {
   }
 
   /**
-   * Evaluates an expression as far as possible and computes a lower bound and an upper bound for its value.
-   */
-  def evalExpressionExtrema(expr : Expression) : (Expression, Expression) = expr match {
-    case c : IntegerConstant =>
-      (c, c)
-
-    case s : StringLiteral =>
-      (s, s)
-
-    case a @ ArrayAccess(i : IterationOffsetBegin, c : IntegerConstant, _) =>
-      (a, a)
-
-    case a @ ArrayAccess(i : IterationOffsetEnd, c : IntegerConstant, _) =>
-      (a, a)
-
-    case AdditionExpression(sums : ListBuffer[Expression]) =>
-      sums.view.map(s => evalExpressionExtrema(s)).reduce { (x, y) =>
-        (new AdditionExpression(x._1, y._1), new AdditionExpression(x._2, y._2))
-      }
-
-    case SubtractionExpression(l : Expression, r : Expression) =>
-      val x = evalExpressionExtrema(l)
-      val y = evalExpressionExtrema(r)
-      (new SubtractionExpression(x._1, y._2), new SubtractionExpression(x._2, y._1))
-
-    case MultiplicationExpression(facs : ListBuffer[Expression]) =>
-      facs.view.map(s => evalExpressionExtrema(s)).reduce { (x, y) =>
-        val a = new MultiplicationExpression(x._1, y._1)
-        val b = new MultiplicationExpression(x._1, y._2)
-        val c = new MultiplicationExpression(x._2, y._1)
-        val d = new MultiplicationExpression(x._2, y._2)
-        (new MinimumExpression(a, b, c, d), new MaximumExpression(a, b, c, d))
-      }
-
-    case DivisionExpression(l : Expression, r : Expression) =>
-      val x = evalExpressionExtrema(l)
-      val y = evalExpressionExtrema(r)
-      val a = new DivisionExpression(x._1, y._1)
-      val b = new DivisionExpression(x._1, y._2)
-      val c = new DivisionExpression(x._2, y._1)
-      val d = new DivisionExpression(x._2, y._2)
-      (new MinimumExpression(a, b, c, d), new MaximumExpression(a, b, c, d))
-
-    case ModuloExpression(l : Expression, r : Expression) =>
-      val x = evalExpressionExtrema(l)
-      val y = evalExpressionExtrema(r)
-      val a = new ModuloExpression(x._1, y._1)
-      val b = new ModuloExpression(x._1, y._2)
-      val c = new ModuloExpression(x._2, y._1)
-      val d = new ModuloExpression(x._2, y._2)
-      (new MinimumExpression(a, b, c, d), new MaximumExpression(a, b, c, d))
-
-    case MinimumExpression(l : ListBuffer[Expression]) =>
-      l.view.map(e => evalExpressionExtrema(e)).reduce { (x, y) =>
-        (new MinimumExpression(x._1, y._1), new MinimumExpression(x._2, y._2))
-      }
-
-    case MaximumExpression(l : ListBuffer[Expression]) =>
-      l.view.map(e => evalExpressionExtrema(e)).reduce { (x, y) =>
-        (new MaximumExpression(x._1, y._1), new MaximumExpression(x._2, y._2))
-      }
-
-    case OffsetIndex(minOffset, maxOffset, index, _) =>
-      val x = evalExpressionExtrema(index)
-      (new AdditionExpression(x._1, new IntegerConstant(minOffset)), new AdditionExpression(x._2, new IntegerConstant(maxOffset)))
-
-    case _ =>
-      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
-  }
-
-  /**
    * Completely evaluates an floating expression.
    * Only FloatConstants are allowed!
    * Other scalar constants or variable accesses lead to an EvaluationException.
@@ -228,7 +156,6 @@ object SimplifyExpression {
     var res : mutable.HashMap[Expression, Long] = null
 
     expr match {
-
       case IntegerConstant(i) =>
         res = new mutable.HashMap[Expression, Long]()
         res(constName) = i
@@ -576,7 +503,6 @@ object SimplifyExpression {
     var res : mutable.HashMap[Expression, Double] = null
 
     expr match {
-
       case IntegerConstant(i) =>
         res = new mutable.HashMap[Expression, Double]()
         res(constName) = i
