@@ -1,2 +1,0 @@
-outputPath = "E:\tmp\ExaStencils\"
-basePathPrefix = ".."
