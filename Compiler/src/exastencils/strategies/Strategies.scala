@@ -261,14 +261,16 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       val cst : Double = floatCst + intCst
       // if compactAST is set, no SubtractionExpression is created, so prevent creating a Neg(Const),
       //   which would lead to a non-terminating recursion
-      if (cst > 0.0 || compactAST)
+      // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
+      if (cst > 0.0 || compactAST || posSums.isEmpty)
         posSums += FloatConstant(cst)
       else
         negSums += FloatConstant(-cst)
     } else if (intCst != 0L)
       // if compactAST is set, no SubtractionExpression is created, so prevent creating a Neg(Const),
       //   which would lead to a non-terminating recursion
-      if (intCst > 0 || compactAST)
+      // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
+      if (intCst > 0 || compactAST || posSums.isEmpty)
         posSums += IntegerConstant(intCst)
       else
         negSums += IntegerConstant(-intCst)
