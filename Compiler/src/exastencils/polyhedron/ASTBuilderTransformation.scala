@@ -63,7 +63,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     parDims = Set[String](scop.njuLoopVars : _*)
     vecDims = Set[String](scop.njuLoopVars : _*)
     for (i <- scop.noParDims)
-      parDims += scop.njuLoopVars(i)
+      parDims -= scop.njuLoopVars(i)
 
     def respectDeps(deps : isl.UnionMap, forVect : Boolean) : Boolean = {
       val tDeps : isl.UnionMap = deps.applyRange(scop.schedule).applyDomain(scop.schedule)
