@@ -345,7 +345,8 @@ case class ExpKernel(var identifier : String,
     var upperBounds : ListBuffer[Expression],
     var stepSize : ListBuffer[Expression],
     var body : ListBuffer[Statement],
-    var reduction : Option[Reduction] = None) extends Node {
+    var reduction : Option[Reduction] = None,
+    var loopVariableExtrema : mutable.Map[String, (Long, Long)] = mutable.Map[String, (Long, Long)]()) extends Node {
 
   import ExpKernel._
 
@@ -393,11 +394,10 @@ case class ExpKernel(var identifier : String,
    */
   def evalIndexBounds() = {
     if (!evaluatedIndexBounds) {
-      var loopVariableIndexMinima = mutable.Map[String, (Long, Long)]()
       minIndices = (originalDimensionality - 1 to 0 by -1).map(dim =>
         try {
-          val extrema = SimplifyExpression.evalIntegralExtrema(lowerBounds(dim), loopVariableIndexMinima)
-          loopVariableIndexMinima += (loopVariables(dim) -> extrema)
+          val extrema = SimplifyExpression.evalIntegralExtrema(lowerBounds(dim), loopVariableExtrema)
+          loopVariableExtrema += (loopVariables(dim) -> extrema)
           extrema._1
         } catch {
           case _ : EvaluationException =>
@@ -405,11 +405,10 @@ case class ExpKernel(var identifier : String,
             0
         }).toArray.reverse.take(dimensionality)
 
-      var loopVariableIndexMaxima = mutable.Map[String, (Long, Long)]()
       maxIndices = (originalDimensionality - 1 to 0 by -1).map(dim =>
         try {
-          val extrema = SimplifyExpression.evalIntegralExtrema(upperBounds(dim), loopVariableIndexMaxima)
-          loopVariableIndexMaxima += (loopVariables(dim) -> extrema)
+          val extrema = SimplifyExpression.evalIntegralExtrema(upperBounds(dim), loopVariableExtrema)
+          loopVariableExtrema += (loopVariables(dim) -> extrema)
           extrema._2
         } catch {
           case _ : EvaluationException =>

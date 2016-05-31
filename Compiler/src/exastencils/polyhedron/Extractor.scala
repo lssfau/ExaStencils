@@ -1,12 +1,6 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.ArrayStack
-import scala.collection.mutable.HashSet
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Set
-import scala.collection.mutable.StringBuilder
-import exastencils.core.collectors.Collector
+import exastencils.core.collectors._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
@@ -14,6 +8,8 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.util._
+
+import scala.collection.mutable.{ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder}
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -85,11 +81,7 @@ object Extractor {
         constraints.append('(').append(islStr).append("=1)")
 
       case OffsetIndex(min, max, ind, off) =>
-        off match {
-          case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) | ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
-            off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
-          case _ => // nothing to do
-        }
+        off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
         constraints.append('(')
         bool |= extractConstraints(ind, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('+')
@@ -280,7 +272,7 @@ object Extractor {
     while (i < str.length) {
       str(i) match {
         case '.' | '[' | ']' | '(' | ')' | '-' | '>' => str(i) = '_'
-        case _                                       =>
+        case _ =>
       }
       i += 1
     }
@@ -435,7 +427,7 @@ class Extractor extends Collector {
     node.getAnnotation(Access.ANNOT) match {
       case Some(acc) =>
         acc match {
-          case Access.READ  => isRead = true
+          case Access.READ => isRead = true
           case Access.WRITE => isWrite = true
           case Access.UPDATE =>
             isRead = true
@@ -564,10 +556,10 @@ class Extractor extends Collector {
             | NullStatement => // nothing to do for all of them...
 
           // deny
-          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
-          case ArrayAccess(a, _, _)       => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
+          case e : ExpressionStatement => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
+          case ArrayAccess(a, _, _) => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
           case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
-          case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
+          case x : Any => throw new ExtractionException("cannot deal with " + x.getClass())
         }
     } catch {
       case ExtractionException(msg) => curScop.discard(msg)
@@ -590,17 +582,17 @@ class Extractor extends Collector {
 
     if (curScop.exists())
       node match {
-        case l : LoopOverDimensions           => leaveLoop(l)
-        case c : ConditionStatement           => leaveCondition(c)
-        case _ : AssignmentStatement          => leaveAssign()
-        case _ : StringLiteral                => leaveScalarAccess()
-        case _ : VariableAccess               => leaveScalarAccess()
-        case _ : ArrayAccess                  => leaveArrayAccess()
-        case _ : DirectFieldAccess            => leaveFieldAccess()
-        case _ : TempBufferAccess             => leaveTempBufferAccess()
-        case _ : LoopCarriedCSBufferAccess    => leaveLoopCarriedCSBufferAccess()
+        case l : LoopOverDimensions => leaveLoop(l)
+        case c : ConditionStatement => leaveCondition(c)
+        case _ : AssignmentStatement => leaveAssign()
+        case _ : StringLiteral => leaveScalarAccess()
+        case _ : VariableAccess => leaveScalarAccess()
+        case _ : ArrayAccess => leaveArrayAccess()
+        case _ : DirectFieldAccess => leaveFieldAccess()
+        case _ : TempBufferAccess => leaveTempBufferAccess()
+        case _ : LoopCarriedCSBufferAccess => leaveLoopCarriedCSBufferAccess()
         case _ : VariableDeclarationStatement => leaveDecl()
-        case _                                =>
+        case _ =>
       }
   }
 
@@ -862,7 +854,7 @@ class Extractor extends Collector {
     name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
       case SlotAccess(_, offset) => name.append('s').append(offset)
-      case s                     => name.append(s.prettyprint())
+      case s => name.append(s.prettyprint())
     }
     enterArrayAccess(replaceSpecial(name.toString()), index)
   }
