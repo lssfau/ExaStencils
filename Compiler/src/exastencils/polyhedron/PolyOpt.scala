@@ -163,12 +163,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       toFind = name
       var fstStmt : Int = -1
       var lstStmt : Int = -1
-      var stmts : Buffer[(String, (ListBuffer[Statement], ArrayBuffer[String]))] =
-        scop.stmts.toBuffer.sorted(new Ordering[(String, _)] {
-          override def compare(a : (String, _), b : (String, _)) : Int = {
-            return a._1.compareTo(b._1)
-          }
-        })
+      var stmts : Buffer[(String, (ListBuffer[Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
       var i : Int = 0
       val oldLvl = Logger.getLevel
       Logger.setLevel(Logger.WARNING)

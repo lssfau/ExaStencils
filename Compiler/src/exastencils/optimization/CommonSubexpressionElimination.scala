@@ -18,6 +18,7 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge.dimToString
 import exastencils.knowledge.Knowledge
 import exastencils.logger.Logger
+import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util.EvaluationException
@@ -61,7 +62,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       inlineDecls(parentLoop, body())
       val njuScopes : Seq[ListBuffer[Statement]] =
         if (Knowledge.opt_loopCarriedCSE && parentLoop.condition.isEmpty)
-          loopCarriedCSE(curFunc, body(), loopIt)
+          loopCarriedCSE(curFunc, parentLoop, loopIt)
         else
           Nil
       if (Knowledge.opt_conventionalCSE) {
@@ -123,12 +124,12 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     SimplifyStrategy.doUntilDoneStandalone(parent, true)
   }
 
-  private def loopCarriedCSE(curFunc : String, body : ListBuffer[Statement], loopIt : Array[(String, Expression, Expression, Long)]) : Seq[ListBuffer[Statement]] = {
+  private def loopCarriedCSE(curFunc : String, loop : LoopOverDimensions, loopIt : Array[(String, Expression, Expression, Long)]) : Seq[ListBuffer[Statement]] = {
     if (loopIt == null || loopIt.forall(_ == null))
       return Nil
 
     // first, number all nodes for overlap-test later
-    val currItBody = Scope(body)
+    val currItBody = Scope(loop.body)
     var maxID : Int = 0
     this.execute(new Transformation("number nodes", {
       case _ : ConcatenationExpression | _ : SpacedConcatenationExpression =>
@@ -150,7 +151,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
     var tmpBufLen = new Array[Expression](0)
     var tmpBufInd = new Array[Expression](0)
-    for ((loopItVar, loopBegin, loopEnd, loopIncr) <- loopIt) {
+    for (((loopItVar, loopBegin, loopEnd, loopIncr), dim) <- loopIt.zipWithIndex) {
       val prevItBody = Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
       this.execute(new Transformation("create previous iteration body", {
         case varAcc : VariableAccess if (varAcc.name == loopItVar) =>
@@ -239,8 +240,11 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         decls ++=:
           cond +=:
           nextUpdates ++=:
-          body
+          loop.body
         njuScopes += firstInits
+        if (loop.parDims.contains(dim) && loop.isInstanceOf[OMP_PotentiallyParallel])
+          loop.isVectorizable = true
+        loop.parDims -= dim
       }
 
       val loopBeginOpt =

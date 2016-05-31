@@ -2,6 +2,7 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Set
 
 import exastencils.communication._
 import exastencils.core._
@@ -492,6 +493,9 @@ case class LoopOverDimensions(var numDimensions : Int,
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize)
   def this(numDimensions : Int, indices : IndexRange, body : Statement) = this(numDimensions, indices, ListBuffer[Statement](body))
 
+  var parDims : Set[Int] = Set(0 until numDimensions : _*)
+  var isVectorizable : Boolean = false // specifies that this loop can be vectorized even if the innermost dimension is not parallel (if it is, this flag can be ignored)
+
   import LoopOverDimensions._
 
   if (0 == stepSize.indices.length) stepSize = new MultiIndex(Array.fill(numDimensions)(1))
@@ -536,14 +540,8 @@ case class LoopOverDimensions(var numDimensions : Int,
   }
 
   def expandSpecial : ListBuffer[Statement] = {
-    val parallelizable = this.isInstanceOf[OMP_PotentiallyParallel]
-    val parallelize = parallelizable && Knowledge.omp_parallelizeLoopOverDimensions && parallelizationIsReasonable
-    val resolveOmpReduction = (
-      parallelize
-      && Knowledge.omp_enabled
-      && Platform.omp_version < 3.1
-      && reduction.isDefined
-      && ("min" == reduction.get.op || "max" == reduction.get.op))
+    def parallelizable(d : Int) = this.isInstanceOf[OMP_PotentiallyParallel] && parDims.contains(d)
+    def parallelize(d : Int) = parallelizable(d) && Knowledge.omp_parallelizeLoopOverDimensions && parallelizationIsReasonable
 
     // add internal condition (e.g. RB)
     var wrappedBody : ListBuffer[Statement] = (
@@ -552,6 +550,8 @@ case class LoopOverDimensions(var numDimensions : Int,
       else
         body)
 
+    var anyPar : Boolean = false
+    val outerPar = if (parDims.isEmpty) -1 else parDims.max
     // compile loop(s)
     var compiledLoop : ForLoopStatement with OptimizationHint = null
     for (d <- 0 until numDimensions) {
@@ -559,7 +559,8 @@ case class LoopOverDimensions(var numDimensions : Int,
       val decl = VariableDeclarationStatement(IntegerDatatype, dimToString(d), Some(indices.begin(d)))
       val cond = LowerExpression(it, indices.end(d))
       val incr = AssignmentStatement(it, stepSize(d), "+=")
-      if (parallelize && d == numDimensions - 1) {
+      if (parallelize(d) && d == outerPar) {
+        anyPar = true
         val omp = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
         omp.collapse = numDimensions
         compiledLoop = omp
@@ -569,12 +570,19 @@ case class LoopOverDimensions(var numDimensions : Int,
       }
       // set optimization hints
       compiledLoop.isInnermost = d == 0
-      compiledLoop.isParallel = parallelizable
+      compiledLoop.isParallel = parallelizable(d)
+      compiledLoop.isVectorizable = isVectorizable
     }
 
     var retStmts = ListBuffer[Statement]()
 
     // resolve omp reduction if necessary
+    val resolveOmpReduction = (
+      anyPar
+        && Knowledge.omp_enabled
+        && Platform.omp_version < 3.1
+        && reduction.isDefined
+        && ("min" == reduction.get.op || "max" == reduction.get.op))
     if (!resolveOmpReduction) {
       retStmts += compiledLoop
     } else {
