@@ -42,6 +42,43 @@ object Extractor {
     symbolicConstants.add(constName)
   }
 
+  /**
+   * Search for IterationOffsetBegin/IterationOffsetEnd accesses and annotate extrema information of OffsetIndex.
+   *
+   * @param minOffset the minimum
+   * @param maxOffset the maximum
+   * @param off the offset expression that should be traversed
+   */
+  private def annotateOffsetExpression(minOffset : Long, maxOffset : Long, off : Expression) : Unit = {
+    off match {
+      case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) | ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
+        off.annotate(SimplifyExpression.EXTREMA_ANNOT, (minOffset, maxOffset))
+      case AdditionExpression(summands : ListBuffer[Expression]) =>
+        summands.foreach(o => annotateOffsetExpression(minOffset, maxOffset, o))
+      case SubtractionExpression(left : Expression, right : Expression) =>
+        annotateOffsetExpression(minOffset, maxOffset, left)
+        annotateOffsetExpression(minOffset, maxOffset, right)
+      case MultiplicationExpression(factors : ListBuffer[Expression]) =>
+        factors.foreach(o => annotateOffsetExpression(minOffset, maxOffset, o))
+      case DivisionExpression(left : Expression, right : Expression) =>
+        annotateOffsetExpression(minOffset, maxOffset, left)
+        annotateOffsetExpression(minOffset, maxOffset, right)
+      case ModuloExpression(left : Expression, right : Expression) =>
+        annotateOffsetExpression(minOffset, maxOffset, left)
+        annotateOffsetExpression(minOffset, maxOffset, right)
+      case PowerExpression(left : Expression, right : Expression) =>
+        annotateOffsetExpression(minOffset, maxOffset, left)
+        annotateOffsetExpression(minOffset, maxOffset, right)
+      case NegativeExpression(left : Expression) =>
+        annotateOffsetExpression(minOffset, maxOffset, left)
+      case MaximumExpression(args : ListBuffer[Expression]) =>
+        args.foreach(o => annotateOffsetExpression(minOffset, maxOffset, o))
+      case MinimumExpression(args : ListBuffer[Expression]) =>
+        args.foreach(o => annotateOffsetExpression(minOffset, maxOffset, o))
+      case x => // nothing to do
+    }
+  }
+
   private def extractConstraints(expr : Expression, constraints : StringBuilder, formatString : Boolean,
     lParConstr : StringBuilder = null, gParConstr : StringBuilder = null, vars : Set[String] = null) : Boolean = {
 
@@ -81,13 +118,8 @@ object Extractor {
         constraints.append('(').append(islStr).append("=1)")
 
       case OffsetIndex(min, max, ind, off) =>
-        off match {
-          case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) =>
-            off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
-          case ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
-            off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
-          case _ => // nothing to do
-        }
+        // preserve extrema information since OffsetIndex will be lost
+        annotateOffsetExpression(min, max, off)
         constraints.append('(')
         bool |= extractConstraints(ind, constraints, formatString, lParConstr, gParConstr, vars)
         constraints.append('+')
@@ -278,7 +310,7 @@ object Extractor {
     while (i < str.length) {
       str(i) match {
         case '.' | '[' | ']' | '(' | ')' | '-' | '>' => str(i) = '_'
-        case _                                       =>
+        case _ =>
       }
       i += 1
     }
@@ -433,7 +465,7 @@ class Extractor extends Collector {
     node.getAnnotation(Access.ANNOT) match {
       case Some(acc) =>
         acc match {
-          case Access.READ  => isRead = true
+          case Access.READ => isRead = true
           case Access.WRITE => isWrite = true
           case Access.UPDATE =>
             isRead = true
@@ -562,10 +594,10 @@ class Extractor extends Collector {
             | NullStatement => // nothing to do for all of them...
 
           // deny
-          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
-          case ArrayAccess(a, _, _)       => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
+          case e : ExpressionStatement => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
+          case ArrayAccess(a, _, _) => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
           case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
-          case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
+          case x : Any => throw new ExtractionException("cannot deal with " + x.getClass())
         }
     } catch {
       case ExtractionException(msg) => curScop.discard(msg)
@@ -588,17 +620,17 @@ class Extractor extends Collector {
 
     if (curScop.exists())
       node match {
-        case l : LoopOverDimensions           => leaveLoop(l)
-        case c : ConditionStatement           => leaveCondition(c)
-        case _ : AssignmentStatement          => leaveAssign()
-        case _ : StringLiteral                => leaveScalarAccess()
-        case _ : VariableAccess               => leaveScalarAccess()
-        case _ : ArrayAccess                  => leaveArrayAccess()
-        case _ : DirectFieldAccess            => leaveFieldAccess()
-        case _ : TempBufferAccess             => leaveTempBufferAccess()
-        case _ : LoopCarriedCSBufferAccess    => leaveLoopCarriedCSBufferAccess()
+        case l : LoopOverDimensions => leaveLoop(l)
+        case c : ConditionStatement => leaveCondition(c)
+        case _ : AssignmentStatement => leaveAssign()
+        case _ : StringLiteral => leaveScalarAccess()
+        case _ : VariableAccess => leaveScalarAccess()
+        case _ : ArrayAccess => leaveArrayAccess()
+        case _ : DirectFieldAccess => leaveFieldAccess()
+        case _ : TempBufferAccess => leaveTempBufferAccess()
+        case _ : LoopCarriedCSBufferAccess => leaveLoopCarriedCSBufferAccess()
         case _ : VariableDeclarationStatement => leaveDecl()
-        case _                                =>
+        case _ =>
       }
   }
 
@@ -860,7 +892,7 @@ class Extractor extends Collector {
     name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
       case SlotAccess(_, offset) => name.append('s').append(offset)
-      case s                     => name.append(s.prettyprint())
+      case s => name.append(s.prettyprint())
     }
     enterArrayAccess(replaceSpecial(name.toString()), index)
   }
