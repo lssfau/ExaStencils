@@ -49,7 +49,7 @@ mpi_numThreads = 1
 // Optimizations //
 ///////////////////
 // Polyhedron optimizations
-//poly_scheduleAlgorithm      = "exploration"
+poly_scheduleAlgorithm      = "exploration"
 poly_exploration_extended   = false
 poly_optLevel_fine          = 3
 poly_optLevel_coarse        = 1
