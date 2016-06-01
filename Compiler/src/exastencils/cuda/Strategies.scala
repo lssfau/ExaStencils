@@ -17,10 +17,19 @@ import scala.annotation._
 import scala.collection.mutable._
 import scala.collection.{ SortedSet => _, _ }
 
+/**
+ * Collection of constants and util functions for the CUDA transformations.
+ */
 object CudaStrategiesUtils {
   val CUDA_LOOP_ANNOTATION = "CUDALoop"
   val CUDA_LOOP_TRANSFORM_ANNOTATION = "CUDALoopToTransform"
 
+  /**
+   * Check if the loop meets some basic conditions for transforming a ForLoopStatement into CUDA code.
+   *
+   * @param loop the ForLoopStatement that should be checked
+   * @return <code>true</code> if the loop meets the conditions; <code>false</code> otherwise
+   */
   def verifyCudaLoopSuitability(loop : ForLoopStatement) : Boolean = {
     loop.begin.isInstanceOf[VariableDeclarationStatement] &&
       (loop.end.isInstanceOf[LowerExpression] || loop.end.isInstanceOf[LowerEqualExpression]) &&
@@ -29,10 +38,22 @@ object CudaStrategiesUtils {
       IntegerConstant(1).equals(loop.inc.asInstanceOf[AssignmentStatement].src.asInstanceOf[IntegerConstant])
   }
 
+  /**
+   * Check if the loop can be parallelized.
+   *
+   * @param loop the ForLoopStatement that should be checked
+   * @return <code>true</code> if it is a parallel loop; <code>false</code> otherwise
+   */
   def verifyCudaLoopParallel(loop : ForLoopStatement) : Boolean = {
     loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
   }
 
+  /**
+   * Collect information about the loop variables, lower and upper bounds, and the step size.
+   *
+   * @param loops the list of ForLoopStatement that should be traversed
+   * @return lists of extracted information
+   */
   def extractRelevantLoopInformation(loops : ListBuffer[ForLoopStatement]) = {
     var loopVariables = ListBuffer[String]()
     var lowerBounds = ListBuffer[Expression]()
@@ -67,6 +88,13 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
   val collector = new FctNameCollector
   this.register(collector)
 
+  /**
+   * Add statements for memory transfer between host and device to the original statement and install switch to device if host or device code should be executed.
+   *
+   * @param originalStatement the original statement that should be enriched
+   * @param originalLoop the loop that is part of the original statement
+   * @return the enriched statements
+   */
   def addMemoryTransferStatements(originalStatement : Statement, originalLoop : LoopOverDimensions) : OutputType = {
     GatherLocalFieldAccess.fieldAccesses.clear
     GatherLocalFieldAccess.applyStandalone(Scope(originalLoop.body))
@@ -169,9 +197,10 @@ object AnnotateNestedCudaLoops extends DefaultStrategy("Annotate nested loops of
   this.register(collector)
 
   /**
-   * Annotate inner loops of a ForLoopStatement.
+   * Annotate the inner loops of a ForLoopStatement with CUDA annotations and at the same time calculate the extrema for the loops bounds that are required later.
    *
-   * @param loop the outer loop
+   * @param loop the loop that should be inspected
+   * @param extremaMap a map containing the extrema for some loop variables
    */
   def annotateInnerLoops(loop : ForLoopStatement, extremaMap : mutable.HashMap[String, (Long, Long)] = mutable.HashMap[String, (Long, Long)]()) : Unit = {
     val innerLoopCandidates = loop.body.filter(x => x.isInstanceOf[ForLoopStatement])
@@ -225,6 +254,13 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     }
   }
 
+  /**
+   * Trim the loop headers to have the inner loop body to spare.
+   *
+   * @param body the statements that should be traversed
+   * @param surplus the for loop statements that should be removed
+   * @return the inner body without loop headers
+   */
   @tailrec
   def pruneKernelBody(body : ListBuffer[Statement], surplus : ListBuffer[ForLoopStatement]) : ListBuffer[Statement] = {
     if (surplus.isEmpty || !(body.head.isInstanceOf[ForLoopStatement] && (body.head equals surplus.head))) {
