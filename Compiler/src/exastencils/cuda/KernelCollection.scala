@@ -9,7 +9,6 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
-import exastencils.util._
 
 import scala.collection._
 import scala.collection.mutable._
@@ -395,24 +394,18 @@ case class ExpKernel(var identifier : String,
   def evalIndexBounds() = {
     if (!evaluatedIndexBounds) {
       minIndices = (originalDimensionality - 1 to 0 by -1).map(dim =>
-        try {
-          val extrema = SimplifyExpression.evalIntegralExtrema(lowerBounds(dim), loopVariableExtrema)
-          loopVariableExtrema += (loopVariables(dim) -> extrema)
-          extrema._1
-        } catch {
-          case _ : EvaluationException =>
+        loopVariableExtrema.get(loopVariables(dim)) match {
+          case Some((min : Long, max : Long)) => min
+          case _ =>
             Logger.warn(s"Start index for dimension $dim (${lowerBounds(dim)}) could not be evaluated")
             0
         }).toArray.reverse.take(dimensionality)
 
       maxIndices = (originalDimensionality - 1 to 0 by -1).map(dim =>
-        try {
-          val extrema = SimplifyExpression.evalIntegralExtrema(upperBounds(dim), loopVariableExtrema)
-          loopVariableExtrema += (loopVariables(dim) -> extrema)
-          extrema._2
-        } catch {
-          case _ : EvaluationException =>
-            Logger.warn(s"End index for dimension $dim (${upperBounds(dim)}) could not be evaluated")
+        loopVariableExtrema.get(loopVariables(dim)) match {
+          case Some((min : Long, max : Long)) => max
+          case _ =>
+            Logger.warn(s"Start index for dimension $dim (${upperBounds(dim)}) could not be evaluated")
             0
         }).toArray.reverse.take(dimensionality)
 

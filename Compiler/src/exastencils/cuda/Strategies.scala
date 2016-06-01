@@ -15,7 +15,48 @@ import exastencils.util._
 
 import scala.annotation._
 import scala.collection.mutable._
-import scala.collection.{SortedSet => _, _}
+import scala.collection.{ SortedSet => _, _ }
+
+object CudaStrategiesUtils {
+  val CUDA_LOOP_ANNOTATION = "CUDALoop"
+  val CUDA_LOOP_TRANSFORM_ANNOTATION = "CUDALoopToTransform"
+
+  def verifyCudaLoopSuitability(loop : ForLoopStatement) : Boolean = {
+    loop.begin.isInstanceOf[VariableDeclarationStatement] &&
+      (loop.end.isInstanceOf[LowerExpression] || loop.end.isInstanceOf[LowerEqualExpression]) &&
+      loop.inc.isInstanceOf[AssignmentStatement] &&
+      loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
+      IntegerConstant(1).equals(loop.inc.asInstanceOf[AssignmentStatement].src.asInstanceOf[IntegerConstant])
+  }
+
+  def verifyCudaLoopParallel(loop : ForLoopStatement) : Boolean = {
+    loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
+  }
+
+  def extractRelevantLoopInformation(loops : ListBuffer[ForLoopStatement]) = {
+    var loopVariables = ListBuffer[String]()
+    var lowerBounds = ListBuffer[Expression]()
+    var upperBounds = ListBuffer[Expression]()
+    var stepSize = ListBuffer[Expression]()
+
+    loops foreach { loop =>
+      val loopDeclaration = loop.begin.asInstanceOf[VariableDeclarationStatement]
+      loopVariables += loopDeclaration.name
+      lowerBounds += loopDeclaration.expression.get
+      upperBounds += (loop.end match {
+        case l : LowerExpression => l.right
+        case e : LowerEqualExpression => e.right
+        case o => o
+      })
+      stepSize += (loop.inc match {
+        case AssignmentStatement(_, src : Expression, "=") => src
+        case _ => new IntegerConstant(1)
+      })
+    }
+
+    (loopVariables, lowerBounds, upperBounds, stepSize)
+  }
+}
 
 /**
  * This transformation annotates LoopOverDimensions and LoopOverDimensions enclosed within ContractingLoops.
@@ -23,8 +64,6 @@ import scala.collection.{SortedSet => _, _}
  */
 object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
-  val CudaLoopAnnotation = "CUDALoop"
-  val CudaLoopTransformAnnotation = "CUDALoopToTransform"
   val collector = new FctNameCollector
   this.register(collector)
 
@@ -67,8 +106,8 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     if (!cudaSuitable) {
       hostStmts
     } else {
-      originalLoop.annotate(CudaLoopAnnotation)
-      originalLoop.annotate(CudaLoopTransformAnnotation)
+      originalLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+      originalLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
       var deviceStmts = ListBuffer[Statement]()
 
       // add data sync statements
@@ -134,34 +173,28 @@ object AnnotateNestedCudaLoops extends DefaultStrategy("Annotate nested loops of
    *
    * @param loop the outer loop
    */
-  def annotateInnerLoops(loop : ForLoopStatement) : Unit = {
-    val innerLoopCandidate = loop.body.find(x => x.isInstanceOf[ForLoopStatement])
+  def annotateInnerLoops(loop : ForLoopStatement, extremaMap : mutable.HashMap[String, (Long, Long)] = mutable.HashMap[String, (Long, Long)]()) : Unit = {
+    val innerLoopCandidates = loop.body.filter(x => x.isInstanceOf[ForLoopStatement])
 
-    innerLoopCandidate match {
-      case Some(innerLoop : ForLoopStatement) =>
-        innerLoop.annotate(PrepareCudaRelevantCode.CudaLoopAnnotation)
-        innerLoop.annotate(PrepareCudaRelevantCode.CudaLoopTransformAnnotation)
+    if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
+      val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
+      extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
+    }
 
-        var extremaMap = mutable.HashMap[String, (Long, Long)]()
+    loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
-        if (innerLoop.hasAnnotation(SimplifyExpression.EXTREMA_MAP)) {
-          extremaMap = innerLoop.getAnnotation(SimplifyExpression.EXTREMA_MAP).get.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
-        }
-
-        if (ExtractHostAndDeviceCode.verifyLoopSuitability(loop)) {
-          val (loopVariables, lowerBounds, upperBounds, _) = ExtractHostAndDeviceCode.extractRelevantLoopInformation(ListBuffer(loop))
-          extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head)_2))
-        }
-
-        innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
-        annotateInnerLoops(innerLoop)
+    innerLoopCandidates.foreach {
+      case innerLoop : ForLoopStatement =>
+        innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+        innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
+        annotateInnerLoops(innerLoop, extremaMap)
       case _ =>
     }
   }
 
   this += new Transformation("Processing ForLoopStatement nodes", {
-    case loop : ForLoopStatement if loop.hasAnnotation(PrepareCudaRelevantCode.CudaLoopAnnotation) && loop
-      .hasAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation) =>
+    case loop : ForLoopStatement if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) && loop
+      .hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION) =>
       annotateInnerLoops(loop)
       loop
   }, false)
@@ -173,14 +206,6 @@ object AnnotateNestedCudaLoops extends DefaultStrategy("Annotate nested loops of
 object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUDA loop in kernel code") {
   val collector = new FctNameCollector
   this.register(collector)
-
-  def verifyLoopSuitability(loop : ForLoopStatement) : Boolean = {
-    loop.begin.isInstanceOf[VariableDeclarationStatement] &&
-      (loop.end.isInstanceOf[LowerExpression] || loop.end.isInstanceOf[LowerEqualExpression]) &&
-      loop.inc.isInstanceOf[AssignmentStatement] &&
-      loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
-      IntegerConstant(1).equals(loop.inc.asInstanceOf[AssignmentStatement].src.asInstanceOf[IntegerConstant])
-  }
 
   /**
    * Calculate the collapsing loops beginning with the innermost loop that is free to collapse with the surrounding loops.
@@ -194,7 +219,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
 
     innerLoopCandidate match {
       case innerLoop : ForLoopStatement if loop.body.size == 1 &&
-        verifyLoopSuitability(innerLoop) =>
+        CudaStrategiesUtils.verifyCudaLoopSuitability(innerLoop) =>
         calculateCollapsingLoops(innerLoop) ++ loops
       case _ => loops
     }
@@ -209,40 +234,17 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     }
   }
 
-  def extractRelevantLoopInformation(loops : ListBuffer[ForLoopStatement]) = {
-    var loopVariables = ListBuffer[String]()
-    var lowerBounds = ListBuffer[Expression]()
-    var upperBounds = ListBuffer[Expression]()
-    var stepSize = ListBuffer[Expression]()
-
-    loops foreach { loop =>
-      val loopDeclaration = loop.begin.asInstanceOf[VariableDeclarationStatement]
-      loopVariables += loopDeclaration.name
-      lowerBounds += loopDeclaration.expression.get
-      upperBounds += (loop.end match {
-        case l : LowerExpression => l.right
-        case e : LowerEqualExpression => e.right
-        case o => o
-      })
-      stepSize += (loop.inc match {
-        case AssignmentStatement(_, src : Expression, "=") => src
-        case _ => new IntegerConstant(1)
-      })
-    }
-
-    (loopVariables, lowerBounds, upperBounds, stepSize)
-  }
-
   this += new Transformation("Processing ForLoopStatement nodes", {
-    case loop : ForLoopStatement if loop.hasAnnotation(PrepareCudaRelevantCode.CudaLoopAnnotation) && loop
-      .hasAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation) && verifyLoopSuitability(loop) &&
-      loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel =>
+    case loop : ForLoopStatement if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) &&
+      loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION) &&
+      CudaStrategiesUtils.verifyCudaLoopSuitability(loop) &&
+      CudaStrategiesUtils.verifyCudaLoopParallel(loop) =>
 
       // remove the annotation first to guarantee single application of this transformation.
-      loop.removeAnnotation(PrepareCudaRelevantCode.CudaLoopTransformAnnotation)
+      loop.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
 
       val innerLoops = calculateCollapsingLoops(loop)
-      val (loopVariables, lowerBounds, upperBounds, stepSize) = extractRelevantLoopInformation(innerLoops)
+      val (loopVariables, lowerBounds, upperBounds, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(innerLoops)
       val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.reverse)
       val deviceStatements = ListBuffer[Statement]()
 
@@ -257,7 +259,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       var extremaMap = mutable.HashMap[String, (Long, Long)]()
 
       if (loop.hasAnnotation(SimplifyExpression.EXTREMA_MAP)) {
-        extremaMap = loop.getAnnotation(SimplifyExpression.EXTREMA_MAP).get.asInstanceOf[ mutable.HashMap[ String, (Long, Long) ] ]
+        extremaMap = loop.getAnnotation(SimplifyExpression.EXTREMA_MAP).get.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
       }
 
       val kernel = ExpKernel(

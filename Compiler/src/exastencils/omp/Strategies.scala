@@ -21,14 +21,14 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
     }
 
     this.execute(new Transformation("Adding OMP parallel for pragmas", {
-      case target : ForLoopStatement with OMP_PotentiallyParallel if !target.hasAnnotation(PrepareCudaRelevantCode
-        .CudaLoopAnnotation) =>
+      case target : ForLoopStatement with OMP_PotentiallyParallel if !target.hasAnnotation(CudaStrategiesUtils
+        .CUDA_LOOP_ANNOTATION) =>
         if (target.reduction.isDefined)
           if (!(Platform.omp_version < 3.1 && ("min" == target.reduction.get.op || "max" == target.reduction.get.op)))
             target.additionalOMPClauses += new OMP_Reduction(target.reduction.get)
         target match {
           case l : OptimizationHint =>
-            if (!l.privateVars.isEmpty)
+            if (l.privateVars.nonEmpty)
               target.additionalOMPClauses += new OMP_Private(l.privateVars.clone())
           case _ =>
         }
