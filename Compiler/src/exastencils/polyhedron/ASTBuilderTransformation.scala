@@ -261,7 +261,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     return expr.getType() match { // TODO: check if ExprId contains only variable identifier
       case isl.AstExprType.Id =>
         val id : String = expr.getId().getName()
-        ScopNameMapping.id2expr(id).getOrElse(StringLiteral(id))
+        Duplicate(ScopNameMapping.id2expr(id)).getOrElse(StringLiteral(id))
       case isl.AstExprType.Int   => IntegerConstant(expr.getVal().toString().toLong)
       case isl.AstExprType.Op    => processIslExprOp(expr)
       case isl.AstExprType.Error => throw new PolyASTBuilderException("ExprError found...")
