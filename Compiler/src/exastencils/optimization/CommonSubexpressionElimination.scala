@@ -327,6 +327,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                   registerCS(func, childCSes.map(_.get.prio).sum + 1, 3, pos, true, List.empty)
               }
 
+            case _ : VectorExpression | _ : MatrixExpression =>
+              // don't do anything, these are never common subexpressions
+
             case parent : Product =>
               val (prods, buffs, Nil, _) = splitIt3[Product, Buffer[AnyRef], Seq[_]](parent.productIterator)
               val nrProds = prods.length
