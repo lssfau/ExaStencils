@@ -32,9 +32,15 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsBegin(expr : Expression, extent : Int) : Expression = {
     expr match {
-      case e if Knowledge.experimental_useStefanOffsets => e // don't do anything here
+      case e if Knowledge.experimental_useStefanOffsets =>
+        e // don't do anything here
+
       case IntegerConstant(i) =>
         IntegerConstant(i - extent)
+
+      case bOff @ BoundedExpression(_, _, _ : iv.IterationOffsetBegin) =>
+        (bOff * (extent + 1)) - extent
+
       case add : AdditionExpression =>
         add.summands.transform {
           case bOff @ BoundedExpression(_, _, _ : iv.IterationOffsetBegin) =>
@@ -44,6 +50,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
         }
         add.summands += IntegerConstant(-extent)
         SimplifyExpression.simplifyIntegralExpr(add)
+
         // case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
         //   oInd.maxOffset += extent
         //   oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
@@ -55,9 +62,15 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsEnd(expr : Expression, extent : Int) : Expression = {
     expr match {
-      case e if Knowledge.experimental_useStefanOffsets => e // don't do anything here
+      case e if Knowledge.experimental_useStefanOffsets =>
+        e // don't do anything here
+
       case IntegerConstant(i) =>
         IntegerConstant(i + extent)
+
+      case bOff @ BoundedExpression(_, _, _ : iv.IterationOffsetEnd) =>
+        (bOff * (extent + 1)) + extent
+
       case add : AdditionExpression =>
         add.summands.transform {
           case bOff @ BoundedExpression(_, _, _ : iv.IterationOffsetEnd) =>
@@ -67,6 +80,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
         }
         add.summands += IntegerConstant(extent)
         SimplifyExpression.simplifyIntegralExpr(add)
+
         // case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
         //   oInd.minOffset -= extent
         //   oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
