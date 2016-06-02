@@ -5,7 +5,7 @@
 #SBATCH -n 1
 #SBATCH -c 4
 #SBATCH --nice=100
-#SBATCH --time=17
+#SBATCH --time=20
 #SBATCH --signal=INT@5
 #SBATCH --open-mode=append
 
