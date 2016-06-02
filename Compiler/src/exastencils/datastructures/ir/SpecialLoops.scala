@@ -38,12 +38,12 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
       case IntegerConstant(i) =>
         IntegerConstant(i - extent)
 
-      case bOff @ BoundedExpression(_, _, _ : iv.IterationOffsetBegin) =>
+      case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
         (bOff * (extent + 1)) - extent
 
       case add : AdditionExpression =>
         add.summands.transform {
-          case bOff @ BoundedExpression(_, _, _ : iv.IterationOffsetBegin) =>
+          case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
             bOff * (extent + 1)
           case x =>
             x
@@ -68,12 +68,12 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
       case IntegerConstant(i) =>
         IntegerConstant(i + extent)
 
-      case bOff @ BoundedExpression(_, _, _ : iv.IterationOffsetEnd) =>
+      case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
         (bOff * (extent + 1)) + extent
 
       case add : AdditionExpression =>
         add.summands.transform {
-          case bOff @ BoundedExpression(_, _, _ : iv.IterationOffsetEnd) =>
+          case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
             bOff * (extent + 1)
           case x =>
             x
