@@ -53,8 +53,8 @@ object Extractor {
 
     expr match {
 
-      case varAcc : VariableAccess =>
-        val islStr : String = ScopNameMapping.expr2id(varAcc)
+      case _ : VariableAccess | _ : ArrayAccess =>
+        val islStr : String = ScopNameMapping.expr2id(expr)
         if (vars != null)
           vars.add(islStr)
         constraints.append(islStr)
@@ -63,12 +63,6 @@ object Extractor {
       case str : StringLiteral if (ScopNameMapping.id2expr(str.value).isDefined) =>
         val e = ScopNameMapping.id2expr(str.value).get
         val islStr : String = ScopNameMapping.expr2id(e)
-        if (vars != null)
-          vars.add(islStr)
-        constraints.append(islStr)
-
-      case array : ArrayAccess =>
-        val islStr : String = ScopNameMapping.expr2id(array)
         if (vars != null)
           vars.add(islStr)
         constraints.append(islStr)
@@ -84,52 +78,50 @@ object Extractor {
         gParConstr.append(" and ")
         constraints.append('(').append(islStr).append("=1)")
 
-      case OffsetIndex(min, max, ind, off) =>
-        off match {
-          case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) =>
-            off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
-          case ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
-            off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
-          case _ => // nothing to do
+      case bExpr @ BoundedExpression(min, max, _ : VariableAccess | _ : ArrayAccess) =>
+        val islStr : String = ScopNameMapping.expr2id(bExpr.expr)
+        if (vars != null)
+          vars.add(islStr)
+        constraints.append(islStr)
+        if (lParConstr != null) {
+          lParConstr.append('(').append(min).append("<=").append(islStr).append("<=").append(max).append(')')
+          lParConstr.append(" and ")
         }
-        constraints.append('(')
-        bool |= extractConstraints(ind, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append('+')
-        bool |= extractConstraints(off, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append(')')
-        if (lParConstr != null) off match {
-          case _ : VariableAccess | _ : ArrayAccess =>
-            lParConstr.append('(').append(min).append("<=")
-            lParConstr.append(ScopNameMapping.expr2id(off))
-            lParConstr.append("<=").append(max).append(')')
-            lParConstr.append(" and ")
 
-          case MultiplicationExpression(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
-            lParConstr.append('(').append(min).append("<=").append(c).append('*')
-            lParConstr.append(ScopNameMapping.expr2id(arr))
-            lParConstr.append("<=").append(max).append(')')
-            lParConstr.append(" and ")
-
-          case MultiplicationExpression(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
-            lParConstr.append('(').append(min).append("<=").append(c).append('*')
-            lParConstr.append(ScopNameMapping.expr2id(arr))
-            lParConstr.append("<=").append(max).append(')')
-            lParConstr.append(" and ")
-
-          case _ =>
-        }
-      //        val islStr : String = ScopNameMapping.expr2id(expr)
-      //        if (vars != null)
-      //          vars.add(islStr)
-      //        constraints.append(islStr)
-      //        if (paramConstr != null) {
-      //          paramConstr.append(" and ")
-      //          paramConstr.append('(').append(min).append('+')
-      //          extractConstraints(ind, paramConstr, formatString, null, vars)
-      //          paramConstr.append("<=").append(islStr).append("<=")
-      //          extractConstraints(ind, paramConstr, formatString, null, vars)
-      //          paramConstr.append('+').append(max).append(')')
-      //        }
+        // case OffsetIndex(min, max, ind, off) =>
+        //   off match {
+        //     case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) =>
+        //       off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
+        //     case ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
+        //       off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
+        //     case _ => // nothing to do
+        //   }
+        //   constraints.append('(')
+        //   bool |= extractConstraints(ind, constraints, formatString, lParConstr, gParConstr, vars)
+        //   constraints.append('+')
+        //   bool |= extractConstraints(off, constraints, formatString, lParConstr, gParConstr, vars)
+        //   constraints.append(')')
+        //   if (lParConstr != null) off match {
+        //     case _ : VariableAccess | _ : ArrayAccess =>
+        //       lParConstr.append('(').append(min).append("<=")
+        //       lParConstr.append(ScopNameMapping.expr2id(off))
+        //       lParConstr.append("<=").append(max).append(')')
+        //       lParConstr.append(" and ")
+        //
+        //     case MultiplicationExpression(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
+        //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
+        //       lParConstr.append(ScopNameMapping.expr2id(arr))
+        //       lParConstr.append("<=").append(max).append(')')
+        //       lParConstr.append(" and ")
+        //
+        //     case MultiplicationExpression(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
+        //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
+        //       lParConstr.append(ScopNameMapping.expr2id(arr))
+        //       lParConstr.append("<=").append(max).append(')')
+        //       lParConstr.append(" and ")
+        //
+        //     case _ =>
+        //   }
 
       case iff : iv.IndexFromField =>
         val islStr : String = ScopNameMapping.expr2id(iff)

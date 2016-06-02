@@ -30,8 +30,6 @@ object SimplifyExpression {
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
   }
 
-  final val EXTREMA_ANNOT : String = "extrema" // associated value must be (Long, Long)
-
   /**
     * Completely evaluates an integral expression and computes a lower bound and an upper bound
     *   for its value depending on the minOffset and maxOffset in potential OffsetIndex nodes.
@@ -89,12 +87,12 @@ object SimplifyExpression {
         (x._1 max y._1, x._2 max y._2)
       }
 
-    case OffsetIndex(minOffset, maxOffset, index, _) =>
-      val x = evalIntegralExtrema(index)
-      (x._1 + minOffset, x._2 + maxOffset)
+    case BoundedExpression(min, max, _) =>
+      (min, max)
 
-    case n if n.hasAnnotation(EXTREMA_ANNOT) =>
-      n.getAnnotation(EXTREMA_ANNOT).get.asInstanceOf[(Long, Long)]
+      // case OffsetIndex(minOffset, maxOffset, index, _) =>
+      //   val x = evalIntegralExtrema(index)
+      //   (x._1 + minOffset, x._2 + maxOffset)
 
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
@@ -355,9 +353,13 @@ object SimplifyExpression {
         res = new HashMap[Expression, Long]()
         res(anyIV) = 1L
 
-      case offInd : OffsetIndex =>
+      case bExpr : BoundedExpression =>
         res = new HashMap[Expression, Long]()
-        res(offInd) = 1L
+        res(bExpr) = 1L
+
+        // case offInd : OffsetIndex =>
+        //   res = new HashMap[Expression, Long]()
+        //   res(offInd) = 1L
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())

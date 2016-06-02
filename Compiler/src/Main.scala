@@ -272,7 +272,7 @@ object Main {
     if (Knowledge.experimental_cuda_enabled)
       StateManager.findFirst[KernelFunctions]().get.convertToFunctions
 
-    ResolveIndexOffsets.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
+    ResolveBoundedExpressions.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
     ResolveSlotOperationsStrategy.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
 
     if (Knowledge.useFasterExpand)

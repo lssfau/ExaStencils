@@ -318,11 +318,11 @@ case class ReadValueFrom(var datatype : Datatype, data : Expression) extends Exp
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << datatype << '>' << "(" << data << ")"
 }
 
-case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Expression, var offset : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OffsetIndex\n"
+case class BoundedExpression(var min : Long, var max : Long, var expr : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BoundedExpression(" << expr << ')'
 
-  def expandSpecial : AdditionExpression = {
-    index + offset
+  def expandSpecial() : Expression = {
+    return expr
   }
 }
 

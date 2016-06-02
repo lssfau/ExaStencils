@@ -49,10 +49,10 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
   })
 }
 
-object ResolveIndexOffsets extends DefaultStrategy("Resolving OffsetIndex nodes") {
+object ResolveBoundedExpressions extends DefaultStrategy("Resolving BoundedExpression nodes") {
   this += new Transformation("Resolving", {
-    case index : OffsetIndex =>
-      index.expandSpecial
+    case index : BoundedExpression =>
+      index.expandSpecial()
   })
 }
 
@@ -89,11 +89,11 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
 
     case advanceSlot : AdvanceSlotStatement =>
       // check if already inside a fragment loop - if not wrap the expanded statement
-      if (collector.stack.map(node => node match {
+      if (collector.stack.map {
         case _ : LoopOverFragments => true
         case ForLoopStatement(VariableDeclarationStatement(_, it, _), _, _, _, _) if (LoopOverFragments.defIt == it) => true
         case _ => false
-      }).fold(false)((a, b) => a || b))
+      }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial
       else
         new LoopOverFragments(advanceSlot.expandSpecial) with OMP_PotentiallyParallel // TODO: parallelization will probably be quite slow -> SPL?

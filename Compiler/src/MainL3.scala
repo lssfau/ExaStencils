@@ -47,7 +47,7 @@ object MainL3 {
     }
     Knowledge.update()
 
-    // read L3    
+    // read L3
     StateManager.root_ = (new ParserL3).parseFile(Settings.getL3file)
     ValidationL3.apply
 
@@ -185,7 +185,7 @@ object MainL3 {
       ColorSplitting.apply()
 
     ResolveSlotOperationsStrategy.apply()
-    ResolveIndexOffsets.apply()
+    ResolveBoundedExpressions.apply()
     LinearizeFieldAccesses.apply()
 
     if (Knowledge.useFasterExpand)
