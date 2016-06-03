@@ -112,13 +112,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       decl.annotate(REMOVE_ANNOT)
       val init = decl.expression.get
       for (use <- uses)
-        use.annotate(REPLACE_ANNOT, Duplicate(init))
+        use.annotate(REPLACE_ANNOT, init) // do not duplicate here, since init could get additional annotations later (which would not be visible, when we copy here)
     }
 
     this.execute(new Transformation("inline removable declarations", {
       case n if (n.removeAnnotation(REMOVE_ANNOT).isDefined) => List()
-      case n if (n.hasAnnotation(REPLACE_ANNOT))             => n.removeAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]
-    }, false), Some(parent)) // modifications in a list result in a new list created, so work with original parent and not with wrapped body
+      case n if (n.hasAnnotation(REPLACE_ANNOT))             => Duplicate(n.getAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]) // duplicate here
+    }), Some(parent)) // modifications in a list result in a new list created, so work with original parent and not with wrapped body
 
     SimplifyFloatExpressions.applyStandalone(parent)
     SimplifyStrategy.doUntilDoneStandalone(parent, true)
@@ -135,7 +135,10 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       case _ : ConcatenationExpression | _ : SpacedConcatenationExpression =>
         Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression and SpacedConcatenationExpression are too difficult to analyze")
         return Nil // don't do anything, since we cannot ensure the transformation is correct
-      case d : Datatype => d // there are some singleton datatypes, so don't enumerate them
+      // there are some singleton datatypes, so don't enumerate them
+      case d : Datatype   => d
+      case NullStatement  => NullStatement
+      case NullExpression => NullExpression
       case node =>
         node.annotate(ID_ANNOT, maxID)
         maxID += 1
