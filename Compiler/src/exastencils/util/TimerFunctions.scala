@@ -205,7 +205,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
       statements += AssignmentStatement("timerValue", "mpiSize", "/=")
     }
 
-    statements += PrintStatement(ListBuffer("\"Mean mean total time for Timer " ~ timer.name ~ ":\"", "timerValue"))
+    statements += PrintStatement(ListBuffer("\"Mean mean total time for Timer " + timer.name.prettyprint() + ":\"", "timerValue"))
 
     Scope(statements)
   }
