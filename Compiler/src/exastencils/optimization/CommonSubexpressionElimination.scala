@@ -22,6 +22,7 @@ import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util.EvaluationException
+import exastencils.util.PrintExpression
 import exastencils.util.SimplifyExpression
 
 object CommonSubexpressionElimination extends CustomStrategy("Common subexpression elimination") {
@@ -330,7 +331,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                   registerCS(func, childCSes.map(_.get.prio).sum + 1, 3, pos, true, List.empty)
               }
 
-            case _ : VectorExpression | _ : MatrixExpression =>
+            case _ : VectorExpression | _ : MatrixExpression | _ : PrintExpression =>
               // don't do anything, these are never common subexpressions
 
             case parent : Product =>
