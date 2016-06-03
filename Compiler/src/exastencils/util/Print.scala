@@ -13,7 +13,7 @@ import exastencils.mpi._
 import exastencils.prettyprinting._
 
 object PrintExpression {
-  val endl : Expression = StringConstant("std::endl")
+  val endl : Expression = new VariableAccess("std::endl", StringDatatype)
 }
 
 case class PrintExpression(var stream : Expression, toPrint : ListBuffer[Expression]) extends Expression {
@@ -149,6 +149,6 @@ object PrintFieldStatement {
   private var counter : Int = 0
   def getNewName() : String = {
     counter += 1
-    return "\"fieldPrintStream_%02d".format(counter)
+    return "fieldPrintStream_%02d".format(counter)
   }
 }
