@@ -109,7 +109,8 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
                 ~ (0 until numDimsGrid).map(dim => " << " ~ getPos(field, dim) ~ " << " ~ separator).reduceLeft(_ ~ _)
                 ~ arrayIndexRange.map(index => {
                   var access = new FieldAccess(field, LoopOverDimensions.defIt(numDimsData))
-                  access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
+                  if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
+                    access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
                   " << " ~ access
                 }).reduceLeft(_ ~ " << " ~ separator ~ _)
                 ~ " << std::endl")))),
