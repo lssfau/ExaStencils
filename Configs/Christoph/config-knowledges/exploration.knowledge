@@ -37,7 +37,7 @@ domain_rect_numFragsPerBlock_z  = 1
 /////////////////////
 // OpenMP
 omp_enabled    = false
-omp_numThreads = 10
+//omp_numThreads = 10
 omp_parallelizeLoopOverFragments  = false
 omp_parallelizeLoopOverDimensions = true
 

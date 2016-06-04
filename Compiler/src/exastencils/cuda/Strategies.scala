@@ -8,6 +8,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.omp._
 import exastencils.optimization._
 import exastencils.polyhedron._
@@ -33,9 +34,7 @@ object CudaStrategiesUtils {
   def verifyCudaLoopSuitability(loop : ForLoopStatement) : Boolean = {
     loop.begin.isInstanceOf[VariableDeclarationStatement] &&
       (loop.end.isInstanceOf[LowerExpression] || loop.end.isInstanceOf[LowerEqualExpression]) &&
-      loop.inc.isInstanceOf[AssignmentStatement] &&
-      loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
-      IntegerConstant(1).equals(loop.inc.asInstanceOf[AssignmentStatement].src.asInstanceOf[IntegerConstant])
+      loop.inc.isInstanceOf[AssignmentStatement]
   }
 
   /**
@@ -45,7 +44,10 @@ object CudaStrategiesUtils {
    * @return <code>true</code> if it is a parallel loop; <code>false</code> otherwise
    */
   def verifyCudaLoopParallel(loop : ForLoopStatement) : Boolean = {
-    loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
+    loop.inc.isInstanceOf[AssignmentStatement] &&
+      loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
+      IntegerConstant(1).equals(loop.inc.asInstanceOf[AssignmentStatement].src.asInstanceOf[IntegerConstant]) &&
+      loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
   }
 
   /**
@@ -203,21 +205,26 @@ object AnnotateNestedCudaLoops extends DefaultStrategy("Annotate nested loops of
    * @param extremaMap a map containing the extrema for some loop variables
    */
   def annotateInnerLoops(loop : ForLoopStatement, extremaMap : mutable.HashMap[String, (Long, Long)] = mutable.HashMap[String, (Long, Long)]()) : Unit = {
-    val innerLoopCandidates = loop.body.filter(x => x.isInstanceOf[ForLoopStatement])
 
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
-      val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
-      extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
-    }
+      try {
+        val innerLoopCandidates = loop.body.filter(x => x.isInstanceOf[ForLoopStatement])
+        val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
+        extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
 
-    loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
+        loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
-    innerLoopCandidates.foreach {
-      case innerLoop : ForLoopStatement =>
-        innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
-        innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
-        annotateInnerLoops(innerLoop, extremaMap)
-      case _ =>
+        innerLoopCandidates.foreach {
+          case innerLoop : ForLoopStatement =>
+            innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+            innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
+            annotateInnerLoops(innerLoop, extremaMap)
+          case _ =>
+        }
+      } catch {
+        case e : EvaluationException =>
+          Logger.error(s"""Error annotating the inner loops of loop '${loop.toString}'. Failed to calculate bounds extrema!""")
+      }
     }
   }
 
