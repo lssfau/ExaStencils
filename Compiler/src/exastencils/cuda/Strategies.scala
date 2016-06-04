@@ -223,7 +223,7 @@ object AnnotateNestedCudaLoops extends DefaultStrategy("Annotate nested loops of
         }
       } catch {
         case e : EvaluationException =>
-          Logger.error(s"""Error annotating the inner loops of loop '${loop.toString}'. Failed to calculate bounds extrema!""")
+          Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${e.msg}'""")
       }
     }
   }
