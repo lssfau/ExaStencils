@@ -196,7 +196,7 @@ object MainChristian {
       ColorSplitting.apply()
 
     ResolveSlotOperationsStrategy.apply()
-    ResolveIndexOffsets.apply()
+    ResolveBoundedExpressions.apply()
     LinearizeFieldAccesses.apply()
 
     if (Knowledge.useFasterExpand)

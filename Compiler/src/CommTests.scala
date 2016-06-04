@@ -42,7 +42,6 @@ object CommTests {
 
     fixedParams += "minLevel" -> 0
     fixedParams += "maxLevel" -> (if (2 == numDims) 11 else 7) // 2048^2 or 128^3 == 2^22 or 2^21 -> totalFragLength == 2 for 3D
-    fixedParams += "comm_strategyFragment" -> 6
 
     fixedParams += "domain_onlyRectangular" -> true
     fixedParams += "domain_rect_generate" -> true
@@ -83,9 +82,6 @@ object CommTests {
 
     fixedParams += "l3tmp_genTimersPerFunction" -> true
     fixedParams += "l3tmp_genTimersPerLevel" -> true
-    fixedParams += "l3tmp_genTimersForComm" -> true
-    fixedParams += "l3tmp_genCommTimersPerField" -> true
-    fixedParams += "l3tmp_genCommTimersPerLevel" -> true
 
     fixedParams += "l3tmp_printTimersToFile" -> true
     fixedParams += "l3tmp_printTimersToFileForEachRank" -> false // not enough memory on JuQueen
@@ -104,6 +100,16 @@ object CommTests {
     // for runtime measurement
     val start : Long = System.nanoTime()
 
+    if (args.size != 4) Logger.error("Invalid number of args")
+    if ("g" == args(0) || "generate" == args(0))
+      generate(args.tail)
+    else if ("c" == args(0) || "collect" == args(0))
+      collect(args.tail)
+
+    Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
+  }
+
+  def generate(args : Array[String]) = {
     val settingsFile = args(0)
     val knowledgeFile = args(1)
     val platformFile = args(2)
@@ -114,9 +120,13 @@ object CommTests {
     var compileScript = "#!/bin/bash\n\n"
     var submitScript = "#!/bin/bash\n\n"
 
-    for (d <- List(2, 3); useMPITypes <- List(true, false)) {
-      numDims = d
-
+    for (
+      numDims <- List(2, 3);
+      useMPITypes <- List(true, false);
+      mergeComm <- List( /*true,*/ false);
+      mergeCommThres <- (if (mergeComm) List(0, 4) else List(0));
+      commStrategy <- List(6, 26)
+    ) {
       val fixedSettingsParams = initFixedSettingsParams
       val fixedKnowledgeParams = initFixedKnowledgeParams
 
@@ -160,7 +170,8 @@ object CommTests {
 
       for (n <- Stream.iterate(1)(_ * 2).takeWhile(_ <= 32 * 1024)) {
         val numNodes = if (n > 28672) 28672 else n // limit node number
-        val configName = s"commTest_${numDims}_${numNodes}_${if (useMPITypes) "t" else "f"}"
+        //val configName = s"commTest_${numDims}_${numNodes}_${if (useMPITypes) "t" else "f"}_${if (mergeComm) s"t" else "f"}${mergeCommThres}"
+        val configName = s"commTest_${numDims}_${numNodes}_${if (useMPITypes) "t" else "f"}${if (6 == commStrategy) "" else s"_$commStrategy"}"
 
         val outSettingsFile = { val tmp = settingsFile.split("\\."); tmp.dropRight(1).mkString(".") + "_" + configName + "." + tmp.last }
         val outKnowledgeFile = { val tmp = knowledgeFile.split("\\."); tmp.dropRight(1).mkString(".") + "_" + configName + "." + tmp.last }
@@ -171,6 +182,8 @@ object CommTests {
         //setSettingsParams += "binary" -> s"""\"exastencils_$numNodes\""""
 
         var setKnowledgeParams = Map[String, Any]()
+
+        setKnowledgeParams += "comm_strategyFragment" -> commStrategy
 
         val numBlocksTotal = partitions(numNodes)._1._1 * partitions(numNodes)._1._2 * partitions(numNodes)._1._3
         Constraints.condWarn(numNodes * 64 != numBlocksTotal, s"${numNodes * 64} != $numBlocksTotal")
@@ -195,6 +208,15 @@ object CommTests {
         setKnowledgeParams += "l3tmp_timerOuputFile" -> ("\"timings_" + configName + ".csv\"")
 
         setKnowledgeParams += "mpi_useCustomDatatypes" -> useMPITypes
+
+        setKnowledgeParams += "experimental_mergeCommIntoLoops" -> mergeComm
+        setKnowledgeParams += "experimental_splitLoopsForAsyncComm" -> mergeComm
+        setKnowledgeParams += "experimental_splitLoops_minInnerWidth" -> mergeCommThres
+
+        // experimental_mergeCommIntoLoops is prevented by l3tmp_genTimersForComm
+        setKnowledgeParams += "l3tmp_genTimersForComm" -> !mergeComm
+        setKnowledgeParams += "l3tmp_genCommTimersPerField" -> !mergeComm
+        setKnowledgeParams += "l3tmp_genCommTimersPerLevel" -> !mergeComm
 
         val settingsText = (fixedSettingsParams ++ setSettingsParams).map(p => p._1 + " = " + p._2).toList.sorted.mkString("\n")
         val knowledgeText = (fixedKnowledgeParams ++ setKnowledgeParams).map(p => p._1 + " = " + p._2).toList.sorted.mkString("\n")
@@ -224,7 +246,51 @@ object CommTests {
     writeToFile(".\\Configs\\Sebastian\\generate_CommTests.bat", generateScript)
     writeToFile(".\\generated\\compile_CommTests", compileScript)
     writeToFile(".\\generated\\submit_CommTests", submitScript)
+  }
 
-    Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
+  def collect(args : Array[String]) = {
+    val settingsFile = args(0)
+    val knowledgeFile = args(1)
+    val platformFile = args(2)
+
+    for (
+      numDims <- List(2, 3);
+      useMPITypes <- List(true, false);
+      mergeComm <- List( /*true,*/ false);
+      mergeCommThres <- (if (mergeComm) List(0, 4) else List(0));
+      commStrategy <- List(6, 26)
+    ) {
+      var cycleTimes = ""
+
+      for (n <- Stream.iterate(1)(_ * 2).takeWhile(_ <= 32 * 1024)) {
+        val numNodes = if (n > 28672) 28672 else n // limit node number
+        val configName = s"commTest_${numDims}_${numNodes}_${if (useMPITypes) "t" else "f"}${if (6 == commStrategy) "" else s"_$commStrategy"}"
+
+        val path = ".\\comm_paper\\"
+        val timingsFile = path + "timings_" + configName + ".csv"
+
+        if (!(new java.io.File(timingsFile)).exists)
+          Logger.warn("Invalid file " + timingsFile)
+        else {
+          val timingsRaw = scala.io.Source.fromFile(timingsFile).mkString
+          val timings = timingsRaw.trim.stripSuffix(" ;").split(" ; ").sliding(3, 3).collect({ case Array(n, tTotal, t) => (n, (t.toDouble, tTotal.toDouble)) }).toMap
+
+          // TODO: check for completeness
+
+          numDims match {
+            case 2 => {
+              cycleTimes += (numNodes * 64) + ";" + timings.get("cycle").get._1 + ";" + timings.get("cycle").get._2 + "\n"
+            }
+            case 3 => {
+              cycleTimes += (numNodes * 64) + ";" + timings.get("cycle").get._1 + ";" + timings.get("cycle").get._2 + "\n"
+            }
+          }
+        }
+      }
+
+      val filename = s"cycleTimes_${numDims}_${if (useMPITypes) "t" else "f"}_$commStrategy.csv"
+      Logger.debug(s"Writing to file $filename")
+      writeToFile(filename, cycleTimes)
+    }
   }
 }

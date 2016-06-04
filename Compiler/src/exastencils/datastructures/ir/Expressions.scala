@@ -16,10 +16,6 @@ trait Expression extends Node with PrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(this, exp)
   }
-  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
-  def ~~(exp : Expression) : SpacedConcatenationExpression = {
-    new SpacedConcatenationExpression(this, exp)
-  }
 
   import BinaryOperators._
   def +(other : Expression) = new AdditionExpression(this, other)
@@ -198,19 +194,6 @@ case class ConcatenationExpression(var expressions : ListBuffer[Expression]) ext
   }
 }
 
-@deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
-case class SpacedConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
-  def this(exprs : Expression*) = this(exprs.to[ListBuffer])
-
-  override def prettyprint(out : PpStream) : Unit = out <<< (expressions, " ")
-
-  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
-  override def ~~(exp : Expression) : SpacedConcatenationExpression = {
-    expressions += exp
-    this
-  }
-}
-
 case class StringLiteral(var value : String) extends Expression {
   def this(s : StringConstant) = this(s.value)
   override def prettyprint(out : PpStream) : Unit = out << value
@@ -318,11 +301,11 @@ case class ReadValueFrom(var datatype : Datatype, data : Expression) extends Exp
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << datatype << '>' << "(" << data << ")"
 }
 
-case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Expression, var offset : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OffsetIndex\n"
+case class BoundedExpression(var min : Long, var max : Long, var expr : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BoundedExpression(" << expr << ')'
 
-  def expandSpecial : AdditionExpression = {
-    index + offset
+  def expandSpecial() : Expression = {
+    return expr
   }
 }
 

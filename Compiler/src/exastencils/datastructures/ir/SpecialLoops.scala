@@ -32,28 +32,60 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsBegin(expr : Expression, extent : Int) : Expression = {
     expr match {
-      case e if Knowledge.experimental_useStefanOffsets => e // don't do anything here
+      case e if Knowledge.experimental_useStefanOffsets =>
+        e // don't do anything here
+
       case IntegerConstant(i) =>
         IntegerConstant(i - extent)
-      case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
-        oInd.maxOffset += extent
-        oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
-        oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
-        oInd
+
+      case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
+        (bOff * (extent + 1)) - extent
+
+      case add : AdditionExpression =>
+        add.summands.transform {
+          case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
+            bOff * (extent + 1)
+          case x =>
+            x
+        }
+        add.summands += IntegerConstant(-extent)
+        SimplifyExpression.simplifyIntegralExpr(add)
+
+        // case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
+        //   oInd.maxOffset += extent
+        //   oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
+        //   oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
+        //   oInd
     }
   }
 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsEnd(expr : Expression, extent : Int) : Expression = {
     expr match {
-      case e if Knowledge.experimental_useStefanOffsets => e // don't do anything here
+      case e if Knowledge.experimental_useStefanOffsets =>
+        e // don't do anything here
+
       case IntegerConstant(i) =>
         IntegerConstant(i + extent)
-      case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
-        oInd.minOffset -= extent
-        oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
-        oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
-        oInd
+
+      case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
+        (bOff * (extent + 1)) + extent
+
+      case add : AdditionExpression =>
+        add.summands.transform {
+          case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
+            bOff * (extent + 1)
+          case x =>
+            x
+        }
+        add.summands += IntegerConstant(extent)
+        SimplifyExpression.simplifyIntegralExpr(add)
+
+        // case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
+        //   oInd.minOffset -= extent
+        //   oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
+        //   oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
+        //   oInd
     }
   }
 
@@ -215,11 +247,13 @@ case class LoopOverPointsInOneFragment(var domain : Int,
               val numDupRight = field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
 
               if (numDupLeft > 0)
-                start(dim) = OffsetIndex(0, numDupLeft, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
+                start(dim) = new AdditionExpression(field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * BoundedExpression(0, 1, ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim)))
+                // start(dim) = OffsetIndex(0, numDupLeft, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
               else
                 start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
               if (numDupRight > 0)
-                stop(dim) = OffsetIndex(-numDupRight, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
+                stop(dim) = new AdditionExpression(field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * BoundedExpression(-1, 0, ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim)))
+                // stop(dim) = OffsetIndex(-numDupRight, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
               else
                 stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
               //              }

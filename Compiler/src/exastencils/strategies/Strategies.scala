@@ -148,6 +148,11 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
     case ModuloExpression(IntegerConstant(left), IntegerConstant(right))   => IntegerConstant(left % right)
 
+    case PowerExpression(IntegerConstant(base), IntegerConstant(exp))     => IntegerConstant(pow(base, exp))
+    case PowerExpression(FloatConstant(base), IntegerConstant(exp))       => FloatConstant(pow(base, exp))
+    case PowerExpression(IntegerConstant(base), FloatConstant(exp))       => FloatConstant(math.pow(base, exp))
+    case PowerExpression(FloatConstant(base), FloatConstant(exp))         => FloatConstant(math.pow(base, exp))
+
     // deal with negatives
     case NegativeExpression(NegativeExpression(expr))                      => expr
     case NegativeExpression(AdditionExpression(sums))                      => AdditionExpression(sums.map { s => NegativeExpression(s) })
@@ -387,6 +392,36 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       case (left, right) =>
         List(left, right)
     }
+  }
+
+  private def pow(a : Long, b : Long) : Long = {
+    if (b < 0)
+      return 0
+    var base : Long = a
+    var exp : Long = b
+    var res : Long = 1
+    while (exp > 0) {
+      if ((exp & 1) != 0)
+        res *= base
+      exp >>= 1
+      base *= base
+    }
+    return res
+  }
+
+  private def pow(a : Double, b : Long) : Double = {
+    if (b < 0)
+      return 0
+    var base : Double = a
+    var exp : Long = b
+    var res : Double = 1
+    while (exp > 0) {
+      if ((exp & 1) != 0)
+        res *= base
+      exp >>= 1
+      base *= base
+    }
+    return res
   }
 }
 

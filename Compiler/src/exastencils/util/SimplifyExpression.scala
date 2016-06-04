@@ -30,7 +30,6 @@ object SimplifyExpression {
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
 
-  final val EXTREMA_ANNOT : String = "extrema" // associated value must be (Long, Long)
   final val EXTREMA_MAP : String = "extremaMap" // associated value must be HashMap[String, (Long,Long)]
 
   def evalIntegralExtrema(expr : Expression) : (Long, Long) = {
@@ -44,9 +43,6 @@ object SimplifyExpression {
    * Other scalar constants or variable accesses lead to an EvaluationException.
    */
   def evalIntegralExtrema(expr : Expression, extremaLookup : Map[String, (Long, Long)]) : (Long, Long) = expr match {
-    case n if n.hasAnnotation(EXTREMA_ANNOT) =>
-      n.getAnnotation(EXTREMA_ANNOT).get.asInstanceOf[(Long, Long)]
-
     case IntegerConstant(v) =>
       (v, v)
 
@@ -106,13 +102,16 @@ object SimplifyExpression {
         (x._1 max y._1, x._2 max y._2)
       }
 
-    case OffsetIndex(minOffset, maxOffset, index, _) =>
-      val x = evalIntegralExtrema(index, extremaLookup)
-      (x._1 + minOffset, x._2 + maxOffset)
-
     case NegativeExpression(left : Expression) =>
       val (min, max) = evalIntegralExtrema(left, extremaLookup)
-      (-max,-min)
+      (-max, -min)
+
+    case BoundedExpression(min, max, _) =>
+      (min, max)
+
+    // case OffsetIndex(minOffset, maxOffset, index, _) =>
+    //   val x = evalIntegralExtrema(index)
+    //   (x._1 + minOffset, x._2 + maxOffset)
 
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
@@ -372,9 +371,13 @@ object SimplifyExpression {
         res = new mutable.HashMap[Expression, Long]()
         res(anyIV) = 1L
 
-      case offInd : OffsetIndex =>
+      case bExpr : BoundedExpression =>
         res = new mutable.HashMap[Expression, Long]()
-        res(offInd) = 1L
+        res(bExpr) = 1L
+
+      // case offInd : OffsetIndex =>
+      //   res = new HashMap[Expression, Long]()
+      //   res(offInd) = 1L
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)

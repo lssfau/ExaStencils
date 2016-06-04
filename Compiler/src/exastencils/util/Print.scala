@@ -12,18 +12,30 @@ import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
 
+object PrintExpression {
+  val endl : Expression = new VariableAccess("std::endl", StringDatatype)
+}
+
+case class PrintExpression(var stream : Expression, toPrint : ListBuffer[Expression]) extends Expression {
+  def this(stream : Expression, toPrint : Expression*) = this(stream, toPrint.to[ListBuffer])
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << stream << " << " <<<(toPrint, " << ")
+  }
+}
+
 case class BuildStringStatement(var stringName : Expression, var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BuildStringStatement\n"
 
-  override def expand : Output[StatementList] = {
+  override def expand() : Output[StatementList] = {
     val streamName = BuildStringStatement.getNewName()
-    var statements = ListBuffer[Statement](
-      VariableDeclarationStatement(SpecialDatatype("std::ostringstream"), streamName),
-      (streamName : Expression) ~ " << " ~ toPrint.reduceLeft((l, e) => l ~ " << " ~ e),
+    def streamType = SpecialDatatype("std::ostringstream")
+    val statements = ListBuffer[Statement](
+      VariableDeclarationStatement(streamType, streamName),
+      PrintExpression(new VariableAccess(streamName, streamType), toPrint),
       AssignmentStatement(stringName, MemberFunctionCallExpression(VariableAccess(streamName, Some(SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
-
-    /*Scope*/ (statements)
+    return statements
   }
 }
 
@@ -40,21 +52,20 @@ case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : Str
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
 
-  override def expand : Output[Statement] = {
+  override def expand() : Output[Statement] = {
     if (toPrint.isEmpty) {
-      NullStatement
+      return NullStatement
     } else {
-      val printStmt : Statement = (stream : Expression) ~ " << " ~ toPrint.reduceLeft((l, e) => l ~ " << \" \" << " ~ e) ~ " << std::endl"
+      val printStmt : Statement = new PrintExpression(VariableAccess(stream), toPrint.view.flatMap { e => List(e, StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
       if (Knowledge.mpi_enabled) // filter by mpi rank if required
-        new ConditionStatement(MPI_IsRootProc(), printStmt)
+        return new ConditionStatement(MPI_IsRootProc(), printStmt)
       else
-        printStmt
+        return printStmt
     }
   }
 }
 
 case class PrintFieldStatement(var filename : Expression, var field : FieldSelection, var condition : Expression = BooleanConstant(true)) extends Statement with Expandable {
-  import PrintFieldStatement._
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
@@ -74,7 +85,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
     }
   }
 
-  override def expand : Output[StatementList] = {
+  override def expand() : Output[StatementList] = {
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
@@ -82,22 +93,22 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
       if (field.arrayIndex.isEmpty) (0 until field.field.gridDatatype.resolveFlattendSize)
       else (field.arrayIndex.get to field.arrayIndex.get))
 
-    val separator = (if (Knowledge.experimental_generateParaviewFiles) "\",\"" else "\" \"")
-    val streamName = s"fieldPrintStream_$counter"
-    counter += 1
+    def separator = StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
+    val streamName = PrintFieldStatement.getNewName()
+    def streamType = SpecialDatatype("std::ofstream")
 
     val fileHeader = {
       var ret : Statement = NullStatement
       if (Knowledge.experimental_generateParaviewFiles) {
         ret = (streamName + " << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
         if (Knowledge.mpi_enabled)
-          ret = new ConditionStatement(new MPI_IsRootProc, ret)
+          ret = new ConditionStatement(MPI_IsRootProc(), ret)
       }
       ret
     }
 
     var innerLoop = ListBuffer[Statement](
-      "std::ofstream " ~ streamName ~ "(" ~ filename ~ ", " ~ (if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc") ~ ")",
+      new ObjectInstantiation(streamType, streamName, filename, VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
       fileHeader,
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
@@ -105,33 +116,39 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
             new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
             new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
             new ConditionStatement(condition,
-              streamName
-                ~ (0 until numDimsGrid).map(dim => " << " ~ getPos(field, dim) ~ " << " ~ separator).reduceLeft(_ ~ _)
-                ~ arrayIndexRange.map(index => {
-                  var access = new FieldAccess(field, LoopOverDimensions.defIt(numDimsData))
-                  access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
-                  " << " ~ access
-                }).reduceLeft(_ ~ " << " ~ separator ~ _)
-                ~ " << std::endl")))),
-      streamName ~ ".close()")
+              new PrintExpression(new VariableAccess(streamName, streamType),
+                ((0 until numDimsGrid).view.flatMap { dim =>
+                  List(getPos(field, dim), separator)
+                } ++ arrayIndexRange.view.flatMap { index =>
+                  val access = new FieldAccess(field, LoopOverDimensions.defIt(numDimsData))
+                  if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
+                    access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
+                  List(access, separator)
+                }).to[ListBuffer] += PrintExpression.endl)
+            )))),
+      new MemberFunctionCallExpression(new VariableAccess(streamName, streamType), "close"))
 
     var statements : ListBuffer[Statement] = ListBuffer()
 
     if (Knowledge.mpi_enabled) {
-      statements += new ConditionStatement(new MPI_IsRootProc,
+      statements += new ConditionStatement(MPI_IsRootProc(),
         ListBuffer[Statement](
-          "std::ofstream " ~ streamName ~ "(" ~ filename ~ ", std::ios::trunc)",
-          streamName ~ ".close()"))
+          new ObjectInstantiation(streamType, streamName, filename, VariableAccess("std::ios::trunc")),
+          new MemberFunctionCallExpression(new VariableAccess(streamName, streamType), "close")))
 
       statements += new MPI_Sequential(innerLoop)
     } else {
       statements ++= innerLoop
     }
 
-    statements
+    return statements
   }
 }
 
 object PrintFieldStatement {
-  var counter = 0;
+  private var counter : Int = 0
+  def getNewName() : String = {
+    counter += 1
+    return "fieldPrintStream_%02d".format(counter)
+  }
 }

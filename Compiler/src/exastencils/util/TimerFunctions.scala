@@ -205,7 +205,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
       statements += AssignmentStatement("timerValue", "mpiSize", "/=")
     }
 
-    statements += PrintStatement(ListBuffer("\"Mean mean total time for Timer " ~ timer.name ~ ":\"", "timerValue"))
+    statements += PrintStatement(ListBuffer("\"Mean mean total time for Timer " + timer.name.prettyprint() + ":\"", "timerValue"))
 
     Scope(statements)
   }
@@ -254,7 +254,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     var toPrint : ListBuffer[Expression] = ListBuffer()
     val sep = "\";\""
     for (timer <- timers.toList.sortBy(_._1)) {
-      toPrint ++= ListBuffer[Expression]("\"" ~ timer._2.name ~ "\"", sep,
+      toPrint ++= ListBuffer[Expression](StringConstant(timer._2.name.prettyprint()), sep,
         ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
         ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), sep)
       it += 2

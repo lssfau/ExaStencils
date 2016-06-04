@@ -70,6 +70,17 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
   def prettyprint_onlyDeclaration() : String = VariableDeclarationStatement(dataType, name, None).prettyprint()
 }
 
+case class ObjectInstantiation(var dataType : Datatype, var name : String, var ctorArgs : ListBuffer[Expression]) extends Statement {
+  def this(dataType : Datatype, name : String, ctorArgs : Expression*) = this(dataType, name, ctorArgs.to[ListBuffer])
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << dataType.resolveDeclType << ' ' << name << dataType.resolveDeclPostscript
+    if (ctorArgs.length > 0)
+      out << '(' <<< (ctorArgs, ", ") << ')'
+    out << ';'
+  }
+}
+
 case class FreeStatement(var pointer : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "delete[] " << pointer << ";"

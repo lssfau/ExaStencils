@@ -7,7 +7,6 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
-import exastencils.util._
 
 import scala.collection.mutable.{ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder}
 
@@ -42,43 +41,6 @@ object Extractor {
     symbolicConstants.add(constName)
   }
 
-  /**
-   * Search for IterationOffsetBegin/IterationOffsetEnd accesses and annotate extrema information of OffsetIndex.
-   *
-   * @param minOffset the minimum
-   * @param maxOffset the maximum
-   * @param off the offset expression that should be traversed
-   */
-  private def annotateOffsetExpression(minOffset : Long, maxOffset : Long, off : Expression) : Unit = {
-    off match {
-      case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) | ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
-        off.annotate(SimplifyExpression.EXTREMA_ANNOT, (minOffset, maxOffset))
-      case AdditionExpression(summands : ListBuffer[Expression]) =>
-        summands.foreach(o => annotateOffsetExpression(minOffset, maxOffset, o))
-      case SubtractionExpression(left : Expression, right : Expression) =>
-        annotateOffsetExpression(minOffset, maxOffset, left)
-        annotateOffsetExpression(minOffset, maxOffset, right)
-      case MultiplicationExpression(factors : ListBuffer[Expression]) =>
-        factors.foreach(o => annotateOffsetExpression(minOffset, maxOffset, o))
-      case DivisionExpression(left : Expression, right : Expression) =>
-        annotateOffsetExpression(minOffset, maxOffset, left)
-        annotateOffsetExpression(minOffset, maxOffset, right)
-      case ModuloExpression(left : Expression, right : Expression) =>
-        annotateOffsetExpression(minOffset, maxOffset, left)
-        annotateOffsetExpression(minOffset, maxOffset, right)
-      case PowerExpression(left : Expression, right : Expression) =>
-        annotateOffsetExpression(minOffset, maxOffset, left)
-        annotateOffsetExpression(minOffset, maxOffset, right)
-      case NegativeExpression(left : Expression) =>
-        annotateOffsetExpression(minOffset, maxOffset, left)
-      case MaximumExpression(args : ListBuffer[Expression]) =>
-        args.foreach(o => annotateOffsetExpression(minOffset, maxOffset, o))
-      case MinimumExpression(args : ListBuffer[Expression]) =>
-        args.foreach(o => annotateOffsetExpression(minOffset, maxOffset, o))
-      case x => // nothing to do
-    }
-  }
-
   private def extractConstraints(expr : Expression, constraints : StringBuilder, formatString : Boolean,
     lParConstr : StringBuilder = null, gParConstr : StringBuilder = null, vars : Set[String] = null) : Boolean = {
 
@@ -86,8 +48,8 @@ object Extractor {
 
     expr match {
 
-      case varAcc : VariableAccess =>
-        val islStr : String = ScopNameMapping.expr2id(varAcc)
+      case _ : VariableAccess | _ : ArrayAccess =>
+        val islStr : String = ScopNameMapping.expr2id(expr)
         if (vars != null)
           vars.add(islStr)
         constraints.append(islStr)
@@ -96,12 +58,6 @@ object Extractor {
       case str : StringLiteral if (ScopNameMapping.id2expr(str.value).isDefined) =>
         val e = ScopNameMapping.id2expr(str.value).get
         val islStr : String = ScopNameMapping.expr2id(e)
-        if (vars != null)
-          vars.add(islStr)
-        constraints.append(islStr)
-
-      case array : ArrayAccess =>
-        val islStr : String = ScopNameMapping.expr2id(array)
         if (vars != null)
           vars.add(islStr)
         constraints.append(islStr)
@@ -117,47 +73,50 @@ object Extractor {
         gParConstr.append(" and ")
         constraints.append('(').append(islStr).append("=1)")
 
-      case OffsetIndex(min, max, ind, off) =>
-        // preserve extrema information since OffsetIndex will be lost
-        annotateOffsetExpression(min, max, off)
-        constraints.append('(')
-        bool |= extractConstraints(ind, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append('+')
-        bool |= extractConstraints(off, constraints, formatString, lParConstr, gParConstr, vars)
-        constraints.append(')')
-        if (lParConstr != null) off match {
-          case _ : VariableAccess | _ : ArrayAccess =>
-            lParConstr.append('(').append(min).append("<=")
-            lParConstr.append(ScopNameMapping.expr2id(off))
-            lParConstr.append("<=").append(max).append(')')
-            lParConstr.append(" and ")
-
-          case MultiplicationExpression(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
-            lParConstr.append('(').append(min).append("<=").append(c).append('*')
-            lParConstr.append(ScopNameMapping.expr2id(arr))
-            lParConstr.append("<=").append(max).append(')')
-            lParConstr.append(" and ")
-
-          case MultiplicationExpression(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
-            lParConstr.append('(').append(min).append("<=").append(c).append('*')
-            lParConstr.append(ScopNameMapping.expr2id(arr))
-            lParConstr.append("<=").append(max).append(')')
-            lParConstr.append(" and ")
-
-          case _ =>
+      case bExpr @ BoundedExpression(min, max, _ : VariableAccess | _ : ArrayAccess) =>
+        val islStr : String = ScopNameMapping.expr2id(bExpr.expr)
+        if (vars != null)
+          vars.add(islStr)
+        constraints.append(islStr)
+        if (lParConstr != null) {
+          lParConstr.append('(').append(min).append("<=").append(islStr).append("<=").append(max).append(')')
+          lParConstr.append(" and ")
         }
-      //        val islStr : String = ScopNameMapping.expr2id(expr)
-      //        if (vars != null)
-      //          vars.add(islStr)
-      //        constraints.append(islStr)
-      //        if (paramConstr != null) {
-      //          paramConstr.append(" and ")
-      //          paramConstr.append('(').append(min).append('+')
-      //          extractConstraints(ind, paramConstr, formatString, null, vars)
-      //          paramConstr.append("<=").append(islStr).append("<=")
-      //          extractConstraints(ind, paramConstr, formatString, null, vars)
-      //          paramConstr.append('+').append(max).append(')')
-      //        }
+
+        // case OffsetIndex(min, max, ind, off) =>
+        //   off match {
+        //     case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) =>
+        //       off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
+        //     case ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
+        //       off.annotate(SimplifyExpression.EXTREMA_ANNOT, (min.toLong, max.toLong)) // preserve extrema information since OffsetIndex will be lost
+        //     case _ => // nothing to do
+        //   }
+        //   constraints.append('(')
+        //   bool |= extractConstraints(ind, constraints, formatString, lParConstr, gParConstr, vars)
+        //   constraints.append('+')
+        //   bool |= extractConstraints(off, constraints, formatString, lParConstr, gParConstr, vars)
+        //   constraints.append(')')
+        //   if (lParConstr != null) off match {
+        //     case _ : VariableAccess | _ : ArrayAccess =>
+        //       lParConstr.append('(').append(min).append("<=")
+        //       lParConstr.append(ScopNameMapping.expr2id(off))
+        //       lParConstr.append("<=").append(max).append(')')
+        //       lParConstr.append(" and ")
+        //
+        //     case MultiplicationExpression(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
+        //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
+        //       lParConstr.append(ScopNameMapping.expr2id(arr))
+        //       lParConstr.append("<=").append(max).append(')')
+        //       lParConstr.append(" and ")
+        //
+        //     case MultiplicationExpression(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
+        //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
+        //       lParConstr.append(ScopNameMapping.expr2id(arr))
+        //       lParConstr.append("<=").append(max).append(')')
+        //       lParConstr.append(" and ")
+        //
+        //     case _ =>
+        //   }
 
       case iff : iv.IndexFromField =>
         val islStr : String = ScopNameMapping.expr2id(iff)

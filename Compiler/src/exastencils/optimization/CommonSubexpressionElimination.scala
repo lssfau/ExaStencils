@@ -22,6 +22,7 @@ import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PrettyPrintable
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util.EvaluationException
+import exastencils.util.PrintExpression
 import exastencils.util.SimplifyExpression
 
 object CommonSubexpressionElimination extends CustomStrategy("Common subexpression elimination") {
@@ -112,13 +113,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       decl.annotate(REMOVE_ANNOT)
       val init = decl.expression.get
       for (use <- uses)
-        use.annotate(REPLACE_ANNOT, Duplicate(init))
+        use.annotate(REPLACE_ANNOT, init) // do not duplicate here, since init could get additional annotations later (which would not be visible, when we copy here)
     }
 
     this.execute(new Transformation("inline removable declarations", {
       case n if (n.removeAnnotation(REMOVE_ANNOT).isDefined) => List()
-      case n if (n.hasAnnotation(REPLACE_ANNOT))             => n.removeAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]
-    }, false), Some(parent)) // modifications in a list result in a new list created, so work with original parent and not with wrapped body
+      case n if (n.hasAnnotation(REPLACE_ANNOT))             => Duplicate(n.getAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]) // duplicate here
+    }), Some(parent)) // modifications in a list result in a new list created, so work with original parent and not with wrapped body
 
     SimplifyFloatExpressions.applyStandalone(parent)
     SimplifyStrategy.doUntilDoneStandalone(parent, true)
@@ -132,10 +133,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     val currItBody = Scope(loop.body)
     var maxID : Int = 0
     this.execute(new Transformation("number nodes", {
-      case _ : ConcatenationExpression | _ : SpacedConcatenationExpression =>
-        Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression and SpacedConcatenationExpression are too difficult to analyze")
+      case _ : ConcatenationExpression =>
+        Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression are too difficult to analyze")
         return Nil // don't do anything, since we cannot ensure the transformation is correct
-      case d : Datatype => d // there are some singleton datatypes, so don't enumerate them
+      // there are some singleton datatypes, so don't enumerate them
+      case d : Datatype   => d
+      case NullStatement  => NullStatement
+      case NullExpression => NullExpression
       case node =>
         node.annotate(ID_ANNOT, maxID)
         maxID += 1
@@ -327,6 +331,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                   registerCS(func, childCSes.map(_.get.prio).sum + 1, 3, pos, true, List.empty)
               }
 
+            case _ : VectorExpression | _ : MatrixExpression | _ : PrintExpression =>
+              // don't do anything, these are never common subexpressions
+
             case parent : Product =>
               val (prods, buffs, Nil, _) = splitIt3[Product, Buffer[AnyRef], Seq[_]](parent.productIterator)
               val nrProds = prods.length
@@ -498,8 +505,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
 
     node match {
       // blacklist concat
-      case _ : ConcatenationExpression
-        | _ : SpacedConcatenationExpression =>
+      case _ : ConcatenationExpression =>
         skip = true // skip everything from now on...
         commonSubs.clear()
         Logger.warn(s"cannot perform CSE, because ${node.getClass} is too difficult to analyze")
