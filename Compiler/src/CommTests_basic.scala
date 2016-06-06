@@ -1,11 +1,10 @@
 
-import exastencils.logger._
 import scala.collection.mutable.ListBuffer
-import exastencils.constraints.Constraints
 
-object CommTests {
-  var numDims = 2
+import exastencils.constraints._
+import exastencils.logger._
 
+object CommTests_basic {
   // memory estimation:
   // CC 2D/3D
   // 2+2=4 fields
@@ -38,10 +37,7 @@ object CommTests {
   def initFixedKnowledgeParams = {
     var fixedParams = Map[String, Any]()
 
-    fixedParams += "dimensionality" -> numDims
-
     fixedParams += "minLevel" -> 0
-    fixedParams += "maxLevel" -> (if (2 == numDims) 11 else 7) // 2048^2 or 128^3 == 2^22 or 2^21 -> totalFragLength == 2 for 3D
 
     fixedParams += "domain_onlyRectangular" -> true
     fixedParams += "domain_rect_generate" -> true
@@ -183,6 +179,9 @@ object CommTests {
 
         var setKnowledgeParams = Map[String, Any]()
 
+        setKnowledgeParams += "dimensionality" -> numDims
+        setKnowledgeParams += "maxLevel" -> (if (2 == numDims) 11 else 7) // 2048^2 or 128^3 == 2^22 or 2^21 -> totalFragLength == 2 for 3D
+
         setKnowledgeParams += "comm_strategyFragment" -> commStrategy
 
         val numBlocksTotal = partitions(numNodes)._1._1 * partitions(numNodes)._1._2 * partitions(numNodes)._1._3
@@ -253,6 +252,13 @@ object CommTests {
     val knowledgeFile = args(1)
     val platformFile = args(2)
 
+    val onlyOneFile = true
+    var outputTimes = ""
+
+    if (onlyOneFile)
+      outputTimes = "numDims;useMPITypes;commStrategy;configName;" +
+        "numThreads;timeToSolve;total_cycle_time;mean_cycle_time;coarse_grid_solve;total_computation_time;total_communication_time;\n"
+
     for (
       numDims <- List(2, 3);
       useMPITypes <- List(true, false);
@@ -260,7 +266,8 @@ object CommTests {
       mergeCommThres <- (if (mergeComm) List(0, 4) else List(0));
       commStrategy <- List(6, 26)
     ) {
-      var cycleTimes = ""
+      if (!onlyOneFile)
+        outputTimes = "numThreads;timeToSolve;total_cycle_time;mean_cycle_time;coarse_grid_solve;total_computation_time;total_communication_time;\n"
 
       for (n <- Stream.iterate(1)(_ * 2).takeWhile(_ <= 32 * 1024)) {
         val numNodes = if (n > 28672) 28672 else n // limit node number
@@ -275,22 +282,31 @@ object CommTests {
           val timingsRaw = scala.io.Source.fromFile(timingsFile).mkString
           val timings = timingsRaw.trim.stripSuffix(" ;").split(" ; ").sliding(3, 3).collect({ case Array(n, tTotal, t) => (n, (t.toDouble, tTotal.toDouble)) }).toMap
 
-          // TODO: check for completeness
+          if (onlyOneFile)
+            outputTimes += s"$numDims;$useMPITypes;$commStrategy;" +
+              s"commTest_${numDims}_${if (useMPITypes) "t" else "f"}${if (6 == commStrategy) "" else s"_$commStrategy"};"
 
-          numDims match {
-            case 2 => {
-              cycleTimes += (numNodes * 64) + ";" + timings.get("cycle").get._1 + ";" + timings.get("cycle").get._2 + "\n"
-            }
-            case 3 => {
-              cycleTimes += (numNodes * 64) + ";" + timings.get("cycle").get._1 + ";" + timings.get("cycle").get._2 + "\n"
-            }
-          }
+          outputTimes += (numNodes * 64) + ";"
+          outputTimes += timings.get("timeToSolve").get._1 + ";"
+          outputTimes += timings.get("cycle").get._1 + ";" + timings.get("cycle").get._2 + ";"
+          outputTimes += timings.get("cgs").get._1 + ";"
+          val totalCommTime = timings.filter(_._1.startsWith("communication_")).map(_._2._1).sum
+          outputTimes += (timings.get("timeToSolve").get._1 - totalCommTime) + ";"
+          outputTimes += totalCommTime + ";"
+          outputTimes += "\n"
         }
       }
 
-      val filename = s"cycleTimes_${numDims}_${if (useMPITypes) "t" else "f"}_$commStrategy.csv"
+      if (!onlyOneFile) {
+        val filename = s"collectedTimes_${numDims}_${if (useMPITypes) "t" else "f"}_$commStrategy.csv"
+        Logger.debug(s"Writing to file $filename")
+        writeToFile(filename, outputTimes)
+      }
+    }
+    if (onlyOneFile) {
+      val filename = "collectedTimes.csv"
       Logger.debug(s"Writing to file $filename")
-      writeToFile(filename, cycleTimes)
+      writeToFile(filename, outputTimes)
     }
   }
 }
