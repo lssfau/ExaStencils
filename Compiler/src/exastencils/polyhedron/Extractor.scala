@@ -13,7 +13,6 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
-import exastencils.util._
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -79,7 +78,7 @@ object Extractor {
         constraints.append('(').append(islStr).append("=1)")
 
       case bExpr @ BoundedExpression(min, max, _ : VariableAccess | _ : ArrayAccess) =>
-        val islStr : String = ScopNameMapping.expr2id(bExpr.expr)
+        val islStr : String = ScopNameMapping.expr2id(bExpr, bExpr.expr)
         if (vars != null)
           vars.add(islStr)
         constraints.append(islStr)
