@@ -192,46 +192,66 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 }
 
 /**
- * This transformation is used to annotate nested loops of a CUDA loop.
+ * This transformation is used to calculate the annotations for nested loops of a CUDA loop.
  */
-object AnnotateNestedCudaLoops extends DefaultStrategy("Annotate nested loops of a CUDA annotated loop") {
+object CalculateAnnotationsOfNestedCudaLoops extends DefaultStrategy("Calculate the annotations for nested loops of a CUDA annotated loop") {
   val collector = new FctNameCollector
   this.register(collector)
 
   /**
-   * Annotate the inner loops of a ForLoopStatement with CUDA annotations and at the same time calculate the extrema for the loops bounds that are required later.
+   * Just annotate inner loops as CUDA loop.
+   *
+   * @param loop the parent loop that should be annotated and traversed
+   */
+  def annotateInnerCudaLoops(loop : ForLoopStatement) : Unit = {
+    loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+    loop.body.foreach {
+      case x : ForLoopStatement =>
+        annotateInnerCudaLoops(x)
+      case _ =>
+    }
+  }
+
+  /**
+   * Annotate the inner loops of a ForLoopStatement with CUDA annotations and at the same time calculate the extrema for the loop bounds that are required later.
    *
    * @param loop the loop that should be inspected
    * @param extremaMap a map containing the extrema for some loop variables
    */
-  def annotateInnerLoops(loop : ForLoopStatement, extremaMap : mutable.HashMap[String, (Long, Long)] = mutable.HashMap[String, (Long, Long)]()) : Unit = {
+  def calculateLoopAnnotations(loop : ForLoopStatement, toKernel : Boolean = true, extremaMap : mutable.HashMap[String, (Long, Long)] = mutable.HashMap[String, (Long, Long)]()) : Unit = {
+    loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
 
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
-        val innerLoopCandidates = loop.body.filter(x => x.isInstanceOf[ForLoopStatement])
         val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
         extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
-
         loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
-        innerLoopCandidates.foreach {
+        var shouldInnersBeParallel = toKernel
+        if (CudaStrategiesUtils.verifyCudaLoopParallel(loop) && toKernel) {
+          loop.annotate(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
+          shouldInnersBeParallel = false
+        }
+
+        loop.body.filter(x => x.isInstanceOf[ForLoopStatement]).foreach {
           case innerLoop : ForLoopStatement =>
-            innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
-            innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
-            annotateInnerLoops(innerLoop, extremaMap)
+            calculateLoopAnnotations(innerLoop, shouldInnersBeParallel, extremaMap)
           case _ =>
         }
       } catch {
         case e : EvaluationException =>
           Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${e.msg}'""")
+          annotateInnerCudaLoops(loop)
       }
+    } else {
+      annotateInnerCudaLoops(loop)
     }
   }
 
   this += new Transformation("Processing ForLoopStatement nodes", {
     case loop : ForLoopStatement if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) && loop
       .hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION) =>
-      annotateInnerLoops(loop)
+      calculateLoopAnnotations(loop)
       loop
   }, false)
 }
