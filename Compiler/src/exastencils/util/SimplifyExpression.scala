@@ -109,6 +109,9 @@ object SimplifyExpression {
     case BoundedExpression(min, max, _) =>
       (min, max)
 
+    case FunctionCallExpression("floord", ListBuffer(l : Expression, r : Expression)) =>
+      evalIntegralExtrema(DivisionExpression(l,r), extremaLookup)
+
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
