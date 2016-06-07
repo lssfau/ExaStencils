@@ -7,9 +7,8 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
-import exastencils.util._
 
-import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder }
+import scala.collection.mutable.{ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder}
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -40,43 +39,6 @@ object Extractor {
   /** Register the name of a symbolic constant, that is not modified inside a scop. */
   def registerSymbolicConstant(constName : String) : Unit = {
     symbolicConstants.add(constName)
-  }
-
-  /**
-   * Search for IterationOffsetBegin/IterationOffsetEnd accesses and annotate extrema information of BoundedExpression.
-   *
-   * @param min the minimum
-   * @param max the maximum
-   * @param expr the bounded expression that should be traversed
-   */
-  private def annotateBoundedExpression(min : Long, max : Long, expr : Expression) : Unit = {
-    expr match {
-      case ArrayAccess(_ : iv.IterationOffsetBegin, _, _) | ArrayAccess(_ : iv.IterationOffsetEnd, _, _) =>
-        expr.annotate(SimplifyExpression.EXTREMA_ANNOT, (min, max))
-      case AdditionExpression(summands : ListBuffer[Expression]) =>
-        summands.foreach(o => annotateBoundedExpression(min, max, o))
-      case SubtractionExpression(left : Expression, right : Expression) =>
-        annotateBoundedExpression(min, max, left)
-        annotateBoundedExpression(min, max, right)
-      case MultiplicationExpression(factors : ListBuffer[Expression]) =>
-        factors.foreach(o => annotateBoundedExpression(min, max, o))
-      case DivisionExpression(left : Expression, right : Expression) =>
-        annotateBoundedExpression(min, max, left)
-        annotateBoundedExpression(min, max, right)
-      case ModuloExpression(left : Expression, right : Expression) =>
-        annotateBoundedExpression(min, max, left)
-        annotateBoundedExpression(min, max, right)
-      case PowerExpression(left : Expression, right : Expression) =>
-        annotateBoundedExpression(min, max, left)
-        annotateBoundedExpression(min, max, right)
-      case NegativeExpression(left : Expression) =>
-        annotateBoundedExpression(min, max, left)
-      case MaximumExpression(args : ListBuffer[Expression]) =>
-        args.foreach(o => annotateBoundedExpression(min, max, o))
-      case MinimumExpression(args : ListBuffer[Expression]) =>
-        args.foreach(o => annotateBoundedExpression(min, max, o))
-      case x => // nothing to do
-    }
   }
 
   private def extractConstraints(expr : Expression, constraints : StringBuilder, formatString : Boolean,
@@ -112,8 +74,7 @@ object Extractor {
         constraints.append('(').append(islStr).append("=1)")
 
       case bExpr @ BoundedExpression(min, max, _ : VariableAccess | _ : ArrayAccess) =>
-        annotateBoundedExpression(min, max, bExpr.expr)
-        val islStr : String = ScopNameMapping.expr2id(bExpr.expr)
+        val islStr : String = ScopNameMapping.expr2id(bExpr, bExpr.expr)
         if (vars != null)
           vars.add(islStr)
         constraints.append(islStr)

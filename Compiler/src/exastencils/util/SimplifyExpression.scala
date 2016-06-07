@@ -30,7 +30,6 @@ object SimplifyExpression {
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
 
-  final val EXTREMA_ANNOT : String = "extrema" // associated value must be (Long, Long)
   final val EXTREMA_MAP : String = "extremaMap" // associated value must be HashMap[String, (Long,Long)]
 
   def evalIntegralExtrema(expr : Expression) : (Long, Long) = {
@@ -44,9 +43,6 @@ object SimplifyExpression {
    * Other scalar constants or variable accesses lead to an EvaluationException.
    */
   def evalIntegralExtrema(expr : Expression, extremaLookup : Map[String, (Long, Long)]) : (Long, Long) = expr match {
-    case n if n.hasAnnotation(EXTREMA_ANNOT) =>
-      n.getAnnotation(EXTREMA_ANNOT).get.asInstanceOf[(Long, Long)]
-
     case IntegerConstant(v) =>
       (v, v)
 
@@ -112,10 +108,6 @@ object SimplifyExpression {
 
     case BoundedExpression(min, max, _) =>
       (min, max)
-
-    // case OffsetIndex(minOffset, maxOffset, index, _) =>
-    //   val x = evalIntegralExtrema(index)
-    //   (x._1 + minOffset, x._2 + maxOffset)
 
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)

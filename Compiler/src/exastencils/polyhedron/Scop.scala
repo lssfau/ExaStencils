@@ -115,16 +115,21 @@ object ScopNameMapping {
     return id2expr.get(id)
   }
 
-  def expr2id(expr : Expression) : String = {
+  def expr2id(expr : Expression, alias : Expression = null) : String = {
     return expr2id.getOrElseUpdate(expr, {
-      val id : String = expr match {
-        case VariableAccess(str, _) if (str.length() < 5) =>
-          str
-        case _ =>
-          count += 1
-          "p" + count
-      }
+      val id : String =
+        if (alias != null && expr2id.contains(alias))
+          expr2id(alias)
+        else expr match {
+          case VariableAccess(str, _) if (str.length() < 5) =>
+            str
+          case _ =>
+            count += 1
+            "p" + count
+        }
       id2expr.put(id, expr)
+      if (alias != null)
+        expr2id.put(alias, id)
       id
     })
   }
