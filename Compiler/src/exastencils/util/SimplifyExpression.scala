@@ -90,9 +90,8 @@ object SimplifyExpression {
     case BoundedExpression(min, max, _) =>
       (min, max)
 
-      // case OffsetIndex(minOffset, maxOffset, index, _) =>
-      //   val x = evalIntegralExtrema(index)
-      //   (x._1 + minOffset, x._2 + maxOffset)
+    case FunctionCallExpression("floord", ListBuffer(l : Expression, r : Expression)) =>
+      evalIntegralExtrema(DivisionExpression(l,r))
 
     case _ =>
       throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
