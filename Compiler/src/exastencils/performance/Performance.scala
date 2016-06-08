@@ -150,15 +150,17 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         EvaluatePerformanceEstimates_FieldAccess.applyStandalone(loop)
         EvaluatePerformanceEstimates_Ops.applyStandalone(loop)
 
+        val coresPerRank = (Platform.hw_numNodes * Platform.hw_numHWThreadsPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores; regard SMT
+
         val optimisticDataPerIt = EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._2.typicalByteSize).fold(0)(_ + _)
-        val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Platform.hw_cpu_bandwidth
+        val effectiveHostBW = Platform.hw_cpu_bandwidth / (coresPerRank * Knowledge.omp_numThreads) // assumes full parallelization - TODO: adapt values according to (OMP) parallel loops
+        val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / effectiveHostBW
         val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Platform.hw_gpu_bandwidth
 
         val cyclesPerIt = (Math.max(EvaluatePerformanceEstimates_Ops.numAdd, EvaluatePerformanceEstimates_Ops.numMul)
           + EvaluatePerformanceEstimates_Ops.numDiv * Platform.hw_cpu_numCyclesPerDiv)
         var estimatedTimeOps_host = (cyclesPerIt * maxIterations) / Platform.hw_cpu_frequency
         var estimatedTimeOps_device = (cyclesPerIt * maxIterations) / Platform.hw_gpu_frequency
-        val coresPerRank = (Platform.hw_numNodes * Platform.hw_numHWThreadsPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores; regard SMT
         estimatedTimeOps_host /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
         estimatedTimeOps_host /= Platform.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
         estimatedTimeOps_device /= Platform.hw_gpu_numCores // assumes perfect utilization - TODO: annotate max number of iterations in loop and use it here if smaller than number of cuda cores
