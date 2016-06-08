@@ -8,6 +8,7 @@ import scala.collection.mutable.Queue
 
 import exastencils.core.Duplicate
 import exastencils.cuda
+import exastencils.cuda.CudaStrategiesUtils
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
@@ -35,7 +36,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   override def isDefinedAt(node : Node) : Boolean = {
     // do not vectorize device code!
+    val cuAnn = CudaStrategiesUtils.CUDA_LOOP_ANNOTATION
     node match {
+      case n if (n.hasAnnotation(cuAnn)) => skipSubTree = true
       case _ : cuda.Kernel               => skipSubTree = true
       case _ : AbstractFunctionStatement => skipSubTree = false
       case _                             => // no change in skipSubTree
