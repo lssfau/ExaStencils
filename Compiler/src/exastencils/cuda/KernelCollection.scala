@@ -430,8 +430,7 @@ case class ExpKernel(var identifier : String,
       VariableDeclarationStatement(IntegerDatatype, variableName,
         Some(MemberAccess(VariableAccess("blockIdx", Some(SpecialDatatype("dim3"))), it) *
           MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it) +
-          MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), it) +
-          minIndices(dim)))
+          MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), it)))
     })
 
     // add dimension index start and end point
