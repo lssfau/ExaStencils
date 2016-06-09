@@ -357,6 +357,8 @@ case class ExpKernel(var identifier : String,
   var evaluatedIndexBounds = false
   var minIndices = Array[Long]()
   var maxIndices = Array[Long]()
+  var lowerBoundsDupl : ListBuffer[Expression] = Duplicate(lowerBounds)
+  var upperBoundsDupl : ListBuffer[Expression] = Duplicate(upperBounds)
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -470,12 +472,12 @@ case class ExpKernel(var identifier : String,
     // substitute loop variable in bounds with appropriate fix values to get valid code in wrapper function
     ReplacingLoopVariablesInWrapper.loopVariables.clear
     ReplacingLoopVariablesInWrapper.loopVariables = loopVariables
-    ReplacingLoopVariablesInWrapper.bounds = Duplicate(lowerBounds)
-    val lowerArgs = Duplicate(lowerBounds)
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(lowerBoundsDupl)
+    val lowerArgs = Duplicate(lowerBoundsDupl)
     ReplacingLoopVariablesInWrapper.applyStandalone(lowerArgs)
 
-    val upperArgs = Duplicate(upperBounds)
-    ReplacingLoopVariablesInWrapper.bounds = Duplicate(upperBounds)
+    val upperArgs = Duplicate(upperBoundsDupl)
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(upperBoundsDupl)
     ReplacingLoopVariablesInWrapper.applyStandalone(upperArgs)
 
     // compile arguments for device function call

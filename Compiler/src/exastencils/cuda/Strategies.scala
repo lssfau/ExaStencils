@@ -24,6 +24,9 @@ import scala.collection.{ SortedSet => _, _ }
 object CudaStrategiesUtils {
   val CUDA_LOOP_ANNOTATION = "CUDALoop"
   val CUDA_LOOP_TRANSFORM_ANNOTATION = "CUDALoopToTransform"
+  val CUDA_BAND_START = "CUDABandStart"
+  val CUDA_BAND_PART = "CUDABandPart"
+  val CUDA_INNER = "CUDAInner"
 
   /**
    * Check if the loop meets some basic conditions for transforming a ForLoopStatement into CUDA code.
@@ -90,168 +93,128 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
   val collector = new FctNameCollector
   this.register(collector)
 
-  /**
-   * Add statements for memory transfer between host and device to the original statement and install switch to device if host or device code should be executed.
-   *
-   * @param originalStatement the original statement that should be enriched
-   * @param originalLoop the loop that is part of the original statement
-   * @return the enriched statements
-   */
-  def addMemoryTransferStatements(originalStatement : Statement, originalLoop : LoopOverDimensions) : OutputType = {
-    GatherLocalFieldAccess.fieldAccesses.clear
-    GatherLocalFieldAccess.applyStandalone(Scope(originalLoop.body))
+  def addHostDeviceBranching(loop : LoopOverDimensions) : OutputType = {
 
     /// compile host statements
     var hostStmts = ListBuffer[Statement]()
 
-    // add data sync statements
-    for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-      var sync = true
-      if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncHostForWrites)
-        sync = false // skip write accesses if demanded
-      if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
-        sync = false // skip write access for read/write accesses
-      if (sync)
-        hostStmts += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
-    }
-
     // add original statement
-    hostStmts += Duplicate(originalStatement)
+    hostStmts += Duplicate(loop)
 
-    // update flags for written fields
-    for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldSelection = access._2.fieldSelection
-      if (access._1.startsWith("write"))
-        hostStmts += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+    var cudaLoop = Duplicate(loop)
+    cudaLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+    var deviceStmts = ListBuffer[Statement]()
+    deviceStmts += cudaLoop
+
+    /// compile final switch
+    val defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
+      case "Host" => 1 // CPU by default
+      case "Device" => 0 // GPU by default
+      case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
     }
+
+    ConditionStatement(defaultChoice, hostStmts, deviceStmts)
+  }
+
+  this += new Transformation("Processing ContractingLoop and LoopOverDimensions nodes", {
 
     // every LoopOverDimensions statement is potentially worse to transform in CUDA code
     // Exceptions:
     // 1. this loop is a special one and cannot be optimized in polyhedral model
     // 2. this loop has no parallel potential
     // use the host for dealing with the two exceptional cases
-    val cudaSuitable = originalLoop.isInstanceOf[PolyhedronAccessible] && originalLoop.isInstanceOf[OMP_PotentiallyParallel]
-
-    /// compile device statements
-    if (!cudaSuitable) {
-      hostStmts
-    } else {
-      originalLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
-      originalLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
-      var deviceStmts = ListBuffer[Statement]()
-
-      // add data sync statements
-      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-        var sync = true
-        if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncDeviceForWrites)
-          sync = false // skip write accesses if demanded
-        if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
-          sync = false // skip write access for read/write accesses
-        if (sync)
-          deviceStmts += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
-      }
-
-      deviceStmts += Duplicate(originalStatement)
-
-      if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
-        deviceStmts += CUDA_DeviceSynchronize()
-
-      // update flags for written fields
-      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-        val fieldSelection = access._2.fieldSelection
-        if (access._1.startsWith("write"))
-          deviceStmts += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
-      }
-
-      /// compile final switch
-      val defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
-        case "Host" => 1 // CPU by default
-        case "Device" => 0 // GPU by default
-        case "Performance" => if (originalLoop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > originalLoop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
-      }
-
-      ConditionStatement(defaultChoice, hostStmts, deviceStmts)
-    }
-  }
-
-  this += new Transformation("Processing ContractingLoop and LoopOverDimensions nodes", {
-    case contractingLoop : ContractingLoop =>
-      val content = contractingLoop.statements.find(s =>
-        s.isInstanceOf[ConditionStatement] || s.isInstanceOf[LoopOverDimensions])
-
-      content match {
-        case Some(ConditionStatement(cond, ListBuffer(loop : LoopOverDimensions), ListBuffer())) =>
-          addMemoryTransferStatements(contractingLoop, loop)
-        case Some(loop : LoopOverDimensions) =>
-          addMemoryTransferStatements(contractingLoop, loop)
-        case None => contractingLoop
-      }
-    case loop : LoopOverDimensions =>
-      addMemoryTransferStatements(loop, loop)
+    case loop : LoopOverDimensions if loop.isInstanceOf[PolyhedronAccessible] && loop.isInstanceOf[OMP_PotentiallyParallel] =>
+      addHostDeviceBranching(loop)
   }, false)
 }
 
 /**
- * This transformation is used to calculate the annotations for nested loops of a CUDA loop.
+ * This transformation is used to calculate the annotations for CUDA loops.
  */
-object CalculateAnnotationsOfNestedCudaLoops extends DefaultStrategy("Calculate the annotations for nested loops of a CUDA annotated loop") {
+object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the annotations for CUDA loops") {
   val collector = new FctNameCollector
   this.register(collector)
 
   /**
-   * Just annotate inner loops as CUDA loop.
+   * Annotate the inner CUDA loops.
    *
-   * @param loop the parent loop that should be annotated and traversed
+   * @param loop the loop to traverse
    */
   def annotateInnerCudaLoops(loop : ForLoopStatement) : Unit = {
-    loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
     loop.body.foreach {
       case x : ForLoopStatement =>
+        x.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_INNER)
         annotateInnerCudaLoops(x)
       case _ =>
     }
   }
 
   /**
-   * Annotate the inner loops of a ForLoopStatement with CUDA annotations and at the same time calculate the extrema for the loop bounds that are required later.
+   * Calculate the CUDA loops that are part of the band.
    *
-   * @param loop the loop that should be inspected
-   * @param extremaMap a map containing the extrema for some loop variables
+   * @param extremaMap the map with the extrema for the loop iterators
+   * @param loop the current loop to traverse
    */
-  def calculateLoopAnnotations(loop : ForLoopStatement, toKernel : Boolean = true, extremaMap : mutable.HashMap[String, (Long, Long)] = mutable.HashMap[String, (Long, Long)]()) : Unit = {
-    loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+  def calculateLoopsInBand(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement) : Unit = {
+    loop.body.head match {
+      case innerLoop : ForLoopStatement if loop.body.size == 1 &&
+        CudaStrategiesUtils.verifyCudaLoopSuitability(innerLoop) && CudaStrategiesUtils.verifyCudaLoopParallel(innerLoop) =>
+        try {
+          val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(innerLoop))
+          extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
+          innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
+          innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_BAND_PART)
+          calculateLoopsInBand(extremaMap, innerLoop)
+        } catch {
+          case e : EvaluationException =>
+            Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${e.msg}'""")
+            innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_INNER)
+            annotateInnerCudaLoops(innerLoop)
+        }
+      case _ =>
+        loop.body.foreach {
+          case x : ForLoopStatement =>
+            annotateInnerCudaLoops(x)
+          case _ =>
+        }
+    }
+  }
 
+  /**
+   * Calculate extrema values for the loop iterators and annotate loop with adequate CUDA loop annotation.
+   *
+   * @param extremaMap the map containing the extrema values for the loop iterators
+   * @param loop the loop to traverse
+   */
+  def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement) : Unit = {
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
         val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
         extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
         loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
-        var shouldInnersBeParallel = toKernel
-        if (CudaStrategiesUtils.verifyCudaLoopParallel(loop) && toKernel) {
-          loop.annotate(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
-          shouldInnersBeParallel = false
-        }
+        if (CudaStrategiesUtils.verifyCudaLoopParallel(loop)) {
+          loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_BAND_START)
 
-        loop.body.filter(x => x.isInstanceOf[ForLoopStatement]).foreach {
-          case innerLoop : ForLoopStatement =>
-            calculateLoopAnnotations(innerLoop, shouldInnersBeParallel, extremaMap)
-          case _ =>
+          calculateLoopsInBand(extremaMap, loop)
+        } else {
+          loop.body.filter(x => x.isInstanceOf[ForLoopStatement]).foreach {
+            case innerLoop : ForLoopStatement =>
+              updateLoopAnnotations(extremaMap, innerLoop)
+            case _ =>
+          }
         }
       } catch {
         case e : EvaluationException =>
-          Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${e.msg}'""")
-          annotateInnerCudaLoops(loop)
+          Logger.warning(s"""Error while searching for band start! Failed to calculate bounds extrema: '${e.msg}'""")
       }
-    } else {
-      annotateInnerCudaLoops(loop)
     }
   }
 
   this += new Transformation("Processing ForLoopStatement nodes", {
-    case loop : ForLoopStatement if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) && loop
-      .hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION) =>
-      calculateLoopAnnotations(loop)
+    case loop : ForLoopStatement if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) =>
+      loop.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+      updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop)
       loop
   }, false)
 }
@@ -264,19 +227,18 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
   this.register(collector)
 
   /**
-   * Calculate the collapsing loops beginning with the innermost loop that is free to collapse with the surrounding loops.
+   * Collect all loops in the band.
    *
-   * @param loop the outer loop
-   * @return list of collapsing loops starting with the innermost loop
+   * @param loop the outer loop of the band
+   * @return list of loops in the band
    */
-  def calculateCollapsingLoops(loop : ForLoopStatement) : ListBuffer[ForLoopStatement] = {
+  def collectLoopsInBand(loop : ForLoopStatement) : ListBuffer[ForLoopStatement] = {
     val innerLoopCandidate = loop.body.head
     val loops = ListBuffer[ForLoopStatement](loop)
 
     innerLoopCandidate match {
-      case innerLoop : ForLoopStatement if loop.body.size == 1 &&
-        CudaStrategiesUtils.verifyCudaLoopSuitability(innerLoop) =>
-        calculateCollapsingLoops(innerLoop) ++ loops
+      case innerLoop : ForLoopStatement if innerLoop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) && innerLoop.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).contains(CudaStrategiesUtils.CUDA_BAND_PART) =>
+        collectLoopsInBand(innerLoop) ++ loops
       case _ => loops
     }
   }
@@ -299,17 +261,14 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
 
   this += new Transformation("Processing ForLoopStatement nodes", {
     case loop : ForLoopStatement if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) &&
-      loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION) &&
-      CudaStrategiesUtils.verifyCudaLoopSuitability(loop) &&
-      CudaStrategiesUtils.verifyCudaLoopParallel(loop) =>
+      loop.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).contains(CudaStrategiesUtils.CUDA_BAND_START) =>
 
       // remove the annotation first to guarantee single application of this transformation.
-      loop.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_TRANSFORM_ANNOTATION)
+      loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
 
-      val innerLoops = calculateCollapsingLoops(loop)
+      val innerLoops = collectLoopsInBand(loop)
       val (loopVariables, lowerBounds, upperBounds, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(innerLoops)
       val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.reverse)
-      val deviceStatements = ListBuffer[Statement]()
 
       // add kernel and kernel call
       val kernelFunctions = StateManager.findFirst[KernelFunctions]().get
@@ -338,6 +297,23 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
 
       kernelFunctions.addKernel(Duplicate(kernel))
 
+      // collect field accesses for memory transfer
+      GatherLocalFieldAccess.fieldAccesses.clear
+      GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
+
+      val deviceStatements = ListBuffer[Statement]()
+
+      // add data sync statements
+      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+        var sync = true
+        if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncDeviceForWrites)
+          sync = false // skip write accesses if demanded
+        if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
+          sync = false // skip write access for read/write accesses
+        if (sync)
+          deviceStatements += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+      }
+
       // process return value of kernel wrapper call if reduction is required
       if (loop.reduction.isDefined) {
         val red = loop.reduction.get
@@ -346,6 +322,16 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
             FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))))
       } else {
         deviceStatements += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
+      }
+
+      if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
+        deviceStatements += CUDA_DeviceSynchronize()
+
+      // update flags for written fields
+      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+        val fieldSelection = access._2.fieldSelection
+        if (access._1.startsWith("write"))
+          deviceStatements += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
       }
 
       deviceStatements
