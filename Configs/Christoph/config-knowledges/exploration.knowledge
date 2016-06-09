@@ -1,7 +1,7 @@
 ///////////////////////////
 // General configuration //
 ///////////////////////////
-simd_avoidUnaligned         = true
+simd_avoidUnaligned         = false // makes no sense without vectorization
 data_alignFieldPointers     = true
 useDblPrecision             = true
 
