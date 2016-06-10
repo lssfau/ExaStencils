@@ -508,26 +508,23 @@ case class ExpKernel(var identifier : String,
     }
 
     // evaluate required thread counts
-    var numThreadsPerDim = (maxIndices, minIndices).zipped.map(_ - _)
-
-    if (null == numThreadsPerDim || numThreadsPerDim.product <= 0) {
-      Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
-      numThreadsPerDim = (0 until dimensionality).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
-    }
+    val numThreadsPerDim = Array.fill[Expression](dimensionality)(32)
+    val requiredThreads = (upperArgs, lowerArgs).zipped.map(_ - _).toArray[Expression]
+    val numBlocksPerDim = (requiredThreads, numThreadsPerDim).zipped.map(_ / _).toArray[Expression]
 
     var body = ListBuffer[Statement]()
 
     if (reduction.isDefined) {
-      def bufSize = numThreadsPerDim.product
+      def bufSize = MultiplicationExpression(numThreadsPerDim.to[ListBuffer])
       def bufAccess = iv.ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.dType.get)
-      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
+      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim, numBlocksPerDim)
       body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${BinaryOperators.opAsIdent(reduction.get.op)}_wrapper",
         ListBuffer[Expression](bufAccess, bufSize))))
 
       StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
     } else {
-      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
+      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim, numBlocksPerDim)
     }
 
     FunctionStatement(

@@ -23,7 +23,6 @@ import scala.collection.{ SortedSet => _, _ }
  */
 object CudaStrategiesUtils {
   val CUDA_LOOP_ANNOTATION = "CUDALoop"
-  val CUDA_LOOP_TRANSFORM_ANNOTATION = "CUDALoopToTransform"
   val CUDA_BAND_START = "CUDABandStart"
   val CUDA_BAND_PART = "CUDABandPart"
   val CUDA_INNER = "CUDAInner"
@@ -93,38 +92,67 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
   val collector = new FctNameCollector
   this.register(collector)
 
-  def addHostDeviceBranching(loop : LoopOverDimensions) : OutputType = {
+  this += new Transformation("Processing LoopOverDimensions nodes", {
 
-    /// compile host statements
-    var hostStmts = ListBuffer[Statement]()
+    case loop : LoopOverDimensions =>
+      // don't filter here - memory transfer code is still required
+      // it is possible that data must be fetched from the gpu and cpu data has to be marked as edited,
+      // hence they are synced for the next GPU kernel
+      GatherLocalFieldAccess.fieldAccesses.clear
+      GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
 
-    // add original statement
-    hostStmts += Duplicate(loop)
+      /// compile host statements
+      var hostStmts = ListBuffer[Statement]()
 
-    var cudaLoop = Duplicate(loop)
-    cudaLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
-    var deviceStmts = ListBuffer[Statement]()
-    deviceStmts += cudaLoop
+      // add data sync statements
+      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+        var sync = true
+        if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncHostForWrites)
+          sync = false // skip write accesses if demanded
+        if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
+          sync = false // skip write access for read/write accesses
+        if (sync)
+          hostStmts += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+      }
 
-    /// compile final switch
-    val defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
-      case "Host" => 1 // CPU by default
-      case "Device" => 0 // GPU by default
-      case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
-    }
+      // add original loop
+      hostStmts += loop
 
-    ConditionStatement(defaultChoice, hostStmts, deviceStmts)
-  }
+      // update flags for written fields
+      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+        val fieldSelection = access._2.fieldSelection
+        if (access._1.startsWith("write"))
+          hostStmts += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+      }
 
-  this += new Transformation("Processing ContractingLoop and LoopOverDimensions nodes", {
+      // every LoopOverDimensions statement is potentially worse to transform in CUDA code
+      // Exceptions:
+      // 1. this loop is a special one and cannot be optimized in polyhedral model
+      // 2. this loop has no parallel potential
+      // use the host for dealing with the two exceptional cases
+      var earlyExit = false
+      if (!loop.isInstanceOf[PolyhedronAccessible])
+        earlyExit = true // always use host for special loops
+      if (!loop.isInstanceOf[OMP_PotentiallyParallel])
+        earlyExit = true // always use host for un-parallelizable loops
 
-    // every LoopOverDimensions statement is potentially worse to transform in CUDA code
-    // Exceptions:
-    // 1. this loop is a special one and cannot be optimized in polyhedral model
-    // 2. this loop has no parallel potential
-    // use the host for dealing with the two exceptional cases
-    case loop : LoopOverDimensions if loop.isInstanceOf[PolyhedronAccessible] && loop.isInstanceOf[OMP_PotentiallyParallel] =>
-      addHostDeviceBranching(loop)
+      if (earlyExit) {
+        hostStmts
+      } else {
+        var cudaLoop = Duplicate(loop)
+        cudaLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+        var deviceStmts = ListBuffer[Statement]()
+        deviceStmts += cudaLoop
+
+        /// compile final switch
+        val defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
+          case "Host" => 1 // CPU by default
+          case "Device" => 0 // GPU by default
+          case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
+        }
+
+        ConditionStatement(defaultChoice, hostStmts, deviceStmts)
+      }
   }, false)
 }
 

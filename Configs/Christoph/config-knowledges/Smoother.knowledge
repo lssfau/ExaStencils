@@ -49,14 +49,15 @@ mpi_numThreads = 1
 // Optimizations //
 ///////////////////
 // Polyhedron optimizations
-poly_optLevel_fine          = 3
-poly_optLevel_coarse        = 1
-poly_numFinestLevels        = 1
-poly_performDCE             = false
-poly_tileSize_x             = 0
-poly_tileSize_y             = 128
-poly_tileSize_z             = 0
-poly_filterDeps             = true
+//poly_optLevel_fine          = 3
+//poly_optLevel_coarse        = 1
+//poly_numFinestLevels        = 1
+//poly_performDCE             = false
+//poly_tileSize_x             = 32
+//poly_tileSize_y             = 32
+//poly_tileSize_z             = 32
+//poly_tileOuterLoop          = true
+//poly_filterDeps             = true
 
 // other optimizations
 opt_useAddressPrecalc  = true
