@@ -71,6 +71,7 @@ object Settings {
   var printNodeCountAfterTransformation : Boolean = false // print number of nodes after each transformation
   var printNodeCountAfterStrategy : Boolean = false // print number of nodes after each strategy
   var printTransformationTime : Boolean = false
+  var logStrategyResults : Boolean = true // Debug log strategy results
 
   def update() : Unit = {
     // handle CUDA

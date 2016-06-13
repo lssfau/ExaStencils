@@ -128,9 +128,12 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     val n = if (transformation.applyAtNode.isDefined) transformation.applyAtNode else node
     val result = StateManager.apply(token.get, transformation, n)
 
-    if (Settings.timeStrategies)
+    if (Settings.timeStrategies) {
       StrategyTimer.stopTiming(name)
-    Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+    }
+    if (Settings.logStrategyResults) {
+      Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+    }
     results_ += ((transformation, result))
     result
   }
@@ -178,7 +181,9 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
-    Logger.debug(s"""Result of strategy "${name}::${transformation.name}" in standalone mode: $result""")
+    if (Settings.logStrategyResults) {
+      Logger.debug(s"""Result of strategy "${name}::${transformation.name}" in standalone mode: $result""")
+    }
     results_ += ((transformation, result))
     result
   }
