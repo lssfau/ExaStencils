@@ -93,6 +93,9 @@ object Settings {
   var makefile_additionalCFlags : String = ""
   var makefile_additionalLDFlags : String = ""
 
+  // performance estimates (experimental)
+  var performanceEstimateOutputFile : String = "Compiler/performanceEstimate"
+
   /// external dependencies
   var pathsInc : ListBuffer[String] = ListBuffer()
   var pathsLib : ListBuffer[String] = ListBuffer()

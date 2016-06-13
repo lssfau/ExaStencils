@@ -1,15 +1,18 @@
 package exastencils.performance
 
+import java.io.PrintWriter
+
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.HashSet
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
-
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
+import exastencils.core.Settings
+import exastencils.logger.Logger
 
 /// util classes
 
@@ -23,7 +26,7 @@ case class PerformanceEstimate(var host : Double, var device : Double) {
 object AddPerformanceEstimates {
   def apply() = {
     CollectFunctionStatements.apply()
-    EvaluatePerformanceEstimates.doUntilDone()
+    EvaluatePerformanceEstimates.apply()
   }
 }
 
@@ -48,24 +51,33 @@ object CollectFunctionStatements extends DefaultStrategy("Collecting internal fu
 object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performance estimates") {
   var completeFunctions = HashMap[String, PerformanceEstimate]()
   var unknownFunctionCalls = true
+  var outputStream : PrintWriter = null
 
-  override def apply(node : Option[Node] = None) : Unit = {
-    unknownFunctionCalls = false
-    super.apply(node)
-  }
+  override def apply(node : Option[Node] = None): Unit = {
+    outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
+    try {
+      // FIXME georg.altmann: @sebastian: Why do we do this? Does this propagate something and unknownFunctionCalls = true
+      //       once propagation is finished?
+      // Why was this an extra function doUntilDone() and not apply(). WFM now.
 
-  def doUntilDone(node : Option[Node] = None) = {
-    var cnt = 0
-    unknownFunctionCalls = true
-    while (unknownFunctionCalls && cnt < 128) {
-      unknownFunctionCalls = false
-      super.apply(node)
-      cnt += 1
+      var cnt = 0
+      unknownFunctionCalls = true
+      while (unknownFunctionCalls && cnt < 128) {
+        unknownFunctionCalls = false
+        super.apply(node)
+        cnt += 1
+      }
+    } finally {
+      outputStream.close()
+      outputStream = null
     }
   }
 
   this += new Transformation("Processing function statements", {
-    case fct : FunctionStatement if !completeFunctions.contains(fct.name) && CollectFunctionStatements.internalFunctions.contains(fct.name) => {
+    case fct : FunctionStatement if (
+      !completeFunctions.contains(fct.name) &&
+        CollectFunctionStatements.internalFunctions.contains(fct.name)) =>
+    {
       // process function body
       EvaluatePerformanceEstimates_SubAST.applyStandalone(fct.body)
 
@@ -77,12 +89,17 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
         fct.annotate("perf_timeEstimate_host", estimatedTime.host)
         fct.annotate("perf_timeEstimate_device", estimatedTime.device)
 
-        completeFunctions.put(fct.name, estimatedTime)
-        fct.body = ListBuffer[Statement](
-          CommentStatement(s"Estimated host time for function: ${estimatedTime.host * 1000.0} ms"),
-          CommentStatement(s"Estimated device time for function: ${estimatedTime.device * 1000.0} ms")) ++ fct.body
-      }
+        val hostTimeMs : Double = estimatedTime.host * 1000.0
 
+        outputStream.println("%s\t%s\t%e".format("function", fct.name, hostTimeMs))
+
+        completeFunctions.put(fct.name, estimatedTime)
+        fct.body.prepend(
+          CommentStatement(s"Estimated host time for function: ${hostTimeMs} ms"),
+          CommentStatement(s"Estimated device time for function: ${estimatedTime.device * 1000.0} ms")
+        )
+
+      }
       fct
     }
   })
