@@ -1,7 +1,7 @@
 ///////////////////////////
 // General configuration //
 ///////////////////////////
-simd_avoidUnaligned         = true
+simd_avoidUnaligned         = false
 data_alignFieldPointers     = true
 useDblPrecision             = false
 

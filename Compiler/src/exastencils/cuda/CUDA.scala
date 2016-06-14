@@ -98,7 +98,37 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccessLike) extends Stat
   }
 }
 
+
 case class CUDA_FunctionCallExpression(
+    var name : String,
+    var arguments : ListBuffer[Expression],
+    var numThreadsPerDim : Array[Expression],
+    var numBlocksPerDim : Array[Expression] = Knowledge.experimental_cuda_blockSizeAsVec.map(n => n : Expression)) extends Expression {
+
+  def this(name : String, arguments : ListBuffer[Expression], numThreadsPerDim : Array[Long]) = this(name, arguments, numThreadsPerDim.map(n => n : Expression))
+  def this(name : String, arguments : ListBuffer[Expression], numThreadsPerDim : Array[Long], numBlocksPerDim : Array[Long]) = this(name, arguments, numThreadsPerDim.map(n => n : Expression), numBlocksPerDim.map(n => n : Expression))
+
+  override def prettyprint(out : PpStream) : Unit = {
+    val numDims = numThreadsPerDim.size
+    if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
+
+    val numBlocks = (0 until numDims).map(dim => {
+      (numThreadsPerDim(dim) + numBlocksPerDim(dim) - 1) / numBlocksPerDim(dim)
+    }).toArray
+
+    // TODO: simplify? check if integer ops are handled correctly
+
+    out << name << "<<<"
+    if (1 == numDims)
+      out << numBlocks(0) << ", " << numBlocksPerDim(0) // only one dimensions -> wrapping not necessary
+    else
+      out << s"dim3(" <<< (numBlocks, ", ") << "), " << s"dim3(" <<< (numBlocksPerDim.take(numDims), ", ") << ")"
+
+    out << ">>>" << '(' <<< (arguments, ", ") << ')'
+  }
+}
+
+case class CUDA_FunctionCallExperimentalExpression(
     var name : String,
     var arguments : ListBuffer[Expression],
     var numThreadsPerDim : Array[Expression],

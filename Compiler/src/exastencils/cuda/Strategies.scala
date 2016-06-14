@@ -92,37 +92,92 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
   val collector = new FctNameCollector
   this.register(collector)
 
-  this += new Transformation("Processing LoopOverDimensions nodes", {
+  def getHostDeviceSyncStmts(loop : LoopOverDimensions, isParallel : Boolean) = {
+    val (beforeHost, afterHost) = (ListBuffer[Statement](), ListBuffer[Statement]())
+    val (beforeDevice, afterDevice) = (ListBuffer[Statement](), ListBuffer[Statement]())
+    // don't filter here - memory transfer code is still required
+    GatherLocalFieldAccess.fieldAccesses.clear
+    GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
 
-    case loop : LoopOverDimensions =>
-      // don't filter here - memory transfer code is still required
-      // it is possible that data must be fetched from the gpu and cpu data has to be marked as edited,
-      // hence they are synced for the next GPU kernel
-      GatherLocalFieldAccess.fieldAccesses.clear
-      GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
+    // host sync stmts
 
-      /// compile host statements
-      var hostStmts = ListBuffer[Statement]()
+    // add data sync statements
+    for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+      var sync = true
+      if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncHostForWrites)
+        sync = false // skip write accesses if demanded
+      if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
+        sync = false // skip write access for read/write accesses
+      if (sync)
+        beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+    }
 
-      // add data sync statements
+    // update flags for written fields
+    for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
+      val fieldSelection = access._2.fieldSelection
+      if (access._1.startsWith("write"))
+        afterHost += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+    }
+
+    // device sync stmts
+
+    if (isParallel) {
+      // before: add data sync statements
       for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
         var sync = true
-        if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncHostForWrites)
+        if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncDeviceForWrites)
           sync = false // skip write accesses if demanded
         if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
           sync = false // skip write access for read/write accesses
         if (sync)
-          hostStmts += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+          beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
       }
 
-      // add original loop
-      hostStmts += loop
+      if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
+        afterDevice += CUDA_DeviceSynchronize()
 
       // update flags for written fields
       for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
         val fieldSelection = access._2.fieldSelection
         if (access._1.startsWith("write"))
-          hostStmts += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+          afterDevice += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+      }
+    }
+
+    (beforeHost, afterHost, beforeDevice, afterDevice)
+  }
+
+  def addHostDeviceBranching(hostStmts: ListBuffer[Statement], deviceStmts: ListBuffer[Statement], loop : LoopOverDimensions, earlyExit : Boolean) : ListBuffer[Statement] = {
+    if (earlyExit) {
+      hostStmts
+    } else {
+      /// compile final switch
+      val defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
+        case "Host" => 1 // CPU by default
+        case "Device" => 0 // GPU by default
+        case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
+      }
+
+      ListBuffer[Statement](ConditionStatement(defaultChoice, hostStmts, deviceStmts))
+    }
+  }
+
+  this += new Transformation("Processing ContractingLoop and LoopOverDimensions nodes", {
+    case cl : ContractingLoop =>
+      var hostStmts = new ListBuffer[Statement]()
+      var deviceStmts = new ListBuffer[Statement]()
+      val fieldOffset = new mutable.HashMap[(String, Int), Int]()
+      val fields = new mutable.HashMap[(String, Int), Field]()
+      var hostCondStmt : ConditionStatement = null
+      var deviceCondStmt : ConditionStatement = null
+
+      val containedLoop = cl.statements.find(s =>
+        s.isInstanceOf[ConditionStatement] || s.isInstanceOf[LoopOverDimensions]) match {
+        case Some(ConditionStatement(cond, ListBuffer(loop : LoopOverDimensions), ListBuffer())) =>
+          loop
+        case Some(loop : LoopOverDimensions) =>
+          loop
+        case None => LoopOverDimensions(0, IndexRange(new MultiIndex(), new MultiIndex()), ListBuffer[Statement]())
       }
 
       // every LoopOverDimensions statement is potentially worse to transform in CUDA code
@@ -130,29 +185,91 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       // 1. this loop is a special one and cannot be optimized in polyhedral model
       // 2. this loop has no parallel potential
       // use the host for dealing with the two exceptional cases
-      var earlyExit = false
-      if (!loop.isInstanceOf[PolyhedronAccessible])
-        earlyExit = true // always use host for special loops
-      if (!loop.isInstanceOf[OMP_PotentiallyParallel])
-        earlyExit = true // always use host for un-parallelizable loops
+      val isParallel = containedLoop.isInstanceOf[PolyhedronAccessible] && containedLoop.isInstanceOf[OMP_PotentiallyParallel]
 
-      if (earlyExit) {
-        hostStmts
-      } else {
-        var cudaLoop = Duplicate(loop)
-        cudaLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
-        var deviceStmts = ListBuffer[Statement]()
-        deviceStmts += cudaLoop
+      // calculate memory transfer statements for host and device
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop, isParallel)
 
-        /// compile final switch
-        val defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
-          case "Host" => 1 // CPU by default
-          case "Device" => 0 // GPU by default
-          case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
-        }
+      hostStmts ++= beforeHost
+      deviceStmts ++= beforeDevice
 
-        ConditionStatement(defaultChoice, hostStmts, deviceStmts)
+      // resolve contracting loop
+      for (i <- 1 to cl.number)
+        for (stmt <- cl.statements)
+          stmt match {
+            case AdvanceSlotStatement(iv.CurrentSlot(field, fragment)) =>
+              val fKey = (field.identifier, field.level)
+              fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
+              fields(fKey) = field
+
+            case cStmt @ ConditionStatement(cond, ListBuffer(l : LoopOverDimensions), ListBuffer()) =>
+              val nju = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
+
+              if (hostCondStmt == null || cond != hostCondStmt.condition) {
+                hostCondStmt = Duplicate(cStmt)
+                hostCondStmt.trueBody.clear()
+                deviceCondStmt = Duplicate(hostCondStmt)
+                hostStmts += hostCondStmt
+                deviceStmts += deviceCondStmt
+              }
+              hostCondStmt.trueBody += nju
+
+              if (isParallel) {
+                val njuCuda = Duplicate(nju)
+                njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+                deviceCondStmt.trueBody += njuCuda
+              }
+
+            case l : LoopOverDimensions =>
+              val loop = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
+              hostStmts += loop
+
+              if (isParallel) {
+                val loopCuda = Duplicate(loop)
+                loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+                deviceStmts += loopCuda
+              }
+          }
+
+      hostStmts ++= afterHost
+      deviceStmts ++= afterDevice
+
+      val res = addHostDeviceBranching(hostStmts, deviceStmts, containedLoop, !isParallel)
+
+      for ((fKey, offset) <- fieldOffset) {
+        val field = fields(fKey)
+        res += AssignmentStatement(iv.CurrentSlot(field), (iv.CurrentSlot(field) + offset) Mod field.numSlots)
       }
+
+      res
+    case loop : LoopOverDimensions =>
+      val hostStmts = ListBuffer[Statement]()
+      val deviceStmts = ListBuffer[Statement]()
+
+      // every LoopOverDimensions statement is potentially worse to transform in CUDA code
+      // Exceptions:
+      // 1. this loop is a special one and cannot be optimized in polyhedral model
+      // 2. this loop has no parallel potential
+      // use the host for dealing with the two exceptional cases
+      val isParallel = loop.isInstanceOf[PolyhedronAccessible] && loop.isInstanceOf[OMP_PotentiallyParallel]
+
+      // calculate memory transfer statements for host and device
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop, isParallel)
+
+      hostStmts ++= beforeHost
+      deviceStmts ++= beforeDevice
+
+      hostStmts += loop
+      if (isParallel) {
+        val loopCuda = Duplicate(loop)
+        loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+        deviceStmts += loopCuda
+      }
+
+      hostStmts ++= afterHost
+      deviceStmts ++= afterDevice
+
+      addHostDeviceBranching(hostStmts, deviceStmts, loop, !isParallel)
   }, false)
 }
 
@@ -297,6 +414,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       val innerLoops = collectLoopsInBand(loop)
       val (loopVariables, lowerBounds, upperBounds, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(innerLoops)
       val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.reverse)
+      val deviceStatements = ListBuffer[Statement]()
 
       // add kernel and kernel call
       val kernelFunctions = StateManager.findFirst[KernelFunctions]().get
@@ -325,23 +443,6 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
 
       kernelFunctions.addKernel(Duplicate(kernel))
 
-      // collect field accesses for memory transfer
-      GatherLocalFieldAccess.fieldAccesses.clear
-      GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
-
-      val deviceStatements = ListBuffer[Statement]()
-
-      // add data sync statements
-      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-        var sync = true
-        if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncDeviceForWrites)
-          sync = false // skip write accesses if demanded
-        if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
-          sync = false // skip write access for read/write accesses
-        if (sync)
-          deviceStatements += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
-      }
-
       // process return value of kernel wrapper call if reduction is required
       if (loop.reduction.isDefined) {
         val red = loop.reduction.get
@@ -350,16 +451,6 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
             FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))))
       } else {
         deviceStatements += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
-      }
-
-      if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
-        deviceStatements += CUDA_DeviceSynchronize()
-
-      // update flags for written fields
-      for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-        val fieldSelection = access._2.fieldSelection
-        if (access._1.startsWith("write"))
-          deviceStatements += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
       }
 
       deviceStatements

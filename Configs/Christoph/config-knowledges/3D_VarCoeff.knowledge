@@ -53,10 +53,10 @@ l3tmp_genTemporalBlocking  = false
 // Optimizations //
 ///////////////////
 // Polyhedron optimizations
-poly_optLevel_fine          = 3
-poly_optLevel_coarse        = 1
-poly_numFinestLevels        = 1
-poly_performDCE             = false
+//poly_optLevel_fine          = 3
+//poly_optLevel_coarse        = 1
+//poly_numFinestLevels        = 1
+//poly_performDCE             = false
 //poly_tileSize_x             = 0
 //poly_tileSize_y             = 0
 //poly_tileSize_z             = 0
