@@ -508,7 +508,7 @@ case class ExpKernel(var identifier : String,
     }
 
     // evaluate required thread counts
-    var requiredThreads = (maxIndices, minIndices).zipped.map(_ - _)
+    var requiredThreads : Array[Long] = (maxIndices, minIndices).zipped.map(_ - _)
 
     if (null == requiredThreads || requiredThreads.product <= 0) {
       Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
@@ -516,13 +516,14 @@ case class ExpKernel(var identifier : String,
     }
 
     // distribute threads along threads in blocks and blocks in grid
-    val numThreadsPerDim = Array.fill[Expression](dimensionality)(32)
-    val numBlocksPerDim = (requiredThreads, numThreadsPerDim).zipped.map(_ / _).toArray[Expression]
+    val numThreadsPerDim = Array.fill[Long](dimensionality)(32)
+    val threadMax = (requiredThreads, numThreadsPerDim).zipped.map(math.max(_, _))
+    val numBlocksPerDim = (threadMax, numThreadsPerDim).zipped.map(_ / _).toArray[Long]
 
     var body = ListBuffer[Statement]()
 
     if (reduction.isDefined) {
-      def bufSize = MultiplicationExpression(numThreadsPerDim.to[ListBuffer])
+      def bufSize = requiredThreads.product
       def bufAccess = iv.ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.dType.get)
       body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerDim, numBlocksPerDim)

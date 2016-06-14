@@ -610,7 +610,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
       val index = new MultiIndex((0 until kernel.dimensionality).map(dim =>
-        new VariableAccess(dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
+        new VariableAccess(ExpKernel.KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => new SubtractionExpression(x, y) : Expression)
 
