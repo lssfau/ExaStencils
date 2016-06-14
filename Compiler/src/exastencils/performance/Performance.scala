@@ -26,7 +26,7 @@ case class PerformanceEstimate(var host : Double, var device : Double) {
 object AddPerformanceEstimates {
   def apply() = {
     CollectFunctionStatements.apply()
-    EvaluatePerformanceEstimates.apply()
+    EvaluatePerformanceEstimates.doUntilDone()
   }
 }
 
@@ -51,21 +51,30 @@ object CollectFunctionStatements extends DefaultStrategy("Collecting internal fu
 object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performance estimates") {
   var completeFunctions = HashMap[String, PerformanceEstimate]()
   var unknownFunctionCalls = true
-  var outputStream : PrintWriter = null
+  var outputStream: PrintWriter = null
 
-  override def apply(node : Option[Node] = None): Unit = {
+  override def apply(node: Option[Node] = None): Unit = {
+    realApplyAndDo(false, node)
+  }
+
+  def doUntilDone(node : Option[Node] = None): Unit = {
+    realApplyAndDo(true, node)
+  }
+
+  private def realApplyAndDo(doUntilDone: Boolean, node: Option[Node] = None): Unit = {
     outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
     try {
-      // FIXME georg.altmann: @sebastian: Why do we do this? Does this propagate something and unknownFunctionCalls = true
-      //       once propagation is finished?
-      // Why was this an extra function doUntilDone() and not apply(). WFM now.
-
-      var cnt = 0
-      unknownFunctionCalls = true
-      while (unknownFunctionCalls && cnt < 128) {
+      if (doUntilDone) { // doUntilDone
+        var cnt = 0
+        unknownFunctionCalls = true
+        while (unknownFunctionCalls && cnt < 128) {
+          unknownFunctionCalls = false
+          super.apply(node)
+          cnt += 1
+        }
+      } else { // apply() once
         unknownFunctionCalls = false
         super.apply(node)
-        cnt += 1
       }
     } finally {
       outputStream.close()
