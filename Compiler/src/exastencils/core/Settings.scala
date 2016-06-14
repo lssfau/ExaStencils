@@ -10,23 +10,70 @@ object Settings {
 
   /// input
   var basePathPrefix : String = ""
-  def getBasePath = if (basePathPrefix.isEmpty || basePathPrefix.endsWith("/") || basePathPrefix.endsWith("\\")) basePathPrefix else basePathPrefix + "/"
+  def getBasePath =
+    if (basePathPrefix.isEmpty() || basePathPrefix.endsWith("/") || basePathPrefix.endsWith("\\")) {
+      basePathPrefix
+    } else {
+      basePathPrefix + "/"
+    }
   def inputFromJson : Boolean = false
 
   var l3file : String = ""
-  def defL3file : String = if ("" == basePathPrefix) "../Compiler/dsl/Layer3.exa" else getBasePath + "Compiler/dsl/Layer3.exa"
-  def getL3file : String = if (l3file.isEmpty) defL3file else getBasePath + l3file
+  def defL3file : String =
+    if (basePathPrefix.isEmpty()) {
+      "../Compiler/dsl/Layer3.exa"
+    } else {
+      getBasePath + "Compiler/dsl/Layer3.exa"
+    }
+
+  def getL3file : String =
+    if (l3file.isEmpty) {
+      defL3file
+    } else {
+      getBasePath + l3file
+    }
 
   var l4file : String = ""
-  def defL4file : String = if ("" == basePathPrefix) "../Compiler/dsl/Layer4.exa" else getBasePath + "Compiler/dsl/Layer4.exa"
-  def getL4file : String = if (l4file.isEmpty) defL4file else getBasePath + l4file
+  def defL4file : String =
+    if (basePathPrefix.isEmpty()) {
+      "../Compiler/dsl/Layer4.exa"
+    } else {
+      getBasePath + "Compiler/dsl/Layer4.exa"
+    }
+  def getL4file : String =
+    if (l4file.isEmpty()) {
+      defL4file
+    } else {
+      getBasePath + l4file
+    }
 
-  var poly_explorationConfig : String = "" // config file for polyhedral search space exploration
+  // config file for polyhedral search space exploration
+  var poly_explorationConfig : String = ""
 
   /// output
   var outputPath : String = ""
-  def defOutputPath : String = if ("" == basePathPrefix) { if ("MSVC" == Platform.targetCompiler) "../generated/" else "/tmp/" } else getBasePath + "generated/"
-  def getOutputPath : String = if (outputPath.isEmpty) defOutputPath else getBasePath + (if (outputPath.endsWith("/") || outputPath.endsWith("\\")) outputPath else outputPath + "/")
+  def defOutputPath : String =
+    if (basePathPrefix.isEmpty()) {
+      if ("MSVC" == Platform.targetCompiler) {
+        "../generated/"
+      } else {
+        "/tmp/"
+      }
+    } else {
+      getBasePath + "generated/"
+    }
+
+  def getOutputPath : String =
+    if (outputPath.isEmpty) {
+      defOutputPath
+    } else {
+      getBasePath + (
+        if (outputPath.endsWith("/") || outputPath.endsWith("\\")) {
+          outputPath
+        } else {
+          outputPath + "/"
+        })
+    }
   var cancelIfOutFolderExists : Boolean = false
 
   /// management
@@ -60,17 +107,29 @@ object Settings {
   /// logging
   var produceHtmlLog : Boolean = false
   var htmlLogFile : String = ""
-  def defHtmlLogFile : String = if ("" == basePathPrefix) "../Compiler/log/log.html" else getBasePath + "Compiler/log/log.html"
-  def getHtmlLogFile : String = if (htmlLogFile.isEmpty) defHtmlLogFile else getBasePath + htmlLogFile
+  def defHtmlLogFile : String =
+    if (basePathPrefix.isEmpty()) {
+      "../Compiler/log/log.html"
+    } else {
+      getBasePath + "Compiler/log/log.html"
+    }
+  def getHtmlLogFile : String =
+    if (htmlLogFile.isEmpty) {
+      defHtmlLogFile
+    } else {
+      getBasePath + htmlLogFile
+    }
 
   /// debug output
   var printClonedObjects : Boolean = false
 
   var timeStrategies : Boolean = false
-  var timeStratPercentThreshold : Int = 5 // five percent threshold by default -> measurements with less than 5.0 % share are not displayed
+  // five percent threshold by default -> measurements with less than 5.0 % share are not displayed
+  var timeStratPercentThreshold : Int = 5
   var printNodeCountAfterTransformation : Boolean = false // print number of nodes after each transformation
   var printNodeCountAfterStrategy : Boolean = false // print number of nodes after each strategy
   var printTransformationTime : Boolean = false
+  var logStrategyResults : Boolean = true // Debug log strategy results
 
   def update() : Unit = {
     // handle CUDA
