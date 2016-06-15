@@ -2,6 +2,7 @@ package exastencils.datastructures.ir
 
 import exastencils.datastructures._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.prettyprinting._
 
 trait Datatype extends Node with PrettyPrintable {
@@ -72,8 +73,14 @@ case object IntegerDatatype extends ScalarDatatype {
 }
 
 case object RealDatatype extends ScalarDatatype {
+  var printedDepWarn = false
+
   exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = {
+    if (!printedDepWarn) {
+      Logger.warn("RealDatatype is deprecated - please switch to FloatDatatype or DoubleDatatype")
+      printedDepWarn = true
+    }
     if (Knowledge.useDblPrecision)
       out << "double"
     else
@@ -95,6 +102,20 @@ case object RealDatatype extends ScalarDatatype {
   }
 }
 
+case object FloatDatatype extends ScalarDatatype {
+  exastencils.core.Duplicate.registerConstant(this)
+  override def prettyprint(out : PpStream) : Unit = out << "float"
+  override def prettyprint_mpi = "MPI_FLOAT"
+  override def typicalByteSize = 4
+}
+
+case object DoubleDatatype extends ScalarDatatype {
+  exastencils.core.Duplicate.registerConstant(this)
+  override def prettyprint(out : PpStream) : Unit = out << "double"
+  override def prettyprint_mpi = "MPI_DOUBLE"
+  override def typicalByteSize = 8
+}
+
 case object CharDatatype extends ScalarDatatype {
   exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "char"
@@ -111,7 +132,7 @@ trait HigherOrderDatatype extends Datatype {
 
 // FIXME: in the following classes, rename size to numElements to make intention clearer
 
-case class ArrayDatatype(datatype : Datatype, size : Int) extends HigherOrderDatatype {
+case class ArrayDatatype(override val datatype : Datatype, size : Int) extends HigherOrderDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
@@ -123,7 +144,7 @@ case class ArrayDatatype(datatype : Datatype, size : Int) extends HigherOrderDat
   override def typicalByteSize = size * datatype.typicalByteSize
 }
 
-case class ArrayDatatype_VS(datatype : Datatype, size : Expression) extends HigherOrderDatatype {
+case class ArrayDatatype_VS(override val datatype : Datatype, size : Expression) extends HigherOrderDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
@@ -203,7 +224,7 @@ trait DatatypeModifier extends Datatype {
   override def typicalByteSize = datatype.typicalByteSize
 }
 
-case class VolatileDatatype(datatype : Datatype) extends DatatypeModifier {
+case class VolatileDatatype(override val datatype : Datatype) extends DatatypeModifier {
   override def prettyprint(out : PpStream) : Unit = out << "volatile " << datatype
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
@@ -226,7 +247,7 @@ trait PointerLikeDatatype extends IndirectionDatatype {
   override def getSizeArray : Array[Int] = Array()
   override def resolveFlattendSize : Int = 1
 
-  override def typicalByteSize = if (Knowledge.hw_64bit) 8 else 4
+  override def typicalByteSize = if (Platform.hw_64bit) 8 else 4
 }
 
 trait ReferenceLikeDatatype extends IndirectionDatatype {
@@ -237,17 +258,17 @@ trait ReferenceLikeDatatype extends IndirectionDatatype {
   override def typicalByteSize = datatype.typicalByteSize
 }
 
-case class PointerDatatype(datatype : Datatype) extends PointerLikeDatatype {
+case class PointerDatatype(override val datatype : Datatype) extends PointerLikeDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '*'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
-case class ConstPointerDatatype(datatype : Datatype) extends PointerLikeDatatype {
+case class ConstPointerDatatype(override val datatype : Datatype) extends PointerLikeDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << "* const"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
-case class ReferenceDatatype(datatype : Datatype) extends ReferenceLikeDatatype {
+case class ReferenceDatatype(override val datatype : Datatype) extends ReferenceLikeDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '&'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
@@ -293,12 +314,12 @@ trait SIMDDatatype extends Datatype {
   // TODO: currently treated similar to a vector - correct?
 
   override def dimensionality : Int = 1
-  override def getSizeArray : Array[Int] = Array(Knowledge.simd_vectorSize)
+  override def getSizeArray : Array[Int] = Array(Platform.simd_vectorSize)
   override def resolveBaseDatatype : Datatype = datatype
   override def resolveDeclType : Datatype = this
   override def resolveDeclPostscript : String = ""
-  override def resolveFlattendSize : Int = Knowledge.simd_vectorSize
-  override def typicalByteSize = Knowledge.simd_vectorSize * datatype.typicalByteSize
+  override def resolveFlattendSize : Int = Platform.simd_vectorSize
+  override def typicalByteSize = Platform.simd_vectorSize * datatype.typicalByteSize
 }
 
 case object SIMD_RealDatatype extends SIMDDatatype {
@@ -306,7 +327,7 @@ case object SIMD_RealDatatype extends SIMDDatatype {
   override def datatype : ScalarDatatype = RealDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val suffix = if (Knowledge.useDblPrecision) "d" else ""
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "__m128" << suffix
       case "AVX" | "AVX2"    => out << "__m256" << suffix
       case "AVX512" | "IMCI" => out << "__m512" << suffix

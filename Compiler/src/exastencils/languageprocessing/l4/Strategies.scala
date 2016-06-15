@@ -66,7 +66,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
     this.register(valueCollector)
 
-    this.execute(new Transformation("ResolveValuesInExpressions", {
+    this.execute(new Transformation("Resolve Values in Expressions", {
       case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
         var value = valueCollector.getValue(x.name)
         value match {
@@ -84,8 +84,33 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     }))
     this.unregister(valueCollector)
 
+    // resolve globals (lower precendence than local values!)
+    val globalVals = collection.mutable.HashMap[String, Expression]()
+    StateManager.root_.asInstanceOf[l4.Root].globals.foreach(g => g.values.foreach(x => x.identifier match {
+      case v : LeveledIdentifier => globalVals += ((v.name + "@@" + v.level, x.expression))
+      case _                     => globalVals += ((x.identifier.name, x.expression))
+    }))
+
+    this.execute(new Transformation("Resolve Global Values", {
+      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
+        var value = globalVals.get(x.name)
+        value match {
+          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Global Val was found"""); x }
+          case _    => value.get
+        }
+      }
+      case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
+        var value = globalVals.get(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
+        value match {
+          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Global Val was found"""); x }
+          case _    => value.get
+        }
+      }
+    }))
+    globalVals.clear()
+
     // resolve accesses
-    this.execute(new Transformation("ResolveAccessSpecifications", {
+    this.execute(new Transformation("Resolve AccessSpecifications", {
       case access : UnresolvedAccess =>
         if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
           access.resolveToFieldAccess

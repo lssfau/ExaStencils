@@ -1,25 +1,31 @@
 package exastencils.datastructures.ir.iv
 
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.globals.Globals
-import exastencils.knowledge.Knowledge
+import exastencils.globals._
+import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.prettyprinting._
+import exastencils.util.SimplifyExpression
 
-case class Timer(var name : Expression) extends UnduplicatedVariable {
+import scala.collection.mutable._
+
+// FIXME: why is name an Expression?
+case class Timer(var name : Expression) extends UnduplicatedVariable with Access {
   override def resolveName = s"timer_" + stripName
   override def resolveDataType = "StopWatch"
 
   def stripName = name.prettyprint.replaceAll("[^a-zA-Z0-9]", "_")
 
   override def getCtor() : Option[Statement] = {
-    Some(AssignmentStatement(resolveName ~ ".timerName", StringConstant(stripName)))
+    // FIXME: datatype for VariableAccess
+    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDataType)), "timerName"), StringConstant(stripName)))
   }
 }
 
 object VecShiftIndexStaticInit {
-  val header = Knowledge.simd_header
+  val header = Platform.simd_header
   if (header != null)
     StateManager.findFirst[Globals].get.externalDependencies += header
 }
@@ -27,7 +33,7 @@ object VecShiftIndexStaticInit {
 case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
   VecShiftIndexStaticInit // just to ensure VecShiftIndexStaticInit is initialized (once, since its an object)
 
-  if (offset <= 0 || offset >= Knowledge.simd_vectorSize)
+  if (offset <= 0 || offset >= Platform.simd_vectorSize)
     Logger.error("VecShiftIndex out of bounds: " + offset)
 
   override def resolveName = "vShift" + offset
@@ -35,7 +41,7 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
 
   override def getCtor() : Option[Statement] = {
     val init = new StringLiteral(null : String)
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "AVX512" =>
         if (Knowledge.useDblPrecision)
           init.value = "_mm512_set_epi64(" + (7 + offset to 0 + offset by -1).mkString(", ") + ')'
@@ -50,5 +56,37 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
     }
 
     return Some(AssignmentStatement(new VariableAccess(resolveName, resolveDataType), init))
+  }
+}
+
+object LoopCarriedCSBuffer {
+  final val commonPrefix = "_lcs"
+}
+
+case class LoopCarriedCSBuffer(var identifier : Int, val baseDatatype : Datatype, val dimSizes : MultiIndex) extends InternalVariable(true, false, false, false, false) {
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << resolveAccess(resolveName, LoopOverFragments.defIt, null, null, null, null)
+  }
+
+  override def resolveName() : String = {
+    return LoopCarriedCSBuffer.commonPrefix + identifier
+  }
+
+  override def resolveDataType() : Datatype = {
+    return new PointerDatatype(baseDatatype)
+  }
+
+  override def resolveDefValue() : Option[Expression] = {
+    return Some(0)
+  }
+
+  override def getDtor() : Option[Statement] = {
+    val ptrExpr = resolveAccess(resolveName, LoopOverFragments.defIt, null, null, null, null)
+    Some(wrapInLoops(
+      new ConditionStatement(ptrExpr,
+        ListBuffer[Statement](
+          FreeStatement(ptrExpr),
+          new AssignmentStatement(ptrExpr, 0)))))
   }
 }

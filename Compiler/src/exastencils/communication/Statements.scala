@@ -175,7 +175,7 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
       ListBuffer[Statement](
         // wait until the fragment to be written to is ready for communication
         new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
-        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessable,
+        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
   }
@@ -200,7 +200,7 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
       ListBuffer[Statement](
         // wait until the fragment to be read from is ready for communication
         new FunctionCallExpression("waitForFlag", AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
-        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessable,
+        new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
   }
@@ -253,9 +253,9 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
       else
         maxCnt)
       if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == SimplifyExpression.evalIntegral(cnt))) {
-        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
-        RemoteSend(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices, condition), concurrencyId)
+        RemoteSend(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
         RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", maxCnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
@@ -317,9 +317,9 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
       val maxCnt = indices.getTotalSize
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
       if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(cnt)) {
-        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
-        RemoteRecv(field, neighbor, s"&" ~ new DirectFieldAccess(field, indices.begin), 1, MPI_DataType(field, indices, condition), concurrencyId)
+        RemoteRecv(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
         RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", maxCnt, neighbor.index), cnt, RealDatatype, concurrencyId)
       }
@@ -390,7 +390,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
         new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         new MultiIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
-      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
+      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
     }
 
     ret
@@ -425,7 +425,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
         new MultiIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
-      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessable
+      ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
     }
 
     ret
@@ -479,8 +479,8 @@ case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo
     var conditions = ListBuffer[Expression](NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh.index)))
     for (dim <- 0 until field.field.fieldLayout.numDimsGrid) {
       neigh.dir(dim) match {
-        case -1 => conditions += LowerExpression(LoopOverDimensions.defIt(Knowledge.dimensionality)(dim), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
-        case 1  => conditions += GreaterEqualExpression(LoopOverDimensions.defIt(Knowledge.dimensionality)(dim), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))
+        case -1 => conditions += LowerExpression(LoopOverDimensions.defItForDim(dim), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
+        case 1  => conditions += GreaterEqualExpression(LoopOverDimensions.defItForDim(dim), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))
         case 0  => // true
       }
     }

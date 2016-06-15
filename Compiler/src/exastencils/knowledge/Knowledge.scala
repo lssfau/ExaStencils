@@ -5,59 +5,9 @@ import exastencils.logger._
 import exastencils.spl._
 
 object Knowledge {
-  // TODO: rename and move to hw knowledge?
-  var targetOS : String = "Windows" // the target operating system: "Linux", "Windows", "OSX"
-  var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
-  var targetCompilerVersion : Int = 0 // major version of the target compiler
-  var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
-
-  var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
-  // FIXME: move me to dedicated hardware specification
-  var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
-  def hw_numCoresPerNode : Int = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
-  var hw_numNodes : Int = 1
-  var hw_cpu_name : String = "Intel Xeon E5620"
-  var hw_cpu_numCoresPerCPU : Int = 4
-  var hw_cpu_numCPUs : Int = 2
-  var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
-  var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
-  var hw_cpu_numCyclesPerDiv : Double = 24 // arbitrary value -> to be benchmarked later
-  var hw_64bit : Boolean = true // true if 64 bit addresses are used
-  var hw_cacheLineSize : Int = 512 // in B
-  var hw_gpu_name : String = "NVidia Quadro 4000"
-  var hw_gpu_numDevices : Int = 2
-  var hw_gpu_bandwidth : Double = 89.6 * 1024 * 1024 * 1024 // in B/s
-  var hw_gpu_frequency : Double = 0.475 * 1000 * 1000 * 1000 // in Hz
-  var hw_gpu_numCores : Int = 256
-  var hw_cuda_capability : Int = 2
-  var hw_cuda_capabilityMinor : Int = 0
-
-  var sw_cuda_version : Int = 7
-  var sw_cuda_versionMinor : Int = 5
-  var sw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
-
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
   var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
-
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "AVX512", "IMCI", "QPX", "NEON"
-  def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
-    val double : Int = if (useDblPrecision) 1 else 2
-    simd_instructionSet match {
-      case "SSE3"            => 2 * double
-      case "AVX" | "AVX2"    => 4 * double
-      case "AVX512" | "IMCI" => 8 * double
-      case "QPX"             => 4 // yes, it's always 4
-      case "NEON"            => 2 * double // TODO: check if double is supported
-    }
-  }
-  def simd_header : String = { // header for vector intrinsics
-    simd_instructionSet match {
-      case "SSE3" | "AVX" | "AVX2" | "AVX512" | "IMCI" => "immintrin.h"
-      case "NEON"                                      => "arm_neon.h"
-      case "QPX"                                       => null
-    }
-  }
 
   var simd_avoidUnaligned : Boolean = false
 
@@ -178,18 +128,6 @@ object Knowledge {
   var ir_genSepLayoutsPerField : Boolean = true // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
   var ir_maxInliningSize : Int = 10 // inlines functions containing less or equal number of statement nodes (0 disables inlining)
 
-  // --- Compiler Capabilities ---
-  def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
-    targetCompiler match {
-      case "MSVC"            => targetCompilerVersion >= 12
-      case "GCC"             => targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
-      case "IBMXL" | "IBMBG" => false // TODO: does it support initializer lists? since which version?
-      case "ICC"             => targetCompilerVersion >= 14
-      case "CLANG"           => targetCompilerVersion >= 3 // TODO: check if some minor version fails to compile
-      case _                 => Logger.error("Unsupported target compiler"); false
-    }
-  }
-
   // --- Data Structures ---
   var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
   var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier
@@ -222,30 +160,10 @@ object Knowledge {
   var omp_enabled : Boolean = false // [true|false]
   var omp_numThreads : Int = 1 // TODO // the number of omp threads to be used; may be incorporated in omp pragmas
 
-  def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
-    targetCompiler match {
-      case "MSVC"            => 2.0
-      case "GCC"             => 4.0
-      case "IBMXL" | "IBMBG" => 3.0
-      case "ICC"             => if (targetCompilerVersion >= 15) 4.0; else if (targetCompilerVersion >= 13) 3.1; else if (targetCompilerVersion >= 12 && targetCompilerVersionMinor >= 1) 3.1; else 3.0
-      case "CLANG"           => if (targetCompilerVersion >= 3 && targetCompilerVersionMinor >= 7) 3.1; else 0.0
-      case _                 => Logger.error("Unsupported target compiler"); 0.0
-    }
-  }
   var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
   var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
   var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
   var omp_minWorkItemsPerThread : Int = 400 // [1~inf§omp_minWorkItemsPerThread+1] // threshold specifying which loops yield enough workload to amortize the omp overhead
-  def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
-    targetCompiler match {
-      case "MSVC"            => true
-      case "GCC"             => true
-      case "IBMXL" | "IBMBG" => true // needs to be true since recently
-      case "ICC"             => true
-      case "CLANG"           => true
-      case _                 => Logger.error("Unsupported target compiler"); true
-    }
-  }
   var omp_nameCriticalSections : Boolean = false // specifies if unique (usually consecutively numbered) identifiers are to be generated for OMP critical sections => allows entering multiple, disctinct sections concurrently
 
   // --- MPI Parallelization ---
@@ -270,6 +188,7 @@ object Knowledge {
   var poly_optLevel_fine : Int = 0 // [0~3§poly_optLevel_fine+1] // poly opt-level for poly_numFinestLevels finest fields
   var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine§poly_optLevel_coarse+1] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
   var poly_numFinestLevels : Int = 2 // [1~numLevels§poly_numFinestLevels+1] // number of levels that should be optimized in PolyOpt (starting from the finest)
+  var poly_performDCE : Boolean = true // [true|false] // specifies if the polyhedral dead code elimination should be performed (which can increase the generation time)
   var poly_tileSize_x : Int = 0 // [112~1000000000 $32§poly_tileSize_x+32] // '0' means no tiling at all in this dimension
   var poly_tileSize_y : Int = 0 // [16~1000000000 $32§poly_tileSize_y+32]
   var poly_tileSize_z : Int = 0 // [16~1000000000 $32§poly_tileSize_z+32]
@@ -290,6 +209,10 @@ object Knowledge {
   var opt_unroll : Int = 1 // [1~5]
   var opt_unroll_interleave : Boolean = false // [true|false]
   var opt_useColorSplitting : Boolean = false // [true|false] // only relevant for RBGS smoother currently
+  // for both CSE: currently assumes RealDatatype for ALL common subexpressions
+  var opt_conventionalCSE : Boolean = false // [true|false] // apply a conventional common subexpression elimination
+  var opt_loopCarriedCSE : Boolean = false // [true|false] // apply a loop carried common subexpression elimination; this effectively serializes optimized loop-nests, so parallelize LoopOverFragments!
+  var opt_loopCarriedCSE_skipOuter : Int = 0 // [0~dimensionality] // do not take this number of outer dimensions into account when performing a loop carried CSE
 
   /// BEGIN HACK config options for generating L4 DSL file
   var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
@@ -318,9 +241,11 @@ object Knowledge {
   var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
   var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
   var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
+  var l3tmp_genCommTimersPerField : Boolean = false // generates different communication timers for each field
   var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
 
   var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
+  var l3tmp_printTimersToFileForEachRank : Boolean = false // prints separate timer values for each rank -> requires some additional memory for the gather op
   var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
   var l3tmp_timerOuputFile : String = "timings.csv" // the file timer data is to be written to if l3tmp_printTimersToFile is activated
 
@@ -334,7 +259,7 @@ object Knowledge {
   var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
   var l3tmp_genVectorFields : Boolean = false // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
   var l3tmp_numVecDims : Int = (if (l3tmp_genVectorFields) 2 else 1) // number of components the PDE is to be solved for
-  var l3tmp_genFragLoops : Boolean = true // adds fragment loops to the L4 DSL file
+  var l3tmp_genFragLoops : Boolean = false // adds fragment loops to the L4 DSL file
   var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
   var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
@@ -372,6 +297,8 @@ object Knowledge {
   var experimental_bc_checkOnlyMainAxis : Boolean = true
   var experimental_bc_avoidOrOperations : Boolean = true
 
+  var experimental_useStefanOffsets : Boolean = false // use this flag to resolve iteration offsets -> use only for single fragments!
+
   var experimental_resolveUnreqFragmentLoops : Boolean = false
 
   var experimental_allowCommInFragLoops : Boolean = false
@@ -394,6 +321,7 @@ object Knowledge {
   var experimental_cuda_blockSize_z : Int = 8 // default block size in x dimension
   def experimental_cuda_blockSizeAsVec = Array(experimental_cuda_blockSize_x, experimental_cuda_blockSize_y, experimental_cuda_blockSize_z)
   def experimental_cuda_blockSizeTotal = experimental_cuda_blockSize_x * experimental_cuda_blockSize_y * experimental_cuda_blockSize_z
+  var experimental_cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements
@@ -403,15 +331,15 @@ object Knowledge {
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
-    Constraints.condEnsureValue(targetCompilerVersion, 11, "MSVC" == targetCompiler && targetCompilerVersion < 11, "When using MSVC, only versions > 11.0 are currently supported")
-    Constraints.condEnsureValue(targetCompilerVersion, 14, "MSVC" == targetCompiler && targetCompilerVersion > 14, "When using MSVC, only version up to 14.0 are currently supported")
-    Constraints.condEnsureValue(targetCompilerVersionMinor, 0, "MSVC" == targetCompiler, "When using MSVC, minor version numbers are not supported")
+    Constraints.condEnsureValue(Platform.targetCompilerVersion, 11, "MSVC" == Platform.targetCompiler && Platform.targetCompilerVersion < 11, "When using MSVC, only versions > 11.0 are currently supported")
+    Constraints.condEnsureValue(Platform.targetCompilerVersion, 14, "MSVC" == Platform.targetCompiler && Platform.targetCompilerVersion > 14, "When using MSVC, only version up to 14.0 are currently supported")
+    Constraints.condEnsureValue(Platform.targetCompilerVersionMinor, 0, "MSVC" == Platform.targetCompiler, "When using MSVC, minor version numbers are not supported")
 
-    Constraints.condEnsureValue(omp_enabled, false, "CLANG" == targetCompiler && (targetCompilerVersion >= 3 && targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
+    Constraints.condEnsureValue(omp_enabled, false, "CLANG" == Platform.targetCompiler && (Platform.targetCompilerVersion >= 3 && Platform.targetCompilerVersionMinor < 7), "Only clang >= 3.7 supports OpenMP")
 
-    Constraints.condEnsureValue(opt_vectorize, false, "GCC" == targetCompiler && "IMCI" == simd_instructionSet, "GCC does not support intel IMCI")
-    Constraints.condEnsureValue(simd_instructionSet, "QPX", "IBMBG" == targetCompiler && opt_vectorize, "IBM BlueGene/Q compiler can only generate code for BlueGene/Q (with vector extension QPX)")
-    Constraints.condEnsureValue(opt_vectorize, false, "IBMBG" != targetCompiler && "QPX" == simd_instructionSet, "only IBM BlueGene/Q compiler supports QPX")
+    Constraints.condEnsureValue(opt_vectorize, false, "GCC" == Platform.targetCompiler && "IMCI" == Platform.simd_instructionSet, "GCC does not support intel IMCI")
+    Constraints.condEnsureValue(Platform.simd_instructionSet, "QPX", "IBMBG" == Platform.targetCompiler && opt_vectorize, "IBM BlueGene/Q compiler can only generate code for BlueGene/Q (with vector extension QPX)")
+    Constraints.condEnsureValue(opt_vectorize, false, "IBMBG" != Platform.targetCompiler && "QPX" == Platform.simd_instructionSet, "only IBM BlueGene/Q compiler supports QPX")
 
     if (l3tmp_generateL4) {
       // specific project configurations - SISC
@@ -543,6 +471,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, 1 + minLevel, !l3tmp_genTemporalBlocking, "l3tmp_tempBlockingMinLevel reset to default for deactivated l3tmp_genTemporalBlocking")
 
       Constraints.condEnsureValue(l3tmp_numPost, l3tmp_numPre, l3tmp_genTemporalBlocking, "l3tmp_numPre and l3tmp_numPost have to be equal")
+      Constraints.condEnsureValue(l3tmp_genFragLoops, true, l3tmp_genTemporalBlocking, "l3tmp_genTemporalBlocking requires l3tmp_genFragLoops")
 
       // l3tmp - parallelization
       Constraints.condEnsureValue(l3tmp_genAsyncCommunication, false, 26 != comm_strategyFragment, "invalid comm_strategyFragment")
@@ -553,7 +482,7 @@ object Knowledge {
     }
 
     // parallelization
-    Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == targetCompiler || "IBMBG" == targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
+    Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == Platform.targetCompiler || "IBMBG" == Platform.targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
     Constraints.condEnsureValue(omp_parallelizeLoopOverDimensions, false, omp_enabled && omp_parallelizeLoopOverFragments, "omp_parallelizeLoopOverDimensions and omp_parallelizeLoopOverFragments are mutually exclusive")
 
     Constraints.condWarn(mpi_numThreads != domain_numBlocks, s"the number of mpi threads ($mpi_numThreads) differs from the number of blocks ($domain_numBlocks) -> this might lead to unexpected behavior!")
@@ -574,21 +503,21 @@ object Knowledge {
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
     Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, experimental_cuda_enabled && "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
-    Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_enabled && experimental_cuda_deviceId >= hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+    Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_enabled && experimental_cuda_deviceId >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
     Constraints.condEnsureValue(experimental_cuda_blockSize_y, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(experimental_cuda_blockSize_z, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
 
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability $hw_cuda_capability.$hw_cuda_capabilityMinor")
+    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
 
     // data
-    Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
+    Constraints.condEnsureValue(data_alignFieldPointers, true, opt_vectorize && "QPX" == Platform.simd_instructionSet, "data_alignFieldPointers must be true for vectorization with QPX")
 
-    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == simd_instructionSet, "QPX does not support unaligned loads/stores")
-    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "IMCI" == simd_instructionSet, "IMCI does not support unaligned loads/stores")
+    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "QPX" == Platform.simd_instructionSet, "QPX does not support unaligned loads/stores")
+    Constraints.condEnsureValue(simd_avoidUnaligned, true, opt_vectorize && "IMCI" == Platform.simd_instructionSet, "IMCI does not support unaligned loads/stores")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !opt_vectorize, "avoid unaligned loads/stores doesn't make sense without vectorization enabled")
     Constraints.condEnsureValue(simd_avoidUnaligned, false, !data_alignFieldPointers, "impossible to avoid unaligned accesses if data is not aligned")
 
@@ -601,17 +530,20 @@ object Knowledge {
 
     Constraints.condEnsureValue(ir_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")
 
+    Constraints.condWarn(l3tmp_genTemporalBlocking && opt_loopCarriedCSE, "temporal blocking may interfere with loop carried CSE and therefore generated code may be broken")
+
     // timer configuration
     Constraints.condEnsureValue(timer_type, "Chrono", !mpi_enabled && "MPI_TIME" == timer_type, "MPI_TIME is not supported for codes generated without MPI")
-    Constraints.condEnsureValue(timer_type, "Chrono", "QPC" == timer_type && "MSVC" != targetCompiler, "QPC is only supported for windows")
-    Constraints.condEnsureValue(timer_type, "WINDOWS_RDSC", "RDSC" == timer_type && "MSVC" == targetCompiler, "WINDOWS_RDSC is required for windows systems")
-    Constraints.condEnsureValue(timer_type, "RDSC", "WINDOWS_RDSC" == timer_type && "MSVC" != targetCompiler, "RDSC is required for non-windows systems")
-    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "WIN_TIME" == timer_type && "MSVC" != targetCompiler, "WIN_TIME is not supported for non-windows systems")
-    Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == targetCompiler, "UNIX_TIME is not supported for windows systems")
-    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == targetCompiler, "IBM XL does currently not support std::chrono")
-    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == targetCompiler, "IBM BG does currently not support std::chrono")
+    Constraints.condEnsureValue(timer_type, "Chrono", "QPC" == timer_type && "MSVC" != Platform.targetCompiler, "QPC is only supported for windows")
+    Constraints.condEnsureValue(timer_type, "WINDOWS_RDSC", "RDSC" == timer_type && "MSVC" == Platform.targetCompiler, "WINDOWS_RDSC is required for windows systems")
+    Constraints.condEnsureValue(timer_type, "RDSC", "WINDOWS_RDSC" == timer_type && "MSVC" != Platform.targetCompiler, "RDSC is required for non-windows systems")
+    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "WIN_TIME" == timer_type && "MSVC" != Platform.targetCompiler, "WIN_TIME is not supported for non-windows systems")
+    Constraints.condEnsureValue(timer_type, "WIN_TIME", "UNIX_TIME" == timer_type && "MSVC" == Platform.targetCompiler, "UNIX_TIME is not supported for windows systems")
+    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMXL" == Platform.targetCompiler, "IBM XL does currently not support std::chrono")
+    Constraints.condEnsureValue(timer_type, "UNIX_TIME", "Chrono" == timer_type && "IBMBG" == Platform.targetCompiler, "IBM BG does currently not support std::chrono")
 
     // experimental
     Constraints.condEnsureValue(experimental_trimBoundsForReductionLoops, false, data_genVariableFieldSizes, "experimental_trimBoundsForReductionLoops is currently not compatible with data_genVariableFieldSizes")
+    Constraints.condEnsureValue(experimental_useStefanOffsets, false, domain_numFragmentsTotal > 1, "experimental_useStefanOffsets requires a single fragment")
   }
 }

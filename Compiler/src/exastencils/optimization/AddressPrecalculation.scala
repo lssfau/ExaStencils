@@ -45,20 +45,22 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
 private final class ArrayBases(val arrayName : String) {
 
   private val inits = new HashMap[HashMap[Expression, Long], (String, Expression)]()
-  private var idCount = 0
+  private var idCount = -1
 
   def getName(initVec : HashMap[Expression, Long], base : Expression, al : Boolean) : String = {
     inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
   }
 
   def addToDecls(decls : ListBuffer[Statement]) : Unit = {
-    for ((_, (name : String, init : Expression)) <- inits)
+    for ((name : String, init : Expression) <- inits.values.toArray.sortBy(_._1))
       decls += new VariableDeclarationStatement(ConstPointerDatatype(RealDatatype), name, AddressofExpression(init))
   }
 }
 
 private final class AnnotateLoopsAndAccesses extends Collector {
-  import AddressPrecalculation._
+  import AddressPrecalculation.DECLS_ANNOT
+  import AddressPrecalculation.ORIG_IND_ANNOT
+  import AddressPrecalculation.REPL_ANNOT
 
   private def generateName(expr : Expression) : String = {
     return filter('_' + expr.prettyprint())
@@ -111,11 +113,17 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       try {
         SimplifyExpression.extractIntegralSum(ind)
       } catch {
-        case EvaluationException(msg) =>
-          Logger.dbg("[APC]  cannot deal with index expression  (" + msg + ")  in  " + ind.prettyprint())
+        case ex : EvaluationException =>
+          var cause : Throwable = ex
+          while (cause.getCause() != null)
+            cause = cause.getCause()
+          val stackTraceHead = cause.getStackTrace()(0)
+          Logger.dbg("[APC]  cannot deal with index expression  (" + ex.msg + ")  in  " + ind.prettyprint() +
+            "  (" + stackTraceHead.getFileName() + ':' + stackTraceHead.getLineNumber() + ')')
           return (ind, outMap)
       }
 
+    // constant part should stay inside the loop, as this reduces the number of required pointers outside
     for ((expr, value) <- inMap)
       if (expr != SimplifyExpression.constName && !containsLoopVar(expr))
         outMap.put(expr, value)
@@ -123,23 +131,6 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       inMap.remove(expr)
 
     return (SimplifyExpression.recreateExprFromIntSum(inMap), outMap)
-  }
-
-  private var count : Int = 0
-
-  private def checkId(
-    curDecls : HashMap[String, (Expression, HashMap[Expression, Long])],
-    name : String,
-    outMap : HashMap[Expression, Long]) : String = {
-
-    val d : Option[(Expression, HashMap[Expression, Long])] = curDecls.get(name)
-    if (d.isEmpty || d.get._2 == outMap)
-      return name
-
-    val newName = "p_" + count
-    count += 1
-
-    return null
   }
 
   private final val SKIP_SUBTREE_ANNOT = "APCSST"
@@ -231,8 +222,9 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
         for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
-          var name : String = generateName(base)
           val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index)
+          // if (!outMap.isEmpty) {
+          var name : String = generateName(base)
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
           name = bases.getName(outMap, base, al)
           val dType : Option[Datatype] = base match {
@@ -240,8 +232,9 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             case _              => None
           }
           val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)
-          newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index))
+          newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
           acc.annotate(REPL_ANNOT, newAcc)
+          // }
         }
         decls = null
         inVars = null
@@ -285,7 +278,7 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
       return node
 
     val stmts = new ListBuffer[Statement]()
-    for ((_, bases : ArrayBases) <- decls)
+    for ((_, bases : ArrayBases) <- decls.toArray.sortBy(_._1))
       bases.addToDecls(stmts)
 
     stmts += node.asInstanceOf[Statement]

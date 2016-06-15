@@ -1,5 +1,6 @@
 package exastencils.datastructures
 
+import scala.collection.mutable.Buffer
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
@@ -127,9 +128,12 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     val n = if (transformation.applyAtNode.isDefined) transformation.applyAtNode else node
     val result = StateManager.apply(token.get, transformation, n)
 
-    if (Settings.timeStrategies)
+    if (Settings.timeStrategies) {
       StrategyTimer.stopTiming(name)
-    Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+    }
+    if (Settings.logStrategyResults) {
+      Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+    }
     results_ += ((transformation, result))
     result
   }
@@ -151,10 +155,21 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     }
   }
 
-  def applyStandalone(nodes : Seq[Node]) : Unit = {
-    // for (node <- nodes) applyStandalone(node)
-    final case class NodeSeqWrapper(var nodes : Seq[Node]) extends Node {}
-    applyStandalone(NodeSeqWrapper(nodes))
+  def applyStandalone[T](nodes : Buffer[T]) : Unit = {
+    final case class NodeLBWrapper(var nodes : Buffer[T]) extends Node {}
+    var wrapper = NodeLBWrapper(nodes)
+    applyStandalone(wrapper)
+    if (nodes ne wrapper.nodes) {
+      nodes.clear()
+      nodes.++=(wrapper.nodes)
+    }
+  }
+
+  def applyStandalone[T](nodes : Seq[T]) : Seq[T] = {
+    final case class NodeSeqWrapper(var nodes : Seq[T]) extends Node {}
+    var wrapper = NodeSeqWrapper(nodes)
+    applyStandalone(wrapper)
+    wrapper.nodes
   }
 
   protected def executeStandaloneInternal(transformation : Transformation, node : Node) : TransformationResult = {
@@ -166,7 +181,9 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
-    Logger.debug(s"""Result of strategy "${name}::${transformation.name}" in standalone mode: $result""")
+    if (Settings.logStrategyResults) {
+      Logger.debug(s"""Result of strategy "${name}::${transformation.name}" in standalone mode: $result""")
+    }
     results_ += ((transformation, result))
     result
   }

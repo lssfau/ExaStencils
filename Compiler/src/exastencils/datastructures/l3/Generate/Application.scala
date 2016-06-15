@@ -1,5 +1,7 @@
 package exastencils.datastructures.l3
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.knowledge._
 
 object Application {
@@ -158,11 +160,22 @@ object Application {
         }
       }
       if (Knowledge.l3tmp_genTimersForComm) {
-        if (Knowledge.l3tmp_genCommTimersPerLevel) {
-          for (level <- Knowledge.minLevel to Knowledge.maxLevel)
-            printer.println("\tprint ( '" + s"Total time spent communicating on level $level: " + "', " + s"getTotalFromTimer ( concat ( 'communication_', $level ) ) )")
-        } else {
-          printer.println("\tprint ( '" + s"Total time spent communicating: " + "', " + s"getTotalFromTimer ( 'communication' ) )")
+        var timers = ListBuffer[String]()
+        for (commTimer <- Communication.commTimerNames) {
+          if (Knowledge.l3tmp_genCommTimersPerLevel)
+            for (level <- Knowledge.minLevel to Knowledge.maxLevel) {
+              val timer = s"getTotalFromTimer ( concat ( '${commTimer._1}_', $level ) )"
+              printer.println("\tprint ( '" + s"Total time spent communicating${commTimer._2} on level $level: ', $timer )")
+              timers += timer
+            }
+          else {
+            val timer = s"getTotalFromTimer ( '${commTimer._1}' )"
+            printer.println("\tprint ( '" + s"Total time spent communicating${commTimer._2}: ', $timer )")
+            timers += timer
+          }
+        }
+        if (timers.size > 1) {
+          printer.println("\tprint ( '" + s"Total time spent communicating: ', ${timers.mkString(" + ")} )")
         }
       }
     }

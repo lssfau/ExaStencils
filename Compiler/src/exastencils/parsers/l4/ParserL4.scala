@@ -39,7 +39,8 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   //###########################################################
 
-  lazy val program = (domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+ ^^ { case d => Root(d) }
+  lazy val program = ((domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
+    ^^ { case d => Root()(d) })
 
   //###########################################################
 

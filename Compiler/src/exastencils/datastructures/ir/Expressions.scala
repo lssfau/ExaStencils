@@ -6,17 +6,15 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.iv.VecShiftIndex
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 
 trait Expression extends Node with PrettyPrintable {
+  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(this, exp)
-  }
-  def ~~(exp : Expression) : SpacedConcatenationExpression = {
-    new SpacedConcatenationExpression(this, exp)
   }
 
   import BinaryOperators._
@@ -44,6 +42,7 @@ trait Expression extends Node with PrettyPrintable {
   def <=(other : Expression) = new LowerEqualExpression(this, other)
   def >(other : Expression) = new GreaterExpression(this, other)
   def >=(other : Expression) = new GreaterEqualExpression(this, other)
+  def <<(other : Expression) = new LeftShiftExpression(this, other)
 }
 
 object BinaryOperators extends Enumeration {
@@ -74,7 +73,10 @@ object BinaryOperators extends Enumeration {
   val LowerEqual = Value("<=")
   val Greater = Value(">")
   val GreaterEqual = Value(">=")
+  val Maximum = Value("max")
+  val Minimum = Value("min")
   val BitwiseAnd = Value("&")
+  val LeftShift = Value("<<")
 
   exastencils.core.Duplicate.registerImmutable(this.getClass())
 
@@ -108,7 +110,46 @@ object BinaryOperators extends Enumeration {
     case LowerEqual                => return new LowerEqualExpression(left, right)
     case Greater                   => return new GreaterExpression(left, right)
     case GreaterEqual              => return new GreaterEqualExpression(left, right)
+    case Maximum                   => return new MaximumExpression(left, right)
+    case Minimum                   => return new MinimumExpression(left, right)
     case BitwiseAnd                => return new BitwiseAndExpression(left, right)
+    case LeftShift                 => return new LeftShiftExpression(left, right)
+  }
+
+  def opAsIdent(op : String) = {
+    op match {
+      case "+"   => "Addition"
+      case "-"   => "Subtraction"
+      case "*"   => "Multiplication"
+      case "/"   => "Division"
+      case "**"  => "Power"
+      case "^"   => "Power_Alt"
+      case "%"   => "Modulo"
+
+      case ".+"  => "ElementwiseAddition"
+      case ".-"  => "ElementwiseSubtraction"
+      case ".*"  => "ElementwiseMultiplication"
+      case "./"  => "ElementwiseDivision"
+      case ".**" => "ElementwisePower"
+      case ".%"  => "ElementwiseModulo"
+
+      case "&&"  => "AndAnd"
+      case "and" => "AndAndWritten"
+      case "||"  => "OrOr"
+      case "or"  => "OrOrWritten"
+      case "!"   => "Negation"
+      case "=="  => "EqEq"
+      case "!="  => "Neq"
+      case "<"   => "Lower"
+      case "<="  => "LowerEqual"
+      case ">"   => "Greater"
+      case ">="  => "GreaterEqual"
+      case "max" => "Maximum"
+      case "min" => "Minimum"
+      case "&"   => "BitwiseAnd"
+
+      case _     => Logger.warn(s"Unknown op $op"); op
+    }
   }
 }
 
@@ -140,23 +181,14 @@ case object NullExpression extends Expression {
   override def prettyprint(out : PpStream) : Unit = ()
 }
 
+@deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
 case class ConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
   def this(exprs : Expression*) = this(exprs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = out <<< expressions
 
+  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
   override def ~(exp : Expression) : ConcatenationExpression = {
-    expressions += exp
-    this
-  }
-}
-
-case class SpacedConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
-  def this(exprs : Expression*) = this(exprs.to[ListBuffer])
-
-  override def prettyprint(out : PpStream) : Unit = out <<< (expressions, " ")
-
-  override def ~~(exp : Expression) : SpacedConcatenationExpression = {
     expressions += exp
     this
   }
@@ -198,7 +230,7 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   def isConstant = expressions.forall(e => e.isInstanceOf[Number])
 
   def prettyprintInner(out : PpStream) : Unit = {
-    out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
+    out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
@@ -215,7 +247,7 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
 
 case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   def prettyprintInner(out : PpStream) : Unit = {
-    out << (if (Knowledge.targetCompiler == "GCC") "std::move((" else "((")
+    out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
@@ -248,6 +280,7 @@ case class CastExpression(var datatype : Datatype, var toCast : Expression) exte
 
 case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
   def this(n : String, dT : Datatype) = this(n, Option(dT))
+  def this(decl : VariableDeclarationStatement) = this(decl.name, decl.dataType)
 
   override def prettyprint(out : PpStream) : Unit = out << name
 
@@ -268,26 +301,27 @@ case class ReadValueFrom(var datatype : Datatype, data : Expression) extends Exp
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << datatype << '>' << "(" << data << ")"
 }
 
-case class OffsetIndex(var minOffset : Int, var maxOffset : Int, var index : Expression, var offset : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OffsetIndex\n"
+case class BoundedExpression(var min : Long, var max : Long, var expr : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BoundedExpression(" << expr << ')'
 
-  def expandSpecial : AdditionExpression = {
-    index + offset
+  def expandSpecial() : Expression = {
+    return expr
   }
 }
 
 case class MultiIndex(var indices : Array[Expression]) extends Expression with Iterable[Expression] {
   def this(indices : Expression*) = this(indices.toArray)
   def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
+  def this(indices : Array[Long]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) =
     this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
 
   // FIXME: add variable accesses to begin with...
   for (i <- 0 until length) {
-    update(i, indices(i) match {
+    this(i) = this(i) match {
       case StringLiteral(s) => VariableAccess(s, Some(IntegerDatatype))
-      case _                => indices(i)
-    })
+      case _                => this(i)
+    }
   }
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -296,6 +330,19 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
 
   def +(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ + _)
   def -(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ - _)
+
+  override def equals(other : Any) : Boolean = {
+    if (this eq other.asInstanceOf[AnyRef])
+      return true
+    return other match {
+      case MultiIndex(oIndices) => java.util.Arrays.equals(this.indices.asInstanceOf[Array[Object]], oIndices.asInstanceOf[Array[Object]])
+      case _                    => false
+    }
+  }
+
+  override def hashCode() : Int = {
+    return java.util.Arrays.hashCode(indices.asInstanceOf[Array[Object]]) * 31 + 42 // random modification to ensure the hashcode of this element differs from the hashcode of the array itself
+  }
 
   // expose array functions
   override def iterator() : scala.collection.Iterator[Expression] = indices.iterator
@@ -311,7 +358,26 @@ case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, v
   def linearize : ArrayAccess = {
     new ArrayAccess(buffer,
       Mapping.resolveMultiIdx(index, strides),
-      false && Knowledge.data_alignTmpBufferPointers /* change here if aligned vector operations are possible for tmp buffers */ )
+      false) // Knowledge.data_alignTmpBufferPointers) // change here if aligned vector operations are possible for tmp buffers
+  }
+}
+
+case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : MultiIndex, var strides : MultiIndex) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ReductionDeviceDataAccess\n"
+
+  def linearize : ArrayAccess = {
+    new ArrayAccess(data, Mapping.resolveMultiIdx(index, strides), false)
+  }
+}
+
+case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : MultiIndex) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopCarriedCSEBufferAccess\n"
+
+  def linearize() : ArrayAccess = {
+    if (buffer.dimSizes.isEmpty)
+      return new ArrayAccess(buffer, IntegerConstant(0), false)
+
+    return new ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), false)
   }
 }
 
@@ -368,7 +434,7 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
 case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
 
-  override def expand : Output[Expression] = {
+  override def expand() : Output[Expression] = {
     new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index, Knowledge.data_alignFieldPointers)
   }
 }
@@ -383,9 +449,9 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
   def buildStencil : Stencil = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
     for (e <- 0 until stencilFieldSelection.stencil.entries.size) {
-      var stencilFieldIdx = Duplicate(index)
+      val stencilFieldIdx = Duplicate(index)
       stencilFieldIdx(stencilFieldSelection.stencilField.field.fieldLayout.numDimsData - 1) = e // TODO: assumes last index is vector dimension
-      var fieldSel = stencilFieldSelection.toFieldSelection
+      val fieldSel = stencilFieldSelection.toFieldSelection
       fieldSel.arrayIndex = Some(e)
       entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new FieldAccess(fieldSel, stencilFieldIdx))
     }
@@ -393,8 +459,8 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
   }
 }
 
-case class MemberAccess(var base : Access, var varAcc : VariableAccess) extends Access {
-  override def prettyprint(out : PpStream) : Unit = out << base << '.' << varAcc
+case class MemberAccess(var base : Access, var member : String) extends Access {
+  override def prettyprint(out : PpStream) : Unit = out << base << '.' << member
 }
 
 case class DerefAccess(var base : Access) extends Access {
@@ -492,6 +558,10 @@ case class BitwiseAndExpression(var left : Expression, var right : Expression) e
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '&' << right << ')'
 }
 
+case class LeftShiftExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<<" << right << ')'
+}
+
 case class PreDecrementExpression(var left : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "(--" << left << ')'
 }
@@ -521,7 +591,7 @@ private object MinMaxPrinter {
     if (args.length == 1)
       out << args(0)
 
-    else if (Knowledge.supports_initializerList)
+    else if (Platform.supports_initializerList && PrintEnvironment.CPP == out.env)
       out << method << "({" <<< (args, ",") << "})"
 
     else {
@@ -539,7 +609,9 @@ case class MinimumExpression(var args : ListBuffer[Expression]) extends Expressi
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    MinMaxPrinter.prettyprintsb(out, args, "std::min")
+    import PrintEnvironment._
+    val name = if (out.env == CUDA) "fmin" else "std::min"
+    MinMaxPrinter.prettyprintsb(out, args, name)
   }
 }
 
@@ -547,7 +619,9 @@ case class MaximumExpression(var args : ListBuffer[Expression]) extends Expressi
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    MinMaxPrinter.prettyprintsb(out, args, "std::max")
+    import PrintEnvironment._
+    val name = if (out.env == CUDA) "fmax" else "std::max"
+    MinMaxPrinter.prettyprintsb(out, args, name)
   }
 }
 
@@ -584,8 +658,8 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
     stencil.entries(idx).coefficient * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
   }
 
-  override def expand : Output[Expression] = {
-    var ret : Expression = (0 until stencil.entries.size).toArray.map(idx => Duplicate(resolveEntry(idx))).toArray[Expression].reduceLeft(_ + _)
+  override def expand() : Output[Expression] = {
+    val ret : Expression = stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
@@ -597,15 +671,15 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : Expression = {
-    var stencilFieldIdx = Duplicate(stencilFieldAccess.index)
+    val stencilFieldIdx = Duplicate(stencilFieldAccess.index)
     stencilFieldIdx(Knowledge.dimensionality) = idx
 
     FieldAccess(stencilFieldAccess.stencilFieldSelection.toFieldSelection, stencilFieldIdx) *
       new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
   }
 
-  override def expand : Output[Expression] = {
-    var ret : Expression = (0 until stencilFieldAccess.stencilFieldSelection.stencil.entries.size).toArray.map(idx => Duplicate(resolveEntry(idx))).toArray[Expression].reduceLeft(_ + _)
+  override def expand() : Output[Expression] = {
+    val ret : Expression = stencilFieldAccess.stencilFieldSelection.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
@@ -614,14 +688,14 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
 case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
 
-  override def expand : Output[StencilAccess] = {
+  override def expand() : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
       for (le <- stencilLeft.entries) {
-        var rightOffset = Duplicate(re.offset)
+        val rightOffset = Duplicate(re.offset)
 
-        var leftOffset = Duplicate(le.offset)
+        val leftOffset = Duplicate(le.offset)
         if (stencilRight.level > stencilLeft.level) {
           for (d <- 0 until Knowledge.dimensionality)
             leftOffset(d) = (dimToString(d) : Expression) / 2 + leftOffset(d)
@@ -630,14 +704,14 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
             leftOffset(d) = (dimToString(d) : Expression) + leftOffset(d)
         }
 
-        var combOff = leftOffset
+        val combOff = leftOffset
         ResolveCoordinates.replacement = rightOffset
         ResolveCoordinates.doUntilDoneStandalone(combOff)
 
         var combCoeff : Expression = (re.coefficient * le.coefficient)
         SimplifyStrategy.doUntilDoneStandalone(combOff)
         SimplifyStrategy.doUntilDoneStandalone(combCoeff)
-        var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+        val addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
         if (addToEntry.isDefined) {
           combCoeff += addToEntry.get.coefficient
           SimplifyStrategy.doUntilDoneStandalone(combCoeff)
@@ -653,21 +727,21 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
 
-  override def expand : Output[StencilAccess] = {
+  override def expand() : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
       for (e <- 0 until stencilLeft.stencilFieldSelection.stencil.entries.size) {
-        var stencilFieldIdx = Duplicate(stencilLeft.index)
+        val stencilFieldIdx = Duplicate(stencilLeft.index)
         stencilFieldIdx(Knowledge.dimensionality) = e
         for (dim <- 0 until Knowledge.dimensionality)
           stencilFieldIdx(dim) += re.offset(dim)
-        var fieldSel = stencilLeft.stencilFieldSelection.toFieldSelection
+        val fieldSel = stencilLeft.stencilFieldSelection.toFieldSelection
         fieldSel.arrayIndex = Some(e)
 
-        var rightOffset = Duplicate(re.offset)
+        val rightOffset = Duplicate(re.offset)
 
-        var leftOffset = Duplicate(stencilLeft.stencilFieldSelection.stencil.entries(e).offset)
+        val leftOffset = Duplicate(stencilLeft.stencilFieldSelection.stencil.entries(e).offset)
         if (stencilRight.level > stencilLeft.stencilFieldSelection.stencil.level) {
           for (d <- 0 until Knowledge.dimensionality)
             leftOffset(d) = (dimToString(d) : Expression) / 2 + leftOffset(d)
@@ -676,14 +750,14 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
             leftOffset(d) = (dimToString(d) : Expression) + leftOffset(d)
         }
 
-        var combOff = leftOffset
+        val combOff = leftOffset
         ResolveCoordinates.replacement = rightOffset
         ResolveCoordinates.doUntilDoneStandalone(combOff)
 
         var combCoeff : Expression = (re.coefficient * new FieldAccess(fieldSel, stencilFieldIdx))
         SimplifyStrategy.doUntilDoneStandalone(combOff)
         SimplifyStrategy.doUntilDoneStandalone(combCoeff)
-        var addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+        val addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
         if (addToEntry.isDefined) {
           combCoeff += addToEntry.get.coefficient
           SimplifyStrategy.doUntilDoneStandalone(combCoeff)
@@ -702,7 +776,7 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     val alig = if (aligned) "" else "u"
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_load" << alig << "_p" << prec << '('
       case "AVX" | "AVX2" => out << "_mm256_load" << alig << "_p" << prec << '('
       case "AVX512"       => out << "_mm512_load" << alig << "_p" << prec << '('
@@ -717,7 +791,7 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
 case class SIMD_Load1Expression(var mem : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_load1_p" << prec << '('
       case "AVX" | "AVX2" => out << "_mm256_broadcast_s" << prec << '('
       case "AVX512"       => out << "_mm512_set1_p" << prec << "(*" // TODO: check again: no direct load possible?
@@ -726,7 +800,7 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
       case "NEON"         => out << "vld1q_dup_f32(" // TODO: only unaligned?
     }
     out << mem
-    if (Knowledge.simd_instructionSet == "IMCI") {
+    if (Platform.simd_instructionSet == "IMCI") {
       if (Knowledge.useDblPrecision)
         out << "_MM_UPCONV_PD_NONE, _MM_BROADCAST_1X8, 0"
       else
@@ -737,15 +811,15 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
 }
 
 case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, val offset : Int) extends Expression {
-  private var shiftIV : VecShiftIndex = null
+  private var shiftIV : iv.VecShiftIndex = null
 
-  Knowledge.simd_instructionSet match {
-    case "AVX512" | "IMCI" => shiftIV = new VecShiftIndex(offset)
+  Platform.simd_instructionSet match {
+    case "AVX512" | "IMCI" => shiftIV = new iv.VecShiftIndex(offset)
     case _                 =>
   }
 
   override def prettyprint(out : PpStream) : Unit = {
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3" =>
         if (Knowledge.useDblPrecision) offset match {
           case 1 => out << "_mm_shuffle_pd(" << left << ", " << right << ", 1)"
@@ -773,7 +847,7 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
         }
 
       case "AVX512" =>
-        if (offset <= 0 || offset >= Knowledge.simd_vectorSize)
+        if (offset <= 0 || offset >= Platform.simd_vectorSize)
           throw new InternalError("offset for SIMD_ConcShift out of bounds: " + offset)
         val prec = if (Knowledge.useDblPrecision) 'd' else 's'
         out << "_mm512_permutex2var_p" << prec << '(' << left << ", " << shiftIV << ", " << right << ')'
@@ -815,7 +889,7 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
 case class SIMD_NegateExpression(var vect : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val (prec, ts, fp) = if (Knowledge.useDblPrecision) ('d', "d", 'd') else ('s', "", 'f')
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_xor_p" << prec << '(' << vect << ", _mm_set1_p" << prec << "(-0." << fp << "))"
       case "AVX" | "AVX2" => out << "_mm256_xor_p" << prec << '(' << vect << ", _mm256_set1_p" << prec << "(-0." << fp << "))"
       case "AVX512"       => out << "_mm512_xor_p" << prec << '(' << vect << ", _mm512_set1_p" << prec << "(-0." << fp << "))"
@@ -829,7 +903,7 @@ case class SIMD_NegateExpression(var vect : Expression) extends Expression {
 case class SIMD_AdditionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "_mm_add_p" << prec
       case "AVX" | "AVX2"    => out << "_mm256_add_p" << prec
       case "AVX512" | "IMCI" => out << "_mm512_add_p" << prec
@@ -843,7 +917,7 @@ case class SIMD_AdditionExpression(var left : Expression, var right : Expression
 case class SIMD_SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "_mm_sub_p" << prec
       case "AVX" | "AVX2"    => out << "_mm256_sub_p" << prec
       case "AVX512" | "IMCI" => out << "_mm512_sub_p" << prec
@@ -857,7 +931,7 @@ case class SIMD_SubtractionExpression(var left : Expression, var right : Express
 case class SIMD_MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "_mm_mul_p" << prec
       case "AVX" | "AVX2"    => out << "_mm256_mul_p" << prec
       case "AVX512" | "IMCI" => out << "_mm512_mul_p" << prec
@@ -887,7 +961,7 @@ case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Ex
 private object FusedPrinterHelper {
   def prettyprint(out : PpStream, factor1 : Expression, factor2 : Expression, summand : Expression, addSub : String) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"            => out << "_mm_" << addSub << "_p" << prec << "(_mm_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX"             => out << "_mm256_" << addSub << "_p" << prec << "(_mm256_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
       case "AVX2"            => out << "_mm256_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
@@ -905,7 +979,7 @@ private object FusedPrinterHelper {
 case class SIMD_DivisionExpression(var left : Expression, var right : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_div_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_div_p" << prec
       case "AVX512"       => out << "_mm512_div_p" << prec
@@ -919,21 +993,14 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 
 case class SIMD_FloatConstant(var value : Double) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    /*
-     * Fix by Thomas Lang: 
-     * Added intrinsic for IMCI.
-     * 
-     * This intrinsic is defined in 'zmmintrin.h' and is
-     * also known by 'immintrin.h', this fills the value
-     */
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_set1_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "AVX512"       => out << "_mm512_set1_p" << prec
       case "QPX"          => out << "vec_splats"
       case "NEON"         => out << "vdupq_n_f32"
-      case "IMCI"         => out << "_mm512_set_1to" << Knowledge.simd_vectorSize << "_p" << prec
+      case "IMCI"         => out << "_mm512_set_1to" << Platform.simd_vectorSize << "_p" << prec
     }
     out << '(' << value << ')' // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
   }
@@ -941,21 +1008,14 @@ case class SIMD_FloatConstant(var value : Double) extends Expression {
 
 case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    /*
-     * Fix by Thomas Lang: 
-     * Added intrinsic for IMCI.
-     * 
-     * This intrinsic is defined in 'zmmintrin.h' and is
-     * also known by 'immintrin.h', this fills the value
-     */
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Knowledge.simd_instructionSet match {
+    Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_set1_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "AVX512"       => out << "_mm512_set1_p" << prec
       case "QPX"          => out << "vec_splats"
       case "NEON"         => out << "vdupq_n_f32"
-      case "IMCI"         => out << "_mm512_set_1to" << Knowledge.simd_vectorSize << "_p" << prec
+      case "IMCI"         => out << "_mm512_set_1to" << Platform.simd_vectorSize << "_p" << prec
     }
     out << '(' << scalar << ')'
   }

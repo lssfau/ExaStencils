@@ -25,7 +25,7 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
     externalDependencies += "cuda_runtime.h"
   }
   if (Knowledge.data_alignFieldPointers || Knowledge.data_alignTmpBufferPointers)
-    externalDependencies += "stddef.h" // TODO: please note why this is required; delete if it is not required
+    externalDependencies += "cstddef" // type ptrdiff_t (used when aligning pointer) is defined in stddef.h/cstddef
   internalDependencies += "Util/Stopwatch.h"
   if (Knowledge.library_CImg)
     internalDependencies += "Util/CImg.h"

@@ -1,6 +1,7 @@
 package exastencils.prettyprinting
 
 import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
 import scala.collection.mutable.TreeSet
 
@@ -19,11 +20,7 @@ object PrettyprintingManager {
   def popPrinter() = printerStack.pop
 
   def getPrinter(filename : String) : Prettyprinter = {
-    printers.getOrElse(filename, {
-      var printer = new Prettyprinter(filename, (new java.io.File(Settings.getOutputPath + filename)).getAbsolutePath())
-      printers += ((filename, printer))
-      printer
-    })
+    printers.getOrElseUpdate(filename, new Prettyprinter(filename, (new java.io.File(Settings.getOutputPath + filename)).getAbsolutePath()))
   }
 
   def finish = {
@@ -45,10 +42,13 @@ object PrettyprintingManager {
     def removeInternalDependency(filename : String) = { internalDependencies_ -= getPrinter(filename) }
     def internalDependencies = internalDependencies_.toList
 
-    protected var externalDependencies_ = new TreeSet[String]
-    def addExternalDependency(filename : String) = { externalDependencies_ += filename }
-    def removeExternalDependency(filename : String) = { externalDependencies_ -= filename }
-    def externalDependencies = externalDependencies_.toList
+    protected var externalDependencies_ = new ListBuffer[String]() // preserve input ordering!
+    def addExternalDependency(filename : String) : Unit = { externalDependencies_ += filename }
+    def removeExternalDependency(filename : String) : Unit = { externalDependencies_ = externalDependencies_.distinct -= filename }
+    def externalDependencies() : Seq[String] = {
+      externalDependencies_ = externalDependencies_.distinct
+      return externalDependencies_
+    }
 
     def <<(s : String) = write(s)
     def <<<(s : String) = write(s + "\n")
@@ -122,11 +122,13 @@ object PrettyprintingManager {
   }
 
   object Prettyprinter {
-    def generateInclude(toInclude : String) = {
+    def generateInclude(toInclude : String) : String = {
       val prepend = toInclude match {
-        case "mpi.h"     => "#pragma warning(disable : 4800)\n"
-        case "windows.h" => "#define NOMINMAX\n"
-        case _           => ""
+        case "mpi.h"         => "#pragma warning(disable : 4800)\n"
+        case "windows.h"     => "#define NOMINMAX\n"
+        case "vecmathlib.h"  => "#define VML_NODEBUG\n"
+        case "vectorclass.h" => "#define VCL_NAMESPACE vectorclass\n"
+        case _               => ""
       }
       prepend + "#include \"" + toInclude + "\"\n"
     }

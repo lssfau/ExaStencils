@@ -19,7 +19,7 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
   if (Knowledge.experimental_cuda_enabled)
     internalDependencies += "KernelFunctions/KernelFunctions.h"
   if (Knowledge.opt_vectorize) {
-    val header = Knowledge.simd_header
+    val header = Platform.simd_header
     if (header != null) externalDependencies += header
   }
 }

@@ -70,6 +70,29 @@ object MPI_Allreduce {
   }
 }
 
+case class MPI_Reduce(var root : Expression, var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression, var op : Expression) extends MPI_Statement {
+  def this(root : Expression, sendbuf : Expression, recvbuf : Expression, datatype : Datatype, count : Expression, op : String) = this(root, sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
+  def this(root : Expression, buf : Expression, datatype : Datatype, count : Expression, op : Expression) = this(root, "MPI_IN_PLACE", buf, datatype, count, op)
+  def this(root : Expression, buf : Expression, datatype : Datatype, count : Expression, op : String) = this(root, "MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
+
+  def reallyPrint(out : PpStream) : Unit = {
+    out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", mpiCommunicator);"
+  }
+
+  override def prettyprint(out : PpStream) : Unit = {
+    sendbuf match {
+      case StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
+        out << "if (" << EqEqExpression(root, "mpiRank") << ") {\n"
+        MPI_Reduce(root, sendbuf, recvbuf, datatype, count, op).reallyPrint(out) // MPI_IN_PLACE for root proc
+        out << "\n} else {\n"
+        MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
+        out << "\n}"
+      case _ => reallyPrint(out) // otherwise a simple print suffices
+    }
+
+  }
+}
+
 case class MPI_Gather(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression) extends MPI_Statement {
   def this(buf : Expression, datatype : Datatype, count : Expression) = this("MPI_IN_PLACE", buf, datatype, count)
 
@@ -198,7 +221,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
               new VariableDeclarationStatement(msg),
               new VariableDeclarationStatement(len),
               new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
-                MemberAccess(stat, VariableAccess("MPI_ERROR", Some(IntegerDatatype))), msg, AddressofExpression(len))),
+                MemberAccess(stat, "MPI_ERROR"), msg, AddressofExpression(len))),
               new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
@@ -212,7 +235,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
             new VariableDeclarationStatement(msg),
             new VariableDeclarationStatement(len),
             new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
-              MemberAccess(stat, VariableAccess("MPI_ERROR", Some(IntegerDatatype))), msg, AddressofExpression(len))),
+              MemberAccess(stat, "MPI_ERROR"), msg, AddressofExpression(len))),
             new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)

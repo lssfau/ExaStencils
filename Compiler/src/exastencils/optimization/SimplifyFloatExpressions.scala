@@ -35,6 +35,10 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
     if (fd.field.resolveBaseDatatype == RealDatatype) =>
       a.src = simplify(src)
       a
+
+    case a @ AssignmentStatement(fa : FieldAccessLike, src, op) =>
+      a.src = simplify(src)
+      a
   })
 
   private final def simplify(expr : Expression) : Expression = {

@@ -13,10 +13,11 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
+import scala.collection.mutable.HashSet
 
 case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "MultiGrid/MultiGrid.h")) {
+  ListBuffer("Globals/Globals.h")) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
@@ -28,6 +29,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   }
 
   var kernelCollection = ListBuffer[Kernel]()
+  var requiredRedKernels = HashSet[String]()
   var counterMap = HashMap[String, Int]()
 
   def getIdentifier(fctName : String) : String = {
@@ -46,6 +48,10 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       functions += kernel.compileWrapperFunction
     }
     kernelCollection.clear // consume processed kernels
+
+    // take care of reductions
+    for (op <- requiredRedKernels) addDefaultReductionKernel(op)
+    requiredRedKernels.clear // consume reduction requests
   }
 
   override def printSources = {
@@ -55,8 +61,92 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       val writer = PrettyprintingManager.getPrinter(s"${baseName}_${fileName}.cu")
       writer.addInternalDependency(s"${baseName}.h")
 
-      writer <<< f.prettyprint
+      writer <<< f.prettyprint(PrintEnvironment.CUDA)
       writer <<< ""
+    }
+  }
+
+  def addDefaultReductionKernel(op : String) = {
+    val opAsIdent = BinaryOperators.opAsIdent(op)
+    val kernelName = "DefaultReductionKernel" + opAsIdent
+    val wrapperName = kernelName + "_wrapper"
+
+    // kernel function
+    {
+      def data = VariableAccess("data", Some(PointerDatatype(RealDatatype)))
+      def numElements = VariableAccess("numElements", Some(IntegerDatatype /*FIXME: size_t*/ ))
+      def stride = VariableAccess("stride", Some(IntegerDatatype /*FIXME: size_t*/ ))
+      def it = Duplicate(LoopOverDimensions.defItForDim(0))
+
+      var fctBody = ListBuffer[Statement]()
+
+      // add index calculation
+      // FIXME: datatype for VariableAccess
+      fctBody += new VariableDeclarationStatement(it,
+        MemberAccess(VariableAccess("blockIdx", None), it.name) *
+          MemberAccess(VariableAccess("blockDim", None), it.name) +
+          MemberAccess(VariableAccess("threadIdx", None), it.name))
+      fctBody += new AssignmentStatement(it, 2 * stride, "*=")
+
+      // add index bounds conditions
+      fctBody += new ConditionStatement(
+        OrOrExpression(LowerExpression(it, 0), GreaterEqualExpression(it, numElements)),
+        ReturnStatement())
+
+      // add values with stride
+      fctBody += new ConditionStatement(
+        LowerExpression(it + stride, numElements),
+        AssignmentStatement(ArrayAccess(data, it), BinaryOperators.CreateExpression(op, ArrayAccess(data, it), ArrayAccess(data, it + stride))))
+
+      // compile final kernel function
+      var fct = FunctionStatement(
+        UnitDatatype,
+        kernelName,
+        ListBuffer(data, numElements, stride),
+        fctBody,
+        false, false, "__global__")
+      fct.annotate("deviceOnly")
+      functions += fct
+    }
+
+    // wrapper function
+    {
+      def numElements = VariableAccess("numElements", Some(SpecialDatatype("size_t") /*FIXME*/ ))
+      def stride = VariableAccess("stride", Some(SpecialDatatype("size_t") /*FIXME*/ ))
+      def data = VariableAccess("data", Some(PointerDatatype(RealDatatype)))
+      def ret = VariableAccess("ret", Some(RealDatatype))
+
+      def blockSize = Knowledge.experimental_cuda_reductionBlockSize
+
+      var fctBody = ListBuffer[Statement]()
+
+      // compile loop body
+      def blocks = VariableAccess("blocks", Some(SpecialDatatype("size_t")))
+      var loopBody = ListBuffer[Statement]()
+      loopBody += new VariableDeclarationStatement(blocks, (numElements + (blockSize * stride - 1)) / (blockSize * stride))
+      loopBody += new ConditionStatement(EqEqExpression(0, blocks), AssignmentStatement(blocks, 1))
+      loopBody += new CUDA_FunctionCallExpression(kernelName, ListBuffer[Expression](data, numElements, stride),
+        Array[Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */ ), Array[Expression](blockSize))
+
+      fctBody += ForLoopStatement(
+        new VariableDeclarationStatement(stride, 1),
+        LowerExpression(stride, numElements),
+        AssignmentStatement(stride, 2, "*="),
+        loopBody)
+
+      fctBody += new VariableDeclarationStatement(ret)
+      fctBody += new CUDA_Memcpy(AddressofExpression(ret), data, SizeOfExpression(RealDatatype), "cudaMemcpyDeviceToHost");
+
+      fctBody += new ReturnStatement(Some(ret))
+
+      // compile final wrapper function
+      functions += FunctionStatement(
+        RealDatatype, // TODO: support other types
+        wrapperName,
+        ListBuffer(data, VariableAccess("numElements", Some(IntegerDatatype /*FIXME: size_t*/ ))),
+        fctBody,
+        false, false,
+        "extern \"C\"")
     }
   }
 }
@@ -108,20 +198,23 @@ case class Kernel(var identifier : String,
   def compileKernelBody : ListBuffer[Statement] = {
     evalFieldAccesses // ensure that field accesses have been mapped
 
-    if (reduction.isDefined) Logger.warn("Kernels with reductions are currently not supported -> reduction will be ignored")
-
     var statements = ListBuffer[Statement]()
 
     // add index calculation
+    val minIndices = LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, true)
     statements ++= (0 until numDimensions).map(dim => {
-      def it = dimToString(dim)
+      val it = dimToString(dim)
+      // FIXME: datatype for VariableAccess
       VariableDeclarationStatement(IntegerDatatype, it,
-        Some(("blockIdx." ~ it) * ("blockDim." ~ it) + ("threadIdx." ~ it)))
+        Some(MemberAccess(VariableAccess("blockIdx", None), it) *
+          MemberAccess(VariableAccess("blockDim", None), it) +
+          MemberAccess(VariableAccess("threadIdx", None), it) +
+          minIndices(dim)))
     })
 
     // add index bounds conditions
     statements ++= (0 until numDimensions).map(dim => {
-      def it = Duplicate(LoopOverDimensions.defIt(numDimensions)(dim))
+      def it = Duplicate(LoopOverDimensions.defItForDim(dim))
       new ConditionStatement(
         OrOrExpression(LowerExpression(it, s"begin_$dim"), GreaterEqualExpression(it, s"end_$dim")),
         ReturnStatement())
@@ -168,19 +261,36 @@ case class Kernel(var identifier : String,
     }
 
     // evaluate required thread counts
-    // TODO: shift indices incorporating indices.begin
-    var numThreadsPerDim = LoopOverDimensions.evalMaxIndex(indices.end, numDimensions, true)
+    var numThreadsPerDim = (
+      LoopOverDimensions.evalMaxIndex(indices.end, numDimensions, true),
+      LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, true)).zipped.map(_ - _)
+
     if (null == numThreadsPerDim || numThreadsPerDim.reduce(_ * _) <= 0) {
       Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
       numThreadsPerDim = (0 until numDimensions).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
     }
 
+    var body = ListBuffer[Statement]()
+    if (reduction.isDefined) {
+      def bufSize = numThreadsPerDim.reduce(_ * _)
+      def bufAccess = iv.ReductionDeviceData(bufSize)
+      body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.dType.get)
+      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
+      body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${BinaryOperators.opAsIdent(reduction.get.op)}_wrapper",
+        ListBuffer[Expression](bufAccess, bufSize))))
+
+      StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
+    } else {
+      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
+    }
+
     FunctionStatement(
-      SpecialDatatype("extern \"C\" void"), // FIXME
+      if (reduction.isDefined) reduction.get.target.dType.get else UnitDatatype,
       getWrapperFctName,
       Duplicate(passThroughArgs),
-      ListBuffer[Statement](CUDA_FunctionCallExpression(getKernelFctName, numThreadsPerDim, callArgs)),
-      false)
+      body,
+      false, false,
+      "extern \"C\"")
   }
 
   def compileKernelFunction : FunctionStatement = {
@@ -194,7 +304,7 @@ case class Kernel(var identifier : String,
     }
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
-      fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveBaseDatatype)))
+      fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
     }
     for (ivAccess <- ivAccesses) {
       var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
@@ -209,11 +319,9 @@ case class Kernel(var identifier : String,
     }
 
     var fct = FunctionStatement(
-      SpecialDatatype("__global__ void"), // FIXME
-      getKernelFctName,
-      fctParams,
+      UnitDatatype, getKernelFctName, fctParams,
       compileKernelBody,
-      false, false)
+      false, false, "__global__")
 
     fct.annotate("deviceOnly")
 
@@ -263,7 +371,7 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
       }
     }
 
-    identifier
+    VariableAccess(identifier, Some(PointerDatatype(field.resolveDeclType)))
   }
 
   this += new Transformation("Searching", {

@@ -2,6 +2,8 @@ package exastencils.optimization
 
 import java.util.IdentityHashMap
 
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.Buffer
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
@@ -15,6 +17,7 @@ import exastencils.knowledge.Knowledge
 import exastencils.logger._
 
 private final class Renamer(reserved : Set[String], inUse : Set[String]) {
+  private final val parTempl : String = "_i%02d_%s"
   private final val nameMapping = Map[String, String]()
   def apply(s : String) : String = {
     nameMapping.getOrElseUpdate(s, {
@@ -22,7 +25,7 @@ private final class Renamer(reserved : Set[String], inUse : Set[String]) {
       if (reserved.contains(nju)) {
         var i = 0
         do {
-          nju = "_i" + i + s
+          nju = parTempl.format(i, s)
           i += 1
         } while (reserved.contains(nju) || inUse.contains(nju))
       }
@@ -34,6 +37,16 @@ private final class Renamer(reserved : Set[String], inUse : Set[String]) {
 object Inlining extends CustomStrategy("Function inlining") {
 
   override def apply() : Unit = {
+    this.apply(false)
+  }
+
+  /**
+    * @param heuristics_prepareCSE
+    *            If set inline only functions with exacly one `ReturnStatement` and any number of
+    *            `VariableDeclarationStatement`s, otherwise perform a "normal" inlining (which respects
+    *            `Knowledge.ir_maxInliningSize`).
+    */
+  def apply(heuristics_prepareCSE : Boolean) : Unit = {
     this.transaction()
 
     Logger.info("Applying strategy " + name)
@@ -49,11 +62,18 @@ object Inlining extends CustomStrategy("Function inlining") {
     val toInline = Map[String, Int]()
     for ((func, funcStmt) <- analyzer.functions) {
       // some heuristics to identify which functions to inline
-      var inline : Boolean = analyzer.functionSize(func) <= Knowledge.ir_maxInliningSize
+      val stmts : Buffer[Statement] = analyzer.flatFunctionBody(func)
+      var inline : Boolean = stmts.length <= Knowledge.ir_maxInliningSize
+      if (heuristics_prepareCSE) {
+        var singleRet : Boolean = false
+        for (stmt <- stmts) stmt match {
+          case _ : VariableDeclarationStatement    =>
+          case _ : ReturnStatement if (!singleRet) => singleRet = true
+          case _                                   => inline = false // any other statement (or a second ReturnStatement) found...
+        }
+        inline &= singleRet
+      }
       inline &= funcStmt.allowInlining
-      //      var inline : Boolean = analyzer.calls(func).size <= 1
-      //      inline = inline ||
-      //        (funcStmt.body.size <= 4 && funcStmt.body.filter { stmt => stmt.isInstanceOf[ForLoopStatement] }.isEmpty)
       if (inline)
         toInline(func) = 0
     }
@@ -140,6 +160,7 @@ object Inlining extends CustomStrategy("Function inlining") {
         retStmt = ret
         ret // keep ReturnStatement to ensure variables in its expression are renamed, too; it will be removed later
     }), Some(bodyWrapper))
+
     if (exit)
       return false
     this.execute(new Transformation("remove old return", {
@@ -165,7 +186,11 @@ object Inlining extends CustomStrategy("Function inlining") {
       }
     }
 
-    new CommentStatement("------ inlined " + funcStmt.name + " ------") +=: body += new CommentStatement("======== end " + funcStmt.name + " ========")
+    new CommentStatement("-.-.-.- inlined " + funcStmt.name + " -.-.-.-") +=:
+      body
+    if (retStmt == null)
+      body +=
+        new CommentStatement("=^=^=^=^= end " + funcStmt.name + " =^=^=^=^=")
 
     // perform actual inlining
     this.execute(new Transformation("inline", {
@@ -186,7 +211,7 @@ object Inlining extends CustomStrategy("Function inlining") {
   private final class Analyzer extends StackCollector {
 
     private[Inlining] final val functions = Map[String, FunctionStatement]()
-    private[Inlining] final val functionSize = Map[String, Int]((null, 0)) // number of statements in function
+    private[Inlining] final val flatFunctionBody = Map[String, Buffer[Statement]]((null, ArrayBuffer()))
     // value of calls: (call itself, statement containing it, statement's parent, function containing statement)
     private[Inlining] final val calls = Map[String, ListBuffer[(FunctionCallExpression, Statement, Node, String)]]()
     private[Inlining] final val potConflicts = Map[String, Set[String]]()
@@ -200,7 +225,7 @@ object Inlining extends CustomStrategy("Function inlining") {
         case func : FunctionStatement =>
           curFunc = func.name
           inlinable = true
-          functionSize(curFunc) = 0
+          flatFunctionBody(curFunc) = ArrayBuffer()
           val conf = Set[String]()
           for (par <- func.parameters)
             conf += par.name
@@ -225,18 +250,18 @@ object Inlining extends CustomStrategy("Function inlining") {
           }
 
         case decl : VariableDeclarationStatement if (stack.top.isInstanceOf[FunctionStatement]) =>
-          functionSize(curFunc) += 1
+          flatFunctionBody(curFunc) += decl
           potConflicts(stack.top.asInstanceOf[FunctionStatement].name) += decl.name
 
         case ret : ReturnStatement if (ret ne allowedReturn) =>
-          functionSize(curFunc) += 1
+          flatFunctionBody(curFunc) += ret
           inlinable = false
 
         case StringLiteral(retStr) if (retStr.contains("return")) =>
           inlinable = false
 
-        case _ : Statement =>
-          functionSize(curFunc) += 1
+        case stmt : Statement =>
+          flatFunctionBody(curFunc) += stmt
 
         case _ => // ignore
       }

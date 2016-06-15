@@ -32,7 +32,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\" Label=\"Configuration\">"
     projectPrinter <<< "\t\t<ConfigurationType>Application</ConfigurationType>"
     projectPrinter <<< "\t\t<UseDebugLibraries>false</UseDebugLibraries>"
-    projectPrinter <<< s"\t\t<PlatformToolset>v${Knowledge.targetCompilerVersion}${Knowledge.targetCompilerVersionMinor}</PlatformToolset>"
+    projectPrinter <<< s"\t\t<PlatformToolset>v${Platform.targetCompilerVersion}${Platform.targetCompilerVersionMinor}</PlatformToolset>"
     projectPrinter <<< "\t\t<WholeProgramOptimization>false</WholeProgramOptimization>"
     projectPrinter <<< "\t\t<CharacterSet>MultiByte</CharacterSet>"
     projectPrinter <<< "\t</PropertyGroup>"
@@ -50,7 +50,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // extensions
     projectPrinter <<< "\t<ImportGroup Label=\"ExtensionSettings\">"
     if (Knowledge.experimental_cuda_enabled) {
-      val cudaString = s"CUDA ${Knowledge.sw_cuda_version}.${Knowledge.sw_cuda_versionMinor}"
+      val cudaString = s"CUDA ${Platform.sw_cuda_version}.${Platform.sw_cuda_versionMinor}"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".props\" />"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".targets\" />"
     }
@@ -84,12 +84,19 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t\t\t<MultiProcessorCompilation>true</MultiProcessorCompilation>"
     if (Knowledge.omp_enabled)
       projectPrinter <<< "\t\t\t<OpenMPSupport>true</OpenMPSupport>"
+    Platform.simd_instructionSet match {
+      case "AVX"  => projectPrinter <<< "\t\t\t<EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>"
+      case "AVX2" => projectPrinter <<< "\t\t\t<EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>"
+      case _      => // TODO: add other options: StreamingSIMDExtensions, StreamingSIMDExtensions2, NoExtensions
+    }
     projectPrinter <<< "\t\t</ClCompile>"
 
     // cuda compile step
     if (Knowledge.experimental_cuda_enabled) {
       projectPrinter <<< "\t\t<CudaCompile>"
       projectPrinter <<< "\t\t\t<TargetMachinePlatform>64</TargetMachinePlatform>"
+      projectPrinter <<< s"\t\t\t<CodeGeneration>compute_${Platform.hw_cuda_capability}${Platform.hw_cuda_capabilityMinor},sm_${Platform.hw_cuda_capability}${Platform.hw_cuda_capabilityMinor}</CodeGeneration>"
+      projectPrinter <<< "\t\t\t<FastMath>true</FastMath>"
       projectPrinter <<< "\t\t</CudaCompile>"
     }
 

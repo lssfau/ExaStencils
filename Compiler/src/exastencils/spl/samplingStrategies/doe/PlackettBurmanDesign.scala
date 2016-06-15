@@ -17,7 +17,7 @@ class PlackettBurmanDesign(numericFeaturs : scala.collection.mutable.Set[Feature
 
   var seeds : scala.collection.mutable.Map[Seed, Array[Integer]] = scala.collection.mutable.Map()
 
-  def initSeeds() {
+  def initSeeds() = {
     this.seeds = scala.collection.mutable.Map()
     this.seeds.put(Seed9_3, Array(0, 1, 2, 2, 0, 2, 1, 1))
     this.seeds.put(Seed27_3, Array(0, 0, 1, 0, 1, 2, 1, 1, 2, 0, 1, 1, 1, 0, 0, 2, 0, 2, 1, 2, 2, 1, 0, 2, 2, 2))
@@ -69,7 +69,7 @@ class PlackettBurmanDesign(numericFeaturs : scala.collection.mutable.Set[Feature
     return matrix;
   }
 
-  def setSeed(level : Integer, measurements : Integer) {
+  def setSeed(level : Integer, measurements : Integer) = {
     initSeeds()
     if (measurements == 9 && level == 3)
       this.currSeed = Seed9_3

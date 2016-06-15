@@ -15,8 +15,8 @@ Chimaira (Cluster)
       GK110 (Kepler)
       Compute Capability: 3.5
       2880 CUDA-Cores
-      889 MHz Basis
-      980 MHz Turbo
+      677 MHz  (ca. in FP64-mode; FP32: 889 - 980 MHz)
+      1/3 FP64 Performance  (in FP64-mode; FP32: 1/24)
       6 GB GDDR5 (348-bit: 336 GB/s)
   "Frontend" (17. Node) identisch zu oben, Ausnahme: keine GPU, sondern
     1 Xeon Phi 3120 (http://ark.intel.com/products/75798/Intel-Xeon-Phi-Coprocessor-3120P-6GB-1_100-GHz-57-core)
@@ -29,7 +29,7 @@ Chimaira (Cluster)
 
 Zmiy (Pseudo-Cluster)
   4 Systeme mit je:
-    Constraints: i7, AVX, AVX2
+    Constraints: AVX, AVX2
     Intel Core i7-4790 (http://ark.intel.com/de/products/80806/Intel-Core-i7-4790-Processor-8M-Cache-up-to-4_00-GHz)
       Haswell
       4 Kerne
@@ -40,7 +40,7 @@ Zmiy (Pseudo-Cluster)
       AVX2 (& FMA)
     16 GB RAM (dualchannel)
   14 Systeme mit je:
-    Constraints: i5, AVX, AVX2
+    Constraints: AVX, AVX2
     Intel Core i5-4590 (http://ark.intel.com/de/products/80815/Intel-Core-i5-4590-Processor-6M-Cache-up-to-3_70-GHz)
       Haswell
       4 Kerne
@@ -53,7 +53,7 @@ Zmiy (Pseudo-Cluster)
 
 
 Sphinx (Compute-Server)
-  Constraints: E5, AVX
+  Constraints: AVX
   2 Sockel mit je:
     Intel Xeon E5-2609 v2 (http://ark.intel.com/de/products/75787/Intel-Xeon-Processor-E5-2609-v2-10M-Cache-2_50-GHz)
       Ivy Bridge EP
@@ -67,7 +67,7 @@ Sphinx (Compute-Server)
 
 
 Workstations (neu)
-  Constraints: i7, AVX, AVX2
+  Constraints: AVX, AVX2
   Core i7-4770 (http://ark.intel.com/de/products/75122/Intel-Core-i7-4770-Processor-8M-Cache-up-to-3_90-GHz)
     Haswell
     4 Kerne

@@ -47,7 +47,7 @@ object MainL3 {
     }
     Knowledge.update()
 
-    // read L3    
+    // read L3
     StateManager.root_ = (new ParserL3).parseFile(Settings.getL3file)
     ValidationL3.apply
 
@@ -94,8 +94,7 @@ object MainL3 {
 
     if (Knowledge.l3tmp_generateL4) {
       // print current L4 state to string
-      val l4_from_l3 = new PpStream()
-      StateManager.root_.asInstanceOf[l4.Root].prettyprint(l4_from_l3)
+      val l4_from_l3 = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       // generate other half of l4
       StateManager.root_ = new l3.Generate.Root
@@ -104,7 +103,7 @@ object MainL3 {
 
       // add parts coming from L3 to the new L4 file
       val outFile = new java.io.FileWriter(Settings.getL4file, true)
-      outFile.write((Indenter.addIndentations(l4_from_l3.toString)))
+      outFile.write((Indenter.addIndentations(l4_from_l3)))
       outFile.close
     }
 
@@ -114,11 +113,10 @@ object MainL3 {
 
     if (false) // re-print the merged L4 state
     {
-      val l4_printed = new PpStream()
-      StateManager.root_.asInstanceOf[l4.Root].prettyprint(l4_printed)
+      val l4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(l4_printed.toString)))
+      outFile.write((Indenter.addIndentations(l4_printed)))
       outFile.close
 
       // re-parse the file to check for errors
@@ -187,7 +185,7 @@ object MainL3 {
       ColorSplitting.apply()
 
     ResolveSlotOperationsStrategy.apply()
-    ResolveIndexOffsets.apply()
+    ResolveBoundedExpressions.apply()
     LinearizeFieldAccesses.apply()
 
     if (Knowledge.useFasterExpand)

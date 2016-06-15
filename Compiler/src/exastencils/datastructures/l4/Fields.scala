@@ -167,9 +167,9 @@ case class LayoutDeclarationStatement(
     // add padding only for innermost dimension if required
     if (knowledge.Knowledge.data_alignFieldPointers) {
       val innerLayout : knowledge.FieldLayoutPerDim = layouts(0)
-      innerLayout.numPadLayersLeft = (knowledge.Knowledge.simd_vectorSize - innerLayout.numGhostLayersLeft % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
+      innerLayout.numPadLayersLeft = (knowledge.Platform.simd_vectorSize - innerLayout.numGhostLayersLeft % knowledge.Platform.simd_vectorSize) % knowledge.Platform.simd_vectorSize
       val total = innerLayout.numPadLayersLeft + innerLayout.numGhostLayersLeft + innerLayout.numDupLayersLeft + innerLayout.numInnerLayers + innerLayout.numDupLayersRight + innerLayout.numGhostLayersRight
-      innerLayout.numPadLayersRight = (knowledge.Knowledge.simd_vectorSize - total % knowledge.Knowledge.simd_vectorSize) % knowledge.Knowledge.simd_vectorSize
+      innerLayout.numPadLayersRight = (knowledge.Platform.simd_vectorSize - total % knowledge.Platform.simd_vectorSize) % knowledge.Platform.simd_vectorSize
     }
 
     // set/ update total

@@ -8,7 +8,6 @@ import exastencils.datastructures.l4._
 
 class L4ValueCollector extends Collector {
   private var values = new ListBuffer[HashMap[String, Expression]]()
-  private var globalVals = new HashMap[String, Expression]()
   private var insideGlobals = false
 
   override def enter(node : Node) : Unit = {
@@ -21,9 +20,9 @@ class L4ValueCollector extends Collector {
       case x : RepeatUntilStatement       => values.+=((new HashMap[String, Expression]()))
       case x : ConditionalStatement       => values.+=((new HashMap[String, Expression]()))
       case x : ValueDeclarationStatement => {
-        x.identifier match {
-          case v : LeveledIdentifier => if (insideGlobals) globalVals += ((v.name + "@@" + v.level, x.expression)); else values.last += ((v.name + "@@" + v.level, x.expression))
-          case _                     => if (insideGlobals) globalVals += ((x.identifier.name, x.expression)); else values.last += ((x.identifier.name, x.expression))
+        x.identifier match { // ignore Values in Globals
+          case v : LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.expression))
+          case _                     => if (!insideGlobals) values.last += ((x.identifier.name, x.expression))
         }
       }
       case _ =>
@@ -53,9 +52,6 @@ class L4ValueCollector extends Collector {
     while (i >= 0 && exp.isEmpty) {
       exp = values(i).get(name) // Local Vals will shadow global Vals
       i = i - 1
-    }
-    if (exp.isEmpty) {
-      exp = globalVals.get(name)
     }
     exp
   }

@@ -66,17 +66,15 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccessLike) extends Statem
   override def expand : Output[ConditionStatement] = {
     val fieldSelection = fieldAccess.fieldSelection
     val field = fieldSelection.field
-    // TODO: loop over frags
     new ConditionStatement(
       iv.DeviceDataUpdated(field, fieldSelection.slot),
       ListBuffer[Statement](
-        CUDA_CheckError(
-          FunctionCallExpression("cudaMemcpy", ListBuffer[Expression](
-            iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
-            iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
-            (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-              * SizeOfExpression(field.resolveBaseDatatype),
-            "cudaMemcpyDeviceToHost"))),
+        CUDA_Memcpy(
+          iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
+          iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
+          (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+            * SizeOfExpression(field.resolveBaseDatatype),
+          "cudaMemcpyDeviceToHost"),
         AssignmentStatement(iv.DeviceDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
   }
 }
@@ -87,34 +85,45 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccessLike) extends Stat
   override def expand : Output[ConditionStatement] = {
     val fieldSelection = fieldAccess.fieldSelection
     val field = fieldSelection.field
-    // TODO: loop over frags
     new ConditionStatement(
       iv.HostDataUpdated(field, fieldSelection.slot),
       ListBuffer[Statement](
-        CUDA_CheckError(
-          FunctionCallExpression("cudaMemcpy", ListBuffer[Expression](
-            iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
-            iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
-            (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-              * SizeOfExpression(field.resolveBaseDatatype),
-            "cudaMemcpyHostToDevice"))),
+        CUDA_Memcpy(
+          iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
+          iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
+          (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+            * SizeOfExpression(field.resolveBaseDatatype),
+          "cudaMemcpyHostToDevice"),
         AssignmentStatement(iv.HostDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
   }
 }
 
-case class CUDA_FunctionCallExpression(var name : String, var numThreadsPerDim : Array[Long], var arguments : ListBuffer[Expression]) extends Expression {
+case class CUDA_FunctionCallExpression(
+    var name : String,
+    var arguments : ListBuffer[Expression],
+    var numThreadsPerDim : Array[Expression],
+    var numBlocksPerDim : Array[Expression] = Knowledge.experimental_cuda_blockSizeAsVec.map(n => n : Expression)) extends Expression {
+
+  def this(name : String, arguments : ListBuffer[Expression], numThreadsPerDim : Array[Long]) = this(name, arguments, numThreadsPerDim.map(n => n : Expression))
+  def this(name : String, arguments : ListBuffer[Expression], numThreadsPerDim : Array[Long], numBlocksPerDim : Array[Long]) = this(name, arguments, numThreadsPerDim.map(n => n : Expression), numBlocksPerDim.map(n => n : Expression))
+
   override def prettyprint(out : PpStream) : Unit = {
     val numDims = numThreadsPerDim.size
     if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
 
     val numBlocks = (0 until numDims).map(dim => {
-      (numThreadsPerDim(dim) + Knowledge.experimental_cuda_blockSizeAsVec(dim) - 1) / Knowledge.experimental_cuda_blockSizeAsVec(dim)
+      (numThreadsPerDim(dim) + numBlocksPerDim(dim) - 1) / numBlocksPerDim(dim)
     }).toArray
 
-    out << name << "<<<" <<
-      s"dim$numDims(${numBlocks.mkString(", ")})" << ", " <<
-      s"dim$numDims(${Knowledge.experimental_cuda_blockSizeAsVec.take(numDims).mkString(", ")})" <<
-      ">>>" << '(' <<< (arguments, ", ") << ')'
+    // TODO: simplify? check if integer ops are handled correctly
+
+    out << name << "<<<"
+    if (1 == numDims)
+      out << numBlocks(0) << ", " << numBlocksPerDim(0) // only one dimensions -> wrapping not necessary
+    else
+      out << s"dim3(" <<< (numBlocks, ", ") << "), " << s"dim3(" <<< (numBlocksPerDim.take(numDims), ", ") << ")"
+
+    out << ">>>" << '(' <<< (arguments, ", ") << ')'
   }
 }
 
@@ -123,5 +132,23 @@ case class CUDA_DeviceSynchronize() extends Statement with Expandable {
 
   override def expand : Output[Statement] = {
     CUDA_CheckError(FunctionCallExpression("cudaDeviceSynchronize", ListBuffer()))
+  }
+}
+
+case class CUDA_Memcpy(var dest : Expression, var src : Expression, var sizeInBytes : Expression, var direction : String) extends Statement with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_Memcpy\n"
+
+  override def expand : Output[Statement] = {
+    CUDA_CheckError(
+      FunctionCallExpression("cudaMemcpy",
+        ListBuffer[Expression](dest, src, sizeInBytes, direction)))
+  }
+}
+
+case class CUDA_Memset(var data : Expression, var value : Expression, var numElements : Expression, var datatype : Datatype) extends Statement with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_Memset\n"
+
+  override def expand : Output[Statement] = {
+    CUDA_CheckError(FunctionCallExpression("cudaMemset", ListBuffer(data, value, numElements * SizeOfExpression(datatype))))
   }
 }

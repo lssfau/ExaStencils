@@ -18,6 +18,7 @@ TEMP_DIR=${4}
 OUT_FILE=${5} # stdout and stderr should already be redirected to this file
 OUT_FILE_URL=${6} # url to ${OUT_FILE}
 PROGRESS=${7}
+BRANCH=${8}
 
 
 # HACK: otherwise ant wouldn't find it...
@@ -30,12 +31,26 @@ TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 
 FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
+FAILURE_MAIL_FILE="${TESTING_DIR}/failure_mails.txt"
+if [[ -s "${FAILURE_MAIL_FILE}" ]]; then
+  FAILURE_MAIL=$(cat ${FAILURE_MAIL_FILE})
+fi
 
 ERROR_MARKER_NAME="error"
 ERROR_MARKER="${TEMP_DIR}/${ERROR_MARKER_NAME}"
 
 LOG_DIR=$(dirname "${OUT_FILE}")
 
+
+function update_progress {
+  if [[ "${1}" -eq 0 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n  Done!</div></body></html>" > "${PROGRESS}"
+  elif [[ "${1}" -eq 1 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
+  else
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
+  fi
+}
 
 function error {
   echo "Automatic tests failed!  See log for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" ${FAILURE_MAIL}
@@ -51,6 +66,14 @@ trap killed SIGTERM
 
 STARTTIME=$(date +%s)
 
+RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d || mktemp --tmpdir=/tmp -d) || {
+    echo "ERROR: Failed to create temporary directory."
+    error
+  }
+if [[ ! ${RAM_TMP_DIR} =~ ^/run/shm/* ]]; then
+  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+fi
+
 function cleanup {
   ENDTIME=$(date +%s)
   echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds"
@@ -63,34 +86,22 @@ function cleanup {
 trap cleanup EXIT
 
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+update_progress 1
 
 echo "-----------------------------------------------------------------------------------------------"
 echo "Running main test script on machine ${SLURM_JOB_NODELIST} (${SLURM_JOB_NAME}:${SLURM_JOB_ID})."
-
-RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d || mktemp --tmpdir=/tmp -d) || {
-    echo "ERROR: Failed to create temporary directory."
-    error
-  }
-if [[ ! ${RAM_TMP_DIR} =~ ^/run/shm/* ]]; then
-  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
-fi
 echo "  Created  ${RAM_TMP_DIR}: generator build dir"
 
 
 # cancel all uncompleted jobs from last testrun
-first=1
-for job in $(squeue -h -u exatest -o %i); do
-  if [[ ${job} -ne ${SLURM_JOB_ID} ]]; then
-    if [[ first -eq 1 ]]; then
-      first=0
-      echo "Old tests from last run found. Cancel them and requeue new tests."
-      echo "Old tests from last run found. Cancel them and requeue new tests." | mail -s "TestBot jobs too old" "kronast@fim.uni-passau.de"
-    fi
+OLD_JOBS="$(squeue -h -u exatest -o %i | grep -v ${SLURM_JOB_ID})"
+if [[ -n "${OLD_JOBS}" ]]; then
+  echo "Old tests from last run found. Cancel them and requeue new tests."
+  for job in ${OLD_JOBS}; do
     scancel ${job}
-	echo "Old job ${job} canceled."
-  fi
-done
+    echo "Old job ${job} canceled."
+  done
+fi
 # remove old files (if some)
 rm -rf "${TEMP_DIR}"/*
 TESTS_DIR="${TEMP_DIR}/tests"
@@ -129,7 +140,7 @@ do
   read id main knowledge l4file result nodes cores constraints <<< $line2
 
   # ${knowledge} must present, ${l4file} must be present or "*" and either all of ${result}, ${nodes} and ${cores} must be valid or none of them
-  if [[ ! -f "${TESTING_DIR}/${knowledge}" ]] || [[ ! "${l4file}" = "*" && ! -f "${TESTING_DIR}/${l4file}" ]] || [[ ! ( -f "${TESTING_DIR}/${result}" && ${nodes} =~ ^[0-9]+$ && ${cores} =~ ^[0-9]+$ ) && ! ( ${result} = "" && ${nodes} = "" && ${cores} = "" ) ]]; then
+  if [[ ! -f "${TESTING_DIR}/${knowledge}" ]] || [[ ! "${l4file}" = "*" && ! -f "${TESTING_DIR}/${l4file}" ]] || [[ ! ( -f "${TESTING_DIR}/${result}" && ${nodes} =~ ^[0-9]+$ && ${cores} =~ ^[0-9]+$ ) && ! ( -z ${result} && -z ${nodes} && -z ${cores} ) ]]; then
     echo "ERROR:  Invalid configuration line:  '${line}'"
     touch "${ERROR_MARKER}"
     continue
@@ -147,12 +158,24 @@ do
     l4file="${TESTING_DIR}/${l4file}"
   fi
 
+  COMPILE_CONSTR=""
+  if [[ ${constraints} =~ GPU ]] || [[ ${constraints} = "E5" ]]; then
+    PLATFORM="chimaira.platform"
+    COMPILE_CONSTR="-A cl -p chimaira" # HACK: the cuda compiler is not installed on all machines
+  elif [[ ${constraints} = "AVX2" ]]; then
+    PLATFORM="anyavx2.platform"
+  elif [[ ${constraints} = "AVX" ]]; then
+    PLATFORM="anyavx.platform"
+  else
+    PLATFORM="random.platform"
+  fi
+
   echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">" > "${TEST_LOG}"
   echo "Test ID:  ${id}" >> "${TEST_LOG}"
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} ${COMPILE_CONSTR} "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TESTING_DIR}/Platform/${PLATFORM}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -179,7 +202,6 @@ done < "${TESTING_CONF}"
 echo ""
 echo "Enqueue execution jobs:"
 echo ""
-COMP_DEPS="${DEP_SIDS}"
 
 # enqueue execution jobs
 for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
@@ -196,7 +218,7 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
   TEST_LOG="${LOG_DIR}/${TEST_LOG_REL}"
   TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
 
-  TEST_DEP="--dependency=afterok:${SID_GEN},afterany${COMP_DEPS}"
+  TEST_DEP="--dependency=afterok:${SID_GEN}"
 
   ACC="anywhere"
   PART="anywhere"
@@ -212,7 +234,7 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
     CONSTR_PARAM="--gres=gpu:1"
   fi
   echo "Enqueue execution job for id  ${id}."
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEMP_DIR}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
@@ -226,7 +248,7 @@ done
 echo ""
 echo "Collect separate logs after all other jobs are finished:"
 LOG_DEPS="--dependency=afterany${DEP_SIDS}"
-(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${SCR_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${SCR_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}" "${BRANCH}")
 echo ""
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</pre></body></html>" > "${PROGRESS}"
+update_progress 2

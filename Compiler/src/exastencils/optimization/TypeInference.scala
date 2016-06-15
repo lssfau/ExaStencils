@@ -30,8 +30,8 @@ object TypeInference extends CustomStrategy("Type inference") {
 
     this.execute(new Transformation("remove annotations", {
       case node : Node =>
-        if (node.hasAnnotation(TYPE_ANNOT)) node.removeAnnotation(TYPE_ANNOT)
-        if (node.hasAnnotation(SKIP_ANNOT)) node.removeAnnotation(SKIP_ANNOT)
+        node.removeAnnotation(TYPE_ANNOT)
+        node.removeAnnotation(SKIP_ANNOT)
         node
     }))
 
@@ -87,13 +87,9 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
         } else if (ty != inferred)
           Logger.warn("[Type inference]  inferred type (" + inferred + ") different from actual type stored in node (" + ty + "); ignoring")
 
-      case FunctionStatement(_, _, params, _, _, _) =>
+      case FunctionStatement(_, _, params, _, _, _, _) =>
         for (param <- params)
           declare(param.name, param.dType.get)
-
-      // HACK: skip member accesses as they are not declared explicitly
-      case MemberAccess(_, member) =>
-        member.annotate(SKIP_ANNOT)
 
       // HACK: ensure the iterator declaration is visited before the body...
       case ForLoopStatement(begin, _, _, _, _) =>

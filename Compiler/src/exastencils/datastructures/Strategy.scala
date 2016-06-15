@@ -38,7 +38,7 @@ object StrategyTimer {
     } else if (0 == thisData.entries) {
       thisData.totalDuration += System.nanoTime() - thisData.start
       thisData.count += 1
-    } // otherwise nothing to do due to inclusive regions    
+    } // otherwise nothing to do due to inclusive regions
   }
 
   def print = {
@@ -46,9 +46,9 @@ object StrategyTimer {
     for (d <- data.toSeq.sortBy(_._2.totalDuration)) {
       val runtime : Double = math.round(d._2.totalDuration / 1e6)
       val share : Double = math.round((d._2.totalDuration * 1000.0) / totalSum) / 10.0
-
-      if (share >= Settings.timeStratPercentThreshold)
+      if (share >= Settings.timeStratPercentThreshold) {
         Logger.debug(s"$runtime ms ($share %) were consumed through '${d._1}' (${d._2.count} top level transformation calls)")
+      }
     }
   }
 }
@@ -144,7 +144,10 @@ abstract class Strategy(val name : String) {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
-    Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+
+    if (Settings.logStrategyResults) {
+      Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+    }
     return result
   }
 }

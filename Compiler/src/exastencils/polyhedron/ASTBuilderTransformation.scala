@@ -4,7 +4,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import scala.collection.mutable.TreeSet
+import scala.collection.mutable.Set
 
 import exastencils.core._
 import exastencils.datastructures._
@@ -28,7 +28,8 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
 
   private val loopStmts = new HashMap[String, ListBuffer[OptimizationHint]]()
   private var oldStmts : HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])] = null
-  private var seqDims : TreeSet[String] = null
+  private var parDims : Set[String] = null
+  private var vecDims : Set[String] = null
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
   private var privateVars : ListBuffer[VariableAccess] = null
@@ -44,7 +45,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   }
 
   override def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : LoopOverDimensions with PolyhedronAccessable =>
+    case loop : LoopOverDimensions with PolyhedronAccessible =>
       loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
     case _ => false
   }
@@ -55,42 +56,52 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     if (scop.remove)
       return NullStatement
     reduction = scop.root.reduction
-    condition = scop.root.condition.getOrElse(null)
+    condition = scop.root.condition.orNull
 
     // find all sequential loops
     parallelize_omp = scop.parallelize
-    seqDims = new TreeSet[String]()
+    parDims = Set[String](scop.njuLoopVars : _*)
+    vecDims = Set[String](scop.njuLoopVars : _*)
     for (i <- scop.noParDims)
-      seqDims += scop.njuLoopVars(i)
+      parDims -= scop.njuLoopVars(i)
 
-    var deps : isl.UnionMap = scop.deps.validity()
-    deps = deps.applyRange(scop.schedule)
-    deps = deps.applyDomain(scop.schedule)
+    def respectDeps(deps : isl.UnionMap, forVect : Boolean) : Boolean = {
+      val tDeps : isl.UnionMap = deps.intersectDomain(scop.domain).intersectRange(scop.domain).applyRange(scop.schedule).applyDomain(scop.schedule)
+      tDeps.foreachMap({ dep : isl.Map =>
+        val directions = dep.deltas()
+        val universe : isl.Set = isl.BasicSet.universe(directions.getSpace())
+        val dim : Int = universe.dim(isl.DimType.Set)
+        for (i <- 0 until dim) {
+          var seq = universe
+          for (j <- 0 until i)
+            seq = seq.fixVal(isl.DimType.Set, j, ZERO_VAL)
+          seq = seq.lowerBoundVal(isl.DimType.Set, i, ONE_VAL)
 
-    deps.foreachMap({ dep : isl.Map =>
-      val directions = dep.deltas()
-      val universe : isl.Set = isl.BasicSet.universe(directions.getSpace())
-      val dim : Int = universe.dim(isl.DimType.Set)
-      for (i <- 0 until dim) {
-        var seq = universe
-        for (j <- 0 until i)
-          seq = seq.fixVal(isl.DimType.Set, j, ZERO_VAL)
-        seq = seq.lowerBoundVal(isl.DimType.Set, i, ONE_VAL)
+          if (!seq.intersect(directions).isEmpty()) {
+            val lVar = scop.njuLoopVars(i)
+            parDims -= lVar
+            if (forVect)
+              vecDims -= lVar
+          }
 
-        if (!seq.intersect(directions).isEmpty())
-          seqDims += scop.njuLoopVars(i)
+          seq = seq.dropConstraintsInvolvingDims(isl.DimType.Set, i, 1)
+          seq = seq.upperBoundVal(isl.DimType.Set, i, NEG_ONE_VAL)
 
-        seq = seq.dropConstraintsInvolvingDims(isl.DimType.Set, i, 1)
-        seq = seq.upperBoundVal(isl.DimType.Set, i, NEG_ONE_VAL)
-
-        val negative_deps = seq.intersect(directions)
-        if (!negative_deps.isEmpty()) {
-          Logger.debug("[poly ast] invalid dependence found (negative direction):  " + negative_deps)
-          invalidateScop(scop)
-          return node
+          val negative_deps = seq.intersect(directions)
+          if (!negative_deps.isEmpty()) {
+            Logger.debug("[poly ast] invalid dependence found (negative direction):  " + negative_deps)
+            invalidateScop(scop)
+            return false
+          }
         }
-      }
-    })
+      })
+      return true
+    }
+
+    if (!respectDeps(scop.deps.validityParVec(), true))
+      return node
+    if (!respectDeps(scop.deps.validityPar(), false))
+      return node
 
     // compute schedule dims
     var dims : Int = 0
@@ -131,7 +142,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     var islBuild : isl.AstBuild = isl.AstBuild.fromContext(scop.getContext())
     islBuild = islBuild.setOptions(isl.UnionMap.readFromStr(Isl.ctx, options.toString()))
     islBuild = islBuild.setIterators(itersId)
-    var scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
+    val scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
     val islNode : isl.AstNode = islBuild.astFromSchedule(scattering)
     var nju : ListBuffer[Statement] =
       try {
@@ -146,7 +157,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     // mark innermost loops
     var i : Int = scop.njuLoopVars.size - 1
     while (i >= 0) {
-      var innermostLoops = loopStmts.get(scop.njuLoopVars(i))
+      val innermostLoops = loopStmts.get(scop.njuLoopVars(i))
       if (innermostLoops.isDefined) {
         for (l <- innermostLoops.get)
           l.isInnermost = true
@@ -156,7 +167,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     }
 
     // add comment (for debugging) and (eventually) declarations outside loop nest
-    val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.mkString(", "))
+    val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
     nju.+=:(comment) // "comment +=: nju" works too, but both versions are equally horrible
     if (!scop.decls.isEmpty) {
       val scopeList = new ListBuffer[Statement]
@@ -186,7 +197,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.Id, "isl for node iterator is not an ExprId")
           val itStr : String = islIt.getId().getName()
-          val parOMP : Boolean = parallelize_omp && !seqDims.contains(itStr)
+          val parOMP : Boolean = parallelize_omp && parDims.contains(itStr)
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
           val it : VariableAccess = new VariableAccess(itStr, IntegerDatatype)
           val init : Statement = new VariableDeclarationStatement(IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
@@ -200,7 +211,8 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
               new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
             else
               new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
-          loop.isParallel = seqDims != null && !seqDims.contains(itStr)
+          loop.isParallel = parDims != null && parDims.contains(itStr)
+          loop.isVectorizable = vecDims != null && vecDims.contains(itStr)
           loop.privateVars ++= privateVars
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
           ListBuffer[Statement](loop)
@@ -249,7 +261,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     return expr.getType() match { // TODO: check if ExprId contains only variable identifier
       case isl.AstExprType.Id =>
         val id : String = expr.getId().getName()
-        ScopNameMapping.id2expr(id).getOrElse(StringLiteral(id))
+        Duplicate(ScopNameMapping.id2expr(id)).getOrElse(StringLiteral(id))
       case isl.AstExprType.Int   => IntegerConstant(expr.getVal().toString().toLong)
       case isl.AstExprType.Op    => processIslExprOp(expr)
       case isl.AstExprType.Error => throw new PolyASTBuilderException("ExprError found...")

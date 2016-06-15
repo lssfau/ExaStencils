@@ -5,7 +5,6 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.TreeSet
 
-import exastencils.datastructures.Node
 import exastencils.datastructures.ir._
 import isl.Conversions._
 
@@ -23,6 +22,7 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
   val stmts = new HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])]()
   val decls = new ListBuffer[VariableDeclarationStatement]()
 
+  final val loopVarTempl : String = "_i%d"
   val njuLoopVars = new ArrayBuffer[String]()
   val noParDims = new TreeSet[Int]()
 
@@ -30,19 +30,64 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
   var deadAfterScop : isl.UnionSet = null
 
   object deps {
-    var flow : isl.UnionMap = null
-    var antiOut : isl.UnionMap = null
+    // dependences, which prevent parallelization AND vectorization
+    var flowParVec : isl.UnionMap = null
+    var antiOutParVec : isl.UnionMap = null
+    // dependences, which prevent only parallelization, but NOT vectorization
+    var flowPar : isl.UnionMap = null
+    var antiOutPar : isl.UnionMap = null
+
+    def flow : isl.UnionMap = {
+      if (flowParVec == null)
+        return flowPar
+      else if (flowPar == null)
+        return flowParVec
+      else
+        return Isl.simplify(flowParVec.union(flowPar))
+    }
+
     private var inputCache : isl.UnionMap = null
-    val updateInput = new ArrayBuffer[isl.UnionMap => isl.UnionMap]()
+    private var lazySetInput : () => isl.UnionMap = null
+    private val lazyUpdateInputs = new ArrayBuffer[isl.UnionMap => isl.UnionMap]()
+
+    def input_=(nju : isl.UnionMap) : Unit = {
+      lazySetInput = null
+      lazyUpdateInputs.clear()
+      inputCache = nju
+    }
+
+    def setInputLazy(f : () => isl.UnionMap) : Unit = {
+      lazySetInput = f
+      lazyUpdateInputs.clear()
+    }
+
+    /** Maps a given Function1 to the input dependences, iff it was not null. */
+    def mapInputLazy(f : isl.UnionMap => isl.UnionMap) : Unit = {
+      lazyUpdateInputs += f
+    }
+
     def input : isl.UnionMap = {
-      for (up <- updateInput)
-        inputCache = up(inputCache)
-      updateInput.clear()
-      inputCache
+      if (lazySetInput != null) {
+        inputCache = lazySetInput()
+        lazySetInput = null
+      }
+      val it = lazyUpdateInputs.iterator
+      while (it.hasNext && inputCache != null)
+        inputCache = it.next()(inputCache)
+      lazyUpdateInputs.clear()
+      return inputCache
     }
 
     def validity() : isl.UnionMap = {
-      return Isl.simplify(flow.union(antiOut))
+      return Isl.simplify(flowParVec.union(flowPar).union(antiOutParVec).union(antiOutPar))
+    }
+
+    def validityParVec() : isl.UnionMap = {
+      return Isl.simplify(flowParVec.union(antiOutParVec))
+    }
+
+    def validityPar() : isl.UnionMap = {
+      return Isl.simplify(flowPar.union(antiOutPar))
     }
   }
 
@@ -54,7 +99,7 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
     })
     var i : Int = 0
     while (i < maxOut) {
-      njuLoopVars += "_i" + i
+      njuLoopVars += loopVarTempl.format(i)
       i += 1
     }
   }
@@ -70,16 +115,21 @@ object ScopNameMapping {
     return id2expr.get(id)
   }
 
-  def expr2id(expr : Expression) : String = {
+  def expr2id(expr : Expression, alias : Expression = null) : String = {
     return expr2id.getOrElseUpdate(expr, {
-      val id : String = expr match {
-        case VariableAccess(str, _) if (str.length() < 5) =>
-          str
-        case _ =>
-          count += 1
-          "p" + count
-      }
+      val id : String =
+        if (alias != null && expr2id.contains(alias))
+          expr2id(alias)
+        else expr match {
+          case VariableAccess(str, _) if (str.length() < 5) =>
+            str
+          case _ =>
+            count += 1
+            "p" + count
+        }
       id2expr.put(id, expr)
+      if (alias != null)
+        expr2id.put(alias, id)
       id
     })
   }

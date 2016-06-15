@@ -18,7 +18,18 @@ ERROR_MARKER_NAME=${4}
 ERROR_MARKER=${5}
 LOG_DIR=${6}
 PROGRESS=${7}
+BRANCH=${8}
 
+
+function update_progress {
+  if [[ "${1}" -eq 0 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n  Done!</div></body></html>" > "${PROGRESS}"
+  elif [[ "${1}" -eq 1 ]]; then
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
+  else
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
+  fi
+}
 
 echo ""
 echo "-----------------------------------------------------"
@@ -55,11 +66,11 @@ if [[ -n "${TO_ZIP}" ]]; then
   srun 7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
   echo ""
   echo ""
-  echo "Errors in automatic tests!  See log or attachment for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
+  echo "Errors in automatic tests!  See log (or attachment) for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
 fi
 
 echo "Tests finished at $(date -R)."
 echo ""
 echo "============================================================================"
 
-echo "<html><head><meta charset=\"utf-8\"></head><body><pre>$(date -R):  Done!</pre></body></html>" > "${PROGRESS}"
+update_progress 0
