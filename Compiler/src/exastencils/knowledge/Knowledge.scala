@@ -318,8 +318,8 @@ object Knowledge {
   var experimental_cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
 
   var experimental_cuda_blockSize_x : Int = 8 // default block size in x dimension
-  var experimental_cuda_blockSize_y : Int = 8 // default block size in x dimension
-  var experimental_cuda_blockSize_z : Int = 8 // default block size in x dimension
+  var experimental_cuda_blockSize_y : Int = 8 // default block size in y dimension
+  var experimental_cuda_blockSize_z : Int = 8 // default block size in z dimension
   def experimental_cuda_blockSizeAsVec = Array(experimental_cuda_blockSize_x, experimental_cuda_blockSize_y, experimental_cuda_blockSize_z)
   def experimental_cuda_blockSizeTotal = experimental_cuda_blockSize_x * experimental_cuda_blockSize_y * experimental_cuda_blockSize_z
   var experimental_cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels

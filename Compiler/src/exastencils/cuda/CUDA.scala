@@ -139,17 +139,11 @@ case class CUDA_FunctionCallExperimentalExpression(
 
   override def prettyprint(out : PpStream) : Unit = {
     val numDims = numThreadsPerDim.size
-    if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
-
-    val numBlocks = (0 until numDims).map(dim => {
-      (numThreadsPerDim(dim) + numBlocksPerDim(dim) - 1) / numBlocksPerDim(dim)
-    }).toArray
-
-    // TODO: simplify? check if integer ops are handled correctly
+    if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA")
 
     out << name << "<<<"
     if (1 == numDims)
-      out << numBlocks(0) << ", " << numBlocksPerDim(0) // only one dimensions -> wrapping not necessary
+      out << numBlocksPerDim(0) << ", " << numThreadsPerDim(0) // only one dimensions -> wrapping not necessary
     else
       out << s"dim3(" <<< (numBlocksPerDim.take(numDims), ", ") << "), " << s"dim3(" <<< (numThreadsPerDim.take(numDims), ", ") << ")"
 

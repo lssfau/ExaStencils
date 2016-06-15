@@ -516,9 +516,20 @@ case class ExpKernel(var identifier : String,
     }
 
     // distribute threads along threads in blocks and blocks in grid
-    val numThreadsPerDim = Array.fill[Long](dimensionality)(32)
-    val threadMax = (requiredThreads, numThreadsPerDim).zipped.map(math.max(_, _))
-    val numBlocksPerDim = (threadMax, numThreadsPerDim).zipped.map(_ / _).toArray[Long]
+    // NVIDIA GeForce Titan Black has CUDA compute capability 3.5
+    // maximum number of threads per block = 1024
+    // number of threads per block should be integer multiple of warp size (32)
+    var numThreadsPerDim = Array[Long]()
+
+    dimensionality match {
+      case 1 => numThreadsPerDim = Array[Long](512)
+      case 2 => numThreadsPerDim = Array[Long](32,16)
+      case _ => numThreadsPerDim = Array[Long](8,8,8)
+    }
+
+    val numBlocksPerDim = (0 until dimensionality).map(dim => {
+      (requiredThreads(dim) + numThreadsPerDim(dim) - 1) / numThreadsPerDim(dim)
+    }).toArray
 
     var body = ListBuffer[Statement]()
 
