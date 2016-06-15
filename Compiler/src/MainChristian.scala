@@ -89,7 +89,7 @@ object MainChristian {
       StrategyTimer.startTiming("Handling Layer 1")
 
     // add L1 code here
-    StateManager.root_ = (new ParserL1).parseFile("/home/schmittch/l1.txt")
+    StateManager.root_ = (new exastencils.parsers.l1.ParserL1).parseFile("/home/schmittch/l1.txt")
     StateManager.root.asInstanceOf[l1.Root].sort()
     exastencils.languageprocessing.l1.UnifyOperators.apply()
 
