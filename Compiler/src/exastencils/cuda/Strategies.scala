@@ -432,14 +432,14 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
 
       val kernel = ExpKernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
-        variableAccesses,
-        loopVariables,
-        lowerBounds,
-        upperBounds,
-        stepSize,
-        kernelBody,
-        loop.reduction,
-        extremaMap)
+        Duplicate(variableAccesses),
+        Duplicate(loopVariables),
+        Duplicate(lowerBounds),
+        Duplicate(upperBounds),
+        Duplicate(stepSize),
+        Duplicate(kernelBody),
+        Duplicate(loop.reduction),
+        Duplicate(extremaMap))
 
       kernelFunctions.addKernel(Duplicate(kernel))
 

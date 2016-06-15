@@ -357,8 +357,6 @@ case class ExpKernel(var identifier : String,
   var evaluatedIndexBounds = false
   var minIndices = Array[Long]()
   var maxIndices = Array[Long]()
-  var lowerBoundsDupl : ListBuffer[Expression] = Duplicate(lowerBounds)
-  var upperBoundsDupl : ListBuffer[Expression] = Duplicate(upperBounds)
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -415,11 +413,10 @@ case class ExpKernel(var identifier : String,
     }
   }
 
-  /**
-   * Add global thread id calculation to the kernel body and bounds checks to guarantee that there are no invalid
-   * memory accesses.
-   */
-  def completeKernelBody() = {
+  def compileKernelBody : ListBuffer[Statement] = {
+    evalIndexBounds() // ensure that minimal and maximal indices are set correctly
+    evalAccesses() // ensure that field accesses have been mapped
+
     var statements = ListBuffer[Statement]()
 
     // add CUDA global Thread ID (x,y,z) calculation for a dim3 execution configuration
@@ -438,20 +435,34 @@ case class ExpKernel(var identifier : String,
 
     // add dimension index start and end point
     // add index bounds conditions
-    statements ++= (0 until dimensionality).map(dim => {
+    val conditionParts = (0 until dimensionality).map(dim => {
       val variableAccess = VariableAccess(KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype))
-      new ConditionStatement(
-        OrOrExpression(LowerExpression(variableAccess, s"${KernelVariablePrefix}begin_$dim"), GreaterEqualExpression(variableAccess, s"${KernelVariablePrefix}end_$dim")),
-        ReturnStatement())
+      AndAndExpression(GreaterEqualExpression(variableAccess, s"${KernelVariablePrefix}begin_$dim"), LowerExpression(variableAccess, s"${KernelVariablePrefix}end_$dim"))
     })
 
-    statements ++= body
-    body = statements
-  }
+    val condition = VariableDeclarationStatement(BooleanDatatype, KernelVariablePrefix + "condition",
+      Some(conditionParts.reduceLeft[AndAndExpression] { (acc, n) =>
+      AndAndExpression(acc, n)
+    }))
+    val conditionAccess = VariableAccess(KernelVariablePrefix + "condition", Some(BooleanDatatype))
+    statements += condition
 
-  def compileKernelBody : ListBuffer[Statement] = {
-    evalIndexBounds() // ensure that minimal and maximal indices are set correctly
-    evalAccesses() // ensure that field accesses have been mapped
+    if (Knowledge.experimental_cuda_useSharedMemory) {
+      var sharedMemoryStatements = ListBuffer[Statement]()
+      sharedMemoryStatements += new CUDA_UnsizedExternSharedArray(KernelVariablePrefix + "s", DoubleDatatype)
+      var source : Option[Expression] = Some(VariableAccess(KernelVariablePrefix + "s", Some(PointerDatatype(DoubleDatatype))))
+
+      fieldAccesses.foreach(f => {
+        sharedMemoryStatements += VariableDeclarationStatement(PointerDatatype(DoubleDatatype), KernelVariablePrefix + f._1, source)
+        source = Some(AddressofExpression(ArrayAccess(KernelVariablePrefix + f._1, IntegerConstant(0))))
+      })
+
+      statements += new ConditionStatement(conditionAccess, sharedMemoryStatements)
+      statements += new CUDA_SyncThreads()
+    }
+
+    statements += new ConditionStatement(conditionAccess, Duplicate(body))
+    body = statements
 
     // add actual body after replacing field and iv accesses
     ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
@@ -472,12 +483,12 @@ case class ExpKernel(var identifier : String,
     // substitute loop variable in bounds with appropriate fix values to get valid code in wrapper function
     ReplacingLoopVariablesInWrapper.loopVariables.clear
     ReplacingLoopVariablesInWrapper.loopVariables = loopVariables
-    ReplacingLoopVariablesInWrapper.bounds = Duplicate(lowerBoundsDupl)
-    val lowerArgs = Duplicate(lowerBoundsDupl)
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(lowerBounds)
+    val lowerArgs = Duplicate(lowerBounds)
     ReplacingLoopVariablesInWrapper.applyStandalone(lowerArgs)
 
-    val upperArgs = Duplicate(upperBoundsDupl)
-    ReplacingLoopVariablesInWrapper.bounds = Duplicate(upperBoundsDupl)
+    val upperArgs = Duplicate(upperBounds)
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(upperBounds)
     ReplacingLoopVariablesInWrapper.applyStandalone(upperArgs)
 
     // compile arguments for device function call
@@ -557,7 +568,6 @@ case class ExpKernel(var identifier : String,
 
   def compileKernelFunction : FunctionStatement = {
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
-    completeKernelBody()
     evalAccesses() // ensure that field accesses have been mapped
 
     // compile parameters for device function
