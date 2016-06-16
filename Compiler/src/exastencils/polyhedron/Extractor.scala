@@ -441,7 +441,7 @@ class Extractor extends Collector {
     try {
       if (!curScop.exists())
         node match {
-          case loop : LoopOverDimensions with PolyhedronAccessible =>
+          case loop : LoopOverDimensions with PolyhedronAccessible if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
