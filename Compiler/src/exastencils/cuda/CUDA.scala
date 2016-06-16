@@ -195,3 +195,12 @@ case class CUDA_UnsizedExternSharedArray(name : String, arrayType : ScalarDataty
     out << "extern __shared__ " << arrayType << " " << name << "[];"
   }
 }
+
+case class CUDA_SharedArrayAccess(base : Expression, indices : ListBuffer[Expression]) extends Access {
+  def this(base : Expression, indices : Array[Expression]) = this(base, indices.to[ListBuffer])
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << base
+    indices.foreach(i => out << "[" << i << "]")
+  }
+}

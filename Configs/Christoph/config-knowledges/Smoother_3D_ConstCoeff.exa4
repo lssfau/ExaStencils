@@ -71,7 +71,7 @@ Function BenchmarkT() : Unit {
     print('Starting benchmark (no temporal blocking)')
     startTimer(benchTTimer)
     repeat 3 times { // marker
-        SmootherTTempBlock()
+        SmootherTNoTempBlock()
     }
     stopTimer(benchTTimer)
 

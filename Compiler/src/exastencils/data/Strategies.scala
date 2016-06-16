@@ -35,7 +35,11 @@ object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
 }
 
 object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess nodes") {
+  val NO_LINEARIZATION = "NoLinearization"
+
   this += new Transformation("Linearizing", {
+    case access if access.hasAnnotation(NO_LINEARIZATION) =>
+      access
     case access : DirectFieldAccess =>
       access.linearize
     case access : ExternalFieldAccess =>

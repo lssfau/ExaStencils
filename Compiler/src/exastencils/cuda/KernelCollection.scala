@@ -352,14 +352,35 @@ case class ExpKernel(var identifier : String,
   var originalDimensionality = loopVariables.size
   var dimensionality = loopVariables.size
   var evaluatedAccesses = false
-  var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
+  var fieldAccesses = mutable.Map[String, List[FieldAccessLike]]()
+  var fieldSelections = mutable.Map[String, FieldSelection]()
+  var fieldAccessMap = mutable.Map[String, FieldAccessLike]()
+  var linearizedFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
   var evaluatedIndexBounds = false
   var minIndices = Array[Long]()
   var maxIndices = Array[Long]()
+  var requiredThreadsPerDim = Array[Long]()
+  var numThreadsPerBlock = Array[Long]()
+  var numBlocksPerDim = Array[Long]()
+  var evaluatedExecutionConfiguration = false
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
+
+  init()
+
+  def init() : Unit = {
+    GatherLocalFieldAccessLike.fieldAccesses.clear
+    GatherLocalFieldAccessLike.fieldSelections.clear
+    GatherLocalFieldAccessLike.fieldAccessMap.clear
+    GatherLocalFieldAccessLike.applyStandalone(new Scope(body))
+    fieldAccesses = Duplicate(GatherLocalFieldAccessLike.fieldAccesses)
+    fieldSelections = Duplicate(GatherLocalFieldAccessLike.fieldSelections)
+    fieldAccessMap = Duplicate(GatherLocalFieldAccessLike.fieldAccessMap)
+
+    // extract the offset of the dimensions here to get correct array accesses
+  }
 
   /**
    * Check the accesses in the loop to create valid function calls.
@@ -368,7 +389,7 @@ case class ExpKernel(var identifier : String,
     if (!evaluatedAccesses) {
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
       GatherLocalLinearizedFieldAccess.applyStandalone(new Scope(body))
-      fieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
+      linearizedFieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
 
       GatherLocalIVs.ivAccesses.clear
       GatherLocalIVs.applyStandalone(new Scope(body))
@@ -376,7 +397,7 @@ case class ExpKernel(var identifier : String,
 
       // postprocess iv's -> generate parameter names
       var cnt = 0
-      val processedIVs = mutable.HashMap[String, iv.InternalVariable]()
+      val processedIVs = mutable.HashMap[ String, iv.InternalVariable ]()
       for (ivAccess <- ivAccesses) {
         processedIVs.put(ivAccess._2.resolveName + "_" + cnt, ivAccess._2)
         cnt += 1
@@ -413,9 +434,37 @@ case class ExpKernel(var identifier : String,
     }
   }
 
+  def evalExecutionConfiguration() = {
+    if (!evaluatedExecutionConfiguration) {
+      requiredThreadsPerDim = (maxIndices, minIndices).zipped.map(_ - _)
+
+      if (null == requiredThreadsPerDim || requiredThreadsPerDim.product <= 0) {
+        Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
+        requiredThreadsPerDim = (0 until dimensionality).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
+      }
+
+      // distribute threads along threads in blocks and blocks in grid
+      // NVIDIA GeForce Titan Black has CUDA compute capability 3.5
+      // maximum number of threads per block = 1024
+      // number of threads per block should be integer multiple of warp size (32)
+      dimensionality match {
+        case 1 => numThreadsPerBlock = Array[Long](512)
+        case 2 => numThreadsPerBlock = Array[Long](32,16)
+        case _ => numThreadsPerBlock = Array[Long](8,8,8)
+      }
+
+      numBlocksPerDim = (0 until dimensionality).map(dim => {
+        (requiredThreadsPerDim(dim) + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
+      }).toArray
+
+      evaluatedExecutionConfiguration = true
+    }
+  }
+
   def compileKernelBody : ListBuffer[Statement] = {
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
     evalAccesses() // ensure that field accesses have been mapped
+    evalExecutionConfiguration() // ensure that execution configuration is already calculated
 
     var statements = ListBuffer[Statement]()
 
@@ -448,13 +497,14 @@ case class ExpKernel(var identifier : String,
     statements += condition
 
     if (Knowledge.experimental_cuda_useSharedMemory) {
-      var sharedMemoryStatements = ListBuffer[Statement]()
-      sharedMemoryStatements += new CUDA_UnsizedExternSharedArray(KernelVariablePrefix + "s", DoubleDatatype)
-      var source : Option[Expression] = Some(VariableAccess(KernelVariablePrefix + "s", Some(PointerDatatype(DoubleDatatype))))
-
       fieldAccesses.foreach(f => {
-        sharedMemoryStatements += VariableDeclarationStatement(PointerDatatype(DoubleDatatype), KernelVariablePrefix + f._1, source)
-        source = Some(AddressofExpression(ArrayAccess(KernelVariablePrefix + f._1, IntegerConstant(0))))
+        statements += new CUDA_SharedArray(KernelVariablePrefix + f._1, DoubleDatatype, numThreadsPerBlock)
+      })
+
+      val indices = ListBuffer[Expression]() ++ (0 until dimensionality).map(dim => VariableAccess(KernelVariablePrefix + dimToString(dim)))
+      var sharedMemoryStatements = ListBuffer[Statement]()
+      fieldAccesses.foreach(f => {
+        sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + f._1, indices.reverse), new DirectFieldAccess(fieldSelections(f._1), MultiIndex(indices.toArray[Expression])).linearize)
       })
 
       statements += new ConditionStatement(conditionAccess, sharedMemoryStatements)
@@ -465,7 +515,8 @@ case class ExpKernel(var identifier : String,
     body = statements
 
     // add actual body after replacing field and iv accesses
-    ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
+    // replace fieldaccesses in body with shared memory accesses
+    ReplacingLocalFieldAccessLike.applyStandalone(new Scope(body))
     ReplacingLocalLinearizedFieldAccess.applyStandalone(new Scope(body))
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(new Scope(body))
@@ -479,6 +530,7 @@ case class ExpKernel(var identifier : String,
   def compileWrapperFunction : FunctionStatement = {
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
     evalAccesses() // ensure that field accesses have been mapped
+    evalExecutionConfiguration() // ensure that execution configuration is already calculated
 
     // substitute loop variable in bounds with appropriate fix values to get valid code in wrapper function
     ReplacingLoopVariablesInWrapper.loopVariables.clear
@@ -499,7 +551,7 @@ case class ExpKernel(var identifier : String,
       callArgs += upperArgs(dim)
     }
 
-    for (fieldAccess <- fieldAccesses) {
+    for (fieldAccess <- fieldAccessMap) {
       val fieldSelection = fieldAccess._2.fieldSelection
       callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
     }
@@ -518,43 +570,19 @@ case class ExpKernel(var identifier : String,
       callArgs += Duplicate(variableAccess)
     }
 
-    // evaluate required thread counts
-    var requiredThreads : Array[Long] = (maxIndices, minIndices).zipped.map(_ - _)
-
-    if (null == requiredThreads || requiredThreads.product <= 0) {
-      Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
-      requiredThreads = (0 until dimensionality).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
-    }
-
-    // distribute threads along threads in blocks and blocks in grid
-    // NVIDIA GeForce Titan Black has CUDA compute capability 3.5
-    // maximum number of threads per block = 1024
-    // number of threads per block should be integer multiple of warp size (32)
-    var numThreadsPerDim = Array[Long]()
-
-    dimensionality match {
-      case 1 => numThreadsPerDim = Array[Long](512)
-      case 2 => numThreadsPerDim = Array[Long](32,16)
-      case _ => numThreadsPerDim = Array[Long](8,8,8)
-    }
-
-    val numBlocksPerDim = (0 until dimensionality).map(dim => {
-      (requiredThreads(dim) + numThreadsPerDim(dim) - 1) / numThreadsPerDim(dim)
-    }).toArray
-
     var body = ListBuffer[Statement]()
 
     if (reduction.isDefined) {
-      def bufSize = requiredThreads.product
+      def bufSize = requiredThreadsPerDim.product
       def bufAccess = iv.ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.dType.get)
-      body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerDim, numBlocksPerDim)
+      body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
       body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${BinaryOperators.opAsIdent(reduction.get.op)}_wrapper",
         ListBuffer[Expression](bufAccess, bufSize))))
 
       StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
     } else {
-      body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerDim, numBlocksPerDim)
+      body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
     }
 
     FunctionStatement(
@@ -569,6 +597,7 @@ case class ExpKernel(var identifier : String,
   def compileKernelFunction : FunctionStatement = {
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
     evalAccesses() // ensure that field accesses have been mapped
+    evalExecutionConfiguration() // ensure that execution configuration is already calculated
 
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
@@ -578,7 +607,7 @@ case class ExpKernel(var identifier : String,
       fctParams += VariableAccess(s"${KernelVariablePrefix}end_$dim", Some(IntegerDatatype))
     }
 
-    for (fieldAccess <- fieldAccesses) {
+    for (fieldAccess <- fieldAccessMap) {
       val fieldSelection = fieldAccess._2.fieldSelection
       fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
     }
@@ -661,6 +690,60 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
     case access : LinearizedFieldAccess =>
       val identifier = extractIdentifier(access)
       ArrayAccess(identifier, access.index)
+  })
+}
+
+object GatherLocalFieldAccessLike extends QuietDefaultStrategy("Gathering local FieldAccessLike nodes") {
+  var fieldAccesses = new mutable.HashMap[String,List[FieldAccessLike]].withDefaultValue(Nil)
+  var fieldSelections = new mutable.HashMap[String,FieldSelection]
+  var fieldAccessMap = new mutable.HashMap[String,FieldAccessLike]
+
+  def mapFieldAccess(access : FieldAccessLike) = {
+    val field = access.fieldSelection.field
+    var identifier = field.codeName
+
+    if (field.numSlots > 1) {
+      access.fieldSelection.slot match {
+        case SlotAccess(_, offset) => identifier += s"_o$offset"
+        case IntegerConstant(slot) => identifier += s"_s$slot"
+        case _ => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+      }
+    }
+
+    access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
+    fieldAccesses(identifier) ::= access
+    fieldSelections.put(identifier, access.fieldSelection)
+    fieldAccessMap.put(identifier, access)
+  }
+
+  this += new Transformation("Searching", {
+    case access : FieldAccessLike =>
+      mapFieldAccess(access)
+      access
+  }, false)
+}
+
+object ReplacingLocalFieldAccessLike extends QuietDefaultStrategy("Replacing local FieldAccessLike nodes") {
+  def extractIdentifier(access : FieldAccessLike) = {
+    val field = access.fieldSelection.field
+    var identifier = field.codeName
+
+    // TODO: array fields
+    if (field.numSlots > 1) {
+      access.fieldSelection.slot match {
+        case SlotAccess(_, offset) => identifier += s"_o$offset"
+        case IntegerConstant(slot) => identifier += s"_s$slot"
+        case _ => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+      }
+    }
+
+    VariableAccess(ExpKernel.KernelVariablePrefix + identifier, Some(PointerDatatype(field.resolveDeclType)))
+  }
+
+  this += new Transformation("Searching", {
+    case access : FieldAccessLike =>
+      val identifier = extractIdentifier(access)
+      new CUDA_SharedArrayAccess(identifier, access.index.indices.reverse)
   })
 }
 
