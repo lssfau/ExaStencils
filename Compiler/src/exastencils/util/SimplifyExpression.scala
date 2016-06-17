@@ -167,6 +167,10 @@ object SimplifyExpression {
         res = new mutable.HashMap[Expression, Long]()
         res(VariableAccess(varName, Some(IntegerDatatype))) = 1L
 
+      case m : MemberAccess =>
+        res = new mutable.HashMap[Expression, Long]()
+        res(m) = 1L
+
       case StringLiteral(varName) =>
         res = new mutable.HashMap[Expression, Long]()
         res(VariableAccess(varName, Some(IntegerDatatype))) = 1L // ONLY VariableAccess in res keys, NO StringConstant

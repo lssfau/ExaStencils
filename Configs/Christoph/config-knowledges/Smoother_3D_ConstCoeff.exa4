@@ -65,13 +65,13 @@ Function InitFields ( ) : Unit {
 Function BenchmarkT() : Unit {
     print('Cache warmup')
     repeat 1 times {
-        SmootherTNoTempBlock()
+        SmootherTTempBlock()
     }
 
     print('Starting benchmark (no temporal blocking)')
     startTimer(benchTTimer)
     repeat 3 times { // marker
-        SmootherTNoTempBlock()
+        SmootherTTempBlock()
     }
     stopTimer(benchTTimer)
 

@@ -335,6 +335,7 @@ case class Kernel(var identifier : String,
 object ExpKernel {
   def wrapperPostfix = "_wrapper"
   val KernelVariablePrefix = "_cu_"
+  val CUDASharedMemoryAccess = "CUDASharedMemoryAccess"
 }
 
 case class ExpKernel(var identifier : String,
@@ -351,12 +352,16 @@ case class ExpKernel(var identifier : String,
 
   var originalDimensionality = loopVariables.size
   var dimensionality = loopVariables.size
+
   var evaluatedAccesses = false
   var fieldAccesses = mutable.Map[String, List[FieldAccessLike]]()
-  var fieldSelections = mutable.Map[String, FieldSelection]()
-  var fieldAccessMap = mutable.Map[String, FieldAccessLike]()
+  var fieldToOffset = mutable.Map[String, MultiIndex]()
+  var offsetForSharedMemoryAccess = mutable.Map[String, MultiIndex]()
+  var accessesForSharedMemory = mutable.Map[String, FieldAccessLike]()
+
   var linearizedFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
+
   var evaluatedIndexBounds = false
   var minIndices = Array[Long]()
   var maxIndices = Array[Long]()
@@ -371,15 +376,29 @@ case class ExpKernel(var identifier : String,
   init()
 
   def init() : Unit = {
+    // 1. get read and write field accesses in body
     GatherLocalFieldAccessLike.fieldAccesses.clear
-    GatherLocalFieldAccessLike.fieldSelections.clear
-    GatherLocalFieldAccessLike.fieldAccessMap.clear
     GatherLocalFieldAccessLike.applyStandalone(new Scope(body))
-    fieldAccesses = Duplicate(GatherLocalFieldAccessLike.fieldAccesses)
-    fieldSelections = Duplicate(GatherLocalFieldAccessLike.fieldSelections)
-    fieldAccessMap = Duplicate(GatherLocalFieldAccessLike.fieldAccessMap)
+    fieldAccesses = GatherLocalFieldAccessLike.fieldAccesses
 
-    // extract the offset of the dimensions here to get correct array accesses
+    // 2. evaluate accesses worth to load in shared memory
+    // every field accessed more than once is potentially worth to load in shared memory
+    fieldAccesses.foreach(fa => {
+      if (fa._2.size > 1) {
+        accessesForSharedMemory.put(fa._1, fa._2.head)
+      } else {
+        fa._2.foreach(a => a.removeAnnotation(LinearizeFieldAccesses.NO_LINEARIZATION))
+      }
+    })
+    fieldAccesses = fieldAccesses.filter(fa => fa._2.size > 1)
+
+    // 3. get offset from every field
+    accessesForSharedMemory.foreach(a => {
+      val offset = Array.fill[Long](a._2.fieldSelection.fieldLayout.referenceOffset.indices.length)(1)
+
+      fieldToOffset.put(a._1, Duplicate(a._2.fieldSelection.fieldLayout.referenceOffset))
+      offsetForSharedMemoryAccess.put(a._1, new MultiIndex(offset))
+    })
   }
 
   /**
@@ -397,7 +416,7 @@ case class ExpKernel(var identifier : String,
 
       // postprocess iv's -> generate parameter names
       var cnt = 0
-      val processedIVs = mutable.HashMap[ String, iv.InternalVariable ]()
+      val processedIVs = mutable.HashMap[String, iv.InternalVariable]()
       for (ivAccess <- ivAccesses) {
         processedIVs.put(ivAccess._2.resolveName + "_" + cnt, ivAccess._2)
         cnt += 1
@@ -449,8 +468,8 @@ case class ExpKernel(var identifier : String,
       // number of threads per block should be integer multiple of warp size (32)
       dimensionality match {
         case 1 => numThreadsPerBlock = Array[Long](512)
-        case 2 => numThreadsPerBlock = Array[Long](32,16)
-        case _ => numThreadsPerBlock = Array[Long](8,8,8)
+        case 2 => numThreadsPerBlock = Array[Long](32, 16)
+        case _ => numThreadsPerBlock = Array[Long](8, 8, 8)
       }
 
       numBlocksPerDim = (0 until dimensionality).map(dim => {
@@ -491,31 +510,39 @@ case class ExpKernel(var identifier : String,
 
     val condition = VariableDeclarationStatement(BooleanDatatype, KernelVariablePrefix + "condition",
       Some(conditionParts.reduceLeft[AndAndExpression] { (acc, n) =>
-      AndAndExpression(acc, n)
-    }))
+        AndAndExpression(acc, n)
+      }))
     val conditionAccess = VariableAccess(KernelVariablePrefix + "condition", Some(BooleanDatatype))
     statements += condition
 
     if (Knowledge.experimental_cuda_useSharedMemory) {
-      fieldAccesses.foreach(f => {
-        statements += new CUDA_SharedArray(KernelVariablePrefix + f._1, DoubleDatatype, numThreadsPerBlock)
+      accessesForSharedMemory.foreach(a => {
+        statements += new CUDA_SharedArray(KernelVariablePrefix + a._1, DoubleDatatype, numThreadsPerBlock.map(x => x + 2))
       })
 
-      val indices = ListBuffer[Expression]() ++ (0 until dimensionality).map(dim => VariableAccess(KernelVariablePrefix + dimToString(dim)))
+      val localIndices = ListBuffer[Expression]() ++ (0 until dimensionality).map(dim => MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), dimToString(dim)))
+      val globalIndices = ListBuffer[Expression]() ++ (0 until dimensionality).map(dim => VariableAccess(KernelVariablePrefix + dimToString(dim)))
       var sharedMemoryStatements = ListBuffer[Statement]()
-      fieldAccesses.foreach(f => {
-        sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + f._1, indices.reverse), new DirectFieldAccess(fieldSelections(f._1), MultiIndex(indices.toArray[Expression])).linearize)
+      accessesForSharedMemory.foreach(a => {
+        sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, localIndices.reverse), new DirectFieldAccess(a._2.fieldSelection, MultiIndex(globalIndices.toArray[Expression]) + fieldToOffset(a._1)).linearize)
       })
 
       statements += new ConditionStatement(conditionAccess, sharedMemoryStatements)
       statements += new CUDA_SyncThreads()
+
+      AnnotatingLoopVariablesForSharedMemoryAccess.loopVariables = loopVariables
+      AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccesses.values.flatten.map(x => new ExpressionStatement(x)).toList))
     }
 
-    statements += new ConditionStatement(conditionAccess, Duplicate(body))
+    statements += new ConditionStatement(conditionAccess, body)
     body = statements
 
     // add actual body after replacing field and iv accesses
     // replace fieldaccesses in body with shared memory accesses
+    ReplacingLocalFieldAccessLike.fieldToOffset.clear()
+    ReplacingLocalFieldAccessLike.fieldToOffset = fieldToOffset
+    ReplacingLocalFieldAccessLike.offsetForSharedMemoryAccess.clear()
+    ReplacingLocalFieldAccessLike.offsetForSharedMemoryAccess = offsetForSharedMemoryAccess
     ReplacingLocalFieldAccessLike.applyStandalone(new Scope(body))
     ReplacingLocalLinearizedFieldAccess.applyStandalone(new Scope(body))
     ReplacingLocalIVs.ivAccesses = ivAccesses
@@ -551,7 +578,12 @@ case class ExpKernel(var identifier : String,
       callArgs += upperArgs(dim)
     }
 
-    for (fieldAccess <- fieldAccessMap) {
+    for (fieldAccess <- linearizedFieldAccesses) {
+      val fieldSelection = fieldAccess._2.fieldSelection
+      callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
+    }
+
+    for (fieldAccess <- accessesForSharedMemory) {
       val fieldSelection = fieldAccess._2.fieldSelection
       callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
     }
@@ -607,7 +639,12 @@ case class ExpKernel(var identifier : String,
       fctParams += VariableAccess(s"${KernelVariablePrefix}end_$dim", Some(IntegerDatatype))
     }
 
-    for (fieldAccess <- fieldAccessMap) {
+    for (fieldAccess <- linearizedFieldAccesses) {
+      val fieldSelection = fieldAccess._2.fieldSelection
+      fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
+    }
+
+    for (fieldAccess <- accessesForSharedMemory) {
       val fieldSelection = fieldAccess._2.fieldSelection
       fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
     }
@@ -694,11 +731,9 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
 }
 
 object GatherLocalFieldAccessLike extends QuietDefaultStrategy("Gathering local FieldAccessLike nodes") {
-  var fieldAccesses = new mutable.HashMap[String,List[FieldAccessLike]].withDefaultValue(Nil)
-  var fieldSelections = new mutable.HashMap[String,FieldSelection]
-  var fieldAccessMap = new mutable.HashMap[String,FieldAccessLike]
+  var fieldAccesses = new mutable.HashMap[String, List[FieldAccessLike]].withDefaultValue(Nil)
 
-  def mapFieldAccess(access : FieldAccessLike) = {
+  def mapFieldAccesses(access : FieldAccessLike) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -712,18 +747,19 @@ object GatherLocalFieldAccessLike extends QuietDefaultStrategy("Gathering local 
 
     access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
     fieldAccesses(identifier) ::= access
-    fieldSelections.put(identifier, access.fieldSelection)
-    fieldAccessMap.put(identifier, access)
   }
 
   this += new Transformation("Searching", {
     case access : FieldAccessLike =>
-      mapFieldAccess(access)
+      mapFieldAccesses(access)
       access
-  }, false)
+  }, true)
 }
 
 object ReplacingLocalFieldAccessLike extends QuietDefaultStrategy("Replacing local FieldAccessLike nodes") {
+  var fieldToOffset = mutable.Map[String, MultiIndex]()
+  var offsetForSharedMemoryAccess = mutable.Map[String, MultiIndex]()
+
   def extractIdentifier(access : FieldAccessLike) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
@@ -737,13 +773,13 @@ object ReplacingLocalFieldAccessLike extends QuietDefaultStrategy("Replacing loc
       }
     }
 
-    VariableAccess(ExpKernel.KernelVariablePrefix + identifier, Some(PointerDatatype(field.resolveDeclType)))
+    identifier
   }
 
   this += new Transformation("Searching", {
     case access : FieldAccessLike =>
       val identifier = extractIdentifier(access)
-      new CUDA_SharedArrayAccess(identifier, access.index.indices.reverse)
+      new CUDA_SharedArrayAccess(VariableAccess(ExpKernel.KernelVariablePrefix + identifier, Some(PointerDatatype(access.fieldSelection.field.resolveDeclType))), (access.index - fieldToOffset(identifier) + offsetForSharedMemoryAccess(identifier)).indices.reverse)
   })
 }
 
@@ -792,12 +828,33 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
   var loopVariables = ListBuffer[String]()
 
   this += new Transformation("Searching", {
-    case VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
-      val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(name))
-      VariableAccess(newName, Some(IntegerDatatype))
-    case StringLiteral(v @ value) if loopVariables.contains(v) =>
-      val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(v))
-      VariableAccess(newName, Some(IntegerDatatype))
+    case v @ VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
+      if (v.hasAnnotation(ExpKernel.CUDASharedMemoryAccess)) {
+        MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), dimToString(loopVariables.indexOf(name)))
+      } else {
+        val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(name))
+        VariableAccess(newName, Some(IntegerDatatype))
+      }
+    case s @ StringLiteral(v @ value) if loopVariables.contains(v) =>
+      if (s.hasAnnotation(ExpKernel.CUDASharedMemoryAccess)) {
+        MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), dimToString(loopVariables.indexOf(v)))
+      } else {
+        val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(v))
+        VariableAccess(newName, Some(IntegerDatatype))
+      }
+  })
+}
+
+object AnnotatingLoopVariablesForSharedMemoryAccess extends QuietDefaultStrategy("Annotate loop variables for shared memory access") {
+  var loopVariables = ListBuffer[String]()
+
+  this += new Transformation("Searching", {
+    case v @ VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
+      v.annotate(ExpKernel.CUDASharedMemoryAccess)
+      v
+    case s @ StringLiteral(v @ value) if loopVariables.contains(v) =>
+      s.annotate(ExpKernel.CUDASharedMemoryAccess)
+      s
   })
 }
 

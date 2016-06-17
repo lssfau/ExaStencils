@@ -21,6 +21,7 @@ case object NullStatement extends Statement {
 }
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {
+  def this(body : List[Statement]) = this(body.to[ListBuffer])
   def this(body : Statement*) = this(body.to[ListBuffer])
   def this(body : Statement) = this(ListBuffer[Statement](body))
 
