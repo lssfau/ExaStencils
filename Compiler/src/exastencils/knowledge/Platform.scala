@@ -145,7 +145,8 @@ object Platform {
     var flags : String = ""
 
     targetCudaCompiler match {
-      case "NVCC" => flags += " -std=c++11 -O3 -DNDEBUG -lineinfo"
+      // -arch=sm_35 tells nvcc that it is compiling for the real architecture Kepler GK110 (NVIDIA Titan Black)
+      case "NVCC" => flags += " -std=c++11 -O3 -DNDEBUG -lineinfo -arch=sm_35"
     }
 
     flags
