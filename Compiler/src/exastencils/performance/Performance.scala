@@ -76,6 +76,10 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
     }
 
     if (true) { // TODO: add flag to control behavior
+      var file = new java.io.File(Settings.performanceEstimateOutputFile)
+      if (!file.getParentFile().exists()) {
+        file.getParentFile().mkdirs()
+      }
       outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
 
       for (fct <- completeFunctions.toList.sortBy(_._1))
