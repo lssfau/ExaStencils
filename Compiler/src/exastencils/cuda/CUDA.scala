@@ -182,7 +182,7 @@ case class CUDA_SyncThreads() extends Statement {
   }
 }
 
-case class CUDA_SharedArray(name : String, arrayType : ScalarDatatype, size : Array[Long]) extends Statement {
+case class CUDA_SharedArray(name : String, arrayType : ScalarDatatype, size : Array[Expression]) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "__shared__ " << arrayType << " " << name
     size.foreach(s => out << "[" << s << "]")

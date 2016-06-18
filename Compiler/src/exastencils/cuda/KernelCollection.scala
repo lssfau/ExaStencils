@@ -9,6 +9,7 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
+import exastencils.util._
 
 import scala.collection._
 import scala.collection.mutable._
@@ -356,8 +357,8 @@ case class ExpKernel(var identifier : String,
   var evaluatedAccesses = false
   var fieldAccesses = mutable.Map[String, List[FieldAccessLike]]()
   var fieldToOffset = mutable.Map[String, MultiIndex]()
-  var offsetForSharedMemoryAccess = mutable.Map[String, MultiIndex]()
   var accessesForSharedMemory = mutable.Map[String, FieldAccessLike]()
+  var offsetForSharedMemoryAccess = mutable.HashMap[String, MultiIndex]()
 
   var linearizedFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
@@ -380,11 +381,22 @@ case class ExpKernel(var identifier : String,
     GatherLocalFieldAccessLike.fieldAccesses.clear
     GatherLocalFieldAccessLike.applyStandalone(new Scope(body))
     fieldAccesses = GatherLocalFieldAccessLike.fieldAccesses
+    val fieldIndices = mutable.HashMap[String, Array[MultiIndex]]()
+    val abstractIndices = mutable.HashMap[String, Array[MultiIndex]]()
 
     // 2. evaluate accesses worth to load in shared memory
     // every field accessed more than once is potentially worth to load in shared memory
     fieldAccesses.foreach(fa => {
       if (fa._2.size > 1) {
+        val fas = fa._2
+        fieldIndices(fa._1) = fas.map(x => {
+          val indices = x.index.indices.map {
+            case AdditionExpression(ListBuffer(VariableAccess(_, _), IntegerConstant(c))) => c
+            case o => 0L
+          }
+
+          new MultiIndex(indices)
+        }).toArray
         accessesForSharedMemory.put(fa._1, fa._2.head)
       } else {
         fa._2.foreach(a => a.removeAnnotation(LinearizeFieldAccesses.NO_LINEARIZATION))
@@ -394,10 +406,18 @@ case class ExpKernel(var identifier : String,
 
     // 3. get offset from every field
     accessesForSharedMemory.foreach(a => {
-      val offset = Array.fill[Long](a._2.fieldSelection.fieldLayout.referenceOffset.indices.length)(1)
-
       fieldToOffset.put(a._1, Duplicate(a._2.fieldSelection.fieldLayout.referenceOffset))
-      offsetForSharedMemoryAccess.put(a._1, new MultiIndex(offset))
+      abstractIndices.put(a._1, fieldIndices(a._1).map(x => fieldToOffset(a._1) - x))
+    })
+
+    // 4. calculate offset for shared memory access
+    // required for stencil computations to get no index out of bounds errors if adjacent points are requested
+    abstractIndices.foreach(ai => {
+      offsetForSharedMemoryAccess(ai._1) = ai._2.foldLeft(new MultiIndex(Array.fill(dimensionality)(0)))((acc, m) => MultiIndex((acc.indices, m.indices).zipped.map((x,y) => {
+        val absX = math.abs(SimplifyExpression.evalIntegral(x))
+        val absY = math.abs(SimplifyExpression.evalIntegral(y))
+        new IntegerConstant(math.max(absX, absY))
+      })))
     })
   }
 
@@ -517,21 +537,23 @@ case class ExpKernel(var identifier : String,
 
     if (Knowledge.experimental_cuda_useSharedMemory) {
       accessesForSharedMemory.foreach(a => {
-        statements += new CUDA_SharedArray(KernelVariablePrefix + a._1, DoubleDatatype, numThreadsPerBlock.map(x => x + 2))
+        val sharedArraysize = (numThreadsPerBlock, offsetForSharedMemoryAccess(a._1).indices.map(_*2)).zipped.map(_ + _).toArray[Expression]
+        statements += new CUDA_SharedArray(KernelVariablePrefix + a._1, DoubleDatatype, sharedArraysize)
       })
 
-      val localIndices = ListBuffer[Expression]() ++ (0 until dimensionality).map(dim => MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), dimToString(dim)))
-      val globalIndices = ListBuffer[Expression]() ++ (0 until dimensionality).map(dim => VariableAccess(KernelVariablePrefix + dimToString(dim)))
+      AnnotatingLoopVariablesForSharedMemoryAccess.loopVariables = loopVariables
+      AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccesses.values.flatten.map(x => new ExpressionStatement(x)).toList))
       var sharedMemoryStatements = ListBuffer[Statement]()
       accessesForSharedMemory.foreach(a => {
-        sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, localIndices.reverse), new DirectFieldAccess(a._2.fieldSelection, MultiIndex(globalIndices.toArray[Expression]) + fieldToOffset(a._1)).linearize)
+        fieldAccesses(a._1).foreach(fa => {
+          val multiIndex = fa.index - fieldToOffset(a._1) + offsetForSharedMemoryAccess(a._1)
+
+          sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, multiIndex.indices.reverse), new DirectFieldAccess(a._2.fieldSelection, fa.index).linearize)
+        })
       })
 
       statements += new ConditionStatement(conditionAccess, sharedMemoryStatements)
       statements += new CUDA_SyncThreads()
-
-      AnnotatingLoopVariablesForSharedMemoryAccess.loopVariables = loopVariables
-      AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccesses.values.flatten.map(x => new ExpressionStatement(x)).toList))
     }
 
     statements += new ConditionStatement(conditionAccess, body)
