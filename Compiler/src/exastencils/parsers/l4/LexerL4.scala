@@ -43,7 +43,7 @@ class LexerL4 extends ExaLexer {
   reserved += ("fromFile")
 
   // layout and field keywords
-  reserved += ("ghostLayers", "duplicateLayers", "innerPoints", "with", "communication", "None",
+  reserved += ("with", "communication", "None",
     "Node", "Cell", "node", "cell",
     "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z",
     "Edge_Cell", "edge_cell", "Edge_Node", "edge_node")

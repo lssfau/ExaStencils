@@ -112,13 +112,13 @@ case class LayoutDeclarationStatement(
 
   def set(option : LayoutOption) : Unit = {
     option.name match {
-      case "ghostLayers" =>
+      case "ghostLayers" | "ghost" =>
         ghostLayers = Some(option.value)
         ghostLayersCommunication = option.hasCommunication
-      case "duplicateLayers" =>
+      case "duplicateLayers" | "duplicate" | "dup" =>
         duplicateLayers = Some(option.value)
         duplicateLayersCommunication = option.hasCommunication
-      case "innerPoints" => innerPoints = Some(option.value)
+      case "innerPoints" | "innerLayers" | "inner" => innerPoints = Some(option.value)
     }
   }
 

@@ -239,7 +239,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
     ||| layoutOption.*)
-  lazy val layoutOption = locationize((("ghostLayers" ||| "duplicateLayers" ||| "innerPoints") <~ "=") ~ index ~ ("with" ~ "communication").?
+  lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").?
     ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ level.?
