@@ -46,13 +46,29 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     val loopDim = dest.fieldLayout.numDimsData
     var multiIndex = LoopOverDimensions.defIt(loopDim)
 
+    // access field layouts
+    val internal = src.fieldLayout
+    val external = dest.fieldLayout
+
+    // match ghost layer info from internal and external fields
+    def numGhostInternalLeft(dim : Integer) = internal.idxById("DLB", dim) - internal.idxById("GLB", dim)
+    def numGhostExternalLeft(dim : Integer) = external.idxById("DLB", dim) - external.idxById("GLB", dim)
+    def numGhostInternalRight(dim : Integer) = internal.idxById("GRE", dim) - internal.idxById("DRE", dim)
+    def numGhostExternalRight(dim : Integer) = external.idxById("GRE", dim) - external.idxById("DRE", dim)
+    def idxBegin(dim : Integer) : Expression =
+      internal.idxById("DLB", dim) - new MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
+    def idxEnd(dim : Integer) : Expression =
+      internal.idxById("DRE", dim) + new MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
+    def offsetForExtField = MultiIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim)).toArray)
+
+    // compile final function
     new FunctionStatement(UnitDatatype, name,
       ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
-          new MultiIndex((0 until loopDim).toArray.map(dim => src.fieldLayout.idxById("GLB", dim))),
-          new MultiIndex((0 until loopDim).toArray.map(dim => src.fieldLayout.idxById("GRE", dim)))),
-          new AssignmentStatement(ExternalFieldAccess("dest", dest, Duplicate(multiIndex)),
+          new MultiIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
+          new MultiIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
+          new AssignmentStatement(ExternalFieldAccess("dest", dest, Duplicate(multiIndex) + offsetForExtField),
             DirectFieldAccess(FieldSelection(src, src.level, "slot"), Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }
@@ -79,14 +95,30 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     val loopDim = src.fieldLayout.numDimsData
     var multiIndex = LoopOverDimensions.defIt(loopDim)
 
+    // access field layouts
+    val internal = dest.fieldLayout
+    val external = src.fieldLayout
+
+    // match ghost layer info from internal and external fields
+    def numGhostInternalLeft(dim : Integer) = internal.idxById("DLB", dim) - internal.idxById("GLB", dim)
+    def numGhostExternalLeft(dim : Integer) = external.idxById("DLB", dim) - external.idxById("GLB", dim)
+    def numGhostInternalRight(dim : Integer) = internal.idxById("GRE", dim) - internal.idxById("DRE", dim)
+    def numGhostExternalRight(dim : Integer) = external.idxById("GRE", dim) - external.idxById("DRE", dim)
+    def idxBegin(dim : Integer) : Expression =
+      internal.idxById("DLB", dim) - new MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
+    def idxEnd(dim : Integer) : Expression =
+      internal.idxById("DRE", dim) + new MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
+    def offsetForExtField = MultiIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim)).toArray)
+
+    // compile final function
     new FunctionStatement(UnitDatatype, name,
       ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
-          new MultiIndex((0 until loopDim).toArray.map(dim => dest.fieldLayout.idxById("GLB", dim))),
-          new MultiIndex((0 until loopDim).toArray.map(dim => dest.fieldLayout.idxById("GRE", dim)))),
+          new MultiIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
+          new MultiIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
           new AssignmentStatement(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), Duplicate(multiIndex)),
-            ExternalFieldAccess("src", src, Duplicate(multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessible),
+            ExternalFieldAccess("src", src, Duplicate(multiIndex) + offsetForExtField))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }
 }
