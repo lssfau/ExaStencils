@@ -184,7 +184,8 @@ SISC_3D_VarCoeff    Main    SISC/3D_VarCoeff.knowledge    *  SISC/3D_VarCoeff.re
 # MISC TESTS                                                                                    #
 #################################################################################################
 
-Inlining  Main  Misc/inlining.knowledge  *  Misc/inlining.results  8  4  AVX
+# execute Inlining only on chimaira, maybe this leads to more stable results
+Inlining  Main  Misc/inlining.knowledge  *  Misc/inlining.results  8  4  E5
 
 #################################################################################################
 # FMG TESTS                                                                                     #

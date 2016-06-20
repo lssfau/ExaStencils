@@ -133,8 +133,8 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     val currItBody = Scope(loop.body)
     var maxID : Int = 0
     this.execute(new Transformation("number nodes", {
-      case _ : ConcatenationExpression | _ : SpacedConcatenationExpression =>
-        Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression and SpacedConcatenationExpression are too difficult to analyze")
+      case _ : ConcatenationExpression =>
+        Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression are too difficult to analyze")
         return Nil // don't do anything, since we cannot ensure the transformation is correct
       // there are some singleton datatypes, so don't enumerate them
       case d : Datatype   => d
@@ -505,8 +505,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
 
     node match {
       // blacklist concat
-      case _ : ConcatenationExpression
-        | _ : SpacedConcatenationExpression =>
+      case _ : ConcatenationExpression =>
         skip = true // skip everything from now on...
         commonSubs.clear()
         Logger.warn(s"cannot perform CSE, because ${node.getClass} is too difficult to analyze")

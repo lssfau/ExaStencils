@@ -16,10 +16,6 @@ trait Expression extends Node with PrettyPrintable {
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(this, exp)
   }
-  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
-  def ~~(exp : Expression) : SpacedConcatenationExpression = {
-    new SpacedConcatenationExpression(this, exp)
-  }
 
   import BinaryOperators._
   def +(other : Expression) = new AdditionExpression(this, other)
@@ -193,19 +189,6 @@ case class ConcatenationExpression(var expressions : ListBuffer[Expression]) ext
 
   @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
   override def ~(exp : Expression) : ConcatenationExpression = {
-    expressions += exp
-    this
-  }
-}
-
-@deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
-case class SpacedConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
-  def this(exprs : Expression*) = this(exprs.to[ListBuffer])
-
-  override def prettyprint(out : PpStream) : Unit = out <<< (expressions, " ")
-
-  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
-  override def ~~(exp : Expression) : SpacedConcatenationExpression = {
     expressions += exp
     this
   }

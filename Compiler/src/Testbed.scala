@@ -274,7 +274,7 @@ object Testbed {
       for (position <- 0 to 3) {
         statements += AssignmentStatement(k, "k_tc_mn + k_mc_me")
         for (i <- 0 to 4) {
-          statements += AssignmentStatement(ArrayAccess("stencil", "tet_" ~ "mc"), k * ArrayAccess("c", Mapping.resolveMultiIdx(new MultiIndex(i, position, group), aabb)), "+=")
+          statements += AssignmentStatement(ArrayAccess("stencil", "tet_mc"), k * ArrayAccess("c", Mapping.resolveMultiIdx(new MultiIndex(i, position, group), aabb)), "+=")
         }
       }
     }

@@ -153,10 +153,8 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         val coresPerRank = (Platform.hw_numNodes * Platform.hw_numHWThreadsPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores; regard SMT
 
         val optimisticDataPerIt = EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._2.typicalByteSize).fold(0)(_ + _)
-        val effectiveCPUBandwidth = (if (Knowledge.omp_parallelizeLoopOverDimensions) Knowledge.omp_numThreads else 1) * // increase bw for multiple OMP threads in one loop
-          // FIXME: check for Knowledge.omp_parallelizeLoopOverFragments -> are predictions wrongfully multiplied with the number of fragments?
-          (Platform.hw_cpu_bandwidth / Platform.hw_numThreadsPerNode) // bw per thread
-        val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / effectiveCPUBandwidth
+        val effectiveHostBW = Platform.hw_cpu_bandwidth / (coresPerRank * Knowledge.omp_numThreads) // assumes full parallelization - TODO: adapt values according to (OMP) parallel loops
+        val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / effectiveHostBW
         val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Platform.hw_gpu_bandwidth
 
         val cyclesPerIt = (Math.max(EvaluatePerformanceEstimates_Ops.numAdd, EvaluatePerformanceEstimates_Ops.numMul)
