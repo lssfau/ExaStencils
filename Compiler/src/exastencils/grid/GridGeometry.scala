@@ -151,6 +151,76 @@ trait GridGeometry_nonUniform extends GridGeometry {
         l4.LeveledIdentifier("node_pos_z", l4.AllLevelsSpecification()), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
+  def setupNodePos_Uniform(dim : Int, level : Int) : ListBuffer[Statement] = {
+    val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
+    val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
+
+    // fix grid width to match domain size
+    if (DomainCollection.domains.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
+    val domainBounds = DomainCollection.domains(0).asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
+    val cellWidth = (domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal
+
+    // look up field and compile access to base element
+    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+    val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
+
+    // fix the inner iterator -> used for zone checks
+    def innerIt =
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        LoopOverDimensions.defItForDim(dim)
+      else
+        VariableAccess(s"global_${dimToString(dim)}", Some(IntegerDatatype))
+    val innerItDecl =
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        NullStatement
+      else
+        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+
+    // compile special boundary handling expressions
+    var leftDir = Array(0, 0, 0); leftDir(dim) = -1
+    val leftNeighIndex = knowledge.Fragment.getNeigh(leftDir).index
+
+    var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -2
+    val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
+
+    val leftBoundaryUpdate = new ConditionStatement(
+      NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
+      ListBuffer[Statement](
+        AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
+          2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
+        AssignmentStatement(Duplicate(leftGhostAccess),
+          2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
+
+    var rightDir = Array(0, 0, 0); rightDir(dim) = 1
+    val rightNeighIndex = knowledge.Fragment.getNeigh(rightDir).index
+
+    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCellsPerFrag + 2
+    val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
+
+    val rightBoundaryUpdate = new ConditionStatement(
+      NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
+      ListBuffer[Statement](
+        AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
+          2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
+        AssignmentStatement(Duplicate(rightGhostAccess),
+          2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim))))
+
+    // compile final loop
+    ListBuffer[Statement](
+      LoopOverFragments(ListBuffer[Statement](
+        LoopOverPoints(field, None, true,
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
+          GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
+          new MultiIndex(1, 1, 1),
+          ListBuffer[Statement](
+            innerItDecl,
+            AssignmentStatement(Duplicate(baseAccess),
+              domainBounds.lower(dim) - innerIt * cellWidth))),
+        leftBoundaryUpdate,
+        rightBoundaryUpdate)))
+  }
+
   def setupNodePos_LinearFct(dim : Int, level : Int) : ListBuffer[Statement] = {
     val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
     val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
@@ -296,6 +366,10 @@ object GridGeometry_uniform_staggered_AA extends GridGeometry_uniform with GridG
 object GridGeometry_nonUniform_nonStaggered_AA extends GridGeometry_nonUniform {
   override def generateInitCode = {
     Knowledge.grid_spacingModel match {
+      case "uniform" =>
+        ((Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
+          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Uniform(dim, level)))
+          .reduceLeft(_ ++ _))
       case "linearFct" =>
         ((Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
           (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, level)))
