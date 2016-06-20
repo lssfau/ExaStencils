@@ -327,7 +327,7 @@ object CommTests_hybrid {
 
     if (onlyOneFile)
       outputTimes = "numDims;useOMP;useMPITypes;commStrategy;mergeComm;mergeCommThres;configName;" +
-        "numThreads;timeToSolve;total_cycle_time;mean_cycle_time;coarse_grid_solve;total_computation_time;total_communication_time;\n"
+        "numThreads;timeToSolve;total_cycle_time;mean_cycle_time;coarse_grid_solve;total_computation_time;total_communication_time;total_communication_time_wo_cgs;\n"
 
     for (
       numDims <- List(2, 3);
@@ -338,7 +338,7 @@ object CommTests_hybrid {
       useOMP <- List(true, false)
     ) {
       if (!onlyOneFile)
-        outputTimes = "numThreads;timeToSolve;total_cycle_time;mean_cycle_time;coarse_grid_solve;total_computation_time;total_communication_time;\n"
+        outputTimes = "numThreads;timeToSolve;total_cycle_time;mean_cycle_time;coarse_grid_solve;total_computation_time;total_communication_time;total_communication_time_wo_cgs;\n"
 
       for (n <- Stream.iterate(1)(_ * 2).takeWhile(_ <= 32 * 1024)) {
         val numNodes = if (n > 28672) 28672 else n // limit node number
@@ -352,11 +352,11 @@ object CommTests_hybrid {
           Logger.warn("Invalid file " + timingsFile)
         else {
           val timingsRaw = scala.io.Source.fromFile(timingsFile).mkString
-          val timings = timingsRaw.trim.stripSuffix(" ;").split(" ; ").sliding(3, 3).collect({ case Array(n, tTotal, t) => (n, (t.toDouble, tTotal.toDouble)) }).toMap
+          val timings = timingsRaw.trim.stripSuffix(" ;").split(" ; ").sliding(3, 3).collect({ case Array(n, tTotal, t) => (n, (tTotal.toDouble, t.toDouble)) }).toMap
 
           if (onlyOneFile)
-            outputTimes += s"$numDims;$useOMP;$useMPITypes;$commStrategy;$mergeComm;$mergeCommThres" +
-              s"commTest_${numDims}_${if (useMPITypes) "t" else "f"}_${commStrategy}_${if (mergeComm) s"t" else "f"}${mergeCommThres};"
+            outputTimes += s"$numDims;$useOMP;$useMPITypes;$commStrategy;$mergeComm;$mergeCommThres;" +
+              s"commTest_${numDims}_${useOMP}_${if (useMPITypes) "t" else "f"}_${commStrategy}_${if (mergeComm) s"t" else "f"}${mergeCommThres};"
 
           outputTimes += (numNodes * 64) + ";"
           outputTimes += timings.get("timeToSolve").get._1 + ";"
@@ -365,6 +365,9 @@ object CommTests_hybrid {
           val totalCommTime = timings.filter(_._1.startsWith("communication_")).map(_._2._1).sum
           outputTimes += (timings.get("timeToSolve").get._1 - totalCommTime) + ";"
           outputTimes += totalCommTime + ";"
+          val totalCommTimeWoCGS = timings.filter(_._1.startsWith("communication_")).filter(!_._1.endsWith("_0")).map(_._2._1).sum
+          outputTimes += totalCommTimeWoCGS + ";"
+
           outputTimes += "\n"
         }
       }
