@@ -73,6 +73,8 @@ object GridGeometry {
       GridGeometry_uniform_nonStaggered_AA
     else if (Knowledge.grid_isUniform && Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
       GridGeometry_uniform_staggered_AA
+    else if (!Knowledge.grid_isUniform && !Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
+      GridGeometry_nonUniform_nonStaggered_AA
     else if (!Knowledge.grid_isUniform && Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
       GridGeometry_nonUniform_staggered_AA
     else
@@ -116,162 +118,37 @@ trait GridGeometry_nonUniform extends GridGeometry {
   override def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     nodePosition(level, GridUtil.offsetIndex(index, 1, dim), arrayIndex, dim) - nodePosition(level, Duplicate(index), arrayIndex, dim)
   }
-}
-
-trait GridGeometry_staggered extends GridGeometry {
-  // additional information introduced by the staggered property
-  def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression // depends on uniform property
-
-  // compound accesses
-  def staggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
-    var exp : Expression = (
-      if (0 == stagDim)
-        stagCVWidth(level, index, arrayIndex, 0)
-      else
-        cellWidth(level, index, arrayIndex, 0))
-    for (dim <- 1 until Knowledge.dimensionality)
-      if (dim == stagDim)
-        exp *= stagCVWidth(level, index, arrayIndex, dim)
-      else
-        exp *= cellWidth(level, index, arrayIndex, dim)
-    exp
-  }
-
-  def xStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 0)
-  def yStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 1)
-  def zStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 2)
-}
-
-object GridGeometry_uniform_nonStaggered_AA extends GridGeometry_uniform {
-  // nothing else to do here since everything can be pre-computed/ inlined
-  override def initL4() = {}
-  override def generateInitCode() = ListBuffer()
-}
-
-object GridGeometry_uniform_staggered_AA extends GridGeometry_uniform with GridGeometry_staggered {
-  // direct accesses
-  override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    // TODO: this introduces a slight extension at the physical boundary in the stagger dimension -> how to handle this? relevant or neglectable?
-    0.5 * (cellWidth(level, GridUtil.offsetIndex(index, -1, dim), arrayIndex, dim) + cellWidth(level, index, arrayIndex, dim))
-  }
-
-  // nothing else to do here since everything can be pre-computed/ inlined
-  override def initL4() = {}
-  override def generateInitCode() = ListBuffer()
-}
-
-object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with GridGeometry_staggered {
-  // direct accesses
-  override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${dimToString(dim)}", level).get
-    FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
-  }
 
   // injection of  missing l4 information for virtual fields and generation of setup code
   override def initL4 = {
     val root = StateManager.root_.asInstanceOf[l4.Root]
     root.fieldLayouts += l4.LayoutDeclarationStatement(
-      l4.LeveledIdentifier("DefNodeLineLayout_x", l4.FinestLevelSpecification()),
+      l4.LeveledIdentifier("DefNodeLineLayout_x", l4.AllLevelsSpecification()),
       l4.RealDatatype(), "Edge_Node".toLowerCase(),
       Some(l4.Index3D(2, 0, 0)), None,
       Some(l4.Index3D(1, 0, 0)), None,
       Some(l4.Index3D((1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_x - 1, 1, 1)))
     root.fieldLayouts += l4.LayoutDeclarationStatement(
-      l4.LeveledIdentifier("DefNodeLineLayout_y", l4.FinestLevelSpecification()),
+      l4.LeveledIdentifier("DefNodeLineLayout_y", l4.AllLevelsSpecification()),
       l4.RealDatatype(), "Edge_Node".toLowerCase(),
       Some(l4.Index3D(0, 2, 0)), None,
       Some(l4.Index3D(0, 1, 0)), None,
       Some(l4.Index3D(1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_y - 1, 1)))
     root.fieldLayouts += l4.LayoutDeclarationStatement(
-      l4.LeveledIdentifier("DefNodeLineLayout_z", l4.FinestLevelSpecification()),
+      l4.LeveledIdentifier("DefNodeLineLayout_z", l4.AllLevelsSpecification()),
       l4.RealDatatype(), "Edge_Node".toLowerCase(),
       Some(l4.Index3D(0, 0, 2)), None,
       Some(l4.Index3D(0, 0, 1)), None,
       Some(l4.Index3D(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1)))
 
     root.fields += l4.FieldDeclarationStatement(
-      l4.LeveledIdentifier("node_pos_x", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_x", None, 1, 0)
+      l4.LeveledIdentifier("node_pos_x", l4.AllLevelsSpecification()), "global", "DefNodeLineLayout_x", None, 1, 0)
     if (Knowledge.dimensionality > 1)
       root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("node_pos_y", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_y", None, 1, 0)
+        l4.LeveledIdentifier("node_pos_y", l4.AllLevelsSpecification()), "global", "DefNodeLineLayout_y", None, 1, 0)
     if (Knowledge.dimensionality > 2)
       root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("node_pos_z", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_z", None, 1, 0)
-
-    root.fields += l4.FieldDeclarationStatement(
-      l4.LeveledIdentifier("stag_cv_width_x", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_x", None, 1, 0)
-    if (Knowledge.dimensionality > 1)
-      root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("stag_cv_width_y", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_y", None, 1, 0)
-    if (Knowledge.dimensionality > 2)
-      root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("stag_cv_width_z", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_z", None, 1, 0)
-  }
-
-  override def generateInitCode() = {
-    /// node_pos        -> nodes of the original grid
-    /// o   o   o   o   o
-    /// cell_width      -> width of the control volumes of the original grid
-    /// |---|   |---|
-    /// stag_cv_width   -> width of the staggered control volumes
-    /// |-|   |---|   |-|
-
-    Knowledge.grid_spacingModel match {
-      case "diego" =>
-        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Diego(dim, Knowledge.maxLevel)) ++
-          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
-      case "linearFct" =>
-        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel)) ++
-          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
-    }
-  }
-
-  def setupNodePos_Diego(dim : Int, level : Int) : ListBuffer[Statement] = {
-    val expo = 1.5
-    val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
-    val zoneSize = numCells / 4
-    val step = 1.0 / zoneSize
-
-    val zoneLength = 0.0095 * 8 / zoneSize
-
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
-    val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
-    val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
-
-    val innerIt = LoopOverDimensions.defItForDim(dim)
-
-    var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -1
-    val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
-    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCells + 1
-    val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
-
-    // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
-
-    ListBuffer(
-      LoopOverPoints(field, None, true,
-        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
-        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
-        new MultiIndex(1, 1, 1),
-        ListBuffer[Statement](
-          new ConditionStatement(LowerEqualExpression(innerIt, 0),
-            AssignmentStatement(Duplicate(baseAccess), 0.0),
-            new ConditionStatement(LowerEqualExpression(innerIt, 1 * zoneSize),
-              AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
-                + zoneLength * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
-              new ConditionStatement(LowerEqualExpression(innerIt, 2 * zoneSize),
-                AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
-                  + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
-                new ConditionStatement(LowerEqualExpression(innerIt, 3 * zoneSize),
-                  AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
-                    + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
-                  new ConditionStatement(LowerEqualExpression(innerIt, 4 * zoneSize),
-                    AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
-                      + zoneLength * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
-                    AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))),
-      AssignmentStatement(Duplicate(leftGhostAccess),
-        2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
-      AssignmentStatement(Duplicate(rightGhostAccess),
-        2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim)))
+        l4.LeveledIdentifier("node_pos_z", l4.AllLevelsSpecification()), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
   def setupNodePos_LinearFct(dim : Int, level : Int) : ListBuffer[Statement] = {
@@ -371,6 +248,150 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
                     - 0.5 * alpha * (xf * xf + xf + xs * xs + xs)))))),
         leftBoundaryUpdate,
         rightBoundaryUpdate)))
+  }
+}
+
+trait GridGeometry_staggered extends GridGeometry {
+  // additional information introduced by the staggered property
+  def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression // depends on uniform property
+
+  // compound accesses
+  def staggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
+    var exp : Expression = (
+      if (0 == stagDim)
+        stagCVWidth(level, index, arrayIndex, 0)
+      else
+        cellWidth(level, index, arrayIndex, 0))
+    for (dim <- 1 until Knowledge.dimensionality)
+      if (dim == stagDim)
+        exp *= stagCVWidth(level, index, arrayIndex, dim)
+      else
+        exp *= cellWidth(level, index, arrayIndex, dim)
+    exp
+  }
+
+  def xStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 0)
+  def yStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 1)
+  def zStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 2)
+}
+
+object GridGeometry_uniform_nonStaggered_AA extends GridGeometry_uniform {
+  // nothing else to do here since everything can be pre-computed/ inlined
+  override def initL4() = {}
+  override def generateInitCode() = ListBuffer()
+}
+
+object GridGeometry_uniform_staggered_AA extends GridGeometry_uniform with GridGeometry_staggered {
+  // direct accesses
+  override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+    // TODO: this introduces a slight extension at the physical boundary in the stagger dimension -> how to handle this? relevant or neglectable?
+    0.5 * (cellWidth(level, GridUtil.offsetIndex(index, -1, dim), arrayIndex, dim) + cellWidth(level, index, arrayIndex, dim))
+  }
+
+  // nothing else to do here since everything can be pre-computed/ inlined
+  override def initL4() = {}
+  override def generateInitCode() = ListBuffer()
+}
+
+object GridGeometry_nonUniform_nonStaggered_AA extends GridGeometry_nonUniform {
+  override def generateInitCode = {
+    Knowledge.grid_spacingModel match {
+      case "linearFct" =>
+        ((Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
+          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, level)))
+          .reduceLeft(_ ++ _))
+    }
+  }
+}
+
+object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with GridGeometry_staggered {
+  // direct accesses
+  override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+    val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${dimToString(dim)}", level).get
+    FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
+  }
+
+  // injection of  missing l4 information for virtual fields and generation of setup code
+  override def initL4 = {
+    super.initL4 // set basic stuff
+
+    // extend with info required by staggered grid
+    val root = StateManager.root_.asInstanceOf[l4.Root]
+
+    root.fields += l4.FieldDeclarationStatement(
+      l4.LeveledIdentifier("stag_cv_width_x", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_x", None, 1, 0)
+    if (Knowledge.dimensionality > 1)
+      root.fields += l4.FieldDeclarationStatement(
+        l4.LeveledIdentifier("stag_cv_width_y", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_y", None, 1, 0)
+    if (Knowledge.dimensionality > 2)
+      root.fields += l4.FieldDeclarationStatement(
+        l4.LeveledIdentifier("stag_cv_width_z", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_z", None, 1, 0)
+  }
+
+  override def generateInitCode() = {
+    /// node_pos        -> nodes of the original grid
+    /// o   o   o   o   o
+    /// cell_width      -> width of the control volumes of the original grid
+    /// |---|   |---|
+    /// stag_cv_width   -> width of the staggered control volumes
+    /// |-|   |---|   |-|
+
+    Knowledge.grid_spacingModel match {
+      case "diego" =>
+        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Diego(dim, Knowledge.maxLevel)) ++
+          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+      case "linearFct" =>
+        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel)) ++
+          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+    }
+  }
+
+  def setupNodePos_Diego(dim : Int, level : Int) : ListBuffer[Statement] = {
+    val expo = 1.5
+    val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
+    val zoneSize = numCells / 4
+    val step = 1.0 / zoneSize
+
+    val zoneLength = 0.0095 * 8 / zoneSize
+
+    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+    val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
+
+    val innerIt = LoopOverDimensions.defItForDim(dim)
+
+    var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -1
+    val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
+    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCells + 1
+    val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
+
+    // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
+
+    ListBuffer(
+      LoopOverPoints(field, None, true,
+        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+        GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
+        new MultiIndex(1, 1, 1),
+        ListBuffer[Statement](
+          new ConditionStatement(LowerEqualExpression(innerIt, 0),
+            AssignmentStatement(Duplicate(baseAccess), 0.0),
+            new ConditionStatement(LowerEqualExpression(innerIt, 1 * zoneSize),
+              AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
+                + zoneLength * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
+              new ConditionStatement(LowerEqualExpression(innerIt, 2 * zoneSize),
+                AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
+                  + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
+                new ConditionStatement(LowerEqualExpression(innerIt, 3 * zoneSize),
+                  AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
+                    + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
+                  new ConditionStatement(LowerEqualExpression(innerIt, 4 * zoneSize),
+                    AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
+                      + zoneLength * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
+                    AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))),
+      AssignmentStatement(Duplicate(leftGhostAccess),
+        2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
+      AssignmentStatement(Duplicate(rightGhostAccess),
+        2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim)))
   }
 
   def setupStagCVWidth(dim : Int, level : Int) : ListBuffer[Statement] = {
