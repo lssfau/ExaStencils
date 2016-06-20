@@ -8,3 +8,16 @@ outputPath					= "generated/"
 produceHtmlLog				= true
 timeStrategies				= true
 timeStratPercentThreshold	= 0
+
+pathsInc					+= "$(MSMPI_INC)"
+pathsLib					+= "$(MSMPI_LIB64)"
+
+additionalLibs				+= "msmpi.lib"
+
+/*
+pathsInc					+= "$(CUDA_INC_PATH)"
+pathsLib					+= "$(CUDA_LIB_PATH)"
+
+additionalLibs				+= "cuda.lib"
+additionalLibs				+= "cudart.lib"
+*/
