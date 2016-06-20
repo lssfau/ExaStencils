@@ -251,16 +251,17 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     val stride : Expression = if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) "mpiIt" else 0
 
     var it = 0
-    var toPrint : ListBuffer[Expression] = ListBuffer()
     val sep = "\";\""
     for (timer <- timers.toList.sortBy(_._1)) {
-      toPrint ++= ListBuffer[Expression](StringConstant(timer._2.name.prettyprint()), sep,
-        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
-        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), sep)
+      statements += PrintExpression(VariableAccess("outFile"), ListBuffer[Expression](
+          StringConstant(timer._2.name.prettyprint()), sep,
+          ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
+          ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), StringConstant("\\n")
+        )
+      )
+
       it += 2
     }
-    // toPrint.dropRight(1) // remove last seperator
-    statements += PrintStatement(toPrint, "outFile")
 
     // wrap in loop over each rank if required
     if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) {
