@@ -6,6 +6,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.prettyprinting._
 
 /// variables and flags
@@ -43,6 +44,8 @@ case class IndexFromField(var layoutIdentifier : String, var level : Expression,
         if (extField.isDefined) {
           statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
             extField.get.fieldLayout.defIdxById(indexId, dim))
+        } else {
+          Logger.warn(s"Trying to add init for unknown index $resolveName")
         }
       }
     }
