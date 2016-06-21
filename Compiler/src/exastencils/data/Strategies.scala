@@ -219,6 +219,34 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
           body)
       }
 
+      // generate a special resize function assuming factor 2 coarsening
+      {
+        var body = ListBuffer[Statement]()
+        def newInnerSize(dim : Integer) = VariableAccess(s"newInnerSize_${dimToString(dim)}", Some(IntegerDatatype))
+
+        for (dim <- 0 until Knowledge.dimensionality)
+          body += AssertStatement(EqEqExpression(0,
+            ModuloExpression(newInnerSize(dim), (1 << (Knowledge.maxLevel - Knowledge.minLevel)))),
+            ListBuffer("\"New size is not divisible by \"", 1 << (Knowledge.maxLevel - Knowledge.minLevel)),
+            NullStatement)
+
+        // generate function calls with adapted sizes
+        for (level <- Knowledge.maxLevel to Knowledge.minLevel by -1) {
+          for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {
+            body += FunctionCallExpression(s"resizeInner_${layout._2._1}_${layout._2._2.prettyprint}",
+              (0 until Knowledge.dimensionality).map(dim =>
+                newInnerSize(dim) / (1 << (Knowledge.maxLevel - level)) : Expression).to[ListBuffer])
+          }
+        }
+
+        // set up function
+        multiGrid.functions += new FunctionStatement(
+          UnitDatatype,
+          s"resizeAllInnerWithFactor2",
+          (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim)).to[ListBuffer],
+          body)
+      }
+
       // return extended collection
       multiGrid
   })
