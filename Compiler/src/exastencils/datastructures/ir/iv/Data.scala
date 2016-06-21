@@ -26,7 +26,7 @@ case class IndexFromField(var layoutIdentifier : String, var level : Expression,
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
 
-  override def resolveName = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "") + s"_$dim"
+  override def resolveName = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "") + s"_${dimToString(dim)}"
   override def resolveDataType = IntegerDatatype
 
   override def getCtor() : Option[Statement] = {
