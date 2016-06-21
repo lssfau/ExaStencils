@@ -10,7 +10,7 @@ class LexerL4 extends ExaLexer {
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
   // function keywords
-  reserved += ("Func", "Function", "return")
+  reserved += ("Func", "Function", "return", "noinline")
 
   // function instantiation
   reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")

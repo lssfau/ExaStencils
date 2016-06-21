@@ -227,7 +227,8 @@ case class LoopOverFragmentsStatement(var statements : List[Statement], var redu
 case class FunctionStatement(override var identifier : Identifier,
     var returntype : Datatype,
     var arguments : List[Variable],
-    var statements : List[Statement]) extends Statement with HasIdentifier {
+    var statements : List[Statement],
+    var allowInlining : Boolean = true) extends Statement with HasIdentifier {
 
   override def prettyprint(out : PpStream) = {
     out << "Function " << identifier << " ("
@@ -245,7 +246,8 @@ case class FunctionStatement(override var identifier : Identifier,
       returntype.progressToIr,
       identifier.progressToIr.asInstanceOf[ir.StringLiteral].value,
       arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
-      statements.map(s => s.progressToIr).to[ListBuffer]) // FIXME: .to[ListBuffer]
+      statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
+      allowInlining)
   }
 }
 
