@@ -17,11 +17,13 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     printer <<< "CFLAGS = " + Platform.resolveCFlags + " " +
+      Settings.makefile_additionalCFlags + " " +
       Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
     if (Knowledge.experimental_cuda_enabled)
       printer <<< "NVCCFLAGS = -std=c++11 -O3 -DNDEBUG " + Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " // TODO: TPDL
     printer <<< "LFLAGS = " + Platform.resolveLdFlags + " " +
+      Settings.makefile_additionalLDFlags + " " +
       Settings.pathsLib.map(path => s"-L$path").mkString(" ") + " " +
       Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
     printer <<< ""
@@ -30,7 +32,10 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     printer <<< ".PHONY: all"
-    printer <<< "all: ${BINARY}"
+    printer << "all: ${BINARY}"
+    if (Settings.makefile_makeLibs)
+      printer << " ${BINARY}.a"
+    printer <<< ""
     printer <<< ""
 
     printer <<< ".PHONY: clean"
@@ -55,6 +60,22 @@ object MakefileGenerator extends BuildfileGenerator {
     Settings.additionalLibs.foreach(lib => { printer << s"-l$lib " })
     printer <<< " ${LFLAGS}"
     printer <<< ""
+
+    if (Settings.makefile_makeLibs) {
+      printer << "${BINARY}.a: "
+      cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
+      if (Knowledge.experimental_cuda_enabled)
+        cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
+      printer <<< ""
+      printer << "\tar -cvr ${BINARY}.a -I. "
+      cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
+      if (Knowledge.experimental_cuda_enabled)
+        cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
+      Settings.additionalLibs.foreach(lib => { printer << s"-l$lib " })
+      printer <<< " ${LFLAGS}"
+      printer <<< ""
+    }
+
     printer <<< ""
 
     PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cpp")).toList.sortBy(f => f.filename).foreach(pp => {

@@ -89,6 +89,10 @@ object Settings {
   var buildfileGenerator : BuildfileGenerator = MakefileGenerator
   var binary : String = "exastencils"
 
+  var makefile_makeLibs : Boolean = false
+  var makefile_additionalCFlags : String = ""
+  var makefile_additionalLDFlags : String = ""
+
   /// external dependencies
   var pathsInc : ListBuffer[String] = ListBuffer()
   var pathsLib : ListBuffer[String] = ListBuffer()
