@@ -38,6 +38,12 @@ case class IndexFromField(var layoutIdentifier : String, var level : Expression,
       if (field.isDefined) {
         statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
           field.get.fieldLayout.defIdxById(indexId, dim))
+      } else { // no field found -> try external fields
+        val extField = ExternalFieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
+        if (extField.isDefined) {
+          statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
+            extField.get.fieldLayout.defIdxById(indexId, dim))
+        }
       }
     }
     level = oldLev

@@ -116,4 +116,3 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 abstract class UnduplicatedVariable extends InternalVariable(false, false, false, false, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveName
 }
-
