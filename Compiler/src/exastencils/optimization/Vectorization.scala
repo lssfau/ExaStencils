@@ -391,12 +391,13 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       res += intermDecl
     }
 
-    // TODO: add condition from RemoveDupSIMDLoads here!
-    res ++= ctx.getPreLoopStmts()
-    res += oldLoop
-    res ++= ctx.getPostLoopStmts()
+    val emptyLoopGuard = new ConditionStatement(LowerExpression(Unrolling.startVarAcc, Unrolling.intermVarAcc), new ListBuffer[Statement]())
+    emptyLoopGuard.trueBody ++= ctx.getPreLoopStmts()
+    emptyLoopGuard.trueBody += oldLoop
+    emptyLoopGuard.trueBody ++= ctx.getPostLoopStmts()
     if (postLoopStmt != null)
-      res += postLoopStmt
+      emptyLoopGuard.trueBody += postLoopStmt
+    res += emptyLoopGuard
     if (!unrolled)
       res += postLoop
 
