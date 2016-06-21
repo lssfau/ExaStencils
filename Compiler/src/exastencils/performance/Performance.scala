@@ -100,7 +100,7 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
 
         val hostTimeMs : Double = estimatedTime.host * 1000.0
 
-        outputStream.println("%s\t%s\t%e".format("function", fct.name, hostTimeMs))
+        outputStream.println("%s\t%s\t%e".formatLocal(java.util.Locale.US, "function", fct.name, hostTimeMs))
 
         completeFunctions.put(fct.name, estimatedTime)
         fct.body.prepend(
