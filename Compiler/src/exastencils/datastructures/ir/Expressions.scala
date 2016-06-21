@@ -810,6 +810,12 @@ case class SIMD_Load1Expression(var mem : Expression) extends Expression {
   }
 }
 
+case class SIMD_ExtractScalarExpression(var expr : Expression, var index : Int) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << expr << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
+  }
+}
+
 case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, val offset : Int) extends Expression {
   private var shiftIV : iv.VecShiftIndex = null
 
