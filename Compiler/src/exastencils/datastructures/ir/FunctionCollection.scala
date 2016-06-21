@@ -24,14 +24,14 @@ class FunctionCollection(var baseName : String,
         writer <<< func.prettyprint
 
     writer <<< "// ordinary functions"
-    if (Knowledge.generateFortranInterface)
+    if (Knowledge.generateFortranInterface || Knowledge.generateCInterface)
       writer <<< "extern \"C\" {"
 
     for (func <- functions)
       if (!func.hasAnnotation("isTemplate") && !func.isHeaderOnly && !func.hasAnnotation("deviceOnly"))
         writer << func.asInstanceOf[FunctionStatement].prettyprint_decl
 
-    if (Knowledge.generateFortranInterface)
+    if (Knowledge.generateFortranInterface || Knowledge.generateCInterface)
       writer <<< "}"
   }
 

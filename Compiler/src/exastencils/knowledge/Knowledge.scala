@@ -8,6 +8,7 @@ object Knowledge {
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
   var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
+  var generateCInterface : Boolean = false // generates plain C interfaces
 
   var simd_avoidUnaligned : Boolean = false
 
