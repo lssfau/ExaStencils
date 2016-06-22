@@ -227,8 +227,10 @@ object Main {
     TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
-    if (Knowledge.experimental_addPerformanceEstimate)
+    if (Knowledge.experimental_addPerformanceEstimate) {
+      SimplifyStrategy.doUntilDone()
       AddPerformanceEstimates()
+    }
     if (Knowledge.experimental_cuda_enabled) {
       SplitLoopsForHostAndDevice.apply()
       AdaptKernelDimensionalities.apply()
@@ -336,6 +338,8 @@ object Main {
   def main(args : Array[String]) : Unit = {
     // for runtime measurement
     val start : Long = System.nanoTime()
+
+    Logger.setLevel(Logger.WARNING)
 
     initialize(args)
 
