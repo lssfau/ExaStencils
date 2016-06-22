@@ -788,25 +788,9 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
   }
 }
 
-case class SIMD_Load1Expression(var mem : Expression) extends Expression {
+case class SIMD_ExtractScalarExpression(var expr : Expression, var index : Int) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Platform.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_load1_p" << prec << '('
-      case "AVX" | "AVX2" => out << "_mm256_broadcast_s" << prec << '('
-      case "AVX512"       => out << "_mm512_set1_p" << prec << "(*" // TODO: check again: no direct load possible?
-      case "IMCI"         => out << "_mm512_extload_p" << prec << '('
-      case "QPX"          => out << "vec_lds(0," // vec_ldsa is only for complex data types (two values)
-      case "NEON"         => out << "vld1q_dup_f32(" // TODO: only unaligned?
-    }
-    out << mem
-    if (Platform.simd_instructionSet == "IMCI") {
-      if (Knowledge.useDblPrecision)
-        out << "_MM_UPCONV_PD_NONE, _MM_BROADCAST_1X8, 0"
-      else
-        out << "_MM_UPCONV_PS_NONE, _MM_BROADCAST_1X16, 0"
-    }
-    out << ')'
+    out << expr << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
   }
 }
 
@@ -988,21 +972,6 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
       case "NEON"         => out << "vdivq_f32"
     }
     out << '(' << left << ", " << right << ')'
-  }
-}
-
-case class SIMD_FloatConstant(var value : Double) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = {
-    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
-    Platform.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_set1_p" << prec
-      case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
-      case "AVX512"       => out << "_mm512_set1_p" << prec
-      case "QPX"          => out << "vec_splats"
-      case "NEON"         => out << "vdupq_n_f32"
-      case "IMCI"         => out << "_mm512_set_1to" << Platform.simd_vectorSize << "_p" << prec
-    }
-    out << '(' << value << ')' // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
   }
 }
 
