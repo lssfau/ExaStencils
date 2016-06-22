@@ -52,7 +52,7 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
             toSort += ((s, base, index))
 
           case VariableDeclarationStatement(SIMD_RealDatatype, _,
-            Some(SIMD_Load1Expression(AddressofExpression(ArrayAccess(base, index, _))))) //
+            Some(SIMD_Scalar2VectorExpression(ArrayAccess(base, index, _)))) //
             =>
             toSort += ((s, base, index))
 

@@ -250,10 +250,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       val (vecTmp : String, true) = ctx.getName(target)
       val identityElem : Expression =
         operator match {
-          case "+"   => SIMD_FloatConstant(0.0)
-          case "*"   => SIMD_FloatConstant(1.0)
-          case "min" => SIMD_FloatConstant(Double.MaxValue)
-          case "max" => SIMD_FloatConstant(Double.MinValue)
+          case "+"   => SIMD_Scalar2VectorExpression(FloatConstant(0.0))
+          case "*"   => SIMD_Scalar2VectorExpression(FloatConstant(1.0))
+          case "min" => SIMD_Scalar2VectorExpression(FloatConstant(Double.MaxValue))
+          case "max" => SIMD_Scalar2VectorExpression(FloatConstant(Double.MinValue))
           case _     => throw new VectorizationException("unknown reduction operator:  " + operator)
         }
       ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, identityElem), target)
@@ -525,11 +525,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
           base match {
             // ---- special handling of loop-carried cse variables ----
-            case _ : iv.LoopCarriedCSBuffer if(access1 && ctx.isStore() && !ctx.isLoad()) =>
-              ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_Load1Expression(AddressofExpression(expr))), expr)
+            case _ : iv.LoopCarriedCSBuffer if (access1) => //if(access1 && ctx.isStore() && !ctx.isLoad()) =>
+              ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_Scalar2VectorExpression(expr)), expr)
               ctx.addStmtPostLoop(new AssignmentStatement(expr, new SIMD_ExtractScalarExpression(new VariableAccess(vecTmp, SIMD_RealDatatype), vs - 1)))
-            case _ : iv.LoopCarriedCSBuffer if(access1) =>
-              Logger.error("this was unexpected...")
               // ------------------------------------------------------
             case _ if (ctx.isLoad() && !ctx.isStore()) =>
               val init = Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, alignedBase, ctx))
@@ -570,7 +568,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case VariableAccess(name, dType) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
-          val decl = new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(new VariableAccess(name, dType)))
+          val decl = new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp)
+          if (ctx.isLoad())
+            decl.expression = Some(new SIMD_Scalar2VectorExpression(new VariableAccess(name, dType)))
           if (name == ctx.itName) {
             if (ctx.isStore()) throw new VectorizationException("iteration variable is modified inside the loop body...")
             if (!ctx.ignIncr)
@@ -584,13 +584,13 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case FloatConstant(value) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_FloatConstant(value)), expr)
+          ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(FloatConstant(value))), expr)
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
       case IntegerConstant(value) => // TODO: ensure type safety
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_FloatConstant(value)), expr)
+          ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(FloatConstant(value))), expr)
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
       case NegativeExpression(nExpr) =>
@@ -645,7 +645,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       access1 : Boolean, aligned : Boolean, alignedBase : Boolean, ctx : LoopCtx) : Expression = {
 
     if (access1)
-      return SIMD_Load1Expression(AddressofExpression(oldExpr))
+      return SIMD_Scalar2VectorExpression(oldExpr)
     else if (aligned || !Knowledge.simd_avoidUnaligned)
       return SIMD_LoadExpression(AddressofExpression(oldExpr), aligned)
     else if (!alignedBase)
