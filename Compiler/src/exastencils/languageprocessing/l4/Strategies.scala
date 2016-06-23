@@ -81,14 +81,14 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
         var value = valueCollector.getValue(x.name)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
-          case _    => value.get
+          case _    => Duplicate(value.get)
         }
       }
       case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
         var value = valueCollector.getValue(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
-          case _    => value.get
+          case _    => Duplicate(value.get)
         }
       }
     }))
@@ -106,14 +106,14 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
         var value = globalVals.get(x.name)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Global Val was found"""); x }
-          case _    => value.get
+          case _    => Duplicate(value.get)
         }
       }
       case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
         var value = globalVals.get(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Global Val was found"""); x }
-          case _    => value.get
+          case _    => Duplicate(value.get)
         }
       }
     }))
