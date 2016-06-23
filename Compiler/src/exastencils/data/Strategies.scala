@@ -171,6 +171,90 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
   }
 }
 
+object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipulation functions") {
+  var layoutMap : HashMap[String, (String, Expression)] = HashMap()
+
+  override def apply(node : Option[Node] = None) = {
+    layoutMap.clear
+    super.apply(node)
+  }
+
+  override def applyStandalone(node : Node) = {
+    layoutMap.clear
+    super.applyStandalone(node)
+  }
+
+  this += new Transformation("Collecting", {
+    case idx : iv.IndexFromField =>
+      layoutMap += (s"${idx.layoutIdentifier}_${idx.level.prettyprint}" -> (idx.layoutIdentifier, idx.level))
+      idx
+  })
+
+  this += new Transformation("Generating functions", {
+    case multiGrid : MultiGridFunctions =>
+      for (layout <- layoutMap) {
+        var body = ListBuffer[Statement]()
+        def newInnerSize(dim : Integer) = VariableAccess(s"newInnerSize_${dimToString(dim)}", Some(IntegerDatatype))
+        def idxShift(dim : Integer) = VariableAccess(s"idxShift_${dimToString(dim)}", Some(IntegerDatatype))
+
+        // compile body for all dimensions - TODO: adapt to field layout dimensionality if required
+        for (dim <- 0 until Knowledge.dimensionality) {
+          // calculate index shift
+          body += new VariableDeclarationStatement(idxShift(dim), (newInnerSize(dim) - (
+            iv.IndexFromField(layout._2._1, layout._2._2, "IE", dim) -
+            iv.IndexFromField(layout._2._1, layout._2._2, "IB", dim))))
+
+          // adapt indices
+          for (idxIdent <- List("IE", "DRB", "DRE", "GRB", "GRE", "PRB", "PRE", "TOT")) {
+            body += AssignmentStatement(
+              iv.IndexFromField(layout._2._1, layout._2._2, idxIdent, dim),
+              idxShift(dim), "+=")
+          }
+        }
+
+        // wrap body in fragment loop
+        body = ListBuffer[Statement](LoopOverFragments(body))
+
+        // set up function
+        multiGrid.functions += new FunctionStatement(
+          UnitDatatype,
+          s"resizeInner_${layout._2._1}_${layout._2._2.prettyprint}",
+          (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim)).to[ListBuffer],
+          body,
+          false) // no inlining
+      }
+
+      // generate a special resize functions for all fields on a given level
+      for (level <- Knowledge.maxLevel to Knowledge.minLevel by -1) {
+        var body = ListBuffer[Statement]()
+        def newInnerSize(dim : Integer) = VariableAccess(s"newInnerSize_${dimToString(dim)}", Some(IntegerDatatype))
+
+        // generate function calls with adapted sizes
+        for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {
+          body += FunctionCallExpression(s"resizeInner_${layout._2._1}_${layout._2._2.prettyprint}",
+            (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim) : Expression).to[ListBuffer])
+        }
+
+        // set up function
+        multiGrid.functions += new FunctionStatement(
+          UnitDatatype,
+          s"resizeAllInner_${level.prettyprint()}",
+          (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim)).to[ListBuffer],
+          body,
+          false) // no inlining
+      }
+
+      // return extended collection
+      multiGrid
+  })
+
+  // collect indices -> per layout/level
+  // add function with
+  //  get old_inner IE-IB
+  //  calculate offset as new_inner - old_inner
+  //  adapt IE,GRB,GRE,etc with +offset
+}
+
 object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
   var declarationMap : HashMap[String, VariableDeclarationStatement] = HashMap()
   var ctorMap : HashMap[String, Statement] = HashMap()

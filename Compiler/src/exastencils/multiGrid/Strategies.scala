@@ -15,6 +15,7 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
 import exastencils.util._
+import exastencils.strategies.ReplaceStringConstantsStrategy
 
 object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
   val collector = new IRLevelCollector
@@ -24,6 +25,29 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
   // TODO: think about if this case (access outside of a loop) should be supported
 
   this += new Transformation("ModifyIndices", {
+    case fct : FunctionCallExpression if "changeLvlAndIndices" == fct.name => {
+      // extract information from special function call
+      val fieldAccess = fct.arguments(0).asInstanceOf[FieldAccess]
+      Logger.warn("Performing index adaptation for " + fieldAccess.fieldSelection.field.codeName)
+      val newLevel = fct.arguments(1)
+
+      // adapt per dimension / (n+1)d is reserved
+      for (dim <- 0 until Knowledge.dimensionality) {
+        val idxAdaption = fct.arguments(2 + dim)
+
+        // insert old index into index adaptation function
+        ReplaceStringConstantsStrategy.toReplace = "i"
+        ReplaceStringConstantsStrategy.replacement = Duplicate(fieldAccess.index(dim))
+        var newIdx = Duplicate(idxAdaption)
+        ReplaceStringConstantsStrategy.applyStandalone(newIdx)
+
+        // overwrite old index
+        fieldAccess.index(dim) = newIdx
+      }
+
+      fieldAccess
+    }
+
     case access : FieldAccess if collector.inLevelScope &&
       SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel => {
       var fieldAccess = Duplicate(access)
@@ -52,7 +76,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
         stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
       stencilFieldAccess
     }
-  })
+  }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */ )
 }
 
 object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {

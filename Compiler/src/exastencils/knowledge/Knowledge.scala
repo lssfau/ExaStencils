@@ -8,6 +8,7 @@ object Knowledge {
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
   var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
+  var generateCInterface : Boolean = false // generates plain C interfaces
 
   var simd_avoidUnaligned : Boolean = false
 
@@ -392,7 +393,7 @@ object Knowledge {
 
     // grid
     Constraints.condEnsureValue(grid_spacingModel, "uniform", grid_isUniform, "uniform spacing is required for uniform grids")
-    Constraints.condEnsureValue(grid_isUniform, true, "uniform" == grid_spacingModel, "grid_isUniform has to be true for uniform spacing models")
+    Constraints.condWarn("uniform" == grid_spacingModel && !grid_isUniform, "grid_isUniform should be true for uniform spacing models")
     Constraints.condWarn("diego" == grid_spacingModel, "diego spacing model currently ignores domain bounds set in the DSL")
 
     if (l3tmp_generateL4) {
@@ -484,6 +485,9 @@ object Knowledge {
     }
 
     // parallelization
+    Constraints.condEnsureValue(mpi_numThreads, 1, !mpi_enabled, "Setting mpi_numThreads to 1 since mpi is deactivated")
+    Constraints.condError(domain_numBlocks > 1 && !mpi_enabled, "For the moment, configurations with more then one block must use MPI")
+
     Constraints.condEnsureValue(omp_useCollapse, false, "IBMXL" == Platform.targetCompiler || "IBMBG" == Platform.targetCompiler, "omp collapse is currently not fully supported by the IBM XL compiler")
     Constraints.condEnsureValue(omp_parallelizeLoopOverDimensions, false, omp_enabled && omp_parallelizeLoopOverFragments, "omp_parallelizeLoopOverDimensions and omp_parallelizeLoopOverFragments are mutually exclusive")
 

@@ -6,6 +6,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
+import exastencils.logger._
 import exastencils.prettyprinting._
 
 /// variables and flags
@@ -21,13 +22,13 @@ case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOve
 }
 
 case class IndexFromField(var layoutIdentifier : String, var level : Expression, var indexId : String, var dim : Int, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << ArrayAccess(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression), dim)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression)
 
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
 
-  override def resolveName = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "")
-  override def resolveDataType = s"Vec${Knowledge.dimensionality}i"
+  override def resolveName = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "") + s"_${dimToString(dim)}"
+  override def resolveDataType = IntegerDatatype
 
   override def getCtor() : Option[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
@@ -37,9 +38,15 @@ case class IndexFromField(var layoutIdentifier : String, var level : Expression,
       val field = FieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
       if (field.isDefined) {
         statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
-          s"Vec${Knowledge.dimensionality}i(${
-            (0 until Knowledge.dimensionality).map(dim => field.get.fieldLayout.defIdxById(indexId, dim)).mkString(", ")
-          })")
+          field.get.fieldLayout.defIdxById(indexId, dim))
+      } else { // no field found -> try external fields
+        val extField = ExternalFieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
+        if (extField.isDefined) {
+          statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
+            extField.get.fieldLayout.defIdxById(indexId, dim))
+        } else {
+          // doesn't exist on this level
+        }
       }
     }
     level = oldLev

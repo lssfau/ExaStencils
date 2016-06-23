@@ -299,6 +299,8 @@ object Main {
     if (Knowledge.opt_vectorize)
       RemoveDupSIMDLoads.apply()
 
+    if (Knowledge.data_genVariableFieldSizes)
+      GenerateIndexManipFcts.apply()
     AddInternalVariables.apply()
     // resolve possibly newly added constant IVs
     ResolveConstInternalVariables.apply()

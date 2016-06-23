@@ -587,21 +587,20 @@ case class LoopOverDimensions(var numDimensions : Int,
     var anyPar : Boolean = false
     val outerPar = if (parDims.isEmpty) -1 else parDims.max
     // compile loop(s)
-    var compiledLoop : ForLoopStatement with OptimizationHint = null
     for (d <- 0 until numDimensions) {
       def it = VariableAccess(dimToString(d), Some(IntegerDatatype))
       val decl = VariableDeclarationStatement(IntegerDatatype, dimToString(d), Some(indices.begin(d)))
       val cond = LowerExpression(it, indices.end(d))
       val incr = AssignmentStatement(it, stepSize(d), "+=")
-      if (parallelize(d) && d == outerPar) {
-        anyPar = true
-        val omp = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
-        omp.collapse = numDimensions
-        compiledLoop = omp
-      } else {
-        compiledLoop = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
-        wrappedBody = ListBuffer[Statement](compiledLoop)
-      }
+      val compiledLoop : ForLoopStatement with OptimizationHint =
+        if (parallelize(d) && d == outerPar) {
+          anyPar = true
+          val omp = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
+          omp.collapse = numDimensions
+          omp
+        } else
+          new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
+      wrappedBody = ListBuffer[Statement](compiledLoop)
       // set optimization hints
       compiledLoop.isInnermost = d == 0
       compiledLoop.isParallel = parallelizable(d)
@@ -618,7 +617,7 @@ case class LoopOverDimensions(var numDimensions : Int,
         && reduction.isDefined
         && ("min" == reduction.get.op || "max" == reduction.get.op))
     if (!resolveOmpReduction) {
-      retStmts += compiledLoop
+      retStmts ++= wrappedBody
     } else {
       // resolve max reductions
       val redOp = reduction.get.op
@@ -638,9 +637,7 @@ case class LoopOverDimensions(var numDimensions : Int,
       ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
-      retStmts += Scope(ListBuffer[Statement](decl)
-        ++ init
-        ++ ListBuffer[Statement](compiledLoop, red))
+      retStmts += Scope(ListBuffer[Statement](decl) ++= init ++= wrappedBody += red)
     }
 
     retStmts

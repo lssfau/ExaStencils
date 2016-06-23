@@ -192,4 +192,10 @@ object ExternalFieldCollection {
     if (ret.isEmpty) Logger.warn(s"External field $identifier on level $level was not found")
     ret
   }
+
+  def getFieldByLayoutIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[ExternalField] = {
+    val ret = fields.find(f => f.fieldLayout.identifier == identifier && f.level == level)
+    if (!suppressError && ret.isEmpty) Logger.warn(s"External field with layout $identifier on level $level was not found")
+    ret
+  }
 }

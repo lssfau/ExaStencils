@@ -14,6 +14,7 @@ object Application {
     printer.println("\tinitGlobals ( )")
     printer.println("\tinitDomain ( )")
     printer.println("\tinitFieldsWithZero ( )")
+    if (!Knowledge.grid_isUniform) printer.println("\tinitGeometry ( )")
 
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
       printer.println("\tstopTimer ( 'setup' )")

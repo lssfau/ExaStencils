@@ -32,7 +32,7 @@ object Mapping {
     if (layout.numDimsData != index.length) Logger.warn(s"Index with dimensionality ${index.length} does not match layout with dimensionality ${layout.numDimsData}")
 
     val ret = (0 until math.min(layout.numDimsData, index.length)).map(dim => {
-      val stride = ((0 until dim).map(d3 => layout(d3).total).fold(1 : Expression)(_ * _))
+      val stride = ((0 until dim).map(d3 => layout.idxById("TOT", d3)).fold(1 : Expression)(_ * _))
       index(dim) * stride
     }).fold(0 : Expression)(_ + _)
 

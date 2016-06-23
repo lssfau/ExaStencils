@@ -61,16 +61,17 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     for ((curFunc, parentLoop, loopIt, body) <- scopes) {
       // inline declarations with no additional write to the same variable first (CSE afterwards may find larger CSes)
       inlineDecls(parentLoop, body())
-      val njuScopes : Seq[ListBuffer[Statement]] =
+      val (njuScopes : Seq[ListBuffer[Statement]], conditions : Seq[ConditionStatement]) =
         if (Knowledge.opt_loopCarriedCSE && parentLoop.condition.isEmpty)
           loopCarriedCSE(curFunc, parentLoop, loopIt)
         else
-          Nil
+          (Nil, Nil)
       if (Knowledge.opt_conventionalCSE) {
         conventionalCSE(curFunc, body())
         for (njuBody <- njuScopes)
           conventionalCSE(curFunc, njuBody)
       }
+      conditions ++=: body() // add conditions at the very beginning of the body (therefore, they must be added after the conventional CSE)
       removeAnnotations(body())
     }
     Logger.setLevel(bak) // restore verbosity
@@ -125,9 +126,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     SimplifyStrategy.doUntilDoneStandalone(parent, true)
   }
 
-  private def loopCarriedCSE(curFunc : String, loop : LoopOverDimensions, loopIt : Array[(String, Expression, Expression, Long)]) : Seq[ListBuffer[Statement]] = {
+  private def loopCarriedCSE(curFunc : String, loop : LoopOverDimensions, loopIt : Array[(String, Expression, Expression, Long)]) : (Seq[ListBuffer[Statement]], Seq[ConditionStatement]) = {
     if (loopIt == null || loopIt.forall(_ == null))
-      return Nil
+      return (Nil, Nil)
 
     // first, number all nodes for overlap-test later
     val currItBody = Scope(loop.body)
@@ -135,7 +136,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     this.execute(new Transformation("number nodes", {
       case _ : ConcatenationExpression =>
         Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression are too difficult to analyze")
-        return Nil // don't do anything, since we cannot ensure the transformation is correct
+        return (Nil, Nil) // don't do anything, since we cannot ensure the transformation is correct
       // there are some singleton datatypes, so don't enumerate them
       case d : Datatype   => d
       case NullStatement  => NullStatement
@@ -155,6 +156,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
     var tmpBufLen = new Array[Expression](0)
     var tmpBufInd = new Array[Expression](0)
+    val conds = new ListBuffer[ConditionStatement]()
     for (((loopItVar, loopBegin, loopEnd, loopIncr), dim) <- loopIt.zipWithIndex) {
       val prevItBody = Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
       this.execute(new Transformation("create previous iteration body", {
@@ -232,7 +234,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           decl.expression = Some(tmpBufAcc)
           decls += decl
 
-          firstInits += new AssignmentStatement(new VariableAccess(decl), Duplicate(commonExp.witness), "=")
+          firstInits += new AssignmentStatement(Duplicate(tmpBufAcc), Duplicate(commonExp.witness), "=")
           nextUpdates += new AssignmentStatement(Duplicate(tmpBufAcc), csNext, "=")
         }
       }
@@ -240,9 +242,11 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       if (!decls.isEmpty) {
         val cond = new ConditionStatement(EqEqExpression(new VariableAccess(loopItVar, IntegerDatatype), loopBegin), firstInits)
         cond.annotate(Vectorization.COND_VECTABLE) // mark that this condition can be fully vectorized (which breaks some data dependences, but that doesn't matter)
+        if (tmpBufLen.isEmpty)
+          cond.annotate(Vectorization.COND_IGN_INCR) // vectorize access to loop variable 'i' as 'i, i, ...' instead of 'i, i+incr, ...'
+        conds += cond // store cond separately to ensure all conditions are placed at the very beginning of the body
         // prepend to body
         decls ++=:
-          cond +=:
           nextUpdates ++=:
           loop.body
         njuScopes += firstInits
@@ -273,7 +277,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       tmpBufLen(len) = loopEndOpt - loopBeginOpt
     }
 
-    return njuScopes
+    return (njuScopes, conds)
   }
 
   private def collectIDs(node : Node, bs : BitSet) : Boolean = {
@@ -509,6 +513,10 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
         skip = true // skip everything from now on...
         commonSubs.clear()
         Logger.warn(s"cannot perform CSE, because ${node.getClass} is too difficult to analyze")
+
+      case c : ConditionStatement =>
+        c.annotate(SKIP_ANNOT)
+        skip = true
 
       case VariableDeclarationStatement(dt, name, _) =>
         commonSubs(new VariableAccess(name, dt)) = null

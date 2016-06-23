@@ -148,10 +148,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
     case ModuloExpression(IntegerConstant(left), IntegerConstant(right))   => IntegerConstant(left % right)
 
-    case PowerExpression(IntegerConstant(base), IntegerConstant(exp))     => IntegerConstant(pow(base, exp))
-    case PowerExpression(FloatConstant(base), IntegerConstant(exp))       => FloatConstant(pow(base, exp))
-    case PowerExpression(IntegerConstant(base), FloatConstant(exp))       => FloatConstant(math.pow(base, exp))
-    case PowerExpression(FloatConstant(base), FloatConstant(exp))         => FloatConstant(math.pow(base, exp))
+    case PowerExpression(IntegerConstant(base), IntegerConstant(exp))      => IntegerConstant(pow(base, exp))
+    case PowerExpression(FloatConstant(base), IntegerConstant(exp))        => FloatConstant(pow(base, exp))
+    case PowerExpression(IntegerConstant(base), FloatConstant(exp))        => FloatConstant(math.pow(base, exp))
+    case PowerExpression(FloatConstant(base), FloatConstant(exp))          => FloatConstant(math.pow(base, exp))
 
     // deal with negatives
     case NegativeExpression(NegativeExpression(expr))                      => expr
@@ -170,10 +170,12 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case NegativeExpression(m : MatrixExpression) =>
       MatrixExpression(m.datatype, m.expressions.map { x => x.map { y => NegativeExpression(y) : Expression } })
 
-    case Scope(ListBuffer(Scope(body)))                                        => Scope(body)
-    case ConditionStatement(cond, ListBuffer(Scope(trueBody)), falseBody)      => ConditionStatement(cond, trueBody, falseBody)
-    case ConditionStatement(cond, trueBody, ListBuffer(Scope(falseBody)))      => ConditionStatement(cond, trueBody, falseBody)
-    case l @ ForLoopStatement(beg, end, inc, ListBuffer(Scope(body)), red)     => l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
+    case Scope(ListBuffer(Scope(body)))                                   => Scope(body)
+
+    case ConditionStatement(cond, ListBuffer(Scope(trueBody)), falseBody) => ConditionStatement(cond, trueBody, falseBody)
+    case ConditionStatement(cond, trueBody, ListBuffer(Scope(falseBody))) => ConditionStatement(cond, trueBody, falseBody)
+    case l @ ForLoopStatement(beg, end, inc, ListBuffer(Scope(body)), red) =>
+      l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
 
     case EqEqExpression(IntegerConstant(left), IntegerConstant(right))         => BooleanConstant(left == right)
     case NeqExpression(IntegerConstant(left), IntegerConstant(right))          => BooleanConstant(left != right)
@@ -445,6 +447,10 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
 
   this += new Transformation("Removing obsolete references", {
     case FunctionCallExpression(fName, _) if emptyFunctions.contains(fName) => NullExpression
+  })
+
+  this += new Transformation("Removing empty scopes", {
+    case Scope(ListBuffer()) => None
   })
 
   //  this += new Transformation("Removing null-statements", {

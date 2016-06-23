@@ -15,7 +15,7 @@ import exastencils.util._
 
 object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") {
 
-  private[optimization] final val NEW_DECLS_COND_ANNOT = "RDSL_Decls_Cond"
+  private[optimization] final val NEW_DECLS_ANNOT = "RDSL_Decls_Cond"
   private[optimization] final val REPL_ANNOT = "RDSL_Repl"
 
   override def apply() : Unit = {
@@ -52,7 +52,7 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
             toSort += ((s, base, index))
 
           case VariableDeclarationStatement(SIMD_RealDatatype, _,
-            Some(SIMD_Load1Expression(AddressofExpression(ArrayAccess(base, index, _))))) //
+            Some(SIMD_Scalar2VectorExpression(ArrayAccess(base, index, _)))) //
             =>
             toSort += ((s, base, index))
 
@@ -103,8 +103,7 @@ private[optimization] final class Analyze extends Collector {
         =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
           preLoopDecls = new ListBuffer[Statement]
-          val newCond = LowerExpression(Duplicate(start), Duplicate(end))
-          node.annotate(NEW_DECLS_COND_ANNOT, (preLoopDecls, newCond))
+          node.annotate(NEW_DECLS_ANNOT, preLoopDecls)
           loads = new HashMap[(Expression, HashMap[Expression, Long]), VariableDeclarationStatement]
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
           hasOMPPragma = node.isInstanceOf[OMP_PotentiallyParallel]
@@ -146,7 +145,7 @@ private[optimization] final class Analyze extends Collector {
   }
 
   override def leave(node : Node) : Unit = {
-    if (node.hasAnnotation(NEW_DECLS_COND_ANNOT)) {
+    if (node.hasAnnotation(NEW_DECLS_ANNOT)) {
       preLoopDecls = null
       loads = null
       upLoopVar = null
@@ -194,16 +193,16 @@ private final object Adapt extends PartialFunction[Node, Transformation.OutputTy
   import RemoveDupSIMDLoads._
 
   def isDefinedAt(node : Node) : Boolean = {
-    return node.hasAnnotation(NEW_DECLS_COND_ANNOT) || node.hasAnnotation(REPL_ANNOT)
+    return node.hasAnnotation(NEW_DECLS_ANNOT) || node.hasAnnotation(REPL_ANNOT)
   }
 
   def apply(node : Node) : Transformation.OutputType = {
 
-    val decls = node.removeAnnotation(NEW_DECLS_COND_ANNOT)
+    val decls = node.removeAnnotation(NEW_DECLS_ANNOT)
     if (decls.isDefined) {
-      val (stmts, cond) = decls.get.asInstanceOf[(ListBuffer[Statement], Expression)]
+      val stmts = decls.get.asInstanceOf[ListBuffer[Statement]]
       stmts += node.asInstanceOf[Statement]
-      return new ConditionStatement(cond, stmts)
+      return stmts
     }
 
     return node.removeAnnotation(REPL_ANNOT).get.asInstanceOf[Node]

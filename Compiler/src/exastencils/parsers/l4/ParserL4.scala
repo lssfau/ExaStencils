@@ -114,8 +114,8 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ##### Functions
   // ######################################
 
-  lazy val function = locationize((("Func" ||| "Function") ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
-    ^^ { case id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts) })
+  lazy val function = locationize("noinline".? ~ (("Func" ||| "Function") ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
+    ^^ { case inline ~ id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[Variable]()), stmts, !inline.isDefined) })
   lazy val functionArgumentList = /*locationize*/ ((functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg })
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => Variable(BasicIdentifier(id), t) })
 
@@ -239,7 +239,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
     ||| layoutOption.*)
-  lazy val layoutOption = locationize((("ghostLayers" ||| "duplicateLayers" ||| "innerPoints") <~ "=") ~ index ~ ("with" ~ "communication").?
+  lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").?
     ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ level.?

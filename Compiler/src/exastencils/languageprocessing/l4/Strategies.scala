@@ -59,6 +59,16 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     "vf_cellCenterToFace_x", "vf_cellCenterToFace_y", "vf_cellCenterToFace_z").map(_.toLowerCase())
 
+  def resolveParameterToConstant(obj : AnyRef, ident : String) : Expression = {
+    val ret = obj.getClass.getMethod(ident).invoke(obj)
+
+    if (ret.isInstanceOf[Int]) IntegerConstant(ret.asInstanceOf[Int])
+    else if (ret.isInstanceOf[Float]) FloatConstant(ret.asInstanceOf[Float])
+    else if (ret.isInstanceOf[Boolean]) BooleanConstant(ret.asInstanceOf[Boolean])
+    else if (ret.isInstanceOf[String]) StringConstant(ret.asInstanceOf[String])
+    else Logger.error(s"Trying to access parameter $ident from L4 with unsupported type")
+  }
+
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
     var valueCollector = new L4ValueCollector
@@ -71,14 +81,14 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
         var value = valueCollector.getValue(x.name)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
-          case _    => value.get
+          case _    => Duplicate(value.get)
         }
       }
       case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
         var value = valueCollector.getValue(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
-          case _    => value.get
+          case _    => Duplicate(value.get)
         }
       }
     }))
@@ -96,14 +106,14 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
         var value = globalVals.get(x.name)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Global Val was found"""); x }
-          case _    => value.get
+          case _    => Duplicate(value.get)
         }
       }
       case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
         var value = globalVals.get(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
           case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Global Val was found"""); x }
-          case _    => value.get
+          case _    => Duplicate(value.get)
         }
       }
     }))
@@ -124,6 +134,14 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     }))
 
     this.execute(new Transformation("special functions and constants", {
+      // get knowledge/settings/platform
+      case FunctionCallExpression(BasicAccess("getKnowledge"), List(StringConstant(ident))) =>
+        resolveParameterToConstant(knowledge.Knowledge, ident)
+      case FunctionCallExpression(BasicAccess("getSetting"), List(StringConstant(ident))) =>
+        resolveParameterToConstant(Settings, ident)
+      case FunctionCallExpression(BasicAccess("getPlatform"), List(StringConstant(ident))) =>
+        resolveParameterToConstant(knowledge.Platform, ident)
+
       // levelIndex
       case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List())      => IntegerConstant(level)
       case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List())  => IntegerConstant(level - knowledge.Knowledge.minLevel)

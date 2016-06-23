@@ -16,7 +16,7 @@ hw_cpu_numHWThreads			= 64
 hw_cpu_numCPUs				= 1
 hw_cpu_bandwidth			= 42600000000.0 // 42.6 GB/s in B/s => TODO: check if 25.6 is per cpu/socket
 hw_cpu_frequency			= 1600000000.0 // 1.6 GHz in Hz (base)
-hw_cpu_numCyclesPerDiv		= 24 // arbitrary value -> to be benchmarked later
+hw_cpu_numCyclesPerDiv		= 1 // arbitrary value -> to be benchmarked later
 
 hw_64bit					= true // true if 64 bit addresses are used
 hw_cacheLineSize			= 512 // in B
