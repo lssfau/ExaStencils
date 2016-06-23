@@ -101,6 +101,8 @@ object Platform {
   var hw_gpu_numCores : Int = 256
   var hw_cuda_capability : Int = 2
   var hw_cuda_capabilityMinor : Int = 0
+  var hw_cuda_sharedMemory : Int = 49152 // amount of shared memory in byte
+  var hw_cuda_cacheMemory : Int = 16384 // cache size in byte
 
   def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3 // 3 seems to be max; checked for versions up to 5.3
 

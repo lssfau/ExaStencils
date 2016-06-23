@@ -59,10 +59,10 @@ mpi_numThreads = 1
 //poly_filterDeps             = true
 
 // other optimizations
-opt_useAddressPrecalc  = true
-opt_vectorize          = false // true is not working
-opt_unroll             = 2
-opt_unroll_interleave  = false
+//opt_useAddressPrecalc  = true
+//opt_vectorize          = false // true is not working
+//opt_unroll             = 2
+//opt_unroll_interleave  = false
 
 ///////////////////////////////////////////////////////////
 // HACK configuration options for generating L4 DSL file //

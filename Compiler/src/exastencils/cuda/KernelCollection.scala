@@ -359,6 +359,7 @@ case class ExpKernel(var identifier : String,
   var fieldToOffset = mutable.Map[String, MultiIndex]()
   var accessesForSharedMemory = mutable.Map[String, FieldAccessLike]()
   var offsetForSharedMemoryAccess = mutable.HashMap[String, MultiIndex]()
+  var additionalThreadsForSharedMemoryInit = Array.fill[Long](dimensionality)(0)
 
   var linearizedFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
@@ -374,18 +375,33 @@ case class ExpKernel(var identifier : String,
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
 
-  init()
+  // call this function already in constructor to work on DirectFieldAccesses where indices are not yet linearized.
+  if (Knowledge.experimental_cuda_useSharedMemory) {
+    evaluateAccessesForSharedMemory()
+  }
 
-  def init() : Unit = {
+  /**
+   * Collect all FieldAccesses that are worth to store in shared memory.
+   */
+  def evaluateAccessesForSharedMemory() : Unit = {
     // 1. get read and write field accesses in body
     GatherLocalFieldAccessLike.fieldAccesses.clear
     GatherLocalFieldAccessLike.applyStandalone(new Scope(body))
     fieldAccesses = GatherLocalFieldAccessLike.fieldAccesses
-    val fieldIndices = mutable.HashMap[String, Array[MultiIndex]]()
-    val abstractIndices = mutable.HashMap[String, Array[MultiIndex]]()
 
     // 2. evaluate accesses worth to load in shared memory
     // every field accessed more than once is potentially worth to load in shared memory
+
+    // TODO: Check if there is still free space in shared memory.
+    // Add all free accesses that have space, starting with the field that is accessed the most
+    // Platform.hw_cuda_sharedMemory
+
+    // TODO: Evaluate indices. Should be of the form "variable + offset". Ignore all other fields.
+
+    // TODO: Store variable part of field index and offset part of index in maps for later addressing.
+    val fieldIndices = mutable.HashMap[String, Array[MultiIndex]]()
+    val abstractIndices = mutable.HashMap[String, Array[MultiIndex]]()
+    fieldAccesses = mutable.ListMap(fieldAccesses.toSeq.sortWith(_._2.size > _._2.size):_*)
     fieldAccesses.foreach(fa => {
       if (fa._2.size > 1) {
         val fas = fa._2
@@ -397,6 +413,7 @@ case class ExpKernel(var identifier : String,
 
           new MultiIndex(indices)
         }).toArray
+
         accessesForSharedMemory.put(fa._1, fa._2.head)
       } else {
         fa._2.foreach(a => a.removeAnnotation(LinearizeFieldAccesses.NO_LINEARIZATION))
@@ -412,13 +429,25 @@ case class ExpKernel(var identifier : String,
 
     // 4. calculate offset for shared memory access
     // required for stencil computations to get no index out of bounds errors if adjacent points are requested
+    val offsetList = ListBuffer[Array[Long]]()
     abstractIndices.foreach(ai => {
-      offsetForSharedMemoryAccess(ai._1) = ai._2.foldLeft(new MultiIndex(Array.fill(dimensionality)(0)))((acc, m) => MultiIndex((acc.indices, m.indices).zipped.map((x,y) => {
+      offsetForSharedMemoryAccess(ai._1) = ai._2.foldLeft(new MultiIndex(Array.fill(dimensionality)(0)))((acc, m) => MultiIndex((acc.indices, m.indices).zipped.map((x, y) => {
         val absX = math.abs(SimplifyExpression.evalIntegral(x))
         val absY = math.abs(SimplifyExpression.evalIntegral(y))
         new IntegerConstant(math.max(absX, absY))
       })))
+      offsetList += offsetForSharedMemoryAccess(ai._1).indices.map({
+        case IntegerConstant(v : Long) => v : Long
+        case _ => 0 : Long
+      })
     })
+
+    // 5. calculate the number of additional threads required for loading global memory into shared memory
+    // TODO: Check if the shared memory accessing is still ok
+
+    // TODO: Check minimal and maximal field index. Caculate the offsetForSharedMemory based on this and the additionalThreadsForSharedMemoryBased on this
+    if (offsetList.nonEmpty)
+      additionalThreadsForSharedMemoryInit = offsetList.foldLeft(offsetList.head)((acc, x) => (acc, x).zipped.map((y, z) => math.min(y, z)))
   }
 
   /**
@@ -473,6 +502,9 @@ case class ExpKernel(var identifier : String,
     }
   }
 
+  /**
+   * Calculate the execution configuration for this kernel.
+   */
   def evalExecutionConfiguration() = {
     if (!evaluatedExecutionConfiguration) {
       requiredThreadsPerDim = (maxIndices, minIndices).zipped.map(_ - _)
@@ -495,6 +527,14 @@ case class ExpKernel(var identifier : String,
       numBlocksPerDim = (0 until dimensionality).map(dim => {
         (requiredThreadsPerDim(dim) + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
       }).toArray
+
+      if (Knowledge.experimental_cuda_useSharedMemory) {
+        dimensionality match {
+          case 1 => numThreadsPerBlock = Array[Long](512)
+          case 2 => numThreadsPerBlock = Array[Long](32, 16)
+          case _ => numThreadsPerBlock = Array[Long](8, 8, 8)
+        }
+      }
 
       evaluatedExecutionConfiguration = true
     }
@@ -536,23 +576,39 @@ case class ExpKernel(var identifier : String,
     statements += condition
 
     if (Knowledge.experimental_cuda_useSharedMemory) {
-      accessesForSharedMemory.foreach(a => {
-        val sharedArraysize = (numThreadsPerBlock, offsetForSharedMemoryAccess(a._1).indices.map(_*2)).zipped.map(_ + _).toArray[Expression]
-        statements += new CUDA_SharedArray(KernelVariablePrefix + a._1, DoubleDatatype, sharedArraysize)
+      val conditionPartsShared = (0 until dimensionality).map(dim => {
+        val variableAccess = VariableAccess(KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype))
+        AndAndExpression(GreaterEqualExpression(variableAccess, SubtractionExpression(s"${KernelVariablePrefix}begin_$dim", additionalThreadsForSharedMemoryInit(dim))), LowerExpression(variableAccess, new AdditionExpression(s"${KernelVariablePrefix}end_$dim", additionalThreadsForSharedMemoryInit(dim))))
       })
 
+      val conditionShared = VariableDeclarationStatement(BooleanDatatype, KernelVariablePrefix + "conditionShared",
+        Some(conditionPartsShared.reduceLeft[AndAndExpression] { (acc, n) =>
+          AndAndExpression(acc, n)
+        }))
+      val conditionAccessShared = VariableAccess(KernelVariablePrefix + "conditionShared", Some(BooleanDatatype))
+      statements += conditionShared
+
+      // 1. Add shared memory declarations
+      accessesForSharedMemory.foreach(a => {
+        val sharedArraysize = (numThreadsPerBlock, offsetForSharedMemoryAccess(a._1).indices.map(_ * 2)).zipped.map(_ + _).toArray[Expression]
+        statements += new CUDA_SharedArray(KernelVariablePrefix + a._1, a._2.fieldSelection.fieldLayout.datatype, sharedArraysize)
+      })
+
+      // 2. Annotate the loop variables appearing in the shared memory accesses to guarantee the right substitution later
       AnnotatingLoopVariablesForSharedMemoryAccess.loopVariables = loopVariables
       AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccesses.values.flatten.map(x => new ExpressionStatement(x)).toList))
+
+      // 3. Load from global memory into shared memory
       var sharedMemoryStatements = ListBuffer[Statement]()
       accessesForSharedMemory.foreach(a => {
-        fieldAccesses(a._1).foreach(fa => {
-          val multiIndex = fa.index - fieldToOffset(a._1) + offsetForSharedMemoryAccess(a._1)
-
-          sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, multiIndex.indices.reverse), new DirectFieldAccess(a._2.fieldSelection, fa.index).linearize)
-        })
+        sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, (a._2.index - fieldToOffset(a._1) + offsetForSharedMemoryAccess(a._1)).indices.reverse), new DirectFieldAccess(a._2.fieldSelection, a._2.index).linearize)
       })
 
-      statements += new ConditionStatement(conditionAccess, sharedMemoryStatements)
+      // 4. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
+      // and sync threads afterwards to guarantee that every thread has the same memory state
+      statements += new ConditionStatement(conditionAccessShared, sharedMemoryStatements)
+
+      // this may not be part of the ConditionStatement to avoid dead locks if some thread do not fulfill the condition
       statements += new CUDA_SyncThreads()
     }
 
