@@ -438,7 +438,7 @@ case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, v
   override def expand : Output[StatementList] = {
     ListBuffer[Statement](
       new MPI_Send(src, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
-        GeneratedMPITag(iv.CommId(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index), concurrencyId),
+        GeneratedMPITag(iv.CommId(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index), neighbor.index, concurrencyId),
         iv.MpiRequest(field.field, s"Send_${concurrencyId}", neighbor.index)) with OMP_PotentiallyCritical,
       AssignmentStatement(iv.RemoteReqOutstanding(field.field, s"Send_${concurrencyId}", neighbor.index), true))
   }
@@ -450,7 +450,8 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
   override def expand : Output[StatementList] = {
     ListBuffer[Statement](
       new MPI_Receive(dest, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
-        GeneratedMPITag(iv.NeighborFragLocalId(field.domainIndex, neighbor.index), iv.CommId(), concurrencyId),
+        GeneratedMPITag(iv.NeighborFragLocalId(field.domainIndex, neighbor.index), iv.CommId(),
+          Fragment.getOpposingNeigh(neighbor.index).index, concurrencyId),
         iv.MpiRequest(field.field, s"Recv_${concurrencyId}", neighbor.index)) with OMP_PotentiallyCritical,
       AssignmentStatement(iv.RemoteReqOutstanding(field.field, s"Recv_${concurrencyId}", neighbor.index), true))
   }
