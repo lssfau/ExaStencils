@@ -406,7 +406,7 @@ case class ExpKernel(var identifier : String,
     GatherLocalFieldAccessLikeForSharedMemory.applyStandalone(new Scope(body))
     fieldAccessesForSharedMemory = GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses
     val fieldIndicesConstantPart = GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart
-    var availableSharedMemory = Platform.hw_cuda_sharedMemory
+    var availableSharedMemory = Platform.hw_cuda_sharedMemory.toLong
 
     // 2. Perform shared memory analysis
     // the more field accesses to a field the more important it is to store this field in shared memory
