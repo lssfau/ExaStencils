@@ -389,7 +389,7 @@ case class ExpKernel(var identifier : String,
     evalExecutionConfiguration()
 
     // call this function already in constructor to work on DirectFieldAccesses where indices are not yet linearized.
-    if (Knowledge.experimental_cuda_useSharedMemory) {
+    if (Knowledge.experimental_cuda_useSharedMemory && identifier.contains("Smoother")) {
       evaluateAccessesForSharedMemory()
     }
   }
@@ -444,10 +444,11 @@ case class ExpKernel(var identifier : String,
 
       // 2.6 calculate the required amount of shared memory
       val sharedArraySize = (numThreadsPerBlock, leftAndRightDeviationFromBaseIndex).zipped.map(_ + _)
-      requiredMemoryInByte = sharedArraySize.product * (fa._2.head.fieldSelection.fieldLayout.datatype match {
+      requiredMemoryInByte = sharedArraySize.product * (fas.head.fieldSelection.fieldLayout.datatype match {
         case RealDatatype => if (Knowledge.useDblPrecision) 8 else 4
         case DoubleDatatype => 8
         case FloatDatatype => 4
+        case _ => -1
       })
 
       // 2.7 consider this field for shared memory if all conditions are met
@@ -539,13 +540,13 @@ case class ExpKernel(var identifier : String,
       // NVIDIA GeForce Titan Black has CUDA compute capability 3.5
       // maximum number of threads per block = 1024
       // number of threads per block should be integer multiple of warp size (32)
-      dimensionality match {
+      Platform.hw_cuda_maxNumDimsBlock match {
         case 1 => numThreadsPerBlock = Array[Long](512)
         case 2 => numThreadsPerBlock = Array[Long](32, 16)
         case _ => numThreadsPerBlock = Array[Long](8, 8, 8)
       }
 
-      numBlocksPerDim = (0 until dimensionality).map(dim => {
+      numBlocksPerDim = (0 until Platform.hw_cuda_maxNumDimsBlock).map(dim => {
         (requiredThreadsPerDim(dim) + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
       }).toArray
 
@@ -566,7 +567,7 @@ case class ExpKernel(var identifier : String,
     // global thread id z = blockIdx.z *blockDim.z + threadIdx.z + offset3;
     statements ++= (0 until dimensionality).map(dim => {
       val it = dimToString(dim)
-      val variableName = KernelVariablePrefix + it
+      val variableName = KernelVariablePrefix + "global_" + it
       VariableDeclarationStatement(IntegerDatatype, variableName,
         Some(MemberAccess(VariableAccess("blockIdx", Some(SpecialDatatype("dim3"))), it) *
           MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it) +
@@ -577,7 +578,7 @@ case class ExpKernel(var identifier : String,
     // add dimension index start and end point
     // add index bounds conditions
     val conditionParts = (0 until dimensionality).map(dim => {
-      val variableAccess = VariableAccess(KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype))
+      val variableAccess = VariableAccess(KernelVariablePrefix + "global_" + dimToString(dim), Some(IntegerDatatype))
       AndAndExpression(GreaterEqualExpression(variableAccess, s"${KernelVariablePrefix}begin_$dim"), LowerExpression(variableAccess, s"${KernelVariablePrefix}end_$dim"))
     })
 
@@ -588,42 +589,67 @@ case class ExpKernel(var identifier : String,
     val conditionAccess = VariableAccess(KernelVariablePrefix + "condition", Some(BooleanDatatype))
     statements += condition
 
-    if (Knowledge.experimental_cuda_useSharedMemory) {
-      // 1. Annotate the loop variables appearing in the shared memory accesses to guarantee the right substitution later
-      AnnotatingLoopVariablesForSharedMemoryAccess.loopVariables = loopVariables
-      AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccessesForSharedMemory.values.flatten.map(x => new ExpressionStatement(x)).toList))
-      AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(accessesForSharedMemory.values.map(x => new ExpressionStatement(x)).toList))
+    if (Knowledge.experimental_cuda_useSharedMemory && identifier.contains("Smoother")) {
+      val sharedMemoryStatements = ListBuffer[Statement]()
 
       // 2. For every field allocate shared memory and add load operations
       accessesForSharedMemory.foreach(a => {
+        // 1. Annotate the loop variables appearing in the shared memory accesses to guarantee the right substitution later
+        AnnotatingLoopVariablesForSharedMemoryAccess.loopVariables = loopVariables
+        AnnotatingLoopVariablesForSharedMemoryAccess.accessName = a._1
+        AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccessesForSharedMemory(a._1).map(x => new ExpressionStatement(x))))
+        AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(new ExpressionStatement(a._2)))
 
-        // 2.1 Calculate conditions for loading from global memory into shared memory
-        val conditionPartsShared = (0 until dimensionality).map(dim => {
-          val variableAccess = VariableAccess(KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype))
-          AndAndExpression(GreaterEqualExpression(variableAccess, SubtractionExpression(s"${KernelVariablePrefix}begin_$dim", leftDeviationFromBaseIndices(a._1)(dim))), LowerExpression(variableAccess, new AdditionExpression(s"${KernelVariablePrefix}end_$dim", rightDeviationFromBaseIndices(a._1)(dim))))
+        val localPrefix = KernelVariablePrefix + a._1 + "_"
+
+        // Add local Thread ID calculation for indexing shared memory
+        statements ++= (0 until dimensionality).map(dim => {
+          val it = dimToString(dim)
+          val variableName = localPrefix + it
+          VariableDeclarationStatement(IntegerDatatype, variableName,
+            Some(MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), it) +
+              leftDeviationFromBaseIndices(a._1).indices.reverse(dim)))
         })
 
-        val conditionShared = VariableDeclarationStatement(BooleanDatatype, KernelVariablePrefix + a._1 + "_condition",
-          Some(conditionPartsShared.reduceLeft[AndAndExpression] { (acc, n) =>
-            AndAndExpression(acc, n)
-          }))
-        val conditionAccessShared = VariableAccess(KernelVariablePrefix + a._1 + "_condition", Some(BooleanDatatype))
-        statements += conditionShared
+        val localThreadId = (0 until dimensionality).map(dim => {
+          VariableAccess(localPrefix + dimToString(dim), Some(IntegerDatatype))
+        }).toArray[Expression]
+        val globalThreadId = (0 until dimensionality).map(dim => {
+          VariableAccess(KernelVariablePrefix + "global_" + dimToString(dim), Some(IntegerDatatype))
+        }).toArray[Expression]
+
+        // 2.1 Calculate conditions for loading from global memory into shared memory
 
         // 2.2 Add shared memory declarations
         statements += new CUDA_SharedArray(KernelVariablePrefix + a._1, a._2.fieldSelection.fieldLayout.datatype, fieldToSharedArraySize(a._1).map(x => new IntegerConstant(x)))
 
         // 2.3 Load from global memory into shared memory
-        var sharedMemoryStatements = ListBuffer[Statement]()
-        sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, (a._2.index - fieldToOffset(a._1) + leftDeviationFromBaseIndices(a._1)).indices.reverse), new DirectFieldAccess(a._2.fieldSelection, a._2.index).linearize)
+        sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, (a._2.index - fieldToOffset(a._1)).indices.reverse), new DirectFieldAccess(a._2.fieldSelection, a._2.index).linearize)
 
         // 2.4 Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
         // and sync threads afterwards to guarantee that every thread has the same memory state
-        statements += new ConditionStatement(conditionAccessShared, sharedMemoryStatements)
+        sharedMemoryStatements ++= (0 until dimensionality).map(dim => {
+          val it = dimToString(dim)
+          val condition = LowerExpression(localThreadId(dim), leftDeviationFromBaseIndices(a._1)(dim))
+          val trueBody = ListBuffer[Statement]()
+          val localLeftIndex = Duplicate(localThreadId)
+          val localRightIndex = Duplicate(localThreadId)
+          localLeftIndex(dim) = SubtractionExpression(localLeftIndex(dim), leftDeviationFromBaseIndices(a._1)(dim))
+          localRightIndex(dim) = new AdditionExpression(localRightIndex(dim), MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it))
+          val globalLeftIndex = Duplicate(globalThreadId)
+          val globalRightIndex = Duplicate(globalThreadId)
+          globalLeftIndex(dim) = SubtractionExpression(globalLeftIndex(dim), leftDeviationFromBaseIndices(a._1)(dim))
+          globalRightIndex(dim) = new AdditionExpression(globalRightIndex(dim), MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it))
 
-        // this may not be part of the ConditionStatement to avoid dead locks if some thread do not fulfill the condition
-        statements += new CUDA_SyncThreads()
+          trueBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, localLeftIndex.reverse), new DirectFieldAccess(a._2.fieldSelection, new MultiIndex(globalLeftIndex)).linearize)
+          trueBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, localRightIndex.reverse), new DirectFieldAccess(a._2.fieldSelection, new MultiIndex(globalRightIndex)).linearize)
+          new ConditionStatement(condition, trueBody)
+        })
       })
+
+      statements += new ConditionStatement(conditionAccess, sharedMemoryStatements)
+      // this may not be part of the ConditionStatement to avoid dead locks if some thread do not fulfill the condition
+      statements += new CUDA_SyncThreads()
     }
 
     statements += new ConditionStatement(conditionAccess, body)
@@ -840,7 +866,7 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
     }
 
     // Evaluate indices. Should be of the form "variable + offset". Ignore all other fields.
-    var suitableForSharedMemory = true
+    var suitableForSharedMemory = field.fieldLayout.numDimsData <= Platform.hw_cuda_maxNumDimsBlock
     val accessIndices = access.index.indices
     val indexConstantPart = Array.fill[Long](accessIndices.length)(0)
 
@@ -945,31 +971,34 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
 
   this += new Transformation("Searching", {
     case v @ VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
+      var newName = ExpKernel.KernelVariablePrefix + "global_" + dimToString(loopVariables.indexOf(name))
+
       if (v.hasAnnotation(ExpKernel.CUDASharedMemoryAccess)) {
-        MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), dimToString(loopVariables.indexOf(name)))
-      } else {
-        val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(name))
-        VariableAccess(newName, Some(IntegerDatatype))
+        newName = ExpKernel.KernelVariablePrefix + v.getAnnotation(ExpKernel.CUDASharedMemoryAccess).get + "_" + dimToString(loopVariables.indexOf(name))
       }
+
+      VariableAccess(newName, Some(IntegerDatatype))
     case s @ StringLiteral(v @ value) if loopVariables.contains(v) =>
+      var newName = ExpKernel.KernelVariablePrefix + "global_" + dimToString(loopVariables.indexOf(v))
+
       if (s.hasAnnotation(ExpKernel.CUDASharedMemoryAccess)) {
-        MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), dimToString(loopVariables.indexOf(v)))
-      } else {
-        val newName = ExpKernel.KernelVariablePrefix + dimToString(loopVariables.indexOf(v))
-        VariableAccess(newName, Some(IntegerDatatype))
+        newName = ExpKernel.KernelVariablePrefix + s.getAnnotation(ExpKernel.CUDASharedMemoryAccess).get + "_" + dimToString(loopVariables.indexOf(v))
       }
+
+      VariableAccess(newName, Some(IntegerDatatype))
   })
 }
 
 object AnnotatingLoopVariablesForSharedMemoryAccess extends QuietDefaultStrategy("Annotate loop variables for shared memory access") {
   var loopVariables = ListBuffer[String]()
+  var accessName = ""
 
   this += new Transformation("Searching", {
     case v @ VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
-      v.annotate(ExpKernel.CUDASharedMemoryAccess)
+      v.annotate(ExpKernel.CUDASharedMemoryAccess, accessName)
       v
     case s @ StringLiteral(v @ value) if loopVariables.contains(v) =>
-      s.annotate(ExpKernel.CUDASharedMemoryAccess)
+      s.annotate(ExpKernel.CUDASharedMemoryAccess, accessName)
       s
   })
 }
