@@ -95,3 +95,4 @@ experimental_cuda_blockSize_x                   = 8
 experimental_cuda_blockSize_y                   = 8
 experimental_cuda_blockSize_z                   = 8
 experimental_cuda_useSharedMemory               = true
+experimental_cuda_linearizeSharedMemoryAccess   = false

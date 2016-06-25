@@ -582,7 +582,7 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
       kernel
     case kernel : ExpKernel =>
       while (kernel.dimensionality > Platform.hw_cuda_maxNumDimsBlock) {
-        def it = new VariableAccess(ExpKernel.KernelVariablePrefix + dimToString(kernel.dimensionality - 1), Some(IntegerDatatype))
+        def it = new VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(kernel.dimensionality - 1), Some(IntegerDatatype))
         kernel.body = ListBuffer[Statement](ForLoopStatement(
           new VariableDeclarationStatement(it, kernel.lowerBounds.last),
           LowerExpression(it, kernel.upperBounds.last),
@@ -610,7 +610,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
       val index = new MultiIndex((0 until kernel.dimensionality).map(dim =>
-        new VariableAccess(ExpKernel.KernelVariablePrefix + dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
+        new VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => new SubtractionExpression(x, y) : Expression)
 

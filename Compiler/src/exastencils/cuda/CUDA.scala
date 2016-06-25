@@ -182,7 +182,9 @@ case class CUDA_SyncThreads() extends Statement {
   }
 }
 
-case class CUDA_SharedArray(name : String, arrayType : Datatype, size : Array[Expression]) extends Statement {
+case class CUDA_SharedArray(name : String, arrayType : Datatype, var size : Array[Long]) extends Statement {
+  size = if (Knowledge.experimental_cuda_linearizeSharedMemoryAccess) Array(size.product) else size
+
   override def prettyprint(out : PpStream) : Unit = {
     out << "__shared__ " << arrayType << " " << name
     size.foreach(s => out << "[" << s << "]")
@@ -196,11 +198,21 @@ case class CUDA_UnsizedExternSharedArray(name : String, arrayType : ScalarDataty
   }
 }
 
-case class CUDA_SharedArrayAccess(base : Expression, indices : ListBuffer[Expression]) extends Access {
-  def this(base : Expression, indices : Array[Expression]) = this(base, indices.to[ListBuffer])
+case class CUDA_SharedArrayAccess(base : Expression, indices : ListBuffer[Expression], strides : MultiIndex) extends Access {
+  def this(base : Expression, indices : Array[Expression], strides : MultiIndex) = this(base, indices.to[ListBuffer], strides)
+
+  var index = linearizeAccess()
 
   override def prettyprint(out : PpStream) : Unit = {
     out << base
-    indices.foreach(i => out << "[" << i << "]")
+    if (Knowledge.experimental_cuda_linearizeSharedMemoryAccess) {
+      out << "[" << index << "]"
+    } else {
+      indices.foreach(i => out << "[" << i << "]")
+    }
+  }
+
+  def linearizeAccess() : Expression = {
+    Mapping.resolveMultiIdx(new MultiIndex(indices.toArray.reverse), strides : MultiIndex)
   }
 }
