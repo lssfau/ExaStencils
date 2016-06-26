@@ -543,7 +543,7 @@ case class ExpKernel(var identifier : String,
 
       executionDimensionality match {
         case 1 => numThreadsPerBlock = Array[Long](512)
-        case 2 => numThreadsPerBlock = Array[Long](32, 16)
+        case 2 => numThreadsPerBlock = Array[Long](16, 16)
         case _ => numThreadsPerBlock = Array[Long](8, 8, 8)
       }
 
