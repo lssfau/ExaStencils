@@ -183,15 +183,15 @@ case class LoopOverPointsStatement(
     val procIncrement = new ir.MultiIndex(Array.fill(numDims)(1))
     if (startOffset.isDefined) {
       val newOffset = startOffset.get.progressToIr
-      for (i <- 0 until newOffset.length) procStartOffset(i) = newOffset(i)
+      for (i <- 0 until Math.min(numDims, newOffset.length)) procStartOffset(i) = newOffset(i)
     }
     if (endOffset.isDefined) {
       val newOffset = endOffset.get.progressToIr
-      for (i <- 0 until newOffset.length) procEndOffset(i) = newOffset(i)
+      for (i <- 0 until Math.min(numDims, newOffset.length)) procEndOffset(i) = newOffset(i)
     }
     if (increment.isDefined) {
       val newIncrement = increment.get.progressToIr
-      for (i <- 0 until newIncrement.length) procIncrement(i) = newIncrement(i)
+      for (i <- 0 until Math.min(numDims, newIncrement.length)) procIncrement(i) = newIncrement(i)
     }
 
     val loop = ir.LoopOverPoints(resolvedField,
