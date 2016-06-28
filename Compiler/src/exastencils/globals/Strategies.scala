@@ -46,6 +46,12 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
 
         // create context
         func.body += "cuCtxCreate(&cudaContext, 0, cudaDevice)"
+
+        // set L1 cache and shared memory configuration for this device
+        if (Knowledge.experimental_cuda_useSharedMemory)
+          func.body += "cudaDeviceSetCacheConfig(cudaFuncCachePreferShared)"
+        if (Knowledge.experimental_cuda_favorL1CacheOverSharedMemory)
+          func.body += "cudaDeviceSetCacheConfig(cudaFuncCachePreferL1)"
       }
 
       if (Knowledge.mpi_enabled) {

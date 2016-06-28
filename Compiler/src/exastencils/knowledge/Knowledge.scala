@@ -326,6 +326,7 @@ object Knowledge {
   var experimental_cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels
   var experimental_cuda_useSharedMemory : Boolean = false // specify if shared memory should be used within kernels
   var experimental_cuda_linearizeSharedMemoryAccess : Boolean = true
+  var experimental_cuda_favorL1CacheOverSharedMemory : Boolean = false
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements

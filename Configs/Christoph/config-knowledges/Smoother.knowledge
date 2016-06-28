@@ -86,3 +86,4 @@ experimental_cuda_blockSize_z                   = 8
 experimental_cuda_reductionBlockSize            = 1024
 experimental_cuda_useSharedMemory               = true
 experimental_cuda_linearizeSharedMemoryAccess   = false
+experimental_cuda_favorL1CacheOverSharedMemory  = false
