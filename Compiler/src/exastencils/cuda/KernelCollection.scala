@@ -599,7 +599,7 @@ case class ExpKernel(var identifier : String,
         // 1. Calculate new condition for all threads that are allowed to load from global into shared memory
         val conditionPartsForSharedMem = (0 until dimensionality).map(dim => {
           val variableAccess = VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
-          AndAndExpression(GreaterEqualExpression(new SubtractionExpression(variableAccess, fieldToRadius(a._1)(dim)), s"${KernelVariablePrefix}begin_$dim"), LowerExpression(new AdditionExpression(variableAccess, fieldToRadius(a._1)(dim)), s"${KernelVariablePrefix}end_$dim"))
+          AndAndExpression(GreaterEqualExpression(new AdditionExpression(variableAccess, fieldToRadius(a._1)(dim)), s"${KernelVariablePrefix}begin_$dim"), LowerExpression(variableAccess, s"${KernelVariablePrefix}end_$dim"))
         })
 
         val conditionForSharedMem = VariableDeclarationStatement(BooleanDatatype, KernelVariablePrefix + "conditionForSharedMem",
@@ -661,7 +661,7 @@ case class ExpKernel(var identifier : String,
         })
 
         // 7. Add whole shared memory initialization wrapped in a ConditionStatement to the body
-        statements += new ConditionStatement(conditionAccess, sharedMemoryStatements)
+        statements += new ConditionStatement(conditionAccessForSharedMem, sharedMemoryStatements)
       })
 
       // This may not be part of the ConditionStatement to avoid dead locks if some thread do not fulfill the condition
