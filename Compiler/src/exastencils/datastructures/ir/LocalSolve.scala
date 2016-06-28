@@ -2,6 +2,7 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.communication._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -34,69 +35,72 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
   def matchUnknowns(other : FieldAccess) : Int = {
     for (i <- 0 until unknowns.size) {
-      //Logger.warn(i + "/" + unknowns.size + " : " + other.fieldSelection.field.codeName + " <> " + unknowns(i).fieldSelection.field.codeName)
-      if (other.fieldSelection.field.codeName == unknowns(i).fieldSelection.field.codeName)
-        if (other.index != unknowns(i).index)
-          Logger.warn(other.index.prettyprint() + " <> " + unknowns(i).index.prettyprint())
-        else Logger.warn(other.index.prettyprint() + " == " + unknowns(i).index.prettyprint())
-
       if (other.fieldSelection.field.codeName == unknowns(i).fieldSelection.field.codeName
         && other.index == unknowns(i).index)
         return i // match
     }
-    // no match => constant value
-    -1
+    -1 // no match => constant value
+  }
+
+  def processExpression(pos : Int, ex : Expression, switchSign : Boolean) : Unit = {
+    ex match {
+      case const : Number          => fVals(pos).summands += (if (switchSign) const else NegativeExpression(const))
+
+      case NegativeExpression(exp) => processExpression(pos, exp, !switchSign)
+
+      case access : FieldAccess => {
+        val uPos = matchUnknowns(access)
+        if (uPos < 0)
+          fVals(pos).summands += (if (switchSign) access else NegativeExpression(access)) // no match -> rhs
+        else
+          AVals(pos)(uPos).summands += FloatConstant(1) // match -> matrix
+      }
+
+      case multEx @ MultiplicationExpression(factors) => {
+        // split into known and unknown
+        var localFactors = ListBuffer[Expression]()
+        var localUnknowns = ListBuffer[FieldAccess]()
+        for (ex <- factors) {
+          ex match {
+            case access : FieldAccess =>
+              if (matchUnknowns(access) < 0)
+                localFactors += access
+              else localUnknowns += access
+            case e : MultiplicationExpression =>
+              Logger.warn(s"Nested multiplication expressions are currently unsupported: $e")
+              localFactors += e
+            case e : AdditionExpression =>
+              Logger.warn(s"Nested addition expressions are currently unsupported: $e")
+              localFactors += e
+            case e : Expression => localFactors += e
+          }
+        }
+        if (localUnknowns.size > 1)
+          Logger.warn("Non-linear equations are currently unsupported")
+        if (localUnknowns.isEmpty) // no unknowns -> add to rhs
+          fVals(pos).summands += (if (switchSign) multEx else NegativeExpression(multEx))
+        else // unknowns detected -> add to matrix
+          AVals(pos)(matchUnknowns(localUnknowns.head)).summands += (
+            if (switchSign)
+              NegativeExpression(MultiplicationExpression(localFactors))
+            else
+              MultiplicationExpression(localFactors))
+      }
+
+      case _ => Logger.warn(s"Found unsupported node type ${ex.getClass.getTypeName}: $ex")
+    }
   }
 
   def processEqSummands(pos : Int, summands : ListBuffer[Expression], switchSign : Boolean = false) = {
-    for (ex <- summands) {
-      ex match {
-        case const : Number => fVals(pos).summands += (if (switchSign) const else NegativeExpression(const))
-
-        case access : FieldAccess => {
-          val uPos = matchUnknowns(access)
-          if (uPos < 0)
-            fVals(pos).summands += (NegativeExpression(access)) // no match -> rhs
-          else
-            AVals(pos)(uPos).summands += FloatConstant(1) // match -> matrix
-        }
-
-        case multEx @ MultiplicationExpression(factors) => {
-          // split into known and unknown
-          var localFactors = ListBuffer[Expression]()
-          var localUnknowns = ListBuffer[FieldAccess]()
-          for (ex <- factors) {
-            ex match {
-              case access : FieldAccess =>
-                if (matchUnknowns(access) < 0)
-                  localFactors += access
-                else localUnknowns += access
-              case e : MultiplicationExpression =>
-                Logger.warn("Nested multiplication expressions are currently unsupported")
-                localFactors += e
-              case e : AdditionExpression =>
-                Logger.warn("Nested addition expressions are currently unsupported")
-                localFactors += e
-              case e : Expression => localFactors += e
-            }
-          }
-          if (localUnknowns.size > 1)
-            Logger.warn("Non-linear equations are currently unsupported")
-          if (localUnknowns.isEmpty) // no unknowns -> add to rhs
-            fVals(pos).summands += (if (switchSign) multEx else NegativeExpression(multEx))
-          else // unknowns detected -> add to matrix
-            AVals(pos)(matchUnknowns(localUnknowns.head)).summands += MultiplicationExpression(localFactors)
-        }
-
-        case _ => Logger.warn(s"Found unsupported node type ${ex.getClass.getTypeName}")
-      }
-    }
+    for (ex <- summands)
+      processExpression(pos, ex, switchSign)
   }
 
   def sortEquations() = {
     // preparation: bring all entries to left side and simplify
     var zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : Expression)
-    SimplifyStrategy.applyStandalone(zeroEqs)
+    for (eq <- zeroEqs)
+      SimplifyStrategy.doUntilDoneStandalone(eq, true)
 
     // scan lhs for constants
     for (eqNumber <- 0 until zeroEqs.size) {
@@ -144,9 +148,22 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
     // construct rhs and matrix
     for (i <- 0 until unknowns.length) {
-      stmts += AssignmentStatement(hackVecComponentAccess(f, i), fVals(i))
+      var innerStmts = ListBuffer[Statement]()
+      var boundaryStmts = ListBuffer[Statement]()
+
+      innerStmts += AssignmentStatement(hackVecComponentAccess(f, i), fVals(i))
       for (j <- 0 until unknowns.length)
-        stmts += AssignmentStatement(hackMatComponentAccess(A, i, j), AVals(i)(j))
+        innerStmts += AssignmentStatement(hackMatComponentAccess(A, i, j), AVals(i)(j))
+
+      boundaryStmts += AssignmentStatement(hackVecComponentAccess(f, i), unknowns(i))
+      for (j <- 0 until unknowns.length)
+        boundaryStmts += AssignmentStatement(hackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
+
+      // check if current unknown is on/ beyond boundary
+      stmts += ConditionStatement(
+        IsOnBoundary(unknowns(i).fieldSelection, unknowns(i).index),
+        boundaryStmts,
+        innerStmts)
     }
 
     // solve local system - TODO: replace inverse function call with internal function
@@ -154,7 +171,9 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
     // write back results
     for (i <- 0 until unknowns.length)
-      stmts += AssignmentStatement(unknowns(i), hackVecComponentAccess(u, i))
+      stmts += new ConditionStatement( // don't write back result on boundaries
+        NegationExpression(IsOnBoundary(unknowns(i).fieldSelection, unknowns(i).index)),
+        AssignmentStatement(unknowns(i), hackVecComponentAccess(u, i)))
 
     Scope(stmts)
   }
