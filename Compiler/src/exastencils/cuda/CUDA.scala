@@ -216,3 +216,9 @@ case class CUDA_SharedArrayAccess(base : Expression, indices : ListBuffer[Expres
     Mapping.resolveMultiIdx(new MultiIndex(indices.toArray.reverse), strides : MultiIndex)
   }
 }
+
+case class CUDA_MinimumExpression(left : Expression, right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "min(" << left << "," << right << ")"
+  }
+}
