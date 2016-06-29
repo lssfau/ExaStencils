@@ -53,7 +53,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
         if (uPos < 0)
           fVals(pos).summands += (if (switchSign) access else NegativeExpression(access)) // no match -> rhs
         else
-          AVals(pos)(uPos).summands += FloatConstant(1) // match -> matrix
+          AVals(pos)(uPos).summands += FloatConstant(if (switchSign) -1 else 1) // match -> matrix
       }
 
       case multEx @ MultiplicationExpression(factors) => {
@@ -142,9 +142,9 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     stmts += new VariableDeclarationStatement(A)
 
     // initialize with zero - TODO: adapt to new matrix types
-    stmts += FunctionCallExpression("_local_unknowns.set", ListBuffer[Expression](0))
-    stmts += FunctionCallExpression("_local_rhs.set", ListBuffer[Expression](0))
-    stmts += FunctionCallExpression("_local_matrix.set", ListBuffer[Expression](0))
+    stmts += MemberFunctionCallExpression(u, "set", ListBuffer[Expression](0))
+    stmts += MemberFunctionCallExpression(f, "set", ListBuffer[Expression](0))
+    stmts += MemberFunctionCallExpression(A, "set", ListBuffer[Expression](0))
 
     // construct rhs and matrix
     for (i <- 0 until unknowns.length) {
@@ -161,18 +161,18 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
       // check if current unknown is on/ beyond boundary
       stmts += ConditionStatement(
-        IsOnBoundary(unknowns(i).fieldSelection, unknowns(i).index),
-        boundaryStmts,
-        innerStmts)
+        IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
+        innerStmts,
+        boundaryStmts)
     }
 
     // solve local system - TODO: replace inverse function call with internal function
-    stmts += AssignmentStatement(u, MultiplicationExpression(ListBuffer(FunctionCallExpression("_local_matrix.inverse", ListBuffer()), f)))
+    stmts += AssignmentStatement(u, MultiplicationExpression(ListBuffer(MemberFunctionCallExpression(A, "inverse", ListBuffer()), f)))
 
     // write back results
     for (i <- 0 until unknowns.length)
       stmts += new ConditionStatement( // don't write back result on boundaries
-        NegationExpression(IsOnBoundary(unknowns(i).fieldSelection, unknowns(i).index)),
+        IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
         AssignmentStatement(unknowns(i), hackVecComponentAccess(u, i)))
 
     Scope(stmts)

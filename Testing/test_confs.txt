@@ -144,6 +144,7 @@ Par_Test_all2        Main  Opts/par_all.knowledge        *  Opts/par.results  8 
 Smoothers_Jac   Main    Smoothers/Jac.knowledge     *  Smoothers/Jac.results   27  2
 Smoothers_GS    Main    Smoothers/GS.knowledge      *  Smoothers/GS.results    27  2
 Smoothers_RBGS  Main    Smoothers/RBGS.knowledge    *  Smoothers/RBGS.results  27  2
+Smoothers_BS    Main    Smoothers/BS.knowledge      *  Smoothers/BS.results    27  2
 
 #################################################################################################
 # BOUNDARY CONDITION TESTS                                                                      #
