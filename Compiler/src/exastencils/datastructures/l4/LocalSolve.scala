@@ -18,7 +18,7 @@ case class SolveLocallyStatement(var unknowns : List[Expression], var equations 
 
   override def progressToIr : ir.SolveLocallyStatement = {
     ir.SolveLocallyStatement(
-      unknowns.map(_.progressToIr).to[ListBuffer],
+      unknowns.map(_.progressToIr.asInstanceOf[ir.FieldAccess]).to[ListBuffer],
       equations.map(_.progressToIr).to[ListBuffer])
   }
 }

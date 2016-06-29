@@ -223,6 +223,8 @@ object Main {
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
+    ResolveLocalSolves.apply()
+
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()
 
