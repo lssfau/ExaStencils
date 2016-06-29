@@ -58,18 +58,3 @@ omp_numThreads                      = 1
 // MPI
 mpi_enabled                         = false
 mpi_numThreads                      = 1
-
-////////////
-/// Cuda ///
-////////////
-experimental_cuda_enabled                       = true
-//experimental_cuda_deviceId                      = 0
-experimental_cuda_preferredExecution            = "Device"
-experimental_cuda_syncDeviceAfterKernelCalls    = true
-experimental_cuda_syncHostForWrites             = false
-experimental_cuda_syncDeviceForWrites           = true
-experimental_cuda_blockSize_x                   = 8
-experimental_cuda_blockSize_y                   = 8
-experimental_cuda_blockSize_z                   = 8
-experimental_cuda_useSharedMemory               = true
-experimental_cuda_linearizeSharedMemoryAccess   = true
