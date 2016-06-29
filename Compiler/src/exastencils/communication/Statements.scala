@@ -504,3 +504,29 @@ case class IsOnBoundary(var field : FieldSelection, var index : MultiIndex) exte
       applicableNeighbors.map(n => IsOnSpecBoundary(field, n, index).expand.inner).reduce((a, b) => OrOrExpression(a, b))
   }
 }
+
+/// checks for IsOnBoundary as well as if outside inner/dup layers on fragment transitions
+case class IsValidPoint(var field : FieldSelection, var index : MultiIndex) extends Expression with Expandable {
+  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsValidPoint\n"
+
+  override def expand() : Output[Expression] = {
+    var applicableNeighbors = Fragment.neighbors
+    if (Knowledge.experimental_bc_checkOnlyMainAxis)
+      applicableNeighbors = applicableNeighbors.filter(n => 1 == n.dir.map(d => math.abs(d)).reduce(_ + _))
+
+    val isNotOnBoundary =
+      if (Knowledge.experimental_bc_avoidOrOperations)
+        applicableNeighbors.map(n => NegationExpression(IsOnSpecBoundary(field, n, index).expand.inner) : Expression).reduce((a, b) => AndAndExpression(a, b))
+      else
+        NegationExpression(applicableNeighbors.map(n => IsOnSpecBoundary(field, n, index).expand.inner).reduce((a, b) => OrOrExpression(a, b)))
+
+    val isInnerOrDup =
+      (0 until field.field.fieldLayout.numDimsGrid).map(dim =>
+        AndAndExpression(
+          LowerExpression(index(dim), field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)),
+          GreaterEqualExpression(index(dim), field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)))).reduce((a, b) => AndAndExpression(a, b))
+
+    AndAndExpression(isNotOnBoundary, isInnerOrDup)
+  }
+}
+

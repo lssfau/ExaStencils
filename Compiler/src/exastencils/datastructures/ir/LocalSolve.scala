@@ -161,9 +161,9 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
       // check if current unknown is on/ beyond boundary
       stmts += ConditionStatement(
-        IsOnBoundary(unknowns(i).fieldSelection, unknowns(i).index),
-        boundaryStmts,
-        innerStmts)
+        IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
+        innerStmts,
+        boundaryStmts)
     }
 
     // solve local system - TODO: replace inverse function call with internal function
@@ -172,7 +172,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     // write back results
     for (i <- 0 until unknowns.length)
       stmts += new ConditionStatement( // don't write back result on boundaries
-        NegationExpression(IsOnBoundary(unknowns(i).fieldSelection, unknowns(i).index)),
+        IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
         AssignmentStatement(unknowns(i), hackVecComponentAccess(u, i)))
 
     Scope(stmts)
