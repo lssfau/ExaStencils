@@ -49,14 +49,14 @@ mpi_numThreads = 1
 // Optimizations //
 ///////////////////
 // Polyhedron optimizations
-//poly_optLevel_fine          = 3
-//poly_optLevel_coarse        = 1
-//poly_numFinestLevels        = 1
-//poly_performDCE             = false
-//poly_tileSize_x             = 0
-//poly_tileSize_y             = 128
-//poly_tileSize_z             = 0
-//poly_filterDeps             = true
+poly_optLevel_fine          = 3
+poly_optLevel_coarse        = 1
+poly_numFinestLevels        = 1
+poly_performDCE             = false
+poly_tileSize_x             = 0
+poly_tileSize_y             = 0
+poly_tileSize_z             = 128
+poly_filterDeps             = true
 
 // other optimizations
 //opt_useAddressPrecalc  = true
@@ -84,6 +84,6 @@ experimental_cuda_blockSize_y                   = 8
 experimental_cuda_blockSize_z                   = 8
 // default (1D) block size for default reduction kernels
 experimental_cuda_reductionBlockSize            = 1024
-experimental_cuda_useSharedMemory               = true
-experimental_cuda_linearizeSharedMemoryAccess   = true
+experimental_cuda_useSharedMemory               = false
+experimental_cuda_linearizeSharedMemoryAccess   = false
 experimental_cuda_favorL1CacheOverSharedMemory  = false

@@ -216,7 +216,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
               if (isParallel) {
                 val njuCuda = Duplicate(nju)
-                njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+                njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
                 deviceCondStmt.trueBody += njuCuda
               }
 
@@ -226,7 +226,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
               if (isParallel) {
                 val loopCuda = Duplicate(loop)
-                loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+                loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
                 deviceStmts += loopCuda
               }
           }
@@ -262,7 +262,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       hostStmts += loop
       if (isParallel) {
         val loopCuda = Duplicate(loop)
-        loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+        loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
         deviceStmts += loopCuda
       }
 
