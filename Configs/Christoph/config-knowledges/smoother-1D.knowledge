@@ -9,7 +9,7 @@ useDblPrecision             = false
 // Layer configuration //
 /////////////////////////
 // Layer 1 configuration
-dimensionality = 3
+dimensionality = 1
 
 // Layer 2 configuration
 minLevel = 0 // the coarsest level
@@ -79,11 +79,9 @@ experimental_cuda_preferredExecution            = "Device"
 experimental_cuda_syncDeviceAfterKernelCalls    = true
 experimental_cuda_syncHostForWrites             = false
 experimental_cuda_syncDeviceForWrites           = true
-experimental_cuda_blockSize_x                   = 8
-experimental_cuda_blockSize_y                   = 8
-experimental_cuda_blockSize_z                   = 8
+experimental_cuda_blockSize_x                   = 512
 // default (1D) block size for default reduction kernels
 experimental_cuda_reductionBlockSize            = 1024
 experimental_cuda_useSharedMemory               = true
-experimental_cuda_linearizeSharedMemoryAccess   = false
+experimental_cuda_linearizeSharedMemoryAccess   = true
 experimental_cuda_favorL1CacheOverSharedMemory  = false

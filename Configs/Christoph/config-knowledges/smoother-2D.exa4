@@ -1,50 +1,37 @@
-Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 // innerPoints muss dem Wert in LUPs unten übereinstimmen
 Layout FullTempBlockable< Real, Node >@finest {
-    innerPoints = [ 512, 512, 512 ]
-    ghostLayers = [ 5, 5, 5 ]
-    duplicateLayers = [ 1, 1, 1 ]
+    innerPoints = [ 1024, 1024 ]
+    ghostLayers = [ 5, 5 ]
+    duplicateLayers = [ 1, 1 ]
 }
 Layout PartTempBlockable< Real, Node >@finest {
-    innerPoints = [ 512, 512, 512 ]
-    ghostLayers = [ 4, 4, 4 ]
-    duplicateLayers = [ 1, 1, 1 ]
+    innerPoints = [ 1024, 1024 ]
+    ghostLayers = [ 4, 4 ]
+    duplicateLayers = [ 1, 1 ]
 }
 
 Field SolutionT< global, FullTempBlockable, 0.0 >[2]@finest
 Field RHST< global, PartTempBlockable, None >@finest
 
 Stencil Laplace@finest {
-    [ 0,  0,  0] => 4.8
-    [ 1,  0,  0] => -0.8
-    [-1,  0,  0] => -0.8
-    [ 0,  1,  0] => -0.8
-    [ 0, -1,  0] => -0.8
-    [ 0,  0,  1] => -0.8
-    [ 0,  0, -1] => -0.8
+    [ 0,  0 ] => 4.8
+    [ 1,  0] => -0.8
+    [-1,  0] => -0.8
+    [ 0,  1] => -0.8
+    [ 0, -1] => -0.8
 }
 
 Globals {
 }
 
 Function LUPs() : Real {
-    Variable dimSize : Integer = 512 // der Wert hier muss mit den innerPoints oben in den Layout Angaben übereinstimmen
-    return(dimSize * dimSize * dimSize)
+    Variable dimSize : Integer = 1024 // der Wert hier muss mit den innerPoints oben in den Layout Angaben übereinstimmen
+    return(dimSize * dimSize)
 }
 
-Function SmootherTTempBlock() : Unit {
-    loop over fragments {
-        repeat 3 times with contraction [1,1,1] { // marker;
-            loop over SolutionT@finest {
-                SolutionT[nextSlot]@finest = SolutionT[active]@finest + (0.8 / diag(Laplace@finest) * (RHST@finest - Laplace@finest * SolutionT[active]@finest))
-            }
-            advance SolutionT@finest
-        }
-    }
-}
-
-Function SmootherTNoTempBlock() : Unit {
+Function SmootherT() : Unit {
     loop over fragments {
         loop over SolutionT@finest {
             SolutionT[nextSlot]@finest = SolutionT[active]@finest + (0.8 / diag(Laplace@finest) * (RHST@finest - Laplace@finest * SolutionT[active]@finest))
@@ -63,15 +50,17 @@ Function InitFields ( ) : Unit {
 }
 
 Function BenchmarkT() : Unit {
+    print('-------------------------------')
+    print('Smoother 2D')
     print('Cache warmup')
     repeat 1 times {
-        SmootherTNoTempBlock()
+        SmootherT()
     }
 
     print('Starting benchmark (no temporal blocking)')
     startTimer(benchTTimer)
     repeat 10 times { // marker
-        SmootherTNoTempBlock()
+        SmootherT()
     }
     stopTimer(benchTTimer)
 

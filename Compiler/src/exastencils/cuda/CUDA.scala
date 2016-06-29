@@ -201,12 +201,10 @@ case class CUDA_UnsizedExternSharedArray(name : String, arrayType : ScalarDataty
 case class CUDA_SharedArrayAccess(base : Expression, indices : ListBuffer[Expression], strides : MultiIndex) extends Access {
   def this(base : Expression, indices : Array[Expression], strides : MultiIndex) = this(base, indices.to[ListBuffer], strides)
 
-  var index = linearizeAccess()
-
   override def prettyprint(out : PpStream) : Unit = {
     out << base
     if (Knowledge.experimental_cuda_linearizeSharedMemoryAccess) {
-      out << "[" << index << "]"
+      out << "[" << linearizeAccess() << "]"
     } else {
       indices.foreach(i => out << "[" << i << "]")
     }

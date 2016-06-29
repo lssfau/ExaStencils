@@ -5,6 +5,7 @@ import exastencils.knowledge._
 object Domains {
   def getGlobalWidths : Array[Double] = {
     Knowledge.dimensionality match {
+      case 1 => Array(1.0)
       case 2 => {
         if (Knowledge.l3tmp_kelvin) {
           Array(
