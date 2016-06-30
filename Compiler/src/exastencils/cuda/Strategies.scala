@@ -63,7 +63,6 @@ object CudaStrategiesUtils {
     var loopVariables = ListBuffer[String]()
     var lowerBounds = ListBuffer[Expression]()
     var upperBounds = ListBuffer[Expression]()
-    var upperBoundsRelationalOperators = ListBuffer[BinaryOperators]()
     var stepSize = ListBuffer[Expression]()
 
     loops foreach { loop =>
@@ -72,11 +71,9 @@ object CudaStrategiesUtils {
       lowerBounds += loopDeclaration.expression.get
       upperBounds += (loop.end match {
         case l : LowerExpression =>
-          upperBoundsRelationalOperators += BinaryOperators.Lower
           l.right
         case e : LowerEqualExpression =>
-          upperBoundsRelationalOperators += BinaryOperators.LowerEqual
-          e.right
+          new AdditionExpression(e.right, IntegerConstant(1))
         case o => o
       })
       stepSize += (loop.inc match {
@@ -85,7 +82,7 @@ object CudaStrategiesUtils {
       })
     }
 
-    (loopVariables, lowerBounds, upperBounds, upperBoundsRelationalOperators, stepSize)
+    (loopVariables, lowerBounds, upperBounds, stepSize)
   }
 }
 
@@ -222,7 +219,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
               if (isParallel) {
                 val njuCuda = Duplicate(nju)
-                njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
+                njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
                 deviceCondStmt.trueBody += njuCuda
               }
 
@@ -232,7 +229,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
               if (isParallel) {
                 val loopCuda = Duplicate(loop)
-                loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
+                loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
                 deviceStmts += loopCuda
               }
           }
@@ -268,7 +265,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       hostStmts += loop
       if (isParallel) {
         val loopCuda = Duplicate(loop)
-        loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
+        loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
         deviceStmts += loopCuda
       }
 
@@ -311,7 +308,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
       case innerLoop : ForLoopStatement if loop.body.size == 1 &&
         CudaStrategiesUtils.verifyCudaLoopSuitability(innerLoop) && CudaStrategiesUtils.verifyCudaLoopParallel(innerLoop) =>
         try {
-          val (loopVariables, lowerBounds, upperBounds, _, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(innerLoop))
+          val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(innerLoop))
           extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
           innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
           innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_BAND_PART)
@@ -340,7 +337,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
   def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement) : Unit = {
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
-        val (loopVariables, lowerBounds, upperBounds, _, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
+        val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
         extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
         loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
@@ -418,7 +415,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
 
       val innerLoops = collectLoopsInBand(loop)
-      val (loopVariables, lowerBounds, upperBounds, upperBoundsRelationalOperators, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(innerLoops)
+      val (loopVariables, lowerBounds, upperBounds, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(innerLoops)
       val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.reverse)
       val deviceStatements = ListBuffer[Statement]()
 
@@ -442,7 +439,6 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
         Duplicate(upperBounds),
-        Duplicate(upperBoundsRelationalOperators),
         Duplicate(stepSize),
         Duplicate(kernelBody),
         Duplicate(loop.reduction),
@@ -599,7 +595,6 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
         kernel.loopVariables = kernel.loopVariables.tail
         kernel.lowerBounds = kernel.lowerBounds.tail
         kernel.upperBounds = kernel.upperBounds.tail
-        kernel.upperBoundsRelationalOperators = kernel.upperBoundsRelationalOperators.tail
         kernel.stepSize = kernel.stepSize.tail
         kernel.minIndices = kernel.minIndices.tail
         kernel.maxIndices = kernel.maxIndices.tail
