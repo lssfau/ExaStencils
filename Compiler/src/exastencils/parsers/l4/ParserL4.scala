@@ -150,7 +150,8 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| returnStatement
     ||| advanceStatement
     ||| leveledScope
-    ||| solveLocallyStatement)
+    ||| solveLocallyStatement
+    ||| colorWithStatement)
 
   lazy val statementInsideRepeat = statement ||| breakStatement
 
@@ -218,6 +219,9 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val solveLocallyComponent = /*locationize*/ ((genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) })
   lazy val solveLocallyStatement = locationize(("solve" ~ "locally" ~ "{") ~> solveLocallyComponent.* <~ "}"
     ^^ { case stmts => SolveLocallyStatement(stmts.map(_._1), stmts.map(_._2)) })
+
+  lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (booleanexpression <~ ",").+ ~ loopOver <~ "}"
+    ^^ { case colors ~ loop => ColorWithStatement(colors, loop) })
 
   // ######################################
   // ##### Globals
