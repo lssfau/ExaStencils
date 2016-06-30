@@ -26,6 +26,7 @@ class LexerL4 extends ExaLexer {
   reserved += ("loop", "until", "over", "fragments", "only", "on", "boundary", "where", "starting", "ending", "stepping", "reduction")
   reserved += ("sequentially") // FIXME: seq HACK
   reserved += ("precomm", "postcomm") // temporary loop annotation
+  reserved += ("color", "with")
 
   // condition keywords
   reserved += ("if", "else", "and", "or")
