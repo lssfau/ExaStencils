@@ -4,6 +4,7 @@ import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.datastructures.ir.BinaryOperators.{BinaryOperators, apply => _, _}
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -345,6 +346,7 @@ case class ExpKernel(var identifier : String,
     var loopVariables : ListBuffer[String],
     var lowerBounds : ListBuffer[Expression],
     var upperBounds : ListBuffer[Expression],
+    var upperBoundsRelationalOperators : ListBuffer[BinaryOperators],
     var stepSize : ListBuffer[Expression],
     var body : ListBuffer[Statement],
     var reduction : Option[Reduction] = None,
@@ -580,7 +582,8 @@ case class ExpKernel(var identifier : String,
     // add index bounds conditions
     val conditionParts = (0 until dimensionality).map(dim => {
       val variableAccess = VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
-      AndAndExpression(GreaterEqualExpression(variableAccess, s"${KernelVariablePrefix}begin_$dim"), LowerExpression(variableAccess, s"${KernelVariablePrefix}end_$dim"))
+      AndAndExpression(
+        GreaterEqualExpression(variableAccess, s"${KernelVariablePrefix}begin_$dim"), CreateExpression(upperBoundsRelationalOperators(dim), variableAccess, s"${KernelVariablePrefix}end_$dim"))
     })
 
     val condition = VariableDeclarationStatement(BooleanDatatype, KernelVariablePrefix + "condition",

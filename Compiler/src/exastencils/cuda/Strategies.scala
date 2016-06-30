@@ -5,6 +5,7 @@ import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.datastructures.ir.BinaryOperators.{BinaryOperators, apply => _}
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -16,7 +17,7 @@ import exastencils.util._
 
 import scala.annotation._
 import scala.collection.mutable._
-import scala.collection.{ SortedSet => _, _ }
+import scala.collection.{SortedSet => _, _}
 
 /**
  * Collection of constants and util functions for the CUDA transformations.
@@ -62,6 +63,7 @@ object CudaStrategiesUtils {
     var loopVariables = ListBuffer[String]()
     var lowerBounds = ListBuffer[Expression]()
     var upperBounds = ListBuffer[Expression]()
+    var upperBoundsRelationalOperators = ListBuffer[BinaryOperators]()
     var stepSize = ListBuffer[Expression]()
 
     loops foreach { loop =>
@@ -69,8 +71,12 @@ object CudaStrategiesUtils {
       loopVariables += loopDeclaration.name
       lowerBounds += loopDeclaration.expression.get
       upperBounds += (loop.end match {
-        case l : LowerExpression => l.right
-        case e : LowerEqualExpression => e.right
+        case l : LowerExpression =>
+          upperBoundsRelationalOperators += BinaryOperators.Lower
+          l.right
+        case e : LowerEqualExpression =>
+          upperBoundsRelationalOperators += BinaryOperators.LowerEqual
+          e.right
         case o => o
       })
       stepSize += (loop.inc match {
@@ -79,7 +85,7 @@ object CudaStrategiesUtils {
       })
     }
 
-    (loopVariables, lowerBounds, upperBounds, stepSize)
+    (loopVariables, lowerBounds, upperBounds, upperBoundsRelationalOperators, stepSize)
   }
 }
 
@@ -109,7 +115,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
         sync = false // skip write access for read/write accesses
       if (sync)
-        beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+        beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
     }
 
     // update flags for written fields
@@ -130,7 +136,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
         if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
           sync = false // skip write access for read/write accesses
         if (sync)
-          beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+          beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
       }
 
       if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
@@ -147,7 +153,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  def addHostDeviceBranching(hostStmts: ListBuffer[Statement], deviceStmts: ListBuffer[Statement], loop : LoopOverDimensions, earlyExit : Boolean) : ListBuffer[Statement] = {
+  def addHostDeviceBranching(hostStmts : ListBuffer[Statement], deviceStmts : ListBuffer[Statement], loop : LoopOverDimensions, earlyExit : Boolean) : ListBuffer[Statement] = {
     if (earlyExit) {
       hostStmts
     } else {
@@ -305,7 +311,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
       case innerLoop : ForLoopStatement if loop.body.size == 1 &&
         CudaStrategiesUtils.verifyCudaLoopSuitability(innerLoop) && CudaStrategiesUtils.verifyCudaLoopParallel(innerLoop) =>
         try {
-          val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(innerLoop))
+          val (loopVariables, lowerBounds, upperBounds, _, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(innerLoop))
           extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
           innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
           innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_BAND_PART)
@@ -334,7 +340,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
   def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement) : Unit = {
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
-        val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
+        val (loopVariables, lowerBounds, upperBounds, _, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
         extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
         loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
@@ -412,7 +418,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
 
       val innerLoops = collectLoopsInBand(loop)
-      val (loopVariables, lowerBounds, upperBounds, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(innerLoops)
+      val (loopVariables, lowerBounds, upperBounds, upperBoundsRelationalOperators, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(innerLoops)
       val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.reverse)
       val deviceStatements = ListBuffer[Statement]()
 
@@ -436,6 +442,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
         Duplicate(upperBounds),
+        Duplicate(upperBoundsRelationalOperators),
         Duplicate(stepSize),
         Duplicate(kernelBody),
         Duplicate(loop.reduction),
@@ -478,7 +485,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
         if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
           sync = false // skip write access for read/write accesses
         if (sync)
-          hostStmts += CUDA_UpdateHostData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+          hostStmts += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
       }
 
       // add original loop
@@ -512,7 +519,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
           if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
             sync = false // skip write access for read/write accesses
           if (sync)
-            deviceStmts += CUDA_UpdateDeviceData(Duplicate(access._2)).expand.inner // expand here to avoid global expand afterwards
+            deviceStmts += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
         }
 
         // add kernel and kernel call
@@ -582,13 +589,23 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
       kernel
     case kernel : ExpKernel =>
       while (kernel.dimensionality > Platform.hw_cuda_maxNumDimsBlock) {
-        def it = new VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(kernel.dimensionality - 1), Some(IntegerDatatype))
+        def it = new VariableAccess(kernel.loopVariables.head, Some(IntegerDatatype))
         kernel.body = ListBuffer[Statement](ForLoopStatement(
-          new VariableDeclarationStatement(it, kernel.lowerBounds.last),
-          LowerExpression(it, kernel.upperBounds.last),
-          AssignmentStatement(it, kernel.stepSize.last, "+="),
+          new VariableDeclarationStatement(it, kernel.lowerBounds.head),
+          LowerExpression(it, kernel.upperBounds.head),
+          AssignmentStatement(it, kernel.stepSize.head, "+="),
           kernel.body))
         kernel.dimensionality -= 1
+        kernel.loopVariables = kernel.loopVariables.tail
+        kernel.lowerBounds = kernel.lowerBounds.tail
+        kernel.upperBounds = kernel.upperBounds.tail
+        kernel.upperBoundsRelationalOperators = kernel.upperBoundsRelationalOperators.tail
+        kernel.stepSize = kernel.stepSize.tail
+        kernel.minIndices = kernel.minIndices.tail
+        kernel.maxIndices = kernel.maxIndices.tail
+        kernel.requiredThreadsPerDim = kernel.requiredThreadsPerDim.tail
+        kernel.numThreadsPerBlock = kernel.numThreadsPerBlock.tail
+        kernel.numBlocksPerDim = kernel.numBlocksPerDim.tail
       }
       kernel
   })
