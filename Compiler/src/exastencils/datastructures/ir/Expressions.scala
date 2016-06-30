@@ -598,9 +598,9 @@ private object MinMaxPrinter {
       for (i <- 0 until args.length - 1)
         out << method << '('
       val it : Iterator[Expression] = args.iterator
-      out << "static_cast<double>(" << it.next() << ')'
+      out << it.next()
       while (it.hasNext)
-        out << ", static_cast<double>(" << it.next() << ')' << ')'
+        out << ',' << it.next() << ')'
     }
   }
 }
@@ -610,7 +610,7 @@ case class MinimumExpression(var args : ListBuffer[Expression]) extends Expressi
 
   override def prettyprint(out : PpStream) : Unit = {
     import PrintEnvironment._
-    val name = if (out.env == CUDA) "fmin" else "std::min"
+    val name = if (out.env == CUDA) "min" else "std::min"
     MinMaxPrinter.prettyprintsb(out, args, name)
   }
 }
@@ -620,7 +620,7 @@ case class MaximumExpression(var args : ListBuffer[Expression]) extends Expressi
 
   override def prettyprint(out : PpStream) : Unit = {
     import PrintEnvironment._
-    val name = if (out.env == CUDA) "fmax" else "std::max"
+    val name = if (out.env == CUDA) "max" else "std::max"
     MinMaxPrinter.prettyprintsb(out, args, name)
   }
 }

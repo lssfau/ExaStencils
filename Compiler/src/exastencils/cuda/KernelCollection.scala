@@ -796,7 +796,7 @@ case class ExpKernel(var identifier : String,
           access.dType = Some(SpecialDatatype("double3"))
           fctParams += access
         case SpecialDatatype("Vec3i") =>
-          fctParams ++= (0 until 3).map(dim => VariableAccess(ivAccess._1 + '_' + dim, Some(SpecialDatatype("double")))).to[ListBuffer]
+          fctParams ++= (0 until 3).map(dim => VariableAccess(ivAccess._1 + '_' + dim, Some(SpecialDatatype("int")))).to[ListBuffer]
         case _ => fctParams += VariableAccess(ivAccess._1, Some(datatype))
       }
     }

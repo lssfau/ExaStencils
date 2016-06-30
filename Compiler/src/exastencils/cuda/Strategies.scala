@@ -5,7 +5,7 @@ import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.BinaryOperators.{BinaryOperators, apply => _}
+import exastencils.datastructures.ir.BinaryOperators.{apply => _}
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -17,7 +17,7 @@ import exastencils.util._
 
 import scala.annotation._
 import scala.collection.mutable._
-import scala.collection.{SortedSet => _, _}
+import scala.collection.{Set, SortedSet => _, _}
 
 /**
  * Collection of constants and util functions for the CUDA transformations.
@@ -219,7 +219,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
               if (isParallel) {
                 val njuCuda = Duplicate(nju)
-                njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+                njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
                 deviceCondStmt.trueBody += njuCuda
               }
 
@@ -229,7 +229,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
               if (isParallel) {
                 val loopCuda = Duplicate(loop)
-                loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+                loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
                 deviceStmts += loopCuda
               }
           }
@@ -265,7 +265,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       hostStmts += loop
       if (isParallel) {
         val loopCuda = Duplicate(loop)
-        loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
+        loopCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
         deviceStmts += loopCuda
       }
 
@@ -309,10 +309,25 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
         CudaStrategiesUtils.verifyCudaLoopSuitability(innerLoop) && CudaStrategiesUtils.verifyCudaLoopParallel(innerLoop) =>
         try {
           val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(innerLoop))
+          var loopDependsOnSurroundingIterators = false
+          FindSurroundingLoopIteratorUsages.loopIterators = extremaMap.keySet
+          FindSurroundingLoopIteratorUsages.usedLoopIterators.clear()
+          FindSurroundingLoopIteratorUsages.applyStandalone(new Scope(new ExpressionStatement(lowerBounds.head)))
+          loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
+          FindSurroundingLoopIteratorUsages.usedLoopIterators.clear()
+          FindSurroundingLoopIteratorUsages.applyStandalone(new Scope(new ExpressionStatement(upperBounds.head)))
+          loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
+
           extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
           innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
-          innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_BAND_PART)
-          calculateLoopsInBand(extremaMap, innerLoop)
+
+          if(loopDependsOnSurroundingIterators) {
+            innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_INNER)
+            annotateInnerCudaLoops(innerLoop)
+          } else {
+            innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_BAND_PART)
+            calculateLoopsInBand(extremaMap, innerLoop)
+          }
         } catch {
           case e : EvaluationException =>
             Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${e.msg}'""")
@@ -585,22 +600,13 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
       kernel
     case kernel : ExpKernel =>
       while (kernel.dimensionality > Platform.hw_cuda_maxNumDimsBlock) {
-        def it = new VariableAccess(kernel.loopVariables.head, Some(IntegerDatatype))
+        def it = new VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(kernel.dimensionality - 1), Some(IntegerDatatype))
         kernel.body = ListBuffer[Statement](ForLoopStatement(
-          new VariableDeclarationStatement(it, kernel.lowerBounds.head),
-          LowerExpression(it, kernel.upperBounds.head),
-          AssignmentStatement(it, kernel.stepSize.head, "+="),
+          new VariableDeclarationStatement(it, kernel.lowerBounds.last),
+          LowerExpression(it, kernel.upperBounds.last),
+          AssignmentStatement(it, kernel.stepSize.last, "+="),
           kernel.body))
         kernel.dimensionality -= 1
-        kernel.loopVariables = kernel.loopVariables.tail
-        kernel.lowerBounds = kernel.lowerBounds.tail
-        kernel.upperBounds = kernel.upperBounds.tail
-        kernel.stepSize = kernel.stepSize.tail
-        kernel.minIndices = kernel.minIndices.tail
-        kernel.maxIndices = kernel.maxIndices.tail
-        kernel.requiredThreadsPerDim = kernel.requiredThreadsPerDim.tail
-        kernel.numThreadsPerBlock = kernel.numThreadsPerBlock.tail
-        kernel.numBlocksPerDim = kernel.numBlocksPerDim.tail
       }
       kernel
   })
@@ -701,6 +707,17 @@ object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local
       decl
     case access : VariableAccess if !ignoredAccesses.contains(access.name) =>
       accesses.put(access.name, access)
+      access
+  }, false)
+}
+
+object FindSurroundingLoopIteratorUsages extends QuietDefaultStrategy("Search for local VariableAccess nodes") {
+  var loopIterators : Set[String ] = Set[String]()
+  var usedLoopIterators = ListBuffer[String]()
+
+  this += new Transformation("Searching", {
+    case access @ VariableAccess(name : String, _) if loopIterators.contains(name) =>
+      usedLoopIterators += name
       access
   }, false)
 }
