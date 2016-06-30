@@ -5,7 +5,7 @@ import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.BinaryOperators.{apply => _}
+import exastencils.datastructures.ir.BinaryOperators.{ apply => _ }
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -17,7 +17,7 @@ import exastencils.util._
 
 import scala.annotation._
 import scala.collection.mutable._
-import scala.collection.{Set, SortedSet => _, _}
+import scala.collection.{ Set, SortedSet => _, _ }
 
 /**
  * Collection of constants and util functions for the CUDA transformations.
@@ -321,7 +321,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
           innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
-          if(loopDependsOnSurroundingIterators) {
+          if (loopDependsOnSurroundingIterators) {
             innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_INNER)
             annotateInnerCudaLoops(innerLoop)
           } else {
@@ -395,13 +395,13 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
    * @param loop the outer loop of the band
    * @return list of loops in the band
    */
-  def collectLoopsInBand(loop : ForLoopStatement) : ListBuffer[ForLoopStatement] = {
+  def collectLoopsInKernel(loop : ForLoopStatement, condition : ForLoopStatement => Boolean) : ListBuffer[ForLoopStatement] = {
     val innerLoopCandidate = loop.body.head
     val loops = ListBuffer[ForLoopStatement](loop)
 
     innerLoopCandidate match {
-      case innerLoop : ForLoopStatement if innerLoop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) && innerLoop.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).contains(CudaStrategiesUtils.CUDA_BAND_PART) =>
-        collectLoopsInBand(innerLoop) ++ loops
+      case innerLoop : ForLoopStatement if condition.apply(innerLoop) =>
+        collectLoopsInKernel(innerLoop, condition) ++ loops
       case _ => loops
     }
   }
@@ -429,9 +429,19 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       // remove the annotation first to guarantee single application of this transformation.
       loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
 
-      val innerLoops = collectLoopsInBand(loop)
-      val (loopVariables, lowerBounds, upperBounds, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(innerLoops)
-      val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), innerLoops.reverse)
+      val parallelLoops = (x : ForLoopStatement) => {
+        x.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) &&
+          x.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).contains(CudaStrategiesUtils.CUDA_BAND_PART)
+      }
+      val allLoops = (x : ForLoopStatement) => {
+        x.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) &&
+          (x.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).contains(CudaStrategiesUtils.CUDA_BAND_PART) ||
+            x.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).contains(CudaStrategiesUtils.CUDA_INNER))
+      }
+      val parallelInnerLoops = collectLoopsInKernel(loop, parallelLoops)
+      val allInnerLoops = collectLoopsInKernel(loop, allLoops)
+      val (loopVariables, lowerBounds, upperBounds, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(allInnerLoops)
+      val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), parallelInnerLoops.reverse)
       val deviceStatements = ListBuffer[Statement]()
 
       // add kernel and kernel call
@@ -450,6 +460,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
 
       val kernel = ExpKernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
+        Duplicate(parallelInnerLoops.length),
         Duplicate(variableAccesses),
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
@@ -712,7 +723,7 @@ object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local
 }
 
 object FindSurroundingLoopIteratorUsages extends QuietDefaultStrategy("Search for local VariableAccess nodes") {
-  var loopIterators : Set[String ] = Set[String]()
+  var loopIterators : Set[String] = Set[String]()
   var usedLoopIterators = ListBuffer[String]()
 
   this += new Transformation("Searching", {

@@ -8,7 +8,7 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 
-import scala.collection.mutable.{ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder}
+import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder }
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -441,9 +441,9 @@ class Extractor extends Collector {
     try {
       if (!curScop.exists())
         node match {
-          //case loop : LoopOverDimensions with PolyhedronAccessible if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) && loop.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).get.asInstanceOf[String].contains("Smoother") =>
-          case loop : LoopOverDimensions with PolyhedronAccessible =>
-          loop.indices.annotate(SKIP_ANNOT)
+          // at the moment consider just Smoothers because they have the most potential for optimizations.
+          case loop : LoopOverDimensions with PolyhedronAccessible if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) && loop.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).get.asInstanceOf[String].contains("Smoother") =>
+            loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
               loop.condition.get.annotate(SKIP_ANNOT)

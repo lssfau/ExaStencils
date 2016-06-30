@@ -342,6 +342,7 @@ object ExpKernel {
 }
 
 case class ExpKernel(var identifier : String,
+    var dimensionality : Int,
     var passThroughArgs : ListBuffer[VariableAccess],
     var loopVariables : ListBuffer[String],
     var lowerBounds : ListBuffer[Expression],
@@ -353,8 +354,8 @@ case class ExpKernel(var identifier : String,
 
   import ExpKernel._
 
-  var originalDimensionality = loopVariables.size
-  var dimensionality = loopVariables.size
+  var originalDimensionality = dimensionality
+  var firstNnotParallelDim = loopVariables.size - dimensionality
 
   // properties required for shared memory analysis and shared memory allocation
   var fieldsForSharedMemory = mutable.Map[String, FieldAccessLike]()
@@ -409,6 +410,7 @@ case class ExpKernel(var identifier : String,
     GatherLocalFieldAccessLikeForSharedMemory.applyStandalone(new Scope(body))
     fieldAccessesForSharedMemory = GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses
     val fieldIndicesConstantPart = GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart
+    val usedLoopIterators = GatherLocalFieldAccessLikeForSharedMemory.usedLoopIterators
     var availableSharedMemory = Platform.hw_cuda_sharedMemory.toLong
 
     // 2. Perform shared memory analysis
@@ -421,8 +423,6 @@ case class ExpKernel(var identifier : String,
       val fas = fa._2
       var requiredMemoryInByte = 0L
       val fieldOffset = fas.head.fieldSelection.fieldLayout.referenceOffset
-      val ghostLayersLeftPerDim = fas.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numGhostLayersLeft)
-      val ghostLayersRightPerDim = fas.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numGhostLayersRight)
       val baseIndex = (loopVariables.take(fieldOffset.length), fieldOffset).zipped.map((x, y) => new AdditionExpression(new VariableAccess(x), y)).toArray[Expression]
 
       // 2.2 calculate negative and positive deviation from the basic field index
@@ -433,11 +433,6 @@ case class ExpKernel(var identifier : String,
       val rightDeviationFromBaseIndex = fieldIndicesConstantPart(fa._1).foldLeft(Array.fill(dimensionality)(0L))((acc, m) => (acc, m, fieldOffset).zipped.map((x, y, z) => {
         math.max(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(SubtractionExpression(y, z)))
       }))
-
-      // 2.3 check if there are sufficient ghost layers on the left and on the right to deal with the negative and
-      // positive deviation
-      val areThereSufficientLayersLeft = (ghostLayersLeftPerDim, leftDeviationFromBaseIndex).zipped.map((x, y) => x - y).forall(x => x >= 0)
-      val areThereSufficientLayersRight = (ghostLayersRightPerDim, rightDeviationFromBaseIndex).zipped.map((x, y) => x - y).forall(x => x >= 0)
 
       // 2.4 calculate the required amount of shared memory
       val numDupLayersLeft = fas.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numDupLayersLeft)
@@ -454,7 +449,7 @@ case class ExpKernel(var identifier : String,
       })
 
       // 2.5 consider this field for shared memory if all conditions are met
-      if (fas.size > 1 && leftDeviationFromBaseIndex.deep == rightDeviationFromBaseIndex.deep && areThereSufficientLayersLeft && areThereSufficientLayersRight && requiredMemoryInByte < availableSharedMemory) {
+      if (fas.size > 1 && leftDeviationFromBaseIndex.deep == rightDeviationFromBaseIndex.deep && requiredMemoryInByte < availableSharedMemory) {
         availableSharedMemory -= requiredMemoryInByte
         val access = new DirectFieldAccess(fas.head.fieldSelection, new MultiIndex(baseIndex))
         access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
@@ -504,21 +499,21 @@ case class ExpKernel(var identifier : String,
    */
   def evalIndexBounds() = {
     if (!evaluatedIndexBounds) {
-      minIndices = (originalDimensionality - 1 to 0 by -1).map(dim =>
+      minIndices = (loopVariables.size - 1 to 0 by -1).map(dim =>
         loopVariableExtrema.get(loopVariables(dim)) match {
           case Some((min : Long, max : Long)) => min
           case _ =>
             Logger.warn(s"Start index for dimension $dim (${lowerBounds(dim)}) could not be evaluated")
             0
-        }).toArray.reverse.take(dimensionality)
+        }).toArray.reverse
 
-      maxIndices = (originalDimensionality - 1 to 0 by -1).map(dim =>
+      maxIndices = (loopVariables.size - 1 to 0 by -1).map(dim =>
         loopVariableExtrema.get(loopVariables(dim)) match {
           case Some((min : Long, max : Long)) => max
           case _ =>
             Logger.warn(s"Start index for dimension $dim (${upperBounds(dim)}) could not be evaluated")
             0
-        }).toArray.reverse.take(dimensionality)
+        }).toArray.reverse
 
       evaluatedIndexBounds = true
     }
@@ -529,7 +524,7 @@ case class ExpKernel(var identifier : String,
    */
   def evalExecutionConfiguration() = {
     if (!evaluatedExecutionConfiguration) {
-      requiredThreadsPerDim = (maxIndices, minIndices).zipped.map(_ - _)
+      requiredThreadsPerDim = (maxIndices.drop(firstNnotParallelDim), minIndices.drop(firstNnotParallelDim)).zipped.map(_ - _)
 
       if (null == requiredThreadsPerDim || requiredThreadsPerDim.product <= 0) {
         Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
@@ -676,17 +671,21 @@ case class ExpKernel(var identifier : String,
 
     // add actual body after replacing field and iv accesses
     // replace fieldaccesses in body with shared memory accesses
-    ReplacingLocalFieldAccessLikeForSharedMemory.fieldToOffset.clear()
-    ReplacingLocalFieldAccessLikeForSharedMemory.fieldToOffset = fieldToOffset
-    ReplacingLocalFieldAccessLikeForSharedMemory.offsetForSharedMemoryAccess.clear()
-    ReplacingLocalFieldAccessLikeForSharedMemory.offsetForSharedMemoryAccess = fieldToRadius
-    ReplacingLocalFieldAccessLikeForSharedMemory.sharedArrayStrides = fieldToSharedArraySize
-    ReplacingLocalFieldAccessLikeForSharedMemory.applyStandalone(new Scope(body))
+
+    if (Knowledge.experimental_cuda_useSharedMemory) {
+      ReplacingLocalFieldAccessLikeForSharedMemory.fieldToOffset.clear()
+      ReplacingLocalFieldAccessLikeForSharedMemory.fieldToOffset = fieldToOffset
+      ReplacingLocalFieldAccessLikeForSharedMemory.offsetForSharedMemoryAccess.clear()
+      ReplacingLocalFieldAccessLikeForSharedMemory.offsetForSharedMemoryAccess = fieldToRadius
+      ReplacingLocalFieldAccessLikeForSharedMemory.sharedArrayStrides = fieldToSharedArraySize
+      ReplacingLocalFieldAccessLikeForSharedMemory.applyStandalone(new Scope(body))
+    }
+
     ReplacingLocalLinearizedFieldAccess.applyStandalone(new Scope(body))
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(new Scope(body))
     ReplacingLocalIVArrays.applyStandalone(new Scope(body))
-    ReplacingLoopVariables.loopVariables = loopVariables
+    ReplacingLoopVariables.loopVariables = loopVariables.drop(firstNnotParallelDim)
     ReplacingLoopVariables.applyStandalone(new Scope(body))
 
     body
@@ -699,13 +698,13 @@ case class ExpKernel(var identifier : String,
 
     // substitute loop variable in bounds with appropriate fix values to get valid code in wrapper function
     ReplacingLoopVariablesInWrapper.loopVariables.clear
-    ReplacingLoopVariablesInWrapper.loopVariables = loopVariables
-    ReplacingLoopVariablesInWrapper.bounds = Duplicate(lowerBounds)
-    val lowerArgs = Duplicate(lowerBounds)
+    ReplacingLoopVariablesInWrapper.loopVariables = loopVariables.drop(firstNnotParallelDim)
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(lowerBounds.drop(firstNnotParallelDim))
+    val lowerArgs = Duplicate(lowerBounds.drop(firstNnotParallelDim))
     ReplacingLoopVariablesInWrapper.applyStandalone(lowerArgs)
 
-    val upperArgs = Duplicate(upperBounds)
-    ReplacingLoopVariablesInWrapper.bounds = Duplicate(upperBounds)
+    val upperArgs = Duplicate(upperBounds.drop(firstNnotParallelDim))
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(upperBounds.drop(firstNnotParallelDim))
     ReplacingLoopVariablesInWrapper.applyStandalone(upperArgs)
 
     // compile arguments for device function call
@@ -721,9 +720,11 @@ case class ExpKernel(var identifier : String,
       callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
     }
 
-    for (fieldAccess <- fieldsForSharedMemory) {
-      val fieldSelection = fieldAccess._2.fieldSelection
-      callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
+    if (Knowledge.experimental_cuda_useSharedMemory) {
+      for (fieldAccess <- fieldsForSharedMemory) {
+        val fieldSelection = fieldAccess._2.fieldSelection
+        callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
+      }
     }
 
     for (ivAccess <- ivAccesses) {
@@ -873,6 +874,7 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
   var fieldAccesses = new mutable.HashMap[String, List[FieldAccessLike]].withDefaultValue(Nil)
   var fieldIndicesConstantPart = new mutable.HashMap[String, List[Array[Long]]].withDefaultValue(Nil)
   var maximalFieldDim = Platform.hw_cuda_maxNumDimsBlock
+  var usedLoopIterators = new mutable.HashMap[String, ListBuffer[String]]
 
   def mapFieldAccesses(access : FieldAccessLike) = {
     val field = access.fieldSelection.field
@@ -890,14 +892,17 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
     var suitableForSharedMemory = field.fieldLayout.numDimsData <= Platform.hw_cuda_maxNumDimsBlock
     val accessIndices = access.index.indices
     val indexConstantPart = Array.fill[Long](accessIndices.length)(0)
+    val loopIterators = ListBuffer[String]()
 
     accessIndices.indices.foreach(i => {
       accessIndices(i) match {
         case AdditionExpression(ListBuffer(va @ VariableAccess(name : String, _), IntegerConstant(v : Long))) =>
           suitableForSharedMemory &= loopVariables.contains(name)
+          loopIterators += name
           indexConstantPart(i) = v
         case va @ VariableAccess(name : String, _) =>
           suitableForSharedMemory &= loopVariables.contains(name)
+          loopIterators += name
         case IntegerConstant(v : Long) =>
           indexConstantPart(i) = v
         case _ =>
@@ -909,6 +914,7 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
       access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
       fieldAccesses(identifier) ::= access
       fieldIndicesConstantPart(identifier) ::= indexConstantPart
+      usedLoopIterators(identifier) = loopIterators
     }
   }
 
