@@ -1,7 +1,6 @@
 package exastencils.knowledge
 
 import exastencils.constraints._
-import exastencils.logger._
 import exastencils.spl._
 
 object Knowledge {
@@ -29,7 +28,7 @@ object Knowledge {
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
   var minLevel : Int = 0 // [0~4§minLevel+1]  // nonSISC [0~12] // @constant // the coarsest level
   var maxLevel : Int = 6 // [4~12§maxLevel+1] // @constant // the finest level
-  def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
+  def numLevels : Int = maxLevel - minLevel + 1 // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
 
@@ -107,9 +106,9 @@ object Knowledge {
 
   /// utility functions
   // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
-  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity)
+  def domain_canHaveLocalNeighs : Boolean = domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity
   // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity))
+  def domain_canHaveRemoteNeighs : Boolean = domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity)
 
   /// Student project - Jeremias
   var domain_useCase : String = "" // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
@@ -260,7 +259,7 @@ object Knowledge {
   var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter
   var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
   var l3tmp_genVectorFields : Boolean = false // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
-  var l3tmp_numVecDims : Int = (if (l3tmp_genVectorFields) 2 else 1) // number of components the PDE is to be solved for
+  var l3tmp_numVecDims : Int = if (l3tmp_genVectorFields) 2 else 1 // number of components the PDE is to be solved for
   var l3tmp_genFragLoops : Boolean = false // adds fragment loops to the L4 DSL file
   var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
@@ -326,6 +325,7 @@ object Knowledge {
   var experimental_cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels
   var experimental_cuda_useSharedMemory : Boolean = false // specify if shared memory should be used within kernels
   var experimental_cuda_linearizeSharedMemoryAccess : Boolean = true
+  var experimental_cuda_applySpatialBlocking : Boolean = true
   var experimental_cuda_favorL1CacheOverSharedMemory : Boolean = false
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation

@@ -52,17 +52,18 @@ mpi_numThreads = 1
 poly_optLevel_fine          = 3
 poly_optLevel_coarse        = 1
 poly_numFinestLevels        = 1
-poly_performDCE             = false
-poly_tileSize_x             = 128
+poly_performDCE             = true
+poly_tileSize_x             = 2
 poly_tileSize_y             = 0
 poly_tileSize_z             = 0
 poly_filterDeps             = true
+poly_tileOuterLoop          = false
 
 // other optimizations
 opt_useAddressPrecalc  = true
 opt_vectorize          = false // true is not working
 opt_unroll             = 2
-opt_unroll_interleave  = false
+opt_unroll_interleave  = true
 
 ///////////////////////////////////////////////////////////
 // HACK configuration options for generating L4 DSL file //
@@ -86,4 +87,5 @@ experimental_cuda_blockSize_z                   = 8
 experimental_cuda_reductionBlockSize            = 1024
 experimental_cuda_useSharedMemory               = true
 experimental_cuda_linearizeSharedMemoryAccess   = false
-experimental_cuda_favorL1CacheOverSharedMemory  = false
+experimental_cuda_applySpatialBlocking          = true
+experimental_cuda_favorL1CacheOverSharedMemory  = true

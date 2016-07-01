@@ -4,7 +4,7 @@ import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.BinaryOperators.{ apply => _ }
+import exastencils.datastructures.ir.BinaryOperators.{apply => _}
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -403,15 +403,14 @@ case class ExpKernel(var identifier : String,
   def evaluateAccessesForSharedMemory() : Unit = {
     // 1. get all field accesses in the body and ask for amount of shared memory
     GatherLocalFieldAccessLikeForSharedMemory.loopVariables.clear
-    GatherLocalFieldAccessLikeForSharedMemory.loopVariables = loopVariables
+    GatherLocalFieldAccessLikeForSharedMemory.loopVariables = loopVariables.drop(firstNnotParallelDim)
     GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses.clear
     GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart.clear
     GatherLocalFieldAccessLikeForSharedMemory.maximalFieldDim = math.min(dimensionality, Platform.hw_cuda_maxNumDimsBlock)
     GatherLocalFieldAccessLikeForSharedMemory.applyStandalone(new Scope(body))
     fieldAccessesForSharedMemory = GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses
     val fieldIndicesConstantPart = GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart
-    val usedLoopIterators = GatherLocalFieldAccessLikeForSharedMemory.usedLoopIterators
-    var availableSharedMemory = Platform.hw_cuda_sharedMemory.toLong
+    var availableSharedMemory = if (Knowledge.experimental_cuda_favorL1CacheOverSharedMemory) Platform.hw_cuda_cacheMemory.toLong else Platform.hw_cuda_sharedMemory.toLong
 
     // 2. Perform shared memory analysis
     // the more field accesses to a field the more important it is to store this field in shared memory
@@ -464,7 +463,7 @@ case class ExpKernel(var identifier : String,
     })
 
     // 3. update map to contain only the field accesses which passed the shared memory analysis in step 2
-    fieldAccessesForSharedMemory = fieldAccessesForSharedMemory.filter(fa => fieldsForSharedMemory.contains(fa._1))
+    fieldAccessesForSharedMemory.retain((k, v) => fieldsForSharedMemory.contains(k))
   }
 
   /**
@@ -618,7 +617,7 @@ case class ExpKernel(var identifier : String,
 
         // 3. Add shared memory declarations
         val sharedArrayStrides = new MultiIndex(fieldToSharedArraySize(a._1))
-        statements += new CUDA_SharedArray(KernelVariablePrefix + a._1, a._2.fieldSelection.fieldLayout.datatype, fieldToSharedArraySize(a._1))
+        statements += new CUDA_SharedArray(KernelVariablePrefix + a._1, a._2.fieldSelection.fieldLayout.datatype, fieldToSharedArraySize(a._1).reverse)
 
         // 4. Load from global memory into shared memory
         sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + a._1, localThreadId.reverse, sharedArrayStrides), new DirectFieldAccess(a._2.fieldSelection, a._2.index).linearize)
@@ -874,7 +873,6 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
   var fieldAccesses = new mutable.HashMap[String, List[FieldAccessLike]].withDefaultValue(Nil)
   var fieldIndicesConstantPart = new mutable.HashMap[String, List[Array[Long]]].withDefaultValue(Nil)
   var maximalFieldDim = Platform.hw_cuda_maxNumDimsBlock
-  var usedLoopIterators = new mutable.HashMap[String, ListBuffer[String]]
 
   def mapFieldAccesses(access : FieldAccessLike) = {
     val field = access.fieldSelection.field
@@ -892,17 +890,14 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
     var suitableForSharedMemory = field.fieldLayout.numDimsData <= Platform.hw_cuda_maxNumDimsBlock
     val accessIndices = access.index.indices
     val indexConstantPart = Array.fill[Long](accessIndices.length)(0)
-    val loopIterators = ListBuffer[String]()
 
     accessIndices.indices.foreach(i => {
       accessIndices(i) match {
         case AdditionExpression(ListBuffer(va @ VariableAccess(name : String, _), IntegerConstant(v : Long))) =>
           suitableForSharedMemory &= loopVariables.contains(name)
-          loopIterators += name
           indexConstantPart(i) = v
         case va @ VariableAccess(name : String, _) =>
           suitableForSharedMemory &= loopVariables.contains(name)
-          loopIterators += name
         case IntegerConstant(v : Long) =>
           indexConstantPart(i) = v
         case _ =>
@@ -914,7 +909,6 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
       access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
       fieldAccesses(identifier) ::= access
       fieldIndicesConstantPart(identifier) ::= indexConstantPart
-      usedLoopIterators(identifier) = loopIterators
     }
   }
 
