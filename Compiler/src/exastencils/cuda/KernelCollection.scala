@@ -360,7 +360,7 @@ case class ExpKernel(var identifier : String,
 
   // properties required for shared memory analysis and shared memory allocation
   var fieldName = ""
-  var fieldsForSharedMemory : DirectFieldAccess
+  var fieldsForSharedMemory : DirectFieldAccess = null
   var fieldOffset = new MultiIndex()
   var fieldAccessesForSharedMemory = List[FieldAccessLike]()
   var radius = 0L
