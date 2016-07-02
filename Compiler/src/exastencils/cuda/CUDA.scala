@@ -220,3 +220,9 @@ case class CUDA_MinimumExpression(left : Expression, right : Expression) extends
     out << "min(" << left << "," << right << ")"
   }
 }
+
+case class CUDA_MacroDefinitionStatement(macroName : String, value : Expression) extends Statement {
+  override def prettyprint(out: PpStream): Unit = {
+    out << "#define " << macroName << " " << value
+  }
+}

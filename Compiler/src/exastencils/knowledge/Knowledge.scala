@@ -330,7 +330,7 @@ object Knowledge {
   var experimental_cuda_spatialBlock_tile_y : Int = 8 // default tile size in y dimension for smem spatial blocking
   var experimental_cuda_spatialBlock_tile_z : Int = 8 // default tile size in z dimension for smem spatial blocking
   var experimental_cuda_favorL1CacheOverSharedMemory : Boolean = false
-  def experimental_cuda_spatialBlock_tiles = (experimental_cuda_spatialBlock_tile_x, experimental_cuda_spatialBlock_tile_y, experimental_cuda_spatialBlock_tile_z)
+  def experimental_cuda_spatialBlock_tiles = (experimental_cuda_spatialBlock_tile_x, experimental_cuda_spatialBlock_tile_y, experimental_cuda_spatialBlock_tile_z).productIterator.toArray[Int]
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements
