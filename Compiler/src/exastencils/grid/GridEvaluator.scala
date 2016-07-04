@@ -146,7 +146,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
   def integrateOverLFace(exp : Expression, faceDim : Int, stagDim : Option[Int]) : Expression = {
     ShiftFieldAccessIndices.offset = -1
     ShiftFieldAccessIndices.dim = faceDim
-    ShiftFieldAccessIndices.applyStandalone(exp)
+    ShiftFieldAccessIndices.applyStandalone(ExpressionStatement(exp))
 
     integrateOverRFace(exp, faceDim, stagDim)
   }
@@ -298,7 +298,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         ShiftFieldAccessIndices_.offset = 1
         ShiftFieldAccessIndices_.dim = curStagDim
         ShiftFieldAccessIndices_.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
-        ShiftFieldAccessIndices_.applyStandalone(offsetExp)
+        ShiftFieldAccessIndices_.applyStandalone(ExpressionStatement(offsetExp))
 
         (VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim)}", level, index) *
           (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp
