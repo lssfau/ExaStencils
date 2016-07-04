@@ -15,6 +15,8 @@ object Grid {
 
   // strategies
   def applyStrategies() = {
+    PrepareShiftedEvaluationFunctions.apply() // workaround
+
     ResolveEvaluationFunctions.apply()
     ResolveIntegrationFunctions.apply()
     ExpandEvaluationFunctions.apply()
