@@ -90,6 +90,9 @@ case class FieldLayoutPerDim(
 }
 
 object FieldLayoutCollection {
+  exastencils.core.Duplicate.registerConstant(this)
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[FieldLayout])
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[FieldLayoutPerDim])
   var fieldLayouts : ListBuffer[FieldLayout] = ListBuffer()
 
   def getFieldLayoutByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[FieldLayout] = {
@@ -136,6 +139,8 @@ case class FieldSelection(
 }
 
 object FieldCollection {
+  exastencils.core.Duplicate.registerConstant(this)
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[Field])
   var fields : ListBuffer[Field] = ListBuffer()
 
   def getSortedFields : ListBuffer[Field] = {
@@ -181,6 +186,8 @@ case class ExternalField(
 }
 
 object ExternalFieldCollection {
+  exastencils.core.Duplicate.registerConstant(this)
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[ExternalField])
   var fields : ListBuffer[ExternalField] = ListBuffer()
 
   def getSortedFields : ListBuffer[ExternalField] = {
