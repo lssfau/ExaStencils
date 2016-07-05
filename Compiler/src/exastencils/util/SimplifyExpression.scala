@@ -3,10 +3,12 @@ package exastencils.util
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core.Duplicate
 import exastencils.core.StateManager
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.knowledge.FieldSelection
 import exastencils.logger._
 import exastencils.strategies.SimplifyStrategy
 
@@ -652,7 +654,7 @@ object SimplifyExpression {
         else {
           if (min != null)
             exprs += FloatConstant(min)
-          res(MinimumExpression(exprs)) = 1L
+          res(MinimumExpression(exprs)) = 1d
         }
 
       case MaximumExpression(args : ListBuffer[Expression]) =>
@@ -669,14 +671,36 @@ object SimplifyExpression {
         else {
           if (max != null)
             exprs += FloatConstant(max)
-          res(MaximumExpression(exprs)) = 1L
+          res(MaximumExpression(exprs)) = 1d
+        }
+
+      case PowerExpression(l, r) =>
+        val mapL = extractFloatingSumRec(l)
+        val mapR = extractFloatingSumRec(r)
+        // trivial solution, if no better one is found later on
+        res = new HashMap[Expression, Double]()
+        res(PowerExpression(recreateExprFromFloatSum(mapL), recreateExprFromFloatSum(mapR))) = 1d
+        val isLCst = mapL.size == 1 && mapL.contains(constName)
+        val isRCst = mapR.size == 1 && mapR.contains(constName)
+        if (isLCst && isRCst)
+          mapL(constName) = math.pow(mapL(constName), mapR(constName))
+        else if (isRCst) {
+          val exp : Double = mapR(constName)
+          val expL : Long = exp.toLong
+          if (expL.toDouble == exp) expL match {
+            case 0 => res = HashMap(constName -> 1d)
+            case 1 => res = mapL
+            case _ if (expL >= 2 && expL <= 6) =>
+              res = extractFloatingSumRec(MultiplicationExpression(ListBuffer.fill(expL.toInt)(Duplicate(l))))
+            case _ =>
+          }
         }
 
       case _ =>
         throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass() + " in " + expr.prettyprint())
     }
 
-    return res.filter(e => e._2 != 0.0)
+    return res.filter(e => e._2 != 0d)
   }
 
   /**
