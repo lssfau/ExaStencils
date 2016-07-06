@@ -343,7 +343,7 @@ object ExpKernel {
 }
 
 case class ExpKernel(var identifier : String,
-    var dimensionality : Int,
+    var parallelDims : Int,
     var passThroughArgs : ListBuffer[VariableAccess],
     var loopVariables : ListBuffer[String],
     var lowerBounds : ListBuffer[Expression],
@@ -355,19 +355,21 @@ case class ExpKernel(var identifier : String,
 
   import ExpKernel._
 
-  var originalDimensionality = dimensionality
-  var firstNnotParallelDim = loopVariables.size - dimensionality
+  var originalParallelDims = parallelDims
+  var firstNSeqDims = loopVariables.size - parallelDims
+  val smemCanBeUsed = Knowledge.experimental_cuda_useSharedMemory && firstNSeqDims == 0 && identifier.contains("Smoother")
+  val spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.experimental_cuda_applySpatialBlocking && parallelDims == Platform.hw_cuda_maxNumDimsBlock
+  var executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
 
   // properties required for shared memory analysis and shared memory allocation
   var fieldName = ""
-  var fieldsForSharedMemory : DirectFieldAccess = null
+  var fieldsForSharedMemory : Option[DirectFieldAccess] = None
   var fieldOffset = new MultiIndex()
   var fieldAccessesForSharedMemory = List[FieldAccessLike]()
   var radius = 0L
   var sharedArraySize = Array[Long]()
   var pointsInField = Array[Long]()
   val fieldBlockSize = Knowledge.experimental_cuda_spatialBlock_tiles
-  var smemCanBeUsed = false
 
   var evaluatedAccesses = false
   var linearizedFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
@@ -383,10 +385,10 @@ case class ExpKernel(var identifier : String,
   var numBlocksPerDim = Array[Long]()
 
   // thread ids
-  val localThreadId = (0 until dimensionality).map(dim => {
+  val localThreadId = (0 until parallelDims).map(dim => {
     VariableAccess(KernelVariablePrefix + KernelLocalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
   }).toArray[Expression]
-  val globalThreadId = (0 until dimensionality).map(dim => {
+  val globalThreadId = (0 until parallelDims).map(dim => {
     VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
   }).toArray[Expression]
 
@@ -404,7 +406,7 @@ case class ExpKernel(var identifier : String,
 
     // call this function already in constructor to work on DirectFieldAccesses where indices are not yet linearized.
     // shared memory is currently just working for Smoother
-    if (Knowledge.experimental_cuda_useSharedMemory && identifier.contains("Smoother") && firstNnotParallelDim == 0) {
+    if (smemCanBeUsed) {
       evaluateAccessesForSharedMemory()
     }
   }
@@ -418,105 +420,51 @@ case class ExpKernel(var identifier : String,
     GatherLocalFieldAccessLikeForSharedMemory.loopVariables = loopVariables
     GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses.clear
     GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart.clear
-    GatherLocalFieldAccessLikeForSharedMemory.maximalFieldDim = math.min(dimensionality, Platform.hw_cuda_maxNumDimsBlock)
+    GatherLocalFieldAccessLikeForSharedMemory.maximalFieldDim = math.min(parallelDims, Platform.hw_cuda_maxNumDimsBlock)
     GatherLocalFieldAccessLikeForSharedMemory.applyStandalone(new Scope(body))
-    var fieldAccesses = GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses
+    var fieldToFieldAccesses = GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses
     val fieldIndicesConstantPart = GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart
     val availableSharedMemory = if (Knowledge.experimental_cuda_favorL1CacheOverSharedMemory) Platform.hw_cuda_cacheMemory.toLong else Platform.hw_cuda_sharedMemory.toLong
 
     // 2. Perform shared memory analysis
     // the more field accesses to a field the more important it is to store this field in shared memory
-    fieldAccesses = fieldAccesses.filter(fa => fa._2.nonEmpty)
-    fieldAccesses = mutable.ListMap(fieldAccesses.toSeq.sortWith(_._2.size > _._2.size) : _*)
-    for (fa <- fieldAccesses if !smemCanBeUsed) {
-      if (Knowledge.experimental_cuda_applySpatialBlocking && dimensionality == Platform.hw_cuda_maxNumDimsBlock) {
-        analyzeFieldAccessSpatialBlocking(fa._1, fa._2, fieldIndicesConstantPart(fa._1), availableSharedMemory)
-      } else analyzeFieldAccess(fa._1, fa._2, fieldIndicesConstantPart(fa._1), availableSharedMemory)
-    }
+    fieldToFieldAccesses = fieldToFieldAccesses.filter(fa => fa._2.nonEmpty)
+    fieldToFieldAccesses = mutable.ListMap(fieldToFieldAccesses.toSeq.sortWith(_._2.size > _._2.size) : _*)
+    var foundSomeAppropriateField = false
+    for (fa <- fieldToFieldAccesses if !foundSomeAppropriateField) {
+      val name = fa._1
+      val fieldAccesses = fa._2
 
-    // 3. update map to contain only the field accesses which passed the shared memory analysis in step 2
-    fieldAccesses.retain((k, v) => fieldAccesses.contains(k))
-  }
-
-  def analyzeFieldAccess(name : String, fieldAccesses : List[FieldAccessLike],
-    fieldIndicesConstantPart : List[Array[Long]], availableSharedMemory : Long) = {
-
-    // 2.1 colllect some basic informations required for further calculations
-    var requiredMemoryInByte = 0L
-    val offset = fieldAccesses.head.fieldSelection.fieldLayout.referenceOffset
-    val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => new AdditionExpression(new VariableAccess(x), y)).toArray[Expression]
-
-    // 2.2 calculate negative and positive deviation from the basic field index
-    val leftDeviationFromBaseIndex = fieldIndicesConstantPart.foldLeft(Array.fill(dimensionality)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
-      math.min(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(SubtractionExpression(y, z)))
-    })).map(x => math.abs(x))
-    val firstDeviation = leftDeviationFromBaseIndex.head
-    val isSameRadius = leftDeviationFromBaseIndex.forall(x => firstDeviation.equals(x))
-
-    val rightDeviationFromBaseIndex = fieldIndicesConstantPart.foldLeft(Array.fill(dimensionality)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
-      math.max(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(SubtractionExpression(y, z)))
-    }))
-
-    // 2.3 calculate the required amount of shared memory
-    val numDupLayersLeft = fieldAccesses.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numDupLayersLeft)
-    val numDupLayersRight = fieldAccesses.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numDupLayersRight)
-    val numInnerLayers = fieldAccesses.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numInnerLayers)
-    val numPointsInStencil = (numDupLayersLeft, numInnerLayers, numDupLayersRight).zipped.map((x, y, z) => x + y + z)
-    val numPointsInStencilPerThreadBlock = (numPointsInStencil, numThreadsPerBlock).zipped.map((x, y) => math.min(x, y))
-    val arraySize = (numPointsInStencilPerThreadBlock, leftDeviationFromBaseIndex.map(_ * 2)).zipped.map(_ + _)
-    requiredMemoryInByte = arraySize.product * (fieldAccesses.head.fieldSelection.fieldLayout.datatype match {
-      case RealDatatype => if (Knowledge.useDblPrecision) 8 else 4
-      case DoubleDatatype => 8
-      case FloatDatatype => 4
-      case _ => -1
-    })
-
-    // 2.4 consider this field for shared memory if all conditions are met
-    if (fieldAccesses.size > 1 && leftDeviationFromBaseIndex.deep == rightDeviationFromBaseIndex.deep && requiredMemoryInByte < availableSharedMemory && isSameRadius) {
-      val access = new DirectFieldAccess(fieldAccesses.head.fieldSelection, new MultiIndex(baseIndex))
-      access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
-      fieldName = name
-      fieldsForSharedMemory = access
-      fieldOffset = Duplicate(offset)
-      radius = leftDeviationFromBaseIndex.head
-      sharedArraySize = arraySize
-      pointsInField = numPointsInStencilPerThreadBlock
-      smemCanBeUsed = true
-    } else {
-      fieldAccesses.foreach(a => a.removeAnnotation(LinearizeFieldAccesses.NO_LINEARIZATION))
-    }
-  }
-
-  def analyzeFieldAccessSpatialBlocking(fieldName : String, fieldAccesses : List[FieldAccessLike],
-    fieldIndicesConstantPart : List[Array[Long]], availableSharedMemory : Long) = {
-    val fieldLayout = fieldAccesses.head.fieldSelection.fieldLayout
-
-    if (fieldLayout.numDimsData == Platform.hw_cuda_maxNumDimsBlock) {
       // 2.1 colllect some basic informations required for further calculations
-      val smemDimensionality = fieldLayout.numDimsData - 1
       var requiredMemoryInByte = 0L
-      val offset = fieldLayout.referenceOffset
+      val offset = fieldAccesses.head.fieldSelection.fieldLayout.referenceOffset
       val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => new AdditionExpression(new VariableAccess(x), y)).toArray[Expression]
 
       // 2.2 calculate negative and positive deviation from the basic field index
-      val leftDeviationFromBaseIndex = fieldIndicesConstantPart.foldLeft(Array.fill(smemDimensionality)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
+      val leftDeviationFromBaseIndex = fieldIndicesConstantPart(name).foldLeft(Array.fill(parallelDims)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
         math.min(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(SubtractionExpression(y, z)))
       })).map(x => math.abs(x))
       val firstDeviation = leftDeviationFromBaseIndex.head
       val isSameRadius = leftDeviationFromBaseIndex.forall(x => firstDeviation.equals(x))
 
-      val rightDeviationFromBaseIndex = fieldIndicesConstantPart.foldLeft(Array.fill(smemDimensionality)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
+      val rightDeviationFromBaseIndex = fieldIndicesConstantPart(name).foldLeft(Array.fill(parallelDims)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
         math.max(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(SubtractionExpression(y, z)))
       }))
 
+      var numPointsPerBlock = numThreadsPerBlock
+
+      if (spatialBlockingCanBeApplied) {
+        numPointsPerBlock = numThreadsPerBlock :+ Knowledge.experimental_cuda_spatialBlock_tile_x.toLong
+      }
+
       // 2.3 calculate the required amount of shared memory
-      val numDupLayersLeft = fieldLayout.layoutsPerDim.map(x => x.numDupLayersLeft)
-      val numDupLayersRight = fieldLayout.layoutsPerDim.map(x => x.numDupLayersRight)
-      val numInnerLayers = fieldLayout.layoutsPerDim.map(x => x.numInnerLayers)
+      val numDupLayersLeft = fieldAccesses.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numDupLayersLeft)
+      val numDupLayersRight = fieldAccesses.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numDupLayersRight)
+      val numInnerLayers = fieldAccesses.head.fieldSelection.fieldLayout.layoutsPerDim.map(x => x.numInnerLayers)
       val numPointsInStencil = (numDupLayersLeft, numInnerLayers, numDupLayersRight).zipped.map((x, y, z) => x + y + z)
-      val numPointsInStencilPerThreadBlock = (numPointsInStencil.take(smemDimensionality), numThreadsPerBlock).zipped.map((x, y) => math.min(x, y))
+      val numPointsInStencilPerThreadBlock = (numPointsInStencil, numPointsPerBlock).zipped.map((x, y) => math.min(x, y))
       val arraySize = (numPointsInStencilPerThreadBlock, leftDeviationFromBaseIndex.map(_ * 2)).zipped.map(_ + _)
-      requiredMemoryInByte = arraySize.product * (fieldLayout.datatype match {
+      requiredMemoryInByte = arraySize.product * (fieldAccesses.head.fieldSelection.fieldLayout.datatype match {
         case RealDatatype => if (Knowledge.useDblPrecision) 8 else 4
         case DoubleDatatype => 8
         case FloatDatatype => 4
@@ -527,18 +475,19 @@ case class ExpKernel(var identifier : String,
       if (fieldAccesses.size > 1 && leftDeviationFromBaseIndex.deep == rightDeviationFromBaseIndex.deep && requiredMemoryInByte < availableSharedMemory && isSameRadius) {
         val access = new DirectFieldAccess(fieldAccesses.head.fieldSelection, new MultiIndex(baseIndex))
         access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
-        fieldsForSharedMemory = access
+        fieldName = name
+        fieldsForSharedMemory = Some(access)
         fieldOffset = Duplicate(offset)
         radius = leftDeviationFromBaseIndex.head
         sharedArraySize = arraySize
         pointsInField = numPointsInStencilPerThreadBlock
-        smemCanBeUsed = true
-      } else {
-        fieldAccesses.foreach(a => a.removeAnnotation(LinearizeFieldAccesses.NO_LINEARIZATION))
+        foundSomeAppropriateField = true
       }
-    } else {
-      fieldAccesses.foreach(a => a.removeAnnotation(LinearizeFieldAccesses.NO_LINEARIZATION))
     }
+
+    // 3. update map to contain only the field accesses which passed the shared memory analysis in step 2
+    fieldToFieldAccesses.filter(x => fieldName != x._1)
+    fieldToFieldAccesses.foreach(fa => fa._2.foreach(a => a.removeAnnotation(LinearizeFieldAccesses.NO_LINEARIZATION)))
   }
 
   /**
@@ -598,30 +547,24 @@ case class ExpKernel(var identifier : String,
    */
   def evalExecutionConfiguration() = {
     if (!evaluatedExecutionConfiguration) {
-      requiredThreadsPerDim = (maxIndices.drop(firstNnotParallelDim), minIndices.drop(firstNnotParallelDim)).zipped.map(_ - _)
+      requiredThreadsPerDim = (maxIndices.drop(firstNSeqDims), minIndices.drop(firstNSeqDims)).zipped.map(_ - _).take(executionDim)
 
       if (null == requiredThreadsPerDim || requiredThreadsPerDim.product <= 0) {
         Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
-        requiredThreadsPerDim = (0 until dimensionality).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
+        requiredThreadsPerDim = (0 until executionDim).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
       }
 
       // distribute threads along threads in blocks and blocks in grid
       // NVIDIA GeForce Titan Black has CUDA compute capability 3.5
       // maximum number of threads per block = 1024
       // number of threads per block should be integer multiple of warp size (32)
-      var executionDimensionality = math.min(dimensionality, Platform.hw_cuda_maxNumDimsBlock)
-
-      if (Knowledge.experimental_cuda_applySpatialBlocking && dimensionality == Platform.hw_cuda_maxNumDimsBlock) {
-        executionDimensionality = dimensionality - 1
-      }
-
-      executionDimensionality match {
+      executionDim match {
         case 1 => numThreadsPerBlock = Array[Long](512)
         case 2 => numThreadsPerBlock = Array[Long](16, 16)
         case _ => numThreadsPerBlock = Array[Long](8, 8, 8)
       }
 
-      numBlocksPerDim = (0 until executionDimensionality).map(dim => {
+      numBlocksPerDim = (0 until executionDim).map(dim => {
         (requiredThreadsPerDim(dim) + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
       }).toArray
 
@@ -641,7 +584,7 @@ case class ExpKernel(var identifier : String,
     val localPrefix = KernelVariablePrefix + fieldName + "_"
 
     // 2. Add local Thread ID calculation for indexing shared memory
-    statements ++= (0 until dimensionality).map(dim => {
+    statements ++= (0 until parallelDims).map(dim => {
       val it = dimToString(dim)
       val variableName = localPrefix + it
       VariableDeclarationStatement(IntegerDatatype, variableName,
@@ -649,23 +592,23 @@ case class ExpKernel(var identifier : String,
           radius))
     })
 
-    val localThreadId = (0 until dimensionality).map(dim => {
+    val localThreadId = (0 until parallelDims).map(dim => {
       VariableAccess(localPrefix + dimToString(dim), Some(IntegerDatatype))
     }).toArray[Expression]
-    val globalThreadId = (0 until dimensionality).map(dim => {
+    val globalThreadId = (0 until parallelDims).map(dim => {
       VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
     }).toArray[Expression]
 
     // 3. Add shared memory declarations
     val sharedArrayStrides = new MultiIndex(sharedArraySize)
-    statements += new CUDA_SharedArray(KernelVariablePrefix + fieldName, fieldsForSharedMemory.fieldSelection.fieldLayout.datatype, sharedArraySize.reverse)
+    statements += new CUDA_SharedArray(KernelVariablePrefix + fieldName, fieldsForSharedMemory.get.fieldSelection.fieldLayout.datatype, sharedArraySize.reverse)
 
     // 4. Load from global memory into shared memory
-    sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localThreadId.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.fieldSelection, fieldsForSharedMemory.index).linearize)
+    sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localThreadId.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.get.fieldSelection, fieldsForSharedMemory.get.index).linearize)
 
     // 5. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
     // and sync threads afterwards conditionForSharedMemto guarantee that every thread has the same memory state
-    sharedMemoryStatements ++= (0 until dimensionality).map(dim => {
+    sharedMemoryStatements ++= (0 until parallelDims).map(dim => {
       val it = dimToString(dim)
 
       // 5.1 Check if current thread resides on the left border in any dimension
@@ -693,8 +636,8 @@ case class ExpKernel(var identifier : String,
 
       // 5.4 Thread residing on left border should load left neighbor and the right neighbor of the point residing
       // on the right border of the actual field
-      conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localLeftIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.fieldSelection, globalLeftIndex).linearize)
-      conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localRightIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.fieldSelection, globalRightIndex).linearize)
+      conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localLeftIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.get.fieldSelection, globalLeftIndex).linearize)
+      conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localRightIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.get.fieldSelection, globalRightIndex).linearize)
       new ConditionStatement(condition, conditionBody)
     })
 
@@ -715,7 +658,7 @@ case class ExpKernel(var identifier : String,
     AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccessesForSharedMemory.map(x => new ExpressionStatement(x))))
 
     // Calculate the parallel dimensionality
-    val smemDim = dimensionality - 1
+    val smemDim = parallelDims - 1
 
     // Add macros for basic field block handling
     statements ++= (0 until smemDim).map(dim => {
@@ -735,10 +678,10 @@ case class ExpKernel(var identifier : String,
 
     // 3. Add shared memory declarations
     val sharedArrayStrides = new MultiIndex(sharedArraySize)
-    statements += new CUDA_SharedArray(KernelVariablePrefix + fieldName, fieldsForSharedMemory.fieldSelection.fieldLayout.datatype, sharedArraySize.reverse)
+    statements += new CUDA_SharedArray(KernelVariablePrefix + fieldName, fieldsForSharedMemory.get.fieldSelection.fieldLayout.datatype, sharedArraySize.reverse)
 
     // 4. Load from global memory into shared memory
-    sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localThreadId.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.fieldSelection, fieldsForSharedMemory.index).linearize)
+    sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localThreadId.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.get.fieldSelection, fieldsForSharedMemory.get.index).linearize)
 
     // 5. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
     // and sync threads afterwards conditionForSharedMemto guarantee that every thread has the same memory state
@@ -770,8 +713,8 @@ case class ExpKernel(var identifier : String,
 
       // 5.4 Thread residing on left border should load left neighbor and the right neighbor of the point residing
       // on the right border of the actual field
-      conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localLeftIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.fieldSelection, globalLeftIndex).linearize)
-      conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localRightIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.fieldSelection, globalRightIndex).linearize)
+      conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localLeftIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.get.fieldSelection, globalLeftIndex).linearize)
+      conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localRightIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldsForSharedMemory.get.fieldSelection, globalRightIndex).linearize)
       new ConditionStatement(condition, conditionBody)
     })
 
@@ -793,7 +736,7 @@ case class ExpKernel(var identifier : String,
     // global thread id x = blockIdx.x *blockDim.x + threadIdx.x + offset1;
     // global thread id y = blockIdx.y *blockDim.y + threadIdx.y + offset2;
     // global thread id z = blockIdx.z *blockDim.z + threadIdx.z + offset3;
-    statements ++= (0 until dimensionality).map(dim => {
+    statements ++= (0 until parallelDims).map(dim => {
       val it = dimToString(dim)
       val variableName = KernelVariablePrefix + KernelGlobalIndexPrefix + it
       VariableDeclarationStatement(IntegerDatatype, variableName,
@@ -805,7 +748,7 @@ case class ExpKernel(var identifier : String,
 
     // add dimension index start and end point
     // add index bounds conditions
-    val conditionParts = (0 until dimensionality).map(dim => {
+    val conditionParts = (0 until parallelDims).map(dim => {
       val variableAccess = VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
       AndAndExpression(
         GreaterEqualExpression(variableAccess, s"${KernelVariablePrefix}begin_$dim"), LowerExpression(variableAccess, s"${KernelVariablePrefix}end_$dim"))
@@ -818,8 +761,8 @@ case class ExpKernel(var identifier : String,
     val conditionAccess = VariableAccess(KernelVariablePrefix + "condition", Some(BooleanDatatype))
     statements += condition
 
-    if (Knowledge.experimental_cuda_useSharedMemory && identifier.contains("Smoother")) {
-      if (Knowledge.experimental_cuda_applySpatialBlocking && dimensionality == Platform.hw_cuda_maxNumDimsBlock) {
+    if (Knowledge.experimental_cuda_useSharedMemory && identifier.contains("Smoother") && fieldsForSharedMemory.isDefined) {
+      if (Knowledge.experimental_cuda_applySpatialBlocking && parallelDims == Platform.hw_cuda_maxNumDimsBlock) {
         addSmemStmtsSpatialBlocking(statements, conditionAccess)
       } else {
         addSmemStmts(statements, conditionAccess)
@@ -843,7 +786,7 @@ case class ExpKernel(var identifier : String,
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(new Scope(body))
     ReplacingLocalIVArrays.applyStandalone(new Scope(body))
-    ReplacingLoopVariables.loopVariables = loopVariables.drop(firstNnotParallelDim)
+    ReplacingLoopVariables.loopVariables = loopVariables.drop(firstNSeqDims)
     ReplacingLoopVariables.applyStandalone(new Scope(body))
 
     body
@@ -856,19 +799,19 @@ case class ExpKernel(var identifier : String,
 
     // substitute loop variable in bounds with appropriate fix values to get valid code in wrapper function
     ReplacingLoopVariablesInWrapper.loopVariables.clear
-    ReplacingLoopVariablesInWrapper.loopVariables = loopVariables.drop(firstNnotParallelDim)
-    ReplacingLoopVariablesInWrapper.bounds = Duplicate(lowerBounds.drop(firstNnotParallelDim))
-    val lowerArgs = Duplicate(lowerBounds.drop(firstNnotParallelDim))
+    ReplacingLoopVariablesInWrapper.loopVariables = loopVariables.drop(firstNSeqDims)
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(lowerBounds.drop(firstNSeqDims))
+    val lowerArgs = Duplicate(lowerBounds.drop(firstNSeqDims))
     ReplacingLoopVariablesInWrapper.applyStandalone(lowerArgs)
 
-    val upperArgs = Duplicate(upperBounds.drop(firstNnotParallelDim))
-    ReplacingLoopVariablesInWrapper.bounds = Duplicate(upperBounds.drop(firstNnotParallelDim))
+    val upperArgs = Duplicate(upperBounds.drop(firstNSeqDims))
+    ReplacingLoopVariablesInWrapper.bounds = Duplicate(upperBounds.drop(firstNSeqDims))
     ReplacingLoopVariablesInWrapper.applyStandalone(upperArgs)
 
     // compile arguments for device function call
     var callArgs = ListBuffer[Expression]()
 
-    for (dim <- 0 until dimensionality) {
+    for (dim <- 0 until parallelDims) {
       callArgs += lowerArgs(dim)
       callArgs += upperArgs(dim)
     }
@@ -878,8 +821,8 @@ case class ExpKernel(var identifier : String,
       callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
     }
 
-    if (Knowledge.experimental_cuda_useSharedMemory) {
-      val fieldSelection = fieldsForSharedMemory.fieldSelection
+    if (Knowledge.experimental_cuda_useSharedMemory && fieldsForSharedMemory.isDefined) {
+      val fieldSelection = fieldsForSharedMemory.get.fieldSelection
       callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
     }
 
@@ -929,7 +872,7 @@ case class ExpKernel(var identifier : String,
     // compile parameters for device function
     var fctParams = ListBuffer[VariableAccess]()
 
-    for (dim <- 0 until dimensionality) {
+    for (dim <- 0 until parallelDims) {
       fctParams += VariableAccess(s"${KernelVariablePrefix}begin_$dim", Some(IntegerDatatype))
       fctParams += VariableAccess(s"${KernelVariablePrefix}end_$dim", Some(IntegerDatatype))
     }
@@ -939,7 +882,8 @@ case class ExpKernel(var identifier : String,
       fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
     }
 
-    fctParams += VariableAccess(fieldName, Some(PointerDatatype(fieldsForSharedMemory.fieldSelection.field.resolveDeclType)))
+    if (fieldsForSharedMemory.isDefined)
+      fctParams += VariableAccess(fieldName, Some(PointerDatatype(fieldsForSharedMemory.get.fieldSelection.field.resolveDeclType)))
 
     for (ivAccess <- ivAccesses) {
       var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
