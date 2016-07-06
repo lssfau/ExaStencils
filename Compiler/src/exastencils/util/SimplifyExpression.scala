@@ -161,7 +161,7 @@ object SimplifyExpression {
 
       case NegativeExpression(neg) =>
         res = extractIntegralSumRec(neg)
-        for ((name : Expression, value : Long) <- extractIntegralSumRec(neg))
+        for ((name : Expression, value : Long) <- res)
           res(name) = -value
 
       case AdditionExpression(summands) =>
@@ -550,7 +550,7 @@ object SimplifyExpression {
 
       case NegativeExpression(neg) =>
         res = extractFloatingSumRec(neg)
-        for ((name : Expression, value : Double) <- extractFloatingSumRec(neg))
+        for ((name : Expression, value : Double) <- res)
           res(name) = -value
 
       case AdditionExpression(summands) =>
