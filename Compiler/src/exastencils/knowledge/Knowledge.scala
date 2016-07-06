@@ -324,8 +324,8 @@ object Knowledge {
   def experimental_cuda_blockSizeTotal = experimental_cuda_blockSize_x * experimental_cuda_blockSize_y * experimental_cuda_blockSize_z
   var experimental_cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels
   var experimental_cuda_useSharedMemory : Boolean = false // specify if shared memory should be used within kernels
-  var experimental_cuda_linearizeSharedMemoryAccess : Boolean = true
-  var experimental_cuda_applySpatialBlocking : Boolean = true
+  var experimental_cuda_linearizeSharedMemoryAccess : Boolean = false
+  var experimental_cuda_applySpatialBlocking : Boolean = false
   var experimental_cuda_spatialBlock_tile_x : Int = 8 // default tile size in x dimension for smem spatial blocking
   var experimental_cuda_spatialBlock_tile_y : Int = 8 // default tile size in y dimension for smem spatial blocking
   var experimental_cuda_spatialBlock_tile_z : Int = 8 // default tile size in z dimension for smem spatial blocking
