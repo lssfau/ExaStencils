@@ -153,6 +153,11 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case PowerExpression(IntegerConstant(base), FloatConstant(exp))        => FloatConstant(math.pow(base, exp))
     case PowerExpression(FloatConstant(base), FloatConstant(exp))          => FloatConstant(math.pow(base, exp))
 
+    case PowerExpression(base, IntegerConstant(0))                         => IntegerConstant(1)
+    case PowerExpression(base, IntegerConstant(1))                         => base
+    case PowerExpression(base, IntegerConstant(e)) if (e >= 2 && e <= 6)   => MultiplicationExpression(ListBuffer.fill(e.toInt)(Duplicate(base)))
+    case PowerExpression(b, FloatConstant(e)) if (e.toLong.toDouble == e)  => PowerExpression(b, IntegerConstant(e.toLong))
+
     // deal with negatives
     case NegativeExpression(NegativeExpression(expr))                      => expr
     case NegativeExpression(AdditionExpression(sums))                      => AdditionExpression(sums.map { s => NegativeExpression(s) })

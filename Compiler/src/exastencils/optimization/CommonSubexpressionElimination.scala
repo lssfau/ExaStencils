@@ -85,28 +85,52 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
   private def inlineDecls(parent : Node, body : ListBuffer[Statement]) : Unit = {
     val accesses = new HashMap[String, (VariableDeclarationStatement, Buffer[Expression])]()
+    val usageIn = new HashMap[String, ListBuffer[String]]().withDefault(_ => new ListBuffer[String]())
+    var assignTo : String = null
     this.execute(new Transformation("find removable declarations", {
       case decl @ VariableDeclarationStatement(_ : ScalarDatatype, vName, Some(init)) =>
         accesses(vName) = (decl, new ArrayBuffer[Expression]())
+        assignTo = vName
         decl
       case ass @ AssignmentStatement(VariableAccess(vName, _), _, _) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         ass
       case inc @ PreDecrementExpression(VariableAccess(vName, _)) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         inc
       case inc @ PreIncrementExpression(VariableAccess(vName, _)) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         inc
       case inc @ PostIncrementExpression(VariableAccess(vName, _)) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         inc
       case inc @ PostDecrementExpression(VariableAccess(vName, _)) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         inc
       case acc @ VariableAccess(vName, _) =>
         for ((_, uses) <- accesses.get(vName))
           uses += acc
+        usageIn(vName) += assignTo
         acc
     }), Some(Scope(body))) // restrict to body only
 
@@ -141,10 +165,11 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       case d : Datatype   => d
       case NullStatement  => NullStatement
       case NullExpression => NullExpression
-      case node =>
+      case node : Node => // only enumerate subtypes of Node, all others are irrelevant
         node.annotate(ID_ANNOT, maxID)
         maxID += 1
         node
+      case x => x // no node, so don't enumerate it, as it may appear multiple times (legally) in the AST
     }), Some(currItBody))
     currItBody.annotate(ID_ANNOT, maxID) // trafo does not get access to the AST root, so set annotation manually
 
@@ -372,9 +397,10 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 
   private def updateAST(body : ListBuffer[Statement], commSubs : HashMap[Node, Subexpression]) : Boolean = {
-    val commSubOpt = commSubs.toList.sortBy {
+    val commSubSorted = commSubs.toList.sortBy {
       case (_, cs) => (-cs.prio, -cs.getPositions().size, cs.ppString)
-    }.find {
+    }
+    val commSubOpt = commSubSorted.find {
       case (_, cs) => !cs.getPositions().forall { pos => pos.exists { parent => parent.isInstanceOf[ConditionStatement] } }
     }
     if (commSubOpt.isEmpty)

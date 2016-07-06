@@ -9,6 +9,45 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.logger._
 
+object PrepareShiftedEvaluationFunctions extends DefaultStrategy("PrepareShiftedEvaluationFunctions") {
+  // TODO: this strategy is currently necessary for cases where evalLeft functions are wrapped in integrateLeft functions
+  //       these would be shifted twice, hence this workaround removing one of these shifts by replacing the eval
+
+  val shiftIntegrateFunctions = ListBuffer(
+    "integrateOverWestFace", "integrateOverSouthFace", "integrateOverBottomFace",
+    "integrateOverXStaggeredWestFace", "integrateOverXStaggeredSouthFace", "integrateOverXStaggeredBottomFace",
+    "integrateOverYStaggeredWestFace", "integrateOverYStaggeredSouthFace", "integrateOverYStaggeredBottomFace",
+    "integrateOverZStaggeredWestFace", "integrateOverZStaggeredSouthFace", "integrateOverZStaggeredBottomFace")
+  val shiftEvalFunctions = Map[String, String](
+    ("evalAtWestFace" -> "evalAtEastFace"),
+    ("evalAtSouthFace" -> "evalAtNorthFace"),
+    ("evalAtBottomFace" -> "evalAtTopFace"),
+    ("evalAtXStaggeredSouthFace" -> "evalAtXStaggeredNorthFace"),
+    ("evalAtXStaggeredBottomFace" -> "evalAtXStaggeredTopFace"),
+    ("evalAtYStaggeredWestFace" -> "evalAtYStaggeredEastFace"),
+    ("evalAtYStaggeredSouthFace" -> "evalAtYStaggeredNorthFace"),
+    ("evalAtYStaggeredBottomFace" -> "evalAtYStaggeredTopFace"),
+    ("evalAtZStaggeredWestFace" -> "evalAtZStaggeredEastFace"),
+    ("evalAtZStaggeredSouthFace" -> "evalAtZStaggeredNorthFace"),
+    ("evalAtZStaggeredBottomFace" -> "evalAtZStaggeredTopFace"))
+
+  private object DoShift extends QuietDefaultStrategy("DoShift") {
+    this += new Transformation("Resolving functions", {
+      case fct @ FunctionCallExpression(functionName, args) if shiftEvalFunctions.contains(functionName) => {
+        fct.name = shiftEvalFunctions.get(functionName).get
+        fct
+      }
+    })
+  }
+
+  this += new Transformation("Resolving functions", {
+    case fct @ FunctionCallExpression(functionName, args) if shiftIntegrateFunctions.contains(functionName) => {
+      DoShift.applyStandalone(fct)
+      fct
+    }
+  })
+}
+
 object ResolveEvaluationFunctions extends DefaultStrategy("ResolveEvaluationFunctions") {
   val functions = ListBuffer(
     "evalAtEastFace", "evalAtWestFace", "evalAtNorthFace", "evalAtSouthFace", "evalAtTopFace", "evalAtBottomFace",

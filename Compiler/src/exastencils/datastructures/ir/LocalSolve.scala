@@ -87,7 +87,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
               MultiplicationExpression(localFactors))
       }
 
-      case _ => Logger.warn(s"Found unsupported node type ${ex.getClass.getTypeName}: $ex")
+      case _ => Logger.warn(s"Found unsupported node type ${ex.getClass.getName}: $ex")
     }
   }
 
@@ -115,7 +115,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
             case AdditionExpression(adds) => processEqSummands(eqNumber, adds, true)
             case e : Expression           => processEqSummands(eqNumber, ListBuffer(e), true)
           }
-        case _ => Logger.warn(s"Equation doesn't hold enough information (${zeroEqs(eqNumber).getClass.getTypeName})")
+        case _ => Logger.warn(s"Equation doesn't hold enough information (${zeroEqs(eqNumber).getClass.getName})")
       }
     }
 

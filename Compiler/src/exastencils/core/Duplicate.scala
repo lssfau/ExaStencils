@@ -4,7 +4,7 @@ import scala.collection.immutable.Nil
 
 object Duplicate {
   private val cloner = new com.rits.cloning.Cloner
-  cloner.setDumpClonedClasses(Settings.printClonedObjects);
+  cloner.setDumpClonedClasses(Settings.printClonedObjects)
 
   def apply[T](t : T) : T = cloner.deepClone(t)
 
