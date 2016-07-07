@@ -522,6 +522,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                 if (containsVarAcc(expr, ctx.itName))
                   throw new VectorizationException("no linear memory access;  " + index.prettyprint())
             }
+          if (ctx.ignIncr) // that means we basically only compute a scalar value
+            access1 = true
 
           val vs = Platform.simd_vectorSize
           val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
