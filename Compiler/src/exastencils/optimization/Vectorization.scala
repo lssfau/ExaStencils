@@ -408,6 +408,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   private def vectorizeStmt(stmt : Statement, ctx : LoopCtx) : Unit = {
     stmt match {
+      case NullStatement => // SIMD_NullStatement? no way...
+
       case CommentStatement(str) =>
         ctx.addStmt(new CommentStatement(str)) // new instance
 
@@ -617,6 +619,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         SIMD_SubtractionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
       case MultiplicationExpression(facs) =>
+        if (facs.isEmpty)
+          Logger.error("empty product not allowed")
         val exprs = new Queue[Expression]()
         exprs.enqueue(facs.view.map { x => vectorizeExpr(x, ctx) } : _*)
         while (exprs.length > 1)
@@ -625,6 +629,24 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
       case DivisionExpression(left, right) =>
         SIMD_DivisionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+
+      case MinimumExpression(args) =>
+        if (args.isEmpty)
+          Logger.error("empty minimum not allowed")
+        val exprs = new Queue[Expression]()
+        exprs.enqueue(args.view.map { x => vectorizeExpr(x, ctx) } : _*)
+        while (exprs.length > 1)
+          exprs.enqueue(SIMD_MinimumExpression(exprs.dequeue(), exprs.dequeue()))
+        exprs.dequeue()
+
+      case MaximumExpression(args) =>
+        if (args.isEmpty)
+          Logger.error("empty minimum not allowed")
+        val exprs = new Queue[Expression]()
+        exprs.enqueue(args.view.map { x => vectorizeExpr(x, ctx) } : _*)
+        while (exprs.length > 1)
+          exprs.enqueue(SIMD_MaximumExpression(exprs.dequeue(), exprs.dequeue()))
+        exprs.dequeue()
 
       case FunctionCallExpression(func, args) if (SIMD_MathFunctions.isAllowed(func)) =>
         FunctionCallExpression(SIMD_MathFunctions.addUsage(func), args.map { arg => vectorizeExpr(arg, ctx) })
