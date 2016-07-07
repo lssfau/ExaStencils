@@ -40,17 +40,16 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def wrapInLoops(body : Statement) : Statement = {
     var wrappedBody = body
 
-    // NOTE: reverse order due to wrapping
-    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      wrappedBody = new LoopOverNeighbors(wrappedBody)
-    if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
-      wrappedBody = new LoopOverLevels(wrappedBody)
-    if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
-      wrappedBody = new LoopOverFields(wrappedBody)
-    if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
-      wrappedBody = new LoopOverDomains(wrappedBody)
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
       wrappedBody = new LoopOverFragments(wrappedBody)
+    if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
+      wrappedBody = new LoopOverDomains(wrappedBody)
+    if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
+      wrappedBody = new LoopOverFields(wrappedBody)
+    if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
+      wrappedBody = new LoopOverLevels(wrappedBody)
+    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
+      wrappedBody = new LoopOverNeighbors(wrappedBody)
 
     wrappedBody
   }
