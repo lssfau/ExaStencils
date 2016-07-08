@@ -4,7 +4,7 @@ import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.BinaryOperators.{ apply => _ }
+import exastencils.datastructures.ir.BinaryOperators.{apply => _}
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -671,55 +671,32 @@ case class ExpKernel(var identifier : String,
     statements += new CUDA_SharedArray(KernelVariablePrefix + fieldName, fieldDatatype, sharedArraySize.reverse)
 
     // 4. Add index for reading input and writing output, and the distance between to slices (in elements)
-    val in_idx = new VariableAccess("in_idx", IntegerDatatype)
-    val out_idx = new VariableAccess("out_idx", IntegerDatatype)
-    val stride = new VariableAccess("stride", IntegerDatatype)
     val current = new VariableAccess("current", IntegerDatatype)
-    val in_idx_update = new AdditionExpression(in_idx, stride)
-    statements += new VariableDeclarationStatement(IntegerDatatype, "in_idx", new AdditionExpression(new MultiplicationExpression(globalThreadId(1), fieldDims(0)), globalThreadId.head)) // index reading input
-    statements += new VariableDeclarationStatement(IntegerDatatype, "out_idx", 0)
-    statements += new VariableDeclarationStatement(IntegerDatatype, "stride", new MultiplicationExpression(fieldDims(0), fieldDims(1)))
+    val spatialBaseIndex = new MultiIndex(fieldBaseIndex.indices.take(executionDim) :+ fieldOffset.indices(executionDim))
 
     // 5. Declarations for neighbors and current point
-    (0L until radius).foreach(x => {
-      statements += new VariableDeclarationStatement(fieldDatatype, "infront" + x)
-      statements += new VariableDeclarationStatement(fieldDatatype, "behind" + x)
+    (1L to radius).foreach(x => {
+      statements += new VariableDeclarationStatement(fieldDatatype, "infront" + x, new DirectFieldAccess(fieldsForSharedMemory.get.fieldSelection, spatialBaseIndex + new MultiIndex(Array[Long](0,0,x))).linearize)
+      statements += new VariableDeclarationStatement(fieldDatatype, "behind" + x, 0)
     })
 
-    statements += new VariableDeclarationStatement(fieldDatatype, "current")
-
-    // 6. Init neighbors and current point
-    (radius - 1 to 0 by -1).foreach(x => {
-      statements += new AssignmentStatement(new VariableAccess("behind" + x), new LinearizedFieldAccess(fieldsForSharedMemory.get.fieldSelection, in_idx))
-      statements += new AssignmentStatement(in_idx, in_idx_update)
-    })
-
-    statements += new AssignmentStatement(current, new LinearizedFieldAccess(fieldsForSharedMemory.get.fieldSelection, in_idx))
-    statements += new AssignmentStatement(out_idx, in_idx)
-    statements += new AssignmentStatement(in_idx, in_idx_update)
-
-    (radius - 1 to 0 by -1).foreach(x => {
-      statements += new AssignmentStatement(new VariableAccess("infront" + x), new LinearizedFieldAccess(fieldsForSharedMemory.get.fieldSelection, in_idx))
-      statements += new AssignmentStatement(in_idx, in_idx_update)
-    })
+    statements += new VariableDeclarationStatement(fieldDatatype, "current", new DirectFieldAccess(fieldsForSharedMemory.get.fieldSelection, spatialBaseIndex).linearize)
 
     // 7.
     var zDimLoopBody = ListBuffer[Statement]()
     var zDimLoopBodyPart1 = ListBuffer[Statement]()
     // advance the slice (move the thread front)
-    (radius - 1 to 1 by -1).foreach(x => {
+    (radius to 2L by -1).foreach(x => {
       zDimLoopBodyPart1 += new AssignmentStatement(new VariableAccess("behind" + x), new VariableAccess("behind" + (x - 1)))
     })
-    zDimLoopBodyPart1 += new AssignmentStatement(new VariableAccess("behind0"), current)
-    zDimLoopBodyPart1 += new AssignmentStatement(current, new VariableAccess("infront0"))
-    (0L until radius - 1).foreach(x => {
+    zDimLoopBodyPart1 += new AssignmentStatement(new VariableAccess("behind1"), current)
+    zDimLoopBodyPart1 += new AssignmentStatement(current, new VariableAccess("infront1"))
+    (2L to radius).foreach(x => {
       zDimLoopBodyPart1 += new AssignmentStatement(new VariableAccess("infront" + x), new VariableAccess("infront" + (x + 1)))
     })
 
-    zDimLoopBodyPart1 += new AssignmentStatement(new VariableAccess("infront" + (radius - 1)), new LinearizedFieldAccess(fieldsForSharedMemory.get.fieldSelection, in_idx))
+    zDimLoopBodyPart1 += new AssignmentStatement(new VariableAccess("infront" + radius), new DirectFieldAccess(fieldsForSharedMemory.get.fieldSelection, fieldBaseIndex + new MultiIndex(Array[Long](0,0,1))).linearize)
 
-    zDimLoopBodyPart1 += new AssignmentStatement(in_idx, in_idx_update)
-    zDimLoopBodyPart1 += new AssignmentStatement(out_idx, in_idx_update)
     zDimLoopBodyPart1 += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localThreadId.take(executionDim).reverse, sharedArrayStrides), current)
     zDimLoopBodyPart1 ++= (0 until executionDim).map(dim => {
       val it = dimToString(dim)
@@ -759,6 +736,7 @@ case class ExpKernel(var identifier : String,
     zDimLoopBody += new ConditionStatement(conditionAccess, body)
 
     statements += new ForLoopStatement(new VariableDeclarationStatement(IntegerDatatype, loopVariables(executionDim), s"${KernelVariablePrefix}begin_$executionDim"), LowerExpression(new VariableAccess(loopVariables(executionDim)), s"${KernelVariablePrefix}end_$executionDim"), new AssignmentStatement(loopVariables(executionDim), new AdditionExpression(loopVariables(executionDim), IntegerConstant(1))), zDimLoopBody)
+    loopVariables.remove(executionDim)
 
     statements
   }
@@ -826,7 +804,7 @@ case class ExpKernel(var identifier : String,
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(new Scope(body))
     ReplacingLocalIVArrays.applyStandalone(new Scope(body))
-    ReplacingLoopVariables.loopVariables = loopVariables.slice(firstNSeqDims, firstNSeqDims + executionDim)
+    ReplacingLoopVariables.loopVariables = loopVariables
     ReplacingLoopVariables.applyStandalone(new Scope(body))
 
     body
@@ -1089,8 +1067,8 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
       if (applySpatialBlocking && deviation.take(executionDim).forall(x => SimplifyExpression.evalIntegral(x) == 0)) {
         SimplifyExpression.evalIntegral(deviation(executionDim)) match {
           case 0 => new VariableAccess("current")
-          case x if 0L until offsetForSharedMemoryAccess+1 contains x => new VariableAccess("infront" + (x-1))
-          case y if 0L to -offsetForSharedMemoryAccess by -1 contains y => new VariableAccess("behind" + (math.abs(y)-1))
+          case x if 0L to offsetForSharedMemoryAccess contains x => new VariableAccess("infront" + x)
+          case y if 0L to -offsetForSharedMemoryAccess by -1 contains y => new VariableAccess("behind" + math.abs(y))
         }
       } else {
         new CUDA_SharedArrayAccess(VariableAccess(ExpKernel.KernelVariablePrefix + identifier, Some(PointerDatatype(access.fieldSelection.field.resolveDeclType))), (access.index - fieldToOffset).indices.take(executionDim).reverse, new MultiIndex(sharedArrayStrides))
