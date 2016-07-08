@@ -585,6 +585,14 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         }
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
+      case StringLiteral("omp_get_thread_num()") =>
+        val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
+        if (njuTmp) {
+          val decl = new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(expr))
+          ctx.addStmtPreLoop(decl, expr)
+        }
+        new VariableAccess(vecTmp, SIMD_RealDatatype)
+
       case FloatConstant(value) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
