@@ -318,6 +318,9 @@ class Extractor extends Collector {
   /** stack of additional conditions for the next statements found */
   private val conditions = new ArrayStack[String]()
 
+  /** function to execute after a loop has been processed */
+  private var executeAfterExtraction = new ListBuffer[() => Unit]()
+
   /** all found static control parts */
   val scops = new ArrayBuffer[Scop](256)
   val trash = new ArrayBuffer[(Node, String)] // TODO: debug; remove
@@ -452,6 +455,7 @@ class Extractor extends Collector {
               loop.condition.get.annotate(SKIP_ANNOT)
             if (loop.reduction.isDefined)
               loop.reduction.get.annotate(SKIP_ANNOT)
+            // loop.at1stIt is a list of tuple, StateManager does not handle these, so a skip annotation is not required
             if (loop.parallelizationIsReasonable && loop.optLevel >= 1)
               enterLoop(loop, merge)
 
@@ -563,7 +567,11 @@ class Extractor extends Collector {
           case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
         }
     } catch {
-      case ExtractionException(msg) => curScop.discard(msg)
+      case ExtractionException(msg) =>
+        for (exec <- executeAfterExtraction)
+          exec()
+        executeAfterExtraction.clear()
+        curScop.discard(msg)
     }
   }
 
@@ -604,6 +612,7 @@ class Extractor extends Collector {
     isWrite = false
     skip = false
     mergeScops = false
+    executeAfterExtraction.clear()
     scops.clear()
     trash.clear()
   }
@@ -618,8 +627,11 @@ class Extractor extends Collector {
 
     val dims : Int = loop.numDimensions
 
-    val begin : MultiIndex = loop.indices.begin
-    val end : MultiIndex = loop.indices.end
+    val (begin : MultiIndex, end : MultiIndex) =
+      if (loop.explParLoop)
+        (loop.ompIndices.begin, loop.ompIndices.end)
+      else
+        (loop.indices.begin, loop.indices.end)
     val loopVarExps : MultiIndex = LoopOverDimensions.defIt(loop.numDimensions)
 
     val params = new HashSet[String]()
@@ -648,6 +660,7 @@ class Extractor extends Collector {
     if (bool)
       throw new ExtractionException("loop bounds contain (in)equalities")
 
+    // TODO: interaction betweed condition and at1stIt (see also: TODO in LoopOverDimensions.expandSpecial)
     if (loop.condition.isDefined)
       extractConstraints(loop.condition.get, constrs, true, locCtxConstrs, gloCtxConstrs, params)
     else
@@ -702,9 +715,19 @@ class Extractor extends Collector {
     val mapTemplate : String = templateBuilder.toString()
 
     curScop.create(loop, localContext, globalContext, loop.optLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
+
+    // deal with at1stIt
+    val conds = loop.create1stItConds()
+    val nrConds = conds.length
+    conds ++=: loop.body // prepend to body
+    // undo prepend after extraction
+    executeAfterExtraction += { () => loop.body.remove(0, nrConds) }
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
+    for (exec <- executeAfterExtraction)
+      exec()
+    executeAfterExtraction.clear()
     val scop = curScop.finish()
     if (scop != null) {
       scop.updateLoopVars()

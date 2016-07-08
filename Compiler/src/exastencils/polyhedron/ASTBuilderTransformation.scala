@@ -52,6 +52,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
 
   override def apply(node : Node) : Transformation.OutputType = {
 
+    val loop = node.asInstanceOf[LoopOverDimensions]
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
       return NullStatement
@@ -168,7 +169,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
 
     // add comment (for debugging) and (eventually) declarations outside loop nest
     val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
-    nju.+=:(comment) // "comment +=: nju" works too, but both versions are equally horrible
+    comment +=: nju// prepend
     if (!scop.decls.isEmpty) {
       val scopeList = new ListBuffer[Statement]
       for (decl : VariableDeclarationStatement <- scop.decls) {
@@ -177,9 +178,9 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
           scopeList += decl
       }
       scopeList ++= nju
-      return new Scope(scopeList)
+      return new Scope(loop.createOMPThreadsWrapper(scopeList))
     } else
-      return nju
+      return loop.createOMPThreadsWrapper(nju)
   }
 
   private def processIslNode(node : isl.AstNode) : ListBuffer[Statement] = {

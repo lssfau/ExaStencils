@@ -469,6 +469,7 @@ object LoopOverDimensions {
   def defItForDim(dim : Int) = {
     new VariableAccess(dimToString(dim), Some(IntegerDatatype))
   }
+  val threadIdxName : String = "threadIdx"
 
   // object ReplaceOffsetIndicesWithMin extends QuietDefaultStrategy("Replace OffsetIndex nodes with minimum values") {
   //   this += new Transformation("SearchAndReplace", {
@@ -519,20 +520,24 @@ object LoopOverDimensions {
 case class LoopOverDimensions(var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[Statement],
-    var stepSize : MultiIndex = new MultiIndex(), // to be overwritten afterwards
+    var stepSize : MultiIndex = null, // acutal default set in constructor
     var reduction : Option[Reduction] = None,
-    var condition : Option[Expression] = None) extends Statement {
+    var condition : Option[Expression] = None,
+    var genOMPThreadLoop : Boolean = false) extends Statement {
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction], condition : Option[Expression]) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize, reduction, condition)
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex, reduction : Option[Reduction]) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize, reduction)
   def this(numDimensions : Int, indices : IndexRange, body : Statement, stepSize : MultiIndex) = this(numDimensions, indices, ListBuffer[Statement](body), stepSize)
   def this(numDimensions : Int, indices : IndexRange, body : Statement) = this(numDimensions, indices, ListBuffer[Statement](body))
 
-  var parDims : Set[Int] = Set(0 until numDimensions : _*)
-  var isVectorizable : Boolean = false // specifies that this loop can be vectorized even if the innermost dimension is not parallel (if it is, this flag can be ignored)
-
   import LoopOverDimensions._
 
-  if (0 == stepSize.indices.length) stepSize = new MultiIndex(Array.fill(numDimensions)(1))
+  val parDims : Set[Int] = Set(0 until numDimensions : _*)
+  var isVectorizable : Boolean = false // specifies that this loop can be vectorized even if the innermost dimension is not parallel (if it is, this flag can be ignored)
+  val at1stIt : Array[(ListBuffer[Statement], ListBuffer[(String, Any)])] = Array.fill(numDimensions)((new ListBuffer[Statement](), new ListBuffer[(String, Any)]()))
+  var lcCSEApplied : Boolean = false
+
+  if (stepSize == null)
+    stepSize = new MultiIndex(Array.fill(numDimensions)(1))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 
@@ -573,24 +578,72 @@ case class LoopOverDimensions(var numDimensions : Int,
     return (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
   }
 
+  def explParLoop = lcCSEApplied && this.isInstanceOf[OMP_PotentiallyParallel] &&
+    Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverDimensions &&
+    parallelizationIsReasonable && parDims.isEmpty
+
+  def createOMPThreadsWrapper(body : ListBuffer[Statement]) : ListBuffer[Statement] = {
+    if (explParLoop) {
+      val begin = new VariableDeclarationStatement(IntegerDatatype, threadIdxName, IntegerConstant(0))
+      val end = new LowerExpression(new VariableAccess(threadIdxName, IntegerDatatype), IntegerConstant(Knowledge.omp_numThreads))
+      val inc = new ExpressionStatement(new PreIncrementExpression(new VariableAccess(threadIdxName, IntegerDatatype)))
+      return ListBuffer(new ForLoopStatement(begin, end, inc, body) with OMP_PotentiallyParallel)
+
+    } else
+      return body
+  }
+
+  def create1stItConds() : ListBuffer[Statement] = {
+    val inds = if (explParLoop) ompIndices else indices
+
+    var conds : ListBuffer[Statement] = new ListBuffer()
+    // add conditions for first iteration
+    for (d <- 0 until numDimensions)
+      if (!at1stIt(d)._1.isEmpty) {
+        val cond = new ConditionStatement(new EqEqExpression(new VariableAccess(dimToString(d), IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
+        for ((annotId, value) <- at1stIt(d)._2)
+          cond.annotate(annotId, value)
+        conds += cond
+      }
+
+    return conds
+  }
+
+  lazy val ompIndices : IndexRange = {
+    val nju = Duplicate(indices)
+    // update outermost loop according to: begin --> begin + (((end-start+inc-1)/inc * threadIdx) / nrThreads) * inc and end is start for threadIdx+1
+    val outer = numDimensions - 1
+    def oldBegin = Duplicate(indices.begin(outer))
+    def oldEnd = Duplicate(indices.end(outer))
+    def inc = Duplicate(stepSize(outer))
+    def thrId = new VariableAccess(threadIdxName, IntegerDatatype)
+    val njuBegin = oldBegin + (((oldEnd - oldBegin + inc - 1) * thrId) / Knowledge.omp_numThreads) * inc
+    val njuEnd = oldBegin + (((oldEnd - oldBegin + inc - 1) * (thrId + 1)) / Knowledge.omp_numThreads) * inc
+    nju.begin(outer) = SimplifyExpression.simplifyIntegralExpr(njuBegin)
+    nju.end(outer) = SimplifyExpression.simplifyIntegralExpr(njuEnd)
+    nju
+  }
+
   def expandSpecial : ListBuffer[Statement] = {
     def parallelizable(d : Int) = this.isInstanceOf[OMP_PotentiallyParallel] && parDims.contains(d)
     def parallelize(d : Int) = parallelizable(d) && Knowledge.omp_parallelizeLoopOverDimensions && parallelizationIsReasonable
 
+    // TODO: check interaction between at1stIt and condition (see also: TODO in polyhedron.Extractor.enterLoop)
+    var wrappedBody : ListBuffer[Statement] = body
+    create1stItConds() ++=: wrappedBody // prepend to wrappedBody
+
     // add internal condition (e.g. RB)
-    var wrappedBody : ListBuffer[Statement] = (
-      if (condition.isDefined)
-        ListBuffer[Statement](new ConditionStatement(condition.get, body))
-      else
-        body)
+    if (condition.isDefined)
+      wrappedBody = ListBuffer[Statement](new ConditionStatement(condition.get, wrappedBody))
 
     var anyPar : Boolean = false
     val outerPar = if (parDims.isEmpty) -1 else parDims.max
+    val inds = if (explParLoop) ompIndices else indices
     // compile loop(s)
     for (d <- 0 until numDimensions) {
       def it = VariableAccess(dimToString(d), Some(IntegerDatatype))
-      val decl = VariableDeclarationStatement(IntegerDatatype, dimToString(d), Some(indices.begin(d)))
-      val cond = LowerExpression(it, indices.end(d))
+      val decl = VariableDeclarationStatement(IntegerDatatype, dimToString(d), Some(inds.begin(d)))
+      val cond = LowerExpression(it, inds.end(d))
       val incr = AssignmentStatement(it, stepSize(d), "+=")
       val compiledLoop : ForLoopStatement with OptimizationHint =
         if (parallelize(d) && d == outerPar) {
@@ -607,7 +660,9 @@ case class LoopOverDimensions(var numDimensions : Int,
       compiledLoop.isVectorizable = isVectorizable
     }
 
-    var retStmts = ListBuffer[Statement]()
+    wrappedBody = createOMPThreadsWrapper(wrappedBody)
+
+    var retStmts : ListBuffer[Statement] = null
 
     // resolve omp reduction if necessary
     val resolveOmpReduction = (
@@ -617,7 +672,7 @@ case class LoopOverDimensions(var numDimensions : Int,
         && reduction.isDefined
         && ("min" == reduction.get.op || "max" == reduction.get.op))
     if (!resolveOmpReduction) {
-      retStmts ++= wrappedBody
+      retStmts = wrappedBody
     } else {
       // resolve max reductions
       val redOp = reduction.get.op
@@ -629,7 +684,7 @@ case class LoopOverDimensions(var numDimensions : Int,
       // FIXME: this assumes real data types -> data type should be determined according to redExp
       val decl = VariableDeclarationStatement(ArrayDatatype(RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
       val init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
-      val redOperands = ListBuffer[Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
+      val redOperands = ListBuffer[Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : Expression)
       val red = AssignmentStatement(redExp, if ("min" == redOp) MinimumExpression(redOperands) else MaximumExpression(redOperands))
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
@@ -637,7 +692,7 @@ case class LoopOverDimensions(var numDimensions : Int,
       ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
-      retStmts += Scope(ListBuffer[Statement](decl) ++= init ++= wrappedBody += red)
+      retStmts = ListBuffer(Scope(decl +=: init ++=: wrappedBody += red))
     }
 
     retStmts
