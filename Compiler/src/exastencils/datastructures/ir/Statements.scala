@@ -328,7 +328,7 @@ case class SIMD_HorizontalMulStatement(var dest : Expression, var src : Expressi
 case class SIMD_HorizontalMinStatement(var dest : Expression, var src : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX")
-      out << "NOT VALID ; vec_min not available on BG/Q"
+      out << "NOT VALID ; vec_min not available on BG/Q" // FIXME: cmp and sel!
     else
       HorizontalPrinterHelper.prettyprint(out, dest, src, "min", "=", "std::min")
   }
@@ -337,7 +337,7 @@ case class SIMD_HorizontalMinStatement(var dest : Expression, var src : Expressi
 case class SIMD_HorizontalMaxStatement(var dest : Expression, var src : Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX")
-      out << "NOT VALID ; vec_max not available on BG/Q"
+      out << "NOT VALID ; vec_max not available on BG/Q" // FIXME: cmp and sel!
     else
       HorizontalPrinterHelper.prettyprint(out, dest, src, "max", "=", "std::max")
   }

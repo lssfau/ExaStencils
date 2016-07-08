@@ -160,12 +160,15 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
     // deal with negatives
     case NegativeExpression(NegativeExpression(expr))                      => expr
-    case NegativeExpression(AdditionExpression(sums))                      => AdditionExpression(sums.map { s => NegativeExpression(s) })
+    case NegativeExpression(AdditionExpression(sums))                      => AdditionExpression(sums.transform { s => NegativeExpression(s) })
     case NegativeExpression(SubtractionExpression(left, right))            => SubtractionExpression(right, left)
 
     case DivisionExpression(NegativeExpression(l), NegativeExpression(r))  => DivisionExpression(l, r)
     case DivisionExpression(l, NegativeExpression(r))                      => NegativeExpression(DivisionExpression(l, r))
     case DivisionExpression(NegativeExpression(l), r)                      => NegativeExpression(DivisionExpression(l, r))
+
+    case NegativeExpression(MaximumExpression(exps))                       => MinimumExpression(exps.transform { s => NegativeExpression(s) })
+    case NegativeExpression(MinimumExpression(exps))                       => MaximumExpression(exps.transform { s => NegativeExpression(s) })
 
     // Simplify vectors
     case NegativeExpression(v : VectorExpression) =>

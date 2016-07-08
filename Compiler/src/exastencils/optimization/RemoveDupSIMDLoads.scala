@@ -1,11 +1,12 @@
 package exastencils.optimization
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
-import exastencils.core.collectors.Collector
+import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -15,8 +16,9 @@ import exastencils.util._
 
 object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") {
 
-  private[optimization] final val NEW_DECLS_ANNOT = "RDSL_Decls_Cond"
+  private[optimization] final val ADD_BEFORE_ANNOT = "RDSL_AddB"
   private[optimization] final val REPL_ANNOT = "RDSL_Repl"
+  private[optimization] final val REMOVE_ANNOT = "RDSL_Rem"
 
   override def apply() : Unit = {
     this.transaction()
@@ -86,15 +88,16 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
   }
 }
 
-private[optimization] final class Analyze extends Collector {
+private[optimization] final class Analyze extends StackCollector {
   import RemoveDupSIMDLoads._
 
   private var preLoopDecls : ListBuffer[Statement] = null
-  private var loads : HashMap[(Expression, HashMap[Expression, Long]), VariableDeclarationStatement] = null
+  private var loads : HashMap[(Expression, HashMap[Expression, Long]), (VariableDeclarationStatement, Buffer[List[Node]])] = null
   private var upLoopVar : UpdateLoopVar = null
   private var hasOMPPragma : Boolean = false
 
   override def enter(node : Node) : Unit = {
+    super.enter(node)
     node match {
       case ForLoopStatement(VariableDeclarationStatement(IntegerDatatype, lVar, Some(start)),
         LowerExpression(VariableAccess(lVar3, _), end),
@@ -103,8 +106,8 @@ private[optimization] final class Analyze extends Collector {
         =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
           preLoopDecls = new ListBuffer[Statement]
-          node.annotate(NEW_DECLS_ANNOT, preLoopDecls)
-          loads = new HashMap[(Expression, HashMap[Expression, Long]), VariableDeclarationStatement]
+          node.annotate(ADD_BEFORE_ANNOT, preLoopDecls)
+          loads = new HashMap[(Expression, HashMap[Expression, Long]), (VariableDeclarationStatement, Buffer[List[Node]])]
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
           hasOMPPragma = node.isInstanceOf[OMP_PotentiallyParallel]
         }
@@ -115,11 +118,12 @@ private[optimization] final class Analyze extends Collector {
         val indSum : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
 
-        if (other.isDefined)
-          decl.expression = Some(new VariableAccess(other.get.name, SIMD_RealDatatype))
+        if (other.isDefined) {
+          decl.expression = Some(new VariableAccess(other.get._1.name, SIMD_RealDatatype))
+          other.get._2 += stack.elems // super.stack
 
-        else {
-          loads((base, indSum)) = decl
+        } else {
+          loads((base, indSum)) = (decl, ArrayBuffer(stack.elems)) // super.stack
 
           // test if the vector can be reused next iteration
           if (!hasOMPPragma) {
@@ -130,11 +134,11 @@ private[optimization] final class Analyze extends Collector {
                 SIMD_LoadExpression(AddressofExpression(
                   ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
               decl.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
-              if (nextIt.get.hasAnnotation(REPL_ANNOT))
-                nextIt.get.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(nextIt.get.name, SIMD_RealDatatype),
+              if (nextIt.get._1.hasAnnotation(REPL_ANNOT))
+                nextIt.get._1.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(nextIt.get._1.name, SIMD_RealDatatype),
                   new VariableAccess(vecTmp, SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
               else
-                nextIt.get.annotate(REPL_ANNOT, new VariableDeclarationStatement(SIMD_RealDatatype, nextIt.get.name,
+                nextIt.get._1.annotate(REPL_ANNOT, new VariableDeclarationStatement(SIMD_RealDatatype, nextIt.get._1.name,
                   new VariableAccess(vecTmp, SIMD_RealDatatype)))
             }
           }
@@ -145,14 +149,43 @@ private[optimization] final class Analyze extends Collector {
   }
 
   override def leave(node : Node) : Unit = {
-    if (node.hasAnnotation(NEW_DECLS_ANNOT)) {
+    if (node.hasAnnotation(ADD_BEFORE_ANNOT)) {
+      // check if some declarations must be moved out of their scope
+      for ((_, (_, ancss)) <- loads; if (ancss.length > 1)) {
+        var loadAncs = ancss.head
+        val load = loadAncs.head.asInstanceOf[VariableDeclarationStatement]
+        for (i <- 1 until ancss.length) {
+          val reuseAncs : List[Node] = ancss(i)
+          import scala.util.control.Breaks.{breakable, break}
+          breakable {
+            do {
+              var rAs : List[Node] = reuseAncs
+              val lAParent : Node = loadAncs.tail.head
+              do {
+                rAs = rAs.tail
+                if (lAParent eq rAs.head)
+                  break
+              } while (!rAs.head.isInstanceOf[ForLoopStatement])
+              loadAncs = loadAncs.tail
+            } while (true)
+          }
+        }
+        if (load ne loadAncs.head) {
+          // load declaration must be moved out, directly before node loadAncs.head
+          val annot = loadAncs.head.asInstanceOf[Annotatable]
+          annot.annotations.getOrElseUpdate(ADD_BEFORE_ANNOT, new ListBuffer[Statement]()).asInstanceOf[ListBuffer[Statement]] += Duplicate(load)
+          load.annotate(REMOVE_ANNOT)
+        }
+      }
       preLoopDecls = null
       loads = null
       upLoopVar = null
     }
+    super.leave(node)
   }
 
   override def reset() : Unit = {
+    super.reset()
     preLoopDecls = null
   }
 
@@ -193,18 +226,22 @@ private final object Adapt extends PartialFunction[Node, Transformation.OutputTy
   import RemoveDupSIMDLoads._
 
   def isDefinedAt(node : Node) : Boolean = {
-    return node.hasAnnotation(NEW_DECLS_ANNOT) || node.hasAnnotation(REPL_ANNOT)
+    return node.hasAnnotation(ADD_BEFORE_ANNOT) || node.hasAnnotation(REPL_ANNOT) || node.hasAnnotation(REMOVE_ANNOT)
   }
 
   def apply(node : Node) : Transformation.OutputType = {
 
-    val decls = node.removeAnnotation(NEW_DECLS_ANNOT)
-    if (decls.isDefined) {
-      val stmts = decls.get.asInstanceOf[ListBuffer[Statement]]
-      stmts += node.asInstanceOf[Statement]
-      return stmts
-    }
+    val decls = node.removeAnnotation(ADD_BEFORE_ANNOT).asInstanceOf[Option[ListBuffer[Statement]]]
+    if (decls.isDefined)
+      return decls.get += node.asInstanceOf[Statement]
 
-    return node.removeAnnotation(REPL_ANNOT).get.asInstanceOf[Node]
+    val repl = node.removeAnnotation(REPL_ANNOT).asInstanceOf[Option[Node]]
+    if (repl.isDefined)
+      return repl.get
+
+    if (node.removeAnnotation(REMOVE_ANNOT).isDefined)
+      return None
+
+    Logger.error("Adapt.isDefinedAt(Node) does not match Adapt.apply(Node)  in exastencils/optimization/RemoveDupSIMDLoads.scala")
   }
 }

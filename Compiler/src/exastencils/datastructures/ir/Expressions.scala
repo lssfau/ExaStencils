@@ -975,6 +975,42 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
   }
 }
 
+case class SIMD_MinimumExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    if (Platform.simd_instructionSet == "QPX") // TODO: export function
+      out << "vec_sel(" << right << ", " << left << ", vec_cmplt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...
+    else {
+      val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+      Platform.simd_instructionSet match {
+        case "SSE3" => out << "_mm_min_p" << prec
+        case "AVX" | "AVX2" => out << "_mm256_min_p" << prec
+        case "AVX512" => out << "_mm512_min_p" << prec
+        case "IMCI" => out << "_mm512_gmin_p" << prec
+        case "NEON" => out << "vmin_f32"
+      }
+      out << '(' << left << ", " << right << ')'
+    }
+  }
+}
+
+case class SIMD_MaximumExpression(var left : Expression, var right : Expression) extends Expression {
+  override def prettyprint(out : PpStream) : Unit = {
+    if (Platform.simd_instructionSet == "QPX") // TODO: export function
+      out << "vec_sel(" << right << ", " << left << ", vec_cmpgt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...
+    else {
+      val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+      Platform.simd_instructionSet match {
+        case "SSE3" => out << "_mm_max_p" << prec
+        case "AVX" | "AVX2" => out << "_mm256_max_p" << prec
+        case "AVX512" => out << "_mm512_max_p" << prec
+        case "IMCI" => out << "_mm512_gmax_p" << prec
+        case "NEON" => out << "vmax_f32"
+      }
+      out << '(' << left << ", " << right << ')'
+    }
+  }
+}
+
 case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
@@ -982,9 +1018,9 @@ case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Express
       case "SSE3"         => out << "_mm_set1_p" << prec
       case "AVX" | "AVX2" => out << "_mm256_set1_p" << prec
       case "AVX512"       => out << "_mm512_set1_p" << prec
+      case "IMCI"         => out << "_mm512_set_1to" << Platform.simd_vectorSize << "_p" << prec
       case "QPX"          => out << "vec_splats"
       case "NEON"         => out << "vdupq_n_f32"
-      case "IMCI"         => out << "_mm512_set_1to" << Platform.simd_vectorSize << "_p" << prec
     }
     out << '(' << scalar << ')'
   }
