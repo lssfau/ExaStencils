@@ -221,8 +221,9 @@ case class CUDA_MinimumExpression(left : Expression, right : Expression) extends
   }
 }
 
-case class CUDA_MacroDefinitionStatement(macroName : String, value : Expression) extends Statement {
-  override def prettyprint(out: PpStream): Unit = {
-    out << "#define " << macroName << " " << value
-  }
+case class CUDA_RestrictVariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
+  def this(n : String, dT : Datatype) = this(n, Option(dT))
+  override def prettyprint(out : PpStream) : Unit = out << name
+
+  def printDeclaration() : String = "const " + dType.get.resolveDeclType.prettyprint + " __restrict__ " + name + dType.get.resolveDeclPostscript
 }

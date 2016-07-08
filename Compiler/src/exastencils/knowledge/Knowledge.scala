@@ -331,6 +331,7 @@ object Knowledge {
   var experimental_cuda_spatialBlock_tile_z : Int = 8 // default tile size in z dimension for smem spatial blocking
   var experimental_cuda_favorL1CacheOverSharedMemory : Boolean = false
   def experimental_cuda_spatialBlock_tiles : Array[Int] = Array[Int](experimental_cuda_spatialBlock_tile_x, experimental_cuda_spatialBlock_tile_y, experimental_cuda_spatialBlock_tile_z)
+  var experimental_cuda_spatialBlockingWithROC = false // apply spatial blocking with read-only cache
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements

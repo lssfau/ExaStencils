@@ -377,6 +377,7 @@ case class ExpKernel(var identifier : String,
 
   var evaluatedAccesses = false
   var linearizedFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
+  var writtenFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
   var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
 
   var evaluatedIndexBounds = false
@@ -504,6 +505,12 @@ case class ExpKernel(var identifier : String,
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
       GatherLocalLinearizedFieldAccess.applyStandalone(new Scope(body))
       linearizedFieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
+
+      if (Knowledge.experimental_cuda_spatialBlockingWithROC) {
+        GatherWrittenLocalLinearizedFieldAccess.writtenFieldAccesses.clear
+        GatherWrittenLocalLinearizedFieldAccess.applyStandalone(new Scope(body))
+        writtenFieldAccesses = GatherWrittenLocalLinearizedFieldAccess.writtenFieldAccesses
+      }
 
       GatherLocalIVs.ivAccesses.clear
       GatherLocalIVs.applyStandalone(new Scope(body))
@@ -895,9 +902,20 @@ case class ExpKernel(var identifier : String,
       fctParams += VariableAccess(s"${KernelVariablePrefix}end_$dim", Some(IntegerDatatype))
     }
 
-    for (fieldAccess <- linearizedFieldAccesses) {
-      val fieldSelection = fieldAccess._2.fieldSelection
-      fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
+    if (Knowledge.experimental_cuda_spatialBlockingWithROC && identifier.contains("Smoother")) {
+      for (fieldAccess <- linearizedFieldAccesses.filter(p => !writtenFieldAccesses.contains(p._1))) {
+        val fieldSelection = fieldAccess._2.fieldSelection
+        fctParams += VariableAccess(fieldAccess._1, Some(CUDAConstPointerDatatype(fieldSelection.field.resolveDeclType)))
+      }
+      for (fieldAccess <- writtenFieldAccesses) {
+        val fieldSelection = fieldAccess._2.fieldSelection
+        fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
+      }
+    } else {
+      for (fieldAccess <- linearizedFieldAccesses) {
+        val fieldSelection = fieldAccess._2.fieldSelection
+          fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
+      }
     }
 
     if (fieldsForSharedMemory.isDefined)
@@ -981,6 +999,32 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
     case access : LinearizedFieldAccess =>
       val identifier = extractIdentifier(access)
       ArrayAccess(identifier, access.index)
+  })
+}
+
+object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering local written LinearizedFieldAccess nodes for read-only cache usage") {
+  var writtenFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
+
+  def mapFieldAccess(access : LinearizedFieldAccess) = {
+    val field = access.fieldSelection.field
+    var identifier = field.codeName
+
+    // TODO: array fields
+    if (field.numSlots > 1) {
+      access.fieldSelection.slot match {
+        case SlotAccess(_, offset) => identifier += s"_o$offset"
+        case IntegerConstant(slot) => identifier += s"_s$slot"
+        case _ => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+      }
+    }
+
+    writtenFieldAccesses.put(identifier, access)
+  }
+
+  this += new Transformation("Searching", {
+    case stmt @ AssignmentStatement(access @ LinearizedFieldAccess(fieldSelection : FieldSelection, index : Expression), _, _) =>
+      mapFieldAccess(access)
+      stmt
   })
 }
 

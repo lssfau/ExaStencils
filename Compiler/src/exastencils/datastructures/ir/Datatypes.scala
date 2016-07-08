@@ -268,6 +268,11 @@ case class ConstPointerDatatype(override val datatype : Datatype) extends Pointe
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
+case class CUDAConstPointerDatatype(override val datatype: Datatype) extends PointerLikeDatatype {
+  override def prettyprint(out: PpStream): Unit = out << "const " << datatype << "* __restrict__"
+  override def prettyprint_mpi: String = s"INVALID DATATYPE: " + this.prettyprint()
+}
+
 case class ReferenceDatatype(override val datatype : Datatype) extends ReferenceLikeDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '&'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
