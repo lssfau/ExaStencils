@@ -381,7 +381,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
     }
 
     case buf : iv.LoopCarriedCSBuffer => {
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, null, null, null, null).prettyprint()
+      val id = buf.resolveName
       val size : Expression =
         if (buf.dimSizes.isEmpty)
           IntegerConstant(1)
@@ -425,14 +425,14 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       buf
 
     case buf : iv.LoopCarriedCSBuffer =>
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, null, null, null, null).prettyprint
+      val id = buf.resolveName
       var size = bufferSizes(id)
       try {
         size = SimplifyExpression.simplifyIntegralExpr(size)
       } catch {
         case ex : EvaluationException => // what a pitty...
       }
-      bufferAllocs += (id -> new LoopOverFragments(new AssignmentStatement(buf, Allocation(buf.baseDatatype, size))) with OMP_PotentiallyParallel)
+      bufferAllocs += (id -> buf.wrapInLoops(new AssignmentStatement(buf, Allocation(buf.baseDatatype, size))))
       buf
   })
 

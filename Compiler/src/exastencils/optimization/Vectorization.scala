@@ -525,6 +525,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                 if (containsVarAcc(expr, ctx.itName))
                   throw new VectorizationException("no linear memory access;  " + index.prettyprint())
             }
+          if (ctx.ignIncr) // that means we basically only compute a scalar value
+            access1 = true
 
           val vs = Platform.simd_vectorSize
           val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
@@ -583,6 +585,14 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             ctx.addStmt(decl)
           } else
             ctx.addStmtPreLoop(decl, expr)
+        }
+        new VariableAccess(vecTmp, SIMD_RealDatatype)
+
+      case StringLiteral("omp_get_thread_num()") =>
+        val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
+        if (njuTmp) {
+          val decl = new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(expr))
+          ctx.addStmtPreLoop(decl, expr)
         }
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
