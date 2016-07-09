@@ -624,13 +624,16 @@ case class ExpKernel(var identifier : String,
     statements += condition
 
     if (smemCanBeUsed && fieldForSharedMemory.isDefined) {
-      // For every field allocate shared memory and add load operations
+      val localPrefix = KernelVariablePrefix + "local_"
+      val sharedMemoryStatements = ListBuffer[Statement]()
+      val sharedArrayStrides = new MultiIndex(sharedArraySize)
+      var zDimLoopBody = ListBuffer[Statement]()
+      val current = new VariableAccess("current", IntegerDatatype)
+
       // 1. Annotate the loop variables appearing in the shared memory accesses to guarantee the right substitution later
       AnnotatingLoopVariablesForSharedMemoryAccess.loopVariables = loopVariables
       AnnotatingLoopVariablesForSharedMemoryAccess.accessName = fieldName
       AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccessesForSharedMemory.map(x => new ExpressionStatement(x))))
-
-      val localPrefix = KernelVariablePrefix + "local_"
 
       // 2. Add local Thread ID calculation for indexing shared memory
       statements ++= (0 until executionDim).map(dim => {
@@ -644,13 +647,8 @@ case class ExpKernel(var identifier : String,
       // 3. Add shared memory declarations
       statements += new CUDA_SharedArray(KernelVariablePrefix + fieldName, fieldDatatype, sharedArraySize.reverse)
 
-      val sharedMemoryStatements = ListBuffer[Statement]()
-      val sharedArrayStrides = new MultiIndex(sharedArraySize)
-      var zDimLoopBody = ListBuffer[Statement]()
-      val current = new VariableAccess("current", IntegerDatatype)
-
-      // 1. Declarations for neighbors and current point
       if (spatialBlockingCanBeApplied) {
+        // 4. Declarations for neighbors and current point
         val spatialBaseIndex = new MultiIndex(fieldBaseIndex.indices.take(executionDim) :+ fieldOffset.indices(executionDim))
         (1L to radius).foreach(x => {
           statements += new VariableDeclarationStatement(fieldDatatype, "infront" + x, new DirectFieldAccess(fieldForSharedMemory.get.fieldSelection, spatialBaseIndex + new MultiIndex(Array[Long](0, 0, x))).linearize)
@@ -658,7 +656,8 @@ case class ExpKernel(var identifier : String,
         })
         statements += new VariableDeclarationStatement(fieldDatatype, "current", new DirectFieldAccess(fieldForSharedMemory.get.fieldSelection, spatialBaseIndex).linearize)
 
-        // 2. advance the slice (move the thread front)
+        // 5. Add statements for loop body in kernel (z-Dim)
+        // 5.1 advance the slice (move the thread front)
         (radius to 2L by -1).foreach(x => {
           sharedMemoryStatements += new AssignmentStatement(new VariableAccess("behind" + x), new VariableAccess("behind" + (x - 1)))
         })
@@ -670,22 +669,23 @@ case class ExpKernel(var identifier : String,
 
         sharedMemoryStatements += new AssignmentStatement(new VariableAccess("infront" + radius), new DirectFieldAccess(fieldForSharedMemory.get.fieldSelection, fieldBaseIndex + new MultiIndex(Array[Long](0, 0, 1))).linearize)
 
-        sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localThreadId.take(executionDim).reverse, sharedArrayStrides), current)
+        // 5.2 load from global memory into shared memory
+        sharedMemoryStatements += new AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localThreadId.take(executionDim).reverse, sharedArrayStrides), current)
       } else {
-        // 1. Load from global memory into shared memory
-        sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localThreadId.reverse, sharedArrayStrides), new DirectFieldAccess(fieldForSharedMemory.get.fieldSelection, fieldForSharedMemory.get.index).linearize)
+        // 6. Load from global memory into shared memory
+        sharedMemoryStatements += new AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localThreadId.reverse, sharedArrayStrides), new DirectFieldAccess(fieldForSharedMemory.get.fieldSelection, fieldForSharedMemory.get.index).linearize)
       }
 
-      // 2. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
+      // 7. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
       // and sync threads afterwards to guarantee that every thread has the same memory state
       sharedMemoryStatements ++= (0 until executionDim).map(dim => {
         val it = dimToString(dim)
 
-        // 2.1 Check if current thread resides on the left border in any dimension
+        // 7.1 Check if current thread resides on the left border in any dimension
         val condition = OrOrExpression(LowerExpression(MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), it), radius), EqEqExpression(globalThreadId(dim), s"${KernelVariablePrefix}begin_$dim"))
         val conditionBody = ListBuffer[Statement]()
 
-        // 5.2 Calculate the offset from the left to the right border of the actual field
+        // 7.2 Calculate the offset from the left to the right border of the actual field
         val localFieldOffsetName : String = "localFieldOffset"
         conditionBody += VariableDeclarationStatement(IntegerDatatype, localFieldOffsetName, Some(
           new CUDA_MinimumExpression(
@@ -694,7 +694,7 @@ case class ExpKernel(var identifier : String,
             SubtractionExpression(s"${KernelVariablePrefix}end_$dim", globalThreadId(dim)))))
         val localFieldOffset = VariableAccess(localFieldOffsetName, Some(IntegerDatatype))
 
-        // 5.3 Calculate the indices for writing into the shared memory and loading from the global memory
+        // 7.3 Calculate the indices for writing into the shared memory and loading from the global memory
         val localLeftIndex = Duplicate(localThreadId)
         val localRightIndex = Duplicate(localThreadId)
         localLeftIndex(dim) = SubtractionExpression(localLeftIndex(dim), radius)
@@ -704,7 +704,7 @@ case class ExpKernel(var identifier : String,
         globalLeftIndex(dim) = SubtractionExpression(globalLeftIndex(dim), radius)
         globalRightIndex(dim) = new AdditionExpression(globalRightIndex(dim), localFieldOffset)
 
-        // 5.4 Thread residing on left border should load left neighbor and the right neighbor of the point residing
+        // 7.4 Thread residing on left border should load left neighbor and the right neighbor of the point residing
         // on the right border of the actual field
         conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localLeftIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldForSharedMemory.get.fieldSelection, globalLeftIndex).linearize)
         conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + fieldName, localRightIndex.reverse, sharedArrayStrides), new DirectFieldAccess(fieldForSharedMemory.get.fieldSelection, globalRightIndex).linearize)
@@ -712,14 +712,17 @@ case class ExpKernel(var identifier : String,
       })
 
       if (spatialBlockingCanBeApplied) {
+        // 8. Complete loop body for spatial blocking
         zDimLoopBody += new ConditionStatement(conditionAccess, sharedMemoryStatements)
         zDimLoopBody += new CUDA_SyncThreads()
         zDimLoopBody += new ConditionStatement(conditionAccess, body)
 
         statements += new ForLoopStatement(new VariableDeclarationStatement(IntegerDatatype, loopVariables(executionDim), s"${KernelVariablePrefix}begin_$executionDim"), LowerExpression(new VariableAccess(loopVariables(executionDim)), s"${KernelVariablePrefix}end_$executionDim"), new AssignmentStatement(loopVariables(executionDim), new AdditionExpression(loopVariables(executionDim), IntegerConstant(1))), zDimLoopBody)
+
+        // 9. Remove the used loop variable to avoid later complications in loop variable substitution
         loopVariables.remove(executionDim)
       } else {
-        // 6. Add whole shared memory initialization wrapped in a ConditionStatement to the body
+        // 10. Add whole shared memory initialization wrapped in a ConditionStatement to the body
         statements += new ConditionStatement(conditionAccess, sharedMemoryStatements)
 
         // This may not be part of the ConditionStatement to avoid dead locks if some thread do not fulfill the condition
@@ -733,7 +736,7 @@ case class ExpKernel(var identifier : String,
     body = statements
 
     // add actual body after replacing field and iv accesses
-    // replace fieldaccesses in body with shared memory accesses
+    // replace FieldAccess nodes in body with shared memory accesses
     if (smemCanBeUsed) {
       ReplacingLocalFieldAccessLikeForSharedMemory.fieldToOffset = fieldOffset
       ReplacingLocalFieldAccessLikeForSharedMemory.offsetForSharedMemoryAccess = radius
@@ -748,7 +751,7 @@ case class ExpKernel(var identifier : String,
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(new Scope(body))
     ReplacingLocalIVArrays.applyStandalone(new Scope(body))
-    ReplacingLoopVariables.loopVariables = loopVariables
+    ReplacingLoopVariables.loopVariables = loopVariables.drop(firstNSeqDims)
     ReplacingLoopVariables.applyStandalone(new Scope(body))
 
     body
@@ -839,18 +842,13 @@ case class ExpKernel(var identifier : String,
       fctParams += VariableAccess(s"${KernelVariablePrefix}end_$dim", Some(IntegerDatatype))
     }
 
-    if (Knowledge.experimental_cuda_spatialBlockingWithROC && identifier.contains("Smoother")) {
-      for (fieldAccess <- linearizedFieldAccesses.filter(p => !writtenFieldAccesses.contains(p._1))) {
-        val fieldSelection = fieldAccess._2.fieldSelection
+    for (fieldAccess <- linearizedFieldAccesses) {
+      val fieldSelection = fieldAccess._2.fieldSelection
+
+      // add required parameter specifiers to take advantage of the read-only cache
+      if (Knowledge.experimental_cuda_spatialBlockingWithROC && !writtenFieldAccesses.contains(fieldAccess._1)) {
         fctParams += VariableAccess(fieldAccess._1, Some(CUDAConstPointerDatatype(fieldSelection.field.resolveDeclType)))
-      }
-      for (fieldAccess <- writtenFieldAccesses) {
-        val fieldSelection = fieldAccess._2.fieldSelection
-        fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
-      }
-    } else {
-      for (fieldAccess <- linearizedFieldAccesses) {
-        val fieldSelection = fieldAccess._2.fieldSelection
+      } else {
         fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
       }
     }

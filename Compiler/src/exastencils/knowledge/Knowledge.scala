@@ -326,11 +326,7 @@ object Knowledge {
   var experimental_cuda_useSharedMemory : Boolean = false // specify if shared memory should be used within kernels
   var experimental_cuda_linearizeSharedMemoryAccess : Boolean = false
   var experimental_cuda_applySpatialBlocking : Boolean = false
-  var experimental_cuda_spatialBlock_tile_x : Int = 8 // default tile size in x dimension for smem spatial blocking
-  var experimental_cuda_spatialBlock_tile_y : Int = 8 // default tile size in y dimension for smem spatial blocking
-  var experimental_cuda_spatialBlock_tile_z : Int = 8 // default tile size in z dimension for smem spatial blocking
   var experimental_cuda_favorL1CacheOverSharedMemory : Boolean = false
-  def experimental_cuda_spatialBlock_tiles : Array[Int] = Array[Int](experimental_cuda_spatialBlock_tile_x, experimental_cuda_spatialBlock_tile_y, experimental_cuda_spatialBlock_tile_z)
   var experimental_cuda_spatialBlockingWithROC = false // apply spatial blocking with read-only cache
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
@@ -524,6 +520,13 @@ object Knowledge {
 
     Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
     Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+
+    Constraints.condWarn(experimental_cuda_useSharedMemory && experimental_cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
+    Constraints.condWarn(experimental_cuda_applySpatialBlocking && !experimental_cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
+    Constraints.condEnsureValue(experimental_cuda_applySpatialBlocking, false, !experimental_cuda_useSharedMemory)
+    Constraints.condWarn((experimental_cuda_useSharedMemory || experimental_cuda_applySpatialBlocking) && experimental_cuda_spatialBlockingWithROC, "Shared memory and/or spatial blocking with shared memory cannot be used if spatial blocking with read-only cache is enabled!")
+    Constraints.condEnsureValue(experimental_cuda_useSharedMemory, false, experimental_cuda_spatialBlockingWithROC)
+    Constraints.condEnsureValue(experimental_cuda_applySpatialBlocking, false, experimental_cuda_spatialBlockingWithROC)
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
 
