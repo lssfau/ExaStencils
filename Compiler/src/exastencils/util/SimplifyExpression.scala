@@ -1,18 +1,14 @@
 package exastencils.util
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import exastencils.core.Duplicate
-import exastencils.core.StateManager
-import exastencils.datastructures._
+import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.knowledge.FieldSelection
 import exastencils.logger._
-import exastencils.strategies.SimplifyStrategy
+import exastencils.strategies._
 
 import scala.collection._
+import scala.collection.mutable.{HashMap, ListBuffer}
 
 object SimplifyExpression {
 
