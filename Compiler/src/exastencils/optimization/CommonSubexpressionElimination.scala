@@ -1,5 +1,6 @@
 package exastencils.optimization
 
+import scala.collection.convert.Wrappers.JMapWrapper
 import scala.collection.convert.Wrappers.JSetWrapper
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.BitSet
@@ -57,6 +58,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     }))
 
     Logger.debug(s"Perform common subexpression elimination on ${scopes.length} scopes...")
+    val orderMap = JMapWrapper(new java.util.IdentityHashMap[Any, Int]())
     val bak = Logger.getLevel
     Logger.setLevel(Logger.WARNING) // be quiet! (R)
     for ((curFunc, parentLoop, loopIt, body) <- scopes) {
@@ -64,13 +66,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       inlineDecls(parentLoop, body())
       val njuScopes : Seq[ListBuffer[Statement]] =
         if (Knowledge.opt_loopCarriedCSE && parentLoop.condition.isEmpty)
-          loopCarriedCSE(curFunc, parentLoop, loopIt)
+          loopCarriedCSE(curFunc, parentLoop, loopIt, orderMap)
         else
           Nil
       if (Knowledge.opt_conventionalCSE) {
-        conventionalCSE(curFunc, body())
+        conventionalCSE(curFunc, body(), orderMap)
         for (njuBody <- njuScopes)
-          conventionalCSE(curFunc, njuBody)
+          conventionalCSE(curFunc, njuBody, orderMap)
       }
       removeAnnotations(body())
     }
@@ -150,7 +152,8 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     SimplifyStrategy.doUntilDoneStandalone(parent, true)
   }
 
-  private def loopCarriedCSE(curFunc : String, loop : LoopOverDimensions, loopIt : Array[(String, Expression, Expression, Long)]) : Seq[ListBuffer[Statement]] = {
+  private def loopCarriedCSE(curFunc : String, loop : LoopOverDimensions,
+      loopIt : Array[(String, Expression, Expression, Long)], orderMap : Map[Any, Int]) : Seq[ListBuffer[Statement]] = {
     if (loopIt == null || loopIt.forall(_ == null))
       return Nil
 
@@ -207,7 +210,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
             }).toSet.size == 2)
       }
 
-      findCommonSubs(curFunc, commonSubs)
+      findCommonSubs(curFunc, commonSubs, orderMap)
 
       val filteredCS : Array[(Int, String, Subexpression)] =
         commonSubs.view.filter {
@@ -316,7 +319,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     return disjunct
   }
 
-  private def conventionalCSE(curFunc : String, body : ListBuffer[Statement]) : Unit = {
+  private def conventionalCSE(curFunc : String, body : ListBuffer[Statement], orderMap : Map[Any, Int]) : Unit = {
     var repeat : Boolean = false
     do {
       val coll = new CollectBaseCSes(curFunc)
@@ -327,13 +330,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       commonSubs.retain { (_, cs) => cs != null && cs.getPositions().size > 1 }
       repeat = false
       if (!commonSubs.isEmpty) {
-        findCommonSubs(curFunc, commonSubs)
+        findCommonSubs(curFunc, commonSubs, orderMap)
         repeat = updateAST(body, commonSubs)
       }
     } while (repeat)
   }
 
-  private def findCommonSubs(curFunc : String, commonSubs : Map[Node, Subexpression]) : Unit = {
+  private def findCommonSubs(curFunc : String, commonSubs : Map[Node, Subexpression], orderMap : Map[Any, Int]) : Unit = {
     val processedChildren = new java.util.IdentityHashMap[Any, Null]()
     var nju : ArrayBuffer[List[Node]] = commonSubs.view.flatMap { x => x._2.getPositions() }.to[ArrayBuffer]
     val njuCommSubs = new HashMap[Node, Subexpression]()
@@ -380,7 +383,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                 //   this must be in sync with Subexpression.getRepls below
               } else if (nrProds == 0 && nrBuffs == 1) {
                 val dupParents : Array[(Expression with Product, Buffer[PrettyPrintable])] =
-                  duplicateAndFill(parent, { case n : Node => commonSubs.contains(n); case _ => false })
+                  duplicateAndFill(parent, { case n : Node => commonSubs.contains(n); case _ => false }, orderMap)
                 for ((dupPar, dupParChildren) <- dupParents)
                   registerCS(dupPar, dupParChildren.view.map { case x : Node => commonSubs(x).prio }.sum + 1, 1, pos, dupPar eq parent, dupParChildren)
 
@@ -450,7 +453,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     * @param orig  	 The original element to be duplicated and filled.
     * 							 `orig.productIterator` must contain a single `Buffer[PrettyPrintable]`, whose elements will be sorted.
     */
-  private def duplicateAndFill[T <: Product : ClassTag](orig : T, relevant : Any => Boolean) : Array[(T, Buffer[PrettyPrintable])] = {
+  private def duplicateAndFill[T <: Product : ClassTag](orig : T, relevant : Any => Boolean, orderMap : Map[Any, Int]) : Array[(T, Buffer[PrettyPrintable])] = {
 
     // every child here should be PrettyPrintable
     val children : Buffer[PrettyPrintable] = orig.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[PrettyPrintable]]
@@ -459,7 +462,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     val interm : Seq[(PrettyPrintable, String)] = children.view.map { x => (x, x.prettyprint()) }
 
     // sort according to prettyprinted version
-    val sortedO : Array[(PrettyPrintable, String)] = Sorting.stableSort(interm, { x => (x._2, x._1.hashCode()) }) // hashcode ensures different nodes with same text. rep. are sorted, too!
+    val sortedO : Array[(PrettyPrintable, String)] = Sorting.stableSort(interm, { x => (x._2, orderMap.getOrElseUpdate(x._1, { orderMap.size })) }) // orderMap ensures different nodes with same text. rep. are sorted, too!
     val sortedF = sortedO.view.map { x => x._1 }.filter(relevant).toBuffer
 
     val len : Int = sortedF.length
