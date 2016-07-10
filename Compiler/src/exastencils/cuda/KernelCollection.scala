@@ -359,7 +359,7 @@ case class ExpKernel(var identifier : String,
   var originalParallelDims = parallelDims
   var firstNSeqDims = loopVariables.size - parallelDims
   val smemCanBeUsed = Knowledge.experimental_cuda_useSharedMemory && firstNSeqDims == 0 && identifier.contains("Smoother")
-  val spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.experimental_cuda_applySpatialBlocking && parallelDims == Platform.hw_cuda_maxNumDimsBlock
+  val spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.experimental_cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
   var executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
 
   // properties required for shared memory analysis and shared memory allocation
@@ -559,29 +559,22 @@ case class ExpKernel(var identifier : String,
 
       if (null == requiredThreadsPerDim || requiredThreadsPerDim.product <= 0) {
         Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
-        requiredThreadsPerDim = (0 until parallelDims).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
+        requiredThreadsPerDim = (0 until executionDim).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
       }
 
       // distribute threads along threads in blocks and blocks in grid
       // NVIDIA GeForce Titan Black has CUDA compute capability 3.5
       // maximum number of threads per block = 1024
       // number of threads per block should be integer multiple of warp size (32)
-      parallelDims match {
+      executionDim match {
         case 1 => numThreadsPerBlock = Array[Long](512)
         case 2 => numThreadsPerBlock = Array[Long](16, 16)
         case _ => numThreadsPerBlock = Array[Long](8, 8, 8)
       }
 
-      numBlocksPerDim = (0 until math.min(parallelDims, Platform.hw_cuda_maxNumDimsBlock)).map(dim => {
+      numBlocksPerDim = (0 until executionDim).map(dim => {
         (requiredThreadsPerDim(dim) + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
       }).toArray
-
-      // correct for spatial blocking with shared memory
-      if (spatialBlockingCanBeApplied) {
-        numThreadsPerBlock = numThreadsPerBlock.take(executionDim)
-        numBlocksPerDim = numBlocksPerDim.take(executionDim)
-        requiredThreadsPerDim = requiredThreadsPerDim.take(executionDim)
-      }
 
       evaluatedExecutionConfiguration = true
     }
@@ -716,8 +709,9 @@ case class ExpKernel(var identifier : String,
         zDimLoopBody += new ConditionStatement(conditionAccess, sharedMemoryStatements)
         zDimLoopBody += new CUDA_SyncThreads()
         zDimLoopBody += new ConditionStatement(conditionAccess, body)
+        zDimLoopBody += new CUDA_SyncThreads()
 
-        statements += new ForLoopStatement(new VariableDeclarationStatement(IntegerDatatype, loopVariables(executionDim), s"${KernelVariablePrefix}begin_$executionDim"), LowerExpression(new VariableAccess(loopVariables(executionDim)), s"${KernelVariablePrefix}end_$executionDim"), new AssignmentStatement(loopVariables(executionDim), new AdditionExpression(loopVariables(executionDim), IntegerConstant(1))), zDimLoopBody)
+        statements += new ForLoopStatement(new VariableDeclarationStatement(IntegerDatatype, loopVariables(executionDim), s"${KernelVariablePrefix}begin_$executionDim"), LowerExpression(new VariableAccess(loopVariables(executionDim)), s"${KernelVariablePrefix}end_$executionDim"), new AssignmentStatement(loopVariables(executionDim), IntegerConstant(1), "+="), zDimLoopBody)
 
         // 9. Remove the used loop variable to avoid later complications in loop variable substitution
         loopVariables.remove(executionDim)
