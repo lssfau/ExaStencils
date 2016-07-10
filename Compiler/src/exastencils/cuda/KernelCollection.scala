@@ -358,8 +358,8 @@ case class ExpKernel(var identifier : String,
 
   var originalParallelDims = parallelDims
   var firstNSeqDims = loopVariables.size - parallelDims
-  val smemCanBeUsed = Knowledge.experimental_cuda_useSharedMemory && firstNSeqDims == 0 && identifier.contains("Smoother")
-  val spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.experimental_cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
+  var smemCanBeUsed = Knowledge.experimental_cuda_useSharedMemory && firstNSeqDims == 0
+  var spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.experimental_cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
   var executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
 
   // properties required for shared memory analysis and shared memory allocation
@@ -387,12 +387,8 @@ case class ExpKernel(var identifier : String,
   var numBlocksPerDim = Array[Long]()
 
   // thread ids
-  val localThreadId = (0 until executionDim).map(dim => {
-    VariableAccess(KernelVariablePrefix + KernelLocalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
-  }).toArray[Expression]
-  var globalThreadId = (0 until executionDim).map(dim => {
-    VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
-  }).toArray[Expression]
+  var localThreadId = Array[Expression]()
+  var globalThreadId = Array[Expression]()
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -405,6 +401,7 @@ case class ExpKernel(var identifier : String,
   def init() : Unit = {
     evalIndexBounds()
     evalExecutionConfiguration()
+    evalThreadIds()
 
     // call this function already in constructor to work on DirectFieldAccesses where indices are not yet linearized.
     // shared memory is currently just working for Smoother
@@ -471,7 +468,7 @@ case class ExpKernel(var identifier : String,
       })
 
       // 2.4 consider this field for shared memory if all conditions are met
-      if (fieldAccesses.size > 1 && leftDeviationFromBaseIndex.deep == rightDeviationFromBaseIndex.deep && requiredMemoryInByte < availableSharedMemory && isSameRadius) {
+      if (fieldAccesses.size > 1 && leftDeviationFromBaseIndex.deep == rightDeviationFromBaseIndex.deep && requiredMemoryInByte < availableSharedMemory && isSameRadius && leftDeviationFromBaseIndex.head > 0) {
         val access = new DirectFieldAccess(fieldAccesses.head.fieldSelection, new MultiIndex(baseIndex))
         access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
         fieldName = name
@@ -490,6 +487,26 @@ case class ExpKernel(var identifier : String,
     // 3. remove annotation from all fields that will not be stored in shared memory
     fieldToFieldAccesses.retain((key, value) => !key.equals(fieldName))
     fieldToFieldAccesses.foreach(fa => fa._2.foreach(a => a.removeAnnotation(LinearizeFieldAccesses.NO_LINEARIZATION)))
+
+    // 4. ensure correct executionDim if no appropriate field was found
+    if (!foundSomeAppropriateField) {
+      executionDim = math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
+      evaluatedExecutionConfiguration = false
+      evalExecutionConfiguration()
+      evalThreadIds()
+    }
+  }
+
+  /**
+    * Create global and local thread ids used in the kernel.
+    */
+  def evalThreadIds() = {
+      localThreadId = (0 until executionDim).map(dim => {
+        VariableAccess(KernelVariablePrefix + KernelLocalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
+      }).toArray[Expression]
+      globalThreadId = (0 until executionDim).map(dim => {
+        VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype))
+      }).toArray[Expression]
   }
 
   /**
