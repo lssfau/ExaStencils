@@ -661,6 +661,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case FunctionCallExpression(func, args) if (SIMD_MathFunctions.isAllowed(func)) =>
         FunctionCallExpression(SIMD_MathFunctions.addUsage(func), args.map { arg => vectorizeExpr(arg, ctx) })
 
+      case PowerExpression(base, exp) if (SIMD_MathFunctions.isAllowed("pow")) =>
+        FunctionCallExpression(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))
+
       case mAcc : MemberAccess =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
