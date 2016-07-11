@@ -1,6 +1,5 @@
 package exastencils.optimization
 
-import scala.collection.convert.Wrappers.JMapWrapper
 import scala.collection.convert.Wrappers.JSetWrapper
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.BitSet
@@ -58,7 +57,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     }))
 
     Logger.debug(s"Perform common subexpression elimination on ${scopes.length} scopes...")
-    val orderMap = JMapWrapper(new java.util.IdentityHashMap[Any, Int]())
+    val orderMap = new HashMap[Any, Int]()
     val bak = Logger.getLevel
     Logger.setLevel(Logger.WARNING) // be quiet! (R)
     for ((curFunc, parentLoop, loopIt, body) <- scopes) {

@@ -872,7 +872,7 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
 
 case class SIMD_NegateExpression(var vect : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    val (prec, ts, fp) = if (Knowledge.useDblPrecision) ('d', "d", 'd') else ('s', "", 'f')
+    val (prec, ts) = if (Knowledge.useDblPrecision) ('d', "d") else ('s', "")
     Platform.simd_instructionSet match {
       case "SSE3"         => out << "_mm_xor_p" << prec << '(' << vect << ", _mm_set1_p" << prec << "(-0.0))"
       case "AVX" | "AVX2" => out << "_mm256_xor_p" << prec << '(' << vect << ", _mm256_set1_p" << prec << "(-0.0))"
