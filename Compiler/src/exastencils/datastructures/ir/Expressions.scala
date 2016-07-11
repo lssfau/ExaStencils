@@ -790,7 +790,16 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
 
 case class SIMD_ExtractScalarExpression(var expr : Expression, var index : Int) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    out << expr << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
+    out << expr
+    if (Platform.targetCompiler == "MSVC")
+      (Platform.simd_instructionSet, Knowledge.useDblPrecision) match {
+        case ("SSE3", false)         => out << ".m128d_f32"
+        case ("SSE3", true)          => out << ".m128d_f64"
+        case ("AVX" | "AVX2", false) => out << ".m256d_f32"
+        case ("AVX" | "AVX2", true)  => out << ".m256d_f64"
+      }
+    else
+      out << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
   }
 }
 
