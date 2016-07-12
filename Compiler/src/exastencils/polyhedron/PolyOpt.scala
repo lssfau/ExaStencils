@@ -678,6 +678,33 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     return schedule.applyRange(trafo)
   }
 
+  private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int, tile_sizes : List[Int]) : isl.UnionMap = {
+    var node : isl.AstNode = new isl.AstNode()
+    schedule.getSpace
+    val space2 = isl_schedule_node_band_get_space(node)
+    node = isl_schedule_node_parent(node)
+    var space = isl_schedule_node_band_get_space(node)
+
+    space = space.product(space2)
+    val mv : isl.MultiVal = multiValFromIntList(space, tile_sizes)
+    node = ppcg_ht_bounds_insert_tiling(bounds, mv, node)
+    node = hybrid_tile_foreach_phase(node, &update_phase, gen)
+    node = hybrid_tile_drop_phase_marks(node)
+    return node;
+  }
+
+  private def multiValFromIntList(space : isl.Space, intList : List[Int]) = {
+    val ctx = space.getCtx
+    val n = space.dim(isl.DimType.Set)
+    var mv = isl.MultiVal.zero(space)
+    (0 until n).foreach(x => {
+      val v = isl.Val.intFromSi(ctx, intList(x))
+      mv = mv.setVal(x, v)
+    })
+
+    mv
+  }
+
   var spamcount : Int = 0 // HACK to reduce the number of warnings generated
 
   private def setSeqTileDims(scop : Scop, nrTiledDims : Int) : Unit = {
