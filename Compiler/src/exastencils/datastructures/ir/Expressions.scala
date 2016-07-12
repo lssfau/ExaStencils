@@ -790,7 +790,16 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
 
 case class SIMD_ExtractScalarExpression(var expr : Expression, var index : Int) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    out << expr << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
+    out << expr
+    if (Platform.targetCompiler == "MSVC")
+      (Platform.simd_instructionSet, Knowledge.useDblPrecision) match {
+        case ("SSE3", false)         => out << ".m128d_f32"
+        case ("SSE3", true)          => out << ".m128d_f64"
+        case ("AVX" | "AVX2", false) => out << ".m256d_f32"
+        case ("AVX" | "AVX2", true)  => out << ".m256d_f64"
+      }
+    else
+      out << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
   }
 }
 
@@ -872,11 +881,11 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
 
 case class SIMD_NegateExpression(var vect : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = {
-    val (prec, ts, fp) = if (Knowledge.useDblPrecision) ('d', "d", 'd') else ('s', "", 'f')
+    val (prec, ts) = if (Knowledge.useDblPrecision) ('d', "d") else ('s', "")
     Platform.simd_instructionSet match {
-      case "SSE3"         => out << "_mm_xor_p" << prec << '(' << vect << ", _mm_set1_p" << prec << "(-0." << fp << "))"
-      case "AVX" | "AVX2" => out << "_mm256_xor_p" << prec << '(' << vect << ", _mm256_set1_p" << prec << "(-0." << fp << "))"
-      case "AVX512"       => out << "_mm512_xor_p" << prec << '(' << vect << ", _mm512_set1_p" << prec << "(-0." << fp << "))"
+      case "SSE3"         => out << "_mm_xor_p" << prec << '(' << vect << ", _mm_set1_p" << prec << "(-0.0))"
+      case "AVX" | "AVX2" => out << "_mm256_xor_p" << prec << '(' << vect << ", _mm256_set1_p" << prec << "(-0.0))"
+      case "AVX512"       => out << "_mm512_xor_p" << prec << '(' << vect << ", _mm512_set1_p" << prec << "(-0.0))"
       case "IMCI"         => out << "_mm512_sub_p" << prec << "((__m512" << ts << ") 0, " << vect << ")" // TODO: is there a more efficient version?
       case "QPX"          => out << "vec_neg(" << vect << ')'
       case "NEON"         => out << "vnegq_f32(" << vect << ')'

@@ -57,8 +57,10 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
         }
       }
       case _ => {
+        if (alignment > 1 && "MSVC" == Platform.targetCompiler)
+          out << "__declspec(align(" << alignment * 8 << ")) "
         out << dataType.resolveDeclType << ' ' << name << dataType.resolveDeclPostscript
-        if (alignment > 1)
+        if (alignment > 1 && "MSVC" != Platform.targetCompiler)
           out << " __attribute__((aligned(" << alignment * 8 << ")))"
         if (expression.isDefined)
           out << " = " << expression.get
