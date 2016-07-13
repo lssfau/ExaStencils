@@ -63,8 +63,8 @@ object LoopCarriedCSBuffer {
   final val commonPrefix = "_lcs"
 }
 
-case class LoopCarriedCSBuffer(var identifier : Int, val baseDatatype : Datatype, val dimSizes : MultiIndex) extends UnduplicatedVariable {
-
+abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private val namePostfix : String,
+    private val baseDatatype : Datatype, private val freeInDtor : Boolean) extends UnduplicatedVariable {
   override def getDeclaration() : VariableDeclarationStatement = {
     val superDecl = super.getDeclaration()
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
@@ -100,7 +100,7 @@ case class LoopCarriedCSBuffer(var identifier : Int, val baseDatatype : Datatype
   }
 
   override def resolveName() : String = {
-    return LoopCarriedCSBuffer.commonPrefix + identifier
+    return LoopCarriedCSBuffer.commonPrefix + identifier + namePostfix
   }
 
   override def resolveDataType() : Datatype = {
@@ -113,10 +113,28 @@ case class LoopCarriedCSBuffer(var identifier : Int, val baseDatatype : Datatype
 
   override def getDtor() : Option[Statement] = {
     val ptrExpr = resolveAccess(resolveName, null, null, null, null, null)
-    return Some(wrapInLoops(
-      new ConditionStatement(ptrExpr,
-        ListBuffer[Statement](
-          FreeStatement(ptrExpr),
-          new AssignmentStatement(ptrExpr, 0)))))
+    if (freeInDtor)
+      return Some(wrapInLoops(
+        new ConditionStatement(ptrExpr,
+          ListBuffer[Statement](
+            FreeStatement(ptrExpr),
+            new AssignmentStatement(ptrExpr, 0)))))
+    else
+      return Some(wrapInLoops(new AssignmentStatement(ptrExpr, 0)))
   }
 }
+
+case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : Datatype, val dimSizes : MultiIndex)
+  extends AbstractLoopCarriedCSBuffer(identifier, "", baseDatatype, !Knowledge.data_alignFieldPointers) {
+
+  lazy val basePtr = new LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
+
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+    super.registerIV(declarations, ctors, dtors)
+    if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
+      basePtr.registerIV(declarations, ctors, dtors)
+  }
+}
+
+case class LoopCarriedCSBufferBasePtr(var identifier : Int, val baseDatatype : Datatype)
+  extends AbstractLoopCarriedCSBuffer(identifier, "_base", baseDatatype, true)

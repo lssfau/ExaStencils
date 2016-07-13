@@ -346,6 +346,8 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
 
   // expose array functions
   override def iterator() : scala.collection.Iterator[Expression] = indices.iterator
+  override def head() : Expression = indices.head
+  override def last() : Expression = indices.last
 
   def apply(i : Int) = indices.apply(i)
   def update(i : Int, x : Expression) = indices.update(i, x)
@@ -375,9 +377,9 @@ case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var in
 
   def linearize() : ArrayAccess = {
     if (buffer.dimSizes.isEmpty)
-      return new ArrayAccess(buffer, IntegerConstant(0), false)
+      return new ArrayAccess(buffer, IntegerConstant(0), Knowledge.data_alignFieldPointers)
 
-    return new ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), false)
+    return new ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
   }
 }
 
@@ -797,9 +799,9 @@ case class SIMD_ExtractScalarExpression(var expr : Expression, var index : Int) 
         case ("SSE3", true)          => out << ".m128d_f64"
         case ("AVX" | "AVX2", false) => out << ".m256d_f32"
         case ("AVX" | "AVX2", true)  => out << ".m256d_f64"
+        case _                       => Logger.error("SIMD_ExtractScalarExpression for MSVC compiler and instruction set " + Platform.simd_instructionSet + " not implemented yet")
       }
-    else
-      out << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
+    out << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
   }
 }
 

@@ -18,6 +18,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.dimToString
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.Platform
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PrettyPrintable
@@ -302,6 +303,14 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       len = tmpBufLen.length
       tmpBufLen = java.util.Arrays.copyOf(tmpBufLen, len + 1)
       tmpBufLen(len) = loopEndOpt - loopBeginOpt
+      if (Knowledge.data_alignFieldPointers)
+        try {
+          val (_, size : Long) = SimplifyExpression.evalIntegralExtrema(tmpBufLen(len))
+          val vecSize : Long = Platform.simd_vectorSize
+          tmpBufLen(len) = IntegerConstant((size + vecSize) & ~(vecSize - 1))
+        } catch {
+          case e : EvaluationException => // what a pitty...
+        }
     }
 
     return njuScopes
