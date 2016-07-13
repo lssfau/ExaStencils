@@ -428,7 +428,16 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       } catch {
         case ex : EvaluationException => // what a pitty...
       }
-      bufferAllocs += (id -> buf.wrapInLoops(new AssignmentStatement(buf, Allocation(buf.baseDatatype, size))))
+      if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned
+        bufferAllocs += (id -> buf.wrapInLoops(new Scope(ListBuffer[Statement](
+          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+            Some(Platform.simd_vectorSize * SizeOfExpression(RealDatatype))),
+          AssignmentStatement(buf.basePtr, Allocation(RealDatatype, size + Platform.simd_vectorSize - 1)),
+          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+            Some(((s"vs_$counter" - (CastExpression(SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(RealDatatype))),
+          AssignmentStatement(buf, buf.basePtr + s"offset_$counter")))))
+      else
+        bufferAllocs += (id -> buf.wrapInLoops(new AssignmentStatement(buf, Allocation(buf.baseDatatype, size))))
       buf
   })
 
