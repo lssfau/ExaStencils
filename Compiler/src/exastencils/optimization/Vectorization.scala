@@ -327,7 +327,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             throw new VectorizationException("Cannot determine alignment properly")
         }
       }
-      // at least one sum is empty, so all remaining coefficients must be evenly dividable
+      // at least one sum is empty, so all remaining coefficients must be evenly divisible
       for (ind <- indexExprs)
         for ((_, coeff) <- ind)
           if (coeff % vs != 0)
