@@ -609,6 +609,14 @@ case class LoopOverDimensions(var numDimensions : Int,
     return conds
   }
 
+  lazy val areOmpIndicesAffine : Boolean = {
+    val outer = numDimensions - 1
+    def oldBegin = Duplicate(indices.begin(outer))
+    def oldEnd = Duplicate(indices.end(outer))
+    def inc = Duplicate(stepSize(outer))
+    SimplifyExpression.simplifyIntegralExpr(oldEnd - oldBegin + inc).isInstanceOf[IntegerConstant]
+  }
+
   lazy val ompIndices : IndexRange = {
     val nju = Duplicate(indices)
     // update outermost loop according to: begin --> begin + (((end-start+inc-1)/inc * threadIdx) / nrThreads) * inc and end is start for threadIdx+1
