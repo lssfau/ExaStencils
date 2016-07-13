@@ -801,8 +801,7 @@ case class SIMD_ExtractScalarExpression(var expr : Expression, var index : Int) 
         case ("AVX" | "AVX2", true)  => out << ".m256d_f64"
         case _                       => Logger.error("SIMD_ExtractScalarExpression for MSVC compiler and instruction set " + Platform.simd_instructionSet + " not implemented yet")
       }
-    else
-      out << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
+    out << '[' << index << ']' // TODO: check if this works with all instruction sets and compiler
   }
 }
 
