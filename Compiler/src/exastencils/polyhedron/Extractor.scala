@@ -454,7 +454,7 @@ class Extractor extends Collector {
       if (!curScop.exists())
         node match {
           // at the moment consider just Smoothers because they have the most potential for optimizations.
-          case loop : LoopOverDimensions with PolyhedronAccessible if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) && loop.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).get.asInstanceOf[String].contains("Smoother") =>
+          case loop : LoopOverDimensions with PolyhedronAccessible if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)

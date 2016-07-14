@@ -62,6 +62,7 @@ poly_tileSize_y             = 0
 poly_tileSize_z             = 0
 poly_tileOuterLoop          = false
 poly_filterDeps             = true
+
 //
 //// other optimizations
 //opt_useAddressPrecalc  = true
@@ -96,8 +97,8 @@ experimental_cuda_blockSize_z                   = 8
 experimental_cuda_reductionBlockSize            = 1024
 
 // my new experimental cuda properties
-experimental_cuda_useSharedMemory               = true
+experimental_cuda_useSharedMemory               = false
 experimental_cuda_linearizeSharedMemoryAccess   = false
 experimental_cuda_favorL1CacheOverSharedMemory  = false
-experimental_cuda_spatialBlockingWithSmem       = true
+experimental_cuda_spatialBlockingWithSmem       = false
 experimental_cuda_spatialBlockingWithROC        = false
