@@ -65,6 +65,7 @@ object LoopCarriedCSBuffer {
 
 abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private val namePostfix : String,
     private val baseDatatype : Datatype, private val freeInDtor : Boolean) extends UnduplicatedVariable {
+
   override def getDeclaration() : VariableDeclarationStatement = {
     val superDecl = super.getDeclaration()
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
@@ -84,15 +85,10 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
   }
 
   override def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
-    val access = super.resolveAccess(baseAccess, fragment, domain, field, level, neigh)
-    return resolveLCBAccess(access)
-  }
-
-  def resolveLCBAccess(baseAccess : Expression) : Expression = {
     var access = baseAccess
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
-      access = new ArrayAccess(access, StringLiteral("omp_get_thread_num()"))
-    return access
+      access = new ArrayAccess(access, StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
+    return super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
 
   override def prettyprint(out : PpStream) : Unit = {
