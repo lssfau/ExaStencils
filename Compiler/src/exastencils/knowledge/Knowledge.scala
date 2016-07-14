@@ -83,7 +83,7 @@ object Knowledge {
   var grid_isStaggered : Boolean = false
   var grid_isAxisAligned : Boolean = true
 
-  var grid_spacingModel : String = "uniform" // must be uniform if grid_isUniform; may be "diego" or "linearFct" otherwise
+  var grid_spacingModel : String = "uniform" // must be uniform if grid_isUniform; may be "diego", "diego2" or "linearFct" otherwise
 
   // options for SISC Paper
   var sisc2015_numNodes : Int = 64 // [16~64§sisc2015_numNodes*2]
@@ -393,6 +393,7 @@ object Knowledge {
     Constraints.condEnsureValue(grid_spacingModel, "uniform", grid_isUniform, "uniform spacing is required for uniform grids")
     Constraints.condWarn("uniform" == grid_spacingModel && !grid_isUniform, "grid_isUniform should be true for uniform spacing models")
     Constraints.condWarn("diego" == grid_spacingModel, "diego spacing model currently ignores domain bounds set in the DSL")
+    Constraints.condWarn("diego2" == grid_spacingModel, "diego2 spacing model currently ignores domain bounds set in the DSL")
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve
