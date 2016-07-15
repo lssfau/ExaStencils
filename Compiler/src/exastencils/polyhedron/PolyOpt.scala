@@ -63,8 +63,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     Settings.additionalMacros += "#define floord(n,d) (((n)>=0) ? (n)/(d) : (((n)-(d)+1)/(d)))"
 
-    Isl.ctx.setTileScaleTileLoops(0)
-    Isl.ctx.setTileShiftPointLoops(0)
+    Isl.ctx.optionsSetTileScaleTileLoops(0)
+    Isl.ctx.optionsSetTileShiftPointLoops(0)
     //    isl.Options.setTileScaleTileLoops(false)
     //    isl.Options.setTileShiftPointLoops(false)
 
@@ -241,7 +241,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         if (scop.deadAfterScop.intersect(set).isEmpty())
           resurrect = true
       if (resurrect)
-        scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universeLike(remDoms(0)))
+        scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universe(remDoms(0).getSpace()))
     }
   }
 
