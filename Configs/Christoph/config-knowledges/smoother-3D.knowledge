@@ -56,8 +56,8 @@ poly_performDCE             = false // this is only working with CUDA if Smoothe
 poly_tileSize_x             = 0
 poly_tileSize_y             = 0
 poly_tileSize_z             = 0
-poly_filterDeps             = true
 poly_tileOuterLoop          = false
+poly_filterDeps             = true
 
 // other optimizations
 //opt_useAddressPrecalc  = true
