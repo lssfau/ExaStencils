@@ -76,14 +76,14 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   override def resolveDefValue = Some(0)
 
   override def wrapInLoops(body : Statement) : Statement = {
-    var wrappedBody = super.wrapInLoops(body)
+    var wrappedBody = body
     if (field.numSlots > 1)
       wrappedBody = new ForLoopStatement(
         VariableDeclarationStatement(IntegerDatatype, "slot", Some(0)),
         LowerExpression("slot", field.numSlots),
         PreIncrementExpression("slot"),
         wrappedBody)
-    wrappedBody
+    return super.wrapInLoops(wrappedBody)
   }
 
   override def getCtor() : Option[Statement] = {
@@ -97,7 +97,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   override def getDtor() : Option[Statement] = {
     val origSlot = slot
     slot = "slot"
-    var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+    val access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
 
     val ret = Some(wrapInLoops(
       new ConditionStatement(access,
@@ -109,8 +109,10 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   }
 
   override def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
-    val access = (if (this.field.numSlots > 1) new ArrayAccess(baseAccess, slot) else baseAccess)
-    super.resolveAccess(access, fragment, domain, field, level, neigh)
+    var access = super.resolveAccess(baseAccess, fragment, domain, field, level, neigh)
+    if (this.field.numSlots > 1)
+      access = new ArrayAccess(access, slot)
+    return access
   }
 }
 
@@ -130,7 +132,7 @@ case class FieldData(override var field : Field, override var level : Expression
     if (Knowledge.data_alignFieldPointers) {
       val origSlot = slot
       slot = "slot"
-      var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+      val access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
       val ret = Some(wrapInLoops(new AssignmentStatement(access, 0)))
       slot = origSlot
       ret
