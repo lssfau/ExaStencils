@@ -127,12 +127,6 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       vectStmtsStack.last += stmt
     }
 
-    def addStmtPreLoop(stmt : Statement) : Unit = {
-      if (stmt.isInstanceOf[VariableDeclarationStatement])
-        throw new Error("use addStmtPreLoop(VariableDeclarationStatement, Expression) instead of addStmtPreLoop(Statement)!")
-      preLoopStmts += stmt
-    }
-
     def addStmtPreLoop(decl : VariableDeclarationStatement, origExpr : Expression) : Unit = {
       moveNameMappingUp(origExpr)
       preLoopStmts += decl
@@ -175,7 +169,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     }
 
     def moveNameMappingUp(expr : Expression) : Unit = {
-      temporaryMappingStack(0)(expr) = temporaryMappingStack(temporaryMappingStack.length - 1).remove(expr).get
+      temporaryMappingStack.head(expr) = temporaryMappingStack(temporaryMappingStack.length - 1).remove(expr).get
     }
 
     def getIncrVector() : VariableAccess = {
