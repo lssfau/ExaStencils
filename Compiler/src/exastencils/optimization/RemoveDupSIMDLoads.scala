@@ -93,6 +93,7 @@ private[optimization] final class Analyze extends StackCollector {
 
   private var preLoopDecls : ListBuffer[Statement] = null
   private var loads : HashMap[(Expression, HashMap[Expression, Long]), (VariableDeclarationStatement, Buffer[List[Node]])] = null
+  private var load1s : HashMap[SIMD_Scalar2VectorExpression, (VariableDeclarationStatement, Buffer[List[Node]])] = null
   private var concShifts : HashMap[SIMD_ConcShift, (VariableDeclarationStatement, Buffer[List[Node]])] = null
   private var replaceAcc : HashMap[String, String] = null
   private var upLoopVar : UpdateLoopVar = null
@@ -109,7 +110,8 @@ private[optimization] final class Analyze extends StackCollector {
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
           preLoopDecls = new ListBuffer[Statement]
           node.annotate(ADD_BEFORE_ANNOT, preLoopDecls)
-          loads = new HashMap[(Expression, HashMap[Expression, Long]), (VariableDeclarationStatement, Buffer[List[Node]])]
+          loads = new HashMap[(Expression, HashMap[Expression, Long]), (VariableDeclarationStatement, Buffer[List[Node]])]()
+          load1s = new HashMap[SIMD_Scalar2VectorExpression, (VariableDeclarationStatement, Buffer[List[Node]])]()
           concShifts = new HashMap[SIMD_ConcShift, (VariableDeclarationStatement, Buffer[List[Node]])]()
           replaceAcc = new HashMap[String, String]()
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
@@ -149,6 +151,15 @@ private[optimization] final class Analyze extends StackCollector {
           }
         }
 
+      case decl @ VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, Some(load : SIMD_Scalar2VectorExpression)) if (load1s != null) =>
+        val other = load1s.get(load)
+        if (other.isDefined) {
+          replaceAcc(vecTmp) = other.get._1.name
+          decl.annotate(REMOVE_ANNOT)
+          other.get._2 += stack.elems // super.stack
+        } else
+          load1s(load) = (decl, ArrayBuffer(stack.elems)) // super.stack
+
       case vAcc @ VariableAccess(vecTmp, Some(SIMD_RealDatatype)) if (replaceAcc != null) =>
         val nju = replaceAcc.get(vecTmp)
         if (nju.isDefined)
@@ -175,7 +186,7 @@ private[optimization] final class Analyze extends StackCollector {
 
     if (node.hasAnnotation(ADD_BEFORE_ANNOT)) {
       // check if some declarations must be moved out of their scope
-      for ((load, ancss) <- loads.values.view ++ concShifts.values; if (ancss.length > 1)) {
+      for ((load, ancss) <- loads.values.view ++ load1s.values ++ concShifts.values; if (ancss.length > 1)) {
         var loadAncs = ancss.head
         for (i <- 1 until ancss.length) {
           val reuseAncs : List[Node] = ancss(i)
@@ -202,6 +213,7 @@ private[optimization] final class Analyze extends StackCollector {
       }
       preLoopDecls = null
       loads = null
+      load1s = null
       concShifts = null
       replaceAcc = null
       upLoopVar = null
@@ -213,6 +225,7 @@ private[optimization] final class Analyze extends StackCollector {
     super.reset()
     preLoopDecls = null
     loads = null
+    load1s = null
     concShifts = null
     replaceAcc = null
     upLoopVar = null
