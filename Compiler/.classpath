@@ -10,7 +10,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/objenesis-2.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/copris-all-v2-2-4.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/Jama-1.0.3.jar"/>
-	<classpathentry kind="lib" path="lib/jna-4.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/isl-scala.jar" sourcepath="lib/isl-scala.jar"/>
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/CompilerMacros"/>
 	<classpathentry kind="lib" path="/CompilerMacros/bin"/>
