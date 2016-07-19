@@ -85,7 +85,7 @@ object JobScriptGenerator {
         printer <<< ""
 
         printer <<< s"#. /etc/profile.d/modules.sh"
-        printer <<< s"module load intel64/16.0up03"
+        printer <<< s"module load intel64/15.0up05"
         printer <<< s"module load likwid"
 
         printer <<< ""
