@@ -1,6 +1,7 @@
 package exastencils.polyhedron
 
 import exastencils.core._
+import isl._
 
 /** The hybrid tiling implemented in this file is based on
  * Grosser et al., "Hybrid Hexagonal/Classical Tiling for GPUs".
@@ -40,7 +41,7 @@ object HybridTiling {
       lower = lower.setVal(x, v)
     })
 
-    new Bounds(upper, lower)
+    Bounds(upper, lower)
   }
 
   /* Return the upper bound on the relative dependence distances
@@ -77,24 +78,21 @@ object HybridTiling {
   * In particular, have appropriate lower and upper bounds been found?
   * Any NaN indicates that no corresponding bound was found.
   */
-  def ppcg_ht_bounds_is_valid(bounds : Bounds) = {
+  def ppcg_ht_bounds_is_valid(bounds : Bounds) : Boolean = {
     var is_nan = bounds.upper.isNan
-    if (is_nan < 0)
-      return isl_bool_error;
-    if (is_nan == 1)
-      return isl_bool_false;
+    if (is_nan)
+      return false
 
-    val n = isl_multi_val_dim(bounds->lower, isl_dim_set);
+    val n = 1
+    //TODO:val n = isl_multi_val_dim(bounds->lower, isl_dim_set)
     (0 until n).foreach(x => {
       val v = bounds.lower.getVal(x)
       is_nan = v.isNan
-      if (is_nan < 0)
-        return isl_bool_error;
-      if (is_nan == 1)
-        return isl_bool_false;
+      if (is_nan)
+        return false
     })
 
-    isl_bool_true;
+    true
   }
 
   /* Return the space of the pair of band nodes that form the input
@@ -109,7 +107,7 @@ object HybridTiling {
   /* Return a new reference to "tiling".
   */
   def ppcg_ht_tiling_copy(tiling : ppcg_ht_tiling) = {
-    ppcg_ht_tiling(tiling.ref + 1, tiling.bounds, tiling.input_schedule, tiling.space_sizes, tiling.time_tile, tiling.local_time, tiling.shift_space, tiling.shift_phase, tiling.hex, tiling.project_ts)
+    ppcg_ht_tiling(tiling.ref + 1, tiling.bounds, tiling.input_node, tiling.input_schedule, tiling.space_sizes, tiling.time_tile, tiling.local_time, tiling.shift_space, tiling.shift_phase, tiling.hex, tiling.project_ts)
   }
 
   /* Return the isl_ctx to which "tiling" belongs.
@@ -143,17 +141,18 @@ object HybridTiling {
     * This constraint corresponds to (6) in
     * "Hybrid Hexagonal/Classical Tiling for GPUs".
     */
-    def hex_lower_left(_ls : isl.LocalSpace, h : isl.Val, du : isl.Val, duh : isl.Val) = {
-      var v : isl.Val = Duplicate(h).mulUi(2).add(1)
-      //var v : isl.Val = isl_val_add_ui(isl_val_mul_ui(isl_val_copy(h), 2), 1);
-    v = isl_val_mul(v, isl_val_copy(du));
-    v = isl_val_sub(v, isl_val_copy(duh));
-    var aff : isl.Aff = isl_aff_val_on_domain(ls, v);
-    v = isl_val_neg(isl_val_copy(du));
-    aff = isl_aff_set_coefficient_val(aff, isl_dim_in, 0, v);
-    aff = isl_aff_set_coefficient_si(aff, isl_dim_in, 1, 1);
+    def hex_lower_left(ls : isl.LocalSpace, h : isl.Val, du : isl.Val, duh : isl.Val) : isl.Constraint = {
+      var v : isl.Val = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
+      //TODO:var v : isl.Val = isl_val_add_ui(isl_val_mul_ui(isl_val_copy(h), 2), 1);
+      v = v.mul(Duplicate(du))
+      v = v.sub(Duplicate(duh))
+      var aff : isl.Aff = isl.Aff.valOnDomain(ls, v)
+      v = Duplicate(du).neg()
+      aff = aff.setCoefficientVal(isl.DimType.In, 0, v)
+      aff = aff.setCoefficientSi(isl.DimType.In, 1, 1)
 
-    return isl_inequality_from_aff(aff);
+      //TODO: return isl_inequality_from_aff(aff)
+      isl.Constraint
     }
 
     /* Construct the lower constraint of the hexagonal tile, i.e.,
@@ -164,17 +163,13 @@ object HybridTiling {
       * This constraint corresponds to (7) in
       * "Hybrid Hexagonal/Classical Tiling for GPUs".
       */
-      static __isl_give isl_constraint *hex_lower(__isl_take isl_local_space *ls,
-      __isl_keep isl_val *h)
-      {
-      isl_val *v;
-      isl_aff *aff;
+      def hex_lower(ls : isl.LocalSpace, h : isl.Val) : isl.Constraint = {
+        val v = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
+        var aff = isl.Aff.valOnDomain(ls, v)
+        aff = aff.setCoefficientSi(isl.DimType.In, 0, -1)
 
-      v = isl_val_add_ui(isl_val_mul_ui(isl_val_copy(h), 2), 1);
-      aff = isl_aff_val_on_domain(ls, v);
-      aff = isl_aff_set_coefficient_si(aff, isl_dim_in, 0, -1);
-
-      return isl_inequality_from_aff(aff);
+        //TODO: return isl_inequality_from_aff(aff);
+        isl.Constraint
       }
 
       /* Construct the lower right constraint of the hexagonal tile, i.e.,
@@ -187,24 +182,19 @@ object HybridTiling {
         * This constraint corresponds to (8) in
         * "Hybrid Hexagonal/Classical Tiling for GPUs".
         */
-        static __isl_give isl_constraint *hex_lower_right(
-        __isl_take isl_local_space *ls, __isl_keep isl_val *h,
-        __isl_keep isl_val *s0, __isl_keep isl_val *dl, __isl_keep isl_val *duh)
-        {
-        isl_val *v;
-        isl_aff *aff;
+        def hex_lower_right(ls : isl.LocalSpace, h : isl.Val, s0 : isl.Val, dl : isl.Val, duh : isl.Val) : isl.Constraint = {
+          var v = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
+          v = v.mul(Duplicate(dl))
+          v = v.add(Duplicate(duh))
+          v = v.add(Duplicate(s0))
+          v = v.sub(isl.Val.fromInt(v.getCtx, 1))
+          var aff = isl.Aff.valOnDomain(ls, v)
+          v = Duplicate(dl).neg()
+          aff = aff.setCoefficientVal(isl.DimType.In, 0, v)
+          aff = aff.setCoefficientSi(isl.DimType.In, 1, -1)
 
-        v = isl_val_add_ui(isl_val_mul_ui(isl_val_copy(h), 2), 1);
-        v = isl_val_mul(v, isl_val_copy(dl));
-        v = isl_val_add(v, isl_val_copy(duh));
-        v = isl_val_add(v, isl_val_copy(s0));
-        v = isl_val_sub_ui(v, 1);
-        aff = isl_aff_val_on_domain(ls, v);
-        v = isl_val_neg(isl_val_copy(dl));
-        aff = isl_aff_set_coefficient_val(aff, isl_dim_in, 0, v);
-        aff = isl_aff_set_coefficient_si(aff, isl_dim_in, 1, -1);
-
-        return isl_inequality_from_aff(aff);
+          //TODO:return isl_inequality_from_aff(aff);
+          isl.Constraint
         }
 
         /* Construct the upper left constraint of the hexagonal tile, i.e.,
@@ -215,21 +205,17 @@ object HybridTiling {
         * This constraint corresponds to (10) in
         * "Hybrid Hexagonal/Classical Tiling for GPUs".
         */
-        static __isl_give isl_constraint *hex_upper_left(__isl_take isl_local_space *ls,
-        __isl_keep isl_val *h, __isl_keep isl_val *dl)
-        {
-        isl_val *v, *d;
-  isl_aff *aff;
+  def hex_upper_left(ls : isl.LocalSpace, h : isl.Val, dl : isl.Val) : isl.Constraint = {
+    val d = isl.Val.fromBigInteger(dl.getCtx, dl.getDen)
+    var v = Duplicate(d).sub(isl.Val.fromInt(d.getCtx, 1))
+    v = v.div(d)
+    v = v.sub(Duplicate(h).mul(Duplicate(dl)))
+    var aff = isl.Aff.valOnDomain(ls, v)
+    aff = aff.setCoefficientVal(isl.DimType.In, 0, Duplicate(dl))
+    aff = aff.setCoefficientSi(isl.DimType.In, 1, 1)
 
-  d = isl_val_get_den_val(dl);
-  v = isl_val_sub_ui(isl_val_copy(d), 1);
-  v = isl_val_div(v, d);
-  v = isl_val_sub(v, isl_val_mul(isl_val_copy(h), isl_val_copy(dl)));
-  aff = isl_aff_val_on_domain(ls, v);
-  aff = isl_aff_set_coefficient_val(aff, isl_dim_in, 0, isl_val_copy(dl));
-  aff = isl_aff_set_coefficient_si(aff, isl_dim_in, 1, 1);
-
-  return isl_inequality_from_aff(aff);
+    //TODO:return isl_inequality_from_aff(aff);
+    isl.Constraint
   }
 
   /* Construct the upper right constraint of the hexagonal tile, i.e.,
@@ -242,27 +228,21 @@ object HybridTiling {
   * This constraint corresponds to (12) in
   * "Hybrid Hexagonal/Classical Tiling for GPUs".
   */
-  static __isl_give isl_constraint *hex_upper_right(
-  __isl_take isl_local_space *ls, __isl_keep isl_val *h,
-  __isl_keep isl_val *s0, __isl_keep isl_val *du,
-  __isl_keep isl_val *dlh, __isl_keep isl_val *duh)
-  {
-  isl_val *v, *d;
-  isl_aff *aff;
+  def hex_upper_right(ls : isl.LocalSpace, h : isl.Val, s0 : isl.Val, du : isl.Val, dlh : isl.Val, duh : isl.Val) : isl.Constraint = {
+    val d = isl.Val.fromBigInteger(du.getCtx, du.getDen)
+    var v = Duplicate(d).sub(isl.Val.fromInt(d.getCtx, 1))
+    v = v.div(d)
+    v = v.sub(Duplicate(h).mul(Duplicate(du)))
+    v = v.add(Duplicate(duh))
+    v = v.add(Duplicate(dlh))
+    v = v.add(Duplicate(s0))
+    v = v.sub(isl.Val.fromInt(v.getCtx, 1))
+    var aff = isl.Aff.valOnDomain(ls, v)
+    aff = aff.setCoefficientVal(isl.DimType.In, 0, Duplicate(du))
+    aff = aff.setCoefficientSi(isl.DimType.In, 1, -1)
 
-  d = isl_val_get_den_val(du);
-  v = isl_val_sub_ui(isl_val_copy(d), 1);
-  v = isl_val_div(v, d);
-  v = isl_val_sub(v, isl_val_mul(isl_val_copy(h), isl_val_copy(du)));
-  v = isl_val_add(v, isl_val_copy(duh));
-  v = isl_val_add(v, isl_val_copy(dlh));
-  v = isl_val_add(v, isl_val_copy(s0));
-  v = isl_val_sub_ui(v, 1);
-  aff = isl_aff_val_on_domain(ls, v);
-  aff = isl_aff_set_coefficient_val(aff, isl_dim_in, 0, isl_val_copy(du));
-  aff = isl_aff_set_coefficient_si(aff, isl_dim_in, 1, -1);
-
-  return isl_inequality_from_aff(aff);
+    //TODO: return isl_inequality_from_aff(aff);
+    isl.Constraint
   }
 
   /* Construct the uppper constraint of the hexagonal tile, i.e.,
@@ -272,13 +252,11 @@ object HybridTiling {
   * This constraint corresponds to (13) in
   * "Hybrid Hexagonal/Classical Tiling for GPUs".
   */
-  static __isl_give isl_constraint *hex_upper(__isl_take isl_local_space *ls)
-  {
-  isl_aff *aff;
+  def hex_upper(ls : isl.LocalSpace) : isl.Constraint = {
+    var aff = isl.Aff.varOnDomain(ls, isl.DimType.Set, 0)
 
-  aff = isl_aff_var_on_domain(ls, isl_dim_set, 0);
-
-  return isl_inequality_from_aff(aff);
+    //TODO:return isl_inequality_from_aff(aff);
+    isl.Constraint
   }
 
   /* Construct the basic hexagonal tile shape.
@@ -316,68 +294,50 @@ object HybridTiling {
     * The slope of the "/" constraints is dl.
     * The slope of the "\_" constraints is du.
     */
-    static __isl_give isl_set *compute_hexagon(__isl_take isl_space *space,
-    __isl_keep isl_val *h, __isl_keep isl_val *s0,
-    __isl_keep isl_val *dl, __isl_keep isl_val *du,
-    __isl_keep isl_val *dlh, __isl_keep isl_val *duh)
-    {
-    isl_local_space *ls;
-    isl_constraint *c;
-    isl_basic_set *bset;
+    def compute_hexagon(space : isl.Space, h : isl.Val, s0 : isl.Val, dl : isl.Val, du : isl.Val, dlh : isl.Val, duh : isl.Val) = {
+      val ls: isl.LocalSpace = isl.LocalSpace.fromSpace(space)
 
-    ls = isl_local_space_from_space(space);
+      var c : isl.Constraint = hex_lower_left(Duplicate(ls), h, du, duh)
+      var bset = isl.BasicSet.fromConstraint(c)
 
-    c = hex_lower_left(isl_local_space_copy(ls), h, du, duh);
-    bset = isl_basic_set_from_constraint(c);
+      c = hex_lower(Duplicate(ls), h)
+      bset = bset.addConstraint(c)
 
-    c = hex_lower(isl_local_space_copy(ls), h);
-    bset = isl_basic_set_add_constraint(bset, c);
+      c = hex_lower_right(Duplicate(ls), h, s0, dl, duh)
+      bset = bset.addConstraint(c)
 
-    c = hex_lower_right(isl_local_space_copy(ls), h, s0, dl, duh);
-    bset = isl_basic_set_add_constraint(bset, c);
+      c = hex_upper_left(Duplicate(ls), h, dl)
+      bset = bset.addConstraint(c)
 
-    c = hex_upper_left(isl_local_space_copy(ls), h, dl);
-    bset = isl_basic_set_add_constraint(bset, c);
+      c = hex_upper_right(Duplicate(ls), h, s0, du, dlh, duh)
+      bset = bset.addConstraint(c)
 
-    c = hex_upper_right(isl_local_space_copy(ls), h, s0, du, dlh, duh);
-    bset = isl_basic_set_add_constraint(bset, c);
+      c = hex_upper(ls)
+      bset = bset.addConstraint(c)
 
-    c = hex_upper(ls);
-    bset = isl_basic_set_add_constraint(bset, c);
-
-    return isl_set_from_basic_set(bset);
+      isl.Set.fromBasicSet(bset)
     }
 
     /* Name of the ts-space.
     */
-    static const char *ts_space_name = "ts";
+    val ts_space_name = "ts"
 
-    /* Construct and return the space ts[t, s].
-    */
-    static __isl_give isl_space *construct_ts_space(isl_ctx *ctx)
-    {
-    isl_space *s;
-
-    s = isl_space_set_alloc(ctx, 0, 2);
-    s = isl_space_set_tuple_name(s, isl_dim_set, ts_space_name);
-
-    return s;
+  /* Construct and return the space ts[t, s].
+  */
+    def construct_ts_space(ctx : isl.Ctx) = {
+      val s = isl.Space.setAlloc(ctx, 0, 2)
+      s.setTupleName(isl.DimType.Set, ts_space_name)
     }
 
     /* Name of the local ts-space.
     */
-    static const char *local_ts_space_name = "local_ts";
+    val local_ts_space_name = "local_ts"
 
-    /* Construct and return the space local_ts[t, s].
-    */
-    static __isl_give isl_space *construct_local_ts_space(isl_ctx *ctx)
-    {
-    isl_space *s;
-
-    s = isl_space_set_alloc(ctx, 0, 2);
-    s = isl_space_set_tuple_name(s, isl_dim_set, local_ts_space_name);
-
-    return s;
+  /* Construct and return the space local_ts[t, s].
+  */
+    def construct_local_ts_space(ctx : isl.Ctx) = {
+      val s = isl.Space.setAlloc(ctx, 0, 2)
+      s.setTupleName(isl.DimType.Set, local_ts_space_name)
     }
 
     /* Compute the total size of a tile for the space dimensions,
@@ -392,22 +352,15 @@ object HybridTiling {
     * "dlh" is equal to floor(d_l h).
     * "duh" is equal to floor(d_u h).
     */
-    static __isl_give isl_multi_val *compute_space_sizes(
-    __isl_keep isl_multi_val *tile_sizes,
-    __isl_keep isl_val *dlh, __isl_keep isl_val *duh)
-    {
-    isl_val *size;
-    isl_multi_val *space_sizes;
-
-    space_sizes = isl_multi_val_copy(tile_sizes);
-    space_sizes = isl_multi_val_factor_range(space_sizes);
-    size = isl_multi_val_get_val(space_sizes, 0);
-    size = isl_val_mul_ui(size, 2);
-    size = isl_val_add(size, isl_val_copy(duh));
-    size = isl_val_add(size, isl_val_copy(dlh));
-    space_sizes = isl_multi_val_set_val(space_sizes, 0, size);
-
-    return space_sizes;
+    def compute_space_sizes(tile_sizes : isl.MultiVal, dlh : isl.Val, duh : isl.Val) = {
+      var space_sizes : isl.MultiVal = Duplicate(tile_sizes)
+      space_sizes = space_sizes.factorRange()
+      var size : isl.Val = space_sizes.getVal(0)
+      size = size.mulUi(2)
+      size = size.add(Duplicate(duh))
+      size = size.add(Duplicate(dlh))
+      space_sizes = space_sizes.setVal(0, size)
+      space_sizes
     }
 
     /* Compute the offset of phase 1 with respect to phase 0
@@ -416,19 +369,11 @@ object HybridTiling {
     *
     *	ts[st, s0 + duh]
     */
-    static __isl_give isl_multi_val *compute_phase_shift(
-    __isl_keep isl_space *space, __isl_keep isl_val *st,
-    __isl_keep isl_val *s0, __isl_keep isl_val *duh)
-    {
-    isl_val *v;
-    isl_multi_val *phase_shift;
-
-    phase_shift = isl_multi_val_zero(isl_space_copy(space));
-    phase_shift = isl_multi_val_set_val(phase_shift, 0, isl_val_copy(st));
-    v = isl_val_add(isl_val_copy(duh), isl_val_copy(s0));
-    phase_shift = isl_multi_val_set_val(phase_shift, 1, v);
-
-    return phase_shift;
+    def compute_phase_shift(space : isl.Space, st : isl.Val, s0 : isl.Val, duh : isl.Val) = {
+      var phase_shift : isl.MultiVal = isl.MultiVal.zero(Duplicate(space))
+      phase_shift = phase_shift.setVal(0, Duplicate(st))
+      val v = Duplicate(duh).add(Duplicate(s0))
+      phase_shift.setVal(1, v)
     }
 
     /* Return the function
@@ -438,19 +383,11 @@ object HybridTiling {
     * representing the time tile.
     * "space" is the space ts[t, s].
     */
-    static __isl_give isl_aff *compute_time_tile(__isl_keep isl_space *space,
-    __isl_keep isl_val *st)
-    {
-    isl_val *v;
-    isl_aff *t;
-    isl_local_space *ls;
-
-    ls = isl_local_space_from_space(isl_space_copy(space));
-    t = isl_aff_var_on_domain(ls, isl_dim_set, 0);
-    v = isl_val_mul_ui(isl_val_copy(st), 2);
-    t = isl_aff_floor(isl_aff_scale_down_val(t, v));
-
-    return t;
+    def compute_time_tile(space : isl.Space, st : isl.Val) = {
+      val ls : isl.LocalSpace = isl.LocalSpace.fromSpace(Duplicate(space))
+      val t : isl.Aff = isl.Aff.varOnDomain(ls, isl.DimType.Set, 0)
+      val v : isl.Val = Duplicate(st).mulUi(2)
+      t.scaleDownVal(v).floor()
     }
 
     /* Compute a shift in the space dimension for tiles
@@ -480,25 +417,16 @@ object HybridTiling {
     * Since the pattern repeats itself with a period of W in the space
     * dimension, the shift can be replaced by (-(2 * shift_s)*T) % W.
     */
-    static __isl_give isl_aff *compute_shift_space(__isl_keep isl_aff *time_tile,
-    __isl_keep isl_multi_val *space_sizes,
-    __isl_keep isl_multi_val *phase_shift)
-    {
-    isl_val *v;
-    isl_aff *s, *t;
-  isl_local_space *ls;
-
-  ls = isl_local_space_from_space(isl_aff_get_domain_space(time_tile));
-  t = isl_aff_copy(time_tile);
-  v = isl_val_mul_ui(isl_multi_val_get_val(phase_shift, 1), 2);
-  v = isl_val_neg(v);
-  t = isl_aff_scale_val(t, v);
-  v = isl_multi_val_get_val(space_sizes, 0);
-  t = isl_aff_mod_val(t, v);
-  s = isl_aff_var_on_domain(ls, isl_dim_set, 1);
-  s = isl_aff_add(s, t);
-
-  return s;
+    def compute_shift_space(time_tile : isl.Aff, space_sizes : isl.MultiVal, phase_shift : isl.MultiVal) = {
+      var ls : isl.LocalSpace = isl.LocalSpace.fromSpace(time_tile.getDomainSpace)
+      var t : isl.Aff = Duplicate(time_tile)
+      var v : isl.Val = phase_shift.getVal(1).mulUi(2)
+      v = v.neg()
+      t = t.scaleVal(v)
+      v = space_sizes.getVal(0)
+      t = t.modVal(v)
+      var s : isl.Aff = isl.Aff.varOnDomain(ls, isl.DimType.Set, 1)
+      s.add(t)
   }
 
   /* Give the phase_shift ts[S_t, S_0 + floor(d_u h)],
@@ -506,19 +434,12 @@ object HybridTiling {
   *
   *	ts[t, s] -> ts[t + S_t, s + S_0 + floor(d_u h)],
   */
-  static __isl_give isl_multi_aff *compute_shift_phase(
-  __isl_keep isl_multi_val *phase_shift)
-  {
-  isl_space *space;
-  isl_multi_aff *shift;
-
-  space = isl_multi_val_get_space(phase_shift);
-  shift = isl_multi_aff_multi_val_on_space(space,
-    isl_multi_val_copy(phase_shift));
-  space = isl_multi_aff_get_space(shift);
-  shift = isl_multi_aff_add(shift, isl_multi_aff_identity(space));
-
-  return shift;
+  def compute_shift_phase(phase_shift : isl.MultiVal) = {
+    var space : isl.Space = phase_shift.getSpace
+    //TODO:shift = isl_multi_aff_multi_val_on_space(space, isl_multi_val_copy(phase_shift));
+    val shift : isl.MultiAff = isl.MultiAff
+    space = shift.getSpace
+    shift.add(isl.MultiAff.identity(space))
   }
 
   /* Compute a mapping from the ts-space to the local coordinates
@@ -532,29 +453,18 @@ object HybridTiling {
   * "st" is the tile size in the time dimension S_t.
   * The first element of "space_sizes" is equal to W.
   */
-  static __isl_give isl_multi_aff *compute_localize(
-  __isl_keep isl_space *local_ts, __isl_keep isl_aff *shift_space,
-  __isl_keep isl_val *st, __isl_keep isl_multi_val *space_sizes)
-  {
-  isl_val *v;
-  isl_space *space;
-  isl_aff *s, *t;
-  isl_multi_aff *localize;
-
-  space = isl_aff_get_domain_space(shift_space);
-  local_ts = isl_space_copy(local_ts);
-  space = isl_space_map_from_domain_and_range(space, local_ts);
-  localize = isl_multi_aff_identity(space);
-  t = isl_multi_aff_get_aff(localize, 0);
-  v = isl_val_mul_ui(isl_val_copy(st), 2);
-  t = isl_aff_mod_val(t, v);
-  localize = isl_multi_aff_set_aff(localize, 0, t);
-  s = isl_aff_copy(shift_space);
-  v = isl_multi_val_get_val(space_sizes, 0);
-  s = isl_aff_mod_val(s, v);
-  localize = isl_multi_aff_set_aff(localize, 1, s);
-
-  return localize;
+  def compute_localize(local_ts : isl.Space, shift_space : isl.Aff, st : isl.Val, space_sizes : isl.MultiVal) = {
+    var space : isl.Space = shift_space.getDomainSpace
+    space = isl.Space.mapFromDomainAndRange(space, local_ts)
+    var localize : isl.MultiAff = isl.MultiAff.identity(space)
+    var t : isl.Aff = localize.getAff(0)
+    var v : isl.Val = Duplicate(st).mulUi(2)
+    t = t.modVal(v)
+    localize = localize.setAff(0, t)
+    var s : isl.Aff = Duplicate(shift_space)
+    v = space_sizes.getVal(0)
+    s = s.modVal(v)
+    localize.setAff(1,s)
   }
 
   /* Set the project_ts field of "tiling".
@@ -562,27 +472,12 @@ object HybridTiling {
   * This field projects the space of the input schedule to the ts-space.
   * It is equal to [P[t] -> C[s_0, ...]] -> ts[t, s_0].
   */
-  static __isl_give ppcg_ht_tiling *ppcg_ht_tiling_set_project_ts(
-  __isl_take ppcg_ht_tiling *tiling)
-  {
-  int n;
-  isl_space *space;
-  isl_multi_aff *project;
-
-  if (!tiling)
-    return NULL;
-
-  space = ppcg_ht_tiling_get_input_space(tiling);
-  n = isl_space_dim(space, isl_dim_set);
-  project = isl_multi_aff_project_out_map(space, isl_dim_set, 2, n - 2);
-  project = isl_multi_aff_set_tuple_name(project,
-    isl_dim_out, ts_space_name);
-  if (!project)
-    return ppcg_ht_tiling_free(tiling);
-
-  tiling->project_ts = project;
-
-  return tiling;
+  def ppcg_ht_tiling_set_project_ts(tiling : ppcg_ht_tiling) = {
+    val space: isl.Space = ppcg_ht_tiling_get_input_space(tiling)
+    val n = space.dim(isl.DimType.Set)
+    var project = isl.MultiAff.projectOutMap(space, isl.DimType.Set, 2, n - 2)
+    project = project.setTupleName(isl.DimType.Out, ts_space_name)
+    ppcg_ht_tiling(tiling.ref, tiling.bounds, tiling.input_node, tiling.input_schedule, tiling.space_sizes, tiling.time_tile, tiling.local_time, tiling.shift_space, tiling.shift_phase, tiling.hex, project)
   }
 
   /* Construct a hybrid tiling description from bounds on the dependence
@@ -592,97 +487,40 @@ object HybridTiling {
   * node in the input.
   * "tile_sizes" are the original, user specified tile sizes.
   */
-  static __isl_give ppcg_ht_tiling *ppcg_ht_bounds_construct_tiling(
-  __isl_take ppcg_ht_bounds *bounds,
-  __isl_keep isl_schedule_node *input_node,
-  __isl_keep isl_multi_union_pw_aff *input_schedule,
-  __isl_keep isl_multi_val *tile_sizes)
-  {
-  isl_ctx *ctx;
-  ppcg_ht_tiling *tiling;
-  isl_multi_val *space_sizes, *phase_shift;
-  isl_aff *time_tile, *shift_space;
-  isl_multi_aff *localize;
-  isl_val *h, *duh, *dlh;
-  isl_val *st, *s0, *du, *dl;
-  isl_space *ts, *local_ts;
+  def ppcg_ht_bounds_construct_tiling(bounds : Bounds, input_node : isl.ScheduleNode, input_schedule : isl.MultiUnionPwAff, tile_sizes : isl.MultiVal) = {
+    val ctx: isl.Ctx = input_schedule.getCtx
+    val st: isl.Val = tile_sizes.getVal(0)
+    val h = Duplicate(st).sub(isl.Val.fromInt(ctx, 1))
+    val s0 = tile_sizes.getVal(1)
+    val du = ppcg_ht_bounds_get_upper(bounds)
+    val dl = ppcg_ht_bounds_get_lower(bounds, 0)
+    val duh = Duplicate(du).mul(Duplicate(h)).floor()
+    val dlh = Duplicate(dl).mul(Duplicate(h)).floor()
+    val ts = construct_ts_space(ctx)
+    val local_ts = construct_local_ts_space(ctx)
 
-  if (!bounds || !input_node || !input_schedule || !tile_sizes)
-    goto error;
+    val space_sizes = compute_space_sizes(tile_sizes, dlh, duh)
+    val phase_shift = compute_phase_shift(ts, st, s0, duh)
+    val time_tile = compute_time_tile(ts, st)
+    val shift_space = compute_shift_space(time_tile, space_sizes, phase_shift)
+    val localize = compute_localize(local_ts, shift_space, st, space_sizes)
 
-  ctx = isl_multi_union_pw_aff_get_ctx(input_schedule);
-  tiling = isl_calloc_type(ctx, struct ppcg_ht_tiling);
-  if (!tiling)
-    goto error;
-  tiling->ref = 1;
-
-  st = isl_multi_val_get_val(tile_sizes, 0);
-  h = isl_val_sub_ui(isl_val_copy(st), 1);
-  s0 = isl_multi_val_get_val(tile_sizes, 1);
-  du = ppcg_ht_bounds_get_upper(bounds);
-  dl = ppcg_ht_bounds_get_lower(bounds, 0);
-
-  duh = isl_val_floor(isl_val_mul(isl_val_copy(du), isl_val_copy(h)));
-  dlh = isl_val_floor(isl_val_mul(isl_val_copy(dl), isl_val_copy(h)));
-
-  ts = construct_ts_space(ctx);
-  local_ts = construct_local_ts_space(ctx);
-
-  space_sizes = compute_space_sizes(tile_sizes, dlh, duh);
-  phase_shift = compute_phase_shift(ts, st, s0, duh);
-  time_tile = compute_time_tile(ts, st);
-  shift_space = compute_shift_space(time_tile, space_sizes, phase_shift);
-  localize = compute_localize(local_ts, shift_space, st, space_sizes);
-  isl_space_free(ts);
-
-  tiling->input_node = isl_schedule_node_copy(input_node);
-  tiling->input_schedule = isl_multi_union_pw_aff_copy(input_schedule);
-  tiling->space_sizes = space_sizes;
-  tiling->bounds = bounds;
-  tiling->local_time = isl_multi_aff_get_aff(localize, 0);
-  tiling->hex = compute_hexagon(local_ts, h, s0, dl, du, dlh, duh);
-  tiling->hex = isl_set_preimage_multi_aff(tiling->hex, localize);
-  tiling->time_tile = time_tile;
-  tiling->shift_space = shift_space;
-  tiling->shift_phase = compute_shift_phase(phase_shift);
-  isl_multi_val_free(phase_shift);
-
-  isl_val_free(duh);
-  isl_val_free(dlh);
-  isl_val_free(du);
-  isl_val_free(dl);
-  isl_val_free(s0);
-  isl_val_free(st);
-  isl_val_free(h);
-
-  if (!tiling->input_schedule || !tiling->local_time || !tiling->hex ||
-    !tiling->shift_space || !tiling->shift_phase)
-    return ppcg_ht_tiling_free(tiling);
-
-  tiling = ppcg_ht_tiling_set_project_ts(tiling);
-
-  return tiling;
-  error:
-    ppcg_ht_bounds_free(bounds);
-  return NULL;
+    val hex = compute_hexagon(local_ts, h, s0, dl, du, dlh, duh)
+    //TODO: hex = isl_set_preimage_multi_aff(hex, localize);
+    val tiling: ppcg_ht_tiling = ppcg_ht_tiling(1, bounds, Duplicate(input_node), Duplicate(input_schedule), space_sizes, time_tile, localize.getAff(0), shift_space, compute_shift_phase(phase_shift), hex, isl.MultiAff)
+    ppcg_ht_tiling_set_project_ts(tiling)
   }
 
   /* Are all members of the band node "node" coincident?
   */
-  static isl_bool all_coincident(__isl_keep isl_schedule_node *node)
-  {
-  int i, n;
+  def all_coincident(node : isl.ScheduleNode) : Boolean = {
+    val n = node.bandNMember()
+    (0 until n).foreach(x => {
+       if (!node.bandMemberGetCoincident(x))
+         return false
+    })
 
-  n = isl_schedule_node_band_n_member(node);
-  for (i = 0; i < n; ++i) {
-    isl_bool c;
-
-    c = isl_schedule_node_band_member_get_coincident(node, i);
-    if (c < 0 || !c)
-      return c;
-  }
-
-  return isl_bool_true;
+    true
   }
 
   /* Does "node" satisfy the properties of the inner node in the input
@@ -690,104 +528,78 @@ object HybridTiling {
   * That is, is it a band node with only coincident members, of which
   * there is at least one?
   */
-  static isl_bool has_child_properties(__isl_keep isl_schedule_node *node)
-  {
-  if (!node)
-    return isl_bool_error;
-  if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
-    return isl_bool_false;
-  if (isl_schedule_node_band_n_member(node) < 1)
-    return isl_bool_false;
-  return all_coincident(node);
+  def has_child_properties(node : isl.ScheduleNode) : Boolean = {
+    if (!isl.ScheduleNodeType.NodeBand.equals(node.getType) || node.bandNMember() < 1) {
+      false
+    } else {
+      all_coincident(node)
+    }
   }
 
   /* Does "node" satisfy the properties of the outer node in the input
   * pattern for hybrid tiling?
   * That is, is it a band node with a single member?
   */
-  static isl_bool has_parent_properties(__isl_keep isl_schedule_node *node)
-  {
-  if (!node)
-    return isl_bool_error;
-  if (isl_schedule_node_get_type(node) != isl_schedule_node_band)
-    return isl_bool_false;
-  if (isl_schedule_node_band_n_member(node) != 1)
-    return isl_bool_false;
-  return isl_bool_true;
+  def has_parent_properties(node : isl.ScheduleNode) : Boolean = {
+    if (!isl.ScheduleNodeType.NodeBand.equals(node.getType) || node.bandNMember() != 1) {
+      false
+    } else {
+      true
+    }
   }
 
   /* Does the parent of "node" satisfy the input patttern for hybrid tiling?
   * That is, does "node" satisfy the properties of the inner node and
   * does the parent of "node" satisfy the properties of the outer node?
   */
-  isl_bool ppcg_ht_parent_has_input_pattern(__isl_keep isl_schedule_node *node)
-  {
-  isl_bool has_pattern;
+  def ppcg_ht_parent_has_input_pattern(node : isl.ScheduleNode) : Boolean = {
+    var has_pattern = has_child_properties(node)
 
-  has_pattern = has_child_properties(node);
-  if (has_pattern < 0 || !has_pattern)
-    return has_pattern;
+    if (!has_pattern)
+      return has_pattern
 
-  node = isl_schedule_node_copy(node);
-  node = isl_schedule_node_parent(node);
-  has_pattern = has_parent_properties(node);
-  isl_schedule_node_free(node);
-
-  return has_pattern;
+    var localNode = Duplicate(node)
+    localNode = localNode.parent()
+    has_pattern = has_parent_properties(node)
+    has_pattern
   }
 
   /* Does "node" satisfy the input patttern for hybrid tiling?
   * That is, does "node" satisfy the properties of the outer node and
   * does the child of "node" satisfy the properties of the inner node?
   */
-  isl_bool ppcg_ht_has_input_pattern(__isl_keep isl_schedule_node *node)
-  {
-  isl_bool has_pattern;
+  def ppcg_ht_has_input_pattern(node : isl.ScheduleNode) : Boolean = {
+    var has_pattern = has_parent_properties(node)
 
-  has_pattern = has_parent_properties(node);
-  if (has_pattern < 0 || !has_pattern)
-    return has_pattern;
+    if (!has_pattern)
+      return has_pattern
 
-  node = isl_schedule_node_get_child(node, 0);
-  has_pattern = has_child_properties(node);
-  isl_schedule_node_free(node);
-
-  return has_pattern;
+    var localNode = node.getChild(0)
+    has_child_properties(node)
   }
 
   /* Check that "node" satisfies the input pattern for hybrid tiling.
   * Error out if it does not.
   */
-  static isl_stat check_input_pattern(__isl_keep isl_schedule_node *node)
-  {
-  isl_bool has_pattern;
+  def check_input_pattern(node : isl.ScheduleNode) = {
+    val has_pattern = ppcg_ht_has_input_pattern(node)
 
-  has_pattern = ppcg_ht_has_input_pattern(node);
-  if (has_pattern < 0)
-    return isl_stat_error;
-  if (!has_pattern)
-    isl_die(isl_schedule_node_get_ctx(node), isl_error_invalid,
-      "invalid input pattern for hybrid tiling",
-      return isl_stat_error);
-
-  return isl_stat_ok;
+    // TODO: if (!has_pattern)
+    //TODO:isl_die(isl_schedule_node_get_ctx(node), isl_error_invalid, "invalid input pattern for hybrid tiling", return isl_stat_error);
+    //TODO: else
+    //TODO:return isl_stat_ok;
+    has_pattern
   }
 
   /* Extract the input schedule from "node", i.e., the product
   * of the partial schedules of the parent and child nodes
   * in the input pattern.
   */
-  static __isl_give isl_multi_union_pw_aff *extract_input_schedule(
-  __isl_keep isl_schedule_node *node)
-  {
-  isl_multi_union_pw_aff *partial, *partial2;
-
-  partial = isl_schedule_node_band_get_partial_schedule(node);
-  node = isl_schedule_node_get_child(node, 0);
-  partial2 = isl_schedule_node_band_get_partial_schedule(node);
-  isl_schedule_node_free(node);
-
-  return isl_multi_union_pw_aff_range_product(partial, partial2);
+  def extract_input_schedule(node : isl.ScheduleNode) = {
+    val partial = node.bandGetPartialSchedule()
+    val localNode = node.getChild(0)
+    val partial2 = localNode.bandGetPartialSchedule()
+    partial.rangeProduct(partial2)
   }
 
   /* Collect all dependences from "scop" that are relevant for performing
@@ -804,64 +616,59 @@ object HybridTiling {
   * In all cases, only dependences that map to the same instance
   * of the outer part of the schedule are considered.
   */
-  static __isl_give isl_map *collect_deps(struct ppcg_scop *scop,
-  __isl_keep isl_schedule_node *node)
-  {
-  isl_space *space;
-  isl_multi_union_pw_aff *prefix, *partial;
-  isl_union_map *flow, *other, *dep, *umap;
-  isl_map *map;
+  def collect_deps(scop : Scop, node : isl.ScheduleNode) : isl.Map = {
+    var prefix = node.getPrefixScheduleMultiUnionPwAff
+    var partial = extract_input_schedule(node)
+    var space = partial.getSpace
+    var flow = Duplicate(scop.deps.flow)
+    //TODO:flow = isl_union_map_eq_at_multi_union_pw_aff(flow, isl_multi_union_pw_aff_copy(prefix));
 
-  prefix = isl_schedule_node_get_prefix_schedule_multi_union_pw_aff(node);
-  partial = extract_input_schedule(node);
-  space = isl_multi_union_pw_aff_get_space(partial);
-
-  flow = isl_union_map_copy(scop->dep_flow);
-  flow = isl_union_map_eq_at_multi_union_pw_aff(flow,
-    isl_multi_union_pw_aff_copy(prefix));
-  if (!scop->options->live_range_reordering) {
-    other = isl_union_map_copy(scop->dep_false);
-    other = isl_union_map_eq_at_multi_union_pw_aff(other, prefix);
-  } else {
-    isl_union_map *local, *non_local, *order, *adj;
-    isl_union_set *domain, *range;
-
-    other = isl_union_map_copy(scop->dep_forced);
-    other = isl_union_map_eq_at_multi_union_pw_aff(other,
-      isl_multi_union_pw_aff_copy(prefix));
-    local = isl_union_map_copy(flow);
-    local = isl_union_map_eq_at_multi_union_pw_aff(local,
-      isl_multi_union_pw_aff_copy(partial));
-    non_local = isl_union_map_copy(flow);
-    non_local = isl_union_map_subtract(non_local, local);
-
-    order = isl_union_map_copy(scop->dep_order);
-    order = isl_union_map_eq_at_multi_union_pw_aff(order, prefix);
-    adj = isl_union_map_copy(order);
-    domain = isl_union_map_domain(isl_union_map_copy(non_local));
-    domain = isl_union_set_coalesce(domain);
-    adj = isl_union_map_intersect_range(adj, domain);
-    other = isl_union_map_union(other, adj);
-
-    adj = order;
-    range = isl_union_map_range(non_local);
-    range = isl_union_set_coalesce(range);
-    adj = isl_union_map_intersect_domain(adj, range);
-    other = isl_union_map_union(other, adj);
-  }
-  dep = isl_union_map_union(flow, other);
-
-  umap = isl_union_map_from_multi_union_pw_aff(partial);
-  dep = isl_union_map_apply_domain(dep, isl_union_map_copy(umap));
-  dep = isl_union_map_apply_range(dep, umap);
-
-  space = isl_space_map_from_set(space);
-  map = isl_union_map_extract_map(dep, space);
-  isl_union_map_free(dep);
-
-  map = isl_map_coalesce(map);
-
-  return map;
+    //TODO: port stuff below
+//    if (scop)
+//  if (!scop->options->live_range_reordering) {
+//    other = isl_union_map_copy(scop->dep_false);
+//    other = isl_union_map_eq_at_multi_union_pw_aff(other, prefix);
+//  } else {
+//    isl_union_map *local, *non_local, *order, *adj;
+//    isl_union_set *domain, *range;
+//
+//    other = isl_union_map_copy(scop->dep_forced);
+//    other = isl_union_map_eq_at_multi_union_pw_aff(other,
+//      isl_multi_union_pw_aff_copy(prefix));
+//    local = isl_union_map_copy(flow);
+//    local = isl_union_map_eq_at_multi_union_pw_aff(local,
+//      isl_multi_union_pw_aff_copy(partial));
+//    non_local = isl_union_map_copy(flow);
+//    non_local = isl_union_map_subtract(non_local, local);
+//
+//    order = isl_union_map_copy(scop->dep_order);
+//    order = isl_union_map_eq_at_multi_union_pw_aff(order, prefix);
+//    adj = isl_union_map_copy(order);
+//    domain = isl_union_map_domain(isl_union_map_copy(non_local));
+//    domain = isl_union_set_coalesce(domain);
+//    adj = isl_union_map_intersect_range(adj, domain);
+//    other = isl_union_map_union(other, adj);
+//
+//    adj = order;
+//    range = isl_union_map_range(non_local);
+//    range = isl_union_set_coalesce(range);
+//    adj = isl_union_map_intersect_domain(adj, range);
+//    other = isl_union_map_union(other, adj);
+//  }
+//  dep = isl_union_map_union(flow, other);
+//
+//  umap = isl_union_map_from_multi_union_pw_aff(partial);
+//  dep = isl_union_map_apply_domain(dep, isl_union_map_copy(umap));
+//  dep = isl_union_map_apply_range(dep, umap);
+//
+//  space = isl_space_map_from_set(space);
+//  map = isl_union_map_extract_map(dep, space);
+//  isl_union_map_free(dep);
+//
+//  map = isl_map_coalesce(map);
+//
+//  return map;
+    isl.Map
   }
 
   /* Given a constraint of the form
@@ -890,49 +697,45 @@ object HybridTiling {
       * according to the sign of "b".  Or set both in case the constraint
       * is an equality, taking into account the sign change.
       */
-      static __isl_give isl_val_list *list_set_min_max(__isl_take isl_val_list *list,
-      __isl_keep isl_constraint *c)
-      {
-      isl_val *a, *b;
-  int sign;
-  int pos;
-  isl_bool eq, is_zero, is_neg;
 
-  eq = isl_constraint_is_equality(c);
-  if (eq < 0)
-    return isl_val_list_free(list);
+  def list_set_min_max(list : isl.ValList, c : isl.Constraint) : isl.ValList = {
+    val eq = c.isEquality
+    var b = c.getCoefficientVal(isl.DimType.Set, 1)
+    val is_zero = b.isZero
 
-  b = isl_constraint_get_coefficient_val(c, isl_dim_set, 1);
-  is_zero = isl_val_is_zero(b);
-  if (is_zero == isl_bool_true) {
-    isl_val_free(b);
-    return list;
-  }
-  a = isl_constraint_get_coefficient_val(c, isl_dim_set, 0);
-  sign = isl_val_sgn(b);
-  b = isl_val_abs(b);
-  a = isl_val_div(a, b);
+    if (is_zero) {
+      return list
+    }
 
-  if (eq)
-    b = isl_val_copy(a);
+    var a = c.getCoefficientVal(isl.DimType.Set, 0)
+    val sign = b.sgn()
+    b = b.abs()
+    a = a.div(b)
 
-  pos = sign > 0 ? 0 : 1;
-  is_neg = isl_val_is_neg(a);
-  if (is_neg == isl_bool_true)
-    a = isl_val_set_si(a, 0);
-  list = isl_val_list_set_val(list, pos, a);
+    if (eq)
+      b = Duplicate(a)
 
-  if (!eq)
-    return is_neg < 0 ? isl_val_list_free(list) : list;
+    var pos = if (sign > 0) 0 else 1
+    var is_neg = a.isNeg
 
-  pos = 1 - pos;
-  a = isl_val_neg(b);
-  is_neg = isl_val_is_neg(a);
-  if (is_neg == isl_bool_true)
-    a = isl_val_set_si(a, 0);
-  list = isl_val_list_set_val(list, pos, a);
+    if (is_neg)
+    //TODO:a = isl_val_set_si(a, 0);
+      a = a
 
-  return is_neg < 0 ? isl_val_list_free(list) : list;
+    val localList = list.setVal(pos, a)
+
+    if (!eq)
+      localList
+
+    pos = 1 - pos
+    a = b.neg()
+    is_neg = a.isNeg
+
+    if (is_neg)
+    //TODO:a = isl_val_set_si(a, 0);
+      null
+
+    localList.setVal(pos, a)
   }
 
   /* If constraint "c" passes through the origin, then try and use it
@@ -942,21 +745,15 @@ object HybridTiling {
   * and
   *	i_1 <= max i_0
     */
-    static isl_stat set_min_max(__isl_take isl_constraint *c, void *user)
-    {
-    isl_val *v;
-    isl_val_list **list = user;
-    isl_bool is_zero;
+    def set_min_max(c : isl.Constraint, user : isl.ValList) = {
+      var list : isl.ValList = user
+      val v = c.getConstantVal
+      val is_zero = v.isZero
 
-    v = isl_constraint_get_constant_val(c);
-    is_zero = isl_val_is_zero(v);
-    isl_val_free(v);
+      if (is_zero)
+        list = list_set_min_max(list, c)
 
-    if (is_zero == isl_bool_true)
-      *list = list_set_min_max(*list, c);
-
-    isl_constraint_free(c);
-    return is_zero < 0 ? isl_stat_error : isl_stat_ok;
+      //TODO:return is_zero < 0 ? isl_stat_error : isl_stat_ok;
     }
 
     /* Given a set of dependence distance vectors "dist", compute
@@ -975,39 +772,30 @@ object HybridTiling {
       * Finally, the bounds are extracted from the constraints of the convex hull
       * that pass through the origin.
       */
-      static __isl_give isl_val_list *min_max_dist(__isl_keep isl_set *dist, int pos)
-      {
-      isl_space *space;
-      isl_basic_set *hull;
-      int dim;
-      isl_ctx *ctx;
-      isl_val *nan;
-      isl_val_list *list;
+      def min_max_dist(dist : isl.Set, pos : Int) = {
+        val ctx = dist.getCtx
+        val nan = isl.Val.nan(ctx)
+        var list = isl.ValList.alloc(ctx, 2)
+        list = list.add(Duplicate(nan))
+        list = list.add(nan)
+        var localDist = Duplicate(dist)
+        val dim = dist.dim(isl.DimType.Set)
 
-      ctx = isl_set_get_ctx(dist);
-      nan = isl_val_nan(ctx);
-      list = isl_val_list_alloc(ctx, 2);
-      list = isl_val_list_add(list, isl_val_copy(nan));
-      list = isl_val_list_add(list, nan);
+        if (pos >= dim)
+          //TODO:isl_die(ctx, isl_error_internal, "position out of bounds", dist = isl_set_free(dist));
+          null
 
-      dist = isl_set_copy(dist);
-      dim = isl_set_dim(dist, isl_dim_set);
-      if (dist && pos >= dim)
-        isl_die(ctx, isl_error_internal, "position out of bounds",
-          dist = isl_set_free(dist));
-      dist = isl_set_project_out(dist, isl_dim_set, pos + 1, dim - (pos + 1));
-      dist = isl_set_project_out(dist, isl_dim_set, 1, pos - 1);
+        localDist = localDist.projectOut(isl.DimType.Set, pos + 1, dim - (pos+1))
+        localDist = localDist.projectOut(isl.DimType.Set, 1, pos - 1)
 
-      space = isl_set_get_space(dist);
-      dist = isl_set_union(dist, isl_set_from_point(isl_point_zero(space)));
-      dist = isl_set_remove_divs(dist);
-      hull = isl_set_convex_hull(dist);
+        val space = localDist.getSpace
+        localDist = localDist.union(isl.Set.fromPoint(isl.Point.zero(space)))
+        localDist = localDist.removeDivs()
+        val hull = dist.convexHull()
 
-      if (isl_basic_set_foreach_constraint(hull, &set_min_max, &list) < 0)
-        list = isl_val_list_free(list);
-      isl_basic_set_free(hull);
-
-      return list;
+      //TODO:if (isl_basic_set_foreach_constraint(hull, &set_min_max, &list) < 0)
+        //TODO:list = isl_val_list_free(list);
+        list
       }
 
       /* Given a schedule node "node" that, together with its child,
@@ -1031,65 +819,32 @@ object HybridTiling {
       * For the other dimensions, only the minimal relative dependence
       * distance is stored.
       */
-      __isl_give ppcg_ht_bounds *ppcg_ht_compute_bounds(struct ppcg_scop *scop,
-      __isl_keep isl_schedule_node *node)
-      {
-      ppcg_ht_bounds *bnd;
-      isl_space *space;
-      isl_map *map;
-      isl_set *dist;
-      isl_val_list *pair;
-      isl_schedule_node *child;
-      int n;
-      int i, dim;
+      def ppcg_ht_compute_bounds(scop : Scop, node : isl.ScheduleNode) = {
+        var child = node.getChild(0)
+        var space = child.bandGetSpace()
+        var dim = child.bandNMember()
+        var bnd = ppcg_ht_bounds_alloc(space)
+        var map = collect_deps(scop, node)
+        var dist = map.deltas()
+        var n = dist.dim(isl.DimType.Param)
+        dist = dist.projectOut(isl.DimType.Param, 0, n)
+        var pair = min_max_dist(dist, 1)
+        bnd = ppcg_ht_bounds_set_lower(bnd, 0, pair.getVal(0))
+        bnd = ppcg_ht_bounds_set_upper(bnd, pair.getVal(1))
 
-  if (!scop || !node || check_input_pattern(node) < 0)
-    return NULL;
+        (1 until dim).foreach(x => {
+          pair = min_max_dist(dist, 1+x)
+          bnd = ppcg_ht_bounds_set_lower(bnd, x, pair.getVal(0))
+        })
 
-  child = isl_schedule_node_get_child(node, 0);
-  space = isl_schedule_node_band_get_space(child);
-  dim = isl_schedule_node_band_n_member(child);
-  isl_schedule_node_free(child);
-  bnd = ppcg_ht_bounds_alloc(space);
-  if (!bnd)
-    return NULL;
-
-  map = collect_deps(scop, node);
-
-  dist = isl_map_deltas(map);
-  n = isl_set_dim(dist, isl_dim_param);
-  dist = isl_set_project_out(dist, isl_dim_param, 0, n);
-
-  pair = min_max_dist(dist, 1);
-  bnd = ppcg_ht_bounds_set_lower(bnd, 0, isl_val_list_get_val(pair, 0));
-  bnd = ppcg_ht_bounds_set_upper(bnd, isl_val_list_get_val(pair, 1));
-  isl_val_list_free(pair);
-
-  for (i = 1; i < dim; ++i) {
-    pair = min_max_dist(dist, 1 + i);
-    bnd = ppcg_ht_bounds_set_lower(bnd, i,
-      isl_val_list_get_val(pair, 0));
-    isl_val_list_free(pair);
-  }
-
-  isl_set_free(dist);
-
-  return bnd;
+        bnd
   }
 
   /* Check if all the fields of "phase" are valid, freeing "phase"
   * if they are not.
   */
-  static __isl_give ppcg_ht_phase *check_phase(__isl_take ppcg_ht_phase *phase)
-  {
-  if (!phase)
-    return NULL;
-
-  if (!phase->tiling || !phase->local_time ||
-    !phase->shift_space || !phase->domain)
-    return ppcg_ht_phase_free(phase);
-
-  return phase;
+  def check_phase(phase : ppcg_ht_phase) = {
+    phase
   }
 
   /* Construct a ppcg_ht_phase object, that simply copies
@@ -1097,103 +852,53 @@ object HybridTiling {
   * That is, the result is defined over the "ts" space and
   * corresponds to phase 1.
   */
-  static __isl_give ppcg_ht_phase *construct_phase(
-  __isl_keep ppcg_ht_tiling *tiling)
-  {
-  isl_ctx *ctx;
-  ppcg_ht_phase *phase;
-
-  if (!tiling)
-    return NULL;
-
-  ctx = ppcg_ht_tiling_get_ctx(tiling);
-  phase = isl_calloc_type(ctx, struct ppcg_ht_phase);
-  if (!phase)
-    return NULL;
-  phase->tiling = ppcg_ht_tiling_copy(tiling);
-  phase->time_tile = isl_aff_copy(tiling->time_tile);
-  phase->local_time = isl_aff_copy(tiling->local_time);
-  phase->shift_space = isl_aff_copy(tiling->shift_space);
-  phase->domain = isl_set_copy(tiling->hex);
-
-  return check_phase(phase);
+  def construct_phase(tiling : ppcg_ht_tiling) = {
+    val ctx = ppcg_ht_tiling_get_ctx(tiling)
+    val phase : ppcg_ht_phase = ppcg_ht_phase(ppcg_ht_tiling_copy(tiling), Duplicate(tiling.time_tile), Duplicate(tiling.local_time), Duplicate(tiling.shift_space), Duplicate(tiling.hex), isl.MultiAff, isl.MultiAff)
+    check_phase(phase)
   }
 
   /* Align the parameters of the elements of "phase" to those of "space".
   */
-  static __isl_give ppcg_ht_phase *phase_align_params(
-  __isl_take ppcg_ht_phase *phase, __isl_take isl_space *space)
-  {
-  if (!phase)
-    goto error;
+  def phase_align_params(phase : ppcg_ht_phase, space : isl.Space) = {
+    val time_tile = phase.time_tile.alignParams(Duplicate(space))
+    val local_time = phase.local_time.alignParams(Duplicate(space))
+    val shift_space = phase.shift_space.alignParams(Duplicate(space))
+    val domain = phase.domain.alignParams(Duplicate(space))
 
-  phase->time_tile = isl_aff_align_params(phase->time_tile,
-    isl_space_copy(space));
-  phase->local_time = isl_aff_align_params(phase->local_time,
-    isl_space_copy(space));
-  phase->shift_space = isl_aff_align_params(phase->shift_space,
-    isl_space_copy(space));
-  phase->domain = isl_set_align_params(phase->domain, space);
-
-  return check_phase(phase);
-  error:
-    isl_space_free(space);
-  return NULL;
+    check_phase(ppcg_ht_phase(phase.tiling, time_tile, local_time, shift_space, domain, phase.space_shift, phase.space_tile))
   }
 
   /* Pull back "phase" over "ma".
   * That is, take a phase defined over the range of "ma" and
   * turn it into a phase defined over the domain of "ma".
   */
-  static __isl_give ppcg_ht_phase *pullback_phase(__isl_take ppcg_ht_phase *phase,
-  __isl_take isl_multi_aff *ma)
-  {
-  phase = phase_align_params(phase, isl_multi_aff_get_space(ma));
-  if (!phase)
-    goto error;
+  def pullback_phase(phase : ppcg_ht_phase, ma : isl.MultiAff) = {
+    var localPhase = phase_align_params(phase, ma.getSpace)
+    val time_tile = localPhase.time_tile.pullbackMultiAff(Duplicate(ma))
+    val local_time = localPhase.local_time.pullbackMultiAff(Duplicate(ma))
+    val shift_space = localPhase.shift_space.pullbackMultiAff(Duplicate(ma))
+    val domain = localPhase.domain.preimageMultiAff(ma)
 
-  phase->time_tile = isl_aff_pullback_multi_aff(phase->time_tile,
-    isl_multi_aff_copy(ma));
-  phase->local_time = isl_aff_pullback_multi_aff(phase->local_time,
-    isl_multi_aff_copy(ma));
-  phase->shift_space = isl_aff_pullback_multi_aff(phase->shift_space,
-    isl_multi_aff_copy(ma));
-  phase->domain = isl_set_preimage_multi_aff(phase->domain, ma);
-
-  return check_phase(phase);
-  error:
-    isl_multi_aff_free(ma);
-  return NULL;
+    check_phase(ppcg_ht_phase(phase.tiling, time_tile, local_time, shift_space, domain, phase.space_shift, phase.space_tile))
   }
 
   /* Pullback "phase" over phase->tiling->shift_phase, which shifts
   * phase 0 to phase 1.  The pullback therefore takes a phase 1
   * description and turns it into a phase 0 description.
   */
-  static __isl_give ppcg_ht_phase *shift_phase(__isl_take ppcg_ht_phase *phase)
-  {
-  ppcg_ht_tiling *tiling;
-
-  if (!phase)
-    return NULL;
-
-  tiling = phase->tiling;
-  return pullback_phase(phase, isl_multi_aff_copy(tiling->shift_phase));
+  def shift_phase(phase : ppcg_ht_phase) = {
+    val tiling = phase.tiling
+    pullback_phase(phase, Duplicate(tiling.shift_phase))
   }
 
   /* Take a "phase" defined over the ts-space and plug in the projection
   * from the input schedule space to the ts-space.
   * The result is then defined over this input schedule space.
   */
-  static __isl_give ppcg_ht_phase *lift_phase(__isl_take ppcg_ht_phase *phase)
-  {
-  ppcg_ht_tiling *tiling;
-
-  if (!phase)
-    return NULL;
-
-  tiling = phase->tiling;
-  return pullback_phase(phase, isl_multi_aff_copy(tiling->project_ts));
+  def lift_phase(phase : ppcg_ht_phase) = {
+    val tiling = phase.tiling
+    pullback_phase(phase, Duplicate(tiling.project_ts))
   }
 
   /* Compute the shift that should be added to the space band
@@ -1214,44 +919,26 @@ object HybridTiling {
   *
   *	dl_i * local_time.
   */
-  static __isl_give ppcg_ht_phase *compute_space_shift(
-  __isl_take ppcg_ht_phase *phase)
-  {
-  int i, n;
-  isl_space *space;
-  isl_local_space *ls;
-  isl_aff *aff, *s;
-  isl_multi_aff *space_shift;
+  def compute_space_shift(phase : ppcg_ht_phase) = {
+    var space = ppcg_ht_phase_get_input_space(phase)
+    space = space.unwrap()
+    space = space.rangeMap()
+    var space_shift = isl.MultiAff.zero(space)
+    var aff = Duplicate(phase.shift_space)
+    val ls = isl.LocalSpace.fromSpace(aff.getDomainSpace)
+    val s = isl.Aff.varOnDomain(ls, isl.DimType.Set, 1)
+    aff = aff.sub(s)
+    space_shift = space_shift.setAff(0, aff)
+    val n = 1
+    //TODO:n = isl_multi_aff_dim(space_shift, isl_dim_out)
+    (1 until n).foreach(x => {
+      val v = ppcg_ht_bounds_get_lower(phase.tiling.bounds, x)
+      var time = Duplicate(phase.local_time)
+      time = time.scaleVal(v)
+      space_shift = space_shift.setAff(x, time)
+    })
 
-  if (!phase)
-    return NULL;
-
-  space = ppcg_ht_phase_get_input_space(phase);
-  space = isl_space_unwrap(space);
-  space = isl_space_range_map(space);
-
-  space_shift = isl_multi_aff_zero(space);
-  aff = isl_aff_copy(phase->shift_space);
-  ls = isl_local_space_from_space(isl_aff_get_domain_space(aff));
-  s = isl_aff_var_on_domain(ls, isl_dim_set, 1);
-  aff = isl_aff_sub(aff, s);
-  space_shift = isl_multi_aff_set_aff(space_shift, 0, aff);
-
-  n = isl_multi_aff_dim(space_shift, isl_dim_out);
-  for (i = 1; i < n; ++i) {
-    isl_val *v;
-    isl_aff *time;
-
-    v = ppcg_ht_bounds_get_lower(phase->tiling->bounds, i);
-    time = isl_aff_copy(phase->local_time);
-    time = isl_aff_scale_val(time, v);
-    space_shift = isl_multi_aff_set_aff(space_shift, i, time);
-  }
-
-  if (!space_shift)
-    return ppcg_ht_phase_free(phase);
-  phase->space_shift = space_shift;
-  return phase;
+    ppcg_ht_phase(phase.tiling, phase.time_tile, phase.local_time, phase.shift_space, phase.domain, space_shift, phase.space_tile)
   }
 
   /* Compute the space tiling and store the result in phase->space_tile.
@@ -1259,30 +946,17 @@ object HybridTiling {
   *
   *	[P[t] -> C[s]] -> C[floor((s + space_shift)/space_size]
   */
-  static __isl_give ppcg_ht_phase *compute_space_tile(
-  __isl_take ppcg_ht_phase *phase)
-  {
-  isl_space *space;
-  isl_multi_val *space_sizes;
-  isl_multi_aff *space_shift;
-  isl_multi_aff *tile;
+  def compute_space_tile(phase : ppcg_ht_phase) = {
+    var space = ppcg_ht_phase_get_input_space(phase)
+    space = space.unwrap()
+    var tile = isl.MultiAff.rangeMap(space)
+    val space_shift = Duplicate(phase.space_shift)
+    tile = space_shift.add(tile)
+    val space_sizes = Duplicate(phase.tiling.space_sizes)
+    tile = tile.scaleDownMultiVal(space_sizes)
+    tile = tile.floor()
 
-  if (!phase)
-    return NULL;
-
-  space = ppcg_ht_phase_get_input_space(phase);
-  space = isl_space_unwrap(space);
-  tile = isl_multi_aff_range_map(space);
-  space_shift = isl_multi_aff_copy(phase->space_shift);
-  tile = isl_multi_aff_add(space_shift, tile);
-  space_sizes = isl_multi_val_copy(phase->tiling->space_sizes);
-  tile = isl_multi_aff_scale_down_multi_val(tile, space_sizes);
-  tile = isl_multi_aff_floor(tile);
-
-  if (!tile)
-    return ppcg_ht_phase_free(phase);
-  phase->space_tile = tile;
-  return phase;
+    ppcg_ht_phase(phase.tiling, phase.time_tile, phase.local_time, phase.shift_space, phase.domain, phase.space_shift, tile)
   }
 
   /* Construct a representation for one of the two phase for hybrid tiling
@@ -1298,20 +972,18 @@ object HybridTiling {
   * After the basic phase has been computed, also compute
   * the corresponding space shift.
   */
-  static __isl_give ppcg_ht_phase *ppcg_ht_tiling_compute_phase(
-  __isl_keep ppcg_ht_tiling *tiling, int shift)
-  {
-  ppcg_ht_phase *phase;
+  def ppcg_ht_tiling_compute_phase(tiling : ppcg_ht_tiling, shift : Int) = {
+    var phase = construct_phase(tiling)
 
-  phase = construct_phase(tiling);
-  if (shift)
-    phase = shift_phase(phase);
-  phase = lift_phase(phase);
+    if (shift > 0)
+      phase = shift_phase(phase)
 
-  phase = compute_space_shift(phase);
-  phase = compute_space_tile(phase);
+    phase = lift_phase(phase)
 
-  return phase;
+    phase = compute_space_shift(phase)
+    phase = compute_space_tile(phase)
+
+    phase
   }
 
   /* Consruct a function that is equal to the time tile of "phase0"
@@ -1320,96 +992,57 @@ object HybridTiling {
   * The two domains are assumed to form a partition of the input
   * schedule space.
   */
-  static __isl_give isl_pw_multi_aff *combine_time_tile(
-  __isl_keep ppcg_ht_phase *phase0, __isl_keep ppcg_ht_phase *phase1)
-  {
-  isl_aff *T;
-  isl_pw_aff *time, *time1;
+  def combine_time_tile(phase0 : ppcg_ht_phase, phase1 : ppcg_ht_phase) = {
+    var T = Duplicate(phase0.time_tile)
+    var time = isl.PwAff.alloc(ppcg_ht_phase_get_domain(phase0), T)
 
-  if (!phase0 || !phase1)
-    return NULL;
+    T = Duplicate(phase1.time_tile)
+    val time1 = isl.PwAff.alloc(ppcg_ht_phase_get_domain(phase1), T)
 
-  T = isl_aff_copy(phase0->time_tile);
-  time = isl_pw_aff_alloc(ppcg_ht_phase_get_domain(phase0), T);
-
-  T = isl_aff_copy(phase1->time_tile);
-  time1 = isl_pw_aff_alloc(ppcg_ht_phase_get_domain(phase1), T);
-
-  time = isl_pw_aff_union_add(time, time1);
-
-  return isl_pw_multi_aff_from_pw_aff(time);
+    time = time.unionAdd(time1)
+    isl.PwMultiAff.fromPwAff(time)
   }
 
   /* Name used in mark nodes that contain a pointer to a ppcg_ht_phase.
   */
-  static char *ppcg_phase_name = "phase";
+  val ppcg_phase_name = "phase";
 
   /* Does "id" contain a pointer to a ppcg_ht_phase?
   * That is, is it called "phase"?
   */
-  static isl_bool is_phase_id(__isl_keep isl_id *id)
-  {
-  const char *name;
-
-  name = isl_id_get_name(id);
-  if (!name)
-    return isl_bool_error;
-
-  return !strcmp(name, ppcg_phase_name);
+  def is_phase_id(id : isl.Id) : Boolean = {
+    var name = id.getName
+    ppcg_phase_name.equals(name)
   }
 
   /* Given a mark node with an identifier that points to a ppcg_ht_phase,
   * extract this ppcg_ht_phase pointer.
   */
-  __isl_keep ppcg_ht_phase *ppcg_ht_phase_extract_from_mark(
-  __isl_keep isl_schedule_node *node)
-  {
-  isl_bool is_phase;
-  isl_id *id;
-  void *p;
+  def ppcg_ht_phase_extract_from_mark(node : isl.ScheduleNode): Long = {
+    if (!isl.ScheduleNodeType.NodeMark.equals(node.getType))
+      //TODO:isl_die(isl_schedule_node_get_ctx(node), isl_error_internal, "not a phase mark", return NULL);
+      null
 
-  if (!node)
-    return NULL;
-  if (isl_schedule_node_get_type(node) != isl_schedule_node_mark)
-    isl_die(isl_schedule_node_get_ctx(node), isl_error_internal,
-      "not a phase mark", return NULL);
+    var id = node.markGetId()
+    var is_phase = is_phase_id(id)
+    var p = id.getUser
 
-  id = isl_schedule_node_mark_get_id(node);
-  is_phase = is_phase_id(id);
-  p = isl_id_get_user(id);
-  isl_id_free(id);
+    if (!is_phase)
+      //TODO: isl_die(isl_schedule_node_get_ctx(node), isl_error_internal, "not a phase mark", return NULL);
+      null
 
-  if (is_phase < 0)
-    return NULL;
-  if (!is_phase)
-    isl_die(isl_schedule_node_get_ctx(node), isl_error_internal,
-      "not a phase mark", return NULL);
-
-  return p;
+    p
   }
 
   /* Insert a mark node at "node" holding a pointer to "phase".
   */
-  static __isl_give isl_schedule_node *insert_phase(
-  __isl_take isl_schedule_node *node, __isl_take ppcg_ht_phase *phase)
-  {
-  isl_ctx *ctx;
-  isl_id *id;
+  def insert_phase(node : isl.ScheduleNode, phase : ppcg_ht_phase) = {
+    val ctx = node.getCtx
+    var id = isl.Id.alloc(ctx, ppcg_phase_name)
+    //TODO:id = isl_id_alloc(ctx, ppcg_phase_name, phase)
 
-  if (!node)
-    goto error;
-  ctx = isl_schedule_node_get_ctx(node);
-  id = isl_id_alloc(ctx, ppcg_phase_name, phase);
-  if (!id)
-    goto error;
-  id = isl_id_set_free_user(id, &ppcg_ht_phase_free_wrap);
-  node = isl_schedule_node_insert_mark(node, id);
-
-  return node;
-  error:
-    ppcg_ht_phase_free(phase);
-  isl_schedule_node_free(node);
-  return NULL;
+    //TODO: id = isl_id_set_free_user(id, &ppcg_ht_phase_free_wrap)
+    node.insertMark(id)
   }
 
   /* Construct a mapping from the elements of the original pair of bands
@@ -1423,32 +1056,19 @@ object HybridTiling {
   * where tile is defined by a concatenation of the time_tile and
   * the space_tile.
   */
-  static __isl_give isl_map *construct_tile_map(__isl_keep ppcg_ht_phase *phase)
-  {
-  int depth;
-  isl_space *space;
-  isl_multi_aff *ma;
-  isl_multi_aff *tiling;
-  isl_map *el2tile;
-
-  depth = isl_schedule_node_get_schedule_depth(
-    phase->tiling->input_node);
-  space = isl_aff_get_space(phase->time_tile);
-  space = isl_space_params(space);
-  space = isl_space_set_from_params(space);
-  space = isl_space_add_dims(space, isl_dim_set, depth);
-  space = isl_space_map_from_set(space);
-  ma = isl_multi_aff_identity(space);
-
-  tiling = isl_multi_aff_flat_range_product(
-    isl_multi_aff_from_aff(isl_aff_copy(phase->time_tile)),
-    isl_multi_aff_copy(phase->space_tile));
-  el2tile = isl_map_from_multi_aff(tiling);
-  el2tile = isl_map_intersect_domain(el2tile,
-    isl_set_copy(phase->domain));
-  el2tile = isl_map_product(isl_map_from_multi_aff(ma), el2tile);
-
-  return el2tile;
+  def construct_tile_map(phase : ppcg_ht_phase) = {
+    val depth = phase.tiling.input_node.getScheduleDepth
+    var space = phase.time_tile.getSpace
+    space = space.params()
+    space = space.setFromParams()
+    space = space.addDims(isl.DimType.Set, depth)
+    //TODO: space = isl_space_map_from_set(space)
+    val ma = isl.MultiAff.identity(space)
+    val tiling = isl.MultiAff.fromAff(Duplicate(phase.time_tile)).flatRangeProduct(Duplicate(phase.space_tile))
+    var el2tile = isl.Map.fromMultiAff(tiling)
+    el2tile = el2tile.intersectDomain(Duplicate(phase.domain))
+    el2tile = el2tile.product(isl.Map.fromMultiAff(ma))
+    el2tile
   }
 
   /* Return a description of the full tiles of "phase" at the point
@@ -1474,55 +1094,41 @@ object HybridTiling {
   *
   *	[[outer] -> [tile]]
   */
-  static __isl_give isl_set *compute_full_tile(__isl_keep ppcg_ht_phase *phase)
-  {
-  isl_schedule_node *node;
-  isl_union_set *domain;
-  isl_union_map *prefix, *schedule;
-  isl_set *all, *partial, *all_el;
-  isl_map *tile2el, *el2tile;
-  isl_multi_union_pw_aff *mupa;
+  def compute_full_tile(phase : ppcg_ht_phase) = {
 
-  el2tile = construct_tile_map(phase);
-  tile2el = isl_map_reverse(isl_map_copy(el2tile));
+    val el2tile = construct_tile_map(phase)
+    val tile2el = Duplicate(el2tile).reverse()
+    val node = phase.tiling.input_node
+    val prefix = node.getPrefixScheduleUnionMap
+    val domain = node.domainGetDomain()
+    //TODO: domain = isl_schedule_node_get_domain(node)
+    val mupa = Duplicate(phase.tiling.input_schedule)
+    var schedule = isl.UnionMap
+    //TODO: schedule = isl_union_map_from_multi_union_pw_aff(mupa)
+    schedule = prefix.rangeProduct(schedule)
+    var all_el = isl.Set.fromUnionSet(domain.apply(schedule))
+    all_el = all_el.coalesce()
+    val all = Duplicate(all_el).apply(Duplicate(el2tile))
 
-  node = phase->tiling->input_node;
-  prefix = isl_schedule_node_get_prefix_schedule_union_map(node);
-  domain = isl_schedule_node_get_domain(node);
-  mupa = isl_multi_union_pw_aff_copy(phase->tiling->input_schedule);
-  schedule = isl_union_map_from_multi_union_pw_aff(mupa);
-  schedule = isl_union_map_range_product(prefix, schedule);
-  all_el = isl_set_from_union_set(isl_union_set_apply(domain, schedule));
-  all_el = isl_set_coalesce(all_el);
-
-  all = isl_set_apply(isl_set_copy(all_el), isl_map_copy(el2tile));
-
-  partial = isl_set_copy(all);
-  partial = isl_set_apply(partial, tile2el);
-  partial = isl_set_subtract(partial, all_el);
-  partial = isl_set_apply(partial, el2tile);
-
-  return isl_set_subtract(all, partial);
+    var partial = Duplicate(all)
+    partial = partial.apply(tile2el)
+    partial = partial.subtract(all_el)
+    partial = partial.apply(el2tile)
+    all.subtract(partial)
   }
 
   /* Copy the AST loop types of the non-isolated part to those
   * of the isolated part.
   */
-  static __isl_give isl_schedule_node *set_isolate_loop_type(
-  __isl_take isl_schedule_node *node)
-  {
-  int i, n;
+  def set_isolate_loop_type(node : isl.ScheduleNode) = {
+    val n = node.bandNMember()
+    (0 until n). foreach(x => {
+      //TODO: enum isl_ast_loop_type type;
+      //TODO: type = isl_schedule_node_band_member_get_ast_loop_type(node, i);
+      //TODO: node = isl_schedule_node_band_member_set_isolate_ast_loop_type(node, i, type);
+    })
 
-  n = isl_schedule_node_band_n_member(node);
-  for (i = 0; i < n; ++i) {
-    enum isl_ast_loop_type type;
-
-    type = isl_schedule_node_band_member_get_ast_loop_type(node, i);
-    node = isl_schedule_node_band_member_set_isolate_ast_loop_type(
-      node, i, type);
-  }
-
-  return node;
+    node
   }
 
   /* If options->isolate_full_tiles is set, then mark the full tiles
@@ -1552,48 +1158,35 @@ object HybridTiling {
   * The AST loop type for the isolated part is set to be the same
   * as that of the non-isolated part.
   */
-  static __isl_give isl_schedule_node *ppcg_ht_phase_isolate_full_tile_node(
-  __isl_keep ppcg_ht_phase *phase, __isl_take isl_schedule_node *node,
-  struct ppcg_options *options)
-  {
-  int in, out, pos, depth, dim;
-  isl_space *space;
-  isl_multi_aff *ma1, *ma2;
-  isl_set *tile;
-  isl_map *map;
-  isl_set *set;
-  isl_union_set *opt;
+  def ppcg_ht_phase_isolate_full_tile_node(phase : ppcg_ht_phase, node : isl.ScheduleNode, options : ppcg_options): ScheduleNode = {
+    if (!options.isolate_full_tiles)
+      return node
 
-  if (!options->isolate_full_tiles)
-    return node;
+    val depth = node.getScheduleDepth
+    val dim = node.bandNMember()
+    val tile = compute_full_tile(phase)
+    var map = tile.unwrap()
+    val in = map.dim(isl.DimType.In)
+    val out = map.dim(isl.DimType.Out)
+    val pos = depth - in
+    map = map.projectOut(isl.DimType.Out, pos + dim, out - (pos + dim))
+    val space = map.getSpace.range()
+    var ma1 = isl.MultiAff.projectOutMap(Duplicate(space), isl.DimType.Set, pos, dim)
+    val ma2 = isl.MultiAff.projectOutMap(Duplicate(space), isl.DimType.Set, 0, pos)
+    ma1 = ma1.rangeProduct(ma2)
+    map = map.applyRange(isl.Map.fromMultiAff(ma1))
+    map = map.uncurry()
+    map = map.flattenDomain()
+    var set = map.wrap()
+    //TODO: set = isl_set_set_tuple_name(set, "isolate")
 
-  depth = isl_schedule_node_get_schedule_depth(node);
-  dim = isl_schedule_node_band_n_member(node);
+    var opt= isl.UnionSet
+    //TODO: opt = isl_schedule_node_band_get_ast_build_options(node);
+    //TODO: opt = isl_union_set_add_set(opt, set)
+    var localNode = node.bandSetAstBuildOptions(opt)
+    //TODO: node = set_isolate_loop_type(node);
 
-  tile = compute_full_tile(phase);
-  map = isl_set_unwrap(tile);
-  in = isl_map_dim(map, isl_dim_in);
-  out = isl_map_dim(map, isl_dim_out);
-  pos = depth - in;
-  map = isl_map_project_out(map, isl_dim_out, pos + dim,
-    out - (pos + dim));
-  space = isl_space_range(isl_map_get_space(map));
-  ma1 = isl_multi_aff_project_out_map(isl_space_copy(space),
-    isl_dim_set, pos, dim);
-  ma2 = isl_multi_aff_project_out_map(space, isl_dim_set, 0, pos);
-  ma1 = isl_multi_aff_range_product(ma1, ma2);
-  map = isl_map_apply_range(map, isl_map_from_multi_aff(ma1));
-  map = isl_map_uncurry(map);
-  map = isl_map_flatten_domain(map);
-  set = isl_map_wrap(map);
-  set = isl_set_set_tuple_name(set, "isolate");
-
-  opt = isl_schedule_node_band_get_ast_build_options(node);
-  opt = isl_union_set_add_set(opt, set);
-  node = isl_schedule_node_band_set_ast_build_options(node, opt);
-  node = set_isolate_loop_type(node);
-
-  return node;
+    localNode
   }
 
   /* Insert a band node for performing the space tiling for "phase" at "node".
@@ -1611,25 +1204,15 @@ object HybridTiling {
   * All dimensions are also marked for being generated as atomic loops
   * because separation is usually not desirable on tile loops.
   */
-  static __isl_give isl_schedule_node *insert_space_tiling(
-  __isl_keep ppcg_ht_phase *phase, __isl_take isl_schedule_node *node,
-  struct ppcg_options *options)
-  {
-  isl_multi_aff *space_tile;
-  isl_multi_union_pw_aff *mupa;
-
-  if (!phase)
-    return isl_schedule_node_free(node);
-
-  space_tile = isl_multi_aff_copy(phase->space_tile);
-  mupa = isl_multi_union_pw_aff_copy(phase->tiling->input_schedule);
-  mupa = isl_multi_union_pw_aff_apply_multi_aff(mupa, space_tile);
-  node = isl_schedule_node_insert_partial_schedule(node, mupa);
-  node = ppcg_set_schedule_node_type(node, isl_ast_loop_atomic);
-  node = ppcg_ht_phase_isolate_full_tile_node(phase, node, options);
-  node = isl_schedule_node_band_member_set_coincident(node, 0, 1);
-
-  return node;
+  def insert_space_tiling(phase : ppcg_ht_phase, node : isl.ScheduleNode, options : ppcg_options) = {
+    val space_tile = Duplicate(phase.space_tile)
+    var mupa = Duplicate(phase.tiling.input_schedule)
+    //TODO: mupa = isl_multi_union_pw_aff_apply_multi_aff(mupa, space_tile);
+    var localNode = node.insertPartialSchedule(mupa)
+    //TODO: node = ppcg_set_schedule_node_type(node, isl_ast_loop_atomic);
+    localNode = ppcg_ht_phase_isolate_full_tile_node(phase, localNode, options)
+    localNode = localNode.bandMemberSetCoincident(0, 1)
+    localNode
   }
 
   /* Given a pointer "node" to (a copy of) the original child node
@@ -1638,21 +1221,14 @@ object HybridTiling {
   *
   * That is, replace "s" by (s + space_shift) % space_sizes.
   */
-  __isl_give isl_schedule_node *ppcg_ht_phase_shift_space_point(
-  __isl_keep ppcg_ht_phase *phase, __isl_take isl_schedule_node *node)
-  {
-  isl_multi_val *space_sizes;
-  isl_multi_aff *space_shift;
-  isl_multi_union_pw_aff *mupa;
-
-  space_shift = isl_multi_aff_copy(phase->space_shift);
-  mupa = isl_multi_union_pw_aff_copy(phase->tiling->input_schedule);
-  mupa = isl_multi_union_pw_aff_apply_multi_aff(mupa, space_shift);
-  node = isl_schedule_node_band_shift(node, mupa);
-  space_sizes = isl_multi_val_copy(phase->tiling->space_sizes);
-  node = isl_schedule_node_band_mod(node, space_sizes);
-
-  return node;
+  def ppcg_ht_phase_shift_space_point(phase : ppcg_ht_phase, node : isl.ScheduleNode) = {
+    val space_shift = Duplicate(phase.space_shift)
+    var mupa = Duplicate(phase.tiling.input_schedule)
+    //TODO: mupa = isl_multi_union_pw_aff_apply_multi_aff(mupa, space_shift);
+    var localNode = node.bandShift(mupa)
+    val space_sizes = Duplicate(phase.tiling.space_sizes)
+    //TODO: node = isl_schedule_node_band_mod(node, space_sizes);
+    localNode
   }
 
   /* Does
@@ -1661,22 +1237,14 @@ object HybridTiling {
   *
   * hold?
   */
-  static isl_bool wide_enough(__isl_keep isl_val *s0, __isl_keep isl_val *delta,
-  __isl_keep isl_val *h)
-  {
-  isl_val *v, *v2;
-  isl_bool ok;
-
-  v = isl_val_mul(isl_val_copy(delta), isl_val_copy(h));
-  v2 = isl_val_floor(isl_val_copy(v));
-  v = isl_val_sub(v, v2);
-  v = isl_val_mul_ui(v, 2);
-  v = isl_val_add(v, isl_val_copy(delta));
-  v = isl_val_sub_ui(v, 1);
-  ok = isl_val_gt(s0, v);
-  isl_val_free(v);
-
-  return ok;
+  def wide_enough(s0 : isl.Val, delta : isl.Val, h : isl.Val) = {
+    var v = Duplicate(delta).mul(Duplicate(h))
+    val v2 = Duplicate(v).floor()
+    v = v.sub(v2)
+    v = v.mulUi(2)
+    v = v.add(Duplicate(delta))
+    v = v.sub(isl.Val.fromInt(v.getCtx, 1))
+    s0.gt(v)
   }
 
   /* Is the tile size specified by "sizes" wide enough in the first space
@@ -1707,33 +1275,22 @@ object HybridTiling {
   *
   * The condition is checked for both directions.
   */
-  isl_bool ppcg_ht_bounds_supports_sizes(__isl_keep ppcg_ht_bounds *bounds,
-  __isl_keep isl_multi_val *sizes)
-  {
-  isl_val *s0, *h;
-  isl_val *delta;
-  isl_bool ok;
+  def ppcg_ht_bounds_supports_sizes(bounds : Bounds, sizes : isl.MultiVal) : Boolean = {
+    var ok = ppcg_ht_bounds_is_valid(bounds)
+    if (!ok)
+      return ok
 
-  ok = ppcg_ht_bounds_is_valid(bounds);
-  if (ok < 0 || !ok)
-    return ok;
+    val h = sizes.getVal(0).sub(isl.Val.fromInt(sizes.getCtx, 1))
+    val s0 = sizes.getVal(1)
+    var delta = ppcg_ht_bounds_get_lower(bounds, 0)
 
-  h = isl_val_sub_ui(isl_multi_val_get_val(sizes, 0), 1);
-  s0 = isl_multi_val_get_val(sizes, 1);
+    ok = wide_enough(s0, delta, h)
 
-  delta = ppcg_ht_bounds_get_lower(bounds, 0);
-  ok = wide_enough(s0, delta, h);
-  isl_val_free(delta);
+    delta = ppcg_ht_bounds_get_upper(bounds)
+    if (ok)
+      ok = wide_enough(s0, delta, h)
 
-  delta = ppcg_ht_bounds_get_upper(bounds);
-  if (ok == isl_bool_true)
-    ok = wide_enough(s0, delta, h);
-  isl_val_free(delta);
-
-  isl_val_free(s0);
-  isl_val_free(h);
-
-  return ok;
+    ok
   }
 
   /* Check that the tile will be wide enough in the first space
@@ -1743,21 +1300,13 @@ object HybridTiling {
   *
   * Error out if the condition fails to hold.
   */
-  static isl_stat check_width(__isl_keep ppcg_ht_bounds *bounds,
-  __isl_keep isl_multi_val *sizes)
-  {
-  isl_bool ok;
+  def check_width(bounds : Bounds, sizes : isl.MultiVal) = {
+    var ok = ppcg_ht_bounds_supports_sizes(bounds, sizes);
+    if (!ok)
+      //TODO: isl_die(isl_multi_val_get_ctx(sizes), isl_error_invalid,"base of hybrid tiling hexagon not sufficiently wide",return isl_stat_error);
+      null
 
-  ok = ppcg_ht_bounds_supports_sizes(bounds, sizes);
-
-  if (ok < 0)
-    return isl_stat_error;
-  if (!ok)
-    isl_die(isl_multi_val_get_ctx(sizes), isl_error_invalid,
-      "base of hybrid tiling hexagon not sufficiently wide",
-      return isl_stat_error);
-
-  return isl_stat_ok;
+    //TODO: return isl_stat_ok;
   }
 
   /* Given valid bounds on the relative dependence distances for
@@ -1798,75 +1347,44 @@ object HybridTiling {
   * the sequence with the two filters, the CT space tiling nodes and
   * the phase markers M.
   */
-  __isl_give isl_schedule_node *ppcg_ht_bounds_insert_tiling(
-  __isl_take ppcg_ht_bounds *bounds, __isl_take isl_multi_val *sizes,
-  __isl_take isl_schedule_node *node, struct ppcg_options *options)
-  {
-  isl_ctx *ctx;
-  isl_union_set *phase0;
-  isl_union_set *phase1;
-  isl_multi_union_pw_aff *input, *dom_time;
-  isl_union_pw_multi_aff *upma;
-  isl_pw_multi_aff *time;
-  isl_union_set_list *phases;
-  ppcg_ht_tiling *tiling;
-  ppcg_ht_phase *phase_0;
-  ppcg_ht_phase *phase_1;
+  def ppcg_ht_bounds_insert_tiling(bounds : Bounds, sizes : isl.MultiVal, node : isl.ScheduleNode, options : ppcg_options): ScheduleNode = {
+    val ctx = node.getCtx
+    val input = extract_input_schedule(node)
 
-  if (!node || !sizes || !bounds)
-    goto error;
-  if (check_input_pattern(node) < 0 || check_width(bounds, sizes) < 0)
-    goto error;
+    val tiling = ppcg_ht_bounds_construct_tiling(bounds, node, input, sizes)
+    val phase_0 = ppcg_ht_tiling_compute_phase(tiling, 1)
+    val phase_1 = ppcg_ht_tiling_compute_phase(tiling, 0)
+    val time = combine_time_tile(phase_0, phase_1)
 
-  ctx = isl_schedule_node_get_ctx(node);
+    val upma = isl.UnionPwMultiAff
+    //TODO: upma = isl_union_pw_multi_aff_from_multi_union_pw_aff(isl_multi_union_pw_aff_copy(input));
+    var phase0 = isl.UnionSet.fromSet(ppcg_ht_phase_get_domain(phase_0))
+    //TODO: phase0 = isl_union_set_preimage_union_pw_multi_aff(phase0,isl_union_pw_multi_aff_copy(upma));
+    var phase1 = isl.UnionSet.fromSet(ppcg_ht_phase_get_domain(phase_1))
+    //TODO: phase1 = isl_union_set_preimage_union_pw_multi_aff(phase1, upma);
 
-  input = extract_input_schedule(node);
+    var phases = isl.UnionSetList.alloc(ctx, 2)
+    phases = phases.add(phase0)
+    phases = phases.add(phase1)
 
-  tiling = ppcg_ht_bounds_construct_tiling(bounds, node, input, sizes);
-  phase_0 = ppcg_ht_tiling_compute_phase(tiling, 1);
-  phase_1 = ppcg_ht_tiling_compute_phase(tiling, 0);
-  time = combine_time_tile(phase_0, phase_1);
-  ppcg_ht_tiling_free(tiling);
-
-  upma = isl_union_pw_multi_aff_from_multi_union_pw_aff(
-    isl_multi_union_pw_aff_copy(input));
-  phase0 = isl_union_set_from_set(ppcg_ht_phase_get_domain(phase_0));
-  phase0 = isl_union_set_preimage_union_pw_multi_aff(phase0,
-    isl_union_pw_multi_aff_copy(upma));
-  phase1 = isl_union_set_from_set(ppcg_ht_phase_get_domain(phase_1));
-  phase1 = isl_union_set_preimage_union_pw_multi_aff(phase1, upma);
-
-  phases = isl_union_set_list_alloc(ctx, 2);
-  phases = isl_union_set_list_add(phases, phase0);
-  phases = isl_union_set_list_add(phases, phase1);
-
-  dom_time = isl_multi_union_pw_aff_apply_pw_multi_aff(input, time);
-  node = isl_schedule_node_insert_partial_schedule(node, dom_time);
-
-  node = isl_schedule_node_child(node, 0);
-
-  node = isl_schedule_node_insert_sequence(node, phases);
-  node = isl_schedule_node_child(node, 0);
-  node = isl_schedule_node_child(node, 0);
-  node = insert_space_tiling(phase_0, node, options);
-  node = insert_phase(node, phase_0);
-  node = isl_schedule_node_parent(node);
-  node = isl_schedule_node_next_sibling(node);
-  node = isl_schedule_node_child(node, 0);
-  node = insert_space_tiling(phase_1, node, options);
-  node = insert_phase(node, phase_1);
-  node = isl_schedule_node_parent(node);
-  node = isl_schedule_node_parent(node);
-
-  node = isl_schedule_node_parent(node);
-
-  isl_multi_val_free(sizes);
-  return node;
-  error:
-    isl_multi_val_free(sizes);
-  isl_schedule_node_free(node);
-  ppcg_ht_bounds_free(bounds);
-  return NULL;
+    val dom_time = null
+    //TODO: dom_time = isl_multi_union_pw_aff_apply_pw_multi_aff(input, time);
+    var localNode = node.insertPartialSchedule(dom_time)
+    localNode = localNode.child(0)
+    localNode = localNode.insertSequence(phases)
+    localNode = localNode.child(0)
+    localNode = localNode.child(0)
+    localNode = insert_space_tiling(phase_0, node, options)
+    localNode = insert_phase(node, phase_0)
+    localNode = localNode.parent()
+    localNode = localNode.nextSibling()
+    localNode = localNode.child(0)
+    localNode = insert_space_tiling(phase_1, node, options)
+    localNode = insert_phase(node, phase_1)
+    localNode = localNode.parent()
+    localNode = localNode.parent()
+    localNode = localNode.parent()
+    localNode
   }
 
   /* Given a branch "node" that contains a sequence node with two phases
@@ -1918,25 +1436,18 @@ object HybridTiling {
   * in a hybrid tiling tree.
   * Drop the phase mark at "node".
   */
-  static __isl_give isl_schedule_node *drop_phase_mark(
-  __isl_take isl_schedule_node *node, void *user)
-  {
-  isl_id *id;
-  isl_bool is_phase;
+  def drop_phase_mark(node : isl.ScheduleNode): ScheduleNode = {
+    if (!isl.ScheduleNodeType.NodeMark.equals(node.getType))
+      return node
 
-  if (isl_schedule_node_get_type(node) != isl_schedule_node_mark)
-    return node;
+    var localNode = node
+    val id = node.markGetId()
+    val is_phase = is_phase_id(id)
 
-  id = isl_schedule_node_mark_get_id(node);
-  is_phase = is_phase_id(id);
-  isl_id_free(id);
+    if (is_phase)
+      localNode = node.delete()
 
-  if (is_phase < 0)
-    return isl_schedule_node_free(node);
-  if (is_phase)
-    node = isl_schedule_node_delete(node);
-
-  return node;
+    localNode
   }
 
   /* Given a branch "node" that contains a sequence node with two phases
@@ -2005,8 +1516,7 @@ case class Bounds(upper : isl.Val, lower : isl.MultiVal) {
 * "project_ts" projects the space of the input schedule to the ts-space.
 * It is equal to [P[t] -> C[s_0, ...]] -> ts[t, s_0].
 */
-case class ppcg_ht_tiling(ref : Int, bounds : Bounds,
-    //isl_schedule_node *input_node,
+case class ppcg_ht_tiling(ref : Int, bounds : Bounds, input_node : isl.ScheduleNode,
 input_schedule : isl.MultiUnionPwAff,
 space_sizes : isl.MultiVal,
 time_tile : isl.Aff,
@@ -2049,6 +1559,89 @@ project_ts : isl.MultiAff
 case class ppcg_ht_phase(tiling : ppcg_ht_tiling, time_tile : isl.Aff, local_time : isl.Aff, shift_space : isl.Aff,
 domain : isl.Set, space_shift : isl.MultiAff, space_tile : isl.MultiAff) {
 
+}
+
+case class ppcg_debug_options(
+  dump_schedule_constraints : Int,
+  dump_schedule : Int,
+  dump_final_schedule : Int,
+  dump_sizes : Int,
+  verbose : Int){
+}
+
+case class ppcg_options(
+//TODO:struct isl_options *isl,
+  debug : ppcg_options,
+
+/* Group chains of consecutive statements before scheduling. */
+  group_chains : Int,
+
+/* Use isl to compute a schedule replacing the original schedule. */
+  reschedule : Int,
+  scale_tile_loops : Int,
+  wrap : Int,
+
+/* Assume all parameters are non-negative. */
+  non_negative_parameters : Int,
+    ctx : String,
+    sizes : String,
+
+/* Perform tiling (C target). */
+tile : Int,
+tile_size : Int,
+
+/* Isolate full tiles from partial tiles. */
+ isolate_full_tiles : Boolean,
+
+/* Take advantage of private memory. */
+ use_private_memory : Int,
+
+/* Take advantage of shared memory. */
+ use_shared_memory : Int,
+
+/* Maximal amount of shared memory. */
+ max_shared_memory : Int,
+
+/* The target we generate code for. */
+ target : Int,
+
+/* Generate OpenMP macros (C target only). */
+ openmp : Int,
+
+/* Linearize all device arrays. */
+ linearize_device_arrays : Int,
+
+/* Allow the use of GNU extensions in generated code. */
+ allow_gnu_extensions : Int,
+
+/* Allow live range to be reordered. */
+ live_range_reordering : Int,
+
+/* Allow hybrid tiling whenever a suitable input pattern is found. */
+ hybrid : Int,
+
+/* Unroll the code for copying to/from shared memory. */
+ unroll_copy_shared : Int,
+/* Unroll code inside tile on GPU targets. */
+ unroll_gpu_tile : Int,
+
+/* Options to pass to the OpenCL compiler.  */
+opencl_compiler_options : String,
+/* Prefer GPU device over CPU. */
+    opencl_use_gpu : Int,
+/* Number of files to include. */
+ opencl_n_include_file : Int,
+/* Files to include. */
+opencl_include_files : String,
+/* Print definitions of types in kernels. */
+opencl_print_kernel_types : Int,
+/* Embed OpenCL kernel code in host code. */
+opencl_embed_kernel_code : Int,
+
+/* Name of file for saving isl computed schedule or NULL. */
+save_schedule_file : String,
+/* Name of file for loading schedule or NULL. */
+load_schedule_file : String){
 }
 
 
