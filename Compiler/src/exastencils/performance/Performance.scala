@@ -51,32 +51,36 @@ object CollectFunctionStatements extends DefaultStrategy("Collecting internal fu
 object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performance estimates") {
   var completeFunctions = HashMap[String, PerformanceEstimate]()
   var unknownFunctionCalls = true
-  var outputStream: PrintWriter = null
+  var outputStream : PrintWriter = null
 
-  override def apply(node: Option[Node] = None): Unit = {
+  override def apply(node : Option[Node] = None) : Unit = {
     realApplyAndDo(false, node)
   }
 
-  def doUntilDone(node : Option[Node] = None): Unit = {
+  def doUntilDone(node : Option[Node] = None) : Unit = {
     realApplyAndDo(true, node)
   }
 
-  private def realApplyAndDo(doUntilDone: Boolean, node: Option[Node] = None): Unit = {
-    outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
-    try {
-      if (doUntilDone) { // doUntilDone
-        var cnt = 0
-        unknownFunctionCalls = true
-        while (unknownFunctionCalls && cnt < 128) {
-          unknownFunctionCalls = false
-          super.apply(node)
-          cnt += 1
-        }
-      } else { // apply() once
+  private def realApplyAndDo(doUntilDone : Boolean, node : Option[Node] = None) : Unit = {
+    if (doUntilDone) { // doUntilDone
+      var cnt = 0
+      unknownFunctionCalls = true
+      while (unknownFunctionCalls && cnt < 128) {
         unknownFunctionCalls = false
         super.apply(node)
+        cnt += 1
       }
-    } finally {
+    } else { // apply() once
+      unknownFunctionCalls = false
+      super.apply(node)
+    }
+
+    if (true) { // TODO: add flag to control behavior
+      outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
+
+      for (fct <- completeFunctions.toList.sortBy(_._1))
+        outputStream.println("%s\t%s\t%e".formatLocal(java.util.Locale.US, "function", fct._1, fct._2.host * 1000.0)) //ms
+
       outputStream.close()
       outputStream = null
     }
@@ -85,32 +89,29 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
   this += new Transformation("Processing function statements", {
     case fct : FunctionStatement if (
       !completeFunctions.contains(fct.name) &&
-        CollectFunctionStatements.internalFunctions.contains(fct.name)) =>
-    {
-      // process function body
-      EvaluatePerformanceEstimates_SubAST.applyStandalone(fct.body)
+      CollectFunctionStatements.internalFunctions.contains(fct.name)) =>
+      {
+        // process function body
+        EvaluatePerformanceEstimates_SubAST.applyStandalone(fct.body)
 
-      if (EvaluatePerformanceEstimates_SubAST.unknownFunctionCalls) {
-        unknownFunctionCalls = true
-      } else {
-        val estimatedTime = EvaluatePerformanceEstimates_SubAST.lastEstimate
+        if (EvaluatePerformanceEstimates_SubAST.unknownFunctionCalls) {
+          unknownFunctionCalls = true
+        } else {
+          val estimatedTime = EvaluatePerformanceEstimates_SubAST.lastEstimate
 
-        fct.annotate("perf_timeEstimate_host", estimatedTime.host)
-        fct.annotate("perf_timeEstimate_device", estimatedTime.device)
+          fct.annotate("perf_timeEstimate_host", estimatedTime.host)
+          fct.annotate("perf_timeEstimate_device", estimatedTime.device)
 
-        val hostTimeMs : Double = estimatedTime.host * 1000.0
+          val hostTimeMs : Double = estimatedTime.host * 1000.0
 
-        outputStream.println("%s\t%s\t%e".formatLocal(java.util.Locale.US, "function", fct.name, hostTimeMs))
+          completeFunctions.put(fct.name, estimatedTime)
+          fct.body.prepend(
+            CommentStatement(s"Estimated host time for function: ${hostTimeMs} ms"),
+            CommentStatement(s"Estimated device time for function: ${estimatedTime.device * 1000.0} ms"))
 
-        completeFunctions.put(fct.name, estimatedTime)
-        fct.body.prepend(
-          CommentStatement(s"Estimated host time for function: ${hostTimeMs} ms"),
-          CommentStatement(s"Estimated device time for function: ${estimatedTime.device * 1000.0} ms")
-        )
-
+        }
+        fct
       }
-      fct
-    }
   })
 }
 
