@@ -678,20 +678,29 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     return schedule.applyRange(trafo)
   }
 
- // private def hybridTileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int, tile_sizes : List[Int]) : isl.UnionMap = {
-//    var node : isl.AstNode = new isl.AstNode() // has to be Schedule Node
-//    schedule.getSpace
-//    val space2 = isl_schedule_node_band_get_space(node)
-//    node = isl_schedule_node_parent(node)
-//    var space = isl_schedule_node_band_get_space(node)
-//
-//    space = space.product(space2)
-//    val mv : isl.MultiVal = multiValFromIntList(space, tile_sizes)
-//    node = ppcg_ht_bounds_insert_tiling(bounds, mv, node)
-//    node = hybrid_tile_foreach_phase(node, &update_phase, gen)
-//    node = hybrid_tile_drop_phase_marks(node)
-//    return node;
-  // }
+  /* Apply hybrid tiling on "node" and its parent based on the (valid)
+ * bounds on the relative dependence distances "bounds" and
+ * the tile sizes in "tile_sizes".
+ * The number of elements in "tile_sizes" is at least as large
+ * as the sum of the dimensions of the parent and the child node.
+ *
+ * Convert the tile_sizes to an isl_multi_val in the right space,
+ * insert the hybrid tiling and then create a kernel inside each phase.
+ * Finally, remove the phase marks.
+ */
+  private def gpu_hybrid_tile(gen : gpu_gen, node : isl.ScheduleNode, bounds : Bounds, tile_sizes : List[Int]) = {
+    val space2 = node.bandGetSpace()
+    var localNode = node.parent()
+    var space = localNode.bandGetSpace()
+    space = space.product(space2)
+    val mv = multiValFromIntList(space, tile_sizes)
+    localNode = HybridTiling.ppcg_ht_bounds_insert_tiling(bounds, mv, node, gen.options)
+
+    // This is the creation of gpu_kernels and is not required in our case
+    //TODO: node = hybrid_tile_foreach_phase(node, &update_phase, gen)
+    localNode = HybridTiling.hybrid_tile_drop_phase_marks(localNode)
+    localNode
+  }
 
   private def multiValFromIntList(space : isl.Space, intList : List[Int]) = {
     val ctx = space.getCtx

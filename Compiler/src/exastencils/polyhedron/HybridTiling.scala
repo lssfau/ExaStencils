@@ -3,33 +3,35 @@ package exastencils.polyhedron
 import exastencils.core._
 import isl._
 
-/** The hybrid tiling implemented in this file is based on
+/**
+ * The hybrid tiling implemented in this file is based on
  * Grosser et al., "Hybrid Hexagonal/Classical Tiling for GPUs".
  */
 
-/** Bounds on relative dependence distances in input to hybrid tiling.
-  * upper is an upper bound on the relative dependence distances
-  * in the first space dimension
-  * -lower is a lower bound on the relative dependence distances
-  * in all space dimensions.
-  *
-  * In particular,
-  *
-  *	d_i >= -lower_i d_0
-  * and
-  *	d_1 <= upper d_0
-  *
-  * for each dependence distance vector d, where d_1 is the component
-  * corresponding to the first space dimension.
-  *
-  * upper and lower are always non-negative.
-  * Some of the values may be NaN if no bound could be found.
-  */
+/**
+ * Bounds on relative dependence distances in input to hybrid tiling.
+ * upper is an upper bound on the relative dependence distances
+ * in the first space dimension
+ * -lower is a lower bound on the relative dependence distances
+ * in all space dimensions.
+ *
+ * In particular,
+ *
+ * d_i >= -lower_i d_0
+ * and
+ * d_1 <= upper d_0
+ *
+ * for each dependence distance vector d, where d_1 is the component
+ * corresponding to the first space dimension.
+ *
+ * upper and lower are always non-negative.
+ * Some of the values may be NaN if no bound could be found.
+ */
 object HybridTiling {
 
   /**
-    * Create a ppcg_ht_bounds object for a band living in "space". The bounds are initialized to NaN.
-    */
+   * Create a ppcg_ht_bounds object for a band living in "space". The bounds are initialized to NaN.
+   */
   def ppcg_ht_bounds_alloc(space : isl.Space) = {
     val ctx = space.getCtx
     val upper = isl.Val.nan(ctx)
@@ -141,21 +143,21 @@ object HybridTiling {
     * This constraint corresponds to (6) in
     * "Hybrid Hexagonal/Classical Tiling for GPUs".
     */
-    def hex_lower_left(ls : isl.LocalSpace, h : isl.Val, du : isl.Val, duh : isl.Val) : isl.Constraint = {
-      var v : isl.Val = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
-      //TODO:var v : isl.Val = isl_val_add_ui(isl_val_mul_ui(isl_val_copy(h), 2), 1);
-      v = v.mul(Duplicate(du))
-      v = v.sub(Duplicate(duh))
-      var aff : isl.Aff = isl.Aff.valOnDomain(ls, v)
-      v = Duplicate(du).neg()
-      aff = aff.setCoefficientVal(isl.DimType.In, 0, v)
-      aff = aff.setCoefficientSi(isl.DimType.In, 1, 1)
+  def hex_lower_left(ls : isl.LocalSpace, h : isl.Val, du : isl.Val, duh : isl.Val) : isl.Constraint = {
+    var v : isl.Val = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
+    //TODO:var v : isl.Val = isl_val_add_ui(isl_val_mul_ui(isl_val_copy(h), 2), 1);
+    v = v.mul(Duplicate(du))
+    v = v.sub(Duplicate(duh))
+    var aff : isl.Aff = isl.Aff.valOnDomain(ls, v)
+    v = Duplicate(du).neg()
+    aff = aff.setCoefficientVal(isl.DimType.In, 0, v)
+    aff = aff.setCoefficientSi(isl.DimType.In, 1, 1)
 
-      //TODO: return isl_inequality_from_aff(aff)
-      isl.Constraint
-    }
+    //TODO: return isl_inequality_from_aff(aff)
+    isl.Constraint
+  }
 
-    /* Construct the lower constraint of the hexagonal tile, i.e.,
+  /* Construct the lower constraint of the hexagonal tile, i.e.,
     *
     *	a <= 2h+1
       *	-a + 2h+1 >= 0
@@ -163,16 +165,16 @@ object HybridTiling {
       * This constraint corresponds to (7) in
       * "Hybrid Hexagonal/Classical Tiling for GPUs".
       */
-      def hex_lower(ls : isl.LocalSpace, h : isl.Val) : isl.Constraint = {
-        val v = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
-        var aff = isl.Aff.valOnDomain(ls, v)
-        aff = aff.setCoefficientSi(isl.DimType.In, 0, -1)
+  def hex_lower(ls : isl.LocalSpace, h : isl.Val) : isl.Constraint = {
+    val v = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
+    var aff = isl.Aff.valOnDomain(ls, v)
+    aff = aff.setCoefficientSi(isl.DimType.In, 0, -1)
 
-        //TODO: return isl_inequality_from_aff(aff);
-        isl.Constraint
-      }
+    //TODO: return isl_inequality_from_aff(aff);
+    isl.Constraint
+  }
 
-      /* Construct the lower right constraint of the hexagonal tile, i.e.,
+  /* Construct the lower right constraint of the hexagonal tile, i.e.,
       *
       *	dl a + b <= (2h+1) dl + duh + (s0-1)
         *	-dl a - b + (2h+1) dl + duh + (s0-1) >= 0
@@ -182,22 +184,22 @@ object HybridTiling {
         * This constraint corresponds to (8) in
         * "Hybrid Hexagonal/Classical Tiling for GPUs".
         */
-        def hex_lower_right(ls : isl.LocalSpace, h : isl.Val, s0 : isl.Val, dl : isl.Val, duh : isl.Val) : isl.Constraint = {
-          var v = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
-          v = v.mul(Duplicate(dl))
-          v = v.add(Duplicate(duh))
-          v = v.add(Duplicate(s0))
-          v = v.sub(isl.Val.fromInt(v.getCtx, 1))
-          var aff = isl.Aff.valOnDomain(ls, v)
-          v = Duplicate(dl).neg()
-          aff = aff.setCoefficientVal(isl.DimType.In, 0, v)
-          aff = aff.setCoefficientSi(isl.DimType.In, 1, -1)
+  def hex_lower_right(ls : isl.LocalSpace, h : isl.Val, s0 : isl.Val, dl : isl.Val, duh : isl.Val) : isl.Constraint = {
+    var v = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
+    v = v.mul(Duplicate(dl))
+    v = v.add(Duplicate(duh))
+    v = v.add(Duplicate(s0))
+    v = v.sub(isl.Val.fromInt(v.getCtx, 1))
+    var aff = isl.Aff.valOnDomain(ls, v)
+    v = Duplicate(dl).neg()
+    aff = aff.setCoefficientVal(isl.DimType.In, 0, v)
+    aff = aff.setCoefficientSi(isl.DimType.In, 1, -1)
 
-          //TODO:return isl_inequality_from_aff(aff);
-          isl.Constraint
-        }
+    //TODO:return isl_inequality_from_aff(aff);
+    isl.Constraint
+  }
 
-        /* Construct the upper left constraint of the hexagonal tile, i.e.,
+  /* Construct the upper left constraint of the hexagonal tile, i.e.,
         *
         *	dl a + b >= h dl - (d - 1)/d				with d = den(dl)
         *	dl a + b - h dl + (d - 1)/d >= 0
@@ -294,53 +296,53 @@ object HybridTiling {
     * The slope of the "/" constraints is dl.
     * The slope of the "\_" constraints is du.
     */
-    def compute_hexagon(space : isl.Space, h : isl.Val, s0 : isl.Val, dl : isl.Val, du : isl.Val, dlh : isl.Val, duh : isl.Val) = {
-      val ls: isl.LocalSpace = isl.LocalSpace.fromSpace(space)
+  def compute_hexagon(space : isl.Space, h : isl.Val, s0 : isl.Val, dl : isl.Val, du : isl.Val, dlh : isl.Val, duh : isl.Val) = {
+    val ls : isl.LocalSpace = isl.LocalSpace.fromSpace(space)
 
-      var c : isl.Constraint = hex_lower_left(Duplicate(ls), h, du, duh)
-      var bset = isl.BasicSet.fromConstraint(c)
+    var c : isl.Constraint = hex_lower_left(Duplicate(ls), h, du, duh)
+    var bset = isl.BasicSet.fromConstraint(c)
 
-      c = hex_lower(Duplicate(ls), h)
-      bset = bset.addConstraint(c)
+    c = hex_lower(Duplicate(ls), h)
+    bset = bset.addConstraint(c)
 
-      c = hex_lower_right(Duplicate(ls), h, s0, dl, duh)
-      bset = bset.addConstraint(c)
+    c = hex_lower_right(Duplicate(ls), h, s0, dl, duh)
+    bset = bset.addConstraint(c)
 
-      c = hex_upper_left(Duplicate(ls), h, dl)
-      bset = bset.addConstraint(c)
+    c = hex_upper_left(Duplicate(ls), h, dl)
+    bset = bset.addConstraint(c)
 
-      c = hex_upper_right(Duplicate(ls), h, s0, du, dlh, duh)
-      bset = bset.addConstraint(c)
+    c = hex_upper_right(Duplicate(ls), h, s0, du, dlh, duh)
+    bset = bset.addConstraint(c)
 
-      c = hex_upper(ls)
-      bset = bset.addConstraint(c)
+    c = hex_upper(ls)
+    bset = bset.addConstraint(c)
 
-      isl.Set.fromBasicSet(bset)
-    }
+    isl.Set.fromBasicSet(bset)
+  }
 
-    /* Name of the ts-space.
+  /* Name of the ts-space.
     */
-    val ts_space_name = "ts"
+  val ts_space_name = "ts"
 
   /* Construct and return the space ts[t, s].
   */
-    def construct_ts_space(ctx : isl.Ctx) = {
-      val s = isl.Space.setAlloc(ctx, 0, 2)
-      s.setTupleName(isl.DimType.Set, ts_space_name)
-    }
+  def construct_ts_space(ctx : isl.Ctx) = {
+    val s = isl.Space.setAlloc(ctx, 0, 2)
+    s.setTupleName(isl.DimType.Set, ts_space_name)
+  }
 
-    /* Name of the local ts-space.
+  /* Name of the local ts-space.
     */
-    val local_ts_space_name = "local_ts"
+  val local_ts_space_name = "local_ts"
 
   /* Construct and return the space local_ts[t, s].
   */
-    def construct_local_ts_space(ctx : isl.Ctx) = {
-      val s = isl.Space.setAlloc(ctx, 0, 2)
-      s.setTupleName(isl.DimType.Set, local_ts_space_name)
-    }
+  def construct_local_ts_space(ctx : isl.Ctx) = {
+    val s = isl.Space.setAlloc(ctx, 0, 2)
+    s.setTupleName(isl.DimType.Set, local_ts_space_name)
+  }
 
-    /* Compute the total size of a tile for the space dimensions,
+  /* Compute the total size of a tile for the space dimensions,
     * i.e., those corresponding to the child node
     * of the input pattern.
     * If S_0 is the original tile size in the first space dimension,
@@ -352,45 +354,45 @@ object HybridTiling {
     * "dlh" is equal to floor(d_l h).
     * "duh" is equal to floor(d_u h).
     */
-    def compute_space_sizes(tile_sizes : isl.MultiVal, dlh : isl.Val, duh : isl.Val) = {
-      var space_sizes : isl.MultiVal = Duplicate(tile_sizes)
-      space_sizes = space_sizes.factorRange()
-      var size : isl.Val = space_sizes.getVal(0)
-      size = size.mulUi(2)
-      size = size.add(Duplicate(duh))
-      size = size.add(Duplicate(dlh))
-      space_sizes = space_sizes.setVal(0, size)
-      space_sizes
-    }
+  def compute_space_sizes(tile_sizes : isl.MultiVal, dlh : isl.Val, duh : isl.Val) = {
+    var space_sizes : isl.MultiVal = Duplicate(tile_sizes)
+    space_sizes = space_sizes.factorRange()
+    var size : isl.Val = space_sizes.getVal(0)
+    size = size.mulUi(2)
+    size = size.add(Duplicate(duh))
+    size = size.add(Duplicate(dlh))
+    space_sizes = space_sizes.setVal(0, size)
+    space_sizes
+  }
 
-    /* Compute the offset of phase 1 with respect to phase 0
+  /* Compute the offset of phase 1 with respect to phase 0
     * in the ts-space ("space").
     * In particular, return
     *
     *	ts[st, s0 + duh]
     */
-    def compute_phase_shift(space : isl.Space, st : isl.Val, s0 : isl.Val, duh : isl.Val) = {
-      var phase_shift : isl.MultiVal = isl.MultiVal.zero(Duplicate(space))
-      phase_shift = phase_shift.setVal(0, Duplicate(st))
-      val v = Duplicate(duh).add(Duplicate(s0))
-      phase_shift.setVal(1, v)
-    }
+  def compute_phase_shift(space : isl.Space, st : isl.Val, s0 : isl.Val, duh : isl.Val) = {
+    var phase_shift : isl.MultiVal = isl.MultiVal.zero(Duplicate(space))
+    phase_shift = phase_shift.setVal(0, Duplicate(st))
+    val v = Duplicate(duh).add(Duplicate(s0))
+    phase_shift.setVal(1, v)
+  }
 
-    /* Return the function
+  /* Return the function
     *
     *	ts[t, s] -> floor(t/(2 * st))
     *
     * representing the time tile.
     * "space" is the space ts[t, s].
     */
-    def compute_time_tile(space : isl.Space, st : isl.Val) = {
-      val ls : isl.LocalSpace = isl.LocalSpace.fromSpace(Duplicate(space))
-      val t : isl.Aff = isl.Aff.varOnDomain(ls, isl.DimType.Set, 0)
-      val v : isl.Val = Duplicate(st).mulUi(2)
-      t.scaleDownVal(v).floor()
-    }
+  def compute_time_tile(space : isl.Space, st : isl.Val) = {
+    val ls : isl.LocalSpace = isl.LocalSpace.fromSpace(Duplicate(space))
+    val t : isl.Aff = isl.Aff.varOnDomain(ls, isl.DimType.Set, 0)
+    val v : isl.Val = Duplicate(st).mulUi(2)
+    t.scaleDownVal(v).floor()
+  }
 
-    /* Compute a shift in the space dimension for tiles
+  /* Compute a shift in the space dimension for tiles
     * at time tile T = floor(t/(2 * S_t))
     * such that they align to a multiple of the total space tile dimension W.
     * In particular, compute
@@ -417,16 +419,16 @@ object HybridTiling {
     * Since the pattern repeats itself with a period of W in the space
     * dimension, the shift can be replaced by (-(2 * shift_s)*T) % W.
     */
-    def compute_shift_space(time_tile : isl.Aff, space_sizes : isl.MultiVal, phase_shift : isl.MultiVal) = {
-      var ls : isl.LocalSpace = isl.LocalSpace.fromSpace(time_tile.getDomainSpace)
-      var t : isl.Aff = Duplicate(time_tile)
-      var v : isl.Val = phase_shift.getVal(1).mulUi(2)
-      v = v.neg()
-      t = t.scaleVal(v)
-      v = space_sizes.getVal(0)
-      t = t.modVal(v)
-      var s : isl.Aff = isl.Aff.varOnDomain(ls, isl.DimType.Set, 1)
-      s.add(t)
+  def compute_shift_space(time_tile : isl.Aff, space_sizes : isl.MultiVal, phase_shift : isl.MultiVal) = {
+    var ls : isl.LocalSpace = isl.LocalSpace.fromSpace(time_tile.getDomainSpace)
+    var t : isl.Aff = Duplicate(time_tile)
+    var v : isl.Val = phase_shift.getVal(1).mulUi(2)
+    v = v.neg()
+    t = t.scaleVal(v)
+    v = space_sizes.getVal(0)
+    t = t.modVal(v)
+    var s : isl.Aff = isl.Aff.varOnDomain(ls, isl.DimType.Set, 1)
+    s.add(t)
   }
 
   /* Give the phase_shift ts[S_t, S_0 + floor(d_u h)],
@@ -464,7 +466,7 @@ object HybridTiling {
     var s : isl.Aff = Duplicate(shift_space)
     v = space_sizes.getVal(0)
     s = s.modVal(v)
-    localize.setAff(1,s)
+    localize.setAff(1, s)
   }
 
   /* Set the project_ts field of "tiling".
@@ -473,7 +475,7 @@ object HybridTiling {
   * It is equal to [P[t] -> C[s_0, ...]] -> ts[t, s_0].
   */
   def ppcg_ht_tiling_set_project_ts(tiling : ppcg_ht_tiling) = {
-    val space: isl.Space = ppcg_ht_tiling_get_input_space(tiling)
+    val space : isl.Space = ppcg_ht_tiling_get_input_space(tiling)
     val n = space.dim(isl.DimType.Set)
     var project = isl.MultiAff.projectOutMap(space, isl.DimType.Set, 2, n - 2)
     project = project.setTupleName(isl.DimType.Out, ts_space_name)
@@ -488,8 +490,8 @@ object HybridTiling {
   * "tile_sizes" are the original, user specified tile sizes.
   */
   def ppcg_ht_bounds_construct_tiling(bounds : Bounds, input_node : isl.ScheduleNode, input_schedule : isl.MultiUnionPwAff, tile_sizes : isl.MultiVal) = {
-    val ctx: isl.Ctx = input_schedule.getCtx
-    val st: isl.Val = tile_sizes.getVal(0)
+    val ctx : isl.Ctx = input_schedule.getCtx
+    val st : isl.Val = tile_sizes.getVal(0)
     val h = Duplicate(st).sub(isl.Val.fromInt(ctx, 1))
     val s0 = tile_sizes.getVal(1)
     val du = ppcg_ht_bounds_get_upper(bounds)
@@ -507,7 +509,7 @@ object HybridTiling {
 
     val hex = compute_hexagon(local_ts, h, s0, dl, du, dlh, duh)
     //TODO: hex = isl_set_preimage_multi_aff(hex, localize);
-    val tiling: ppcg_ht_tiling = ppcg_ht_tiling(1, bounds, Duplicate(input_node), Duplicate(input_schedule), space_sizes, time_tile, localize.getAff(0), shift_space, compute_shift_phase(phase_shift), hex, isl.MultiAff)
+    val tiling : ppcg_ht_tiling = ppcg_ht_tiling(1, bounds, Duplicate(input_node), Duplicate(input_schedule), space_sizes, time_tile, localize.getAff(0), shift_space, compute_shift_phase(phase_shift), hex, isl.MultiAff)
     ppcg_ht_tiling_set_project_ts(tiling)
   }
 
@@ -516,8 +518,8 @@ object HybridTiling {
   def all_coincident(node : isl.ScheduleNode) : Boolean = {
     val n = node.bandNMember()
     (0 until n).foreach(x => {
-       if (!node.bandMemberGetCoincident(x))
-         return false
+      if (!node.bandMemberGetCoincident(x))
+        return false
     })
 
     true
@@ -624,50 +626,50 @@ object HybridTiling {
     //TODO:flow = isl_union_map_eq_at_multi_union_pw_aff(flow, isl_multi_union_pw_aff_copy(prefix));
 
     //TODO: port stuff below
-//    if (scop)
-//  if (!scop->options->live_range_reordering) {
-//    other = isl_union_map_copy(scop->dep_false);
-//    other = isl_union_map_eq_at_multi_union_pw_aff(other, prefix);
-//  } else {
-//    isl_union_map *local, *non_local, *order, *adj;
-//    isl_union_set *domain, *range;
-//
-//    other = isl_union_map_copy(scop->dep_forced);
-//    other = isl_union_map_eq_at_multi_union_pw_aff(other,
-//      isl_multi_union_pw_aff_copy(prefix));
-//    local = isl_union_map_copy(flow);
-//    local = isl_union_map_eq_at_multi_union_pw_aff(local,
-//      isl_multi_union_pw_aff_copy(partial));
-//    non_local = isl_union_map_copy(flow);
-//    non_local = isl_union_map_subtract(non_local, local);
-//
-//    order = isl_union_map_copy(scop->dep_order);
-//    order = isl_union_map_eq_at_multi_union_pw_aff(order, prefix);
-//    adj = isl_union_map_copy(order);
-//    domain = isl_union_map_domain(isl_union_map_copy(non_local));
-//    domain = isl_union_set_coalesce(domain);
-//    adj = isl_union_map_intersect_range(adj, domain);
-//    other = isl_union_map_union(other, adj);
-//
-//    adj = order;
-//    range = isl_union_map_range(non_local);
-//    range = isl_union_set_coalesce(range);
-//    adj = isl_union_map_intersect_domain(adj, range);
-//    other = isl_union_map_union(other, adj);
-//  }
-//  dep = isl_union_map_union(flow, other);
-//
-//  umap = isl_union_map_from_multi_union_pw_aff(partial);
-//  dep = isl_union_map_apply_domain(dep, isl_union_map_copy(umap));
-//  dep = isl_union_map_apply_range(dep, umap);
-//
-//  space = isl_space_map_from_set(space);
-//  map = isl_union_map_extract_map(dep, space);
-//  isl_union_map_free(dep);
-//
-//  map = isl_map_coalesce(map);
-//
-//  return map;
+    //    if (scop)
+    //  if (!scop->options->live_range_reordering) {
+    //    other = isl_union_map_copy(scop->dep_false);
+    //    other = isl_union_map_eq_at_multi_union_pw_aff(other, prefix);
+    //  } else {
+    //    isl_union_map *local, *non_local, *order, *adj;
+    //    isl_union_set *domain, *range;
+    //
+    //    other = isl_union_map_copy(scop->dep_forced);
+    //    other = isl_union_map_eq_at_multi_union_pw_aff(other,
+    //      isl_multi_union_pw_aff_copy(prefix));
+    //    local = isl_union_map_copy(flow);
+    //    local = isl_union_map_eq_at_multi_union_pw_aff(local,
+    //      isl_multi_union_pw_aff_copy(partial));
+    //    non_local = isl_union_map_copy(flow);
+    //    non_local = isl_union_map_subtract(non_local, local);
+    //
+    //    order = isl_union_map_copy(scop->dep_order);
+    //    order = isl_union_map_eq_at_multi_union_pw_aff(order, prefix);
+    //    adj = isl_union_map_copy(order);
+    //    domain = isl_union_map_domain(isl_union_map_copy(non_local));
+    //    domain = isl_union_set_coalesce(domain);
+    //    adj = isl_union_map_intersect_range(adj, domain);
+    //    other = isl_union_map_union(other, adj);
+    //
+    //    adj = order;
+    //    range = isl_union_map_range(non_local);
+    //    range = isl_union_set_coalesce(range);
+    //    adj = isl_union_map_intersect_domain(adj, range);
+    //    other = isl_union_map_union(other, adj);
+    //  }
+    //  dep = isl_union_map_union(flow, other);
+    //
+    //  umap = isl_union_map_from_multi_union_pw_aff(partial);
+    //  dep = isl_union_map_apply_domain(dep, isl_union_map_copy(umap));
+    //  dep = isl_union_map_apply_range(dep, umap);
+    //
+    //  space = isl_space_map_from_set(space);
+    //  map = isl_union_map_extract_map(dep, space);
+    //  isl_union_map_free(dep);
+    //
+    //  map = isl_map_coalesce(map);
+    //
+    //  return map;
     isl.Map
   }
 
@@ -719,7 +721,7 @@ object HybridTiling {
     var is_neg = a.isNeg
 
     if (is_neg)
-    //TODO:a = isl_val_set_si(a, 0);
+      //TODO:a = isl_val_set_si(a, 0);
       a = a
 
     val localList = list.setVal(pos, a)
@@ -732,7 +734,7 @@ object HybridTiling {
     is_neg = a.isNeg
 
     if (is_neg)
-    //TODO:a = isl_val_set_si(a, 0);
+      //TODO:a = isl_val_set_si(a, 0);
       null
 
     localList.setVal(pos, a)
@@ -745,18 +747,18 @@ object HybridTiling {
   * and
   *	i_1 <= max i_0
     */
-    def set_min_max(c : isl.Constraint, user : isl.ValList) = {
-      var list : isl.ValList = user
-      val v = c.getConstantVal
-      val is_zero = v.isZero
+  def set_min_max(c : isl.Constraint, user : isl.ValList) = {
+    var list : isl.ValList = user
+    val v = c.getConstantVal
+    val is_zero = v.isZero
 
-      if (is_zero)
-        list = list_set_min_max(list, c)
+    if (is_zero)
+      list = list_set_min_max(list, c)
 
-      //TODO:return is_zero < 0 ? isl_stat_error : isl_stat_ok;
-    }
+    //TODO:return is_zero < 0 ? isl_stat_error : isl_stat_ok;
+  }
 
-    /* Given a set of dependence distance vectors "dist", compute
+  /* Given a set of dependence distance vectors "dist", compute
     * pair of non-negative bounds min and max such that
     *
     *	d_pos >= -min d_0
@@ -772,33 +774,33 @@ object HybridTiling {
       * Finally, the bounds are extracted from the constraints of the convex hull
       * that pass through the origin.
       */
-      def min_max_dist(dist : isl.Set, pos : Int) = {
-        val ctx = dist.getCtx
-        val nan = isl.Val.nan(ctx)
-        var list = isl.ValList.alloc(ctx, 2)
-        list = list.add(Duplicate(nan))
-        list = list.add(nan)
-        var localDist = Duplicate(dist)
-        val dim = dist.dim(isl.DimType.Set)
+  def min_max_dist(dist : isl.Set, pos : Int) = {
+    val ctx = dist.getCtx
+    val nan = isl.Val.nan(ctx)
+    var list = isl.ValList.alloc(ctx, 2)
+    list = list.add(Duplicate(nan))
+    list = list.add(nan)
+    var localDist = Duplicate(dist)
+    val dim = dist.dim(isl.DimType.Set)
 
-        if (pos >= dim)
-          //TODO:isl_die(ctx, isl_error_internal, "position out of bounds", dist = isl_set_free(dist));
-          null
+    if (pos >= dim)
+      //TODO:isl_die(ctx, isl_error_internal, "position out of bounds", dist = isl_set_free(dist));
+      null
 
-        localDist = localDist.projectOut(isl.DimType.Set, pos + 1, dim - (pos+1))
-        localDist = localDist.projectOut(isl.DimType.Set, 1, pos - 1)
+    localDist = localDist.projectOut(isl.DimType.Set, pos + 1, dim - (pos + 1))
+    localDist = localDist.projectOut(isl.DimType.Set, 1, pos - 1)
 
-        val space = localDist.getSpace
-        localDist = localDist.union(isl.Set.fromPoint(isl.Point.zero(space)))
-        localDist = localDist.removeDivs()
-        val hull = dist.convexHull()
+    val space = localDist.getSpace
+    localDist = localDist.union(isl.Set.fromPoint(isl.Point.zero(space)))
+    localDist = localDist.removeDivs()
+    val hull = dist.convexHull()
 
-      //TODO:if (isl_basic_set_foreach_constraint(hull, &set_min_max, &list) < 0)
-        //TODO:list = isl_val_list_free(list);
-        list
-      }
+    //TODO:if (isl_basic_set_foreach_constraint(hull, &set_min_max, &list) < 0)
+    //TODO:list = isl_val_list_free(list);
+    list
+  }
 
-      /* Given a schedule node "node" that, together with its child,
+  /* Given a schedule node "node" that, together with its child,
       * satisfies the input pattern for hybrid tiling, compute bounds
       * on the relative dependence distances of the child node with
       * respect to the parent node.  These bounds are needed to
@@ -819,25 +821,25 @@ object HybridTiling {
       * For the other dimensions, only the minimal relative dependence
       * distance is stored.
       */
-      def ppcg_ht_compute_bounds(scop : Scop, node : isl.ScheduleNode) = {
-        var child = node.getChild(0)
-        var space = child.bandGetSpace()
-        var dim = child.bandNMember()
-        var bnd = ppcg_ht_bounds_alloc(space)
-        var map = collect_deps(scop, node)
-        var dist = map.deltas()
-        var n = dist.dim(isl.DimType.Param)
-        dist = dist.projectOut(isl.DimType.Param, 0, n)
-        var pair = min_max_dist(dist, 1)
-        bnd = ppcg_ht_bounds_set_lower(bnd, 0, pair.getVal(0))
-        bnd = ppcg_ht_bounds_set_upper(bnd, pair.getVal(1))
+  def ppcg_ht_compute_bounds(scop : Scop, node : isl.ScheduleNode) = {
+    var child = node.getChild(0)
+    var space = child.bandGetSpace()
+    var dim = child.bandNMember()
+    var bnd = ppcg_ht_bounds_alloc(space)
+    var map = collect_deps(scop, node)
+    var dist = map.deltas()
+    var n = dist.dim(isl.DimType.Param)
+    dist = dist.projectOut(isl.DimType.Param, 0, n)
+    var pair = min_max_dist(dist, 1)
+    bnd = ppcg_ht_bounds_set_lower(bnd, 0, pair.getVal(0))
+    bnd = ppcg_ht_bounds_set_upper(bnd, pair.getVal(1))
 
-        (1 until dim).foreach(x => {
-          pair = min_max_dist(dist, 1+x)
-          bnd = ppcg_ht_bounds_set_lower(bnd, x, pair.getVal(0))
-        })
+    (1 until dim).foreach(x => {
+      pair = min_max_dist(dist, 1 + x)
+      bnd = ppcg_ht_bounds_set_lower(bnd, x, pair.getVal(0))
+    })
 
-        bnd
+    bnd
   }
 
   /* Check if all the fields of "phase" are valid, freeing "phase"
@@ -1018,7 +1020,7 @@ object HybridTiling {
   /* Given a mark node with an identifier that points to a ppcg_ht_phase,
   * extract this ppcg_ht_phase pointer.
   */
-  def ppcg_ht_phase_extract_from_mark(node : isl.ScheduleNode): Long = {
+  def ppcg_ht_phase_extract_from_mark(node : isl.ScheduleNode) : Long = {
     if (!isl.ScheduleNodeType.NodeMark.equals(node.getType))
       //TODO:isl_die(isl_schedule_node_get_ctx(node), isl_error_internal, "not a phase mark", return NULL);
       null
@@ -1122,7 +1124,7 @@ object HybridTiling {
   */
   def set_isolate_loop_type(node : isl.ScheduleNode) = {
     val n = node.bandNMember()
-    (0 until n). foreach(x => {
+    (0 until n).foreach(x => {
       //TODO: enum isl_ast_loop_type type;
       //TODO: type = isl_schedule_node_band_member_get_ast_loop_type(node, i);
       //TODO: node = isl_schedule_node_band_member_set_isolate_ast_loop_type(node, i, type);
@@ -1158,7 +1160,7 @@ object HybridTiling {
   * The AST loop type for the isolated part is set to be the same
   * as that of the non-isolated part.
   */
-  def ppcg_ht_phase_isolate_full_tile_node(phase : ppcg_ht_phase, node : isl.ScheduleNode, options : ppcg_options): ScheduleNode = {
+  def ppcg_ht_phase_isolate_full_tile_node(phase : ppcg_ht_phase, node : isl.ScheduleNode, options : ppcg_options) : ScheduleNode = {
     if (!options.isolate_full_tiles)
       return node
 
@@ -1180,7 +1182,7 @@ object HybridTiling {
     var set = map.wrap()
     //TODO: set = isl_set_set_tuple_name(set, "isolate")
 
-    var opt= isl.UnionSet
+    var opt = isl.UnionSet
     //TODO: opt = isl_schedule_node_band_get_ast_build_options(node);
     //TODO: opt = isl_union_set_add_set(opt, set)
     var localNode = node.bandSetAstBuildOptions(opt)
@@ -1347,7 +1349,7 @@ object HybridTiling {
   * the sequence with the two filters, the CT space tiling nodes and
   * the phase markers M.
   */
-  def ppcg_ht_bounds_insert_tiling(bounds : Bounds, sizes : isl.MultiVal, node : isl.ScheduleNode, options : ppcg_options): ScheduleNode = {
+  def ppcg_ht_bounds_insert_tiling(bounds : Bounds, sizes : isl.MultiVal, node : isl.ScheduleNode, options : ppcg_options) : ScheduleNode = {
     val ctx = node.getCtx
     val input = extract_input_schedule(node)
 
@@ -1399,44 +1401,34 @@ object HybridTiling {
   *
   * and "fn" is called on M0 and on M1.
   */
-  __isl_give isl_schedule_node *hybrid_tile_foreach_phase(
-  __isl_take isl_schedule_node *node,
-  __isl_give isl_schedule_node *(*fn)(__isl_take isl_schedule_node *node,
-  void *user), void *user)
-  {
-  int depth0, depth;
+  def hybrid_tile_foreach_phase(node : isl.ScheduleNode, fn : isl.ScheduleNode => isl.ScheduleNode) : ScheduleNode = {
+    val depth0 = node.getTreeDepth
+    var localNode = node
 
-  depth0 = isl_schedule_node_get_tree_depth(node);
+    while (!isl.ScheduleNodeType.NodeSequence.equals(localNode.getType)) {
+      localNode = localNode.child(0)
+    }
 
-  while (node &&
-    isl_schedule_node_get_type(node) != isl_schedule_node_sequence)
-    node = isl_schedule_node_child(node, 0);
+    localNode = localNode.child(0)
+    localNode = localNode.child(0)
+    localNode = fn(localNode)
+    localNode = localNode.parent()
+    localNode = localNode.nextSibling()
+    localNode = localNode.child(0)
+    localNode = fn(localNode)
+    localNode = localNode.parent()
+    localNode = localNode.parent()
 
-  node = isl_schedule_node_child(node, 0);
-  node = isl_schedule_node_child(node, 0);
-  if (!node)
-    return NULL;
-  node = fn(node, user);
-  node = isl_schedule_node_parent(node);
-  node = isl_schedule_node_next_sibling(node);
-  node = isl_schedule_node_child(node, 0);
-  if (!node)
-    return NULL;
-  node = fn(node, user);
-  node = isl_schedule_node_parent(node);
-  node = isl_schedule_node_parent(node);
-
-  depth = isl_schedule_node_get_tree_depth(node);
-  node = isl_schedule_node_ancestor(node, depth - depth0);
-
-  return node;
+    val depth = localNode.getTreeDepth
+    localNode = localNode.ancestor(depth - depth0)
+    localNode
   }
 
   /* This function is called on each of the two phase marks
   * in a hybrid tiling tree.
   * Drop the phase mark at "node".
   */
-  def drop_phase_mark(node : isl.ScheduleNode): ScheduleNode = {
+  def drop_phase_mark(node : isl.ScheduleNode) : ScheduleNode = {
     if (!isl.ScheduleNodeType.NodeMark.equals(node.getType))
       return node
 
@@ -1465,14 +1457,10 @@ object HybridTiling {
   *	... - seq
   *	         \- F1 - ...
   */
-  __isl_give isl_schedule_node *hybrid_tile_drop_phase_marks(
-  __isl_take isl_schedule_node *node)
-  {
-  return hybrid_tile_foreach_phase(node, &drop_phase_mark, NULL);
+  def hybrid_tile_drop_phase_marks(node : isl.ScheduleNode) = {
+    hybrid_tile_foreach_phase(node, drop_phase_mark)
   }
-
-  }
-
+}
 
 case class Bounds(upper : isl.Val, lower : isl.MultiVal) {
 }
@@ -1517,16 +1505,14 @@ case class Bounds(upper : isl.Val, lower : isl.MultiVal) {
 * It is equal to [P[t] -> C[s_0, ...]] -> ts[t, s_0].
 */
 case class ppcg_ht_tiling(ref : Int, bounds : Bounds, input_node : isl.ScheduleNode,
-input_schedule : isl.MultiUnionPwAff,
-space_sizes : isl.MultiVal,
-time_tile : isl.Aff,
-local_time : isl.Aff,
-shift_space : isl.Aff,
-shift_phase : isl.MultiAff,
-hex : isl.Set,
-project_ts : isl.MultiAff
-) {
-
+    input_schedule : isl.MultiUnionPwAff,
+    space_sizes : isl.MultiVal,
+    time_tile : isl.Aff,
+    local_time : isl.Aff,
+    shift_space : isl.Aff,
+    shift_phase : isl.MultiAff,
+    hex : isl.Set,
+    project_ts : isl.MultiAff) {
 }
 
 /* Representation of one of the two phases of hybrid tiling.
@@ -1557,91 +1543,192 @@ project_ts : isl.MultiAff
 *	[P[t] -> C[s]] -> C[floor((s + space_shift)/space_size]
 */
 case class ppcg_ht_phase(tiling : ppcg_ht_tiling, time_tile : isl.Aff, local_time : isl.Aff, shift_space : isl.Aff,
-domain : isl.Set, space_shift : isl.MultiAff, space_tile : isl.MultiAff) {
-
+    domain : isl.Set, space_shift : isl.MultiAff, space_tile : isl.MultiAff) {
 }
 
 case class ppcg_debug_options(
-  dump_schedule_constraints : Int,
-  dump_schedule : Int,
-  dump_final_schedule : Int,
-  dump_sizes : Int,
-  verbose : Int){
+    dump_schedule_constraints : Int,
+    dump_schedule : Int,
+    dump_final_schedule : Int,
+    dump_sizes : Int,
+    verbose : Int) {
 }
 
 case class ppcg_options(
-//TODO:struct isl_options *isl,
-  debug : ppcg_options,
+    //TODO:struct isl_options *isl,
+    debug : ppcg_options,
 
-/* Group chains of consecutive statements before scheduling. */
-  group_chains : Int,
+    /* Group chains of consecutive statements before scheduling. */
+    group_chains : Int,
 
-/* Use isl to compute a schedule replacing the original schedule. */
-  reschedule : Int,
-  scale_tile_loops : Int,
-  wrap : Int,
+    /* Use isl to compute a schedule replacing the original schedule. */
+    reschedule : Int,
+    scale_tile_loops : Int,
+    wrap : Int,
 
-/* Assume all parameters are non-negative. */
-  non_negative_parameters : Int,
+    /* Assume all parameters are non-negative. */
+    non_negative_parameters : Int,
     ctx : String,
     sizes : String,
 
-/* Perform tiling (C target). */
-tile : Int,
-tile_size : Int,
+    /* Perform tiling (C target). */
+    tile : Int,
+    tile_size : Int,
 
-/* Isolate full tiles from partial tiles. */
- isolate_full_tiles : Boolean,
+    /* Isolate full tiles from partial tiles. */
+    isolate_full_tiles : Boolean,
 
-/* Take advantage of private memory. */
- use_private_memory : Int,
+    /* Take advantage of private memory. */
+    use_private_memory : Int,
 
-/* Take advantage of shared memory. */
- use_shared_memory : Int,
+    /* Take advantage of shared memory. */
+    use_shared_memory : Int,
 
-/* Maximal amount of shared memory. */
- max_shared_memory : Int,
+    /* Maximal amount of shared memory. */
+    max_shared_memory : Int,
 
-/* The target we generate code for. */
- target : Int,
+    /* The target we generate code for. */
+    target : Int,
 
-/* Generate OpenMP macros (C target only). */
- openmp : Int,
+    /* Generate OpenMP macros (C target only). */
+    openmp : Int,
 
-/* Linearize all device arrays. */
- linearize_device_arrays : Int,
+    /* Linearize all device arrays. */
+    linearize_device_arrays : Int,
 
-/* Allow the use of GNU extensions in generated code. */
- allow_gnu_extensions : Int,
+    /* Allow the use of GNU extensions in generated code. */
+    allow_gnu_extensions : Int,
 
-/* Allow live range to be reordered. */
- live_range_reordering : Int,
+    /* Allow live range to be reordered. */
+    live_range_reordering : Int,
 
-/* Allow hybrid tiling whenever a suitable input pattern is found. */
- hybrid : Int,
+    /* Allow hybrid tiling whenever a suitable input pattern is found. */
+    hybrid : Int,
 
-/* Unroll the code for copying to/from shared memory. */
- unroll_copy_shared : Int,
-/* Unroll code inside tile on GPU targets. */
- unroll_gpu_tile : Int,
+    /* Unroll the code for copying to/from shared memory. */
+    unroll_copy_shared : Int,
+    /* Unroll code inside tile on GPU targets. */
+    unroll_gpu_tile : Boolean,
 
-/* Options to pass to the OpenCL compiler.  */
-opencl_compiler_options : String,
-/* Prefer GPU device over CPU. */
+    /* Options to pass to the OpenCL compiler.  */
+    opencl_compiler_options : String,
+    /* Prefer GPU device over CPU. */
     opencl_use_gpu : Int,
-/* Number of files to include. */
- opencl_n_include_file : Int,
-/* Files to include. */
-opencl_include_files : String,
-/* Print definitions of types in kernels. */
-opencl_print_kernel_types : Int,
-/* Embed OpenCL kernel code in host code. */
-opencl_embed_kernel_code : Int,
+    /* Number of files to include. */
+    opencl_n_include_file : Int,
+    /* Files to include. */
+    opencl_include_files : String,
+    /* Print definitions of types in kernels. */
+    opencl_print_kernel_types : Int,
+    /* Embed OpenCL kernel code in host code. */
+    opencl_embed_kernel_code : Int,
 
-/* Name of file for saving isl computed schedule or NULL. */
-save_schedule_file : String,
-/* Name of file for loading schedule or NULL. */
-load_schedule_file : String){
+    /* Name of file for saving isl computed schedule or NULL. */
+    save_schedule_file : String,
+    /* Name of file for loading schedule or NULL. */
+    load_schedule_file : String) {
 }
 
+/**
+ *  An access to an outer array element or an iterator.
+ * Accesses to iterators have an access relation that maps to an unnamed space.
+ * An access may be both read and write.
+ * If the access relation is empty, then the output dimension may
+ * not be equal to the dimension of the corresponding array.
+ */
+case class gpu_stmt_access(
+  read : Int, // Access reads elements
+  write : Int, // Access write elements
+  exact_write : Int, // All writes are definite writes.
+  fixed_element : Boolean, // Is a single, fixed element being accessed?
+  n_index : Int, // The number of index expressions specified in the access.
+  access : isl.Map, // May access relation
+  tagged_access : isl.Map, // May access relation with as domain a mapping from iteration domain to a reference identifier.
+  ref_id : isl.Id, // The reference id of the corresponding pet_expr.
+  next : gpu_stmt_access) {}
+
+/**
+ *  A representation of a user statement.
+ * "stmt" points to the corresponding pet statement.
+ * "id" is the identifier of the instance set of the statement.
+ * "accesses" is a linked list of accesses performed by the statement.
+ * If the statement has been killed, i.e., if it will not be scheduled,
+ * then this linked list may be empty even if the actual statement does
+ * perform accesses.
+ */
+case class gpu_stmt(
+  id : isl.Id,
+  //stmt : pet_stmt,
+  accesses : gpu_stmt_access) {}
+
+/**
+ *  Represents an outer array possibly accessed by a gpu_prog.
+ */
+case class gpu_array_info(
+  space : isl.Space, // The array data space.
+  array_type : String, // Element type.
+  size : Int, // Element size.
+  name : String, // Name of the array.
+  declared_extent : isl.Set, // Declared extent of original array.
+  declared_size : isl.AstExpr, // AST expression for declared size of original array.
+  extent : isl.Set, // Extent of the array that needs to be copied.
+  n_index : Int, // Number of indices.
+  bound : isl.MultiPwAff, // For each index, a bound on "extent" in that direction.
+  bound_expr : isl.AstExpr, // The corresponding access AST expression, if the array needs to be allocated on the device.
+  n_ref : Int, // All references to this array; point to elements of a linked list.
+  refs : List[gpu_stmt_access],
+  accessed : Int, // Is this array accessed at all by the program?
+  read_only_scalar : Int, // Is this a scalar that is read-only within the entire program?
+  has_compound_element : Int, // Are the elements of the array structures?
+  only_fixed_element : Int, // Are the elements only accessed through constant index expressions?
+  local : Int, // Is the array local to the scop?
+  declare_local : Int, // Is the array local and should it be declared on the host?
+  global : Int, // Is the corresponding global device memory accessed in any way?
+  linearize : Int, // Should the array be linearized?
+  dep_order : isl.UnionMap // Order dependences on this array. Only used if live_range_reordering option is set. It is set to NULL otherwise.
+  ) {}
+
+/**
+ * A sequence of n names of types.
+ */
+case class gpu_types(n : Int, name : String) {}
+
+/**
+ * "read" and "write" contain the original access relations, possibly
+ * involving member accesses.
+ *
+ * The elements of "array", as well as the ranges of "copy_in" and "copy_out"
+ * only refer to the outer arrays of any possible member accesses.
+ */
+case class gpu_prog(ctx : isl.Ctx, scop : Scop,
+  context : isl.Set, // Set of parameter values
+  read : isl.UnionMap, // All potential read accesses in the entire program
+  may_write : isl.UnionMap, // All potential write accesses in the entire program
+  must_write : isl.UnionMap, // All definite write accesses in the entire program
+  tagged_must_kill : isl.UnionMap, // All tagged definite kills in the entire program
+  may_persist : isl.UnionMap, // The set of inner array elements that may be preserved.
+  to_outer : isl.UnionMap, // A mapping from all innermost arrays to their outer arrays.
+  to_inner : isl.UnionMap, // A mapping from the outer arrays to all corresponding inner arrays.
+  any_to_outer : isl.UnionMap, // A mapping from all intermediate arrays to their outer arrays, including an identity mapping from the anonymous 1D space to itself.
+  array_order : isl.UnionMap, // Order dependences on non-scalars.
+  n_stmts : Int,
+  stmts : List[gpu_stmt],
+  n_array : Int,
+  array : gpu_array_info) {}
+
+case class gpu_gen(ctx : isl.Ctx, options : ppcg_options,
+    /* Callback for printing of AST in appropriate format. */
+    //TODO: __isl_give isl_printer *(*print)(__isl_take isl_printer *p,
+    //prog : gpu_prog,
+    //tree : isl.AstNode,
+    //types : gpu_types,
+    //user : Void),
+    print_user : Void,
+    prog : gpu_prog,
+    tree : isl.AstNode, // the generated AST
+    types : gpu_types, // The sequence of types for which a definition has been printed.
+    sizes : isl.UnionMap, // User specified tile, grid and block sizes for each kernel
+    used_sizes : isl.UnionMap, // Effectively used tile, grid and block sizes for each kernel
+    kernel_id : Int) { // identifier of the next kernel
+}
 
