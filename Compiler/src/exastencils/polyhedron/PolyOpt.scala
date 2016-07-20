@@ -61,24 +61,19 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     Isl.ctx.optionsSetTileScaleTileLoops(0)
     Isl.ctx.optionsSetTileShiftPointLoops(0)
-    //    isl.Options.setTileScaleTileLoops(false)
-    //    isl.Options.setTileShiftPointLoops(false)
 
-    //    Knowledge.poly_scheduleAlgorithm match {
-    //      case "isl"         => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_ISL)
-    //      case "feautrier"   => isl.Options.setScheduleAlgorithm(isl.Options.SCHEDULE_ALGORITHM_FEAUTRIER)
-    //      case "exploration" => TODO
-    //      case unknown       => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
-    //    }
-    //
-    //    Knowledge.poly_fusionStrategy match {
-    //      case "min"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MIN)
-    //      case "max"   => isl.Options.setScheduleFuse(isl.Options.SCHEDULE_FUSE_MAX)
-    //      case unknown => Logger.debug("Unknown fusion strategy \"" + unknown + "\"; no change...")
-    //    }
-    //    isl.Options.setScheduleMaximizeBandDepth(Knowledge.poly_maximizeBandDepth)
-    //    isl.Options.setScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
-    //    isl.Options.setScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
+    Knowledge.poly_scheduleAlgorithm match {
+      case "isl"         => Isl.ctx.optionsSetScheduleAlgorithm(0)
+      case "feautrier"   => Isl.ctx.optionsSetScheduleAlgorithm(1)
+      case "exploration" => // TODO
+      case unknown       => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+    }
+
+    Isl.ctx.optionsSetScheduleSeparateComponents(if (Knowledge.poly_separateComponents) 1 else 0)
+    Isl.ctx.optionsSetScheduleSerializeSccs(if (Knowledge.poly_serializeSCCs) 1 else 0)
+    Isl.ctx.optionsSetScheduleMaximizeBandDepth(if (Knowledge.poly_maximizeBandDepth) 1 else 0)
+    Isl.ctx.optionsSetScheduleMaxConstantTerm(Knowledge.poly_maxConstantTerm)
+    Isl.ctx.optionsSetScheduleMaxCoefficient(Knowledge.poly_maxCoefficient)
 
     def time[T](op : => T, name : String) : T = {
       if (timeSingleSteps) {
