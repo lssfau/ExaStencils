@@ -8,13 +8,13 @@ import scala.collection.mutable.Buffer
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
-import scala.io.Source
-import scala.util.control.Breaks
-import org.exastencils.schedopt.exploration.DomainCoeffInfo
+import scala.io._
+import scala.util.control._
+import org.exastencils.schedopt.exploration._
 import org.exastencils.schedopt.exploration.Exploration
 import org.exastencils.schedopt.exploration.PartialSchedule
 import org.exastencils.schedopt.exploration.ScheduleSpace
-import org.exastencils.schedopt.exploration.StmtCoeffInfo
+import org.exastencils.schedopt.exploration._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
@@ -23,6 +23,7 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
+import isl.ScheduleNode
 
 trait PolyhedronAccessible {
   var optLevel : Int = 3 // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
@@ -222,7 +223,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         umap.foreachMap({
           map : isl.Map =>
             if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
-            val oldLabel : String = map.getTupleName(T_IN)
+              val oldLabel : String = map.getTupleName(T_IN)
               var toAdd : isl.Map = map
               if (oldLabel != njuLabel)
                 for ((lab, _) <- stmts if (oldLabel == lab))
@@ -295,7 +296,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x
-      case (x, y)    => x.union(y)
+      case (x, y) => x.union(y)
     }
   }
 
@@ -303,7 +304,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x
-      case (x, y)    => x.union(y)
+      case (x, y) => x.union(y)
     }
   }
 
@@ -311,7 +312,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x
-      case (x, y)    => x.union(y)
+      case (x, y) => x.union(y)
     }
   }
 
@@ -429,8 +430,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private def optimize(scop : Scop, confID : Int) : Unit = {
     Knowledge.poly_scheduleAlgorithm match {
       case "exploration" => optimizeExpl(scop, confID)
-      case "test"        => optimizeTest(scop)
-      case _             => optimizeIsl(scop)
+      case "test" => optimizeTest(scop)
+      case _ => optimizeIsl(scop)
     }
   }
 
@@ -483,6 +484,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       })
       if (tilableDims > 1 && tilableDims <= 4)
         scheduleMap = tileSchedule(scheduleMap, scop, tilableDims)
+
+      scheduleMap = try_hybrid_tile(scop, schedule.getRoot).getSchedule.getMap
     }
 
     scop.schedule = Isl.simplify(scheduleMap)
@@ -678,31 +681,72 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     return schedule.applyRange(trafo)
   }
 
-  /* Apply hybrid tiling on "node" and its parent based on the (valid)
- * bounds on the relative dependence distances "bounds" and
- * the tile sizes in "tile_sizes".
- * The number of elements in "tile_sizes" is at least as large
- * as the sum of the dimensions of the parent and the child node.
- *
- * Convert the tile_sizes to an isl_multi_val in the right space,
- * insert the hybrid tiling and then create a kernel inside each phase.
- * Finally, remove the phase marks.
- */
-  private def gpu_hybrid_tile(gen : gpu_gen, node : isl.ScheduleNode, bounds : Bounds, tile_sizes : List[Int]) = {
+  /**
+   * See if hybrid tiling can be performed on "node" and its parent.
+   * If so, apply hybrid tiling and return the updated schedule tree.
+   * If not, return the original schedule tree.
+   * Return NULL on error.
+   *
+   * First check if "node", together with its parent, meets the basic requirements for hybrid tiling.
+   * If so, compute the relative dependence distances of "node" with respect to its parent and check if they are sufficiently bounded.
+   * If so, apply hybrid tiling using user specified tile sizes.
+   *
+   * The tile sizes are read before the dependence distance bounds are computed, because the user may have specified fewer
+    * dimensions than are available.  In this case, the remaining schedule dimensions are split off and the dependence
+    * distances should be computed after these dimensions have been split off.
+   */
+  def try_hybrid_tile(scop : Scop, node : isl.ScheduleNode) : ScheduleNode = {
+    val orig = node
+    var ok = HybridTiling.ppcg_ht_parent_has_input_pattern(node)
+    if (!ok)
+      return orig
+
+    val tile_len = 1 + node.bandNMember()
+    val tile_size = Array.fill[Int](tile_len)(0)
+    (0 until tile_len).foreach(x => {
+      tile_size(x) = 1
+    })
+
+    var localNode = Duplicate(node)
+    val dim = localNode.bandNMember()
+    if (tile_len - 1 < dim)
+      localNode = localNode.bandSplit(tile_len - 1)
+
+    localNode = localNode.parent()
+    val bounds = HybridTiling.ppcg_ht_compute_bounds(scop, localNode)
+    localNode = localNode.child(0)
+
+    ok = HybridTiling.ppcg_ht_bounds_is_valid(bounds)
+    if (ok)
+      localNode = gpu_hybrid_tile(scop, localNode, bounds, tile_size)
+
+    localNode
+  }
+
+  /**
+   * Apply hybrid tiling on "node" and its parent based on the (valid) bounds on the relative dependence distances "bounds"
+   * and the tile sizes in "tile_sizes".
+   * The number of elements in "tile_sizes" is at least as large as the sum of the dimensions of the parent and the child node.
+   *
+   * Convert the tile_sizes to an isl_multi_val in the right space, insert the hybrid tiling and then create a kernel
+   * inside each phase.
+   * Finally, remove the phase marks.
+   */
+  private def gpu_hybrid_tile(scop : Scop, node : isl.ScheduleNode, bounds : ppcg_ht_bounds, tile_sizes : Array[Int]) = {
     val space2 = node.bandGetSpace()
     var localNode = node.parent()
     var space = localNode.bandGetSpace()
     space = space.product(space2)
     val mv = multiValFromIntList(space, tile_sizes)
-    localNode = HybridTiling.ppcg_ht_bounds_insert_tiling(bounds, mv, node, gen.options)
+    localNode = HybridTiling.ppcg_ht_bounds_insert_tiling(bounds, mv, node)
 
     // This is the creation of gpu_kernels and is not required in our case
     //TODO: node = hybrid_tile_foreach_phase(node, &update_phase, gen)
-    localNode = HybridTiling.hybrid_tile_drop_phase_marks(localNode)
+    //localNode = HybridTiling.hybrid_tile_drop_phase_marks(localNode)
     localNode
   }
 
-  private def multiValFromIntList(space : isl.Space, intList : List[Int]) = {
+  private def multiValFromIntList(space : isl.Space, intList : Array[Int]) = {
     val ctx = space.getCtx
     val n = space.dim(isl.DimType.Set)
     var mv = isl.MultiVal.zero(space)
@@ -751,7 +795,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       this.execute(
         new Transformation("update loop iterator", {
           case VariableAccess(str, _) if (repl.isDefinedAt(str)) => Duplicate(repl(str))
-          case StringLiteral(str) if (repl.isDefinedAt(str))     => Duplicate(repl(str))
+          case StringLiteral(str) if (repl.isDefinedAt(str)) => Duplicate(repl(str))
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }
