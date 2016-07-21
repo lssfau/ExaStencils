@@ -135,14 +135,15 @@ object HybridTiling {
     isl.BasicMap.fromAff(aff)
   }
 
-  /* Construct the lower constraint of the hexagonal tile, i.e.,
-    *
-    *	a <= 2h+1
-      *	-a + 2h+1 >= 0
-      *
-      * This constraint corresponds to (7) in
-      * "Hybrid Hexagonal/Classical Tiling for GPUs".
-      */
+  /**
+   *  Construct the lower constraint of the hexagonal tile, i.e.,
+   *
+   * a <= 2h+1
+   * -a + 2h+1 >= 0
+   *
+   * This constraint corresponds to (7) in
+   * "Hybrid Hexagonal/Classical Tiling for GPUs".
+   */
   def hex_lower(ls : isl.LocalSpace, h : isl.Val) : isl.BasicMap = {
     val v = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
     var aff = isl.Aff.valOnDomain(ls, v)
@@ -152,16 +153,17 @@ object HybridTiling {
     isl.BasicMap.fromAff(aff)
   }
 
-  /* Construct the lower right constraint of the hexagonal tile, i.e.,
-      *
-      *	dl a + b <= (2h+1) dl + duh + (s0-1)
-        *	-dl a - b + (2h+1) dl + duh + (s0-1) >= 0
-        *
-        * where duh = floor(du * h).
-        *
-        * This constraint corresponds to (8) in
-        * "Hybrid Hexagonal/Classical Tiling for GPUs".
-        */
+  /**
+   * Construct the lower right constraint of the hexagonal tile, i.e.,
+   *
+   * dl a + b <= (2h+1) dl + duh + (s0-1)
+   * -dl a - b + (2h+1) dl + duh + (s0-1) >= 0
+   *
+   * where duh = floor(du * h).
+   *
+   * This constraint corresponds to (8) in
+   * "Hybrid Hexagonal/Classical Tiling for GPUs".
+   */
   def hex_lower_right(ls : isl.LocalSpace, h : isl.Val, s0 : isl.Val, dl : isl.Val, duh : isl.Val) : isl.BasicMap = {
     var v = Duplicate(h).mulUi(2).add(isl.Val.fromInt(h.getCtx, 1))
     v = v.mul(Duplicate(dl))
@@ -177,14 +179,15 @@ object HybridTiling {
     isl.BasicMap.fromAff(aff)
   }
 
-  /* Construct the upper left constraint of the hexagonal tile, i.e.,
-        *
-        *	dl a + b >= h dl - (d - 1)/d				with d = den(dl)
-        *	dl a + b - h dl + (d - 1)/d >= 0
-        *
-        * This constraint corresponds to (10) in
-        * "Hybrid Hexagonal/Classical Tiling for GPUs".
-        */
+  /**
+   * Construct the upper left constraint of the hexagonal tile, i.e.,
+   *
+   * dl a + b >= h dl - (d - 1)/d				with d = den(dl)
+   * dl a + b - h dl + (d - 1)/d >= 0
+   *
+   * This constraint corresponds to (10) in
+   * "Hybrid Hexagonal/Classical Tiling for GPUs".
+   */
   def hex_upper_left(ls : isl.LocalSpace, h : isl.Val, dl : isl.Val) : isl.BasicMap = {
     val d = isl.Val.fromBigInteger(dl.getCtx, dl.getDen)
     var v = Duplicate(d).sub(isl.Val.fromInt(d.getCtx, 1))
@@ -198,16 +201,16 @@ object HybridTiling {
     isl.BasicMap.fromAff(aff)
   }
 
-  /* Construct the upper right constraint of the hexagonal tile, i.e.,
-  *
-  *	du a - b >= du h - duh - (s0-1) - dlh - (d - 1)/d	with d = den(du)
-  *	du a - b - du h + duh + (s0-1) + dlh + (d - 1)/d >= 0
-  *
-  * where dlh = floor(dl * h) and duh = floor(du * h).
-  *
-  * This constraint corresponds to (12) in
-  * "Hybrid Hexagonal/Classical Tiling for GPUs".
-  */
+  /**
+   * Construct the upper right constraint of the hexagonal tile, i.e.,
+   *
+   * du a - b >= du h - duh - (s0-1) - dlh - (d - 1)/d	with d = den(du)
+   * du a - b - du h + duh + (s0-1) + dlh + (d - 1)/d >= 0
+   *
+   * where dlh = floor(dl * h) and duh = floor(du * h).
+   *
+   * This constraint corresponds to (12) in "Hybrid Hexagonal/Classical Tiling for GPUs".
+   */
   def hex_upper_right(ls : isl.LocalSpace, h : isl.Val, s0 : isl.Val, du : isl.Val, dlh : isl.Val, duh : isl.Val) : isl.BasicMap = {
     val d = isl.Val.fromBigInteger(du.getCtx, du.getDen)
     var v = Duplicate(d).sub(isl.Val.fromInt(d.getCtx, 1))
@@ -225,13 +228,13 @@ object HybridTiling {
     isl.BasicMap.fromAff(aff)
   }
 
-  /* Construct the uppper constraint of the hexagonal tile, i.e.,
-  *
-  * a >= 0
-  *
-  * This constraint corresponds to (13) in
-  * "Hybrid Hexagonal/Classical Tiling for GPUs".
-  */
+  /**
+   * Construct the uppper constraint of the hexagonal tile, i.e.,
+   *
+   * a >= 0
+   *
+   * This constraint corresponds to (13) in "Hybrid Hexagonal/Classical Tiling for GPUs".
+   */
   def hex_upper(ls : isl.LocalSpace) : isl.BasicMap = {
     val aff = isl.Aff.varOnDomain(ls, isl.DimType.Set, 0)
 

@@ -58,6 +58,7 @@ poly_tileSize_y             = 0
 poly_tileSize_z             = 0
 poly_tileOuterLoop          = false
 poly_filterDeps             = true
+poly_simplifyDeps           = true
 
 // other optimizations
 //opt_useAddressPrecalc  = true

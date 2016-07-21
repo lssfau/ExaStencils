@@ -69,10 +69,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Isl.ctx.optionsSetTileShiftPointLoops(0)
 
     Knowledge.poly_scheduleAlgorithm match {
-      case "isl"         => Isl.ctx.optionsSetScheduleAlgorithm(0)
-      case "feautrier"   => Isl.ctx.optionsSetScheduleAlgorithm(1)
+      case "isl" => Isl.ctx.optionsSetScheduleAlgorithm(0)
+      case "feautrier" => Isl.ctx.optionsSetScheduleAlgorithm(1)
       case "exploration" => // TODO
-      case unknown       => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+      case unknown => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
     }
 
     Isl.ctx.optionsSetScheduleSeparateComponents(if (Knowledge.poly_separateComponents) 1 else 0)
@@ -467,21 +467,22 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var scheduleMap : isl.UnionMap = schedule.getMap()
     scop.noParDims.clear()
     if (scop.optLevel >= 3) {
-      var tilableDims : Int = 0
-      schedule.foreachBand({
-        band : isl.Band =>
-          var prefix : Int = 0
-          band.getPrefixSchedule().foreachMap({ map : isl.Map =>
-            if (!map.range().isSingleton())
-              prefix = math.max(prefix, map.dim(T_OUT))
-          })
-          if (prefix == 0)
-            tilableDims = band.nMember()
-      })
-
       if (Knowledge.experimental_cuda_tryHybridTiling) {
-        scheduleMap = try_hybrid_tile(scop, schedule.getRoot).getSchedule.getMap
+        println(schedule)
+        scheduleMap = try_hybrid_tile(scop, schedule.getRoot.child(0)).getSchedule.getMap
       } else {
+        var tilableDims : Int = 0
+        schedule.foreachBand({
+          band : isl.Band =>
+            var prefix : Int = 0
+            band.getPrefixSchedule().foreachMap({ map : isl.Map =>
+              if (!map.range().isSingleton())
+                prefix = math.max(prefix, map.dim(T_OUT))
+            })
+            if (prefix == 0)
+              tilableDims = band.nMember()
+        })
+
         if (tilableDims > 1 && tilableDims <= 4)
           scheduleMap = tileSchedule(scheduleMap, scop, tilableDims)
       }
@@ -691,8 +692,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
    * If so, apply hybrid tiling using user specified tile sizes.
    *
    * The tile sizes are read before the dependence distance bounds are computed, because the user may have specified fewer
-    * dimensions than are available.  In this case, the remaining schedule dimensions are split off and the dependence
-    * distances should be computed after these dimensions have been split off.
+   * dimensions than are available. In this case, the remaining schedule dimensions are split off and the dependence
+   * distances should be computed after these dimensions have been split off.
    */
   def try_hybrid_tile(scop : Scop, node : isl.ScheduleNode) : ScheduleNode = {
     HybridTiling.mark_map = mutable.HashMap[String, ppcg_ht_phase]()
@@ -704,7 +705,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val tile_len = 1 + node.bandNMember()
     val tile_size = Array.fill[Int](tile_len)(0)
     (0 until tile_len).foreach(x => {
-      tile_size(x) = 1
+      tile_size(x) = 32
     })
 
     var localNode = Duplicate(node)
