@@ -3,6 +3,8 @@ package exastencils.polyhedron
 import exastencils.core._
 import isl._
 
+import scala.collection._
+
 /**
  * The hybrid tiling implemented in this file is based on Grosser et al., "Hybrid Hexagonal/Classical Tiling for GPUs".
  */
@@ -22,6 +24,9 @@ object HybridTiling {
    * Name used in mark nodes that contain a pointer to a ppcg_ht_phase.
    */
   val ppcg_phase_name = "phase"
+
+  var mark_map = mutable.HashMap[String, ppcg_ht_phase]()
+  var mark_count = 0
 
   /**
    * Create a ppcg_ht_bounds object for a band living in "space". The bounds are initialized to NaN.
@@ -490,7 +495,7 @@ object HybridTiling {
 
     var hex = compute_hexagon(local_ts, h, s0, dl, du, dlh, duh)
     hex = hex.preimageMultiAff(localize)
-    val tiling : ppcg_ht_tiling = ppcg_ht_tiling(1, bounds, Duplicate(input_node), Duplicate(input_schedule), space_sizes, time_tile, localize.getAff(0), shift_space, compute_shift_phase(phase_shift), hex, isl.MultiAff)
+    val tiling : ppcg_ht_tiling = ppcg_ht_tiling(1, bounds, Duplicate(input_node), Duplicate(input_schedule), space_sizes, time_tile, localize.getAff(0), shift_space, compute_shift_phase(phase_shift), hex, null)
     ppcg_ht_tiling_set_project_ts(tiling)
   }
 
@@ -739,7 +744,7 @@ object HybridTiling {
    * That is, the result is defined over the "ts" space and corresponds to phase 1.
    */
   def construct_phase(tiling : ppcg_ht_tiling) = {
-    ppcg_ht_phase(ppcg_ht_tiling_copy(tiling), Duplicate(tiling.time_tile), Duplicate(tiling.local_time), Duplicate(tiling.shift_space), Duplicate(tiling.hex), isl.MultiAff, isl.MultiAff)
+    ppcg_ht_phase(ppcg_ht_tiling_copy(tiling), Duplicate(tiling.time_tile), Duplicate(tiling.local_time), Duplicate(tiling.shift_space), Duplicate(tiling.hex), null, null)
   }
 
   /**
@@ -890,24 +895,23 @@ object HybridTiling {
    */
   def is_phase_id(id : isl.Id) : Boolean = {
     val name = id.getName
-    ppcg_phase_name.equals(name)
+    name.startsWith(ppcg_phase_name)
   }
 
   /**
    * Given a mark node with an identifier that points to a ppcg_ht_phase, extract this ppcg_ht_phase pointer.
    */
-  def ppcg_ht_phase_extract_from_mark(node : isl.ScheduleNode) : Long = {
+  def ppcg_ht_phase_extract_from_mark(node : isl.ScheduleNode) : ppcg_ht_phase = {
     if (!isl.ScheduleNodeType.NodeMark.equals(node.getType))
       throw new Exception("not a phase mark")
 
     val id = node.markGetId()
     val is_phase = is_phase_id(id)
-    val p = id.getUser
 
-    if (!is_phase)
+    if (!is_phase || !mark_map.contains(id.getName))
       throw new Exception("not a phase mark")
 
-    p
+    mark_map(id.getName)
   }
 
   /**
@@ -915,9 +919,11 @@ object HybridTiling {
    */
   def insert_phase(node : isl.ScheduleNode, phase : ppcg_ht_phase) = {
     val ctx = node.getCtx
-    val id = isl.Id.alloc(ctx, ppcg_phase_name)
+    val idName = ppcg_phase_name + mark_count
+    val id = isl.Id.alloc(ctx, idName)
+    mark_count = mark_count + 1
 
-    //TODO: id = isl_id_set_free_user(id, &ppcg_ht_phase_free_wrap)
+    mark_map(idName) = phase
     node.insertMark(id)
   }
 
@@ -952,7 +958,7 @@ object HybridTiling {
    * hybrid tiling was applied to schedule dimensions in which this original pair has been replaced by the tiles.
    * This mapping is of the form
    *
-   * 	[ [outer] -> [P -> C] ] -> [ [outer] -> [tile] ]
+   *  [ [outer] -> [P -> C] ] -> [ [outer] -> [tile] ]
    *
    * Apply this mapping to the set of all values for the input schedule dimensions and then apply its inverse.
    * The result is the set of values for the input schedule dimensions that would map to any of the tiles.  Subtracting
@@ -960,7 +966,7 @@ object HybridTiling {
    * that are not executed. Mapping these back to the tiles produces a description of the partial tiles.
    * Subtracting these from the set of all tiles produces a description of the full tiles in the form
    *
-   * 	[ [outer] -> [tile] ]
+   *  [ [outer] -> [tile] ]
    */
   def compute_full_tile(phase : ppcg_ht_phase) = {
     val el2tile = construct_tile_map(phase)

@@ -10,7 +10,6 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 import scala.io._
 import scala.util.control._
-import org.exastencils.schedopt.exploration._
 import org.exastencils.schedopt.exploration.Exploration
 import org.exastencils.schedopt.exploration.PartialSchedule
 import org.exastencils.schedopt.exploration.ScheduleSpace
@@ -24,6 +23,8 @@ import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
 import isl.ScheduleNode
+
+import scala.collection.mutable
 
 trait PolyhedronAccessible {
   var optLevel : Int = 3 // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
@@ -477,10 +478,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           if (prefix == 0)
             tilableDims = band.nMember()
       })
-      if (tilableDims > 1 && tilableDims <= 4)
-        scheduleMap = tileSchedule(scheduleMap, scop, tilableDims)
 
-      scheduleMap = try_hybrid_tile(scop, schedule.getRoot).getSchedule.getMap
+      if (Knowledge.experimental_cuda_tryHybridTiling) {
+        scheduleMap = try_hybrid_tile(scop, schedule.getRoot).getSchedule.getMap
+      } else {
+        if (tilableDims > 1 && tilableDims <= 4)
+          scheduleMap = tileSchedule(scheduleMap, scop, tilableDims)
+      }
     }
 
     scop.schedule = Isl.simplify(scheduleMap)
@@ -691,6 +695,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     * distances should be computed after these dimensions have been split off.
    */
   def try_hybrid_tile(scop : Scop, node : isl.ScheduleNode) : ScheduleNode = {
+    HybridTiling.mark_map = mutable.HashMap[String, ppcg_ht_phase]()
     val orig = node
     var ok = HybridTiling.ppcg_ht_parent_has_input_pattern(node)
     if (!ok)

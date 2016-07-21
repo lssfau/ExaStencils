@@ -92,3 +92,4 @@ experimental_cuda_linearizeSharedMemoryAccess   = false
 experimental_cuda_favorL1CacheOverSharedMemory  = false
 experimental_cuda_spatialBlockingWithSmem       = false
 experimental_cuda_spatialBlockingWithROC        = false
+experimental_cuda_tryHybridTiling               = true
