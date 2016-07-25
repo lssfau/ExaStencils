@@ -97,6 +97,8 @@ object Settings {
 
   // performance estimates (experimental)
   var performanceEstimateOutputFile : String = "Compiler/performanceEstimate.csv"
+  // Separator used in CSV output
+  var performanceEstimateOutputSeparator : String = "\t"
 
   /// external dependencies
   var pathsInc : ListBuffer[String] = ListBuffer()

@@ -81,9 +81,13 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
         file.getParentFile().mkdirs()
       }
       outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
-
-      for (fct <- completeFunctions.toList.sortBy(_._1))
-        outputStream.println("%s\t%s\t%e".formatLocal(java.util.Locale.US, "function", fct._1, fct._2.host * 1000.0)) //ms
+      val sep = Settings.performanceEstimateOutputSeparator
+      for (fct <- completeFunctions.toList.sortBy(_._1)) {
+        val fctName = fct._1
+        val estimate = fct._2
+        outputStream.println("%s%s%s%s%e".formatLocal(java.util.Locale.US,
+          "function", sep, fctName, sep, estimate.host * 1000.0)) //ms
+      }
 
       outputStream.close()
       outputStream = null
