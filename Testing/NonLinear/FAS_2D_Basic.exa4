@@ -23,8 +23,8 @@ Stencil Laplace@all {
 	[ 0,  1] => ( ( -1.0 / ( vf_gridWidth_y@current * vf_gridWidth_y@current ) ) )
 	[ 0, -1] => ( ( -1.0 / ( vf_gridWidth_y@current * vf_gridWidth_y@current ) ) )
 }
-Stencil GammaSten@all {
-	[ 0,  0] => ( gamma * exp( Solution[active]@current ) )
+Stencil gamSten@all {
+	[ 0,  0] => ( gam * exp( Solution[active]@current ) )
 }
 
 Stencil CorrectionStencil@all {
@@ -46,14 +46,14 @@ Stencil RestrictionStencil@all {
 }
 
 Globals {
-	Var gamma : Real = 10.0
+	Val gam : Real = 10.0
 }
 
 /* basic test problem
 Function rhsFct ( xPos : Real, yPos : Real ) : Real {
 	return (
 		2.0 * ( xPos - xPos ** 2 ) + 2.0 * ( yPos - yPos ** 2 )
-		+ gamma * ( ( xPos - xPos ** 2 ) * ( yPos - yPos ** 2 )
+		+ gam * ( ( xPos - xPos ** 2 ) * ( yPos - yPos ** 2 )
 			* exp ( ( xPos - xPos ** 2 ) * ( yPos - yPos ** 2 ) ) ) )
 }
 Function solFct ( xPos : Real, yPos : Real ) : Real {
@@ -62,7 +62,7 @@ Function solFct ( xPos : Real, yPos : Real ) : Real {
 /* enhanced test problem */
 Function rhsFct ( xPos : Real, yPos : Real ) : Real {
 	return ( (
-		( 9.0 * PI ** 2 + gamma * exp ( solFct ( xPos, yPos ) ) )
+		( 9.0 * PI ** 2 + gam * exp ( solFct ( xPos, yPos ) ) )
 			* ( xPos ** 2 - xPos ** 3 ) + 6.0 * xPos - 2.0 )
 		* sin ( 3.0 * PI * yPos ) )
 }
@@ -94,8 +94,8 @@ Function Smoother@all ( ) : Unit {
 	communicate ghost of Solution[active]@current
 	loop over Solution@current {
 		Solution[next]@current = Solution[active]@current + 0.8 * (
-			( RHS@current - ( Laplace@current * Solution[active]@current + GammaSten@current * Solution[active]@current ) )
-			/ ( diag ( Laplace@current ) + gamma * ( 1.0 + Solution[active]@current ) * exp ( Solution[active]@current ) ) )
+			( RHS@current - ( Laplace@current * Solution[active]@current + gamSten@current * Solution[active]@current ) )
+			/ ( diag ( Laplace@current ) + gam * ( 1.0 + Solution[active]@current ) * exp ( Solution[active]@current ) ) )
 	}
 	advance Solution@current
 }
@@ -103,7 +103,7 @@ Function Smoother@all ( ) : Unit {
 Function UpResidual@all (  ) : Unit {
 	communicate Solution[active]@current
 	loop over Residual@current {
-		Residual@current = RHS@current - ( Laplace@current * Solution[active]@current + GammaSten@current * Solution[active]@current )
+		Residual@current = RHS@current - ( Laplace@current * Solution[active]@current + gamSten@current * Solution[active]@current )
 	}
 }
 Function NormResidual_0@(coarsest and finest) ( ) : Real {
@@ -140,7 +140,7 @@ Function Restriction@((coarsest + 1) to finest) ( ) : Unit {
 	// f = r + A v
 	communicate ghost of Approximation@coarser
 	loop over RHS@coarser {
-		RHS@coarser += Laplace@coarser * Approximation@coarser + GammaSten@coarser * Approximation@coarser
+		RHS@coarser += Laplace@coarser * Approximation@coarser + gamSten@coarser * Approximation@coarser
 	}
 }
 
