@@ -21,6 +21,8 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
+import scala.collection.mutable.ListBuffer
+
 object MainStefan {
   private var polyOptExplID : Int = 0
 
@@ -70,11 +72,9 @@ object MainStefan {
       }
     }
 
-    // init buildfile generator
+    // init buildfile generator, overrides settings file
     if ("MSVC" == Platform.targetCompiler)
-      Settings.buildfileGenerator = ProjectfileGenerator
-    else
-      Settings.buildfileGenerator = MakefileGenerator
+      Settings.buildfileGenerators = ListBuffer("ProjectfileGenerator")
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")
