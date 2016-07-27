@@ -86,8 +86,6 @@ object Settings {
   def fragmentFile_config_path_binary = outputPath + "Domains/fragments.dat"
 
   /// BuildfileGenerators: MakefileGenerator, CMakeGenerator, ProjectGenerator
-  // FIXME: buildfileGenerators must be initialized as empty: settings file syntax does not allow to specify
-  // lists of strings. Use '+=' to add BuildfileGenerators in settings file, i.e. buildfileGenerators += "CMakeGenerator".
   // This list is parsed by parseBuildfileGenerators()
   var buildfileGenerators : ListBuffer[String] = ListBuffer()
 
@@ -165,10 +163,9 @@ object Settings {
 
   def parseBuildfileGenerators : List[BuildfileGenerator] = {
     val buildfileGeneratorMap = Map(
-      "CMakeGenerator"       -> CMakeGenerator,
-      "MakefileGenerator"    -> MakefileGenerator,
-      "ProjectfileGenerator" -> ProjectfileGenerator
-    )
+      "CMakeGenerator" -> CMakeGenerator,
+      "MakefileGenerator" -> MakefileGenerator,
+      "ProjectfileGenerator" -> ProjectfileGenerator)
 
     if (buildfileGenerators.isEmpty) {
       // default is MakefileGenerator
@@ -182,8 +179,7 @@ object Settings {
           case _ : Throwable => throw new Exception(
             s"""Invalid BuildfileGenerator specified in settings.buildfileGenerators: "${sgen}"""")
         }
-      }
-      )
+      })
     }
   }
 }
