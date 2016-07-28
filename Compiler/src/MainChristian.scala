@@ -17,6 +17,8 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
+import scala.collection.mutable.ListBuffer
+
 object MainChristian {
   def main(args : Array[String]) : Unit = {
 
@@ -49,11 +51,9 @@ object MainChristian {
     }
     Knowledge.update()
 
-    // init buildfile generator
+    // init buildfile generator, overrides settings file
     if ("MSVC" == Platform.targetCompiler)
-      Settings.buildfileGenerator = ProjectfileGenerator
-    else
-      Settings.buildfileGenerator = MakefileGenerator
+      Settings.buildfileGenerators = ListBuffer("ProjectfileGenerator")
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")

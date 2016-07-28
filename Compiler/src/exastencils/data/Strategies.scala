@@ -377,7 +377,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
     }
 
     case buf : iv.LoopCarriedCSBuffer => {
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, null, null, null, null).prettyprint()
+      val id = buf.resolveName
       val size : Expression =
         if (buf.dimSizes.isEmpty)
           IntegerConstant(1)
@@ -421,14 +421,23 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       buf
 
     case buf : iv.LoopCarriedCSBuffer =>
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, null, null, null, null).prettyprint
+      val id = buf.resolveName
       var size = bufferSizes(id)
       try {
         size = SimplifyExpression.simplifyIntegralExpr(size)
       } catch {
         case ex : EvaluationException => // what a pitty...
       }
-      bufferAllocs += (id -> new LoopOverFragments(new AssignmentStatement(buf, Allocation(buf.baseDatatype, size))) with OMP_PotentiallyParallel)
+      if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned
+        bufferAllocs += (id -> buf.wrapInLoops(new Scope(ListBuffer[Statement](
+          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+            Some(Platform.simd_vectorSize * SizeOfExpression(RealDatatype))),
+          AssignmentStatement(buf.basePtr, Allocation(RealDatatype, size + Platform.simd_vectorSize - 1)),
+          VariableDeclarationStatement(SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+            Some(((s"vs_$counter" - (CastExpression(SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(RealDatatype))),
+          AssignmentStatement(buf, buf.basePtr + s"offset_$counter")))))
+      else
+        bufferAllocs += (id -> buf.wrapInLoops(new AssignmentStatement(buf, Allocation(buf.baseDatatype, size))))
       buf
   })
 

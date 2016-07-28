@@ -45,12 +45,18 @@ object Extractor {
     symbolicConstants.add(constName)
   }
 
-  private def extractConstraints(expr : Expression, constraints : StringBuilder, formatString : Boolean,
+  private def extractConstraints(expr : Expression, constraints : StringBuilder, formatString : Boolean, paramExprs : Set[Expression],
     lParConstr : StringBuilder = null, gParConstr : StringBuilder = null, vars : Set[String] = null) : Boolean = {
 
     var bool : Boolean = false
 
     expr match {
+
+      case _ if (!paramExprs.isEmpty && paramExprs.contains(expr)) =>
+        val islStr : String = ScopNameMapping.expr2id(expr)
+        if (vars != null)
+          vars.add(islStr)
+        constraints.append(islStr)
 
       case _ : VariableAccess | _ : ArrayAccess =>
         val islStr : String = ScopNameMapping.expr2id(expr)
@@ -135,46 +141,46 @@ object Extractor {
       case AdditionExpression(sums) =>
         constraints.append('(')
         for (s <- sums) {
-          bool |= extractConstraints(s, constraints, formatString, lParConstr, gParConstr, vars)
+          bool |= extractConstraints(s, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
           constraints.append('+')
         }
         constraints(constraints.length - 1) = ')' // replace last '+'
 
       case SubtractionExpression(l, r) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('-')
-        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
       case MultiplicationExpression(facs) =>
         constraints.append('(')
         for (s <- facs) {
-          bool |= extractConstraints(s, constraints, formatString, lParConstr, gParConstr, vars)
+          bool |= extractConstraints(s, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
           constraints.append('*')
         }
         constraints(constraints.length - 1) = ')' // replace last '*'
 
       case DivisionExpression(l, r) =>
         constraints.append("floord(")
-        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(',')
-        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
       case ModuloExpression(l, r) =>
         constraints.append('(')
-        bool |= extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('%')
         if (formatString)
           constraints.append('%')
-        bool |= extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
       case MinimumExpression(es) =>
         constraints.append("min(")
         for (e <- es) {
-          bool |= extractConstraints(e, constraints, formatString, lParConstr, gParConstr, vars)
+          bool |= extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
           constraints.append(',')
         }
         constraints(constraints.length - 1) = ')' // replace last ','
@@ -182,78 +188,78 @@ object Extractor {
       case MaximumExpression(es) =>
         constraints.append("max(")
         for (e <- es) {
-          bool |= extractConstraints(e, constraints, formatString, lParConstr, gParConstr, vars)
+          bool |= extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
           constraints.append(',')
         }
         constraints(constraints.length - 1) = ')' // replace last ','
 
       case NegationExpression(e) =>
         constraints.append("!(")
-        extractConstraints(e, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case LowerExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('<')
-        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case LowerEqualExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append("<=")
-        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case GreaterEqualExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(">=")
-        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case GreaterExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('>')
-        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case EqEqExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('=')
-        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case NeqExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append("!=")
-        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case AndAndExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(" and ")
-        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
       case OrOrExpression(l, r) =>
         constraints.append('(')
-        extractConstraints(l, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(" or ")
-        extractConstraints(r, constraints, formatString, lParConstr, gParConstr, vars)
+        extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
@@ -316,11 +322,17 @@ class Extractor extends Collector {
   private var mergeScops : Boolean = false
 
   /** stack of additional conditions for the next statements found */
-  private val conditions = new ArrayStack[String]()
+  private final val conditions = new ArrayStack[String]()
+
+  /** function to execute after a loop has been processed */
+  private final val executeAfterExtraction = new ListBuffer[() => Unit]()
+
+  /** set of (potentially non-affine) expressions that should be treated as a single, new parameter */
+  private final val paramExprs = HashSet[Expression]()
 
   /** all found static control parts */
-  val scops = new ArrayBuffer[Scop](256)
-  val trash = new ArrayBuffer[(Node, String)] // TODO: debug; remove
+  final val scops = new ArrayBuffer[Scop](256)
+  final val trash = new ArrayBuffer[(Node, String)] // TODO: debug; remove
 
   private object curScop {
 
@@ -452,6 +464,7 @@ class Extractor extends Collector {
               loop.condition.get.annotate(SKIP_ANNOT)
             if (loop.reduction.isDefined)
               loop.reduction.get.annotate(SKIP_ANNOT)
+            // loop.at1stIt is a list of tuple, StateManager does not handle these, so a skip annotation is not required
             if (loop.parallelizationIsReasonable && loop.optLevel >= 1)
               enterLoop(loop, merge)
 
@@ -563,7 +576,11 @@ class Extractor extends Collector {
           case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
         }
     } catch {
-      case ExtractionException(msg) => curScop.discard(msg)
+      case ExtractionException(msg) =>
+        for (exec <- executeAfterExtraction)
+          exec()
+        executeAfterExtraction.clear()
+        curScop.discard(msg)
     }
   }
 
@@ -604,6 +621,8 @@ class Extractor extends Collector {
     isWrite = false
     skip = false
     mergeScops = false
+    executeAfterExtraction.clear()
+    paramExprs.clear()
     scops.clear()
     trash.clear()
   }
@@ -618,8 +637,14 @@ class Extractor extends Collector {
 
     val dims : Int = loop.numDimensions
 
-    val begin : MultiIndex = loop.indices.begin
-    val end : MultiIndex = loop.indices.end
+    val hasOmpLoop : Boolean = loop.explParLoop
+    val (begin : MultiIndex, end : MultiIndex) =
+      if (hasOmpLoop)
+        (loop.ompIndices.begin, loop.ompIndices.end)
+      else
+        (loop.indices.begin, loop.indices.end)
+    if (hasOmpLoop && !loop.areOmpIndicesAffine)
+      paramExprs += begin.last += end.last
     val loopVarExps : MultiIndex = LoopOverDimensions.defIt(loop.numDimensions)
 
     val params = new HashSet[String]()
@@ -633,11 +658,11 @@ class Extractor extends Collector {
     var bool : Boolean = false
     var i : Int = 0
     do {
-      bool |= extractConstraints(begin(i), constrs, true, locCtxConstrs, gloCtxConstrs, params)
+      bool |= extractConstraints(begin(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append("<=")
       constrs.append(ScopNameMapping.expr2id(new VariableAccess(dimToString(i), IntegerDatatype)))
       constrs.append('<')
-      bool |= extractConstraints(end(i), constrs, true, locCtxConstrs, gloCtxConstrs, params)
+      bool |= extractConstraints(end(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append(" and ")
       val lVar : Expression = loopVarExps(i)
       modelLoopVars.push(ScopNameMapping.expr2id(lVar))
@@ -648,8 +673,9 @@ class Extractor extends Collector {
     if (bool)
       throw new ExtractionException("loop bounds contain (in)equalities")
 
+    // TODO: interaction betweed condition and at1stIt (see also: TODO in LoopOverDimensions.expandSpecial)
     if (loop.condition.isDefined)
-      extractConstraints(loop.condition.get, constrs, true, locCtxConstrs, gloCtxConstrs, params)
+      extractConstraints(loop.condition.get, constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
     else
       constrs.delete(constrs.length - (" and ".length()), constrs.length)
 
@@ -702,9 +728,19 @@ class Extractor extends Collector {
     val mapTemplate : String = templateBuilder.toString()
 
     curScop.create(loop, localContext, globalContext, loop.optLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
+
+    // deal with at1stIt
+    val conds = loop.create1stItConds()
+    val nrConds = conds.length
+    conds ++=: loop.body // prepend to body
+    // undo prepend after extraction
+    executeAfterExtraction += { () => loop.body.remove(0, nrConds) }
   }
 
   private def leaveLoop(loop : LoopOverDimensions) : Unit = {
+    for (exec <- executeAfterExtraction)
+      exec()
+    executeAfterExtraction.clear()
     val scop = curScop.finish()
     if (scop != null) {
       scop.updateLoopVars()
@@ -717,7 +753,7 @@ class Extractor extends Collector {
   private def enterCondition(cond : ConditionStatement) : Unit = {
     if (cond.falseBody.isEmpty) {
       val sb = new StringBuilder(" and ")
-      extractConstraints(cond.condition, sb, false)
+      extractConstraints(cond.condition, sb, false, paramExprs)
       conditions.push(sb.toString())
     } else
       throw new ExtractionException("cannot deal with a non-empty falseBody in a ConditionStatement: " + cond.prettyprint())
@@ -820,13 +856,13 @@ class Extractor extends Collector {
     index match {
       case mInd : MultiIndex =>
         for (i <- mInd) {
-          ineq |= extractConstraints(i, indB, false)
+          ineq |= extractConstraints(i, indB, false, paramExprs)
           indB.append(',')
         }
         if (!mInd.isEmpty)
           indB.deleteCharAt(indB.length - 1)
       case ind =>
-        ineq |= extractConstraints(ind, indB, false)
+        ineq |= extractConstraints(ind, indB, false, paramExprs)
     }
 
     if (ineq)

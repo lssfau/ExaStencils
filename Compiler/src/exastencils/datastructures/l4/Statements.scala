@@ -2,6 +2,7 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.core._
 import exastencils.data
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -183,15 +184,15 @@ case class LoopOverPointsStatement(
     val procIncrement = new ir.MultiIndex(Array.fill(numDims)(1))
     if (startOffset.isDefined) {
       val newOffset = startOffset.get.progressToIr
-      for (i <- 0 until newOffset.length) procStartOffset(i) = newOffset(i)
+      for (i <- 0 until Math.min(numDims, newOffset.length)) procStartOffset(i) = newOffset(i)
     }
     if (endOffset.isDefined) {
       val newOffset = endOffset.get.progressToIr
-      for (i <- 0 until newOffset.length) procEndOffset(i) = newOffset(i)
+      for (i <- 0 until Math.min(numDims, newOffset.length)) procEndOffset(i) = newOffset(i)
     }
     if (increment.isDefined) {
       val newIncrement = increment.get.progressToIr
-      for (i <- 0 until newIncrement.length) procIncrement(i) = newIncrement(i)
+      for (i <- 0 until Math.min(numDims, newIncrement.length)) procIncrement(i) = newIncrement(i)
     }
 
     val loop = ir.LoopOverPoints(resolvedField,
@@ -221,6 +222,29 @@ case class LoopOverFragmentsStatement(var statements : List[Statement], var redu
   override def progressToIr : ir.LoopOverFragments = {
     new ir.LoopOverFragments(statements.map(s => s.progressToIr).to[ListBuffer],
       if (reduction.isDefined) Some(reduction.get.progressToIr) else None) with omp.OMP_PotentiallyParallel
+  }
+}
+
+case class ColorWithStatement(var colors : List[Expression], var loop : LoopOverPointsStatement) extends Statement {
+  override def prettyprint(out : PpStream) = {
+    out << "color with {\n"
+    out <<< (colors, ",\n") << ",\n"
+    out << loop
+    out << "}\n"
+  }
+
+  override def progressToIr : ir.Scope = {
+    // TODO: think about extracting loop duplication to separate transformation
+    var loops = colors.map(color => {
+      var newLoop = Duplicate(loop)
+      if (newLoop.condition.isDefined)
+        newLoop.condition = Some(BooleanExpression("&&", newLoop.condition.get, color)) // TODO: replace with new l4.AndAndExpression later
+      else
+        newLoop.condition = Some(color)
+      newLoop
+    })
+
+    ir.Scope(loops.map(_.progressToIr : ir.Statement).to[ListBuffer])
   }
 }
 

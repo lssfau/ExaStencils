@@ -21,3 +21,5 @@ pathsLib					+= "$(CUDA_LIB_PATH)"
 additionalLibs				+= "cuda.lib"
 additionalLibs				+= "cudart.lib"
 */
+
+buildfileGenerators			= { "ProjectfileGenerator" }

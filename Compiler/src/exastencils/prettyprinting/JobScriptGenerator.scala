@@ -56,6 +56,51 @@ object JobScriptGenerator {
 
         printer.finish
       }
+      case "ICC" | "ICPC" => { // emmy - FIXME: switch according to more appropriate metrics
+        val numOMP = Knowledge.omp_numThreads
+        val numMPI = Knowledge.mpi_numThreads
+        val numThreadsPerNode = Platform.hw_numThreadsPerNode
+        val numMPIRanksPerNode = numThreadsPerNode / numOMP
+        val numNodes = 2 // FIXME: (numOMP * numMPI) / numThreadsPerNode
+
+        val printer = PrettyprintingManager.getPrinter("runTest")
+        printer <<< s"#!/bin/bash -l"
+
+        printer <<< s"#PBS -N ${Settings.configName}"
+        printer <<< s"#PBS -l nodes=$numNodes:ppn=40"
+        printer <<< s"#PBS -l walltime=01:00:00"
+        printer <<< s"#PBS -q route"
+        var notify_user : String = null
+        Settings.user.toLowerCase() match {
+          case "sebastian" | "kuckuk" | "sebastiankuckuk" => notify_user = "sebastian.kuckuk@fau.de"
+          case "christian" | "schmitt" | "christianschmitt" => notify_user = "christian.schmitt@cs.fau.de"
+          case "stefan" | "kronawitter" | "stefankronawitter" => notify_user = "kronast@fim.uni-passau.de"
+          case "alex" | "alexander" | "grebhahn" | "alexandergrebhahn" => notify_user = "grebhahn@fim.uni-passau.de"
+          case "hannah" | "rittich" | "hannahrittich" => notify_user = "rittich@math.uni-wuppertal.de"
+          case _ => // no user -> no notifications
+        }
+        if (notify_user != null)
+          printer <<< s"#PBS -M $notify_user -m abe"
+
+        printer <<< ""
+
+        printer <<< s"#. /etc/profile.d/modules.sh"
+        printer <<< s"module load intel64/15.0up05"
+        printer <<< s"module load likwid"
+
+        printer <<< ""
+
+        val srcFolder = "$HOME/generated" + (if ("" != Settings.configName) "/" + Settings.configName else "")
+        val srcBinary = Settings.binary
+        printer <<< s"cd $srcFolder # switch to temp folder"
+
+        printer <<< ""
+
+        // FIXME: adapt for mpi/omp
+        printer <<< s"time make -j && time likwid-pin -S -c S0:0-19 ./$srcBinary"
+
+        printer.finish
+      }
       case _ =>
     }
   }

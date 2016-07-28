@@ -40,17 +40,16 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def wrapInLoops(body : Statement) : Statement = {
     var wrappedBody = body
 
-    // NOTE: reverse order due to wrapping
-    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      wrappedBody = new LoopOverNeighbors(wrappedBody)
-    if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
-      wrappedBody = new LoopOverLevels(wrappedBody)
-    if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
-      wrappedBody = new LoopOverFields(wrappedBody)
-    if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
-      wrappedBody = new LoopOverDomains(wrappedBody)
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
       wrappedBody = new LoopOverFragments(wrappedBody)
+    if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
+      wrappedBody = new LoopOverDomains(wrappedBody)
+    if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
+      wrappedBody = new LoopOverFields(wrappedBody)
+    if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
+      wrappedBody = new LoopOverLevels(wrappedBody)
+    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
+      wrappedBody = new LoopOverNeighbors(wrappedBody)
 
     wrappedBody
   }
@@ -84,12 +83,9 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
     var access = baseAccess
 
-    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
-      access = new ArrayAccess(access, fragment)
-    if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
-      access = new ArrayAccess(access, domain)
-    if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
-      access = new ArrayAccess(access, field)
+    // reverse compared to datatype wrapping, since we need to unwrap it "from outer to inner"
+    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
+      access = new ArrayAccess(access, neigh)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1) {
       val simplifiedLevel : Expression =
         level match {
@@ -98,8 +94,12 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
         }
       access = new ArrayAccess(access, simplifiedLevel)
     }
-    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      access = new ArrayAccess(access, neigh)
+    if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
+      access = new ArrayAccess(access, field)
+    if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
+      access = new ArrayAccess(access, domain)
+    if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
+      access = new ArrayAccess(access, fragment)
 
     access
   }

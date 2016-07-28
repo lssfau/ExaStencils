@@ -83,7 +83,7 @@ object Knowledge {
   var grid_isStaggered : Boolean = false
   var grid_isAxisAligned : Boolean = true
 
-  var grid_spacingModel : String = "uniform" // must be uniform if grid_isUniform; may be "diego" or "linearFct" otherwise
+  var grid_spacingModel : String = "uniform" // must be uniform if grid_isUniform; may be "diego", "diego2" or "linearFct" otherwise
 
   // options for SISC Paper
   var sisc2015_numNodes : Int = 64 // [16~64§sisc2015_numNodes*2]
@@ -199,7 +199,8 @@ object Knowledge {
   var poly_optimizeDeps : String = "raw" // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_filterDeps : Boolean = false // [true|false] // specifies if the dependences to optimize should be filtered first
   var poly_simplifyDeps : Boolean = true // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
-  var poly_fusionStrategy : String = "max" // [min|max] // specifies the level of fusion for the polyhedral scheduler
+  var poly_separateComponents : Boolean = false // [true|false] // specifies if parallel composition of schedule components should be sequentialized
+  var poly_serializeSCCs : Boolean = false // [true|false] // specifies if the SCCs of the dependence graph are serialized as soon as possible
   var poly_maximizeBandDepth : Boolean = false // [true|false] // split bands as early as possible during schedule generation
   var poly_maxConstantTerm : Int = -1 // [(-1)~inf] // enforces that the constant coefficients in the calculated schedule are not larger than the maximal constant term (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
   var poly_maxCoefficient : Int = -1 // [(-1)~inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
@@ -219,7 +220,7 @@ object Knowledge {
   var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
 
   /// SPL connected
-  var l3tmp_smoother : String = "Jac" // [Jac|RBGS] // [Jac|GS|RBGS] // the l3tmp_smoother to be generated
+  var l3tmp_smoother : String = "Jac" // [Jac|RBGS] // [Jac|GS|RBGS|BS] // the l3tmp_smoother to be generated
   var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
   var l3tmp_maxNumCGSSteps : Int = 512 // maximum number of coarse grid solver iterations
   var l3tmp_numRecCycleCalls : Int = 1 // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
@@ -393,6 +394,7 @@ object Knowledge {
     Constraints.condEnsureValue(grid_spacingModel, "uniform", grid_isUniform, "uniform spacing is required for uniform grids")
     Constraints.condWarn("uniform" == grid_spacingModel && !grid_isUniform, "grid_isUniform should be true for uniform spacing models")
     Constraints.condWarn("diego" == grid_spacingModel, "diego spacing model currently ignores domain bounds set in the DSL")
+    Constraints.condWarn("diego2" == grid_spacingModel, "diego2 spacing model currently ignores domain bounds set in the DSL")
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve
@@ -463,6 +465,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
       //      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
       Constraints.condWarn(l3tmp_genTemporalBlocking && "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
+      Constraints.condWarn(l3tmp_genTemporalBlocking && "BS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with block smoothers")
       Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_numPre != l3tmp_numPost, "l3tmp_numPre and l3tmp_numPost have to be equal")
       Constraints.condEnsureValue(l3tmp_tempBlockingMinLevel, math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
         l3tmp_genTemporalBlocking && l3tmp_tempBlockingMinLevel < math.ceil(math.log(l3tmp_numPre) / math.log(2)).toInt,
@@ -528,13 +531,16 @@ object Knowledge {
     // optimization
     Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")
     Constraints.condEnsureValue(poly_numFinestLevels, numLevels, poly_numFinestLevels > numLevels, "number of fine levels (for optimization) cannot exceed the number of all levels")
-    Constraints.condEnsureValue(poly_maximizeBandDepth, true, poly_fusionStrategy == "min", "poly_maximizeBandDepth has no effect if poly_fusionStrategy is \"min\"")
+    Constraints.condEnsureValue(poly_maximizeBandDepth, true, poly_serializeSCCs, "poly_maximizeBandDepth has no effect if poly_serializeSCCs is set")
 
     Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother != "RBGS", "color splitting is only relevant for RBGS smoother")
 
     Constraints.condEnsureValue(ir_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")
 
     Constraints.condWarn(l3tmp_genTemporalBlocking && opt_loopCarriedCSE, "temporal blocking may interfere with loop carried CSE and therefore generated code may be broken")
+    Constraints.condEnsureValue(opt_loopCarriedCSE_skipOuter, 0, !opt_loopCarriedCSE, "loop-carried cse disbaled, set its configuration parameter to default")
+    // TODO: is it worth the effort to fix the following?
+    Constraints.condWarn(omp_enabled && omp_numThreads > 1 && opt_loopCarriedCSE_skipOuter > 0 && poly_optLevel_fine > 0, "skipping outer loops fpr loop-carried cse in combination with PolyOpt may currently prevent OpenMP parallelism and vectorization")
 
     // timer configuration
     Constraints.condEnsureValue(timer_type, "Chrono", !mpi_enabled && "MPI_TIME" == timer_type, "MPI_TIME is not supported for codes generated without MPI")

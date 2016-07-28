@@ -66,12 +66,6 @@ object Main {
       }
     }
 
-    // init buildfile generator
-    if ("MSVC" == Platform.targetCompiler)
-      Settings.buildfileGenerator = ProjectfileGenerator
-    else
-      Settings.buildfileGenerator = MakefileGenerator
-
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")
   }
@@ -222,6 +216,8 @@ object Main {
     ResolveDiagFunction.apply()
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
+
+    ResolveLocalSolves.apply()
 
     ResolveLoopOverPointsInOneFragment.apply()
     ResolveContractingLoop.apply()

@@ -6,8 +6,8 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._
-import exastencils.util.SimplifyExpression
 
 import scala.collection.mutable._
 
@@ -63,14 +63,40 @@ object LoopCarriedCSBuffer {
   final val commonPrefix = "_lcs"
 }
 
-case class LoopCarriedCSBuffer(var identifier : Int, val baseDatatype : Datatype, val dimSizes : MultiIndex) extends InternalVariable(true, false, false, false, false) {
+abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private val namePostfix : String,
+    private val baseDatatype : Datatype, private val freeInDtor : Boolean) extends UnduplicatedVariable {
+
+  override def getDeclaration() : VariableDeclarationStatement = {
+    val superDecl = super.getDeclaration()
+    if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
+      superDecl.dataType = ArrayDatatype(superDecl.dataType, Knowledge.omp_numThreads)
+    return superDecl
+  }
+
+  override def wrapInLoops(body : Statement) : Statement = {
+    var wrappedBody = super.wrapInLoops(body)
+    if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
+      val begin = new VariableDeclarationStatement(IntegerDatatype, LoopOverDimensions.threadIdxName, IntegerConstant(0))
+      val end = new LowerExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IntegerDatatype), IntegerConstant(Knowledge.omp_numThreads))
+      val inc = new PreIncrementExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IntegerDatatype))
+      wrappedBody = new ForLoopStatement(begin, end, inc, wrappedBody) with OMP_PotentiallyParallel
+    }
+    return wrappedBody
+  }
+
+  override def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
+    var access = baseAccess
+    if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
+      access = new ArrayAccess(access, StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
+    return super.resolveAccess(access, fragment, domain, field, level, neigh)
+  }
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << resolveAccess(resolveName, LoopOverFragments.defIt, null, null, null, null)
+    out << resolveAccess(resolveName, null, null, null, null, null)
   }
 
   override def resolveName() : String = {
-    return LoopCarriedCSBuffer.commonPrefix + identifier
+    return LoopCarriedCSBuffer.commonPrefix + identifier + namePostfix
   }
 
   override def resolveDataType() : Datatype = {
@@ -82,11 +108,29 @@ case class LoopCarriedCSBuffer(var identifier : Int, val baseDatatype : Datatype
   }
 
   override def getDtor() : Option[Statement] = {
-    val ptrExpr = resolveAccess(resolveName, LoopOverFragments.defIt, null, null, null, null)
-    Some(wrapInLoops(
-      new ConditionStatement(ptrExpr,
-        ListBuffer[Statement](
-          FreeStatement(ptrExpr),
-          new AssignmentStatement(ptrExpr, 0)))))
+    val ptrExpr = resolveAccess(resolveName, null, null, null, null, null)
+    if (freeInDtor)
+      return Some(wrapInLoops(
+        new ConditionStatement(ptrExpr,
+          ListBuffer[Statement](
+            FreeStatement(ptrExpr),
+            new AssignmentStatement(ptrExpr, 0)))))
+    else
+      return Some(wrapInLoops(new AssignmentStatement(ptrExpr, 0)))
   }
 }
+
+case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : Datatype, val dimSizes : MultiIndex)
+  extends AbstractLoopCarriedCSBuffer(identifier, "", baseDatatype, !Knowledge.data_alignFieldPointers) {
+
+  lazy val basePtr = new LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
+
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+    super.registerIV(declarations, ctors, dtors)
+    if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
+      basePtr.registerIV(declarations, ctors, dtors)
+  }
+}
+
+case class LoopCarriedCSBufferBasePtr(var identifier : Int, val baseDatatype : Datatype)
+  extends AbstractLoopCarriedCSBuffer(identifier, "_base", baseDatatype, true)

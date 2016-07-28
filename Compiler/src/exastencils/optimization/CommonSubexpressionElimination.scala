@@ -4,6 +4,7 @@ import scala.collection.convert.Wrappers.JSetWrapper
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.BitSet
 import scala.collection.mutable.Buffer
+import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -17,6 +18,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.dimToString
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.Platform
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PrettyPrintable
@@ -56,22 +58,22 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     }))
 
     Logger.debug(s"Perform common subexpression elimination on ${scopes.length} scopes...")
+    val orderMap = new HashMap[Any, Int]()
     val bak = Logger.getLevel
     Logger.setLevel(Logger.WARNING) // be quiet! (R)
     for ((curFunc, parentLoop, loopIt, body) <- scopes) {
       // inline declarations with no additional write to the same variable first (CSE afterwards may find larger CSes)
       inlineDecls(parentLoop, body())
-      val (njuScopes : Seq[ListBuffer[Statement]], conditions : Seq[ConditionStatement]) =
+      val njuScopes : Seq[ListBuffer[Statement]] =
         if (Knowledge.opt_loopCarriedCSE && parentLoop.condition.isEmpty)
-          loopCarriedCSE(curFunc, parentLoop, loopIt)
+          loopCarriedCSE(curFunc, parentLoop, loopIt, orderMap)
         else
-          (Nil, Nil)
+          Nil
       if (Knowledge.opt_conventionalCSE) {
-        conventionalCSE(curFunc, body())
+        conventionalCSE(curFunc, body(), orderMap)
         for (njuBody <- njuScopes)
-          conventionalCSE(curFunc, njuBody)
+          conventionalCSE(curFunc, njuBody, orderMap)
       }
-      conditions ++=: body() // add conditions at the very beginning of the body (therefore, they must be added after the conventional CSE)
       removeAnnotations(body())
     }
     Logger.setLevel(bak) // restore verbosity
@@ -85,28 +87,52 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
   private def inlineDecls(parent : Node, body : ListBuffer[Statement]) : Unit = {
     val accesses = new HashMap[String, (VariableDeclarationStatement, Buffer[Expression])]()
+    val usageIn = new HashMap[String, ListBuffer[String]]().withDefault(_ => new ListBuffer[String]())
+    var assignTo : String = null
     this.execute(new Transformation("find removable declarations", {
       case decl @ VariableDeclarationStatement(_ : ScalarDatatype, vName, Some(init)) =>
         accesses(vName) = (decl, new ArrayBuffer[Expression]())
+        assignTo = vName
         decl
       case ass @ AssignmentStatement(VariableAccess(vName, _), _, _) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         ass
       case inc @ PreDecrementExpression(VariableAccess(vName, _)) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         inc
       case inc @ PreIncrementExpression(VariableAccess(vName, _)) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         inc
       case inc @ PostIncrementExpression(VariableAccess(vName, _)) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         inc
       case inc @ PostDecrementExpression(VariableAccess(vName, _)) =>
         accesses.remove(vName)
+        for (declName <- usageIn(vName))
+          accesses.remove(declName)
+        usageIn(vName).clear()
+        assignTo = vName
         inc
       case acc @ VariableAccess(vName, _) =>
         for ((_, uses) <- accesses.get(vName))
           uses += acc
+        usageIn(vName) += assignTo
         acc
     }), Some(Scope(body))) // restrict to body only
 
@@ -126,9 +152,10 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     SimplifyStrategy.doUntilDoneStandalone(parent, true)
   }
 
-  private def loopCarriedCSE(curFunc : String, loop : LoopOverDimensions, loopIt : Array[(String, Expression, Expression, Long)]) : (Seq[ListBuffer[Statement]], Seq[ConditionStatement]) = {
+  private def loopCarriedCSE(curFunc : String, loop : LoopOverDimensions,
+      loopIt : Array[(String, Expression, Expression, Long)], orderMap : Map[Any, Int]) : Seq[ListBuffer[Statement]] = {
     if (loopIt == null || loopIt.forall(_ == null))
-      return (Nil, Nil)
+      return Nil
 
     // first, number all nodes for overlap-test later
     val currItBody = Scope(loop.body)
@@ -136,15 +163,16 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     this.execute(new Transformation("number nodes", {
       case _ : ConcatenationExpression =>
         Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression are too difficult to analyze")
-        return (Nil, Nil) // don't do anything, since we cannot ensure the transformation is correct
+        return Nil // don't do anything, since we cannot ensure the transformation is correct
       // there are some singleton datatypes, so don't enumerate them
       case d : Datatype   => d
       case NullStatement  => NullStatement
       case NullExpression => NullExpression
-      case node =>
+      case node : Node => // only enumerate subtypes of Node, all others are irrelevant
         node.annotate(ID_ANNOT, maxID)
         maxID += 1
         node
+      case x => x // no node, so don't enumerate it, as it may appear multiple times (legally) in the AST
     }), Some(currItBody))
     currItBody.annotate(ID_ANNOT, maxID) // trafo does not get access to the AST root, so set annotation manually
 
@@ -156,7 +184,6 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
     var tmpBufLen = new Array[Expression](0)
     var tmpBufInd = new Array[Expression](0)
-    val conds = new ListBuffer[ConditionStatement]()
     for (((loopItVar, loopBegin, loopEnd, loopIncr), dim) <- loopIt.zipWithIndex) {
       val prevItBody = Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
       this.execute(new Transformation("create previous iteration body", {
@@ -174,7 +201,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(currItBody))
       this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(prevItBody))
       this.unregister(coll)
-      val commonSubs : HashMap[Node, Subexpression] = coll.commonSubs
+      val commonSubs : Map[Node, Subexpression] = coll.commonSubs
       commonSubs.retain {
         (n, cs) =>
           cs != null &&
@@ -183,7 +210,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
             }).toSet.size == 2)
       }
 
-      findCommonSubs(curFunc, commonSubs)
+      findCommonSubs(curFunc, commonSubs, orderMap)
 
       val filteredCS : Array[(Int, String, Subexpression)] =
         commonSubs.view.filter {
@@ -240,19 +267,20 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       }
 
       if (!decls.isEmpty) {
-        val cond = new ConditionStatement(EqEqExpression(new VariableAccess(loopItVar, IntegerDatatype), loopBegin), firstInits)
-        cond.annotate(Vectorization.COND_VECTABLE) // mark that this condition can be fully vectorized (which breaks some data dependences, but that doesn't matter)
+        val (stmts, annots) = loop.at1stIt(dim)
+        stmts ++= firstInits
+        annots += ((Vectorization.COND_VECTABLE, None))
         if (tmpBufLen.isEmpty)
-          cond.annotate(Vectorization.COND_IGN_INCR) // vectorize access to loop variable 'i' as 'i, i, ...' instead of 'i, i+incr, ...'
-        conds += cond // store cond separately to ensure all conditions are placed at the very beginning of the body
+          annots += ((Vectorization.COND_IGN_INCR, None))
         // prepend to body
         decls ++=:
           nextUpdates ++=:
           loop.body
-        njuScopes += firstInits
+        njuScopes += stmts
         if (loop.parDims.contains(dim) && loop.isInstanceOf[OMP_PotentiallyParallel])
           loop.isVectorizable = true
         loop.parDims -= dim
+        loop.lcCSEApplied = true
       }
 
       val loopBeginOpt =
@@ -275,9 +303,17 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       len = tmpBufLen.length
       tmpBufLen = java.util.Arrays.copyOf(tmpBufLen, len + 1)
       tmpBufLen(len) = loopEndOpt - loopBeginOpt
+      if (Knowledge.data_alignFieldPointers)
+        try {
+          val (_, size : Long) = SimplifyExpression.evalIntegralExtrema(tmpBufLen(len))
+          val vecSize : Long = Platform.simd_vectorSize
+          tmpBufLen(len) = IntegerConstant((size + vecSize) & ~(vecSize - 1))
+        } catch {
+          case e : EvaluationException => // what a pitty...
+        }
     }
 
-    return (njuScopes, conds)
+    return njuScopes
   }
 
   private def collectIDs(node : Node, bs : BitSet) : Boolean = {
@@ -291,24 +327,24 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     return disjunct
   }
 
-  private def conventionalCSE(curFunc : String, body : ListBuffer[Statement]) : Unit = {
+  private def conventionalCSE(curFunc : String, body : ListBuffer[Statement], orderMap : Map[Any, Int]) : Unit = {
     var repeat : Boolean = false
     do {
       val coll = new CollectBaseCSes(curFunc)
       this.register(coll)
       this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(Scope(body)))
       this.unregister(coll)
-      val commonSubs : HashMap[Node, Subexpression] = coll.commonSubs
+      val commonSubs : Map[Node, Subexpression] = coll.commonSubs
       commonSubs.retain { (_, cs) => cs != null && cs.getPositions().size > 1 }
       repeat = false
       if (!commonSubs.isEmpty) {
-        findCommonSubs(curFunc, commonSubs)
+        findCommonSubs(curFunc, commonSubs, orderMap)
         repeat = updateAST(body, commonSubs)
       }
     } while (repeat)
   }
 
-  private def findCommonSubs(curFunc : String, commonSubs : HashMap[Node, Subexpression]) : Unit = {
+  private def findCommonSubs(curFunc : String, commonSubs : Map[Node, Subexpression], orderMap : Map[Any, Int]) : Unit = {
     val processedChildren = new java.util.IdentityHashMap[Any, Null]()
     var nju : ArrayBuffer[List[Node]] = commonSubs.view.flatMap { x => x._2.getPositions() }.to[ArrayBuffer]
     val njuCommSubs = new HashMap[Node, Subexpression]()
@@ -321,12 +357,15 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       }
     }
 
+    var todo : ArrayBuffer[List[Node]] = new ArrayBuffer[List[Node]]()
     while (!nju.isEmpty) {
-      val toProc = nju
-      nju = new ArrayBuffer[List[Node]]()
-      for (c :: (pos @ par :: _) <- toProc) // orignal head was the common expression itself
-        // only process this node if not already done (based on ref eq)
-        if (!processedChildren.containsKey(c) && par.isInstanceOf[Expression])
+      val tmp = nju
+      nju = todo
+      todo = tmp
+      nju.clear()
+      for (c :: (pos @ par :: _) <- todo) // orignal head was the common expression itself
+        // only process this node if it is a CS and not already processed (based on ref eq)
+        if (commonSubs.contains(c) && !processedChildren.containsKey(c) && par.isInstanceOf[Expression])
           par.asInstanceOf[Expression] match {
             case func : FunctionCallExpression =>
               if (!func.name.contains("std::rand")) { // HACK to prevent inlining call to std::rand
@@ -352,7 +391,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                 //   this must be in sync with Subexpression.getRepls below
               } else if (nrProds == 0 && nrBuffs == 1) {
                 val dupParents : Array[(Expression with Product, Buffer[PrettyPrintable])] =
-                  duplicateAndFill(parent, { case n : Node => commonSubs.contains(n); case _ => false })
+                  duplicateAndFill(parent, { case n : Node => commonSubs.contains(n); case _ => false }, orderMap)
                 for ((dupPar, dupParChildren) <- dupParents)
                   registerCS(dupPar, dupParChildren.view.map { case x : Node => commonSubs(x).prio }.sum + 1, 1, pos, dupPar eq parent, dupParChildren)
 
@@ -371,10 +410,11 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     }
   }
 
-  private def updateAST(body : ListBuffer[Statement], commSubs : HashMap[Node, Subexpression]) : Boolean = {
-    val commSubOpt = commSubs.toList.sortBy {
+  private def updateAST(body : ListBuffer[Statement], commSubs : Map[Node, Subexpression]) : Boolean = {
+    val commSubSorted = commSubs.toList.sortBy {
       case (_, cs) => (-cs.prio, -cs.getPositions().size, cs.ppString)
-    }.find {
+    }
+    val commSubOpt = commSubSorted.find {
       case (_, cs) => !cs.getPositions().forall { pos => pos.exists { parent => parent.isInstanceOf[ConditionStatement] } }
     }
     if (commSubOpt.isEmpty)
@@ -421,7 +461,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     * @param orig  	 The original element to be duplicated and filled.
     * 							 `orig.productIterator` must contain a single `Buffer[PrettyPrintable]`, whose elements will be sorted.
     */
-  private def duplicateAndFill[T <: Product : ClassTag](orig : T, relevant : Any => Boolean) : Array[(T, Buffer[PrettyPrintable])] = {
+  private def duplicateAndFill[T <: Product : ClassTag](orig : T, relevant : Any => Boolean, orderMap : Map[Any, Int]) : Array[(T, Buffer[PrettyPrintable])] = {
 
     // every child here should be PrettyPrintable
     val children : Buffer[PrettyPrintable] = orig.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[PrettyPrintable]]
@@ -430,10 +470,10 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     val interm : Seq[(PrettyPrintable, String)] = children.view.map { x => (x, x.prettyprint()) }
 
     // sort according to prettyprinted version
-    val sortedO : Array[(PrettyPrintable, String)] = Sorting.stableSort(interm, { x => x._2 })
+    val sortedO : Array[(PrettyPrintable, String)] = Sorting.stableSort(interm, { x => (x._2, orderMap.getOrElseUpdate(x._1, { orderMap.size })) }) // orderMap ensures different nodes with same text. rep. are sorted, too!
     val sortedF = sortedO.view.map { x => x._1 }.filter(relevant).toBuffer
 
-    val len = sortedF.length
+    val len : Int = sortedF.length
     val filtered : Boolean = len != children.length
     if (len == 1 && !filtered)
       return Array((orig, children))
@@ -445,25 +485,25 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     val twoPowLen = 1 << len
     val nrCombs = twoPowLen - 1 - len
     val dups = new Array[(T, Buffer[PrettyPrintable])](nrCombs)
-    val start =
+    val cloneStart =
       if (!filtered) {
         dups(0) = (orig, children) // if we are not able to keep all children, do NOT use orignal reference
         1
       } else
         0
-    for (i <- start until nrCombs) {
+    for (i <- cloneStart until nrCombs) {
       val dup = Duplicate(orig)
       val dupChildren = dup.productElement(0).asInstanceOf[Buffer[PrettyPrintable]]
       dups(i) = (dup, dupChildren)
     }
 
-    // restore orig if required (but sorted; this must be in sync with Subexpression.initReplDecl below)
+    // restore orig if required (but sorted; this must be in sync with Subexpression.getReplOrModify below)
     if (filtered)
       children ++= sortedO.view.map(_._1)
 
     // fill alternatives with elements from powerset
     val toSet = (twoPowLen >> 1) - 1
-    val startInds = new ArrayBuffer[Int](toSet + 1)
+    val startInds = new ArrayBuffer[Int](twoPowLen + 1)
     startInds += 0
     for (child : PrettyPrintable <- sortedF) {
       val nrInds = startInds.length

@@ -8,8 +8,10 @@ object MathFunctions {
     "log" -> (List(RealDatatype) -> RealDatatype),
     "log10" -> (List(RealDatatype) -> RealDatatype),
     "ldexp" -> (List(RealDatatype, RealDatatype) -> RealDatatype),
+
     "pow" -> (List(RealDatatype, RealDatatype) -> RealDatatype),
     "sqrt" -> (List(RealDatatype) -> RealDatatype),
+
     "sin" -> (List(RealDatatype) -> RealDatatype),
     "cos" -> (List(RealDatatype) -> RealDatatype),
     "tan" -> (List(RealDatatype) -> RealDatatype),
@@ -19,5 +21,7 @@ object MathFunctions {
     "sinh" -> (List(RealDatatype) -> RealDatatype),
     "cosh" -> (List(RealDatatype) -> RealDatatype),
     "tanh" -> (List(RealDatatype) -> RealDatatype),
-    "atan2" -> (List(RealDatatype, RealDatatype) -> RealDatatype))
+    "atan2" -> (List(RealDatatype, RealDatatype) -> RealDatatype),
+
+    "fabs" -> (List(RealDatatype) -> RealDatatype))
 }

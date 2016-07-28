@@ -133,25 +133,25 @@ trait HigherDimensionalDatatype extends Datatype {
 // FIXME: in the following classes, rename size to numElements to make intention clearer
 
 case class ArrayDatatype(override val datatype : Datatype, size : Int) extends HigherDimensionalDatatype {
-  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
+  override def prettyprint(out : PpStream) : Unit = out << this.resolveDeclType << this.resolveDeclPostscript
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
   override def dimensionality : Int = 1 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(size) ++ datatype.getSizeArray
   override def resolveDeclType : Datatype = datatype.resolveDeclType
-  override def resolveDeclPostscript : String = datatype.resolveDeclPostscript + s"[$size]"
+  override def resolveDeclPostscript : String = s"[$size]" + datatype.resolveDeclPostscript
   override def resolveFlattendSize : Int = size * datatype.resolveFlattendSize
   override def typicalByteSize = size * datatype.typicalByteSize
 }
 
 case class ArrayDatatype_VS(override val datatype : Datatype, size : Expression) extends HigherDimensionalDatatype {
-  override def prettyprint(out : PpStream) : Unit = out << datatype << '[' << size << ']'
+  override def prettyprint(out : PpStream) : Unit = out << this.resolveDeclType << this.resolveDeclPostscript
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
   override def dimensionality : Int = 1 + datatype.dimensionality
   override def getSizeArray : Array[Int] = ???
   override def resolveDeclType : Datatype = datatype.resolveDeclType
-  override def resolveDeclPostscript : String = datatype.resolveDeclPostscript + s"[$size]"
+  override def resolveDeclPostscript : String = s"[${size.prettyprint()}]" + datatype.resolveDeclPostscript
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 }
@@ -231,11 +231,13 @@ trait ReferenceLikeDatatype extends IndirectionDatatype {
   override def typicalByteSize = datatype.typicalByteSize
 }
 
+// FIXME: PointerDatatype(ArrayDatatype(..)) results in incorrect C++ code...
 case class PointerDatatype(override val datatype : Datatype) extends PointerLikeDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << '*'
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
+// FIXME: ConstPointerDatatype(ArrayDatatype(..)) results in incorrect C++ code...
 case class ConstPointerDatatype(override val datatype : Datatype) extends PointerLikeDatatype {
   override def prettyprint(out : PpStream) : Unit = out << datatype << "* const"
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()

@@ -141,11 +141,49 @@ object Smoothers {
     addBodyAfter(printer, postfix, tempBlocking)
   }
 
+  def addBodyBS(printer : java.io.PrintWriter, postfix : String, stencil : String, tempBlocking : Boolean) = {
+    Communication.exch(printer, s"Solution$postfix@current")
+    if (tempBlocking)
+      Communication.exch(printer, s"RHS$postfix@current")
+
+    addBodyBefore(printer, postfix, tempBlocking)
+
+    printer.println(s"\tloop over Solution$postfix@current stepping [${Array.fill(Knowledge.dimensionality)(2).mkString(", ")}] {")
+    for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
+      printer.println(s"\t\tsolve locally {")
+
+      Knowledge.dimensionality match {
+        case 2 =>
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[0, 0] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[0, 0] == ${Fields.rhs(s"current", postfix)(vecDim)}@[0, 0]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[1, 0] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[1, 0] == ${Fields.rhs(s"current", postfix)(vecDim)}@[1, 0]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[0, 1] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[0, 1] == ${Fields.rhs(s"current", postfix)(vecDim)}@[0, 1]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[1, 1] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[1, 1] == ${Fields.rhs(s"current", postfix)(vecDim)}@[1, 1]")
+
+        case 3 =>
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[0, 0, 0] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[0, 0, 0] == ${Fields.rhs(s"current", postfix)(vecDim)}@[0, 0, 0]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[1, 0, 0] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[1, 0, 0] == ${Fields.rhs(s"current", postfix)(vecDim)}@[1, 0, 0]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[0, 1, 0] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[0, 1, 0] == ${Fields.rhs(s"current", postfix)(vecDim)}@[0, 1, 0]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[1, 1, 0] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[1, 1, 0] == ${Fields.rhs(s"current", postfix)(vecDim)}@[1, 1, 0]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[0, 0, 1] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[0, 0, 1] == ${Fields.rhs(s"current", postfix)(vecDim)}@[0, 0, 1]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[1, 0, 1] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[1, 0, 1] == ${Fields.rhs(s"current", postfix)(vecDim)}@[1, 0, 1]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[0, 1, 1] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[0, 1, 1] == ${Fields.rhs(s"current", postfix)(vecDim)}@[0, 1, 1]")
+          printer.println(s"\t\t${Fields.solution(s"current", postfix)(vecDim)}@[1, 1, 1] => $stencil * ${Fields.solution(s"current", postfix)(vecDim)}@[1, 1, 1] == ${Fields.rhs(s"current", postfix)(vecDim)}@[1, 1, 1]")
+      }
+
+      printer.println(s"\t\t}")
+    }
+
+    printer.println(s"\t}")
+
+    addBodyAfter(printer, postfix, tempBlocking)
+  }
+
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
     val bodyFunction = Knowledge.l3tmp_smoother match {
       case "Jac"  => ((stencil : String, tempBlocking : Boolean) => addBodyJac(printer, postfix, stencil, tempBlocking))
       case "RBGS" => ((stencil : String, tempBlocking : Boolean) => addBodyRBGS(printer, postfix, stencil, tempBlocking))
       case "GS"   => ((stencil : String, tempBlocking : Boolean) => addBodyGS(printer, postfix, stencil, tempBlocking))
+      case "BS"   => ((stencil : String, tempBlocking : Boolean) => addBodyBS(printer, postfix, stencil, tempBlocking))
     }
 
     if (Knowledge.l3tmp_genTemporalBlocking) {

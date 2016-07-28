@@ -127,12 +127,6 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       vectStmtsStack.last += stmt
     }
 
-    def addStmtPreLoop(stmt : Statement) : Unit = {
-      if (stmt.isInstanceOf[VariableDeclarationStatement])
-        throw new Error("use addStmtPreLoop(VariableDeclarationStatement, Expression) instead of addStmtPreLoop(Statement)!")
-      preLoopStmts += stmt
-    }
-
     def addStmtPreLoop(decl : VariableDeclarationStatement, origExpr : Expression) : Unit = {
       moveNameMappingUp(origExpr)
       preLoopStmts += decl
@@ -175,7 +169,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     }
 
     def moveNameMappingUp(expr : Expression) : Unit = {
-      temporaryMappingStack(0)(expr) = temporaryMappingStack(temporaryMappingStack.length - 1).remove(expr).get
+      temporaryMappingStack.head(expr) = temporaryMappingStack(temporaryMappingStack.length - 1).remove(expr).get
     }
 
     def getIncrVector() : VariableAccess = {
@@ -327,7 +321,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             throw new VectorizationException("Cannot determine alignment properly")
         }
       }
-      // at least one sum is empty, so all remaining coefficients must be evenly dividable
+      // at least one sum is empty, so all remaining coefficients must be evenly divisible
       for (ind <- indexExprs)
         for ((_, coeff) <- ind)
           if (coeff % vs != 0)
@@ -408,6 +402,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   private def vectorizeStmt(stmt : Statement, ctx : LoopCtx) : Unit = {
     stmt match {
+      case NullStatement => // SIMD_NullStatement? no way...
+
       case CommentStatement(str) =>
         ctx.addStmt(new CommentStatement(str)) // new instance
 
@@ -520,6 +516,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                 if (containsVarAcc(expr, ctx.itName))
                   throw new VectorizationException("no linear memory access;  " + index.prettyprint())
             }
+          if (ctx.ignIncr) // that means we basically only compute a scalar value
+            access1 = true
 
           val vs = Platform.simd_vectorSize
           val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
@@ -581,6 +579,14 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         }
         new VariableAccess(vecTmp, SIMD_RealDatatype)
 
+      case StringLiteral("omp_get_thread_num()") =>
+        val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
+        if (njuTmp) {
+          val decl = new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(expr))
+          ctx.addStmtPreLoop(decl, expr)
+        }
+        new VariableAccess(vecTmp, SIMD_RealDatatype)
+
       case FloatConstant(value) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
@@ -617,6 +623,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         SIMD_SubtractionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
       case MultiplicationExpression(facs) =>
+        if (facs.isEmpty)
+          Logger.error("empty product not allowed")
         val exprs = new Queue[Expression]()
         exprs.enqueue(facs.view.map { x => vectorizeExpr(x, ctx) } : _*)
         while (exprs.length > 1)
@@ -626,8 +634,29 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case DivisionExpression(left, right) =>
         SIMD_DivisionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
+      case MinimumExpression(args) =>
+        if (args.isEmpty)
+          Logger.error("empty minimum not allowed")
+        val exprs = new Queue[Expression]()
+        exprs.enqueue(args.view.map { x => vectorizeExpr(x, ctx) } : _*)
+        while (exprs.length > 1)
+          exprs.enqueue(SIMD_MinimumExpression(exprs.dequeue(), exprs.dequeue()))
+        exprs.dequeue()
+
+      case MaximumExpression(args) =>
+        if (args.isEmpty)
+          Logger.error("empty minimum not allowed")
+        val exprs = new Queue[Expression]()
+        exprs.enqueue(args.view.map { x => vectorizeExpr(x, ctx) } : _*)
+        while (exprs.length > 1)
+          exprs.enqueue(SIMD_MaximumExpression(exprs.dequeue(), exprs.dequeue()))
+        exprs.dequeue()
+
       case FunctionCallExpression(func, args) if (SIMD_MathFunctions.isAllowed(func)) =>
         FunctionCallExpression(SIMD_MathFunctions.addUsage(func), args.map { arg => vectorizeExpr(arg, ctx) })
+
+      case PowerExpression(base, exp) if (SIMD_MathFunctions.isAllowed("pow")) =>
+        FunctionCallExpression(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))
 
       case mAcc : MemberAccess =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)

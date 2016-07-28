@@ -26,11 +26,12 @@ class LexerL4 extends ExaLexer {
   reserved += ("loop", "until", "over", "fragments", "only", "on", "boundary", "where", "starting", "ending", "stepping", "reduction")
   reserved += ("sequentially") // FIXME: seq HACK
   reserved += ("precomm", "postcomm") // temporary loop annotation
+  reserved += ("color", "with")
 
   // condition keywords
   reserved += ("if", "else", "and", "or")
 
-  // language datatypes
+  // language data types
   reserved += ("Unit", "String", "Integer", "Int", "Real", "Complex", "Array", "Vector", "ColumnVector", "CVector", "Matrix", "Boolean", "Bool", "T")
 
   // boolean keywords
@@ -56,6 +57,9 @@ class LexerL4 extends ExaLexer {
 
   // slot keywords
   reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")
+
+  // solve keywords
+  reserved += ("solve", "locally")
 
   // math keywords
   //  reserved += ()
