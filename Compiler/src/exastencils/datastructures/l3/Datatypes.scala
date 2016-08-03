@@ -123,7 +123,7 @@ case class DynamicFieldLocation(tcId : String) extends DynamicLocation {
 
   private val tcAccess = new l4.FieldAccess(
     tcId,
-    l4.CurrentLevelSpecification(),
+    l4.CurrentLevelSpecification,
     l4.SlotModifier.Constant(0))
 
   override def writeTcForWriting(block : TcbBlock, rhs : DynamicLocation) {

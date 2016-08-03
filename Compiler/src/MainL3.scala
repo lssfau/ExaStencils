@@ -57,17 +57,17 @@ object MainL3 {
     // BEGIN HACK: add function to test new functionalities
     val statements : List[l4.Statement] = List(
       l4.AssignmentStatement(
-        l4.FieldAccess("Residual", l4.CurrentLevelSpecification(), l4.SlotModifier.Constant(0)),
+        l4.FieldAccess("Residual", l4.CurrentLevelSpecification, l4.SlotModifier.Constant(0)),
         l4.BinaryExpression("-",
-          l4.FieldAccess("RHS", l4.CurrentLevelSpecification(), l4.SlotModifier.Constant(0)),
+          l4.FieldAccess("RHS", l4.CurrentLevelSpecification, l4.SlotModifier.Constant(0)),
           l4.StencilConvolution(
-            l4.StencilAccess("Laplace", l4.CurrentLevelSpecification()),
-            l4.FieldAccess("Solution", l4.CurrentLevelSpecification(), l4.SlotModifier.Active()))),
+            l4.StencilAccess("Laplace", l4.CurrentLevelSpecification),
+            l4.FieldAccess("Solution", l4.CurrentLevelSpecification, l4.SlotModifier.Active))),
         "="))
 
     // version without comm
     StateManager.root.asInstanceOf[l4.Root].statements += new l4.FunctionStatement(
-      l4.LeveledIdentifier("UpResidual", l4.AllLevelsSpecification()),
+      l4.LeveledIdentifier("UpResidual", l4.AllLevelsSpecification),
       l4.UnitDatatype(),
       List(),
       statements)

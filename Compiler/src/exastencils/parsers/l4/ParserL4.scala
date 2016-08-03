@@ -70,14 +70,14 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val levelrelative = (
     locationize(levelsingle ~ ("+" ||| "-") ~ integerLit ^^ { case l ~ op ~ i => RelativeLevelSpecification(op, l, i) }))
 
-  lazy val levelall = locationize("all" ^^ { case _ => AllLevelsSpecification() })
+  lazy val levelall = locationize("all" ^^ { case _ => AllLevelsSpecification })
 
   lazy val levelsingle = (
-    locationize("current" ^^ { case _ => CurrentLevelSpecification() })
-    ||| locationize("coarser" ^^ { case _ => CoarserLevelSpecification() })
-    ||| locationize("finer" ^^ { case _ => FinerLevelSpecification() })
-    ||| locationize("coarsest" ^^ { case _ => CoarsestLevelSpecification() })
-    ||| locationize("finest" ^^ { case _ => FinestLevelSpecification() })
+    locationize("current" ^^ { case _ => CurrentLevelSpecification })
+    ||| locationize("coarser" ^^ { case _ => CoarserLevelSpecification })
+    ||| locationize("finer" ^^ { case _ => FinerLevelSpecification })
+    ||| locationize("coarsest" ^^ { case _ => CoarsestLevelSpecification })
+    ||| locationize("finest" ^^ { case _ => FinestLevelSpecification })
     ||| locationize(integerLit ^^ { case l => SingleLevelSpecification(l) }))
 
   // ######################################
@@ -245,7 +245,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ { case d => d })
   lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (discretization <~ ">") ~ level.? ~ ("{" ~> layoutOptions <~ "}")
-    ^^ { case id ~ dt ~ disc ~ level ~ opts => var x = LayoutDeclarationStatement(LeveledIdentifier(id, level.getOrElse(new AllLevelsSpecification)), dt, disc.toLowerCase); x.set(opts); x })
+    ^^ { case id ~ dt ~ disc ~ level ~ opts => var x = LayoutDeclarationStatement(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), dt, disc.toLowerCase); x.set(opts); x })
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
     ||| layoutOption.*)
@@ -253,7 +253,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ level.?
-    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => FieldDeclarationStatement(LeveledIdentifier(id, level.getOrElse(new AllLevelsSpecification)), domain, layout, boundary, slots.getOrElse(1).toInt) })
+    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => FieldDeclarationStatement(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), domain, layout, boundary, slots.getOrElse(1).toInt) })
   lazy val fieldBoundary = binaryexpression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[Index] = (
@@ -283,7 +283,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> (binaryexpression ||| matrixExpression))) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ level.?)
-    ^^ { case id ~ f ~ s ~ level => StencilFieldDeclarationStatement(LeveledIdentifier(id, level.getOrElse(new AllLevelsSpecification)), f, s) })
+    ^^ { case id ~ f ~ s ~ level => StencilFieldDeclarationStatement(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), f, s) })
 
   // ######################################
   // ##### "External" Definitions
@@ -302,13 +302,13 @@ class ParserL4 extends ExaParser with PackratParsers {
     "$" ~> slotModifier ^^ { case s => s }
       ||| "[" ~> slotModifier <~ "]" ^^ { case s => s })
 
-  lazy val slotModifier = locationize("active" ^^ { case _ => SlotModifier.Active() }
-    ||| "activeSlot" ^^ { case _ => SlotModifier.Active() }
-    ||| "currentSlot" ^^ { case _ => SlotModifier.Active() }
-    ||| "next" ^^ { case _ => SlotModifier.Next() }
-    ||| "nextSlot" ^^ { case _ => SlotModifier.Next() }
-    ||| "previous" ^^ { case _ => SlotModifier.Previous() }
-    ||| "previousSlot" ^^ { case _ => SlotModifier.Previous() }
+  lazy val slotModifier = locationize("active" ^^ { case _ => SlotModifier.Active }
+    ||| "activeSlot" ^^ { case _ => SlotModifier.Active }
+    ||| "currentSlot" ^^ { case _ => SlotModifier.Active }
+    ||| "next" ^^ { case _ => SlotModifier.Next }
+    ||| "nextSlot" ^^ { case _ => SlotModifier.Next }
+    ||| "previous" ^^ { case _ => SlotModifier.Previous }
+    ||| "previousSlot" ^^ { case _ => SlotModifier.Previous }
     ||| integerLit ^^ { case i => SlotModifier.Constant(i) })
 
   lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => AdvanceStatement(a) })
@@ -318,7 +318,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))
 
   lazy val fieldAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").?
-    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active()), arrayIndex) })
+    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active), arrayIndex) })
 
   lazy val flatAccess = locationize(ident
     ^^ { case id => UnresolvedAccess(id, None, None, None, None, None) })
