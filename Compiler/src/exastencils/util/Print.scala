@@ -17,10 +17,11 @@ object PrintExpression {
 }
 
 case class PrintExpression(var stream : Expression, toPrint : ListBuffer[Expression]) extends Expression {
+  override def datatype = stream.datatype
   def this(stream : Expression, toPrint : Expression*) = this(stream, toPrint.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << stream << " << " <<<(toPrint, " << ")
+    out << stream << " << " <<< (toPrint, " << ")
   }
 }
 
@@ -124,8 +125,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
                   if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
                     access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
                   List(access, separator)
-                }).to[ListBuffer] += PrintExpression.endl)
-            )))),
+                }).to[ListBuffer] += PrintExpression.endl))))),
       new MemberFunctionCallExpression(new VariableAccess(streamName, streamType), "close"))
 
     var statements : ListBuffer[Statement] = ListBuffer()

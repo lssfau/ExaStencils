@@ -14,6 +14,7 @@ import exastencils.prettyprinting._
 import exastencils.util._
 
 case class PointOutsideDomain(var pos : Access, var domain : Domain) extends Expression with Expandable {
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
 
   override def expand : Output[Expression] = {
@@ -37,6 +38,7 @@ case class PointOutsideDomain(var pos : Access, var domain : Domain) extends Exp
 }
 
 case class PointInsideDomain(var pos : Access, var domain : Domain) extends Expression with Expandable {
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
 
   override def expand : Output[Expression] = {
@@ -60,6 +62,7 @@ case class PointInsideDomain(var pos : Access, var domain : Domain) extends Expr
 }
 
 case class PointToFragmentId(var pos : Access) extends Expression with Expandable {
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Output[Expression] = {
@@ -88,6 +91,7 @@ case class PointToFragmentId(var pos : Access) extends Expression with Expandabl
 }
 
 case class PointToFragmentIndex(var pos : Access) extends Expression with Expandable {
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentIndex\n"
 
   override def expand : Output[Expression] = {
@@ -125,6 +129,7 @@ case class PointToFragmentIndex(var pos : Access) extends Expression with Expand
 }
 
 case class PointToLocalFragmentId(var pos : Access) extends Expression with Expandable {
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Output[Expression] = {
@@ -153,6 +158,7 @@ case class PointToLocalFragmentId(var pos : Access) extends Expression with Expa
 }
 
 case class PointToOwningRank(var pos : Access, var domain : Domain) extends Expression with Expandable {
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
 
   override def expand : Output[Expression] = {

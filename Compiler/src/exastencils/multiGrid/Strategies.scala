@@ -156,7 +156,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         f // do nothing for vectors containing variable expressions
       } else {
         val r = ListBuffer[Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
-        VectorExpression(x.datatype, r, x.rowVector)
+        VectorExpression(x.innerDatatype, r, x.rowVector)
       }
     }
 
@@ -171,7 +171,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
             var c = m.expressions(1)(0)
             var d = m.expressions(1)(1)
             var det = 1.0 / (a * d - b * c)
-            MatrixExpression(m.datatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
+            MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
           } else if (m.rows == 3 && m.columns == 3) {
             var a = m.expressions(0)(0)
             var b = m.expressions(0)(1)
@@ -192,7 +192,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
             var H = -1 * (a * f - c * d)
             var I = (a * e - b * d)
             var det = a * A + b * B + c * C
-            MatrixExpression(m.datatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
+            MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
           } else {
             x
           }

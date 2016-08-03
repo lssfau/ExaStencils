@@ -53,7 +53,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-case class VectorExpression(var datatype : Option[Datatype], var expressions : List[Expression], var rowVector : Option[Boolean]) extends Expression {
+case class VectorExpression(var datatype : Option[Datatype], var expressions : List[Expression], var rowVector : Option[Boolean] = Some(true)) extends Expression {
   // rowVector == true: Row; false: Column; None: unspecified
   def length = expressions.length
 

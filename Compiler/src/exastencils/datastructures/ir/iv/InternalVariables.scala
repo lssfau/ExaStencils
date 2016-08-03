@@ -8,6 +8,7 @@ import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends Expression {
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << resolveName
 
   def usesFragmentArrays : Boolean = true

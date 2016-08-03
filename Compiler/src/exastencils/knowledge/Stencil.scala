@@ -13,6 +13,7 @@ import exastencils.util._
 case class StencilEntry(var offset : MultiIndex, var coefficient : Expression) {}
 
 case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
+  def datatype = ??? // FIXME
   def getReach(dim : Int) : Int = {
     var reach : Int = 0
     // get max reach

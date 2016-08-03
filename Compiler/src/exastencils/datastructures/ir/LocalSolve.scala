@@ -12,14 +12,17 @@ import exastencils.strategies._
 
 // FIXME: update with actual accessors
 case class hackVecComponentAccess(var vec : VariableAccess, var i : Expression) extends Expression {
+  override def datatype = vec.dType.getOrElse(RealDatatype)
   override def prettyprint(out : PpStream) : Unit = out << vec << "(" << i << ", " << 0 << ")"
 }
 // FIXME: update with actual accessors
 case class hackMatComponentAccess(var mat : VariableAccess, var i : Expression, var j : Expression) extends Expression {
+  override def datatype = mat.dType.getOrElse(RealDatatype)
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
 case class EquationExpression(var lhs : Expression, var rhs : Expression) extends Expression {
+  override def datatype = rhs.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EquationExpression\n"
 }
 

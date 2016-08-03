@@ -1,5 +1,6 @@
 package exastencils.datastructures.ir
 
+import scala.reflect.runtime.universe._
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
@@ -12,6 +13,8 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 
 trait Expression extends Node with PrettyPrintable {
+  def datatype : Datatype
+
   @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
   def ~(exp : Expression) : ConcatenationExpression = {
     new ConcatenationExpression(this, exp)
@@ -178,13 +181,14 @@ trait Number extends Expression {
 
 case object NullExpression extends Expression {
   exastencils.core.Duplicate.registerConstant(this)
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = ()
 }
 
 @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
 case class ConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
   def this(exprs : Expression*) = this(exprs.to[ListBuffer])
-
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out <<< expressions
 
   @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
@@ -196,21 +200,25 @@ case class ConcatenationExpression(var expressions : ListBuffer[Expression]) ext
 
 case class StringLiteral(var value : String) extends Expression {
   def this(s : StringConstant) = this(s.value)
+  override def datatype = StringDatatype
   override def prettyprint(out : PpStream) : Unit = out << value
   override def toString : String = value
 }
 
 case class StringConstant(var value : String) extends Expression {
   def this(s : StringLiteral) = this(s.value)
+  override def datatype = StringDatatype
   override def prettyprint(out : PpStream) : Unit = out << '"' << value << '"'
 }
 
 case class IntegerConstant(var v : Long) extends Number {
+  override def datatype = IntegerDatatype
   override def prettyprint(out : PpStream) : Unit = out << v
   override def value = v
 }
 
 case class FloatConstant(var v : Double) extends Number {
+  override def datatype = FloatDatatype
   override def prettyprint(out : PpStream) : Unit = {
     out << value // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
     if (!Knowledge.useDblPrecision) out << "f"
@@ -220,21 +228,23 @@ case class FloatConstant(var v : Double) extends Number {
 }
 
 case class BooleanConstant(var value : Boolean) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << value
 }
 
-case class VectorExpression(var datatype : Option[Datatype], var expressions : ListBuffer[Expression], var rowVector : Option[Boolean]) extends Expression {
+case class VectorExpression(var innerDatatype : Option[Datatype], var expressions : ListBuffer[Expression], var rowVector : Option[Boolean]) extends Expression {
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.forall(e => e.isInstanceOf[Number])
 
+  override def datatype = new VectorDatatype(innerDatatype.getOrElse(RealDatatype), expressions.length, rowVector)
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
-    out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions, ",") << "})"
+    out << innerDatatype << "[]){" <<< (expressions, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "Matrix<" << datatype.getOrElse(RealDatatype) << ", "
+    out << "Matrix<" << innerDatatype.getOrElse(RealDatatype) << ", "
     if (rowVector.getOrElse(true)) {
       out << "1, " << length << "> (" // row vector
     } else {
@@ -245,10 +255,11 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   }
 }
 
-case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
+case class MatrixExpression(var innerDatatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
+  override def datatype = new MatrixDatatype(innerDatatype.getOrElse(RealDatatype), expressions.length, expressions(0).length)
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
-    out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
+    out << innerDatatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
@@ -266,28 +277,33 @@ case class MatrixExpression(var datatype : Option[Datatype], var expressions : L
   def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IntegerConstant])
 }
 
-case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "new" << ' ' << datatype << "[" << size << "]"
+case class Allocation(var innerDatatype : Datatype, var size : Expression) extends Expression {
+  override def datatype = UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << "new" << ' ' << innerDatatype << "[" << size << "]"
 }
 
-case class SizeOfExpression(var datatype : Datatype) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "sizeof" << "(" << datatype << ")"
+case class SizeOfExpression(var innerDatatype : Datatype) extends Expression {
+  override def datatype = UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << "sizeof" << "(" << innerDatatype << ")"
 }
 
-case class CastExpression(var datatype : Datatype, var toCast : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "((" << datatype << ")" << toCast << ")"
+case class CastExpression(var innerDatatype : Datatype, var toCast : Expression) extends Expression {
+  override def datatype = UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << "((" << innerDatatype << ")" << toCast << ")"
 }
 
 case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
   def this(n : String, dT : Datatype) = this(n, Option(dT))
   def this(decl : VariableDeclarationStatement) = this(decl.name, decl.dataType)
 
+  override def datatype = dType.getOrElse(UnitDatatype) // FIXME
   override def prettyprint(out : PpStream) : Unit = out << name
 
   def printDeclaration() : String = dType.get.resolveDeclType.prettyprint + " " + name + dType.get.resolveDeclPostscript
 }
 
 case class ArrayAccess(var base : Expression, var index : Expression, var alignedAccessPossible : Boolean = false) extends Access {
+  override def datatype = base.datatype
   override def prettyprint(out : PpStream) : Unit = {
     index match {
       case ind : MultiIndex => out << base << ind
@@ -297,11 +313,13 @@ case class ArrayAccess(var base : Expression, var index : Expression, var aligne
 }
 
 //TODO specific expression for reading from fragment data file
-case class ReadValueFrom(var datatype : Datatype, data : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "readValue<" << datatype << '>' << "(" << data << ")"
+case class ReadValueFrom(var innerDatatype : Datatype, data : Expression) extends Expression {
+  override def datatype = UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << "readValue<" << innerDatatype << '>' << "(" << data << ")"
 }
 
 case class BoundedExpression(var min : Long, var max : Long, var expr : Expression) extends Expression {
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BoundedExpression(" << expr << ')'
 
   def expandSpecial() : Expression = {
@@ -323,6 +341,8 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
       case _                => this(i)
     }
   }
+
+  override def datatype = UnitDatatype
 
   override def prettyprint(out : PpStream) : Unit = {
     out << '[' <<< (this, ", ") << ']'
@@ -355,6 +375,7 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
 }
 
 case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, var strides : MultiIndex) extends Expression {
+  override def datatype = buffer.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TempBufferAccess\n"
 
   def linearize : ArrayAccess = {
@@ -365,6 +386,7 @@ case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, v
 }
 
 case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : MultiIndex, var strides : MultiIndex) extends Expression {
+  override def datatype = data.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ReductionDeviceDataAccess\n"
 
   def linearize : ArrayAccess = {
@@ -373,6 +395,7 @@ case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var inde
 }
 
 case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : MultiIndex) extends Expression {
+  override def datatype = buffer.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopCarriedCSEBufferAccess\n"
 
   def linearize() : ArrayAccess = {
@@ -389,6 +412,7 @@ abstract class FieldAccessLike extends Expression {
 }
 
 case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends FieldAccessLike {
+  override def datatype = fieldSelection.fieldLayout.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = DirectFieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
@@ -397,6 +421,7 @@ case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : Mu
 }
 
 case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends FieldAccessLike {
+  override def datatype = fieldSelection.fieldLayout.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
 
   def expandSpecial() : DirectFieldAccess = {
@@ -409,11 +434,13 @@ case class VirtualFieldAccess(var fieldName : String,
     var index : MultiIndex,
     var arrayIndex : Option[Int] = None,
     var fragIdx : Expression = LoopOverFragments.defIt) extends Expression {
+  override def datatype = UnitDatatype // FIXME
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
 
 }
 
 case class ExternalFieldAccess(var name : Expression, var field : ExternalField, var index : MultiIndex) extends Expression {
+  override def datatype = field.fieldLayout.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   def x = new VariableAccess("x", IntegerDatatype)
@@ -434,6 +461,7 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
 }
 
 case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression with Expandable {
+  override def datatype = fieldSelection.fieldLayout.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
 
   override def expand() : Output[Expression] = {
@@ -442,10 +470,12 @@ case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index 
 }
 
 case class StencilAccess(var stencil : Stencil) extends Expression {
+  override def datatype = stencil.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilAccess\n"
 }
 
 case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : MultiIndex) extends Expression {
+  override def datatype = stencilFieldSelection.stencilField.stencil.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldAccess\n"
 
   def buildStencil : Stencil = {
@@ -462,129 +492,168 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
 }
 
 case class MemberAccess(var base : Access, var member : String) extends Access {
+  override def datatype = base.datatype
   override def prettyprint(out : PpStream) : Unit = out << base << '.' << member
 }
 
 case class DerefAccess(var base : Access) extends Access {
+  override def datatype = base.datatype
   override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
 }
 
 case class AdditionExpression(var summands : ListBuffer[Expression]) extends Expression {
   def this(left : Expression, right : Expression) = this(ListBuffer(left, right))
+  override def datatype = {
+    var ret = summands(0).datatype
+    summands.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    ret
+  }
   override def prettyprint(out : PpStream) : Unit = out << '(' <<< (summands, "+") << ')'
 }
 
 case class SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '-' << right << ')'
 }
 
 case class MultiplicationExpression(var factors : ListBuffer[Expression]) extends Expression {
   def this(left : Expression, right : Expression) = this(ListBuffer(left, right))
+  override def datatype = {
+    var ret = factors(0).datatype
+    factors.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    ret
+  }
   override def prettyprint(out : PpStream) : Unit = out << '(' <<< (factors, "*") << ')'
 }
 
 case class DivisionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '/' << right << ')'
 }
 
 case class ModuloExpression(var left : Expression, var right : Expression) extends Expression {
   // assumes "left >= 0"   if not, generate something like "(left%right + right) % right"
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '%' << right << ')'
 }
 
 case class PowerExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "pow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
 }
 
 case class ElementwiseAdditionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
 }
 
 case class ElementwiseSubtractionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
 }
 
 case class ElementwiseMultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '*' << right << ')'
 }
 
 case class ElementwiseDivisionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '/' << right << ')'
 }
 
 case class ElementwiseModuloExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '%' << right << ')'
 }
 
 case class ElementwisePowerExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "dotpow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
 }
 
 case class EqEqExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "==" << right << ')'
 }
 
 case class NeqExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "!=" << right << ')'
 }
 
 case class AndAndExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "&&" << right << ')'
 }
 
 case class OrOrExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
 }
 
 case class NegationExpression(var left : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '!' << '(' << left << ')'
 }
 
 case class LowerExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '<' << right << ')'
 }
 
 case class GreaterExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '>' << right << ')'
 }
 
 case class LowerEqualExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<=" << right << ')'
 }
 
 case class GreaterEqualExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << ">=" << right << ')'
 }
 
 case class BitwiseAndExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '&' << right << ')'
 }
 
 case class LeftShiftExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = left.datatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<<" << right << ')'
 }
 
 case class PreDecrementExpression(var left : Expression) extends Expression {
+  override def datatype = left.datatype
   override def prettyprint(out : PpStream) : Unit = out << "(--" << left << ')'
 }
 
 case class PostDecrementExpression(var left : Expression) extends Expression {
+  override def datatype = left.datatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "--)"
 }
 
 case class PreIncrementExpression(var left : Expression) extends Expression {
+  override def datatype = left.datatype
   override def prettyprint(out : PpStream) : Unit = out << "(++" << left << ')'
 }
 
 case class PostIncrementExpression(var left : Expression) extends Expression {
+  override def datatype = left.datatype
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "++)"
 }
 
 case class NegativeExpression(var left : Expression) extends Expression {
+  override def datatype = left.datatype
   override def prettyprint(out : PpStream) : Unit = out << "(-" << left << ')'
 }
 
 case class AddressofExpression(var left : Expression) extends Expression {
+  override def datatype = left.datatype
   override def prettyprint(out : PpStream) : Unit = out << "(&" << left << ')'
 }
 
@@ -610,6 +679,11 @@ private object MinMaxPrinter {
 case class MinimumExpression(var args : ListBuffer[Expression]) extends Expression {
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
 
+  override def datatype = {
+    var ret = args(0).datatype
+    args.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    ret
+  }
   override def prettyprint(out : PpStream) : Unit = {
     import PrintEnvironment._
     val name = if (out.env == CUDA) "fmin" else "std::min"
@@ -620,6 +694,11 @@ case class MinimumExpression(var args : ListBuffer[Expression]) extends Expressi
 case class MaximumExpression(var args : ListBuffer[Expression]) extends Expression {
   def this(varargs : Expression*) = this(varargs.to[ListBuffer])
 
+  override def datatype = {
+    var ret = args(0).datatype
+    args.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    ret
+  }
   override def prettyprint(out : PpStream) : Unit = {
     import PrintEnvironment._
     val name = if (out.env == CUDA) "fmax" else "std::max"
@@ -630,30 +709,36 @@ case class MaximumExpression(var args : ListBuffer[Expression]) extends Expressi
 case class FunctionCallExpression(var name : String, var arguments : ListBuffer[Expression]) extends Expression {
   def this(name : String, args : Expression*) = this(name, args.to[ListBuffer])
 
+  override def datatype = UnitDatatype // FIXME
   override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
 }
 
 case class InitializerList(var arguments : ListBuffer[Expression]) extends Expression {
   def this(args : Expression*) = this(args.to[ListBuffer])
 
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "{ " <<< (arguments, ", ") << " }"
 }
 
 case class MemberFunctionCallExpression(var objectName : Expression, var name : String, var arguments : ListBuffer[Expression]) extends Expression {
   def this(objectName : Expression, name : String, args : Expression*) = this(objectName, name, args.to[ListBuffer])
 
+  override def datatype = UnitDatatype // FIXME
   override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
 }
 
 case class TernaryConditionExpression(var condition : Expression, var trueBody : Expression, var falseBody : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(trueBody.datatype, falseBody.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << condition << " ? " << trueBody << " : " << falseBody << ')'
 }
 
 case class Reduction(var op : String, var target : VariableAccess) extends Expression {
+  override def datatype = target.dType.getOrElse(RealDatatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
 }
 
 case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAccess) extends Expression with Expandable {
+  override def datatype = GetResultingDatatype2(stencil.datatype, fieldAccess.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : Expression = {
@@ -670,6 +755,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
 // TODO: update convolutions with new dimensionality logic
 
 case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends Expression with Expandable {
+  override def datatype = GetResultingDatatype2(stencilFieldAccess.datatype, fieldAccess.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : Expression = {
@@ -688,6 +774,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
 }
 
 case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression with Expandable {
+  override def datatype = GetResultingDatatype2(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
 
   override def expand() : Output[StencilAccess] = {
@@ -727,6 +814,7 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
 }
 
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends Expression with Expandable {
+  override def datatype = GetResultingDatatype2(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
 
   override def expand() : Output[StencilAccess] = {
@@ -775,6 +863,7 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
 //////////////////////////// SIMD Expressions \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) extends Expression {
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     val alig = if (aligned) "" else "u"
@@ -791,6 +880,7 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
 }
 
 case class SIMD_ExtractScalarExpression(var expr : Expression, var index : Int) extends Expression {
+  override def datatype = expr.datatype
   override def prettyprint(out : PpStream) : Unit = {
     out << expr
     if (Platform.targetCompiler == "MSVC")
@@ -813,6 +903,7 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
     case _                 =>
   }
 
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {
     Platform.simd_instructionSet match {
       case "SSE3" =>
@@ -882,6 +973,7 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
 }
 
 case class SIMD_NegateExpression(var vect : Expression) extends Expression {
+  override def datatype = vect.datatype
   override def prettyprint(out : PpStream) : Unit = {
     val (prec, ts) = if (Knowledge.useDblPrecision) ('d', "d") else ('s', "")
     Platform.simd_instructionSet match {
@@ -896,6 +988,7 @@ case class SIMD_NegateExpression(var vect : Expression) extends Expression {
 }
 
 case class SIMD_AdditionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -910,6 +1003,7 @@ case class SIMD_AdditionExpression(var left : Expression, var right : Expression
 }
 
 case class SIMD_SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -924,6 +1018,7 @@ case class SIMD_SubtractionExpression(var left : Expression, var right : Express
 }
 
 case class SIMD_MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -937,17 +1032,21 @@ case class SIMD_MultiplicationExpression(var left : Expression, var right : Expr
   }
 }
 
-case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Expression,
+case class SIMD_MultiplyAddExpression(
+    var factor1 : Expression,
+    var factor2 : Expression,
     var summand : Expression) extends Expression {
-
+  override def datatype = GetResultingDatatype2(factor1.datatype, factor2.datatype, summand.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     FusedPrinterHelper.prettyprint(out, factor1, factor2, summand, "add")
   }
 }
 
-case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Expression,
+case class SIMD_MultiplySubExpression(
+    var factor1 : Expression,
+    var factor2 : Expression,
     var summand : Expression) extends Expression {
-
+  override def datatype = GetResultingDatatype2(factor1.datatype, factor2.datatype, summand.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     FusedPrinterHelper.prettyprint(out, factor1, factor2, summand, "sub")
   }
@@ -972,6 +1071,7 @@ private object FusedPrinterHelper {
 }
 
 case class SIMD_DivisionExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype) // FIXME
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -987,17 +1087,18 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
 }
 
 case class SIMD_MinimumExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX") // TODO: export function
       out << "vec_sel(" << right << ", " << left << ", vec_cmplt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...
     else {
       val prec = if (Knowledge.useDblPrecision) 'd' else 's'
       Platform.simd_instructionSet match {
-        case "SSE3" => out << "_mm_min_p" << prec
+        case "SSE3"         => out << "_mm_min_p" << prec
         case "AVX" | "AVX2" => out << "_mm256_min_p" << prec
-        case "AVX512" => out << "_mm512_min_p" << prec
-        case "IMCI" => out << "_mm512_gmin_p" << prec
-        case "NEON" => out << "vmin_f32"
+        case "AVX512"       => out << "_mm512_min_p" << prec
+        case "IMCI"         => out << "_mm512_gmin_p" << prec
+        case "NEON"         => out << "vmin_f32"
       }
       out << '(' << left << ", " << right << ')'
     }
@@ -1005,17 +1106,18 @@ case class SIMD_MinimumExpression(var left : Expression, var right : Expression)
 }
 
 case class SIMD_MaximumExpression(var left : Expression, var right : Expression) extends Expression {
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX") // TODO: export function
       out << "vec_sel(" << right << ", " << left << ", vec_cmpgt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...
     else {
       val prec = if (Knowledge.useDblPrecision) 'd' else 's'
       Platform.simd_instructionSet match {
-        case "SSE3" => out << "_mm_max_p" << prec
+        case "SSE3"         => out << "_mm_max_p" << prec
         case "AVX" | "AVX2" => out << "_mm256_max_p" << prec
-        case "AVX512" => out << "_mm512_max_p" << prec
-        case "IMCI" => out << "_mm512_gmax_p" << prec
-        case "NEON" => out << "vmax_f32"
+        case "AVX512"       => out << "_mm512_max_p" << prec
+        case "IMCI"         => out << "_mm512_gmax_p" << prec
+        case "NEON"         => out << "vmax_f32"
       }
       out << '(' << left << ", " << right << ')'
     }
@@ -1023,6 +1125,7 @@ case class SIMD_MaximumExpression(var left : Expression, var right : Expression)
 }
 
 case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
+  override def datatype = new VectorDatatype(scalar.datatype, 1)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {

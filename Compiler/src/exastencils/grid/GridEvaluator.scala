@@ -66,6 +66,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
     EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, faceDim), faceDim, stagDim, interpolation)
 
   case class EvalAtRFace(var fieldAccess : FieldAccess, var faceDim : Int, var stagDim : Option[Int], var interpolation : String = "default") extends Expression {
+    override def datatype = UnitDatatype
     override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EvalAtRFace\n"
 
     def expandSpecial : Output[Expression] = {

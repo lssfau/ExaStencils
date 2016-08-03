@@ -172,11 +172,11 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
     // Simplify vectors
     case NegativeExpression(v : VectorExpression) =>
-      VectorExpression(v.datatype, v.expressions.map { x => NegativeExpression(x) }, v.rowVector)
+      VectorExpression(v.innerDatatype, v.expressions.map { x => NegativeExpression(x) }, v.rowVector)
 
     // Simplify matrices
     case NegativeExpression(m : MatrixExpression) =>
-      MatrixExpression(m.datatype, m.expressions.map { x => x.map { y => NegativeExpression(y) : Expression } })
+      MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => NegativeExpression(y) : Expression } })
 
     case Scope(ListBuffer(Scope(body)))                                   => Scope(body)
 
@@ -258,7 +258,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
               val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => NegationExpression(x) }
               val vExprs = if (pos) v.expressions else v.expressions.view.map { x => NegationExpression(x) }
               vecExpr =
-                VectorExpression(GetResultingDatatype(vecExpr.datatype, v.datatype),
+                VectorExpression(Some(GetResultingDatatype2(vecExpr.datatype, v.innerDatatype.getOrElse(RealDatatype))),
                   vecExprsView.zip(vExprs).map { x => x._1 + x._2 : Expression }.to[ListBuffer],
                   if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
             }
@@ -376,10 +376,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         rem.transform {
           case v : VectorExpression if (!found) =>
             found = true
-            VectorExpression(GetResultingDatatype(cstDt, v.datatype), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
+            VectorExpression(GetResultingDatatype(cstDt, v.innerDatatype), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
           case m : MatrixExpression if (!found) =>
             found = true
-            MatrixExpression(GetResultingDatatype(cstDt, m.datatype), m.expressions.map(_.map(Duplicate(coeff) * _ : Expression)))
+            MatrixExpression(GetResultingDatatype(cstDt, m.innerDatatype), m.expressions.map(_.map(Duplicate(coeff) * _ : Expression)))
           case x => x
         }
         if (found)

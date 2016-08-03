@@ -129,6 +129,7 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expre
   if (offset < 0)
     offset += slot.field.numSlots
 
+  override def datatype = UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SlotAccess\n"
 
   def expandSpecial : Expression = {
