@@ -123,32 +123,32 @@ trait GridGeometry_nonUniform extends GridGeometry {
   override def initL4 = {
     val root = StateManager.root_.asInstanceOf[l4.Root]
     root.fieldLayouts += l4.LayoutDeclarationStatement(
-      l4.LeveledIdentifier("DefNodeLineLayout_x", l4.AllLevelsSpecification()),
+      l4.LeveledIdentifier("DefNodeLineLayout_x", l4.AllLevelsSpecification),
       l4.RealDatatype(), "Edge_Node".toLowerCase(),
       Some(l4.Index3D(2, 0, 0)), None,
       Some(l4.Index3D(1, 0, 0)), None,
       Some(l4.Index3D((1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_x - 1, 1, 1)))
     root.fieldLayouts += l4.LayoutDeclarationStatement(
-      l4.LeveledIdentifier("DefNodeLineLayout_y", l4.AllLevelsSpecification()),
+      l4.LeveledIdentifier("DefNodeLineLayout_y", l4.AllLevelsSpecification),
       l4.RealDatatype(), "Edge_Node".toLowerCase(),
       Some(l4.Index3D(0, 2, 0)), None,
       Some(l4.Index3D(0, 1, 0)), None,
       Some(l4.Index3D(1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_y - 1, 1)))
     root.fieldLayouts += l4.LayoutDeclarationStatement(
-      l4.LeveledIdentifier("DefNodeLineLayout_z", l4.AllLevelsSpecification()),
+      l4.LeveledIdentifier("DefNodeLineLayout_z", l4.AllLevelsSpecification),
       l4.RealDatatype(), "Edge_Node".toLowerCase(),
       Some(l4.Index3D(0, 0, 2)), None,
       Some(l4.Index3D(0, 0, 1)), None,
       Some(l4.Index3D(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1)))
 
     root.fields += l4.FieldDeclarationStatement(
-      l4.LeveledIdentifier("node_pos_x", l4.AllLevelsSpecification()), "global", "DefNodeLineLayout_x", None, 1, 0)
+      l4.LeveledIdentifier("node_pos_x", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_x", None, 1, 0)
     if (Knowledge.dimensionality > 1)
       root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("node_pos_y", l4.AllLevelsSpecification()), "global", "DefNodeLineLayout_y", None, 1, 0)
+        l4.LeveledIdentifier("node_pos_y", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_y", None, 1, 0)
     if (Knowledge.dimensionality > 2)
       root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("node_pos_z", l4.AllLevelsSpecification()), "global", "DefNodeLineLayout_z", None, 1, 0)
+        l4.LeveledIdentifier("node_pos_z", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
   def setupNodePos_Uniform(dim : Int, level : Int) : ListBuffer[Statement] = {
@@ -394,13 +394,13 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val root = StateManager.root_.asInstanceOf[l4.Root]
 
     root.fields += l4.FieldDeclarationStatement(
-      l4.LeveledIdentifier("stag_cv_width_x", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_x", None, 1, 0)
+      l4.LeveledIdentifier("stag_cv_width_x", l4.FinestLevelSpecification), "global", "DefNodeLineLayout_x", None, 1, 0)
     if (Knowledge.dimensionality > 1)
       root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("stag_cv_width_y", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_y", None, 1, 0)
+        l4.LeveledIdentifier("stag_cv_width_y", l4.FinestLevelSpecification), "global", "DefNodeLineLayout_y", None, 1, 0)
     if (Knowledge.dimensionality > 2)
       root.fields += l4.FieldDeclarationStatement(
-        l4.LeveledIdentifier("stag_cv_width_z", l4.FinestLevelSpecification()), "global", "DefNodeLineLayout_z", None, 1, 0)
+        l4.LeveledIdentifier("stag_cv_width_z", l4.FinestLevelSpecification), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
   override def generateInitCode() = {

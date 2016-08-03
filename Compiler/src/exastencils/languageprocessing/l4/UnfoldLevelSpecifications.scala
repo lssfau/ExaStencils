@@ -29,9 +29,9 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // resolve level identifiers "coarsest", "finest"
     this.execute(new Transformation("Resolve IdentifierLevelSpecifications", {
-      case x : AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(Knowledge.minLevel), SingleLevelSpecification(Knowledge.maxLevel))
-      case x : CoarsestLevelSpecification => SingleLevelSpecification(Knowledge.minLevel)
-      case x : FinestLevelSpecification   => SingleLevelSpecification(Knowledge.maxLevel)
+      case AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(Knowledge.minLevel), SingleLevelSpecification(Knowledge.maxLevel))
+      case CoarsestLevelSpecification => SingleLevelSpecification(Knowledge.minLevel)
+      case FinestLevelSpecification   => SingleLevelSpecification(Knowledge.maxLevel)
     }))
 
     // resolve relative level identifiers
@@ -140,9 +140,9 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // resolve level specifications
     this.execute(new Transformation("Resolve RelativeLevelSpecifications", {
-      case level : CurrentLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel)
-      case level : CoarserLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel - 1) // FIXME: coarser and finer are not reliable
-      case level : FinerLevelSpecification   => SingleLevelSpecification(levelCollector.getCurrentLevel + 1)
+      case CurrentLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel)
+      case CoarserLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel - 1) // FIXME: coarser and finer are not reliable
+      case FinerLevelSpecification   => SingleLevelSpecification(levelCollector.getCurrentLevel + 1)
     }))
 
     if (Settings.timeStrategies)
@@ -155,7 +155,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
   def doDuplicate[T <: HasIdentifier](t : T, level : LevelSpecification) : List[T] = {
     var ts = new ListBuffer[T]()
     level match {
-      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification() | CoarserLevelSpecification() | FinerLevelSpecification()) => {
+      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification | CoarserLevelSpecification | FinerLevelSpecification) => {
         var f = Duplicate(t)
         f.identifier = new LeveledIdentifier(f.identifier.name, level)
         ts += f

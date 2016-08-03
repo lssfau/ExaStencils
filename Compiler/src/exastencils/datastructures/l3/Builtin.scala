@@ -41,13 +41,13 @@ case class ApplyStencilBuiltin() extends StaticValue with AbstractFunctionRValue
 
         val A_id = ctx.stencils.add(A)
 
-        val A_access = new l4.StencilAccess(A_id, l4.CurrentLevelSpecification())
+        val A_access = new l4.StencilAccess(A_id, l4.CurrentLevelSpecification)
         val u_access = new l4.FieldAccess(u,
-          l4.CurrentLevelSpecification(),
+          l4.CurrentLevelSpecification,
           new l4.SlotModifier.Constant(0))
 
         val f_access = new l4.FieldAccess(f,
-          l4.CurrentLevelSpecification(),
+          l4.CurrentLevelSpecification,
           new l4.SlotModifier.Constant(0))
 
         val convExpr = new l4.StencilConvolution(A_access, u_access)

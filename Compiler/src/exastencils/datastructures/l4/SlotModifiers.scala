@@ -7,19 +7,22 @@ import exastencils.prettyprinting.PpStream
 sealed trait SlotModifier extends Node with PrettyPrintable {}
 
 object SlotModifier {
-  case class Active() extends SlotModifier {
+  case object Active extends SlotModifier {
+    exastencils.core.Duplicate.registerImmutable(this.getClass)
     override def prettyprint(out : PpStream) = {
       out << "activeSlot"
     }
   }
 
-  case class Next() extends SlotModifier {
+  case object Next extends SlotModifier {
+    exastencils.core.Duplicate.registerImmutable(this.getClass)
     override def prettyprint(out : PpStream) = {
       out << "nextSlot"
     }
   }
 
-  case class Previous() extends SlotModifier {
+  case object Previous extends SlotModifier {
+    exastencils.core.Duplicate.registerImmutable(this.getClass)
     override def prettyprint(out : PpStream) = {
       out << "previousSlot"
     }
