@@ -378,6 +378,8 @@ object GetResultingDatatype2 {
       case IntegerDatatype => b match {
         case IntegerDatatype          => IntegerDatatype
         case RealDatatype             => RealDatatype
+        case FloatDatatype            => FloatDatatype
+        case DoubleDatatype           => DoubleDatatype
         case StringDatatype           => StringDatatype
         case CharDatatype             => IntegerDatatype
         case ArrayDatatype(dt, l)     => ArrayDatatype(dt, l)
@@ -388,6 +390,20 @@ object GetResultingDatatype2 {
       case RealDatatype => b match {
         case IntegerDatatype          => RealDatatype
         case RealDatatype             => RealDatatype
+        case FloatDatatype            => RealDatatype // Real is _at least_ Float
+        case DoubleDatatype           => DoubleDatatype
+        case StringDatatype           => StringDatatype
+        case CharDatatype             => RealDatatype
+        case ArrayDatatype(dt, l)     => ArrayDatatype(GetResultingDatatype2(dt, a), l)
+        case ComplexDatatype(dt)      => ComplexDatatype(GetResultingDatatype2(dt, a))
+        case VectorDatatype(dt, l, r) => VectorDatatype(GetResultingDatatype2(dt, a), l, r)
+        case MatrixDatatype(dt, m, n) => MatrixDatatype(GetResultingDatatype2(dt, a), m, n)
+      }
+      case FloatDatatype => b match {
+        case IntegerDatatype          => RealDatatype
+        case RealDatatype             => RealDatatype // Real is _at least_ Float
+        case FloatDatatype            => FloatDatatype
+        case DoubleDatatype           => DoubleDatatype
         case StringDatatype           => StringDatatype
         case CharDatatype             => RealDatatype
         case ArrayDatatype(dt, l)     => ArrayDatatype(GetResultingDatatype2(dt, a), l)
@@ -398,6 +414,8 @@ object GetResultingDatatype2 {
       case StringDatatype => b match {
         case IntegerDatatype          => StringDatatype
         case RealDatatype             => StringDatatype
+        case FloatDatatype            => StringDatatype
+        case DoubleDatatype           => StringDatatype
         case StringDatatype           => StringDatatype
         case CharDatatype             => StringDatatype
         case ArrayDatatype(dt, l)     => StringDatatype
@@ -408,6 +426,8 @@ object GetResultingDatatype2 {
       case CharDatatype => b match {
         case IntegerDatatype          => IntegerDatatype
         case RealDatatype             => RealDatatype
+        case FloatDatatype            => FloatDatatype
+        case DoubleDatatype           => DoubleDatatype
         case StringDatatype           => StringDatatype
         case ArrayDatatype(dt, l)     => ArrayDatatype(dt, l)
         case ComplexDatatype(dt)      => ComplexDatatype(dt)

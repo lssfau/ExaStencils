@@ -10,10 +10,16 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.logger._
 import exastencils.util._
 
-case class StencilEntry(var offset : MultiIndex, var coefficient : Expression) {}
+case class StencilEntry(var offset : MultiIndex, var coefficient : Expression) {
+  def datatype : Datatype = coefficient.datatype
+}
 
 case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
-  def datatype = ??? // FIXME
+  def datatype = {
+    var ret = entries(0).datatype
+    entries.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    ret
+  }
   def getReach(dim : Int) : Int = {
     var reach : Int = 0
     // get max reach

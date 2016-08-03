@@ -188,6 +188,8 @@ object Main {
       CImg() // TODO: only if required
       )
 
+    ResolveSystems.apply()
+
     if (Knowledge.experimental_cuda_enabled)
       StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
 
