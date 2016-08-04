@@ -272,7 +272,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
                 && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
               case _ => false
             }).get.asInstanceOf[FunctionStatement]
-          if (fctDecl.returntype.isInstanceOf[UnitDatatype]) {
+          if (fctDecl.returntype eq UnitDatatype) {
             bcs(fromIdentifier(field.identifier)) = fctCall
           }
         }
