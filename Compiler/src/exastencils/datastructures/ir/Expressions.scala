@@ -434,7 +434,7 @@ case class VirtualFieldAccess(var fieldName : String,
     var index : MultiIndex,
     var arrayIndex : Option[Int] = None,
     var fragIdx : Expression = LoopOverFragments.defIt) extends Expression {
-  override def datatype = UnitDatatype // FIXME
+  override def datatype = RealDatatype // FIXME
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
 
 }
@@ -709,7 +709,15 @@ case class MaximumExpression(var args : ListBuffer[Expression]) extends Expressi
 case class FunctionCallExpression(var name : String, var arguments : ListBuffer[Expression]) extends Expression {
   def this(name : String, args : Expression*) = this(name, args.to[ListBuffer])
 
-  override def datatype = UnitDatatype // FIXME
+  override def datatype = {
+    name match {
+      case "diag" => arguments(0).datatype
+      case _ => {
+        var fct = StateManager.findAll[FunctionStatement]((t : FunctionStatement) => { t.name == this.name })
+        fct(0).returntype
+      }
+    }
+  }
   override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
 }
 

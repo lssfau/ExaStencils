@@ -188,8 +188,6 @@ object Main {
       CImg() // TODO: only if required
       )
 
-    ResolveSystems.apply()
-
     if (Knowledge.experimental_cuda_enabled)
       StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
 
@@ -199,6 +197,7 @@ object Main {
     SetupCommunication.firstCall = true
     SetupCommunication.apply()
 
+    ResolveSystems.apply()
     ResolveSpecialFunctionsAndConstants.apply()
 
     ResolveLoopOverPoints.apply()

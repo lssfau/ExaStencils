@@ -73,9 +73,10 @@ case object IntegerDatatype extends ScalarDatatype {
 }
 
 case object RealDatatype extends ScalarDatatype {
+  exastencils.core.Duplicate.registerConstant(this)
+
   var printedDepWarn = false
 
-  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = {
     if (!printedDepWarn) {
       Logger.warn("RealDatatype is deprecated - please switch to FloatDatatype or DoubleDatatype")
