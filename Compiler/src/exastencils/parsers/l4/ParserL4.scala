@@ -90,8 +90,8 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| "Array" ~ ("<" ~> datatype <~ ">") ~ ("<" ~> integerLit <~ ">") ^^ { case _ ~ x ~ s => new ArrayDatatype(x, s) })
 
   lazy val simpleDatatype : Parser[Datatype] = (
-    "String" ^^ { case _ => new StringDatatype }
-    ||| ("Boolean" ||| "Bool") ^^ { case _ => new BooleanDatatype }
+    "String" ^^ { case _ => StringDatatype }
+    ||| ("Boolean" ||| "Bool") ^^ { case _ => BooleanDatatype }
     ||| numericDatatype)
 
   lazy val algorithmicDatatype : Parser[Datatype] = (
@@ -104,10 +104,10 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| numericDatatype)
 
   lazy val numericDatatype : Parser[Datatype] = (
-    ("Integer" ||| "Int") ^^ { case x => new IntegerDatatype }
-    ||| "Real" ^^ { case x => new RealDatatype })
+    ("Integer" ||| "Int") ^^ { case _ => IntegerDatatype }
+    ||| "Real" ^^ { case _ => RealDatatype })
 
-  lazy val returnDatatype = ("Unit" ^^ { case x => new UnitDatatype }
+  lazy val returnDatatype = ("Unit" ^^ { case _ => UnitDatatype }
     ||| datatype)
 
   // ######################################

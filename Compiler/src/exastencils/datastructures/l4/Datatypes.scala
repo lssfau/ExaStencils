@@ -13,42 +13,48 @@ trait Datatype extends ProgressableToIr with PrettyPrintable {
 // TODO: convert to objects
 // TODO: merge with ir datatypes?
 
-case class UnitDatatype() extends Datatype {
+case object UnitDatatype extends Datatype {
+  exastencils.core.Duplicate.dontClone(this.getClass)
   override def prettyprint(out : PpStream) = { out << "Unit" }
   override def progressToIr : ir.Datatype = ir.UnitDatatype
   override def dimensionality : Int = { Logger.warn("Request for dimensionality of l4.UnitDatatype occurred"); 0 }
   override def getSizeArray : Array[Int] = { Logger.warn("Request for sizeArray of l4.UnitDatatype occurred"); Array() }
 }
 
-case class IntegerDatatype() extends Datatype {
+case object IntegerDatatype extends Datatype {
+  exastencils.core.Duplicate.dontClone(this.getClass)
   override def prettyprint(out : PpStream) = { out << "Integer" }
   override def progressToIr : ir.Datatype = ir.IntegerDatatype
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
 }
 
-case class RealDatatype() extends Datatype {
+case object RealDatatype extends Datatype {
+  exastencils.core.Duplicate.dontClone(this.getClass)
   override def prettyprint(out : PpStream) = { out << "Real" }
   override def progressToIr : ir.Datatype = ir.RealDatatype
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
 }
 
-case class StringDatatype() extends Datatype {
+case object StringDatatype extends Datatype {
+  exastencils.core.Duplicate.dontClone(this.getClass)
   override def prettyprint(out : PpStream) = { out << "String" }
   override def progressToIr : ir.Datatype = ir.StringDatatype
   override def dimensionality : Int = { Logger.warn("Request for dimensionality of l4.StringDatatype occurred"); 0 }
   override def getSizeArray : Array[Int] = { Logger.warn("Request for sizeArray of l4.StringDatatype occurred"); Array() }
 }
 
-case class CharDatatype() extends Datatype {
+case object CharDatatype extends Datatype {
+  exastencils.core.Duplicate.dontClone(this.getClass)
   override def prettyprint(out : PpStream) : Unit = out << "char"
   override def progressToIr : ir.Datatype = ir.CharDatatype
   override def dimensionality : Int = 0
   override def getSizeArray : Array[Int] = Array()
 }
 
-case class BooleanDatatype() extends Datatype {
+case object BooleanDatatype extends Datatype {
+  exastencils.core.Duplicate.dontClone(this.getClass)
   override def prettyprint(out : PpStream) = { out << "Boolean" }
   override def progressToIr : ir.Datatype = ir.BooleanDatatype
   override def dimensionality : Int = 0

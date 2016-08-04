@@ -20,25 +20,25 @@ case class FunctionDatatype() extends ScType
 case class NilDatatype() extends ScType
 case class LocationDatatype() extends ScType
 case class IntegerDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.IntegerDatatype()
+  override def toTcType : l4.Datatype = l4.IntegerDatatype
 }
 case class RealDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.RealDatatype()
+  override def toTcType : l4.Datatype = l4.RealDatatype
 
   override def createDynamicLocation(ctx : Context) : DynamicLocation = {
     new DynamicRealLocation(ctx.genId())
   }
 }
 case class StringDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.StringDatatype()
+  override def toTcType : l4.Datatype = l4.StringDatatype
 }
 
 case class CharDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.CharDatatype()
+  override def toTcType : l4.Datatype = l4.CharDatatype
 }
 
 case class UnitDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.UnitDatatype()
+  override def toTcType : l4.Datatype = l4.UnitDatatype
 }
 case class ArrayDatatype(val elementType : ScType, val numElements : Int) extends ScType {
   override def toTcType : l4.Datatype = l4.ArrayDatatype(elementType.toTcType, numElements)
@@ -101,9 +101,9 @@ class DynamicRealLocation(id : String) extends DynamicLocation {
     }
   }
 
-  override def tcForReading() : l4.Expression = l4.Variable(l4.BasicIdentifier(id), l4.RealDatatype())
+  override def tcForReading() : l4.Expression = l4.Variable(l4.BasicIdentifier(id), l4.RealDatatype)
 
-  override def argumentTc() : l4.Variable = l4.Variable(l4.BasicIdentifier(id), l4.RealDatatype())
+  override def argumentTc() : l4.Variable = l4.Variable(l4.BasicIdentifier(id), l4.RealDatatype)
 }
 
 case class DynamicFieldLocation(tcId : String) extends DynamicLocation {

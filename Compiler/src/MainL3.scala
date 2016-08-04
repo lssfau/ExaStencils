@@ -68,7 +68,7 @@ object MainL3 {
     // version without comm
     StateManager.root.asInstanceOf[l4.Root].statements += new l4.FunctionStatement(
       l4.LeveledIdentifier("UpResidual", l4.AllLevelsSpecification),
-      l4.UnitDatatype(),
+      l4.UnitDatatype,
       List(),
       statements)
 
