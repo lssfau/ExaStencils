@@ -134,7 +134,7 @@ case class UnresolvedAccess(var name : String,
   def resolveToFieldAccess = {
     if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
     try {
-      FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset)
+      FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active), arrayIndex, offset)
     } catch {
       case e : Exception => Logger.warn(s"""Could not resolve field "${name}""""); throw e
     }
@@ -150,7 +150,7 @@ case class UnresolvedAccess(var name : String,
     StencilAccess(name, level.get, arrayIndex, dirAccess)
   }
   def resolveToStencilFieldAccess = {
-    StencilFieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active()), arrayIndex, offset, dirAccess)
+    StencilFieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active), arrayIndex, offset, dirAccess)
   }
 }
 
@@ -228,9 +228,9 @@ case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecific
 object FieldAccess {
   def resolveSlot(field : knowledge.Field, slot : SlotModifier) = {
     if (1 == field.numSlots) ir.IntegerConstant(0) else slot match {
-      case x : SlotModifier.Active   => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
-      case x : SlotModifier.Next     => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
-      case x : SlotModifier.Previous => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
+      case SlotModifier.Active       => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
+      case SlotModifier.Next         => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
+      case SlotModifier.Previous     => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
       case x : SlotModifier.Constant => ir.IntegerConstant(x.number)
       case _                         => Logger.error("Unknown slot modifier " + slot)
     }

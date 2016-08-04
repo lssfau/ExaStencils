@@ -8,3 +8,10 @@ outputPath					= "generated/"
 produceHtmlLog				= true
 timeStrategies				= true
 timeStratPercentThreshold	= 0
+
+pathsInc					+= "$(MSMPI_INC)"
+pathsLib					+= "$(MSMPI_LIB64)"
+
+additionalLibs				+= "msmpi.lib"
+
+buildfileGenerators			= { "ProjectfileGenerator" }

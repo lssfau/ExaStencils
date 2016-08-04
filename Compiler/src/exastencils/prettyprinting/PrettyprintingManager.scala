@@ -25,7 +25,7 @@ object PrettyprintingManager {
 
   def finish = {
     printers.values.foreach(f => f.finish)
-    Settings.buildfileGenerator.write
+    Settings.parseBuildfileGenerators.foreach(gen => gen.write )
     JobScriptGenerator.write
 
     printers.clear

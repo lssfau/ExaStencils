@@ -89,7 +89,7 @@ case class FunctionRValue(
 
     // write the function
     ctx.tcb += new l4.FunctionStatement(
-      l4.LeveledIdentifier(tcId, l4.AllLevelsSpecification()),
+      l4.LeveledIdentifier(tcId, l4.AllLevelsSpecification),
       l4.UnitDatatype(),
       tcArgs.toList,
       body_ctx.tcb.build())

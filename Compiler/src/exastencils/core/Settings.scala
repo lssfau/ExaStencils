@@ -85,13 +85,18 @@ object Settings {
   def fragmentFile_config_path_domainConfig = outputPath + "Domains/config.dat"
   def fragmentFile_config_path_binary = outputPath + "Domains/fragments.dat"
 
-  /// buildfile
-  var buildfileGenerator : BuildfileGenerator = MakefileGenerator
+  /// BuildfileGenerators: MakefileGenerator, CMakeGenerator, ProjectGenerator
+  // This list is parsed by parseBuildfileGenerators()
+  var buildfileGenerators : ListBuffer[String] = ListBuffer()
+
   var binary : String = "exastencils"
 
   var makefile_makeLibs : Boolean = false
   var makefile_additionalCFlags : String = ""
   var makefile_additionalLDFlags : String = ""
+
+  // performance estimates (experimental)
+  var performanceEstimateOutputFile : String = "Compiler/performanceEstimate.csv"
 
   /// external dependencies
   var pathsInc : ListBuffer[String] = ListBuffer()
@@ -136,6 +141,9 @@ object Settings {
   var logStrategyResults : Boolean = true // Debug log strategy results
 
   def update() : Unit = {
+    // parse here to fail early
+    parseBuildfileGenerators
+
     // handle CUDA
     if (Knowledge.experimental_cuda_enabled) {
       Platform.targetOS match {
@@ -151,5 +159,27 @@ object Settings {
     }
     if (Platform.simd_mathLibrary == "mass_simd")
       additionalLibs += "mass_simd"
+  }
+
+  def parseBuildfileGenerators : List[BuildfileGenerator] = {
+    val buildfileGeneratorMap = Map(
+      "CMakeGenerator" -> CMakeGenerator,
+      "MakefileGenerator" -> MakefileGenerator,
+      "ProjectfileGenerator" -> ProjectfileGenerator)
+
+    if (buildfileGenerators.isEmpty) {
+      // default is MakefileGenerator
+      List(MakefileGenerator)
+    } else {
+      // validate buildfileGenerator strings
+      //println("buildfileGenerators: " + buildfileGenerators.distinct.mkString(", "))
+      buildfileGenerators.toList.distinct.map(sgen => {
+        try buildfileGeneratorMap(sgen)
+        catch {
+          case _ : Throwable => throw new Exception(
+            s"""Invalid BuildfileGenerator specified in settings.buildfileGenerators: "${sgen}"""")
+        }
+      })
+    }
   }
 }

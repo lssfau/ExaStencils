@@ -1,10 +1,11 @@
 package exastencils.parsers.settings
 
+import scala.collection.mutable.ListBuffer
 import scala.util.parsing.combinator.lexical.StdLexical
 
-import exastencils.core.UniversalSetter
+import exastencils.core._
 import exastencils.logger._
-import exastencils.parsers.ExaParser
+import exastencils.parsers._
 
 class ParserSettings extends ExaParser {
   override val lexical : StdLexical = new LexerSettings()
@@ -14,8 +15,8 @@ class ParserSettings extends ExaParser {
   }
 
   def parseFile(filename : String) : Unit = {
-    import scala.util.parsing.input._
     import scala.collection.immutable.PagedSeq
+    import scala.util.parsing.input._
 
     val lines = io.Source.fromFile(filename).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
@@ -52,8 +53,12 @@ class ParserSettings extends ExaParser {
 
   lazy val settingsfile = setting.*
 
-  lazy val setting = (ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => setParameter(id, ex) }
-    ||| ident ~ "+=" ~ expr ^^ { case id ~ "+=" ~ ex => addParameter(id, ex) })
+  lazy val expressionList = /*locationize*/ ((expr <~ ("," | newline)).* ~ expr ^^ { case args ~ arg => args :+ arg })
+
+  lazy val setting = ((ident <~ "=") ~ expr ^^ { case id ~ ex => setParameter(id, ex) }
+    ||| (ident <~ "+=") ~ expr ^^ { case id ~ ex => addParameter(id, ex) }
+    ||| (ident <~ "+=") ~ ("{" ~> expressionList <~ "}") ^^ { case id ~ exs => for (ex <- exs) addParameter(id, ex) }
+    ||| (ident <~ "=") ~ ("{" ~> expressionList <~ "}") ^^ { case id ~ exs => setParameter(id, exs.to[ListBuffer]) })
 
   lazy val expr = stringLit ^^ { _.toString } |
     "-".? ~ numericLit ^^ {

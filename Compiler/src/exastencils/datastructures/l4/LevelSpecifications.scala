@@ -52,23 +52,28 @@ case class ListLevelSpecification(var levels : HashSet[LevelSpecification]) exte
   }
 }
 
-case class CurrentLevelSpecification() extends DeclarationLevelSpecification with AccessLevelSpecification {
+case object CurrentLevelSpecification extends DeclarationLevelSpecification with AccessLevelSpecification {
+  exastencils.core.Duplicate.registerImmutable(this.getClass)
   def prettyprint(out : PpStream) = { out << "current" }
 }
 
-case class CoarserLevelSpecification() extends DeclarationLevelSpecification with AccessLevelSpecification {
+case object CoarserLevelSpecification extends DeclarationLevelSpecification with AccessLevelSpecification {
+  exastencils.core.Duplicate.registerImmutable(this.getClass)
   def prettyprint(out : PpStream) = { out << "coarser" }
 }
 
-case class FinerLevelSpecification() extends DeclarationLevelSpecification with AccessLevelSpecification {
+case object FinerLevelSpecification extends DeclarationLevelSpecification with AccessLevelSpecification {
+  exastencils.core.Duplicate.registerImmutable(this.getClass)
   def prettyprint(out : PpStream) = { out << "finer" }
 }
 
-case class CoarsestLevelSpecification() extends DeclarationLevelSpecification with AccessLevelSpecification {
+case object CoarsestLevelSpecification extends DeclarationLevelSpecification with AccessLevelSpecification {
+  exastencils.core.Duplicate.registerImmutable(this.getClass)
   def prettyprint(out : PpStream) = { out << "coarsest" }
 }
 
-case class FinestLevelSpecification() extends DeclarationLevelSpecification with AccessLevelSpecification {
+case object FinestLevelSpecification extends DeclarationLevelSpecification with AccessLevelSpecification {
+  exastencils.core.Duplicate.registerImmutable(this.getClass)
   def prettyprint(out : PpStream) = { out << "finest" }
 }
 
@@ -80,7 +85,8 @@ case class RelativeLevelSpecification(var operator : String, var base : LevelSpe
   def prettyprint(out : PpStream) = { out << '(' << base << ' ' << operator << ' ' << offset << ')' }
 }
 
-case class AllLevelsSpecification() extends DeclarationLevelSpecification {
+case object AllLevelsSpecification extends DeclarationLevelSpecification {
+  exastencils.core.Duplicate.registerImmutable(this.getClass)
   def prettyprint(out : PpStream) = { out << "all" }
 }
 

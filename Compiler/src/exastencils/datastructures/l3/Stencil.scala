@@ -90,7 +90,7 @@ class Stencil(val entries : List[StencilEntry]) {
 
     l4.StencilDeclarationStatement(
       l4.LeveledIdentifier(id,
-        l4.AllLevelsSpecification()),
+        l4.AllLevelsSpecification),
       entries map { _.toTc() })
   }
 
