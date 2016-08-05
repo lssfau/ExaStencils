@@ -159,16 +159,16 @@ do
   fi
 
   COMPILE_CONSTR=""
-  if [[ ${constraints} =~ GPU ]] || [[ ${constraints} = "E5" ]]; then
-    PLATFORM="chimaira.platform"
+#  if [[ ${constraints} =~ GPU ]] || [[ ${constraints} = "E5" ]]; then
+#    PLATFORM="chimaira.platform"
     COMPILE_CONSTR="-A cl -p chimaira" # HACK: the cuda compiler is not installed on all machines
-  elif [[ ${constraints} = "AVX2" ]]; then
-    PLATFORM="anyavx2.platform"
-  elif [[ ${constraints} = "AVX" ]]; then
-    PLATFORM="anyavx.platform"
-  else
-    PLATFORM="random.platform"
-  fi
+#  elif [[ ${constraints} = "AVX2" ]]; then
+#    PLATFORM="anyavx2.platform"
+#  elif [[ ${constraints} = "AVX" ]]; then
+#    PLATFORM="anyavx.platform"
+#  else
+#    PLATFORM="random.platform"
+#  fi
 
   echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">" > "${TEST_LOG}"
   echo "Test ID:  ${id}" >> "${TEST_LOG}"
@@ -220,14 +220,14 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
 
   TEST_DEP="--dependency=afterok:${SID_GEN}"
 
-  ACC="anywhere"
-  PART="anywhere"
-  CONSTR_PARAM="--constraint=${constraints}"
-  if [[ $(( ${nodes} * ${cores} )) -gt 56 ]] || [[ ${cores} -gt 8 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
+#  ACC="anywhere"
+#  PART="anywhere"
+#  CONSTR_PARAM="--constraint=${constraints}"
+#  if [[ $(( ${nodes} * ${cores} )) -gt 56 ]] || [[ ${cores} -gt 8 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
     ACC="cl"
     PART="chimaira"
     CONSTR_PARAM=""
-  fi
+#  fi
   if [[ ${constraints} =~ GPU ]]; then
     ACC="cl"
     PART="chimaira"
