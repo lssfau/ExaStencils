@@ -358,7 +358,7 @@ case class ExpKernel(var identifier : String,
 
   var originalParallelDims = parallelDims
   var firstNSeqDims = loopVariables.size - parallelDims
-  var smemCanBeUsed = Knowledge.experimental_cuda_useSharedMemory && firstNSeqDims == 0
+  var smemCanBeUsed = Knowledge.experimental_cuda_useSharedMemory && firstNSeqDims == 0 && stepSize.forall(x => IntegerConstant(1).equals(x))
   var spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.experimental_cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
   var executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
 
@@ -630,10 +630,10 @@ case class ExpKernel(var identifier : String,
       val it = dimToString(dim)
       val variableName = KernelVariablePrefix + KernelGlobalIndexPrefix + it
       VariableDeclarationStatement(IntegerDatatype, variableName,
-        Some(MemberAccess(VariableAccess("blockIdx", Some(SpecialDatatype("dim3"))), it) *
+        Some(stepSize(dim) * (MemberAccess(VariableAccess("blockIdx", Some(SpecialDatatype("dim3"))), it) *
           MemberAccess(VariableAccess("blockDim", Some(SpecialDatatype("dim3"))), it) +
           MemberAccess(VariableAccess("threadIdx", Some(SpecialDatatype("dim3"))), it) +
-          minIndices(dim)))
+          minIndices(dim))))
     })
 
     // add dimension index start and end point

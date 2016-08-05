@@ -49,7 +49,6 @@ object CudaStrategiesUtils {
   def verifyCudaLoopParallel(loop : ForLoopStatement) : Boolean = {
     loop.inc.isInstanceOf[AssignmentStatement] &&
       loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
-      IntegerConstant(1).equals(loop.inc.asInstanceOf[AssignmentStatement].src.asInstanceOf[IntegerConstant]) &&
       loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
   }
 
