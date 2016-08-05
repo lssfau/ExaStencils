@@ -10,7 +10,7 @@ import isl.Conversions._
 
 // since Scop can be cloned by Duplicate make sure NONE of the isl wrapper objects it uses is cloned by it
 //   (register all required classes as not cloneable in IslUtil.scala)
-class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var globalContext : isl.Set, var optLevel : Int,
+class Scop(val root : LoopOverDimensions with PolyhedronAccessible, var localContext : isl.Set, var globalContext : isl.Set, var optLevel : Int,
     var parallelize : Boolean, var origIterationCount : Array[Long]) {
 
   var nextMerge : Scop = null
@@ -28,6 +28,8 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
 
   var reads, writes : isl.UnionMap = null
   var deadAfterScop : isl.UnionSet = null
+
+  def tileSizes : Array[Int] = root.tileSizes
 
   object deps {
     // dependences, which prevent parallelization AND vectorization

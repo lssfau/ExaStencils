@@ -22,6 +22,7 @@ import isl.Conversions._
 
 trait PolyhedronAccessible {
   var optLevel : Int = 3 // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
+  var tileSizes : Array[Int] = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
 }
 
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
@@ -472,7 +473,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
             tilableDims = band.nMember()
       })
       if (tilableDims > 1 && tilableDims <= 4)
-        scheduleMap = tileSchedule(scheduleMap, scop, tilableDims)
+        scheduleMap = tileSchedule(scheduleMap, scop, tilableDims, scop.tileSizes)
     }
 
     scop.schedule = Isl.simplify(scheduleMap)
@@ -555,19 +556,16 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     // apply tiling
     val tilableDims : Int = bands(0)
     if (scop.optLevel >= 3 && tilableDims > 1 && tilableDims <= 4)
-      schedule = tileSchedule(schedule, scop, tilableDims)
+      schedule = tileSchedule(schedule, scop, tilableDims, scop.tileSizes)
 
     scop.schedule = Isl.simplify(schedule)
     scop.updateLoopVars()
   }
 
-  private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
-
-  private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int) : isl.UnionMap = {
+  private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int, tileSizes : Array[Int]) : isl.UnionMap = {
     val sample : isl.BasicMap = schedule.sample()
     val domSp : isl.Space = sample.getSpace().range()
     val ranSp : isl.Space = domSp.insertDims(T_SET, 0, tilableDims)
-    val ctx : isl.Ctx = sample.getCtx()
     var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
     for (i <- 0 until tilableDims) {
       val tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 0
@@ -593,11 +591,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private def setSeqTileDims(scop : Scop, nrTiledDims : Int) : Unit = {
     val threads = Knowledge.omp_numThreads
     for (i <- 0 until nrTiledDims) {
+      val tileSize = scop.tileSizes(i)
       val tiles : Long =
-        if (tileSizes(i) <= 0)
+        if (tileSize <= 0)
           1
         else if (scop.origIterationCount != null)
-          scop.origIterationCount(i) / tileSizes(i)
+          scop.origIterationCount(i) / tileSize
         else {
           spamcount += 1
           if (spamcount < 4)
@@ -605,7 +604,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           else if (spamcount == 4)
             Logger.warn("[PolyOpt]  unable to determine iteration count; spam protection: suppress further warnings for this problem from now on")
 
-          if (tileSizes(i) <= 0)
+          if (tileSize <= 0)
             1
           else // don't know how much iterations this loop has... so assume there are enough to parallelize it...
             1000
