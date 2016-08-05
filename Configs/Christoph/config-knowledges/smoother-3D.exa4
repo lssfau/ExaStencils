@@ -67,19 +67,19 @@ Function BenchmarkT() : Unit {
     print('Smoother 3D')
     print('Cache warmup')
     repeat 1 times {
-        SmootherTNoTempBlock()
+        SmootherTTempBlock()
     }
 
     print('Starting benchmark (no temporal blocking)')
     startTimer(benchTTimer)
-    repeat 10 times { // marker
-        SmootherTNoTempBlock()
+    repeat 3 times { // marker
+        SmootherTTempBlock()
     }
     stopTimer(benchTTimer)
 
     Variable time : Real = getTotalFromTimer(benchTTimer)
     print('Runtime: ', time)
-    print('MLUPs: ', (LUPs() * 10) / time / 1e3) // TODO: der Faktor 10 hier ergibt sich aus dem Produkt der Schleifeniterationen bei den obigen beiden "marker"n
+    print('MLUPs: ', (LUPs() * 9) / time / 1e3) // TODO: der Faktor 9 hier ergibt sich aus dem Produkt der Schleifeniterationen bei den obigen beiden "marker"n
 }
 
 Function Application() : Unit {
