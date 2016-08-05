@@ -360,9 +360,9 @@ class Extractor extends Collector {
     private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
     private final val formatter = new java.util.Formatter(formatterResult)
 
-    def create(root : LoopOverDimensions, localContext : isl.Set, globalContext : isl.Set, optLevel : Int,
-      origLoopVars : ArrayBuffer[String], modelLoopVars : String, setTempl : String, mapTempl : String,
-      mergeWithPrev : Boolean) : Unit = {
+    def create(root : LoopOverDimensions with PolyhedronAccessible, localContext : isl.Set,
+      globalContext : isl.Set, optLevel : Int, origLoopVars : ArrayBuffer[String],
+      modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
 
       this.scop_ = new Scop(root, localContext, globalContext, optLevel,
         Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable, root.maxIterationCount())
