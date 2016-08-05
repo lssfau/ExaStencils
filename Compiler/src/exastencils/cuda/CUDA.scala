@@ -211,7 +211,7 @@ case class CUDA_SharedArrayAccess(base : Expression, indices : ListBuffer[Expres
   }
 
   def linearizeAccess() : Expression = {
-    Mapping.resolveMultiIdx(new MultiIndex(indices.toArray.reverse), strides : MultiIndex)
+    Mapping.resolveMultiIdx(MultiIndex(indices.toArray.reverse), strides : MultiIndex)
   }
 }
 

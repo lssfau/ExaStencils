@@ -78,7 +78,7 @@ object CudaStrategiesUtils {
       })
       stepSize += (loop.inc match {
         case AssignmentStatement(_, src : Expression, "=") => src
-        case _ => new IntegerConstant(1)
+        case _ => IntegerConstant(1)
       })
     }
 
@@ -312,10 +312,10 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           var loopDependsOnSurroundingIterators = false
           FindSurroundingLoopIteratorUsages.loopIterators = extremaMap.keySet
           FindSurroundingLoopIteratorUsages.usedLoopIterators.clear()
-          FindSurroundingLoopIteratorUsages.applyStandalone(new Scope(new ExpressionStatement(lowerBounds.head)))
+          FindSurroundingLoopIteratorUsages.applyStandalone(new Scope(ExpressionStatement(lowerBounds.head)))
           loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
           FindSurroundingLoopIteratorUsages.usedLoopIterators.clear()
-          FindSurroundingLoopIteratorUsages.applyStandalone(new Scope(new ExpressionStatement(upperBounds.head)))
+          FindSurroundingLoopIteratorUsages.applyStandalone(new Scope(ExpressionStatement(upperBounds.head)))
           loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
 
           extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
@@ -600,8 +600,8 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
       while (kernel.numDimensions > Platform.hw_cuda_maxNumDimsBlock) {
         def it = LoopOverDimensions.defItForDim(kernel.numDimensions - 1)
         kernel.body = ListBuffer[Statement](ForLoopStatement(
-          new VariableDeclarationStatement(it, kernel.indices.begin.last),
-          LowerExpression(it, kernel.indices.end.last),
+          new VariableDeclarationStatement(it, kernel.indices.begin.last()),
+          LowerExpression(it, kernel.indices.end.last()),
           AssignmentStatement(it, 1, "+="),
           kernel.body))
         kernel.indices.begin.dropRight(1)
@@ -611,7 +611,7 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
       kernel
     case kernel : ExpKernel =>
       while (kernel.parallelDims > Platform.hw_cuda_maxNumDimsBlock) {
-        def it = new VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), Some(IntegerDatatype))
+        def it = VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), Some(IntegerDatatype))
         kernel.body = ListBuffer[Statement](ForLoopStatement(
           new VariableDeclarationStatement(it, kernel.lowerBounds.last),
           LowerExpression(it, kernel.upperBounds.last),
@@ -638,13 +638,13 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
     case kernel : ExpKernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
-      val index = new MultiIndex((0 until kernel.parallelDims).map(dim =>
-        new VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
+      val index = MultiIndex((0 until kernel.parallelDims).map(dim =>
+        VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype)): Expression).toArray)
 
-      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => new SubtractionExpression(x, y) : Expression)
+      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => SubtractionExpression(x, y) : Expression)
 
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
-      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(new MultiplicationExpression(ListBuffer[Expression](stride : _*))), index, new MultiIndex(stride))
+      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(MultiplicationExpression(ListBuffer[ Expression ](stride: _*))), index, MultiIndex(stride))
       ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
       kernel
   })

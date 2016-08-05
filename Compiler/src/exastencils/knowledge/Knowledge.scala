@@ -330,7 +330,6 @@ object Knowledge {
   var experimental_cuda_spatialBlockingWithSmem : Boolean = false
   var experimental_cuda_favorL1CacheOverSharedMemory : Boolean = false
   var experimental_cuda_spatialBlockingWithROC : Boolean = false // apply spatial blocking with read-only cache
-  var experimental_cuda_tryHybridTiling : Boolean = false
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements

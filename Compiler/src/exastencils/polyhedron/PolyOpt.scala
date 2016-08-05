@@ -11,11 +11,10 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
-import isl._
-import org.exastencils.schedopt.exploration.{ Exploration, PartialSchedule, ScheduleSpace, _ }
+import org.exastencils.schedopt.exploration.{Exploration, PartialSchedule, ScheduleSpace, _}
 
 import scala.collection.mutable
-import scala.collection.mutable.{ ArrayBuffer, ListBuffer }
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.io._
 import scala.util.control._
 
@@ -664,84 +663,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val trafo = isl.BasicMap.fromMultiAff(mAff)
     setSeqTileDims(scop, tilableDims)
     schedule.applyRange(trafo)
-  }
-
-  /**
-   * See if hybrid tiling can be performed on "node" and its parent.
-   * If so, apply hybrid tiling and return the updated schedule tree.
-   * If not, return the original schedule tree.
-   * Return NULL on error.
-   *
-   * First check if "node", together with its parent, meets the basic requirements for hybrid tiling.
-   * If so, compute the relative dependence distances of "node" with respect to its parent and check if they are sufficiently bounded.
-   * If so, apply hybrid tiling using user specified tile sizes.
-   *
-   * The tile sizes are read before the dependence distance bounds are computed, because the user may have specified fewer
-   * dimensions than are available. In this case, the remaining schedule dimensions are split off and the dependence
-   * distances should be computed after these dimensions have been split off.
-   */
-  def try_hybrid_tile(scop : Scop, node : isl.ScheduleNode) : ScheduleNode = {
-    HybridTiling.mark_map = mutable.HashMap[String, ppcg_ht_phase]()
-    val orig = node
-    var ok = HybridTiling.ppcg_ht_parent_has_input_pattern(node)
-    if (!ok)
-      return orig
-
-    val tile_len = 1 + node.bandNMember()
-    val tile_size = Array.fill[Int](tile_len)(0)
-    (0 until tile_len).foreach(x => {
-      tile_size(x) = 32
-    })
-
-    var localNode = Duplicate(node)
-    val dim = localNode.bandNMember()
-    if (tile_len - 1 < dim)
-      localNode = localNode.bandSplit(tile_len - 1)
-
-    localNode = localNode.parent()
-    val bounds = HybridTiling.ppcg_ht_compute_bounds(scop, localNode)
-    localNode = localNode.child(0)
-
-    ok = HybridTiling.ppcg_ht_bounds_is_valid(bounds)
-    if (ok)
-      localNode = gpu_hybrid_tile(scop, localNode, bounds, tile_size)
-
-    localNode
-  }
-
-  /**
-   * Apply hybrid tiling on "node" and its parent based on the (valid) bounds on the relative dependence distances "bounds"
-   * and the tile sizes in "tile_sizes".
-   * The number of elements in "tile_sizes" is at least as large as the sum of the dimensions of the parent and the child node.
-   *
-   * Convert the tile_sizes to an isl_multi_val in the right space, insert the hybrid tiling and then create a kernel
-   * inside each phase.
-   * Finally, remove the phase marks.
-   */
-  private def gpu_hybrid_tile(scop : Scop, node : isl.ScheduleNode, bounds : ppcg_ht_bounds, tile_sizes : Array[Int]) = {
-    val space2 = node.bandGetSpace()
-    var localNode = node.parent()
-    var space = localNode.bandGetSpace()
-    space = space.product(space2)
-    val mv = multiValFromIntList(space, tile_sizes)
-    localNode = HybridTiling.ppcg_ht_bounds_insert_tiling(bounds, mv, node)
-
-    // This is the creation of gpu_kernels and is not required in our case
-    //TODO: node = hybrid_tile_foreach_phase(node, &update_phase, gen)
-    //localNode = HybridTiling.hybrid_tile_drop_phase_marks(localNode)
-    localNode
-  }
-
-  private def multiValFromIntList(space : isl.Space, intList : Array[Int]) = {
-    val ctx = space.getCtx
-    val n = space.dim(isl.DimType.Set)
-    var mv = isl.MultiVal.zero(space)
-    (0 until n).foreach(x => {
-      val v = isl.Val.intFromSi(ctx, intList(x))
-      mv = mv.setVal(x, v)
-    })
-
-    mv
   }
 
   var spamcount : Int = 0 // HACK to reduce the number of warnings generated
