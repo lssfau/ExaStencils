@@ -82,9 +82,9 @@ abstract class Strategy(val name : String) {
   /**
     * Registers a [[exastencils.core.collectors.Collector]] with this Strategy.
     *
-    * @param c The [[exastencils.core.collectors.Collector]] to be added.
+    * @param collector The [[exastencils.core.collectors.Collector]] to be added.
     */
-  def register(c : Collector) = { collectors += c }
+  def register(collector : Collector) = { collectors += collector }
 
   /**
     * Notifies the [[exastencils.core.collectors.Collector]]s that a [[exastencils.datastructures.Node]] has been entered.
@@ -108,9 +108,9 @@ abstract class Strategy(val name : String) {
   /**
     * Unregister a [[exastencils.core.collectors.Collector]] from this Strategy.
     *
-    * @param c The [[exastencils.core.collectors.Collector]] to be removed.
+    * @param collector The [[exastencils.core.collectors.Collector]] to be removed.
     */
-  def unregister(c : Collector) = { collectors -= c }
+  def unregister(collector : Collector) = { collectors -= collector }
 
   /** Unregister all currently registered [[exastencils.core.collectors.Collector]]s from this Strategy. */
   def unregisterAll() = { collectors.clear }
