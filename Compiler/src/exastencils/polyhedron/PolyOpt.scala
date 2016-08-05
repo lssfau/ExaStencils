@@ -3,31 +3,25 @@ package exastencils.polyhedron
 import java.io.File
 import java.text._
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
-import scala.io._
-import scala.util.control._
-import org.exastencils.schedopt.exploration.Exploration
-import org.exastencils.schedopt.exploration.PartialSchedule
-import org.exastencils.schedopt.exploration.ScheduleSpace
-import org.exastencils.schedopt.exploration._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
-import isl.ScheduleNode
+import isl._
+import org.exastencils.schedopt.exploration.{ Exploration, PartialSchedule, ScheduleSpace, _ }
 
 import scala.collection.mutable
+import scala.collection.mutable.{ ArrayBuffer, ListBuffer }
+import scala.io._
+import scala.util.control._
 
 trait PolyhedronAccessible {
   var optLevel : Int = 3 // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
+  var tileSizes : Array[Int] = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
 }
 
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
@@ -86,13 +80,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         StrategyTimer.startTiming(name)
         val res = op
         StrategyTimer.stopTiming(name)
-        return res
+        res
       } else
-        return op
+        op
     }
 
     val scops : Seq[Scop] = time(extractPolyModel(), "po:extractPolyModel")
-    for (scop <- scops if (!scop.remove)) {
+    for (scop <- scops if !scop.remove) {
       time(mergeLocalScalars(scop), "po:mergeLocalScalars")
       time(mergeScops(scop), "po:mergeScops")
       time(simplifyModel(scop), "po:simplifyModel")
@@ -141,17 +135,17 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Logger.debug("    valid SCoPs: " + scops.size)
     Logger.debug("    rejected:    " + extr.trash.size)
 
-    return scops
+    scops
   }
 
   private def mergeLocalScalars(scop : Scop) : Unit = {
     var toFind : String = null
     var found : Boolean = false
     val search = new Transformation("search...", {
-      case va : VariableAccess if (va.name == toFind) =>
+      case va : VariableAccess if va.name == toFind =>
         found = true
         va
-      case sc : StringLiteral if (sc.value == toFind) =>
+      case sc : StringLiteral if sc.value == toFind =>
         found = true
         sc
     })
@@ -160,7 +154,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       toFind = name
       var fstStmt : Int = -1
       var lstStmt : Int = -1
-      var stmts : Buffer[(String, (ListBuffer[Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
+      var stmts : mutable.Buffer[(String, (ListBuffer[Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
       var i : Int = 0
       val oldLvl = Logger.getLevel
       Logger.setLevel(Logger.WARNING)
@@ -183,7 +177,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         set : isl.Set =>
           var found : Boolean = false
           for ((lab, (stmt, _)) <- stmts)
-            if (set.getTupleName() == lab)
+            if (set.getTupleName == lab)
               found = true
           if (found)
             remDoms += set
@@ -207,7 +201,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.domain =
         if (njuDomain == null) mergedDom
         else njuDomain.addSet(mergedDom) // re-add one of the domains
-      val njuLabel : String = mergedDom.getTupleName()
+      val njuLabel : String = mergedDom.getTupleName
       for ((lab, _) <- stmts)
         if (lab == njuLabel)
           scop.stmts(lab) = (mergedStmts, mergedLoopIts)
@@ -222,12 +216,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
               val oldLabel : String = map.getTupleName(T_IN)
               var toAdd : isl.Map = map
               if (oldLabel != njuLabel)
-                for ((lab, _) <- stmts if (oldLabel == lab))
+                for ((lab, _) <- stmts if oldLabel == lab)
                   toAdd = toAdd.setTupleName(T_IN, njuLabel)
               nju = if (nju == null) toAdd else nju.addMap(toAdd)
             }
         })
-        return nju
+        nju
       }
       scop.reads = adjust(scop.reads)
       scop.writes = adjust(scop.writes)
@@ -235,10 +229,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       // update scop.deadAfterScop
       var resurrect : Boolean = false
       for (set <- remDoms)
-        if (scop.deadAfterScop.intersect(set).isEmpty())
+        if (scop.deadAfterScop.intersect(set).isEmpty)
           resurrect = true
       if (resurrect)
-        scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universe(remDoms(0).getSpace()))
+        scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universe(remDoms(0).getSpace))
     }
   }
 
@@ -279,13 +273,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def insertCst(sched : isl.UnionMap, i : Int) : isl.UnionMap = {
-    var s = isl.UnionMap.empty(sched.getSpace())
+    var s = isl.UnionMap.empty(sched.getSpace)
     sched.foreachMap({
       map : isl.Map =>
         val nju = map.insertDims(T_OUT, 0, 1)
         s = s.addMap(nju.fixVal(T_OUT, 0, i))
     })
-    return s
+    s
   }
 
   private def unionNull(a : isl.Set, b : isl.Set) : isl.Set = {
@@ -314,14 +308,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def computeDependences(scop : Scop) : Unit = {
 
-    val empty = isl.UnionMap.empty(scop.writes.getSpace())
+    val empty = isl.UnionMap.empty(scop.writes.getSpace)
     val depArr = new Array[isl.UnionMap](1)
     val depArr2 = new Array[isl.UnionMap](1)
     val domain : isl.UnionSet = scop.domain.intersectParams(scop.getContext())
 
     val schedule = Isl.simplify(scop.schedule.intersectDomain(domain))
 
-    val writes = (scop.writes.intersectDomain(domain))
+    val writes = scop.writes.intersectDomain(domain)
     val reads = if (scop.reads == null) empty else Isl.simplify(scop.reads.intersectDomain(domain))
 
     var writesToVec, writesNotVec : isl.UnionMap = empty
@@ -373,7 +367,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.deps.flowPar = depArr(0)
 
     } else {
-      val noDeps = isl.UnionMap.empty(scop.deps.antiOutParVec.getSpace())
+      val noDeps = isl.UnionMap.empty(scop.deps.antiOutParVec.getSpace)
       scop.deps.input = noDeps
       scop.deps.flowParVec = noDeps
       scop.deps.flowPar = noDeps
@@ -400,20 +394,20 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       return
 
     val name : String = Extractor.replaceSpecial(scop.root.reduction.get.target.prettyprint())
-    val stmts = Set[String]()
+    val stmts = mutable.Set[String]()
     scop.writes.foreachMap({ map : isl.Map =>
       if (map.getTupleName(T_OUT) == name)
         stmts += map.getTupleName(T_IN)
     } : isl.Map => Unit)
 
-    var toRemove = isl.UnionMap.empty(scop.deps.flowParVec.getSpace())
+    var toRemove = isl.UnionMap.empty(scop.deps.flowParVec.getSpace)
     scop.deps.flowParVec.foreachMap({ dep : isl.Map =>
       if (stmts.contains(dep.getTupleName(T_IN)))
-        toRemove = toRemove.addMap(isl.Map.identity(dep.getSpace()).complement())
+        toRemove = toRemove.addMap(isl.Map.identity(dep.getSpace).complement())
     } : isl.Map => Unit)
     scop.deps.flowPar.foreachMap({ dep : isl.Map =>
       if (stmts.contains(dep.getTupleName(T_IN)))
-        toRemove = toRemove.addMap(isl.Map.identity(dep.getSpace()).complement())
+        toRemove = toRemove.addMap(isl.Map.identity(dep.getSpace).complement())
     } : isl.Map => Unit)
     scop.deps.flowParVec = scop.deps.flowParVec.subtract(toRemove)
     scop.deps.flowPar = scop.deps.flowPar.subtract(toRemove)
@@ -464,28 +458,22 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     schedConstr = schedConstr.setProximity(proximity)
 
     val schedule : isl.Schedule = schedConstr.computeSchedule()
-    var scheduleMap : isl.UnionMap = schedule.getMap()
+    var scheduleMap : isl.UnionMap = schedule.getMap
     scop.noParDims.clear()
     if (scop.optLevel >= 3) {
-      if (Knowledge.experimental_cuda_tryHybridTiling) {
-        println(schedule)
-        scheduleMap = try_hybrid_tile(scop, schedule.getRoot.child(0)).getSchedule.getMap
-      } else {
-        var tilableDims : Int = 0
-        schedule.foreachBand({
-          band : isl.Band =>
-            var prefix : Int = 0
-            band.getPrefixSchedule().foreachMap({ map : isl.Map =>
-              if (!map.range().isSingleton())
-                prefix = math.max(prefix, map.dim(T_OUT))
-            })
-            if (prefix == 0)
-              tilableDims = band.nMember()
-        })
-
-        if (tilableDims > 1 && tilableDims <= 4)
-          scheduleMap = tileSchedule(scheduleMap, scop, tilableDims)
-      }
+      var tilableDims : Int = 0
+      schedule.foreachBand({
+        band : isl.Band =>
+          var prefix : Int = 0
+          band.getPrefixSchedule.foreachMap({ map : isl.Map =>
+            if (!map.range().isSingleton)
+              prefix = math.max(prefix, map.dim(T_OUT))
+          })
+          if (prefix == 0)
+            tilableDims = band.nMember()
+      })
+      if (tilableDims > 1 && tilableDims <= 4)
+        scheduleMap = tileSchedule(scheduleMap, scop, tilableDims, scop.tileSizes)
     }
 
     scop.schedule = Isl.simplify(scheduleMap)
@@ -509,11 +497,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
     // all dependences must be satisfied at least weakly
     for (dep <- depList) {
-      val constr : isl.BasicSet = ScheduleSpace.compSchedConstrForDep(dep, sched.domInfo, false)
+      val constr : isl.BasicSet = ScheduleSpace.compSchedConstrForDep(dep, sched.domInfo, strongSatisfy = false)
       coeffSpace = coeffSpace.intersect(constr)
     }
 
-    val zeroVal = isl.Val.zero(scop.domain.getCtx())
+    val zeroVal = isl.Val.zero(scop.domain.getCtx)
     for ((stmt, StmtCoeffInfo(itStart, nrIt, _, cstIdx)) <- domInfo.stmtInfo) {
       coeffSpace = coeffSpace.fixVal(T_SET, itStart + nrIt - 1, zeroVal)
       coeffSpace = coeffSpace.lowerBoundVal(T_SET, cstIdx, zeroVal)
@@ -526,7 +514,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     while (idx < addDims - 1) {
       for ((stmt, StmtCoeffInfo(itStart, nrIt, parStart, cstIdx)) <- domInfo.stmtInfo)
         if (i < nrIt - 1) {
-          var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace()))
+          var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace))
           aff = aff.setCoefficientSi(T_IN, addDims + itStart + i, -2)
           aff = aff.setCoefficientSi(T_IN, idx, -1)
           var set : isl.Set = aff.zeroBasicSet() // p = -2*c
@@ -541,7 +529,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
 
     // set coeffSpace[idx] to sum of parameter coeffs and restrict the latter to natural numbers
-    var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace()))
+    var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace))
     aff = aff.setCoefficientSi(T_IN, idx, -1)
     for (pi <- 0 until domInfo.nrParPS * domInfo.nrStmts) {
       val pos : Int = addDims + domInfo.nrIt + pi
@@ -549,10 +537,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       aff = aff.setCoefficientSi(T_IN, pos, 1)
     }
     coeffSpace = coeffSpace.intersect(aff.zeroBasicSet())
-    coeffSpace = coeffSpace.lowerBoundVal(T_SET, 0, isl.Val.one(coeffSpace.getCtx())) // prevent 0 solution
+    coeffSpace = coeffSpace.lowerBoundVal(T_SET, 0, isl.Val.one(coeffSpace.getCtx)) // prevent 0 solution
 
     // set coeffSpace[0] to sum of abs coeffs
-    aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace()))
+    aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(coeffSpace.getSpace))
     aff = aff.setCoefficientSi(T_IN, 0, -1)
     for (i <- 1 until addDims - 1)
       aff = aff.setCoefficientSi(T_IN, i, 1)
@@ -590,7 +578,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       validity = validity.gistDomain(domain)
     }
 
-    explConfig.getParentFile().mkdirs()
+    explConfig.getParentFile.mkdirs()
     val eConfOut = new java.io.PrintWriter(explConfig)
     eConfOut.println(domain)
     eConfOut.println(validity)
@@ -641,26 +629,23 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val Array(_, bandsStr, scheduleStr, _) = configLine.split("\t")
 
     val bands : Array[Int] = bandsStr.split(",").map(str => Integer.parseInt(str))
-    var schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx(), scheduleStr)
+    var schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx, scheduleStr)
 
     scop.noParDims.clear()
 
     // apply tiling
     val tilableDims : Int = bands(0)
     if (scop.optLevel >= 3 && tilableDims > 1 && tilableDims <= 4)
-      schedule = tileSchedule(schedule, scop, tilableDims)
+      schedule = tileSchedule(schedule, scop, tilableDims, scop.tileSizes)
 
     scop.schedule = Isl.simplify(schedule)
     scop.updateLoopVars()
   }
 
-  private final val tileSizes = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
-
-  private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int) : isl.UnionMap = {
+  private def tileSchedule(schedule : isl.UnionMap, scop : Scop, tilableDims : Int, tileSizes : Array[Int]) : isl.UnionMap = {
     val sample : isl.BasicMap = schedule.sample()
-    val domSp : isl.Space = sample.getSpace().range()
+    val domSp : isl.Space = sample.getSpace.range()
     val ranSp : isl.Space = domSp.insertDims(T_SET, 0, tilableDims)
-    val ctx : isl.Ctx = sample.getCtx()
     var mAff = isl.MultiAff.zero(isl.Space.mapFromDomainAndRange(domSp, ranSp))
     for (i <- 0 until tilableDims) {
       val tileSize = if (i != 0 || Knowledge.poly_tileOuterLoop) tileSizes(tilableDims - 1 - i) else 0
@@ -678,7 +663,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
     val trafo = isl.BasicMap.fromMultiAff(mAff)
     setSeqTileDims(scop, tilableDims)
-    return schedule.applyRange(trafo)
+    schedule.applyRange(trafo)
   }
 
   /**
@@ -764,11 +749,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private def setSeqTileDims(scop : Scop, nrTiledDims : Int) : Unit = {
     val threads = Knowledge.omp_numThreads
     for (i <- 0 until nrTiledDims) {
+      val tileSize = scop.tileSizes(i)
       val tiles : Long =
-        if (tileSizes(i) <= 0)
+        if (tileSize <= 0)
           1
         else if (scop.origIterationCount != null)
-          scop.origIterationCount(i) / tileSizes(i)
+          scop.origIterationCount(i) / tileSize
         else {
           spamcount += 1
           if (spamcount < 4)
@@ -776,7 +762,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
           else if (spamcount == 4)
             Logger.warn("[PolyOpt]  unable to determine iteration count; spam protection: suppress further warnings for this problem from now on")
 
-          if (tileSizes(i) <= 0)
+          if (tileSize <= 0)
             1
           else // don't know how much iterations this loop has... so assume there are enough to parallelize it...
             1000
@@ -790,13 +776,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def recreateAndInsertAST() : Unit = {
 
-    val replaceCallback = { (repl : Map[String, Expression], applyAt : Node) =>
+    val replaceCallback = { (repl : mutable.Map[String, Expression], applyAt : Node) =>
       val oldLvl = Logger.getLevel
       Logger.setLevel(Logger.WARNING)
       this.execute(
         new Transformation("update loop iterator", {
-          case VariableAccess(str, _) if (repl.isDefinedAt(str)) => Duplicate(repl(str))
-          case StringLiteral(str) if (repl.isDefinedAt(str)) => Duplicate(repl(str))
+          case VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
+          case StringLiteral(str) if repl.isDefinedAt(str) => Duplicate(repl(str))
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }

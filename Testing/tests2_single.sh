@@ -1,6 +1,8 @@
 #!/bin/bash
-#SBATCH -p anywhere
-#SBATCH -A anywhere
+##SBATCH -p anywhere
+##SBATCH -A anywhere
+#SBATCH -p chimaira
+#SBATCH -A cl
 #SBATCH --qos=norm
 #SBATCH -n 1
 #SBATCH -c 4
