@@ -3,7 +3,7 @@
 ///////////////////////////
 simd_avoidUnaligned         = true
 data_alignFieldPointers     = true
-useDblPrecision             = true
+useDblPrecision             = false
 
 /////////////////////////
 // Layer configuration //
