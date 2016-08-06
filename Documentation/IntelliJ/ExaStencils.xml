@@ -1,0 +1,39 @@
+<code_scheme name="ExaStencils">
+  <HoconCodeStyleSettings>
+    <option name="SPACE_BEFORE_COLON" value="true" />
+  </HoconCodeStyleSettings>
+  <ScalaCodeStyleSettings>
+    <option name="classCountToUseImportOnDemand" value="2" />
+    <option name="collectImports" value="false" />
+    <option name="importLayout">
+      <array>
+        <option value="scala" />
+        <option value="_______ blank line _______" />
+        <option value="java" />
+        <option value="_______ blank line _______" />
+        <option value="all other imports" />
+      </array>
+    </option>
+    <option name="ALIGN_IN_COLUMNS_CASE_BRANCH" value="true" />
+    <option name="USE_ALTERNATE_CONTINUATION_INDENT_FOR_PARAMS" value="true" />
+    <option name="SPACE_BEFORE_TYPE_COLON" value="true" />
+    <option name="SPACES_IN_ONE_LINE_BLOCKS" value="true" />
+    <option name="SPACES_IN_IMPORTS" value="true" />
+    <option name="SPACES_AROUND_AT_IN_PATTERNS" value="true" />
+    <option name="KEEP_COMMENTS_ON_SAME_LINE" value="true" />
+    <option name="ENFORCE_FUNCTIONAL_SYNTAX_FOR_UNIT" value="false" />
+  </ScalaCodeStyleSettings>
+  <XML>
+    <option name="XML_LEGACY_SETTINGS_IMPORTED" value="true" />
+  </XML>
+  <codeStyleSettings language="Scala">
+    <option name="KEEP_BLANK_LINES_IN_DECLARATIONS" value="1" />
+    <option name="KEEP_BLANK_LINES_IN_CODE" value="1" />
+    <option name="KEEP_BLANK_LINES_BEFORE_RBRACE" value="1" />
+    <option name="BLANK_LINES_AROUND_METHOD" value="0" />
+    <option name="BLANK_LINES_AROUND_METHOD_IN_INTERFACE" value="0" />
+    <option name="ALIGN_MULTILINE_PARAMETERS" value="false" />
+    <option name="KEEP_SIMPLE_BLOCKS_IN_ONE_LINE" value="true" />
+    <option name="KEEP_SIMPLE_METHODS_IN_ONE_LINE" value="true" />
+  </codeStyleSettings>
+</code_scheme>
