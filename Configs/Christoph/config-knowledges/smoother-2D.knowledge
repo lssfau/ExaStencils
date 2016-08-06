@@ -83,6 +83,10 @@ experimental_cuda_blockSize_x                   = 16
 experimental_cuda_blockSize_y                   = 16
 // default (1D) block size for default reduction kernels
 experimental_cuda_reductionBlockSize            = 1024
+
+// my new experimental cuda properties
 experimental_cuda_useSharedMemory               = true
-experimental_cuda_linearizeSharedMemoryAccess   = true
+experimental_cuda_linearizeSharedMemoryAccess   = false
 experimental_cuda_favorL1CacheOverSharedMemory  = false
+experimental_cuda_spatialBlockingWithSmem       = true
+experimental_cuda_spatialBlockingWithROC        = false

@@ -9,7 +9,7 @@ useDblPrecision = false
 dimensionality				= 2
 
 minLevel					= 0
-maxLevel					= 12
+maxLevel					= 10
 comm_strategyFragment		= 6
 
 domain_onlyRectangular		= true
@@ -31,7 +31,6 @@ domain_rect_numFragsPerBlock_z	= 1
 /// L3 Settings ///
 ///////////////////
 l3tmp_generateL4			= true
-l3tmp_genForAutoTests		= false
 
 l3tmp_sisc					= true
 l3tmp_genStencilFields		= true
@@ -51,6 +50,8 @@ l3tmp_genTimersPerFunction  = true
 l3tmp_genTimersPerLevel     = true
 l3tmp_printAllTimers        = true
 l3tmp_printError            = true
+
+l3tmp_genTemporalBlocking  = false
 
 ///////////////////
 // Optimizations //
@@ -93,14 +94,13 @@ experimental_cuda_preferredExecution            = "Device"
 experimental_cuda_syncDeviceAfterKernelCalls    = true
 experimental_cuda_syncHostForWrites             = false
 experimental_cuda_syncDeviceForWrites           = true
-experimental_cuda_blockSize_x                   = 8
-experimental_cuda_blockSize_y                   = 8
-experimental_cuda_blockSize_z                   = 8
+experimental_cuda_blockSize_x                   = 16
+experimental_cuda_blockSize_y                   = 16
 // default (1D) block size for default reduction kernels
 experimental_cuda_reductionBlockSize            = 1024
 
 // my new experimental cuda properties
-experimental_cuda_useSharedMemory               = false
+experimental_cuda_useSharedMemory               = true
 experimental_cuda_linearizeSharedMemoryAccess   = false
 experimental_cuda_favorL1CacheOverSharedMemory  = false
 experimental_cuda_spatialBlockingWithSmem       = true

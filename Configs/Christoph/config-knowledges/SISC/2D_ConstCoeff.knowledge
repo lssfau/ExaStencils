@@ -1,15 +1,7 @@
-///////////////////////////
-// General configuration //
-///////////////////////////
-useDblPrecision = false
-
-///////////////////////
-/// Domain Settings ///
-///////////////////////
 dimensionality				= 2
 
-minLevel					= 0
-maxLevel					= 12
+minLevel					= 5
+maxLevel					= 10
 comm_strategyFragment		= 6
 
 domain_onlyRectangular		= true
@@ -27,51 +19,54 @@ domain_rect_numFragsPerBlock_x	= 1
 domain_rect_numFragsPerBlock_y	= 1
 domain_rect_numFragsPerBlock_z	= 1
 
-///////////////////
-/// L3 Settings ///
-///////////////////
-l3tmp_generateL4            = true
-l3tmp_genForAutoTests       = false
-l3tmp_genStencilFields      = false
-l3tmp_genHDepStencils       = true
-l3tmp_genNonZeroRhs         = true
-l3tmp_sisc                  = true
-l3tmp_exactSolution         = "Kappa"
-l3tmp_smoother              = "Jac"
-l3tmp_numPre                = 3
-l3tmp_numPost               = 3
+omp_enabled					= false
+omp_numThreads				= 1
 
-l3tmp_useSlotsForJac        = true
-l3tmp_useSlotVariables      = true
-l3tmp_useMaxNormForError    = true
+mpi_enabled					= false
+mpi_numThreads				= 1
 
-l3tmp_genTimersPerFunction  = true
-l3tmp_genTimersPerLevel     = true
-l3tmp_printAllTimers        = true
-l3tmp_printError            = true
+l3tmp_generateL4			= true
+l3tmp_genForAutoTests		= false
 
-///////////////////
-/// Parallelism ///
-///////////////////
-// OpenMP
-omp_enabled                         = true
-omp_numThreads                      = 10
-omp_parallelizeLoopOverFragments    = false
-omp_parallelizeLoopOverDimensions   = true
+l3tmp_sisc					= true
+l3tmp_genStencilFields		= false
+l3tmp_genHDepStencils		= true
+l3tmp_genNonZeroRhs			= true
 
-// MPI
-mpi_enabled                         = false
-mpi_numThreads                      = 1
+l3tmp_exactSolution			= "Kappa"
 
-////////////
-/// Cuda ///
-////////////
+l3tmp_smoother				= "Jac"
+l3tmp_numPre				= 3
+l3tmp_numPost				= 3
+l3tmp_useSlotsForJac		= true
+l3tmp_useSlotVariables		= true
+
+poly_tileSize_x				= 0
+poly_tileSize_y				= 0
+poly_optLevel_fine			= 3
+poly_performDCE             = false // this is not working with CUDA
+opt_useAddressPrecalc		= false
+opt_vectorize				= false
+opt_unroll					= 2
+opt_unroll_interleave		= false
+
+l3tmp_printError			= true
+l3tmp_useMaxNormForError	= true
+
 experimental_cuda_enabled                       = true
 //experimental_cuda_deviceId                      = 0
 experimental_cuda_preferredExecution            = "Device"
 experimental_cuda_syncDeviceAfterKernelCalls    = true
 experimental_cuda_syncHostForWrites             = false
 experimental_cuda_syncDeviceForWrites           = true
-experimental_cuda_blockSize_x                   = 8
-experimental_cuda_blockSize_y                   = 8
-experimental_cuda_blockSize_z                   = 8
+experimental_cuda_blockSize_x                   = 16
+experimental_cuda_blockSize_y                   = 16
+// default (1D) block size for default reduction kernels
+experimental_cuda_reductionBlockSize            = 1024
+
+// my new experimental cuda properties
+experimental_cuda_useSharedMemory               = true
+experimental_cuda_linearizeSharedMemoryAccess   = false
+experimental_cuda_favorL1CacheOverSharedMemory  = false
+experimental_cuda_spatialBlockingWithSmem       = true
+experimental_cuda_spatialBlockingWithROC        = false
