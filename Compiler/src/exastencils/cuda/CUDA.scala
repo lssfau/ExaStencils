@@ -1,5 +1,7 @@
 package exastencils.cuda
 
+import scala.collection.mutable._
+
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -7,8 +9,6 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
-
-import scala.collection.mutable._
 
 // TODO: introduce abstraction layer for general device interfaces
 
@@ -109,7 +109,7 @@ case class CUDA_FunctionCallExpression(
 
   override def prettyprint(out : PpStream) : Unit = {
     val numDims = numThreadsPerDim.size
-    if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
+    if (numDims > 3) Logger.warn(s"${ numDims }D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
 
     val numBlocks = (0 until numDims).map(dim => {
       (numThreadsPerDim(dim) + numBlocksPerDim(dim) - 1) / numBlocksPerDim(dim)
@@ -138,7 +138,7 @@ case class CUDA_FunctionCallExperimentalExpression(
 
   override def prettyprint(out : PpStream) : Unit = {
     val numDims = numThreadsPerDim.size
-    if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA")
+    if (numDims > 3) Logger.warn(s"${ numDims }D kernel found; this is currently unsupported by CUDA")
 
     out << name << "<<<"
     if (1 == numDims)

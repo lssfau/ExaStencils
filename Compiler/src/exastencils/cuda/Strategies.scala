@@ -1,5 +1,11 @@
 package exastencils.cuda
 
+import scala.annotation._
+import scala.collection.mutable._
+import scala.collection.Set
+import scala.collection.{ SortedSet => _ }
+import scala.collection._
+
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.data._
@@ -15,13 +21,9 @@ import exastencils.optimization._
 import exastencils.polyhedron._
 import exastencils.util._
 
-import scala.annotation._
-import scala.collection.mutable._
-import scala.collection.{ Set, SortedSet => _, _ }
-
 /**
- * Collection of constants and util functions for the CUDA transformations.
- */
+  * Collection of constants and util functions for the CUDA transformations.
+  */
 object CudaStrategiesUtils {
   val CUDA_LOOP_ANNOTATION = "CUDALoop"
   val CUDA_BAND_START = "CUDABandStart"
@@ -29,11 +31,11 @@ object CudaStrategiesUtils {
   val CUDA_INNER = "CUDAInner"
 
   /**
-   * Check if the loop meets some basic conditions for transforming a ForLoopStatement into CUDA code.
-   *
-   * @param loop the ForLoopStatement that should be checked
-   * @return <code>true</code> if the loop meets the conditions; <code>false</code> otherwise
-   */
+    * Check if the loop meets some basic conditions for transforming a ForLoopStatement into CUDA code.
+    *
+    * @param loop the ForLoopStatement that should be checked
+    * @return <code>true</code> if the loop meets the conditions; <code>false</code> otherwise
+    */
   def verifyCudaLoopSuitability(loop : ForLoopStatement) : Boolean = {
     loop.begin.isInstanceOf[VariableDeclarationStatement] &&
       (loop.end.isInstanceOf[LowerExpression] || loop.end.isInstanceOf[LowerEqualExpression]) &&
@@ -41,11 +43,11 @@ object CudaStrategiesUtils {
   }
 
   /**
-   * Check if the loop can be parallelized.
-   *
-   * @param loop the ForLoopStatement that should be checked
-   * @return <code>true</code> if it is a parallel loop; <code>false</code> otherwise
-   */
+    * Check if the loop can be parallelized.
+    *
+    * @param loop the ForLoopStatement that should be checked
+    * @return <code>true</code> if it is a parallel loop; <code>false</code> otherwise
+    */
   def verifyCudaLoopParallel(loop : ForLoopStatement) : Boolean = {
     loop.inc.isInstanceOf[AssignmentStatement] &&
       loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
@@ -53,11 +55,11 @@ object CudaStrategiesUtils {
   }
 
   /**
-   * Collect information about the loop variables, lower and upper bounds, and the step size.
-   *
-   * @param loops the list of ForLoopStatement that should be traversed
-   * @return lists of extracted information
-   */
+    * Collect information about the loop variables, lower and upper bounds, and the step size.
+    *
+    * @param loops the list of ForLoopStatement that should be traversed
+    * @return lists of extracted information
+    */
   def extractRelevantLoopInformation(loops : ListBuffer[ForLoopStatement]) = {
     var loopVariables = ListBuffer[String]()
     var lowerBounds = ListBuffer[Expression]()
@@ -69,15 +71,15 @@ object CudaStrategiesUtils {
       loopVariables += loopDeclaration.name
       lowerBounds += loopDeclaration.expression.get
       upperBounds += (loop.end match {
-        case l : LowerExpression =>
+        case l : LowerExpression      =>
           l.right
         case e : LowerEqualExpression =>
           new AdditionExpression(e.right, IntegerConstant(1))
-        case o => o
+        case o                        => o
       })
       stepSize += (loop.inc match {
         case AssignmentStatement(_, src : Expression, "=") => src
-        case _ => IntegerConstant(1)
+        case _                                             => IntegerConstant(1)
       })
     }
 
@@ -86,9 +88,9 @@ object CudaStrategiesUtils {
 }
 
 /**
- * This transformation annotates LoopOverDimensions and LoopOverDimensions enclosed within ContractingLoops.
- * Additionally required statements for memory transfer are added.
- */
+  * This transformation annotates LoopOverDimensions and LoopOverDimensions enclosed within ContractingLoops.
+  * Additionally required statements for memory transfer are added.
+  */
 object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
   val collector = new FctNameCollector
@@ -155,8 +157,8 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     } else {
       /// compile final switch
       val defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
-        case "Host" => 1 // CPU by default
-        case "Device" => 0 // GPU by default
+        case "Host"        => 1 // CPU by default
+        case "Device"      => 0 // GPU by default
         case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
       }
 
@@ -165,7 +167,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
   }
 
   this += new Transformation("Processing ContractingLoop and LoopOverDimensions nodes", {
-    case cl : ContractingLoop =>
+    case cl : ContractingLoop      =>
       var hostStmts = new ListBuffer[Statement]()
       var deviceStmts = new ListBuffer[Statement]()
       val fieldOffset = new mutable.HashMap[(String, Int), Int]()
@@ -177,9 +179,9 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
         s.isInstanceOf[ConditionStatement] || s.isInstanceOf[LoopOverDimensions]) match {
         case Some(ConditionStatement(cond, ListBuffer(loop : LoopOverDimensions), ListBuffer())) =>
           loop
-        case Some(loop : LoopOverDimensions) =>
+        case Some(loop : LoopOverDimensions)                                                     =>
           loop
-        case None => LoopOverDimensions(0, IndexRange(new MultiIndex(), new MultiIndex()), ListBuffer[Statement]())
+        case None                                                                                => LoopOverDimensions(0, IndexRange(new MultiIndex(), new MultiIndex()), ListBuffer[Statement]())
       }
 
       // every LoopOverDimensions statement is potentially worse to transform in CUDA code
@@ -276,32 +278,32 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 }
 
 /**
- * This transformation is used to calculate the annotations for CUDA loops.
- */
+  * This transformation is used to calculate the annotations for CUDA loops.
+  */
 object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the annotations for CUDA loops") {
   val collector = new FctNameCollector
   this.register(collector)
 
   /**
-   * Annotate the inner CUDA loops.
-   *
-   * @param loop the loop to traverse
-   */
+    * Annotate the inner CUDA loops.
+    *
+    * @param loop the loop to traverse
+    */
   def annotateInnerCudaLoops(loop : ForLoopStatement) : Unit = {
     loop.body.foreach {
       case x : ForLoopStatement =>
         x.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_INNER)
         annotateInnerCudaLoops(x)
-      case _ =>
+      case _                    =>
     }
   }
 
   /**
-   * Calculate the CUDA loops that are part of the band.
-   *
-   * @param extremaMap the map with the extrema for the loop iterators
-   * @param loop the current loop to traverse
-   */
+    * Calculate the CUDA loops that are part of the band.
+    *
+    * @param extremaMap the map with the extrema for the loop iterators
+    * @param loop       the current loop to traverse
+    */
   def calculateLoopsInBand(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement) : Unit = {
     loop.body.head match {
       case innerLoop : ForLoopStatement if loop.body.size == 1 &&
@@ -317,7 +319,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           FindSurroundingLoopIteratorUsages.applyStandalone(new Scope(ExpressionStatement(upperBounds.head)))
           loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
 
-          extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
+          extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap) _1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap) _2))
           innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
           if (loopDependsOnSurroundingIterators) {
@@ -329,30 +331,30 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           }
         } catch {
           case e : EvaluationException =>
-            Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${e.msg}'""")
+            Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${ e.msg }'""")
             innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_INNER)
             annotateInnerCudaLoops(innerLoop)
         }
-      case _ =>
+      case _                                                                                                              =>
         loop.body.foreach {
           case x : ForLoopStatement =>
             annotateInnerCudaLoops(x)
-          case _ =>
+          case _                    =>
         }
     }
   }
 
   /**
-   * Calculate extrema values for the loop iterators and annotate loop with adequate CUDA loop annotation.
-   *
-   * @param extremaMap the map containing the extrema values for the loop iterators
-   * @param loop the loop to traverse
-   */
+    * Calculate extrema values for the loop iterators and annotate loop with adequate CUDA loop annotation.
+    *
+    * @param extremaMap the map containing the extrema values for the loop iterators
+    * @param loop       the loop to traverse
+    */
   def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement) : Unit = {
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
         val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
-        extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)_1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)_2))
+        extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap) _1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap) _2))
         loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
         if (CudaStrategiesUtils.verifyCudaLoopParallel(loop)) {
@@ -363,12 +365,12 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           loop.body.filter(x => x.isInstanceOf[ForLoopStatement]).foreach {
             case innerLoop : ForLoopStatement =>
               updateLoopAnnotations(extremaMap, innerLoop)
-            case _ =>
+            case _                            =>
           }
         }
       } catch {
         case e : EvaluationException =>
-          Logger.warning(s"""Error while searching for band start! Failed to calculate bounds extrema: '${e.msg}'""")
+          Logger.warning(s"""Error while searching for band start! Failed to calculate bounds extrema: '${ e.msg }'""")
       }
     }
   }
@@ -382,18 +384,18 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
 }
 
 /**
- * This transformation is used to convert annotated code into CUDA kernel code.
- */
+  * This transformation is used to convert annotated code into CUDA kernel code.
+  */
 object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUDA loop in kernel code") {
   val collector = new FctNameCollector
   this.register(collector)
 
   /**
-   * Collect all loops in the band.
-   *
-   * @param loop the outer loop of the band
-   * @return list of loops in the band
-   */
+    * Collect all loops in the band.
+    *
+    * @param loop the outer loop of the band
+    * @return list of loops in the band
+    */
   def collectLoopsInKernel(loop : ForLoopStatement, condition : ForLoopStatement => Boolean) : ListBuffer[ForLoopStatement] = {
     val innerLoopCandidate = loop.body.head
     val loops = ListBuffer[ForLoopStatement](loop)
@@ -401,17 +403,17 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     innerLoopCandidate match {
       case innerLoop : ForLoopStatement if condition.apply(innerLoop) =>
         collectLoopsInKernel(innerLoop, condition) ++ loops
-      case _ => loops
+      case _                                                          => loops
     }
   }
 
   /**
-   * Trim the loop headers to have the inner loop body to spare.
-   *
-   * @param body the statements that should be traversed
-   * @param surplus the for loop statements that should be removed
-   * @return the inner body without loop headers
-   */
+    * Trim the loop headers to have the inner loop body to spare.
+    *
+    * @param body    the statements that should be traversed
+    * @param surplus the for loop statements that should be removed
+    * @return the inner body without loop headers
+    */
   @tailrec
   def pruneKernelBody(body : ListBuffer[Statement], surplus : ListBuffer[ForLoopStatement]) : ListBuffer[Statement] = {
     if (surplus.isEmpty || !(body.head.isInstanceOf[ForLoopStatement] && (body.head equals surplus.head))) {
@@ -583,8 +585,8 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
         /// compile final switch
         val defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
-          case "Host" => 1 // CPU by default
-          case "Device" => 0 // GPU by default
+          case "Host"        => 1 // CPU by default
+          case "Device"      => 0 // GPU by default
           case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
         }
 
@@ -595,7 +597,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
 object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimensionality where necessary") {
   this += new Transformation("Process kernel nodes", {
-    case kernel : Kernel =>
+    case kernel : Kernel    =>
       while (kernel.numDimensions > Platform.hw_cuda_maxNumDimsBlock) {
         def it = LoopOverDimensions.defItForDim(kernel.numDimensions - 1)
         kernel.body = ListBuffer[Statement](ForLoopStatement(
@@ -624,7 +626,7 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
 
 object HandleKernelReductions extends DefaultStrategy("Handle reductions in device kernels") {
   this += new Transformation("Process kernel nodes", {
-    case kernel : Kernel if kernel.reduction.isDefined =>
+    case kernel : Kernel if kernel.reduction.isDefined    =>
       // update assignments according to reduction clauses
       val index = LoopOverDimensions.defIt(kernel.numDimensions)
       val stride = (
@@ -638,12 +640,12 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
       val index = MultiIndex((0 until kernel.parallelDims).map(dim =>
-        VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype)): Expression).toArray)
+        VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => SubtractionExpression(x, y) : Expression)
 
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
-      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(MultiplicationExpression(ListBuffer[ Expression ](stride: _*))), index, MultiIndex(stride))
+      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(MultiplicationExpression(ListBuffer[Expression](stride : _*))), index, MultiIndex(stride))
       ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
       kernel
   })
@@ -680,7 +682,7 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
       access.fieldSelection.slot match {
         case SlotAccess(_, offset) => identifier += s"_o$offset"
         case IntegerConstant(slot) => identifier += s"_s$slot"
-        case _ => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+        case _                     => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -696,7 +698,7 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
         GatherLocalFieldAccess.applyStandalone(ExpressionStatement(assign.dest))
       GatherLocalFieldAccess.applyStandalone(ExpressionStatement(assign.src))
       assign
-    case access : FieldAccessLike =>
+    case access : FieldAccessLike     =>
       mapFieldAccess(access)
       access
   }, false)
@@ -708,11 +710,11 @@ object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local
 
   def clear() = {
     accesses = mutable.HashMap[String, VariableAccess]()
-    ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */ ).map(dim => dimToString(dim)).to[mutable.SortedSet]
+    ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */).map(dim => dimToString(dim)).to[mutable.SortedSet]
   }
 
   this += new Transformation("Searching", {
-    case decl : VariableDeclarationStatement =>
+    case decl : VariableDeclarationStatement                               =>
       ignoredAccesses += decl.name
       decl
     case access : VariableAccess if !ignoredAccesses.contains(access.name) =>
