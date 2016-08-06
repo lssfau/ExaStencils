@@ -74,7 +74,7 @@
     </scalac>
   </target>
 
-  <target name="compileScheduleOpt" depends="compileMacros">
+ <!-- <target name="compileScheduleOpt" depends="compileMacros">
     <scalac
       destdir="${build-classes.dir}"
       classpathref="compiler.classpath"
@@ -82,9 +82,9 @@
       <include name="**/*.scala"/>
       <src><pathelement location="${schedule-opt-src.dir}"/></src>
     </scalac>
-  </target>
+  </target> -->
 
-  <target name="compileScala" depends="compileScheduleOpt">
+  <target name="compileScala" depends="compileMacros">
     <scalac
       destdir="${build-classes.dir}"
       classpathref="compiler.classpath"
