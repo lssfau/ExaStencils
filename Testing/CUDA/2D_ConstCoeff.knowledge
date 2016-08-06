@@ -44,6 +44,7 @@ l3tmp_useSlotVariables		= true
 poly_tileSize_x				= 0
 poly_tileSize_y				= 0
 poly_optLevel_fine			= 3
+poly_performDCE             = false // this is not working with CUDA
 opt_useAddressPrecalc		= false
 opt_vectorize				= false
 opt_unroll					= 2
