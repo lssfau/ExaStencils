@@ -58,7 +58,7 @@ l3tmp_genTemporalBlocking  = false
 // Optimizations //
 ///////////////////
 // Polyhedron optimizations
-poly_optLevel_fine          = 0
+poly_optLevel_fine          = 3
 poly_optLevel_coarse        = 1
 poly_numFinestLevels        = 1
 poly_performDCE             = false // this is not working with CUDA
@@ -102,8 +102,8 @@ experimental_cuda_blockSize_z                   = 8
 experimental_cuda_reductionBlockSize            = 1024
 
 // my new experimental cuda properties
-experimental_cuda_useSharedMemory               = false
+experimental_cuda_useSharedMemory               = true
 experimental_cuda_linearizeSharedMemoryAccess   = false
 experimental_cuda_favorL1CacheOverSharedMemory  = false
-experimental_cuda_spatialBlockingWithSmem       = false
+experimental_cuda_spatialBlockingWithSmem       = true
 experimental_cuda_spatialBlockingWithROC        = false
