@@ -1,5 +1,12 @@
 package exastencils.polyhedron
 
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.ArrayStack
+import scala.collection.mutable.HashSet
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Set
+import scala.collection.mutable.StringBuilder
+
 import exastencils.core.collectors._
 import exastencils.cuda._
 import exastencils.data._
@@ -7,8 +14,6 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
-
-import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder }
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -42,7 +47,7 @@ object Extractor {
   }
 
   private def extractConstraints(expr : Expression, constraints : StringBuilder, formatString : Boolean, paramExprs : Set[Expression],
-    lParConstr : StringBuilder = null, gParConstr : StringBuilder = null, vars : Set[String] = null) : Boolean = {
+      lParConstr : StringBuilder = null, gParConstr : StringBuilder = null, vars : Set[String] = null) : Boolean = {
 
     var bool : Boolean = false
 
@@ -275,7 +280,7 @@ object Extractor {
     while (i < str.length) {
       str(i) match {
         case '.' | '[' | ']' | '(' | ')' | '-' | '>' => str(i) = '_'
-        case _ =>
+        case _                                       =>
       }
       i += 1
     }
@@ -291,9 +296,9 @@ object Extractor {
       name.charAt(i) match {
         case '=' | '+' | '*' | '/' | '[' | '(' | ' ' =>
           throw new ExtractionException("expression in string constant found: " + name)
-        case '-' if name.charAt(i + 1) != '>' =>
+        case '-' if name.charAt(i + 1) != '>'        =>
           throw new ExtractionException("expression in string constant found: " + name)
-        case _ =>
+        case _                                       =>
       }
     }
   }
@@ -306,6 +311,7 @@ class Extractor extends Collector {
   private final val DEBUG : Boolean = false
 
   /** import all "static" attributes to allow an unqualified access */
+
   import exastencils.polyhedron.Extractor._
 
   /** current access node is a read/write access */
@@ -328,7 +334,9 @@ class Extractor extends Collector {
 
   /** all found static control parts */
   final val scops = new ArrayBuffer[Scop](256)
-  final val trash = new ArrayBuffer[(Node, String)] // TODO: debug; remove
+  final val trash = new ArrayBuffer[(Node, String)]
+
+  // TODO: debug; remove
 
   private object curScop {
 
@@ -357,8 +365,8 @@ class Extractor extends Collector {
     private final val formatter = new java.util.Formatter(formatterResult)
 
     def create(root : LoopOverDimensions with PolyhedronAccessible, localContext : isl.Set,
-      globalContext : isl.Set, optLevel : Int, origLoopVars : ArrayBuffer[String],
-      modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
+        globalContext : isl.Set, optLevel : Int, origLoopVars : ArrayBuffer[String],
+        modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
 
       this.scop_ = new Scop(root, localContext, globalContext, optLevel,
         Knowledge.omp_parallelizeLoopOverDimensions && root.parallelizationIsReasonable, root.maxIterationCount())
@@ -436,13 +444,13 @@ class Extractor extends Collector {
     node.getAnnotation(Access.ANNOT) match {
       case Some(acc) =>
         acc match {
-          case Access.READ => isRead = true
-          case Access.WRITE => isWrite = true
+          case Access.READ   => isRead = true
+          case Access.WRITE  => isWrite = true
           case Access.UPDATE =>
             isRead = true
             isWrite = true
         }
-      case None =>
+      case None      =>
     }
 
     if (node.hasAnnotation(SKIP_ANNOT))
@@ -549,28 +557,28 @@ class Extractor extends Collector {
           // nothing to do...
 
           case _ : IntegerConstant
-            | _ : FloatConstant
-            | _ : BooleanConstant
-            | _ : NegativeExpression
-            | _ : NegationExpression
-            | _ : AddressofExpression
-            | _ : DerefAccess
-            | _ : AdditionExpression
-            | _ : SubtractionExpression
-            | _ : MultiplicationExpression
-            | _ : DivisionExpression
-            | _ : ModuloExpression
-            | _ : PowerExpression
-            | _ : MinimumExpression
-            | _ : MaximumExpression
-            | _ : CommentStatement
-            | NullStatement => // nothing to do for all of them...
+               | _ : FloatConstant
+               | _ : BooleanConstant
+               | _ : NegativeExpression
+               | _ : NegationExpression
+               | _ : AddressofExpression
+               | _ : DerefAccess
+               | _ : AdditionExpression
+               | _ : SubtractionExpression
+               | _ : MultiplicationExpression
+               | _ : DivisionExpression
+               | _ : ModuloExpression
+               | _ : PowerExpression
+               | _ : MinimumExpression
+               | _ : MaximumExpression
+               | _ : CommentStatement
+               | NullStatement => // nothing to do for all of them...
 
           // deny
-          case e : ExpressionStatement => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
-          case ArrayAccess(a, _, _) => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
+          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
+          case ArrayAccess(a, _, _)       => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
           case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
-          case x : Any => throw new ExtractionException("cannot deal with " + x.getClass())
+          case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
         }
     } catch {
       case ExtractionException(msg) =>
@@ -597,17 +605,17 @@ class Extractor extends Collector {
 
     if (curScop.exists())
       node match {
-        case l : LoopOverDimensions => leaveLoop(l)
-        case c : ConditionStatement => leaveCondition(c)
-        case _ : AssignmentStatement => leaveAssign()
-        case _ : StringLiteral => leaveScalarAccess()
-        case _ : VariableAccess => leaveScalarAccess()
-        case _ : ArrayAccess => leaveArrayAccess()
-        case _ : DirectFieldAccess => leaveFieldAccess()
-        case _ : TempBufferAccess => leaveTempBufferAccess()
-        case _ : LoopCarriedCSBufferAccess => leaveLoopCarriedCSBufferAccess()
+        case l : LoopOverDimensions           => leaveLoop(l)
+        case c : ConditionStatement           => leaveCondition(c)
+        case _ : AssignmentStatement          => leaveAssign()
+        case _ : StringLiteral                => leaveScalarAccess()
+        case _ : VariableAccess               => leaveScalarAccess()
+        case _ : ArrayAccess                  => leaveArrayAccess()
+        case _ : DirectFieldAccess            => leaveFieldAccess()
+        case _ : TempBufferAccess             => leaveTempBufferAccess()
+        case _ : LoopCarriedCSBufferAccess    => leaveLoopCarriedCSBufferAccess()
         case _ : VariableDeclarationStatement => leaveDecl()
-        case _ =>
+        case _                                =>
       }
   }
 
@@ -858,7 +866,7 @@ class Extractor extends Collector {
         }
         if (!mInd.isEmpty)
           indB.deleteCharAt(indB.length - 1)
-      case ind =>
+      case ind               =>
         ineq |= extractConstraints(ind, indB, false, paramExprs)
     }
 
@@ -888,7 +896,7 @@ class Extractor extends Collector {
     name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
       case SlotAccess(_, offset) => name.append('s').append(offset)
-      case s => name.append(s.prettyprint())
+      case s                     => name.append(s.prettyprint())
     }
     enterArrayAccess(replaceSpecial(name.toString()), index)
   }
