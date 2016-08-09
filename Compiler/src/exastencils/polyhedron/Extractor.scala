@@ -8,7 +8,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 
 import exastencils.core.collectors._
-import exastencils.cuda._
+import exastencils.cuda.CudaStrategiesUtils
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -461,8 +461,7 @@ class Extractor extends Collector {
     try {
       if (!curScop.exists())
         node match {
-          // at the moment do not consider the NormError kernel for polyhedral optimization since the result has incorrect behavior
-          case loop : LoopOverDimensions with PolyhedronAccessible if !(loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) && loop.getAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION).get.asInstanceOf[String].contains("NormError")) =>
+          case loop : LoopOverDimensions with PolyhedronAccessible =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
@@ -927,7 +926,8 @@ class Extractor extends Collector {
   }
 
   private def enterDecl(decl : VariableDeclarationStatement) : Unit = {
-
+    if (curScop.get().root.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION))
+      return
     if (isRead || isWrite)
       throw new ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 

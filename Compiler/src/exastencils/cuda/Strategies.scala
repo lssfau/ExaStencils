@@ -380,13 +380,6 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
       loop.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
       updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop)
       loop
-      // TODO: this is just necessary if NormError kernel is optimized with polyhedral model but currently this is not supported
-//    case scope : Scope if scope.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) =>
-//      scope.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
-//      scope.body.filter(x => x.isInstanceOf[ForLoopStatement]).foreach(loop => {
-//        updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop.asInstanceOf[ForLoopStatement])
-//      })
-//      scope
   }, false)
 }
 
