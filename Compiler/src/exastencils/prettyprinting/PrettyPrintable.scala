@@ -22,6 +22,16 @@ trait PrettyPrintable {
   }
 }
 
+
+trait KerncraftPrettyPrintable {
+  def kerncraftPrettyprint(out : PpStream) : Unit
+  final def kerncraftPrettyprint(env : PrintEnvironment = CPP) : String = {
+    val out = new PpStream(env)
+    kerncraftPrettyprint(out)
+    return out.toString()
+  }
+}
+
 abstract class RawStream[PP <: PrettyPrintable]() {
   val sb : StringBuilder = new StringBuilder()
 

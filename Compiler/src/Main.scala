@@ -233,8 +233,11 @@ object Main {
     TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
-    if (Knowledge.experimental_memoryDistanceAnalysis) {
-      AnalyzeIterationDistance()
+    if (Knowledge.kerncraftExport) {
+      KerncraftExport.apply()
+//        KerncraftDump.apply()
+//      Logger.warn("KerncraftExport enabled. Terminating IR handling.")
+//      return
     }
 
     if (Knowledge.experimental_addPerformanceEstimate)

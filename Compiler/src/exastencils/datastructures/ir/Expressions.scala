@@ -89,6 +89,17 @@ case class CastExpression(var innerDatatype : IR_Datatype, var toCast : IR_Expre
   override def prettyprint(out : PpStream) : Unit = out << "((" << innerDatatype << ")" << toCast << ")"
 }
 
+// HACK altmann: non-linearized multi dimensional arrays of pointers (to pointers, ...) to data, e.g. a[z-1][y+1][x]
+case class ArrayAccessMultiDim(var base : Expression, var indices : Iterable[Expression]) extends Access{
+  override def prettyprint(out : PpStream) : Unit = {
+    out << base
+    indices.foreach({ ix =>
+      out << '[' << ix << ']'
+    })
+  }
+
+}
+
 //TODO specific expression for reading from fragment data file
 case class ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expression) extends IR_Expression {
   override def datatype = IR_UnitDatatype

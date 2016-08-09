@@ -459,6 +459,8 @@ object Knowledge {
   var experimental_splitLoops_minInnerWidth : Int = 4 // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   /// END HACK
 
+  var kerncraftExport = false
+
   def update(configuration : Configuration = new Configuration) : Unit = {
     // NOTE: it is required to call update at least once
 
