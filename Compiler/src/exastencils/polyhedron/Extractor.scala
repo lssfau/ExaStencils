@@ -926,8 +926,6 @@ class Extractor extends Collector {
   }
 
   private def enterDecl(decl : VariableDeclarationStatement) : Unit = {
-    if (curScop.get().root.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION))
-      return
     if (isRead || isWrite)
       throw new ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 

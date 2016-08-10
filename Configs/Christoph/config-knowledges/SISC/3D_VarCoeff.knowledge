@@ -74,8 +74,8 @@ poly_tileOuterLoop          = false
 poly_filterDeps             = true
 
 // other optimizations
-opt_useAddressPrecalc           = true
-opt_vectorize                   = true
+opt_useAddressPrecalc           = false
+opt_vectorize                   = false
 opt_unroll                      = 2
 opt_unroll_interleave           = true
 opt_conventionalCSE             = false // works only with useDblPrecision = true
