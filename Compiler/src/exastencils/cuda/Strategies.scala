@@ -351,7 +351,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
     * @param extremaMap the map containing the extrema values for the loop iterators
     * @param loop       the loop to traverse
     */
-  def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement, bodyDecl : ListBuffer[VariableDeclarationStatement] = ListBuffer[VariableDeclarationStatement]()) : Unit = {
+  def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement, bodyDecl : ListBuffer[Statement] = ListBuffer[Statement]()) : Unit = {
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
         val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
@@ -389,9 +389,12 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
     case scope : Scope if scope.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) =>
       scope.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
 
-      scope.body match {
-        case ListBuffer(vd : VariableDeclarationStatement, c : CommentStatement, loop : ForLoopStatement) if vd.expression.isEmpty =>
-          updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop.asInstanceOf[ForLoopStatement], ListBuffer[VariableDeclarationStatement](vd))
+      val varDeclarations = scope.body.takeWhile(x => x.isInstanceOf[VariableDeclarationStatement])
+      val remainingBody = scope.body.dropWhile(x => x.isInstanceOf[VariableDeclarationStatement])
+
+      remainingBody match {
+        case ListBuffer(c : CommentStatement, loop : ForLoopStatement) =>
+          updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop, varDeclarations)
           new Scope(c, loop)
         case _ =>
           scope
