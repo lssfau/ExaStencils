@@ -51,13 +51,14 @@ l3tmp_genTimersPerFunction  = true
 l3tmp_genTimersPerLevel     = true
 l3tmp_printAllTimers        = true
 l3tmp_printError            = true
+
 l3tmp_targetResReduction    = 0.01
 l3tmp_initSolWithRand       = false
 l3tmp_omega                 = 0.85
+l3tmp_maxNumCGSSteps        = 1024
 
 l3tmp_genTemporalBlocking   = false
 
-l3tmp_maxNumCGSSteps        = 1024
 
 ///////////////////
 // Optimizations //
@@ -108,8 +109,8 @@ experimental_cuda_blockSize_z                   = 8
 experimental_cuda_reductionBlockSize            = 1024
 
 // my new experimental cuda properties
-experimental_cuda_useSharedMemory               = false
+experimental_cuda_useSharedMemory               = true
 experimental_cuda_linearizeSharedMemoryAccess   = false
 experimental_cuda_favorL1CacheOverSharedMemory  = false
-experimental_cuda_spatialBlockingWithSmem       = false
+experimental_cuda_spatialBlockingWithSmem       = true
 experimental_cuda_spatialBlockingWithROC        = false

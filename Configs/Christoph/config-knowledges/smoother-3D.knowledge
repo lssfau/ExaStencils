@@ -52,19 +52,20 @@ mpi_numThreads = 1
 poly_optLevel_fine          = 3
 poly_optLevel_coarse        = 1
 poly_numFinestLevels        = 1
-poly_performDCE             = false // this is only working with CUDA if Smoother only is considered, else this is not working
+poly_performDCE             = false // this is not working with CUDA
 poly_tileSize_x             = 0
 poly_tileSize_y             = 0
 poly_tileSize_z             = 0
 poly_tileOuterLoop          = false
 poly_filterDeps             = true
-poly_simplifyDeps           = true
 
 // other optimizations
-opt_useAddressPrecalc  = false
-opt_vectorize          = false // true is not working
-opt_unroll             = 0
-opt_unroll_interleave  = false
+opt_useAddressPrecalc           = false
+opt_vectorize                   = false
+opt_unroll                      = 2
+opt_unroll_interleave           = true
+opt_conventionalCSE             = false // works only with useDblPrecision = true
+opt_loopCarriedCSE              = false // this is not working with CUDA
 
 ///////////////////////////////////////////////////////////
 // HACK configuration options for generating L4 DSL file //
