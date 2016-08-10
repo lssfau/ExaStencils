@@ -4,8 +4,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
-import exastencils.core.collectors.L4CommCollector
-import exastencils.core.collectors.L4ValueCollector
+import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
@@ -164,6 +163,23 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
         }
         f
     }))
+
+    var variableCollector = new L4VariableCollector()
+    this.register(variableCollector)
+    this.execute(new Transformation("Resolving to Variable Accesses", {
+      case x : BasicAccess => {
+        var value = variableCollector.getValue(x.name)
+        if (value.isDefined) {
+          Logger.warn("VarResolve: found:     " + x.name)
+          //          VariableAccess(x, value.get)
+          x
+        } else {
+          Logger.warn("VarResolve: not found: " + x.name)
+          x
+        }
+      }
+    }))
+    this.unregister(variableCollector)
 
     this.commit()
   }

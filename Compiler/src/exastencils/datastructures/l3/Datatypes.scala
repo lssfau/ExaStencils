@@ -84,7 +84,7 @@ abstract class DynamicLocation extends StaticValue {
     throw new Exception("Operator '*' is not defined.")
   }
 
-  def argumentTc() : l4.Variable = ???
+  def argumentTc() : l4.VariableAccess = ???
 }
 
 class DynamicRealLocation(id : String) extends DynamicLocation {
@@ -101,9 +101,9 @@ class DynamicRealLocation(id : String) extends DynamicLocation {
     }
   }
 
-  override def tcForReading() : l4.Expression = l4.Variable(l4.BasicIdentifier(id), l4.RealDatatype)
+  override def tcForReading() : l4.Expression = l4.VariableAccess(id, None, l4.RealDatatype)
 
-  override def argumentTc() : l4.Variable = l4.Variable(l4.BasicIdentifier(id), l4.RealDatatype)
+  override def argumentTc() : l4.VariableAccess = l4.VariableAccess(id, None, l4.RealDatatype)
 }
 
 case class DynamicFieldLocation(tcId : String) extends DynamicLocation {

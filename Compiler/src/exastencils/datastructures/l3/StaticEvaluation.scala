@@ -76,7 +76,7 @@ case class FunctionRValue(
     val body_ctx = createBodyContext(ctx, givenStaticArgs)
 
     // bind dynamic arguments
-    val tcArgs = ListBuffer[l4.Variable]()
+    val tcArgs = ListBuffer[l4.VariableAccess]()
     for (arg <- dynamicArguments) {
       val argLocation = arg.datatype.createDynamicLocation(body_ctx)
       body_ctx.env.bind(arg.id, StaticConstant(argLocation))

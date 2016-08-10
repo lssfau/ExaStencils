@@ -993,11 +993,11 @@ case class SIMD_MinimumExpression(var left : Expression, var right : Expression)
     else {
       val prec = if (Knowledge.useDblPrecision) 'd' else 's'
       Platform.simd_instructionSet match {
-        case "SSE3" => out << "_mm_min_p" << prec
+        case "SSE3"         => out << "_mm_min_p" << prec
         case "AVX" | "AVX2" => out << "_mm256_min_p" << prec
-        case "AVX512" => out << "_mm512_min_p" << prec
-        case "IMCI" => out << "_mm512_gmin_p" << prec
-        case "NEON" => out << "vmin_f32"
+        case "AVX512"       => out << "_mm512_min_p" << prec
+        case "IMCI"         => out << "_mm512_gmin_p" << prec
+        case "NEON"         => out << "vmin_f32"
       }
       out << '(' << left << ", " << right << ')'
     }
@@ -1011,11 +1011,11 @@ case class SIMD_MaximumExpression(var left : Expression, var right : Expression)
     else {
       val prec = if (Knowledge.useDblPrecision) 'd' else 's'
       Platform.simd_instructionSet match {
-        case "SSE3" => out << "_mm_max_p" << prec
+        case "SSE3"         => out << "_mm_max_p" << prec
         case "AVX" | "AVX2" => out << "_mm256_max_p" << prec
-        case "AVX512" => out << "_mm512_max_p" << prec
-        case "IMCI" => out << "_mm512_gmax_p" << prec
-        case "NEON" => out << "vmax_f32"
+        case "AVX512"       => out << "_mm512_max_p" << prec
+        case "IMCI"         => out << "_mm512_gmax_p" << prec
+        case "NEON"         => out << "vmax_f32"
       }
       out << '(' << left << ", " << right << ')'
     }
