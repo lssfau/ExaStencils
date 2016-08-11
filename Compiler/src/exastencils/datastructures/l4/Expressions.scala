@@ -157,8 +157,8 @@ case class UnresolvedAccess(var name : String,
 case class BasicAccess(var name : String) extends Access {
   def prettyprint(out : PpStream) = { out << name }
 
-  //  def progressToIr : ir.StringLiteral = ir.StringLiteral(name)
-  def progressToIr : ir.StringLiteral = Logger.error("ProgressToIr for BasicAccess " + name)
+  def progressToIr : ir.StringLiteral = ir.StringLiteral(name)
+  //def progressToIr : ir.StringLiteral = Logger.error("ProgressToIr for BasicAccess " + name)
 }
 
 case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
@@ -358,17 +358,10 @@ case class LeveledIdentifier(var name : String, var level : LevelSpecification) 
   def fullName = name + "_" + level.asInstanceOf[SingleLevelSpecification].level
 }
 
-case class VariableAccess(var name : String, var level : Option[AccessLevelSpecification], var datatype : Datatype) extends Access {
-  def prettyprint(out : PpStream) = {
-    out << name
-    if (level.isDefined) out << "_" << level.get.prettyprint
-  }
+case class VariableExpression(var access : Access, var datatype : Datatype) extends Expression {
+  def prettyprint(out : PpStream) = access.prettyprint(out)
 
-  def progressToIr = {
-    var n = name
-    if (level.isDefined) n += "_" + level.get.prettyprint
-    ir.VariableAccess(n, Some(datatype.progressToIr))
-  }
+  def progressToIr = ir.VariableAccess(access.name, Some(datatype.progressToIr))
 }
 
 case class UnaryExpression(var operator : String, var exp : Expression) extends Expression {

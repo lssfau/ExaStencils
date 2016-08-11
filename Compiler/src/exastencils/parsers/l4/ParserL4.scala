@@ -115,9 +115,9 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val function = locationize("noinline".? ~ (("Func" ||| "Function") ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
-    ^^ { case inline ~ id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[VariableAccess]()), stmts, !inline.isDefined) })
-  lazy val functionArgumentList = /*locationize*/ ((functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg })
-  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => VariableAccess(id, None, t) }) // FIXME FunctionArgumentDeclaration?
+    ^^ { case inline ~ id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[FunctionArgument]()), stmts, !inline.isDefined) })
+  lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg }
+  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => FunctionArgument(new BasicIdentifier(id), t) })
 
   lazy val functionCallArgumentList = /*locationize*/ (((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex })
   lazy val functionCall = locationize((flatAccess ||| leveledAccess) ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })

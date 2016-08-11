@@ -18,6 +18,7 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
   var stencils : ListBuffer[StencilDeclarationStatement] = new ListBuffer()
   var globals : ListBuffer[GlobalDeclarationStatement] = new ListBuffer()
   var functionTemplates : ListBuffer[FunctionTemplateStatement] = new ListBuffer()
+  var functions : ListBuffer[FunctionStatement] = new ListBuffer()
   var statements : ListBuffer[Statement] = new ListBuffer()
 
   nodes.foreach(n => n match {
@@ -29,6 +30,7 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
     case p : StencilDeclarationStatement       => stencils.+=(p)
     case p : GlobalDeclarationStatement        => globals.+=(p)
     case p : FunctionTemplateStatement         => functionTemplates.+=(p)
+    case p : FunctionStatement                 => functions.+=(p)
     case p : Statement                         => statements.+=(p)
   })
 
@@ -60,6 +62,10 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
       out <<< stencils << '\n'
     if (!globals.isEmpty)
       out <<< globals << '\n'
+    if (!functionTemplates.isEmpty)
+      out <<< (functionTemplates, "\n") << '\n'
+    if (!functions.isEmpty)
+      out <<< (functions, "\n") << '\n'
     if (!statements.isEmpty)
       out <<< (statements, "\n") << '\n'
   }
@@ -98,17 +104,19 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
     ExternalFieldCollection.fields.clear
     for (extField <- externalFields)
       ExternalFieldCollection.fields += extField.progressToIr
-
+      
     // Globals
     var progGlobals = new Globals(new ListBuffer)
     globals.foreach(f => progGlobals.variables ++= f.progressToIr)
     newRoot += progGlobals
 
     var multiGrid = new MultiGridFunctions // FIXME: think about how to manage (MG/other) functions
-    for (node <- statements)
-      node match {
-        case function : FunctionStatement => multiGrid.functions += function.progressToIr
-      }
+//    for (node <- statements)
+//      node match {
+//        case function : FunctionStatement => multiGrid.functions += function.progressToIr
+//      }
+    
+    functions.foreach(multiGrid.functions += _.progressToIr)
     newRoot += multiGrid
     newRoot
   }

@@ -81,7 +81,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
         val kernel = Kernel(
           kernelFunctions.getIdentifier(collector.getCurrentName),
-          variableAccesses,
+          variableAccesses.map(s => FunctionArgument(s.name, s.dType.get)).to[ListBuffer],
           loop.numDimensions,
           loop.indices,
           loop.body,

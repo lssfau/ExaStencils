@@ -89,7 +89,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
 
       case FunctionStatement(_, _, params, _, _, _, _) =>
         for (param <- params)
-          declare(param.name, param.dType.get)
+          declare(param.name, param.datatype)
 
       // HACK: ensure the iterator declaration is visited before the body...
       case ForLoopStatement(begin, _, _, _, _) =>

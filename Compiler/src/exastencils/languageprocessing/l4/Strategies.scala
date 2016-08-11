@@ -171,7 +171,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
         var value = variableCollector.getValue(x.name)
         if (value.isDefined) {
           Logger.warn("VarResolve: found:     " + x.name)
-          //          VariableAccess(x, value.get)
+          //          VariableAccess(x.name, None, value.get)
           x
         } else {
           Logger.warn("VarResolve: not found: " + x.name)

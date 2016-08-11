@@ -250,14 +250,14 @@ case class ColorWithStatement(var colors : List[Expression], var loop : LoopOver
 
 case class FunctionStatement(override var identifier : Identifier,
     var returntype : Datatype,
-    var arguments : List[VariableAccess],
+    var arguments : List[FunctionArgument],
     var statements : List[Statement],
     var allowInlining : Boolean = true) extends Statement with HasIdentifier {
 
   override def prettyprint(out : PpStream) = {
     out << "Function " << identifier << " ("
     if (!arguments.isEmpty) {
-      for (arg <- arguments) { out << arg.name << " : " << arg.datatype << ", " }
+      for (arg <- arguments) { arg.prettyprint(out); out << ", " }
       out.removeLast(2)
     }
     out << " )" << " : " << returntype << " {\n"
@@ -275,9 +275,19 @@ case class FunctionStatement(override var identifier : Identifier,
   }
 }
 
+case class FunctionArgument(override var identifier : Identifier,
+    var datatype : Datatype) extends Access with HasIdentifier with ProgressableToIr {
+  override def name = identifier.name
+  override def prettyprint(out : PpStream) {
+    out << identifier.name << " : " << datatype.prettyprint
+  }
+
+  override def progressToIr = ir.FunctionArgument(identifier.fullName, datatype.progressToIr)
+}
+
 case class FunctionTemplateStatement(var name : String,
     var templateArgs : List[String],
-    var functionArgs : List[VariableAccess],
+    var functionArgs : List[FunctionArgument],
     var returntype : Datatype,
     var statements : List[Statement]) extends Statement {
 

@@ -83,11 +83,10 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
           // adapt parameters
           var paramIdx = 0
           for (param <- fct.parameters) {
-            param.dType match {
-              case None                      => Logger.warn(s"parameter ${param.name} in function ${fct.name} has no data type")
-              case Some(PointerDatatype(_))  => // already fortran compliant
-              case Some(ArrayDatatype(_, _)) => // should also be fortran compliant
-              case Some(datatype) => {
+            param.datatype match {
+              case PointerDatatype(_)  => // already fortran compliant
+              case ArrayDatatype(_, _) => // should also be fortran compliant
+              case datatype => {
                 // remember for later usage
                 functionsToBeProcessed.get(fct.name).get += ((paramIdx, datatype))
 
@@ -97,7 +96,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
                     ReferenceDatatype(Duplicate(datatype)), param.name,
                     Some(DerefAccess(VariableAccess(param.name + "_ptr", Some(PointerDatatype(datatype)))))))
                 param.name += "_ptr"
-                param.dType = Some(PointerDatatype(Duplicate(datatype)))
+                param.datatype = PointerDatatype(Duplicate(datatype))
               }
             }
             paramIdx += 1

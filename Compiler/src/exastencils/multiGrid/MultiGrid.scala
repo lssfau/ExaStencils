@@ -42,7 +42,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         statements += wrapped
     }
 
-    new FunctionStatement(UnitDatatype, name, ListBuffer[VariableAccess](), statements)
+    new FunctionStatement(UnitDatatype, name, ListBuffer[FunctionArgument](), statements)
   }
 }
 
