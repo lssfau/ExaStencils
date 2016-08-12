@@ -81,7 +81,7 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
         file.getParentFile().mkdirs()
       }
       outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
-      val sep = Settings.performanceEstimateOutputSeparator
+      val sep = Settings.csvSeparator
       for (fct <- completeFunctions.toList.sortBy(_._1)) {
         val fctName = fct._1
         val estimate = fct._2
