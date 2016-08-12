@@ -228,7 +228,6 @@ object Main {
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
     if (Knowledge.experimental_addPerformanceEstimate) {
-      SimplifyStrategy.doUntilDone()
       AddPerformanceEstimates()
     }
     if (Knowledge.experimental_cuda_enabled) {
