@@ -339,8 +339,6 @@ object Main {
     // for runtime measurement
     val start : Long = System.nanoTime()
 
-    Logger.setLevel(Logger.WARNING)
-
     initialize(args)
 
     handleL1()
