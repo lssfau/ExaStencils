@@ -104,20 +104,16 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
     ExternalFieldCollection.fields.clear
     for (extField <- externalFields)
       ExternalFieldCollection.fields += extField.progressToIr
-      
+
     // Globals
     var progGlobals = new Globals(new ListBuffer)
     globals.foreach(f => progGlobals.variables ++= f.progressToIr)
     newRoot += progGlobals
 
     var multiGrid = new MultiGridFunctions // FIXME: think about how to manage (MG/other) functions
-//    for (node <- statements)
-//      node match {
-//        case function : FunctionStatement => multiGrid.functions += function.progressToIr
-//      }
-    
     functions.foreach(multiGrid.functions += _.progressToIr)
     newRoot += multiGrid
+
     newRoot
   }
 }

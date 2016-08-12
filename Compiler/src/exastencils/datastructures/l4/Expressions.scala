@@ -355,7 +355,7 @@ case class BasicIdentifier(var name : String) extends Identifier {
 case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
   def prettyprint(out : PpStream) = { out << name << '@' << level }
 
-  def fullName = name + "_" + level.asInstanceOf[SingleLevelSpecification].level
+  def fullName = name + "_" + level.prettyprint
 }
 
 case class VariableExpression(var access : Access, var datatype : Datatype) extends Expression {
