@@ -425,8 +425,10 @@ case class ExpKernel(var identifier : String,
     GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses.clear
     GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart.clear
     GatherLocalFieldAccessLikeForSharedMemory.maximalFieldDim = math.min(parallelDims, Platform.hw_cuda_maxNumDimsBlock)
+    GatherLocalFieldAccessLikeForSharedMemory.writtenFields.clear
     GatherLocalFieldAccessLikeForSharedMemory.applyStandalone(Scope(body))
     var fieldToFieldAccesses = GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses
+    val writtenFields = GatherLocalFieldAccessLikeForSharedMemory.writtenFields
     val fieldIndicesConstantPart = GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart
     var availableSharedMemory = if (Knowledge.experimental_cuda_favorL1CacheOverSharedMemory) Platform.hw_cuda_cacheMemory.toLong else Platform.hw_cuda_sharedMemory.toLong
 
@@ -482,7 +484,7 @@ case class ExpKernel(var identifier : String,
       })
 
       // 2.4 consider this field for shared memory if all conditions are met
-      if (fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
+      if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
         val access = DirectFieldAccess(fieldAccesses.head.fieldSelection, MultiIndex(baseIndex))
         access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
         fieldNames += name
@@ -1014,8 +1016,9 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
   var fieldAccesses = new mutable.HashMap[String, List[FieldAccessLike]].withDefaultValue(Nil)
   var fieldIndicesConstantPart = new mutable.HashMap[String, List[Array[Long]]].withDefaultValue(Nil)
   var maximalFieldDim = Platform.hw_cuda_maxNumDimsBlock
+  var writtenFields = ListBuffer[String]()
 
-  def mapFieldAccesses(access : FieldAccessLike) = {
+  def extractFieldIdentifier(access : FieldAccessLike) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -1027,35 +1030,42 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
       }
     }
 
-    // Evaluate indices. Should be of the form "variable + offset". Ignore all other fields.
-    var suitableForSharedMemory = field.fieldLayout.numDimsData <= Platform.hw_cuda_maxNumDimsBlock
-    val accessIndices = access.index.indices
-    val indexConstantPart = Array.fill[Long](accessIndices.length)(0)
-
-    accessIndices.indices.foreach(i => {
-      accessIndices(i) match {
-        case AdditionExpression(ListBuffer(va @ VariableAccess(name : String, _), IntegerConstant(v : Long))) =>
-          suitableForSharedMemory &= loopVariables.contains(name)
-          indexConstantPart(i) = v
-        case va @ VariableAccess(name : String, _)                                                            =>
-          suitableForSharedMemory &= loopVariables.contains(name)
-        case IntegerConstant(v : Long)                                                                        =>
-          indexConstantPart(i) = v
-        case _                                                                                                =>
-          suitableForSharedMemory = false
-      }
-    })
-
-    if (suitableForSharedMemory) {
-      access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
-      fieldAccesses(identifier) ::= access
-      fieldIndicesConstantPart(identifier) ::= indexConstantPart
-    }
+    identifier
   }
 
   this += new Transformation("Searching", {
+    case stmt @ AssignmentStatement(access : FieldAccessLike, _, _) =>
+      writtenFields += extractFieldIdentifier(access)
+      stmt
     case access : FieldAccessLike if access.fieldSelection.fieldLayout.numDimsData <= maximalFieldDim =>
-      mapFieldAccesses(access)
+      val field = access.fieldSelection.field
+      val identifier = extractFieldIdentifier(access)
+
+      // Evaluate indices. Should be of the form "variable + offset". Ignore all other fields.
+      var suitableForSharedMemory = field.fieldLayout.numDimsData <= Platform.hw_cuda_maxNumDimsBlock
+      val accessIndices = access.index.indices
+      val indexConstantPart = Array.fill[Long](accessIndices.length)(0)
+
+      accessIndices.indices.foreach(i => {
+        accessIndices(i) match {
+          case AdditionExpression(ListBuffer(va @ VariableAccess(name : String, _), IntegerConstant(v : Long))) =>
+            suitableForSharedMemory &= loopVariables.contains(name)
+            indexConstantPart(i) = v
+          case va @ VariableAccess(name : String, _)                                                            =>
+            suitableForSharedMemory &= loopVariables.contains(name)
+          case IntegerConstant(v : Long)                                                                        =>
+            indexConstantPart(i) = v
+          case _                                                                                                =>
+            suitableForSharedMemory = false
+        }
+      })
+
+      if (suitableForSharedMemory) {
+        access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
+        fieldAccesses(identifier) ::= access
+        fieldIndicesConstantPart(identifier) ::= indexConstantPart
+      }
+
       access
   }, true)
 }
