@@ -98,6 +98,18 @@ object Settings {
   // performance estimates (experimental)
   var performanceEstimateOutputFile : String = "Compiler/performanceEstimate.csv"
 
+  // Separator used in CSV output, ";" and "\t" are valid choices.
+  var csvSeparator : String = ";"
+
+  /** Returns csvSeparator as C++ string literal. */
+  def csvSeparatorEscaped() : String = {
+    csvSeparator match {
+      case ";" => ";"
+      case "\t" => "\\t"
+      case _ => throw new Exception("bad csvSeparator in Settings")
+    }
+  }
+
   /// external dependencies
   var pathsInc : ListBuffer[String] = ListBuffer()
   var pathsLib : ListBuffer[String] = ListBuffer()
@@ -141,6 +153,13 @@ object Settings {
   var logStrategyResults : Boolean = true // Debug log strategy results
 
   def update() : Unit = {
+    // Settings parser does not parse escapes in string literals.
+    if (csvSeparator == "\\t")
+      csvSeparator = "\t"
+
+    // check if CSV separator is valid
+    csvSeparatorEscaped()
+
     // parse here to fail early
     parseBuildfileGenerators
 

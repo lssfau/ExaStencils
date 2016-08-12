@@ -76,10 +76,18 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
     }
 
     if (true) { // TODO: add flag to control behavior
+      var file = new java.io.File(Settings.performanceEstimateOutputFile)
+      if (!file.getParentFile().exists()) {
+        file.getParentFile().mkdirs()
+      }
       outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
-
-      for (fct <- completeFunctions.toList.sortBy(_._1))
-        outputStream.println("%s\t%s\t%e".formatLocal(java.util.Locale.US, "function", fct._1, fct._2.host * 1000.0)) //ms
+      val sep = Settings.csvSeparator
+      for (fct <- completeFunctions.toList.sortBy(_._1)) {
+        val fctName = fct._1
+        val estimate = fct._2
+        outputStream.println("%s%s%s%s%e".formatLocal(java.util.Locale.US,
+          "function", sep, fctName, sep, estimate.host * 1000.0)) //ms
+      }
 
       outputStream.close()
       outputStream = null
@@ -181,7 +189,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
         val optimisticDataPerIt = EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._2.typicalByteSize).fold(0)(_ + _)
         val effectiveHostBW = Platform.hw_cpu_bandwidth / (coresPerRank * Knowledge.omp_numThreads) // assumes full parallelization - TODO: adapt values according to (OMP) parallel loops
-        val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / effectiveHostBW
+        val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Platform.hw_cpu_bandwidth
         val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Platform.hw_gpu_bandwidth
 
         val cyclesPerIt = (Math.max(EvaluatePerformanceEstimates_Ops.numAdd, EvaluatePerformanceEstimates_Ops.numMul)

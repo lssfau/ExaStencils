@@ -227,8 +227,9 @@ object Main {
     TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
-    if (Knowledge.experimental_addPerformanceEstimate)
+    if (Knowledge.experimental_addPerformanceEstimate) {
       AddPerformanceEstimates()
+    }
     if (Knowledge.experimental_cuda_enabled) {
       SplitLoopsForHostAndDevice.apply()
       AdaptKernelDimensionalities.apply()
