@@ -734,16 +734,16 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 		//vis@current = rel + ( 1.0 - rel ) / ( 1.0 + sqrt ( lambda * gama ) )
 
 		// Int. J. Heat & Mass Transfer 34(1991) 1083-1096 CMC/Power law
-		gama = max ( gama, 0.01 )
-		vis@current = miu@current * gama**( n_index - 1.0 )
+		//gama = max ( gama, 0.01 )
+		//vis@current = miu@current * gama**( n_index - 1.0 )
 
 		// Bingham: Bi-viscosity model O'Donovan & Tanner
-		//Val miu_yield : Real = 1.0e3 * miu@current
-		//if ( gama <= tau_y / miu_yield ) {
-		//	vis@current = miu_yield
-		//} else {
-		//	vis@current = ( tau_y + miu@current * ( gama - tau_y / miu_yield ) ) / gama
-		//}
+		Val miu_yield : Real = 1.0e3 * miu@current
+		if ( gama <= tau_y / miu_yield ) {
+			vis@current = miu_yield
+		} else {
+			vis@current = ( tau_y + miu@current * ( gama - tau_y / miu_yield ) ) / gama
+		}
 	}
 
 	communicate vis@current
