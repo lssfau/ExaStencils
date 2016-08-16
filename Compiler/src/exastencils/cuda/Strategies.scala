@@ -486,7 +486,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       val kernel = ExpKernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         Duplicate(parallelInnerLoops.length),
-        Duplicate(variableAccesses),
+        variableAccesses.map(s => FunctionArgument(s.name, s.dType.get)),
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
         Duplicate(upperBounds),
@@ -578,7 +578,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
         val kernel = Kernel(
           kernelFunctions.getIdentifier(collector.getCurrentName),
-          variableAccesses,
+          variableAccesses.map(s => FunctionArgument(s.name, s.dType.get)),
           loop.numDimensions,
           loop.indices,
           loop.body,

@@ -4,8 +4,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
-import exastencils.core.collectors.L4CommCollector
-import exastencils.core.collectors.L4ValueCollector
+import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.l4._
@@ -165,6 +164,23 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
         f
     }))
 
+    //    var variableCollector = new L4VariableCollector()
+    //    this.register(variableCollector)
+    //    this.execute(new Transformation("Resolving to Variable Accesses", {
+    //      case x : BasicAccess => {
+    //        var value = variableCollector.getValue(x.name)
+    //        if (value.isDefined) {
+    //          Logger.warn("VarResolve: found:     " + x.name)
+    //          //          VariableAccess(x.name, None, value.get)
+    //          x
+    //        } else {
+    //          Logger.warn("VarResolve: not found: " + x.name)
+    //          x
+    //        }
+    //      }
+    //    }))
+    //    this.unregister(variableCollector)
+
     this.commit()
   }
 }
@@ -222,16 +238,16 @@ object ResolveFunctionTemplates extends DefaultStrategy("Resolving function temp
 
       ReplaceExpressions.replacements = (template.get.templateArgs zip functionInst.args).toMap[String, Expression]
       ReplaceExpressions.applyStandalone(instantiated)
-
-      instantiated
+      StateManager.root.asInstanceOf[Root].functions += instantiated
+      None
     }
   })
 
-  this += new Transformation("Remove function templates", {
-    case root : Root =>
-      root.functionTemplates.clear; root
-    case functionTemplate : FunctionTemplateStatement => None
-  })
+  //  this += new Transformation("Remove function templates", {
+  //    case root : Root =>
+  //      root.functionTemplates.clear; root
+  //    case functionTemplate : FunctionTemplateStatement => None
+  //  })
 }
 
 object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundaryHandlingFunctions") {
@@ -266,7 +282,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
       if (field.boundary.isDefined) {
         if (field.boundary.get.isInstanceOf[FunctionCallExpression]) {
           val fctCall = field.boundary.get.asInstanceOf[FunctionCallExpression]
-          val fctDecl = StateManager.root.asInstanceOf[Root].statements.find(
+          val fctDecl = StateManager.root.asInstanceOf[Root].functions.find(
             _ match {
               case f : FunctionStatement if f.identifier.isInstanceOf[LeveledIdentifier]
                 && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
@@ -286,6 +302,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
       val field = applyBC.field match {
         case field : FieldAccess     => fromFieldAccess(field)
         case sf : StencilFieldAccess => fromStencilFieldAccess(sf)
+        case _                       => Logger.warn(_) // FIXME WTF ?
       }
       val fctCall = bcs.find(_._1 == field)
       if (fctCall.isDefined)

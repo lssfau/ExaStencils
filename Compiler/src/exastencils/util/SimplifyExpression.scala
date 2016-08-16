@@ -541,7 +541,7 @@ object SimplifyExpression {
         if (MathFunctions.signatures.contains(call.name))
           simplifyFloatingArgs(MathFunctions.signatures(call.name)._1)
         else for (func <- StateManager.findFirst({ f : FunctionStatement => f.name == call.name }))
-          simplifyFloatingArgs(func.parameters.view.map(_.dType.orNull))
+          simplifyFloatingArgs(func.parameters.view.map(_.datatype))
         res = new HashMap[Expression, Double]()
         res(call) = 1d
 

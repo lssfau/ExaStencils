@@ -440,7 +440,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
         AssignmentStatement(iv.PrimitiveTransformation(), "trafoTmp")),
       ListBuffer(NullStatement))
     FunctionStatement(UnitDatatype, name,
-      ListBuffer[VariableAccess](VariableAccess("data", Some("char*")), VariableAccess("numFragments", Some(IntegerDatatype))),
+      ListBuffer[FunctionArgument](FunctionArgument("data", SpecialDatatype("char*")), FunctionArgument("numFragments", IntegerDatatype)),
       //      ListBuffer((LoopOverFragments(body))))
       ListBuffer(ForLoopStatement(" int fragmentIdx = 0 ", " fragmentIdx < numFragments ", " ++fragmentIdx ", body)))
   }
@@ -464,9 +464,9 @@ case class DomainFunctions() extends FunctionCollection(
     val rvTemplateFunc = FunctionStatement(
       new SpecialDatatype("template <class T> T"),
       s"readValue",
-      ListBuffer[VariableAccess](
-        VariableAccess("memblock", Some("char*&")),
-        VariableAccess("title = \"\"", Some("std::string"))),
+      ListBuffer[FunctionArgument](
+        FunctionArgument("memblock", SpecialDatatype("char*&")),
+        FunctionArgument("title = \"\"", SpecialDatatype("std::string"))),
       ListBuffer[Statement](
         VariableDeclarationStatement(IntegerDatatype, "size", Some("sizeof(T)")),
         VariableDeclarationStatement(CharDatatype, "bytes[size]"),

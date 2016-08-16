@@ -78,9 +78,9 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
 
     // kernel function
     {
-      def data = VariableAccess("data", Some(PointerDatatype(RealDatatype)))
-      def numElements = VariableAccess("numElements", Some(IntegerDatatype /*FIXME: size_t*/))
-      def stride = VariableAccess("stride", Some(IntegerDatatype /*FIXME: size_t*/))
+      def data = FunctionArgument("data", PointerDatatype(RealDatatype))
+      def numElements = FunctionArgument("numElements", IntegerDatatype /*FIXME: size_t*/ )
+      def stride = FunctionArgument("stride", IntegerDatatype /*FIXME: size_t*/ )
       def it = Duplicate(LoopOverDimensions.defItForDim(0))
 
       var fctBody = ListBuffer[Statement]()
@@ -116,9 +116,9 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
 
     // wrapper function
     {
-      def numElements = VariableAccess("numElements", Some(SpecialDatatype("size_t") /*FIXME*/))
-      def stride = VariableAccess("stride", Some(SpecialDatatype("size_t") /*FIXME*/))
-      def data = VariableAccess("data", Some(PointerDatatype(RealDatatype)))
+      def numElements = VariableAccess("numElements", Some(SpecialDatatype("size_t") /*FIXME*/ ))
+      def stride = VariableAccess("stride", Some(SpecialDatatype("size_t") /*FIXME*/ ))
+      def data = FunctionArgument("data", PointerDatatype(RealDatatype))
       def ret = VariableAccess("ret", Some(RealDatatype))
 
       def blockSize = Knowledge.experimental_cuda_reductionBlockSize
@@ -148,7 +148,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       functions += FunctionStatement(
         RealDatatype, // TODO: support other types
         wrapperName,
-        ListBuffer(data, VariableAccess("numElements", Some(IntegerDatatype /*FIXME: size_t*/))),
+        ListBuffer(data, FunctionArgument("numElements", IntegerDatatype /*FIXME: size_t*/ )),
         fctBody,
         allowInlining = false, allowFortranInterface = false,
         "extern \"C\"")
@@ -161,7 +161,7 @@ object Kernel {
 }
 
 case class Kernel(var identifier : String,
-    var passThroughArgs : ListBuffer[VariableAccess],
+    var passThroughArgs : ListBuffer[FunctionArgument],
     var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[Statement],
@@ -302,25 +302,25 @@ case class Kernel(var identifier : String,
     evalFieldAccesses() // ensure that field accesses have been mapped
 
     // compile parameters for device function
-    var fctParams = ListBuffer[VariableAccess]()
+    var fctParams = ListBuffer[FunctionArgument]()
     for (dim <- 0 until numDimensions) {
-      fctParams += VariableAccess(s"begin_$dim", Some(IntegerDatatype))
-      fctParams += VariableAccess(s"end_$dim", Some(IntegerDatatype))
+      fctParams += FunctionArgument(s"begin_$dim", IntegerDatatype)
+      fctParams += FunctionArgument(s"end_$dim", IntegerDatatype)
     }
     for (fieldAccess <- fieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
-      fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
+      fctParams += FunctionArgument(fieldAccess._1, PointerDatatype(fieldSelection.field.resolveDeclType))
     }
     for (ivAccess <- ivAccesses) {
-      var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
+      val access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
       access.dType match {
         case Some(SpecialDatatype("Vec3")) => access.dType = Some(SpecialDatatype("double3"))
         case _                             =>
       }
-      fctParams += access
+      fctParams += FunctionArgument(access.name, access.dType.get)
     }
     for (variableAccess <- passThroughArgs) {
-      fctParams += Duplicate(variableAccess)
+      fctParams += FunctionArgument(variableAccess.name, variableAccess.datatype)
     }
 
     val fct = FunctionStatement(
@@ -345,7 +345,7 @@ object ExpKernel {
 
 case class ExpKernel(var identifier : String,
     var parallelDims : Int,
-    var passThroughArgs : ListBuffer[VariableAccess],
+    var passThroughArgs : ListBuffer[FunctionArgument],
     var loopVariables : ListBuffer[String],
     var lowerBounds : ListBuffer[Expression],
     var upperBounds : ListBuffer[Expression],
@@ -880,11 +880,11 @@ case class ExpKernel(var identifier : String,
     evalExecutionConfiguration() // ensure that execution configuration is already calculated
 
     // compile parameters for device function
-    var fctParams = ListBuffer[VariableAccess]()
+    var fctParams = ListBuffer[FunctionArgument]()
 
     for (dim <- 0 until parallelDims) {
-      fctParams += VariableAccess(s"${ KernelVariablePrefix }begin_$dim", Some(IntegerDatatype))
-      fctParams += VariableAccess(s"${ KernelVariablePrefix }end_$dim", Some(IntegerDatatype))
+      fctParams += FunctionArgument(s"${ KernelVariablePrefix }begin_$dim", IntegerDatatype)
+      fctParams += FunctionArgument(s"${ KernelVariablePrefix }end_$dim", IntegerDatatype)
     }
 
     for (fieldAccess <- linearizedFieldAccesses) {
@@ -892,34 +892,34 @@ case class ExpKernel(var identifier : String,
 
       // add required parameter specifiers to take advantage of the read-only cache
       if (Knowledge.experimental_cuda_spatialBlockingWithROC && !writtenFieldAccesses.contains(fieldAccess._1)) {
-        fctParams += VariableAccess(fieldAccess._1, Some(CUDAConstPointerDatatype(fieldSelection.field.resolveDeclType)))
+        fctParams += FunctionArgument(fieldAccess._1, CUDAConstPointerDatatype(fieldSelection.field.resolveDeclType))
       } else {
-        fctParams += VariableAccess(fieldAccess._1, Some(PointerDatatype(fieldSelection.field.resolveDeclType)))
+        fctParams += FunctionArgument(fieldAccess._1, PointerDatatype(fieldSelection.field.resolveDeclType))
       }
     }
 
     if (fieldForSharedMemory.nonEmpty) {
       fieldNames.foreach(field => {
-        fctParams += VariableAccess(field, Some(PointerDatatype(fieldForSharedMemory(field).fieldSelection.field.resolveDeclType)))
+        fctParams += FunctionArgument(field, PointerDatatype(fieldForSharedMemory(field).fieldSelection.field.resolveDeclType))
       })
     }
 
     for (ivAccess <- ivAccesses) {
-      var access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
+      val access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
       val datatype = ivAccess._2.resolveDataType
 
       datatype match {
         case SpecialDatatype("Vec3")  =>
           access.dType = Some(SpecialDatatype("double3"))
-          fctParams += access
+          fctParams += FunctionArgument(access.name, access.dType.get)
         case SpecialDatatype("Vec3i") =>
-          fctParams ++= (0 until 3).map(dim => VariableAccess(ivAccess._1 + '_' + dim, Some(SpecialDatatype("int")))).to[ListBuffer]
-        case _                        => fctParams += VariableAccess(ivAccess._1, Some(datatype))
+          fctParams ++= (0 until 3).map(dim => FunctionArgument(ivAccess._1 + '_' + dim, SpecialDatatype("int"))).to[ListBuffer]
+        case _                        => fctParams += FunctionArgument(ivAccess._1, datatype)
       }
     }
 
     for (variableAccess <- passThroughArgs) {
-      fctParams += Duplicate(variableAccess)
+      fctParams += FunctionArgument(variableAccess.name, variableAccess.datatype)
     }
 
     val fct = FunctionStatement(

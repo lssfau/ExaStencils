@@ -77,7 +77,7 @@ case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
   override def expand : Output[FunctionStatement] = {
     def flag = VariableAccess("flag", Some(PointerDatatype(VolatileDatatype(BooleanDatatype))))
 
-    FunctionStatement(UnitDatatype, name, ListBuffer(flag),
+    FunctionStatement(UnitDatatype, name, ListBuffer(FunctionArgument(flag.name, flag.dType.get)),
       ListBuffer[Statement](
         new WhileLoopStatement(NegationExpression(DerefAccess(flag)), ListBuffer[Statement]()),
         new AssignmentStatement(DerefAccess(flag), BooleanConstant(false))),
