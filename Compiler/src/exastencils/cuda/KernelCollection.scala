@@ -39,10 +39,6 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     s"${ fctName }_k${ String.format("%03d", cnt : java.lang.Integer) }"
   }
 
-  def addKernel(kernel : Kernel) = {
-    //kernelCollection += kernel
-  }
-
   def addKernel(kernel : ExpKernel) = {
     kernelCollection += kernel
   }
@@ -62,7 +58,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   override def printSources = {
     for (f <- functions) {
       var fileName = f.asInstanceOf[FunctionStatement].name
-      if (fileName.endsWith(Kernel.wrapperPostfix)) fileName = fileName.dropRight(Kernel.wrapperPostfix.length)
+      if (fileName.endsWith(ExpKernel.wrapperPostfix)) fileName = fileName.dropRight(ExpKernel.wrapperPostfix.length)
       val writer = PrettyprintingManager.getPrinter(s"${ baseName }_$fileName.cu")
       writer.addInternalDependency(s"$baseName.h")
 
@@ -153,184 +149,6 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
         allowInlining = false, allowFortranInterface = false,
         "extern \"C\"")
     }
-  }
-}
-
-object Kernel {
-  def wrapperPostfix = "_wrapper"
-}
-
-case class Kernel(var identifier : String,
-    var passThroughArgs : ListBuffer[FunctionArgument],
-    var numDimensions : Int,
-    var indices : IndexRange,
-    var body : ListBuffer[Statement],
-    var reduction : Option[Reduction] = None,
-    var condition : Option[Expression] = None) extends Node {
-
-  import Kernel._
-
-  var evaluatedAccesses = false
-  var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
-  var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
-
-  def getKernelFctName : String = identifier
-  def getWrapperFctName : String = identifier + wrapperPostfix
-
-  def evalFieldAccesses() = {
-    if (!evaluatedAccesses) {
-      GatherLocalLinearizedFieldAccess.fieldAccesses.clear
-      GatherLocalLinearizedFieldAccess.applyStandalone(Scope(body))
-      fieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
-
-      GatherLocalIVs.ivAccesses.clear
-      GatherLocalIVs.applyStandalone(Scope(body))
-      ivAccesses = GatherLocalIVs.ivAccesses
-
-      // postprocess iv's -> generate parameter names
-      var cnt = 0
-      val processedIVs = mutable.HashMap[String, iv.InternalVariable]()
-      for (ivAccess <- ivAccesses) {
-        processedIVs.put(ivAccess._2.resolveName + "_" + cnt, ivAccess._2)
-        cnt += 1
-      }
-      ivAccesses = processedIVs
-
-      evaluatedAccesses = true
-    }
-  }
-
-  def compileKernelBody : ListBuffer[Statement] = {
-    evalFieldAccesses() // ensure that field accesses have been mapped
-
-    var statements = ListBuffer[Statement]()
-
-    // add index calculation
-    val minIndices : Array[Long] = LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, printWarnings = true)
-    statements ++= (0 until numDimensions).map(dim => {
-      val it = dimToString(dim)
-      // FIXME: datatype for VariableAccess
-      VariableDeclarationStatement(IntegerDatatype, it,
-        Some(MemberAccess(VariableAccess("blockIdx", None), it) *
-          MemberAccess(VariableAccess("blockDim", None), it) +
-          MemberAccess(VariableAccess("threadIdx", None), it) +
-          minIndices(dim)))
-    })
-
-    // add index bounds conditions
-    statements ++= (0 until numDimensions).map(dim => {
-      def it = Duplicate(LoopOverDimensions.defItForDim(dim))
-      new ConditionStatement(
-        OrOrExpression(LowerExpression(it, s"begin_$dim"), GreaterEqualExpression(it, s"end_$dim")),
-        ReturnStatement())
-    })
-
-    // add other conditions if required
-    if (condition.isDefined)
-      statements += new ConditionStatement(NegationExpression(condition.get), ReturnStatement())
-
-    // add actual body after replacing field and iv accesses
-    ReplacingLocalLinearizedFieldAccess.fieldAccesses = fieldAccesses
-    ReplacingLocalLinearizedFieldAccess.applyStandalone(Scope(body))
-    ReplacingLocalIVs.ivAccesses = ivAccesses
-    ReplacingLocalIVs.applyStandalone(Scope(body))
-
-    statements ++= body
-
-    statements
-  }
-
-  def compileWrapperFunction : FunctionStatement = {
-    evalFieldAccesses() // ensure that field accesses have been mapped
-
-    // compile arguments for device function call
-    var callArgs = ListBuffer[Expression]()
-    for (dim <- 0 until numDimensions) {
-      callArgs += indices.begin(dim)
-      callArgs += indices.end(dim)
-    }
-    for (fieldAccess <- fieldAccesses) {
-      val fieldSelection = fieldAccess._2.fieldSelection
-      callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
-    }
-    for (ivAccess <- ivAccesses) {
-      val access = Duplicate(ivAccess._2)
-      // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
-      access.resolveDataType match {
-        case SpecialDatatype("Vec3") => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer])
-        case _                       => callArgs += ivAccess._2
-      }
-    }
-    for (variableAccess <- passThroughArgs) {
-      callArgs += Duplicate(variableAccess)
-    }
-
-    // evaluate required thread counts
-    var numThreadsPerDim = (
-      LoopOverDimensions.evalMaxIndex(indices.end, numDimensions, printWarnings = true),
-      LoopOverDimensions.evalMinIndex(indices.begin, numDimensions, printWarnings = true)).zipped.map(_ - _)
-
-    if (null == numThreadsPerDim || numThreadsPerDim.product <= 0) {
-      Logger.warn("Could not evaluate required number of threads for kernel " + identifier)
-      numThreadsPerDim = (0 until numDimensions).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
-    }
-
-    var body = ListBuffer[Statement]()
-    if (reduction.isDefined) {
-      def bufSize = numThreadsPerDim.product
-      def bufAccess = iv.ReductionDeviceData(bufSize)
-      body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.dType.get)
-      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
-      body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${ BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
-        ListBuffer[Expression](bufAccess, bufSize))))
-
-      StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
-    } else {
-      body += new CUDA_FunctionCallExpression(getKernelFctName, callArgs, numThreadsPerDim)
-    }
-
-    FunctionStatement(
-      if (reduction.isDefined) reduction.get.target.dType.get else UnitDatatype,
-      getWrapperFctName,
-      Duplicate(passThroughArgs),
-      body,
-      allowInlining = false, allowFortranInterface = false,
-      "extern \"C\"")
-  }
-
-  def compileKernelFunction : FunctionStatement = {
-    evalFieldAccesses() // ensure that field accesses have been mapped
-
-    // compile parameters for device function
-    var fctParams = ListBuffer[FunctionArgument]()
-    for (dim <- 0 until numDimensions) {
-      fctParams += FunctionArgument(s"begin_$dim", IntegerDatatype)
-      fctParams += FunctionArgument(s"end_$dim", IntegerDatatype)
-    }
-    for (fieldAccess <- fieldAccesses) {
-      val fieldSelection = fieldAccess._2.fieldSelection
-      fctParams += FunctionArgument(fieldAccess._1, PointerDatatype(fieldSelection.field.resolveDeclType))
-    }
-    for (ivAccess <- ivAccesses) {
-      val access = VariableAccess(ivAccess._1, Some(ivAccess._2.resolveDataType))
-      access.dType match {
-        case Some(SpecialDatatype("Vec3")) => access.dType = Some(SpecialDatatype("double3"))
-        case _                             =>
-      }
-      fctParams += FunctionArgument(access.name, access.dType.get)
-    }
-    for (variableAccess <- passThroughArgs) {
-      fctParams += FunctionArgument(variableAccess.name, variableAccess.datatype)
-    }
-
-    val fct = FunctionStatement(
-      UnitDatatype, getKernelFctName, fctParams,
-      compileKernelBody,
-      allowInlining = false, allowFortranInterface = false, "__global__")
-
-    fct.annotate("deviceOnly")
-
-    fct
   }
 }
 
