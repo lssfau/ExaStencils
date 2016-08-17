@@ -109,7 +109,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     // add data sync statements
     for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
       var sync = true
-      if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncHostForWrites)
+      if (access._1.startsWith("write") && !Knowledge.cuda_syncHostForWrites)
         sync = false // skip write accesses if demanded
       if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
         sync = false // skip write access for read/write accesses
@@ -130,7 +130,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       // before: add data sync statements
       for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
         var sync = true
-        if (access._1.startsWith("write") && !Knowledge.experimental_cuda_syncDeviceForWrites)
+        if (access._1.startsWith("write") && !Knowledge.cuda_syncDeviceForWrites)
           sync = false // skip write accesses if demanded
         if (access._1.startsWith("write") && GatherLocalFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
           sync = false // skip write access for read/write accesses
@@ -138,7 +138,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
           beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
       }
 
-      if (Knowledge.experimental_cuda_syncDeviceAfterKernelCalls)
+      if (Knowledge.cuda_syncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
 
       // update flags for written fields
@@ -157,7 +157,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       hostStmts
     } else {
       /// compile final switch
-      val defaultChoice = Knowledge.experimental_cuda_preferredExecution match {
+      val defaultChoice = Knowledge.cuda_preferredExecution match {
         case "Host" => 1 // CPU by default
         case "Device" => 0 // GPU by default
         case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
@@ -483,7 +483,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         extremaMap = loop.getAnnotation(SimplifyExpression.EXTREMA_MAP).get.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
       }
 
-      val kernel = ExpKernel(
+      val kernel = Kernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         Duplicate(parallelInnerLoops.length),
         variableAccesses.map(s => FunctionArgument(s.name, s.dType.get)),
@@ -513,9 +513,9 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
 
 object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimensionality where necessary") {
   this += new Transformation("Process kernel nodes", {
-    case kernel : ExpKernel =>
+    case kernel : Kernel =>
       while (kernel.parallelDims > Platform.hw_cuda_maxNumDimsBlock) {
-        def it = VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), Some(IntegerDatatype))
+        def it = VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), Some(IntegerDatatype))
         kernel.body = ListBuffer[Statement](ForLoopStatement(
           new VariableDeclarationStatement(it, kernel.lowerBounds.last),
           LowerExpression(it, kernel.upperBounds.last),
@@ -529,11 +529,11 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
 
 object HandleKernelReductions extends DefaultStrategy("Handle reductions in device kernels") {
   this += new Transformation("Process kernel nodes", {
-    case kernel : ExpKernel if kernel.reduction.isDefined =>
+    case kernel : Kernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
       val index = MultiIndex((0 until kernel.parallelDims).map(dim =>
-        VariableAccess(ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
+        VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IntegerDatatype)) : Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => SubtractionExpression(x, y) : Expression)
 

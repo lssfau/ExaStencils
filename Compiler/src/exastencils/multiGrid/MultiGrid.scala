@@ -54,7 +54,7 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
-  if (Knowledge.experimental_cuda_enabled) {
+  if (Knowledge.cuda_enabled) {
     externalDependencies += "cuda.h"
     externalDependencies += "cuda_runtime.h"
 

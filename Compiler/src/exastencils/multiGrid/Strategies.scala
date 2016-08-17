@@ -236,7 +236,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       //CallTracker::ClearCallStack();
       //#endif""")
       //}
-      if (Knowledge.experimental_cuda_enabled) {
+      if (Knowledge.cuda_enabled) {
         func.body.prepend(new CUDA_Init)
         func.body.append(new CUDA_Finalize)
       }

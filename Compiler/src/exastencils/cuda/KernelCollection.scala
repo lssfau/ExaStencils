@@ -24,12 +24,12 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
-  if (Knowledge.experimental_cuda_enabled) {
+  if (Knowledge.cuda_enabled) {
     externalDependencies += "cuda.h"
     externalDependencies += "cuda_runtime.h"
   }
 
-  var kernelCollection = ListBuffer[ExpKernel]()
+  var kernelCollection = ListBuffer[Kernel]()
   var requiredRedKernels = mutable.HashSet[String]()
   var counterMap = mutable.HashMap[String, Int]()
 
@@ -39,7 +39,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     s"${ fctName }_k${ String.format("%03d", cnt : java.lang.Integer) }"
   }
 
-  def addKernel(kernel : ExpKernel) = {
+  def addKernel(kernel : Kernel) = {
     kernelCollection += kernel
   }
 
@@ -58,7 +58,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   override def printSources = {
     for (f <- functions) {
       var fileName = f.asInstanceOf[FunctionStatement].name
-      if (fileName.endsWith(ExpKernel.wrapperPostfix)) fileName = fileName.dropRight(ExpKernel.wrapperPostfix.length)
+      if (fileName.endsWith(Kernel.wrapperPostfix)) fileName = fileName.dropRight(Kernel.wrapperPostfix.length)
       val writer = PrettyprintingManager.getPrinter(s"${ baseName }_$fileName.cu")
       writer.addInternalDependency(s"$baseName.h")
 
@@ -117,7 +117,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       def data = FunctionArgument("data", PointerDatatype(RealDatatype))
       def ret = VariableAccess("ret", Some(RealDatatype))
 
-      def blockSize = Knowledge.experimental_cuda_reductionBlockSize
+      def blockSize = Knowledge.cuda_reductionBlockSize
 
       var fctBody = ListBuffer[Statement]()
 
@@ -152,7 +152,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   }
 }
 
-object ExpKernel {
+object Kernel {
   def wrapperPostfix = "_wrapper"
   val KernelVariablePrefix = "_cu_"
   val KernelGlobalIndexPrefix = "global_"
@@ -161,7 +161,7 @@ object ExpKernel {
   val ConstantIndexPart = "ConstantIndexPart"
 }
 
-case class ExpKernel(var identifier : String,
+case class Kernel(var identifier : String,
     var parallelDims : Int,
     var passThroughArgs : ListBuffer[FunctionArgument],
     var loopVariables : ListBuffer[String],
@@ -172,12 +172,12 @@ case class ExpKernel(var identifier : String,
     var reduction : Option[Reduction] = None,
     var loopVariableExtrema : mutable.Map[String, (Long, Long)] = mutable.Map[String, (Long, Long)]()) extends Node {
 
-  import ExpKernel._
+  import Kernel._
 
   var originalParallelDims = parallelDims
   var firstNSeqDims = loopVariables.size - parallelDims
-  var smemCanBeUsed = Knowledge.experimental_cuda_useSharedMemory && firstNSeqDims == 0 && stepSize.forall(x => IntegerConstant(1).equals(x))
-  var spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.experimental_cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
+  var smemCanBeUsed = Knowledge.cuda_useSharedMemory && firstNSeqDims == 0 && stepSize.forall(x => IntegerConstant(1).equals(x))
+  var spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
   var executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
 
   // properties required for shared memory analysis and shared memory allocation
@@ -248,7 +248,7 @@ case class ExpKernel(var identifier : String,
     var fieldToFieldAccesses = GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses
     val writtenFields = GatherLocalFieldAccessLikeForSharedMemory.writtenFields
     val fieldIndicesConstantPart = GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart
-    var availableSharedMemory = if (Knowledge.experimental_cuda_favorL1CacheOverSharedMemory) Platform.hw_cuda_cacheMemory.toLong else Platform.hw_cuda_sharedMemory.toLong
+    var availableSharedMemory = if (Knowledge.cuda_favorL1CacheOverSharedMemory) Platform.hw_cuda_cacheMemory.toLong else Platform.hw_cuda_sharedMemory.toLong
 
     // 2. Perform shared memory analysis
     // the more field accesses to a field the more important it is to store this field in shared memory
@@ -356,7 +356,7 @@ case class ExpKernel(var identifier : String,
       GatherLocalLinearizedFieldAccess.applyStandalone(Scope(body))
       linearizedFieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
 
-      if (Knowledge.experimental_cuda_spatialBlockingWithROC) {
+      if (Knowledge.cuda_spatialBlockingWithROC) {
         GatherWrittenLocalLinearizedFieldAccess.writtenFieldAccesses.clear
         GatherWrittenLocalLinearizedFieldAccess.applyStandalone(Scope(body))
         writtenFieldAccesses = GatherWrittenLocalLinearizedFieldAccess.writtenFieldAccesses
@@ -647,7 +647,7 @@ case class ExpKernel(var identifier : String,
       callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
     }
 
-    if (Knowledge.experimental_cuda_useSharedMemory && fieldForSharedMemory.nonEmpty) {
+    if (Knowledge.cuda_useSharedMemory && fieldForSharedMemory.nonEmpty) {
       fieldNames.foreach(field => {
         val fieldSelection = fieldForSharedMemory(field).fieldSelection
         callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
@@ -709,7 +709,7 @@ case class ExpKernel(var identifier : String,
       val fieldSelection = fieldAccess._2.fieldSelection
 
       // add required parameter specifiers to take advantage of the read-only cache
-      if (Knowledge.experimental_cuda_spatialBlockingWithROC && !writtenFieldAccesses.contains(fieldAccess._1)) {
+      if (Knowledge.cuda_spatialBlockingWithROC && !writtenFieldAccesses.contains(fieldAccess._1)) {
         fctParams += FunctionArgument(fieldAccess._1, CUDAConstPointerDatatype(fieldSelection.field.resolveDeclType))
       } else {
         fctParams += FunctionArgument(fieldAccess._1, PointerDatatype(fieldSelection.field.resolveDeclType))
@@ -915,7 +915,7 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
   this += new Transformation("Searching", {
     case access : FieldAccessLike =>
       val identifier = extractIdentifier(access)
-      val deviation = (new MultiIndex(access.getAnnotation(ExpKernel.ConstantIndexPart).get.asInstanceOf[Array[Long]]) - fieldToOffset).indices
+      val deviation = (new MultiIndex(access.getAnnotation(Kernel.ConstantIndexPart).get.asInstanceOf[Array[Long]]) - fieldToOffset).indices
 
       if (applySpatialBlocking && deviation.take(executionDim).forall(x => SimplifyExpression.evalIntegral(x) == 0)) {
         SimplifyExpression.evalIntegral(deviation(executionDim)) match {
@@ -924,7 +924,7 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
           case y if 0L to -offsetForSharedMemoryAccess by -1 contains y => VariableAccess("behind" + math.abs(y))
         }
       } else {
-        new CUDA_SharedArrayAccess(VariableAccess(ExpKernel.KernelVariablePrefix + identifier, Some(PointerDatatype(access.fieldSelection.field.resolveDeclType))), (access.index - fieldToOffset).indices.take(executionDim).reverse, new MultiIndex(sharedArrayStrides))
+        new CUDA_SharedArrayAccess(VariableAccess(Kernel.KernelVariablePrefix + identifier, Some(PointerDatatype(access.fieldSelection.field.resolveDeclType))), (access.index - fieldToOffset).indices.take(executionDim).reverse, new MultiIndex(sharedArrayStrides))
       }
   })
 }
@@ -975,18 +975,18 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
 
   this += new Transformation("Searching", {
     case v @ VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
-      var newName = ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(loopVariables.indexOf(name))
+      var newName = Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(loopVariables.indexOf(name))
 
-      if (v.hasAnnotation(ExpKernel.CUDASharedMemoryAccess)) {
-        newName = ExpKernel.KernelVariablePrefix + "local_" + dimToString(loopVariables.indexOf(name))
+      if (v.hasAnnotation(Kernel.CUDASharedMemoryAccess)) {
+        newName = Kernel.KernelVariablePrefix + "local_" + dimToString(loopVariables.indexOf(name))
       }
 
       VariableAccess(newName, Some(IntegerDatatype))
     case s @ StringLiteral(v @ value) if loopVariables.contains(v)                       =>
-      var newName = ExpKernel.KernelVariablePrefix + ExpKernel.KernelGlobalIndexPrefix + dimToString(loopVariables.indexOf(v))
+      var newName = Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(loopVariables.indexOf(v))
 
-      if (s.hasAnnotation(ExpKernel.CUDASharedMemoryAccess)) {
-        newName = ExpKernel.KernelVariablePrefix + "local_" + dimToString(loopVariables.indexOf(v))
+      if (s.hasAnnotation(Kernel.CUDASharedMemoryAccess)) {
+        newName = Kernel.KernelVariablePrefix + "local_" + dimToString(loopVariables.indexOf(v))
       }
 
       VariableAccess(newName, Some(IntegerDatatype))
@@ -999,10 +999,10 @@ object AnnotatingLoopVariablesForSharedMemoryAccess extends QuietDefaultStrategy
 
   this += new Transformation("Searching", {
     case v @ VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
-      v.annotate(ExpKernel.CUDASharedMemoryAccess, accessName)
+      v.annotate(Kernel.CUDASharedMemoryAccess, accessName)
       v
     case s @ StringLiteral(v @ value) if loopVariables.contains(v)                       =>
-      s.annotate(ExpKernel.CUDASharedMemoryAccess, accessName)
+      s.annotate(Kernel.CUDASharedMemoryAccess, accessName)
       s
   })
 }

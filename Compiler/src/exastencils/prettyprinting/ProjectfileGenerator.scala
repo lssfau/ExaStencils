@@ -49,7 +49,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
 
     // extensions
     projectPrinter <<< "\t<ImportGroup Label=\"ExtensionSettings\">"
-    if (Knowledge.experimental_cuda_enabled) {
+    if (Knowledge.cuda_enabled) {
       val cudaString = s"CUDA ${Platform.sw_cuda_version}.${Platform.sw_cuda_versionMinor}"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".props\" />"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".targets\" />"
@@ -92,7 +92,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t\t</ClCompile>"
 
     // cuda compile step
-    if (Knowledge.experimental_cuda_enabled) {
+    if (Knowledge.cuda_enabled) {
       projectPrinter <<< "\t\t<CudaCompile>"
       projectPrinter <<< "\t\t\t<TargetMachinePlatform>64</TargetMachinePlatform>"
       projectPrinter <<< s"\t\t\t<CodeGeneration>compute_${Platform.hw_cuda_capability}${Platform.hw_cuda_capabilityMinor},sm_${Platform.hw_cuda_capability}${Platform.hw_cuda_capabilityMinor}</CodeGeneration>"
@@ -108,7 +108,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
 
     // post build step
 
-    if (Knowledge.experimental_cuda_enabled) {
+    if (Knowledge.cuda_enabled) {
       projectPrinter <<< "\t\t<PostBuildEvent>"
       projectPrinter <<< "\t\t\t<Command>echo copy \"$(CudaToolkitBinDir)\\cudart*.dll\" \"$(OutDir)\""
       projectPrinter <<< "\t\t\t\tcopy \"$(CudaToolkitBinDir)\\cudart*.dll\" \"$(OutDir)\"</Command>"
@@ -130,7 +130,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t</ItemGroup>"
 
     // cuda kernels
-    if (Knowledge.experimental_cuda_enabled) {
+    if (Knowledge.cuda_enabled) {
       projectPrinter <<< "\t<ItemGroup>"
       for (filename <- cuFileNames)
         projectPrinter <<< s"""\t\t<CudaCompile Include=\"${filename.replace('/', '\\')}\" />"""

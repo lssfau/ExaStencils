@@ -312,24 +312,24 @@ object Knowledge {
 
   var experimental_addPerformanceEstimate : Boolean = false
 
-  var experimental_cuda_enabled : Boolean = false
-  var experimental_cuda_deviceId : Int = 0 // device id of the CUDA device to be used; only relevant in multi-GPU systems
-  var experimental_cuda_preferredExecution : String = "Performance" // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
-  var experimental_cuda_syncDeviceAfterKernelCalls : Boolean = true // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
-  var experimental_cuda_syncHostForWrites : Boolean = false // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
-  var experimental_cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
+  var cuda_enabled : Boolean = false
+  var cuda_deviceId : Int = 0 // device id of the CUDA device to be used; only relevant in multi-GPU systems
+  var cuda_preferredExecution : String = "Performance" // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
+  var cuda_syncDeviceAfterKernelCalls : Boolean = true // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
+  var cuda_syncHostForWrites : Boolean = false // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
+  var cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
 
-  var experimental_cuda_blockSize_x : Int = 8 // default block size in x dimension
-  var experimental_cuda_blockSize_y : Int = 8 // default block size in y dimension
-  var experimental_cuda_blockSize_z : Int = 8 // default block size in z dimension
-  def experimental_cuda_blockSizeAsVec = Array(experimental_cuda_blockSize_x, experimental_cuda_blockSize_y, experimental_cuda_blockSize_z)
-  def experimental_cuda_blockSizeTotal = experimental_cuda_blockSize_x * experimental_cuda_blockSize_y * experimental_cuda_blockSize_z
-  var experimental_cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels
-  var experimental_cuda_useSharedMemory : Boolean = false // specify if shared memory should be used within kernels
-  var experimental_cuda_linearizeSharedMemoryAccess : Boolean = false
-  var experimental_cuda_spatialBlockingWithSmem : Boolean = false
-  var experimental_cuda_favorL1CacheOverSharedMemory : Boolean = false
-  var experimental_cuda_spatialBlockingWithROC : Boolean = false // apply spatial blocking with read-only cache
+  var cuda_blockSize_x : Int = 8 // default block size in x dimension
+  var cuda_blockSize_y : Int = 8 // default block size in y dimension
+  var cuda_blockSize_z : Int = 8 // default block size in z dimension
+  def cuda_blockSizeAsVec = Array(cuda_blockSize_x, cuda_blockSize_y, cuda_blockSize_z)
+  def cuda_blockSizeTotal = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
+  var cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels
+  var cuda_useSharedMemory : Boolean = false // specify if shared memory should be used within kernels
+  var cuda_linearizeSharedMemoryAccess : Boolean = false
+  var cuda_spatialBlockingWithSmem : Boolean = false
+  var cuda_favorL1CacheOverSharedMemory : Boolean = false
+  var cuda_spatialBlockingWithROC : Boolean = false // apply spatial blocking with read-only cache
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements
@@ -515,28 +515,28 @@ object Knowledge {
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
-    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, experimental_cuda_enabled && "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
-    Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_enabled && experimental_cuda_deviceId >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, cuda_enabled && "Performance" == cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
+    Constraints.condEnsureValue(cuda_deviceId, 0, cuda_enabled && cuda_deviceId >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
-    Constraints.condEnsureValue(experimental_cuda_blockSize_y, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
-    Constraints.condEnsureValue(experimental_cuda_blockSize_z, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
+    Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
 
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
 
-    Constraints.condWarn(experimental_cuda_useSharedMemory && experimental_cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
-    Constraints.condWarn(experimental_cuda_spatialBlockingWithSmem && !experimental_cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
-    Constraints.condEnsureValue(experimental_cuda_spatialBlockingWithSmem, false, !experimental_cuda_useSharedMemory)
-    Constraints.condWarn((experimental_cuda_useSharedMemory || experimental_cuda_spatialBlockingWithSmem) && experimental_cuda_spatialBlockingWithROC, "Shared memory and/or spatial blocking with shared memory cannot be used if spatial blocking with read-only cache is enabled!")
-    Constraints.condEnsureValue(experimental_cuda_useSharedMemory, false, experimental_cuda_spatialBlockingWithROC)
-    Constraints.condEnsureValue(experimental_cuda_spatialBlockingWithSmem, false, experimental_cuda_spatialBlockingWithROC)
-    Constraints.condWarn(experimental_cuda_enabled && poly_performDCE, "Polyhedral dead code elimination cannot be performed if CUDA is used!")
-    Constraints.condEnsureValue(poly_performDCE, false, experimental_cuda_enabled)
-    Constraints.condWarn(experimental_cuda_enabled && opt_loopCarriedCSE, "Loop carried CSE cannot be applied if CUDA is used!")
-    Constraints.condEnsureValue(opt_loopCarriedCSE, false, experimental_cuda_enabled)
+    Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
+    Constraints.condWarn(cuda_spatialBlockingWithSmem && !cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
+    Constraints.condEnsureValue(cuda_spatialBlockingWithSmem, false, !cuda_useSharedMemory)
+    Constraints.condWarn((cuda_useSharedMemory || cuda_spatialBlockingWithSmem) && cuda_spatialBlockingWithROC, "Shared memory and/or spatial blocking with shared memory cannot be used if spatial blocking with read-only cache is enabled!")
+    Constraints.condEnsureValue(cuda_useSharedMemory, false, cuda_spatialBlockingWithROC)
+    Constraints.condEnsureValue(cuda_spatialBlockingWithSmem, false, cuda_spatialBlockingWithROC)
+    Constraints.condWarn(cuda_enabled && poly_performDCE, "Polyhedral dead code elimination cannot be performed if CUDA is used!")
+    Constraints.condEnsureValue(poly_performDCE, false, cuda_enabled)
+    Constraints.condWarn(cuda_enabled && opt_loopCarriedCSE, "Loop carried CSE cannot be applied if CUDA is used!")
+    Constraints.condEnsureValue(opt_loopCarriedCSE, false, cuda_enabled)
 
-    Constraints.condWarn(experimental_cuda_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
-    Constraints.condEnsureValue(useDblPrecision, true, experimental_cuda_enabled && opt_conventionalCSE)
+    Constraints.condWarn(cuda_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
+    Constraints.condEnsureValue(useDblPrecision, true, cuda_enabled && opt_conventionalCSE)
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
 

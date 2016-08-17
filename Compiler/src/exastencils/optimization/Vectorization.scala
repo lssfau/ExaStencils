@@ -40,7 +40,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     val cuAnn = CudaStrategiesUtils.CUDA_LOOP_ANNOTATION
     node match {
       case n if (n.hasAnnotation(cuAnn)) => skipSubTree = true
-      case _ : cuda.ExpKernel            => skipSubTree = true
+      case _ : cuda.Kernel               => skipSubTree = true
       case _ : AbstractFunctionStatement => skipSubTree = false
       case _                             => // no change in skipSubTree
     }

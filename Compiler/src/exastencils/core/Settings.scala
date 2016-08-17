@@ -164,7 +164,7 @@ object Settings {
     parseBuildfileGenerators
 
     // handle CUDA
-    if (Knowledge.experimental_cuda_enabled) {
+    if (Knowledge.cuda_enabled) {
       Platform.targetOS match {
         case "Windows" =>
           if (!additionalLibs.contains("cuda.lib")) additionalLibs += "cuda.lib"
