@@ -95,21 +95,21 @@ mpi_numThreads                      = 1
 ////////////
 /// Cuda ///
 ////////////
-experimental_cuda_enabled                       = true
-//experimental_cuda_deviceId                      = 0
-experimental_cuda_preferredExecution            = "Device"
-experimental_cuda_syncDeviceAfterKernelCalls    = true
-experimental_cuda_syncHostForWrites             = false
-experimental_cuda_syncDeviceForWrites           = true
-experimental_cuda_blockSize_x                   = 16
-experimental_cuda_blockSize_y                   = 16
-experimental_cuda_blockSize_z                   = 1
+cuda_enabled                       = true
+//cuda_deviceId                      = 0
+cuda_preferredExecution            = "Device"
+cuda_syncDeviceAfterKernelCalls    = true
+cuda_syncHostForWrites             = false
+cuda_syncDeviceForWrites           = true
+cuda_blockSize_x                   = 16
+cuda_blockSize_y                   = 16
+cuda_blockSize_z                   = 1
 // default (1D) block size for default reduction kernels
-experimental_cuda_reductionBlockSize            = 1024
+cuda_reductionBlockSize            = 1024
 
 // my new experimental cuda properties
-experimental_cuda_useSharedMemory               = true
-experimental_cuda_linearizeSharedMemoryAccess   = false
-experimental_cuda_favorL1CacheOverSharedMemory  = false
-experimental_cuda_spatialBlockingWithSmem       = true
-experimental_cuda_spatialBlockingWithROC        = false
+cuda_useSharedMemory               = true
+cuda_linearizeSharedMemoryAccess   = false
+cuda_favorL1CacheOverSharedMemory  = false
+cuda_spatialBlockingWithSmem       = true
+cuda_spatialBlockingWithROC        = false
