@@ -319,9 +319,9 @@ object Knowledge {
   var cuda_syncHostForWrites : Boolean = false // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
   var cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
 
-  var cuda_blockSize_x : Int = 8 // default block size in x dimension
-  var cuda_blockSize_y : Int = 8 // default block size in y dimension
-  var cuda_blockSize_z : Int = 8 // default block size in z dimension
+  var cuda_blockSize_x : Long = 8 // default block size in x dimension
+  var cuda_blockSize_y : Long = 8 // default block size in y dimension
+  var cuda_blockSize_z : Long = 8 // default block size in z dimension
   def cuda_blockSizeAsVec = Array(cuda_blockSize_x, cuda_blockSize_y, cuda_blockSize_z)
   def cuda_blockSizeTotal = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
   var cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels

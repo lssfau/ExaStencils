@@ -417,15 +417,7 @@ case class Kernel(var identifier : String,
         requiredThreadsPerDim = (0 until executionDim).map(dim => 0 : Long).toArray // TODO: replace 0 with sth more suitable
       }
 
-      // distribute threads along threads in blocks and blocks in grid
-      // NVIDIA GeForce Titan Black has CUDA compute capability 3.5
-      // maximum number of threads per block = 1024
-      // number of threads per block should be integer multiple of warp size (32)
-      executionDim match {
-        case 1 => numThreadsPerBlock = Array[Long](512)
-        case 2 => numThreadsPerBlock = Array[Long](16, 16)
-        case _ => numThreadsPerBlock = Array[Long](8, 8, 8)
-      }
+      numThreadsPerBlock = Knowledge.cuda_blockSizeAsVec.take(executionDim)
 
       numBlocksPerDim = (0 until executionDim).map(dim => {
         (requiredThreadsPerDim(dim) + numThreadsPerBlock(dim) - 1) / numThreadsPerBlock(dim)
