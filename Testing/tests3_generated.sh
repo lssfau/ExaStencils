@@ -2,7 +2,7 @@
 #SBATCH --qos=norm
 #SBATCH --hint=nomultithread
 #SBATCH --nice=100
-#SBATCH --time=15
+#SBATCH --time=20
 #SBATCH --signal=INT@5
 #SBATCH --open-mode=append
 
