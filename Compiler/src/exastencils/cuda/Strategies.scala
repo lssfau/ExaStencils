@@ -178,8 +178,12 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
       val containedLoop = cl.statements.find(s =>
         s.isInstanceOf[ConditionStatement] || s.isInstanceOf[LoopOverDimensions]) match {
-        case Some(ConditionStatement(cond, ListBuffer(loop : LoopOverDimensions), ListBuffer())) =>
-          loop
+        case Some(ConditionStatement(cond, trueBody : ListBuffer[Statement], ListBuffer())) =>
+          val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
+          bodyWithoutComments match {
+            case ListBuffer(loop : LoopOverDimensions) => loop
+            case _ => LoopOverDimensions(0, IndexRange(new MultiIndex(), new MultiIndex()), ListBuffer[Statement]())
+          }
         case Some(loop : LoopOverDimensions) =>
           loop
         case None => LoopOverDimensions(0, IndexRange(new MultiIndex(), new MultiIndex()), ListBuffer[Statement]())
@@ -207,24 +211,28 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
               fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
               fields(fKey) = field
 
-            case cStmt @ ConditionStatement(cond, ListBuffer(l : LoopOverDimensions), ListBuffer()) =>
-              val nju = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
+            case cStmt @ ConditionStatement(cond, trueBody : ListBuffer[Statement], ListBuffer()) =>
+              val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
+              bodyWithoutComments match {
+                case ListBuffer(l : LoopOverDimensions) =>
+                  val nju = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
 
-              if (hostCondStmt == null || cond != hostCondStmt.condition) {
-                hostCondStmt = Duplicate(cStmt)
-                hostCondStmt.trueBody.clear()
-                deviceCondStmt = Duplicate(hostCondStmt)
-                hostStmts += hostCondStmt
-                deviceStmts += deviceCondStmt
+                  if (hostCondStmt == null || cond != hostCondStmt.condition) {
+                    hostCondStmt = Duplicate(cStmt)
+                    hostCondStmt.trueBody.clear()
+                    deviceCondStmt = Duplicate(hostCondStmt)
+                    hostStmts += hostCondStmt
+                    deviceStmts += deviceCondStmt
+                  }
+                  hostCondStmt.trueBody += nju
+
+                  if (isParallel) {
+                    val njuCuda = Duplicate(nju)
+                    njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
+                    deviceCondStmt.trueBody += njuCuda
+                  }
+                case _ =>
               }
-              hostCondStmt.trueBody += nju
-
-              if (isParallel) {
-                val njuCuda = Duplicate(nju)
-                njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
-                deviceCondStmt.trueBody += njuCuda
-              }
-
             case l : LoopOverDimensions =>
               val loop = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
               hostStmts += loop

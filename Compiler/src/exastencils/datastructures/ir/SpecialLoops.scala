@@ -128,14 +128,19 @@ case class ContractingLoop(var number : Int, var iterator : Option[Expression], 
             fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
             fields(fKey) = field
 
-          case cStmt @ ConditionStatement(cond, ListBuffer(l : LoopOverDimensions), ListBuffer()) =>
-            val nju = processLoopOverDimensions(l, (number - i), fieldOffset)
-            if (condStmt == null || cond != condStmt.condition) {
-              condStmt = Duplicate(cStmt)
-              condStmt.trueBody.clear()
-              res += condStmt
+          case cStmt @ ConditionStatement(cond, trueBody : ListBuffer[Statement], ListBuffer()) =>
+            val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
+            bodyWithoutComments match {
+              case ListBuffer(l : LoopOverDimensions) =>
+                val nju = processLoopOverDimensions(l, (number - i), fieldOffset)
+                if (condStmt == null || cond != condStmt.condition) {
+                  condStmt = Duplicate(cStmt)
+                  condStmt.trueBody.clear()
+                  res += condStmt
+                }
+                condStmt.trueBody += nju
+              case _                                  =>
             }
-            condStmt.trueBody += nju
 
           case l : LoopOverDimensions =>
             res += processLoopOverDimensions(l, (number - i), fieldOffset)
