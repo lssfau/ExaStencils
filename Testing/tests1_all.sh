@@ -161,7 +161,7 @@ do
   COMPILE_CONSTR=""
   if [[ ${constraints} =~ GPU ]] || [[ ${constraints} = "E5" ]]; then
     PLATFORM="chimaira.platform"
-    COMPILE_CONSTR="-A cl -p chimaira" # HACK: the cuda compiler is not installed on all machines
+    COMPILE_CONSTR="-A cl -p chimaira -c 20" # HACK: the cuda compiler is not installed on all machines; use more compile threads for CUDA code
   elif [[ ${constraints} = "AVX2" ]]; then
     PLATFORM="anyavx2.platform"
   elif [[ ${constraints} = "AVX" ]]; then
