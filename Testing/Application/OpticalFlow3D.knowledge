@@ -1,7 +1,3 @@
-targetOS							= "Linux"
-targetCompiler						= "GCC"
-targetCompilerVersion				= 4
-targetCompilerVersionMinor			= 8
 timer_type							= "UNIX_TIME"
 
 experimental_Neumann				= true
