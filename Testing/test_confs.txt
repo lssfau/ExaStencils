@@ -54,7 +54,7 @@ CommBasic_Strategy26Cell  Main  CommBasic/Strategy26Cell.knowledge  *  CommBasic
 #################################################################################################
 
 # 10 OMP threads
-Large_Hybrid  Main  Large/Hybrid.knowledge  *  Large/Hybrid.results  4  10  E5
+Large_Hybrid  Main  Large/Hybrid.knowledge  *  Large/Hybrid.results  4  10
 
 #################################################################################################
 # OPTIMIZATION TESTS                                                                            #
