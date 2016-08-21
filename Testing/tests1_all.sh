@@ -19,6 +19,7 @@ OUT_FILE=${5} # stdout and stderr should already be redirected to this file
 OUT_FILE_URL=${6} # url to ${OUT_FILE}
 PROGRESS=${7}
 BRANCH=${8}
+FAILURE_MAIL=${9}
 
 
 # HACK: otherwise ant wouldn't find it...
@@ -30,10 +31,11 @@ ANT_BUILD="${REPO_DIR}/Compiler/build.xml"
 TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 
-FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
 FAILURE_MAIL_FILE="${TESTING_DIR}/failure_mails.txt"
-if [[ -s "${FAILURE_MAIL_FILE}" ]]; then
+if [[ -s "${FAILURE_MAIL_FILE}" ]] && [[ -z ${FAILURE_MAIL} ]]; then
   FAILURE_MAIL=$(cat ${FAILURE_MAIL_FILE})
+else
+  FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
 fi
 
 ERROR_MARKER_NAME="error"

@@ -18,15 +18,16 @@ PROGRESS=${4}
 TESTS_LOCK=${5}
 BRANCH=${6}
 FORCE_START=${7}
+FAILURE_MAIL=${8}
 
 REPO_DIR="${BASE_DIR}/repo"
 SCR_DIR="${BASE_DIR}/scripts"
 TEMP_DIR="${BASE_DIR}/temp/${BRANCH}"
-FAILURE_MAIL="kronast@fim.uni-passau.de"
+THIS_FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_MAIL_SUBJECT="ExaStencils TestBot Error (cron)"
 
 TMP_OUT_FILE=$(mktemp --tmpdir=/run/shm 2>&1 || mktemp --tmpdir=/tmp 2>&1) || {
-    echo -e "ERROR: Failed to create temporary file.\n\n${TMP_OUT_FILE}" | mail -s "${FAILURE_MAIL_SUBJECT}" ${FAILURE_MAIL}
+    echo -e "ERROR: Failed to create temporary file.\n\n${TMP_OUT_FILE}" | mail -s "${FAILURE_MAIL_SUBJECT}" ${THIS_FAILURE_MAIL}
     exit 0
   }
 if [[ ! ${TMP_OUT_FILE} =~ ^/run/shm/* ]]; then
@@ -130,7 +131,7 @@ if [[ -e "${REPO_DIR}/Testing/tests_version.txt" ]] && [[ $(cat "${SCR_DIR}/test
   cp "${REPO_DIR}"/Testing/tests_version.txt "${SCR_DIR}"
   cp "${REPO_DIR}"/Testing/tests*.sh "${SCR_DIR}"
 fi
-(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests1_all.sh" "${SCR_DIR}" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}" "${BRANCH}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests1_all.sh" "${SCR_DIR}" "${REPO_DIR}" "${BASE_DIR}/scala/" "${TEMP_DIR}" "${OUT_FILE}" "${OUT_FILE_URL}" "${PROGRESS}" "${BRANCH}" "${FAILURE_MAIL}")
       if [[ $? -ne 0 ]]; then
         error "ERROR: Unable to enqueue testing job."
       fi
