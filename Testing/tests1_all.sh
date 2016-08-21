@@ -32,10 +32,12 @@ TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 
 FAILURE_MAIL_FILE="${TESTING_DIR}/failure_mails.txt"
-if [[ -s "${FAILURE_MAIL_FILE}" ]] && [[ -z ${FAILURE_MAIL} ]]; then
-  FAILURE_MAIL=$(cat ${FAILURE_MAIL_FILE})
-else
-  FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
+if [[ -z ${FAILURE_MAIL} ]]; then
+  if [[ -s "${FAILURE_MAIL_FILE}" ]]; then
+    FAILURE_MAIL=$(cat ${FAILURE_MAIL_FILE})
+  else
+    FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
+  fi
 fi
 
 ERROR_MARKER_NAME="error"
