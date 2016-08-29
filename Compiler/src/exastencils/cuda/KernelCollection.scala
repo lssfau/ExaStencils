@@ -276,8 +276,10 @@ case class Kernel(var identifier : String,
       }))
       firstDeviation = rightDeviationFromBaseIndex.head
       isSameRadius &= rightDeviationFromBaseIndex.forall(x => firstDeviation.equals(x))
+      isSameRadius &= leftDeviationFromBaseIndex.head.equals(rightDeviationFromBaseIndex.head)
 
       if (spatialBlockingCanBeApplied && !isSameRadius) {
+        Logger.warning("Cannot apply spatial blocking with shared memory, because the stencil is not symmetric")
         spatialBlockingCanBeApplied = false
         executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
         evaluatedIndexBounds = false
