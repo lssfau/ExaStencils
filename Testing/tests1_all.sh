@@ -176,7 +176,7 @@ do
 
   echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">" > "${TEST_LOG}"
   echo "Test ID:  ${id}" >> "${TEST_LOG}"
-  echo "<a href=../>Back to overview.</a>" >> "${TEST_LOG}"
+  echo "<a href=./>Back to overview.</a>" >> "${TEST_LOG}"
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
