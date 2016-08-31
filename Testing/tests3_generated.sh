@@ -55,6 +55,7 @@ function cleanup {
   echo ""
   ENDTIME=$(date +%s)
   echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (test execution)"
+  echo "<a href=./>Back to overview.</a>" >> "${TEST_LOG}"
 }
 trap cleanup EXIT
 
