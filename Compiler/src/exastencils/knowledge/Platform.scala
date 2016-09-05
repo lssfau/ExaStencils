@@ -131,7 +131,7 @@ object Platform {
       case "MSVC" =>
         "" // nothing to do
       case "ICC" =>
-        if (Knowledge.mpi_enabled) "mpicxx" else "icc"
+        if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
       case "CLANG" =>
         "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
     }
@@ -188,15 +188,20 @@ object Platform {
       case "ICC" =>
         flags += " -O3 -std=c++11"
 
-        if (Knowledge.omp_enabled) flags += " -openmp"
+        if (Knowledge.omp_enabled) {
+          if (targetCompilerVersion >= 15)
+            flags += " -qopenmp"
+          else
+            flags += " -openmp"
+        }
 
         if (Knowledge.opt_vectorize) {
-          simd_instructionSet match { // TODO: verify flags
-            case "SSE3"   => flags += " -msse3"
-            case "AVX"    => flags += " -mavx"
-            case "AVX2"   => flags += " -march=core-avx2"
-            case "AVX512" => flags += " -march=knl"
-            case "IMCI"   => flags += " -march=knc"
+          simd_instructionSet match {
+            case "SSE3"   => flags += " -xSSE3"
+            case "AVX"    => flags += " -xAVX"
+            case "AVX2"   => flags += " -xCORE-AVX2"
+            case "AVX512" => flags += " -xCORE-AVX512"
+            case "IMCI"   => flags += " -march=knc" // TODO: verify flag
           }
         }
       case "CLANG" =>
@@ -237,7 +242,12 @@ object Platform {
         if (Knowledge.omp_enabled) flags += " -fopenmp"
       case "MSVC" => // nothing to do
       case "ICC" =>
-        if (Knowledge.omp_enabled) flags += " -openmp"
+        if (Knowledge.omp_enabled) {
+          if (targetCompilerVersion >= 15)
+            flags += " -qopenmp"
+          else
+            flags += " -openmp"
+        }
       case "CLANG" =>
         if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
     }
