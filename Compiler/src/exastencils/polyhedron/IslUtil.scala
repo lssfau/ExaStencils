@@ -3,6 +3,9 @@ package exastencils.polyhedron
 import isl.Conversions._
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.net.URL
+
+import exastencils.logger.Logger
 
 object Isl {
 
@@ -15,7 +18,8 @@ object Isl {
   private var loaded : Boolean = false
   def load() : Unit = {
 
-    if (loaded) return
+    if (loaded)
+      return
 
     val system : String =
       System.getProperty("os.name") match {
@@ -28,23 +32,21 @@ object Isl {
       }
     val arch : String =
       System.getProperty("os.arch") match {
-        case "amd64"     => "x86-64"
-        case "x86_64"    => "x86-64"
+        case "amd64"     => "x86_64"
+        case "x86_64"    => "x86_64"
         case "i386"      => "x86"
         case "powerpc64" => "ppc64"
         case x =>
           throw new Exception("unknown system architecture (" + x + "), cannot load native library isl")
       }
 
-    val dir : String = if (system == "darwin") system else system + '-' + arch
+    val ldir : String = system + '-' + arch
+    val lname : String = System.mapLibraryName("isl_jni")
+    val lurl : URL = ClassLoader.getSystemResource(ldir + '/' + lname)
+    if (lurl == null)
+      Logger.error("unable to locate native library " + ldir + '/' + lname)
 
     val markerSuffix : String = ".del"
-
-    var Array(fname, fext) = System.mapLibraryName("isl").split('.')
-    if (system == "darwin" && fext == "jnilib")
-      fext = "dylib"
-    val is : InputStream = ClassLoader.getSystemResourceAsStream(dir + '/' + fname + '.' + fext)
-
     val tmpLibDir = new java.io.File(System.getProperty("java.io.tmpdir"), "exastencils_native-libs-" + System.getProperty("user.name").hashCode())
     if (tmpLibDir.exists()) {
       // remove old libs
@@ -61,30 +63,43 @@ object Isl {
         if (!oldLib.exists() || oldLib.delete())
           m.delete()
       }
-    } else
-      tmpLibDir.mkdir()
-    val tmpIslLib = java.io.File.createTempFile(fname, '.' + fext, tmpLibDir)
-    val fos = new FileOutputStream(tmpIslLib)
-
-    val buffer = new Array[Byte](65536) // 64 KB
-    try {
-      Stream.continually(is.read(buffer))
-        .takeWhile(_ > 0)
-        .foreach { l => fos.write(buffer, 0, l) }
-    } finally {
-      fos.flush()
-      fos.close()
-      is.close()
     }
 
-    System.load(tmpIslLib.getAbsolutePath())
+    lurl.getProtocol() match {
+      case "file" =>
+        val lfile : String = lurl.getPath()
+        val lpath : String = lfile.substring(0, lfile.lastIndexOf('/'))
+        isl.Init.loadNative(lpath)
 
-    // library loaded, try to delete file now (which should be possible on linux, but not on windows)
-    if (!tmpIslLib.delete()) {
-      // cannot delete temp lib now, mark for later deletion (either when jvm exits normally, or on next run)
-      val marker = new java.io.File(tmpLibDir, tmpIslLib.getName() + markerSuffix)
-      marker.createNewFile()
-      tmpIslLib.deleteOnExit()
+      case "jar" =>
+        if (!tmpLibDir.exists())
+          tmpLibDir.mkdir()
+        val Array(lpref, lsuff) = lname.split('.')
+        val tmpIslLib = java.io.File.createTempFile(lpref, '.' + lsuff, tmpLibDir)
+
+        val is : InputStream = lurl.openStream()
+        val fos = new FileOutputStream(tmpIslLib)
+
+        val buffer = new Array[Byte](65536) // 64 KB
+        try {
+          Stream.continually(is.read(buffer))
+            .takeWhile(_ > 0)
+            .foreach { l => fos.write(buffer, 0, l) }
+        } finally {
+          fos.flush()
+          fos.close()
+          is.close()
+        }
+
+        isl.Init.loadNative(tmpLibDir.getAbsolutePath())
+
+        // library loaded, try to delete file now (which should be possible on linux, but not on windows)
+        if (!tmpIslLib.delete()) {
+          // cannot delete temp lib now, mark for later deletion (either when jvm exits normally, or on next run)
+          val marker = new java.io.File(tmpLibDir, tmpIslLib.getName() + markerSuffix)
+          marker.createNewFile()
+          tmpIslLib.deleteOnExit()
+        }
     }
 
     loaded = true
