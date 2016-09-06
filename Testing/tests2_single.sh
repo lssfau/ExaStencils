@@ -88,7 +88,7 @@ echo "Run generator:"
 echo "  Created  ${RESULT}: run generator and save its stdout and stderr."
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 set -o pipefail
-srun java -XX:+UseG1GC -Xmx3G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | tee "${RESULT}"
+srun java -XX:+UseG1GC -Xmx3G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | sed 's|\(WARN:.*\)$|<span style="color: #FF8000">\1</span>|;s|\(ERROR:.*\)$|<span style="color: #E00000">\1</span>|' | tee "${RESULT}"
 RETCODE=$?
     if grep -q "Bad file descriptor" ${RESULT}; then
       echo "restart generation..."
