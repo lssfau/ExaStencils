@@ -94,7 +94,7 @@ object Isl {
         } while (repeat && i < 1000)
         if (repeat)
           Logger.error("unable to create temp directory for native lib in " + tmpDir.getAbsolutePath())
-        val tmpIslLib = new java.io.File(tmpDir, lname)
+        val tmpIslLib = new java.io.File(tmpIslLibDir, lname)
         tmpIslLib.createNewFile()
 
         val is : InputStream = lurl.openStream()
