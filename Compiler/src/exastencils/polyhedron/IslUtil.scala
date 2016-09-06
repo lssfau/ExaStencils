@@ -1,5 +1,7 @@
 package exastencils.polyhedron
 
+import scala.util.Random
+
 import isl.Conversions._
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -47,11 +49,11 @@ object Isl {
       Logger.error("unable to locate native library " + ldir + '/' + lname)
 
     val markerSuffix : String = ".del"
-    val tmpLibDir = new java.io.File(System.getProperty("java.io.tmpdir"), "exastencils_native-libs-" + System.getProperty("user.name").hashCode())
-    if (tmpLibDir.exists()) {
+    val tmpDir = new java.io.File(System.getProperty("java.io.tmpdir"), "exastencils_native-libs-" + System.getProperty("user.name").hashCode())
+    if (tmpDir.exists()) {
       // remove old libs
       val markers : Array[java.io.File] =
-        tmpLibDir.listFiles(new java.io.FilenameFilter() {
+        tmpDir.listFiles(new java.io.FilenameFilter() {
           def accept(dir : java.io.File, name : String) : Boolean = {
             return name.endsWith(markerSuffix)
           }
@@ -59,8 +61,10 @@ object Isl {
       for (m <- markers) {
         var oldLibName : String = m.getName()
         oldLibName = oldLibName.substring(0, oldLibName.length() - markerSuffix.length())
-        val oldLib = new java.io.File(tmpLibDir, oldLibName)
-        if (!oldLib.exists() || oldLib.delete())
+        val oldLibDir = new java.io.File(tmpDir, oldLibName)
+        for (f <- oldLibDir.listFiles())
+          f.delete()
+        if (!oldLibDir.exists() || oldLibDir.delete())
           m.delete()
       }
     }
@@ -72,10 +76,26 @@ object Isl {
         isl.Init.loadNative(lpath)
 
       case "jar" =>
-        if (!tmpLibDir.exists())
-          tmpLibDir.mkdir()
-        val Array(lpref, lsuff) = lname.split('.')
-        val tmpIslLib = java.io.File.createTempFile(lpref, '.' + lsuff, tmpLibDir)
+        if (!tmpDir.exists())
+          tmpDir.mkdir()
+        var tmpIslLibDir : java.io.File = null
+        var repeat : Boolean = true
+        val rnd = new Random()
+        var i : Int = 0
+        do {
+          i += 1
+          var suffix = rnd.nextLong()
+          if (suffix == Long.MinValue)
+            suffix = 0
+          else
+            suffix = math.abs(suffix)
+          tmpIslLibDir = new java.io.File(tmpDir, "tmp" + suffix)
+          repeat = !tmpIslLibDir.mkdir()
+        } while (repeat && i < 1000)
+        if (repeat)
+          Logger.error("unable to create temp directory for native lib in " + tmpDir.getAbsolutePath())
+        val tmpIslLib = new java.io.File(tmpDir, lname)
+        tmpIslLib.createNewFile()
 
         val is : InputStream = lurl.openStream()
         val fos = new FileOutputStream(tmpIslLib)
@@ -91,12 +111,12 @@ object Isl {
           is.close()
         }
 
-        isl.Init.loadNative(tmpLibDir.getAbsolutePath())
+        isl.Init.loadNative(tmpIslLibDir.getAbsolutePath())
 
         // library loaded, try to delete file now (which should be possible on linux, but not on windows)
-        if (!tmpIslLib.delete()) {
+        if (!(tmpIslLib.delete() && tmpIslLibDir.delete())) {
           // cannot delete temp lib now, mark for later deletion (either when jvm exits normally, or on next run)
-          val marker = new java.io.File(tmpLibDir, tmpIslLib.getName() + markerSuffix)
+          val marker = new java.io.File(tmpDir, tmpIslLibDir.getName() + markerSuffix)
           marker.createNewFile()
           tmpIslLib.deleteOnExit()
         }
