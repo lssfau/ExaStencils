@@ -158,6 +158,7 @@ case class BasicAccess(var name : String) extends Access {
   def prettyprint(out : PpStream) = { out << name }
 
   def progressToIr : ir.StringLiteral = ir.StringLiteral(name)
+  //def progressToIr : ir.StringLiteral = Logger.error("ProgressToIr for BasicAccess " + name)
 }
 
 case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
@@ -340,30 +341,27 @@ case class StencilFieldAccess(var name : String,
   }
 }
 
-abstract class Identifier extends Expression {
+abstract class Identifier extends Node {
   var name : String
+  def fullName : String
 }
 
 case class BasicIdentifier(var name : String) extends Identifier {
   def prettyprint(out : PpStream) = { out << name }
 
-  def progressToIr = ir.StringLiteral(name)
+  def fullName = name
 }
 
 case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
   def prettyprint(out : PpStream) = { out << name << '@' << level }
 
-  def progressToIr = {
-    ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
-  }
+  def fullName = name + "_" + level.prettyprint
 }
 
-case class Variable(var identifier : Identifier, var datatype : Datatype) extends Expression {
-  def prettyprint(out : PpStream) = { out << identifier }
+case class VariableExpression(var access : Access, var datatype : Datatype) extends Expression {
+  def prettyprint(out : PpStream) = access.prettyprint(out)
 
-  def progressToIr = {
-    ir.VariableAccess(identifier.progressToIr.asInstanceOf[ir.StringLiteral].value, Some(datatype.progressToIr))
-  }
+  def progressToIr = ir.VariableAccess(access.name, Some(datatype.progressToIr))
 }
 
 case class UnaryExpression(var operator : String, var exp : Expression) extends Expression {

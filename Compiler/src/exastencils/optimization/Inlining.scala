@@ -175,7 +175,7 @@ object Inlining extends CustomStrategy("Function inlining") {
         var name : String = vAcc.name
         if (potConflicts.contains(name))
           name = rename(name)
-        new VariableDeclarationStatement(Duplicate(vAcc.dType.get), name, init)
+        new VariableDeclarationStatement(Duplicate(vAcc.datatype), name, init)
     })
 
     if (potConflToUpdate != null) {

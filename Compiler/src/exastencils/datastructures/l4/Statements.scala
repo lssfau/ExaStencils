@@ -120,7 +120,7 @@ case class VariableDeclarationStatement(override var identifier : Identifier, va
 
   override def progressToIr : ir.VariableDeclarationStatement = {
     ir.VariableDeclarationStatement(datatype.progressToIr,
-      identifier.progressToIr.asInstanceOf[ir.StringLiteral].value,
+      identifier.fullName,
       if (expression.isDefined) Some(expression.get.progressToIr) else None)
   }
 }
@@ -250,14 +250,14 @@ case class ColorWithStatement(var colors : List[Expression], var loop : LoopOver
 
 case class FunctionStatement(override var identifier : Identifier,
     var returntype : Datatype,
-    var arguments : List[Variable],
+    var arguments : List[FunctionArgument],
     var statements : List[Statement],
     var allowInlining : Boolean = true) extends Statement with HasIdentifier {
 
   override def prettyprint(out : PpStream) = {
     out << "Function " << identifier << " ("
     if (!arguments.isEmpty) {
-      for (arg <- arguments) { out << arg.identifier << " : " << arg.datatype << ", " }
+      for (arg <- arguments) { arg.prettyprint(out); out << ", " }
       out.removeLast(2)
     }
     out << " )" << " : " << returntype << " {\n"
@@ -268,23 +268,33 @@ case class FunctionStatement(override var identifier : Identifier,
   override def progressToIr : ir.AbstractFunctionStatement = {
     ir.FunctionStatement(
       returntype.progressToIr,
-      identifier.progressToIr.asInstanceOf[ir.StringLiteral].value,
+      identifier.fullName,
       arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       allowInlining)
   }
 }
 
+case class FunctionArgument(override var identifier : Identifier,
+    var datatype : Datatype) extends Access with HasIdentifier with ProgressableToIr {
+  override def name = identifier.name
+  override def prettyprint(out : PpStream) {
+    out << identifier.name << " : " << datatype.prettyprint
+  }
+
+  override def progressToIr = ir.FunctionArgument(identifier.fullName, datatype.progressToIr)
+}
+
 case class FunctionTemplateStatement(var name : String,
     var templateArgs : List[String],
-    var functionArgs : List[Variable],
+    var functionArgs : List[FunctionArgument],
     var returntype : Datatype,
     var statements : List[Statement]) extends Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "FunctionTemplate " << name << " < " << templateArgs.mkString(", ") << " > ( "
     if (!functionArgs.isEmpty) {
-      for (arg <- functionArgs) { out << arg.identifier << " : " << arg.datatype << ", " }
+      for (arg <- functionArgs) { out << arg.name << " : " << arg.datatype << ", " }
       out.removeLast(2)
     }
     out << " )" << " : " << returntype << " {\n"

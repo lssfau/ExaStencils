@@ -14,6 +14,7 @@ hw_cpu_numCoresPerCPU      = 10
 hw_cpu_numCPUs             = 1
 hw_cpu_bandwidth           = 59648000000.0 // = 55.6 GB/s = 4 * 233 * 1000^2 * 8 * 8 B/s
 hw_cpu_frequency           = 30000000000.0 // = 3.0 GHz
+hw_cpu_numHWThreads        = 10
 hw_64bit                   = true
 hw_cacheLineSize           = 512 // in B
 hw_gpu_name                = "NVidia GeForce GTX Titan Black"

@@ -41,12 +41,12 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
       fieldSelection
     }
 
-    var fctArgs : ListBuffer[VariableAccess] = ListBuffer()
-    fctArgs += VariableAccess("slot", Some("unsigned int"))
+    var fctArgs : ListBuffer[FunctionArgument] = ListBuffer()
+    fctArgs += FunctionArgument("slot", SpecialDatatype("unsigned int"))
     if (Knowledge.experimental_useLevelIndepFcts)
-      VariableAccess("level", Some("unsigned int"))
+      FunctionArgument("level", SpecialDatatype("unsigned int"))
     if (insideFragLoop)
-      fctArgs += VariableAccess(LoopOverFragments.defIt, Some("int"))
+      fctArgs += FunctionArgument(LoopOverFragments.defIt, IntegerDatatype)
 
     FunctionStatement(UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
   }

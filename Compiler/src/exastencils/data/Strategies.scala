@@ -219,7 +219,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
         multiGrid.functions += new FunctionStatement(
           UnitDatatype,
           s"resizeInner_${layout._2._1}_${layout._2._2.prettyprint}",
-          (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim)).to[ListBuffer],
+          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); FunctionArgument(a.name, a.dType.get) }).to[ListBuffer],
           body,
           false) // no inlining
       }
@@ -239,7 +239,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
         multiGrid.functions += new FunctionStatement(
           UnitDatatype,
           s"resizeAllInner_${level.prettyprint()}",
-          (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim)).to[ListBuffer],
+          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); FunctionArgument(a.name, a.dType.get) }).to[ListBuffer],
           body,
           false) // no inlining
       }

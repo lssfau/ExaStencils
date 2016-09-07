@@ -8,7 +8,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.StringBuilder
 
 import exastencils.core.collectors._
-import exastencils.cuda._
+import exastencils.cuda.CudaStrategiesUtils
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -461,7 +461,6 @@ class Extractor extends Collector {
     try {
       if (!curScop.exists())
         node match {
-          // at the moment consider just Smoothers because they have the most potential for optimizations.
           case loop : LoopOverDimensions with PolyhedronAccessible =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
@@ -927,7 +926,6 @@ class Extractor extends Collector {
   }
 
   private def enterDecl(decl : VariableDeclarationStatement) : Unit = {
-
     if (isRead || isWrite)
       throw new ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 

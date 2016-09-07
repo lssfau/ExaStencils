@@ -110,7 +110,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
       if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
       PreIncrementExpression(accessMember("numEntries")))
 
-    FunctionStatement(UnitDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(UnitDatatype, name, ListBuffer(FunctionArgument("stopWatch", SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -135,7 +135,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
         if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
         PreIncrementExpression(accessMember("numMeasurements")))))
 
-    FunctionStatement(UnitDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(UnitDatatype, name, ListBuffer(FunctionArgument("stopWatch", SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -150,7 +150,7 @@ case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractTimerF
     var statements = ListBuffer[Statement](
       TimerDetail_ReturnConvertToMS(accessMember("totalTimeMeasured")))
 
-    FunctionStatement(DoubleDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(DoubleDatatype, name, ListBuffer(FunctionArgument("stopWatch", SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -168,7 +168,7 @@ case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFu
         FunctionCallExpression("getTotalTime", ListBuffer("stopWatch")) / accessMember("numMeasurements"),
         0.0))))
 
-    FunctionStatement(DoubleDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(DoubleDatatype, name, ListBuffer(FunctionArgument("stopWatch", SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -183,7 +183,7 @@ case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFu
     var statements = ListBuffer[Statement](
       TimerDetail_ReturnConvertToMS(accessMember("lastTimeMeasured")))
 
-    FunctionStatement(DoubleDatatype, name, ListBuffer(VariableAccess("stopWatch", Some(SpecialDatatype("StopWatch&")))), statements, true, false)
+    FunctionStatement(DoubleDatatype, name, ListBuffer(FunctionArgument("stopWatch", SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -251,16 +251,17 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     val stride : Expression = if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) "mpiIt" else 0
 
     var it = 0
-    var toPrint : ListBuffer[Expression] = ListBuffer()
-    val sep = "\";\""
+    val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
-      toPrint ++= ListBuffer[Expression](StringConstant(timer._2.name.prettyprint()), sep,
-        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
-        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), sep)
+      statements += PrintExpression(VariableAccess("outFile"), ListBuffer[Expression](
+          StringConstant(timer._2.name.prettyprint()), sep,
+          ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
+          ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), StringConstant("\\n")
+        )
+      )
+
       it += 2
     }
-    // toPrint.dropRight(1) // remove last seperator
-    statements += PrintStatement(toPrint, "outFile")
 
     // wrap in loop over each rank if required
     if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) {

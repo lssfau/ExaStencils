@@ -29,6 +29,7 @@ object CudaStrategiesUtils {
   val CUDA_BAND_START = "CUDABandStart"
   val CUDA_BAND_PART = "CUDABandPart"
   val CUDA_INNER = "CUDAInner"
+  val CUDA_BODY_DECL = "CUDABodyDeclarations"
 
   /**
     * Check if the loop meets some basic conditions for transforming a ForLoopStatement into CUDA code.
@@ -350,7 +351,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
     * @param extremaMap the map containing the extrema values for the loop iterators
     * @param loop       the loop to traverse
     */
-  def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement) : Unit = {
+  def updateLoopAnnotations(extremaMap : mutable.HashMap[String, (Long, Long)], loop : ForLoopStatement, bodyDecl : ListBuffer[Statement] = ListBuffer[Statement]()) : Unit = {
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
         val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
@@ -359,14 +360,19 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
 
         if (CudaStrategiesUtils.verifyCudaLoopParallel(loop)) {
           loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_BAND_START)
+          loop.annotate(CudaStrategiesUtils.CUDA_BODY_DECL, bodyDecl)
 
           calculateLoopsInBand(extremaMap, loop)
         } else {
-          loop.body.filter(x => x.isInstanceOf[ForLoopStatement]).foreach {
-            case innerLoop : ForLoopStatement =>
-              updateLoopAnnotations(extremaMap, innerLoop)
-            case _                            =>
+          val innerLoops : ListBuffer[ForLoopStatement] = loop.body.filter(x => x.isInstanceOf[ForLoopStatement]).asInstanceOf[ListBuffer[ForLoopStatement]]
+
+          // if there is no more inner loop and a band start is not found, add the body declarations to this loop
+          if (innerLoops.nonEmpty) {
+            innerLoops.foreach(updateLoopAnnotations(extremaMap, _))
+          } else {
+            loop.annotate(CudaStrategiesUtils.CUDA_BODY_DECL, bodyDecl)
           }
+
         }
       } catch {
         case e : EvaluationException =>
@@ -382,10 +388,17 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
       loop
     case scope : Scope if scope.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) =>
       scope.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
-      scope.body.filter(x => x.isInstanceOf[ForLoopStatement]).foreach(loop => {
-        updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop.asInstanceOf[ForLoopStatement])
-      })
-      scope
+
+      val varDeclarations = scope.body.takeWhile(x => x.isInstanceOf[VariableDeclarationStatement])
+      val remainingBody = scope.body.dropWhile(x => x.isInstanceOf[VariableDeclarationStatement])
+
+      remainingBody match {
+        case ListBuffer(c : CommentStatement, loop : ForLoopStatement) =>
+          updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop, varDeclarations)
+          new Scope(c, loop)
+        case _ =>
+          scope
+      }
   }, false)
 }
 
@@ -449,6 +462,11 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       val allInnerLoops = collectLoopsInKernel(loop, allLoops)
       val (loopVariables, lowerBounds, upperBounds, stepSize) = CudaStrategiesUtils.extractRelevantLoopInformation(allInnerLoops)
       val kernelBody = pruneKernelBody(ListBuffer[Statement](loop), parallelInnerLoops.reverse)
+
+      if (loop.hasAnnotation(CudaStrategiesUtils.CUDA_BODY_DECL)) {
+        loop.getAnnotation(CudaStrategiesUtils.CUDA_BODY_DECL).getOrElse(ListBuffer[VariableDeclarationStatement]()).asInstanceOf[ListBuffer[VariableDeclarationStatement]].foreach(x => kernelBody.prepend(x))
+      }
+
       val deviceStatements = ListBuffer[Statement]()
 
       // add kernel and kernel call
@@ -468,7 +486,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       val kernel = ExpKernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         Duplicate(parallelInnerLoops.length),
-        Duplicate(variableAccesses),
+        variableAccesses.map(s => FunctionArgument(s.name, s.dType.get)),
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
         Duplicate(upperBounds),
@@ -560,7 +578,7 @@ object SplitLoopsForHostAndDevice extends DefaultStrategy("Splitting loops into 
 
         val kernel = Kernel(
           kernelFunctions.getIdentifier(collector.getCurrentName),
-          variableAccesses,
+          variableAccesses.map(s => FunctionArgument(s.name, s.dType.get)),
           loop.numDimensions,
           loop.indices,
           loop.body,
@@ -664,7 +682,7 @@ object ReplaceReductionAssignements extends QuietDefaultStrategy("Replace assign
   this += new Transformation("Searching", {
     case assignment : AssignmentStatement =>
       assignment.dest match {
-        case VariableAccess(redTarget, _) =>
+        case va : VariableAccess if redTarget.equals(va.name) =>
           assignment.dest = Duplicate(replacement)
         // assignment.op = "=" // don't modify assignments - there could be inlined loops
         case _ =>

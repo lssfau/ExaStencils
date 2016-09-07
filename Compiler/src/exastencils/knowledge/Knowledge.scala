@@ -530,6 +530,13 @@ object Knowledge {
     Constraints.condWarn((experimental_cuda_useSharedMemory || experimental_cuda_spatialBlockingWithSmem) && experimental_cuda_spatialBlockingWithROC, "Shared memory and/or spatial blocking with shared memory cannot be used if spatial blocking with read-only cache is enabled!")
     Constraints.condEnsureValue(experimental_cuda_useSharedMemory, false, experimental_cuda_spatialBlockingWithROC)
     Constraints.condEnsureValue(experimental_cuda_spatialBlockingWithSmem, false, experimental_cuda_spatialBlockingWithROC)
+    Constraints.condWarn(experimental_cuda_enabled && poly_performDCE, "Polyhedral dead code elimination cannot be performed if CUDA is used!")
+    Constraints.condEnsureValue(poly_performDCE, false, experimental_cuda_enabled)
+    Constraints.condWarn(experimental_cuda_enabled && opt_loopCarriedCSE, "Loop carried CSE cannot be applied if CUDA is used!")
+    Constraints.condEnsureValue(opt_loopCarriedCSE, false, experimental_cuda_enabled)
+
+    Constraints.condWarn(experimental_cuda_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
+    Constraints.condEnsureValue(useDblPrecision, true, experimental_cuda_enabled && opt_conventionalCSE)
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
 
