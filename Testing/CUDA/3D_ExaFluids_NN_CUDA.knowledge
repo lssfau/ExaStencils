@@ -67,5 +67,5 @@ experimental_trimBoundsForReductionLoops = true
 
 // CUDA
 
-experimental_cuda_enabled			= true
-experimental_cuda_preferredExecution = "Device"
+cuda_enabled			= true
+cuda_preferredExecution = "Device"

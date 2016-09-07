@@ -1,7 +1,7 @@
 targetOS                   = "Linux"
 targetCompiler             = "GCC"
-targetCompilerVersion      = 4
-targetCompilerVersionMinor = 8
+targetCompilerVersion      = 5
+targetCompilerVersionMinor = 4
 targetHardware             = "CPU"
 simd_instructionSet        = "AVX"
 

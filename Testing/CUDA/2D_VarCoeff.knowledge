@@ -55,5 +55,5 @@ opt_unroll_interleave		= false
 l3tmp_printError			= true
 l3tmp_useMaxNormForError	= true
 
-experimental_cuda_enabled	= true
-experimental_cuda_preferredExecution = "Device"
+cuda_enabled	= true
+cuda_preferredExecution = "Device"

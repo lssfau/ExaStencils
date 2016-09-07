@@ -102,7 +102,7 @@ case class CUDA_FunctionCallExpression(
     var name : String,
     var arguments : ListBuffer[Expression],
     var numThreadsPerDim : Array[Expression],
-    var numBlocksPerDim : Array[Expression] = Knowledge.experimental_cuda_blockSizeAsVec.map(n => n : Expression)) extends Expression {
+    var numBlocksPerDim : Array[Expression] = Knowledge.cuda_blockSizeAsVec.map(n => n : Expression)) extends Expression {
 
   def this(name : String, arguments : ListBuffer[Expression], numThreadsPerDim : Array[Long]) = this(name, arguments, numThreadsPerDim.map(n => n : Expression))
   def this(name : String, arguments : ListBuffer[Expression], numThreadsPerDim : Array[Long], numBlocksPerDim : Array[Long]) = this(name, arguments, numThreadsPerDim.map(n => n : Expression), numBlocksPerDim.map(n => n : Expression))
@@ -131,7 +131,7 @@ case class CUDA_FunctionCallExperimentalExpression(
     var name : String,
     var arguments : ListBuffer[Expression],
     var numThreadsPerDim : Array[Expression],
-    var numBlocksPerDim : Array[Expression] = Knowledge.experimental_cuda_blockSizeAsVec.map(n => n : Expression)) extends Expression {
+    var numBlocksPerDim : Array[Expression] = Knowledge.cuda_blockSizeAsVec.map(n => n : Expression)) extends Expression {
 
   def this(name : String, arguments : ListBuffer[Expression], numThreadsPerDim : Array[Long]) = this(name, arguments, numThreadsPerDim.map(n => n : Expression))
   def this(name : String, arguments : ListBuffer[Expression], numThreadsPerDim : Array[Long], numBlocksPerDim : Array[Long]) = this(name, arguments, numThreadsPerDim.map(n => n : Expression), numBlocksPerDim.map(n => n : Expression))
@@ -183,7 +183,7 @@ case class CUDA_SyncThreads() extends Statement {
 }
 
 case class CUDA_SharedArray(name : String, arrayType : Datatype, var size : Array[Long]) extends Statement {
-  size = if (Knowledge.experimental_cuda_linearizeSharedMemoryAccess) Array(size.product) else size
+  size = if (Knowledge.cuda_linearizeSharedMemoryAccess) Array(size.product) else size
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "__shared__ " << arrayType << " " << name
@@ -203,7 +203,7 @@ case class CUDA_SharedArrayAccess(base : Expression, indices : ListBuffer[Expres
 
   override def prettyprint(out : PpStream) : Unit = {
     out << base
-    if (Knowledge.experimental_cuda_linearizeSharedMemoryAccess) {
+    if (Knowledge.cuda_linearizeSharedMemoryAccess) {
       out << "[" << linearizeAccess() << "]"
     } else {
       indices.foreach(i => out << "[" << i << "]")

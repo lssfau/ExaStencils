@@ -20,7 +20,7 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
-  if (Knowledge.experimental_cuda_enabled) {
+  if (Knowledge.cuda_enabled) {
     externalDependencies += "cuda.h"
     externalDependencies += "cuda_runtime.h"
   }

@@ -198,7 +198,7 @@ object MainChristoph {
       CImg() // TODO: only if required
     )
 
-    if (Knowledge.experimental_cuda_enabled)
+    if (Knowledge.cuda_enabled)
       StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
 
     if (Knowledge.experimental_mergeCommIntoLoops)
@@ -239,7 +239,7 @@ object MainChristoph {
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
-    if (Knowledge.experimental_cuda_enabled) {
+    if (Knowledge.cuda_enabled) {
       PrepareCudaRelevantCode.apply()
     }
 
@@ -274,7 +274,7 @@ object MainChristoph {
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements and to
     // take advantage of the schedule exploration.
-    if (Knowledge.experimental_cuda_enabled) {
+    if (Knowledge.cuda_enabled) {
       CalculateCudaLoopsAnnotations.apply()
       ExtractHostAndDeviceCode.apply()
       AdaptKernelDimensionalities.apply()
@@ -286,7 +286,7 @@ object MainChristoph {
 
     LinearizeFieldAccesses.apply() // before converting kernel functions -> requires linearized accesses
 
-    if (Knowledge.experimental_cuda_enabled)
+    if (Knowledge.cuda_enabled)
       StateManager.findFirst[KernelFunctions]().get.convertToFunctions()
 
     ResolveBoundedExpressions.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
