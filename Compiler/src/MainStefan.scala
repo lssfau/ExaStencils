@@ -1,3 +1,5 @@
+import scala.collection.mutable.ListBuffer
+
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -20,8 +22,6 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
-
-import scala.collection.mutable.ListBuffer
 
 object MainStefan {
   private var polyOptExplID : Int = 0
@@ -67,7 +67,7 @@ object MainStefan {
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
-        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }
@@ -340,6 +340,8 @@ object MainStefan {
     else
       ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
+
+    exastencils.workaround.Compiler.apply()
 
     if (Knowledge.ir_maxInliningSize > 0)
       Inlining.apply()

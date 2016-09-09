@@ -337,6 +337,8 @@ object Main {
       ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
+    exastencils.workaround.Compiler.apply()
+
     if (Knowledge.ir_maxInliningSize > 0)
       Inlining.apply()
     CleanUnusedStuff.apply()
