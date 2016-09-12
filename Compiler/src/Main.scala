@@ -232,6 +232,10 @@ object Main {
     TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
+    if (Knowledge.experimental_memoryDistanceAnalysis) {
+      AnalyzeIterationDistance()
+    }
+
     if (Knowledge.experimental_addPerformanceEstimate)
       AddPerformanceEstimates()
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving

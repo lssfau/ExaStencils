@@ -312,6 +312,8 @@ object Knowledge {
 
   var experimental_addPerformanceEstimate : Boolean = false
 
+  var experimental_memoryDistanceAnalysis : Boolean = false
+
   var cuda_enabled : Boolean = false
   var cuda_deviceId : Int = 0 // device id of the CUDA device to be used; only relevant in multi-GPU systems
   var cuda_preferredExecution : String = "Performance" // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
