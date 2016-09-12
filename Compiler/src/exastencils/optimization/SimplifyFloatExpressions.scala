@@ -23,6 +23,10 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       a.src = simplify(src)
       a
 
+    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(CUDAConstPointerDatatype(RealDatatype))), _, _), src, op) =>
+      a.src = simplify(src)
+      a
+
     case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(ConstPointerDatatype(RealDatatype))), _, _), src, op) =>
       a.src = simplify(src)
       a

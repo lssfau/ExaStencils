@@ -12,6 +12,8 @@ object Platform {
 
   var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
 
+  var targetCudaCompiler : String = "NVCC" // target cuda compiler;
+
   def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
     targetCompiler match {
       case "MSVC"            => targetCompilerVersion >= 12
@@ -99,6 +101,8 @@ object Platform {
   var hw_gpu_numCores : Int = 256
   var hw_cuda_capability : Int = 2
   var hw_cuda_capabilityMinor : Int = 0
+  var hw_cuda_sharedMemory : Int = 49152 // amount of shared memory in byte
+  var hw_cuda_cacheMemory : Int = 16384 // cache size in byte
 
   def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3 // 3 seems to be max; checked for versions up to 5.3
 
@@ -113,7 +117,7 @@ object Platform {
   def resolveCompiler = {
     targetCompiler match {
       case "IBMBG" =>
-        var base = if (Knowledge.mpi_enabled) "mpixlcxx" else "bgxlc++"
+        val base = if (Knowledge.mpi_enabled) "mpixlcxx" else "bgxlc++"
         if (Knowledge.omp_enabled) base + "_r" else base
       case "IBMXL" =>
         if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
@@ -127,10 +131,31 @@ object Platform {
       case "MSVC" =>
         "" // nothing to do
       case "ICC" =>
-        if (Knowledge.mpi_enabled) "mpicxx" else "icc"
+        if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
       case "CLANG" =>
         "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
     }
+  }
+
+  def resolveCudaCompiler = {
+    targetCudaCompiler match {
+      case "NVCC" => "nvcc"
+    }
+  }
+
+  def resolveCudaFlags = {
+    var flags : String = ""
+
+    targetCudaCompiler match {
+      // -arch=sm_35 tells nvcc that it is compiling for the real architecture Kepler GK110 (NVIDIA Titan Black)
+      case "NVCC" =>
+        flags += " -std=c++11 -O3 -DNDEBUG -lineinfo -arch=sm_35"
+
+        // this is required since latest Ubuntu update
+        flags += " -D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES"
+    }
+
+    flags
   }
 
   def resolveCFlags = {
@@ -163,15 +188,20 @@ object Platform {
       case "ICC" =>
         flags += " -O3 -std=c++11"
 
-        if (Knowledge.omp_enabled) flags += " -openmp"
+        if (Knowledge.omp_enabled) {
+          if (targetCompilerVersion >= 15)
+            flags += " -qopenmp"
+          else
+            flags += " -openmp"
+        }
 
         if (Knowledge.opt_vectorize) {
-          simd_instructionSet match { // TODO: verify flags
-            case "SSE3"   => flags += " -msse3"
-            case "AVX"    => flags += " -mavx"
-            case "AVX2"   => flags += " -march=core-avx2"
-            case "AVX512" => flags += " -march=knl"
-            case "IMCI"   => flags += " -march=knc"
+          simd_instructionSet match {
+            case "SSE3"   => flags += " -xSSE3"
+            case "AVX"    => flags += " -xAVX"
+            case "AVX2"   => flags += " -xCORE-AVX2"
+            case "AVX512" => flags += " -xCORE-AVX512"
+            case "IMCI"   => flags += " -march=knc" // TODO: verify flag
           }
         }
       case "CLANG" =>
@@ -212,7 +242,12 @@ object Platform {
         if (Knowledge.omp_enabled) flags += " -fopenmp"
       case "MSVC" => // nothing to do
       case "ICC" =>
-        if (Knowledge.omp_enabled) flags += " -openmp"
+        if (Knowledge.omp_enabled) {
+          if (targetCompilerVersion >= 15)
+            flags += " -qopenmp"
+          else
+            flags += " -openmp"
+        }
       case "CLANG" =>
         if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
     }

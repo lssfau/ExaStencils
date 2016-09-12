@@ -63,7 +63,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
 
     // compile final function
     new FunctionStatement(UnitDatatype, name,
-      ListBuffer(new VariableAccess("dest", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
+      ListBuffer(new FunctionArgument("dest", externalDT), new FunctionArgument("slot", IntegerDatatype)),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           new MultiIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
@@ -112,7 +112,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
 
     // compile final function
     new FunctionStatement(UnitDatatype, name,
-      ListBuffer(new VariableAccess("src", Some(externalDT)), new VariableAccess("slot", Some(IntegerDatatype))),
+      ListBuffer(new FunctionArgument("src", externalDT), new FunctionArgument("slot", IntegerDatatype)),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           new MultiIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),

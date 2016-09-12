@@ -210,7 +210,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
     def len = VariableAccess("len", Some(IntegerDatatype))
 
     if (Knowledge.mpi_useBusyWait) {
-      FunctionStatement(UnitDatatype, name, ListBuffer(request),
+      FunctionStatement(UnitDatatype, name, ListBuffer(FunctionArgument(request.name, request.dType.get)),
         ListBuffer[Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
@@ -227,7 +227,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     } else {
-      FunctionStatement(UnitDatatype, s"waitForMPIReq", ListBuffer(request),
+      FunctionStatement(UnitDatatype, s"waitForMPIReq", ListBuffer(FunctionArgument(request.name, request.dType.get)),
         ListBuffer[Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),

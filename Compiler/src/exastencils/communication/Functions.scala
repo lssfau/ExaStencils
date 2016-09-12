@@ -16,7 +16,7 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
-  if (Knowledge.experimental_cuda_enabled)
+  if (Knowledge.cuda_enabled)
     internalDependencies += "KernelFunctions/KernelFunctions.h"
   if (Knowledge.opt_vectorize) {
     val header = Platform.simd_header
@@ -55,10 +55,10 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
   override def expand : Output[FunctionStatement] = {
     FunctionStatement(UnitDatatype, name,
       ListBuffer(
-        VariableAccess("localFragId", Some(IntegerDatatype)),
-        VariableAccess("localNeighId", Some(IntegerDatatype)),
-        VariableAccess("location", Some(IntegerDatatype)),
-        VariableAccess("domain", Some(IntegerDatatype))),
+        FunctionArgument("localFragId", IntegerDatatype),
+        FunctionArgument("localNeighId", IntegerDatatype),
+        FunctionArgument("location", IntegerDatatype),
+        FunctionArgument("domain", IntegerDatatype)),
       ListBuffer[Statement](
         AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
         AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), false),
@@ -75,11 +75,11 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
   override def expand : Output[FunctionStatement] = {
     FunctionStatement(UnitDatatype, name,
       ListBuffer(
-        VariableAccess("localFragId", Some(IntegerDatatype)),
-        VariableAccess("localNeighId", Some(IntegerDatatype)),
-        VariableAccess("remoteRank", Some(IntegerDatatype)),
-        VariableAccess("location", Some(IntegerDatatype)),
-        VariableAccess("domain", Some(IntegerDatatype))),
+        FunctionArgument("localFragId", IntegerDatatype),
+        FunctionArgument("localNeighId", IntegerDatatype),
+        FunctionArgument("remoteRank", IntegerDatatype),
+        FunctionArgument("location", IntegerDatatype),
+        FunctionArgument("domain", IntegerDatatype)),
       ListBuffer[Statement](
         AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
         AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), true),

@@ -24,12 +24,13 @@
 #################################################################################################
 
 # 10 OMP threads
-Appl_ExaFluids     Main  Application/ExaFluids.knowledge           Application/ExaFluids.exa4           Application/ExaFluids.results           1  10
-Appl_ExaFluids_PL  Main  Application/ExaFluids.knowledge           Application/ExaFluids_PowerLaw.exa4  Application/ExaFluids_PowerLaw.results  1  10
-Appl_ExaFluids_Par Main  Application/ExaFluids_Parallel.knowledge  Application/ExaFluids.exa4           Application/ExaFluids_Parallel.results  4  2
+Appl_ExaFluids          Main  Application/ExaFluids.knowledge           Application/ExaFluids.exa4           Application/ExaFluids.results           1  10
+Appl_ExaFluids_PowerLaw Main  Application/ExaFluids.knowledge           Application/ExaFluids_PowerLaw.exa4  Application/ExaFluids_PowerLaw.results  1  10
+Appl_ExaFluids_Bingham  Main  Application/ExaFluids.knowledge           Application/ExaFluids_Bingham.exa4   Application/ExaFluids_Bingham.results   1  10
+Appl_ExaFluids_Par      Main  Application/ExaFluids_Parallel.knowledge  Application/ExaFluids.exa4           Application/ExaFluids_Parallel.results  4  2
 
 # Optical flow 3D using vector data types
-Appl_OptFlow3D     Main  Application/OpticalFlow3D.knowledge       Application/OpticalFlow3D.exa4       Application/OpticalFlow3D.results       1  10
+Appl_OptFlow3D          Main  Application/OpticalFlow3D.knowledge       Application/OpticalFlow3D.exa4       Application/OpticalFlow3D.results       1  10
 
 #################################################################################################
 # BASIC COMMUNICATION TESTS                                                                     #
@@ -202,10 +203,12 @@ FMG_3D_VarCoeff       Main    FMG/3D_VarCoeff.knowledge       *  FMG/3D_VarCoeff
 #################################################################################################
 
 # 2D_VarCoeff has its own expected results due to rounding differences compared to original SISC version
-CUDA_SISC_2D_ConstCoeff  Main  CUDA/2D_ConstCoeff.knowledge  *  SISC/2D_ConstCoeff.results  1  10  GPU
-CUDA_SISC_2D_VarCoeff    Main  CUDA/2D_VarCoeff.knowledge    *  CUDA/2D_VarCoeff.results    1  10  GPU
-CUDA_SISC_3D_ConstCoeff  Main  CUDA/3D_ConstCoeff.knowledge  *  SISC/3D_ConstCoeff.results  1  10  GPU
-CUDA_SISC_3D_VarCoeff    Main  CUDA/3D_VarCoeff.knowledge    *  SISC/3D_VarCoeff.results    1  10  GPU
+CUDA_SISC_2D_ConstCoeff Main CUDA/2D_ConstCoeff.knowledge        *                              SISC/2D_ConstCoeff.results        1 10 GPU
+CUDA_SISC_2D_VarCoeff   Main CUDA/2D_VarCoeff.knowledge          *                              CUDA/2D_VarCoeff.results          1 10 GPU
+CUDA_SISC_3D_ConstCoeff Main CUDA/3D_ConstCoeff.knowledge        *                              SISC/3D_ConstCoeff.results        1 10 GPU
+CUDA_SISC_3D_VarCoeff   Main CUDA/3D_VarCoeff.knowledge          *                              SISC/3D_VarCoeff.results          1 10 GPU
+
+CUDA_ExaFluids_Bingham  Main CUDA/3D_ExaFluids_NN_CUDA.knowledge CUDA/3D_ExaFluids_NN_CUDA.exa4 CUDA/3D_ExaFluids_NN_CUDA.results 1 10 GPU
 
 #################################################################################################
 # CSE TESTS                                                                                     #

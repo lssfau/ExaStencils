@@ -1,4 +1,5 @@
 data_alignFieldPointers    = true
+simd_avoidUnaligned        = true
 
 ir_maxInliningSize         = 2147483647
 

@@ -7,7 +7,7 @@ import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.omp.OMP_PotentiallyParallel
-import exastencils.performance.NEONDivision
+import exastencils.performance._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 
@@ -42,7 +42,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         statements += wrapped
     }
 
-    new FunctionStatement(UnitDatatype, name, ListBuffer[VariableAccess](), statements)
+    new FunctionStatement(UnitDatatype, name, ListBuffer[FunctionArgument](), statements)
   }
 }
 
@@ -54,7 +54,7 @@ case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid"
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
-  if (Knowledge.experimental_cuda_enabled) {
+  if (Knowledge.cuda_enabled) {
     externalDependencies += "cuda.h"
     externalDependencies += "cuda_runtime.h"
 

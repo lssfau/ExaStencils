@@ -12,15 +12,15 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
   ListBuffer("Util/Vector.h", "Util/Matrix.h") /*
     ++ Settings.additionalIncludes*/ ,
   ListBuffer(
-    new FunctionStatement(UnitDatatype, "initGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]),
-    new FunctionStatement(UnitDatatype, "destroyGlobals", new ListBuffer[VariableAccess], new ListBuffer[Statement]))) {
+    new FunctionStatement(UnitDatatype, "initGlobals", new ListBuffer[FunctionArgument], new ListBuffer[Statement]),
+    new FunctionStatement(UnitDatatype, "destroyGlobals", new ListBuffer[FunctionArgument], new ListBuffer[Statement]))) {
 
   // add conditional dependencies
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
-  if (Knowledge.experimental_cuda_enabled) {
+  if (Knowledge.cuda_enabled) {
     externalDependencies += "cuda.h"
     externalDependencies += "cuda_runtime.h"
   }

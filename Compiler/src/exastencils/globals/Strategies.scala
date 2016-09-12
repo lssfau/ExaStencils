@@ -13,7 +13,7 @@ import exastencils.util._
 object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
   this += new Transformation("Adding default global constants and variables", {
     case globals : Globals => {
-      if (Knowledge.experimental_cuda_enabled) {
+      if (Knowledge.cuda_enabled) {
         globals.variables += new VariableDeclarationStatement("CUcontext", "cudaContext")
         globals.variables += new VariableDeclarationStatement("CUdevice", "cudaDevice")
       }
@@ -26,26 +26,32 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
     }
 
     case func : FunctionStatement if ("initGlobals" == func.name) => {
-      if (Knowledge.experimental_cuda_enabled) {
+      if (Knowledge.cuda_enabled) {
         // init device
         func.body ++= ListBuffer[Statement](
           VariableDeclarationStatement(IntegerDatatype, "deviceCount", Some(0)),
           "cuDeviceGetCount(&deviceCount)",
-          AssertStatement(LowerExpression(Knowledge.experimental_cuda_deviceId, "deviceCount"),
-            ListBuffer("\"Invalid device id (\"", Knowledge.experimental_cuda_deviceId, "\") must be smaller than the number of devices (\"", "deviceCount", "\")\""),
+          AssertStatement(LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
+            ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", "deviceCount", "\")\""),
             new FunctionCallExpression("exit", 1)),
-          s"cuDeviceGet(&cudaDevice, ${Knowledge.experimental_cuda_deviceId})")
+          s"cuDeviceGet(&cudaDevice, ${Knowledge.cuda_deviceId})")
 
         // print device info (name)
         if (!Knowledge.l3tmp_genForAutoTests) {
           func.body ++= ListBuffer[Statement](
             "cudaDeviceProp devProp",
-            s"cudaGetDeviceProperties(&devProp, ${Knowledge.experimental_cuda_deviceId})",
-            PrintStatement(ListBuffer("\"Using CUDA device \"", Knowledge.experimental_cuda_deviceId, "\": \"", "devProp.name", "std::endl")))
+            s"cudaGetDeviceProperties(&devProp, ${Knowledge.cuda_deviceId})",
+            PrintStatement(ListBuffer("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", "devProp.name", "std::endl")))
         }
 
         // create context
         func.body += "cuCtxCreate(&cudaContext, 0, cudaDevice)"
+
+        // set L1 cache and shared memory configuration for this device
+        if (Knowledge.cuda_useSharedMemory)
+          func.body += "cudaDeviceSetCacheConfig(cudaFuncCachePreferShared)"
+        if (Knowledge.cuda_favorL1CacheOverSharedMemory)
+          func.body += "cudaDeviceSetCacheConfig(cudaFuncCachePreferL1)"
       }
 
       if (Knowledge.mpi_enabled) {

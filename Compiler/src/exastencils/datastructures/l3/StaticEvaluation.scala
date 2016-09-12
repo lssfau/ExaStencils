@@ -76,12 +76,12 @@ case class FunctionRValue(
     val body_ctx = createBodyContext(ctx, givenStaticArgs)
 
     // bind dynamic arguments
-    val tcArgs = ListBuffer[l4.Variable]()
+    val tcArgs = ListBuffer[l4.FunctionArgument]()
     for (arg <- dynamicArguments) {
       val argLocation = arg.datatype.createDynamicLocation(body_ctx)
       body_ctx.env.bind(arg.id, StaticConstant(argLocation))
 
-      tcArgs += argLocation.argumentTc
+      tcArgs += l4.FunctionArgument(l4.BasicIdentifier(argLocation.argumentTc.access.name), argLocation.argumentTc.datatype)
     }
 
     // transform to target code and concat

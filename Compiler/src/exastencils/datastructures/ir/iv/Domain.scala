@@ -28,6 +28,7 @@ case class IterationOffsetBegin(var domain : Expression, var fragmentIdx : Expre
   override def resolveName = s"iterationOffsetBegin" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
   override def resolveDataType = "Vec3i"
   override def resolveDefValue = Some("Vec3i(1, 1, 1)")
+  def resolveAccess = super.resolveAccess(resolveName, fragmentIdx, domain, NullExpression, NullExpression, NullExpression)
 }
 
 case class IterationOffsetEnd(var domain : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, true, false, false, false) {

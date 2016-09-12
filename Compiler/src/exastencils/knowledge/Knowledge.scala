@@ -1,7 +1,6 @@
 package exastencils.knowledge
 
 import exastencils.constraints._
-import exastencils.logger._
 import exastencils.spl._
 
 object Knowledge {
@@ -29,7 +28,7 @@ object Knowledge {
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
   var minLevel : Int = 0 // [0~4§minLevel+1]  // nonSISC [0~12] // @constant // the coarsest level
   var maxLevel : Int = 6 // [4~12§maxLevel+1] // @constant // the finest level
-  def numLevels : Int = (maxLevel - minLevel + 1) // the number of levels -> this assumes that the cycle descents to the coarsest level
+  def numLevels : Int = maxLevel - minLevel + 1 // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
 
@@ -107,9 +106,9 @@ object Knowledge {
 
   /// utility functions
   // specifies if fragments can have local (i.e. shared memory) neighbors, i.e. if local comm is required
-  def domain_canHaveLocalNeighs : Boolean = (domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity)
+  def domain_canHaveLocalNeighs : Boolean = domain_numFragmentsPerBlock > 1 || domain_rect_hasPeriodicity
   // specifies if fragments can have remote (i.e. different mpi rank) neighbors, i.e. if mpi comm is required
-  def domain_canHaveRemoteNeighs : Boolean = (domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity))
+  def domain_canHaveRemoteNeighs : Boolean = domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity)
 
   /// Student project - Jeremias
   var domain_useCase : String = "" // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
@@ -190,12 +189,14 @@ object Knowledge {
   var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine§poly_optLevel_coarse+1] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
   var poly_numFinestLevels : Int = 2 // [1~numLevels§poly_numFinestLevels+1] // number of levels that should be optimized in PolyOpt (starting from the finest)
   var poly_performDCE : Boolean = true // [true|false] // specifies if the polyhedral dead code elimination should be performed (which can increase the generation time)
-  var poly_tileSize_x : Int = 0 // [112~1000000000 $32§poly_tileSize_x+32] // '0' means no tiling at all in this dimension
+  // for tileSizes: these all default values if they are not set by the performance estimates; '0' means no tiling at all in this dimension
+  var poly_tileSize_x : Int = 0 // [112~1000000000 $32§poly_tileSize_x+32]
   var poly_tileSize_y : Int = 0 // [16~1000000000 $32§poly_tileSize_y+32]
   var poly_tileSize_z : Int = 0 // [16~1000000000 $32§poly_tileSize_z+32]
   var poly_tileSize_w : Int = 0 // [16~1000000000 $32§poly_tileSize_w+32]
   var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
   var poly_scheduleAlgorithm : String = "isl" // [isl|feautrier|exploration] // choose which schedule algorithm should be used in PolyOpt
+  var poly_exploration_extended : Boolean = false // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
   var poly_optimizeDeps : String = "raw" // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_filterDeps : Boolean = false // [true|false] // specifies if the dependences to optimize should be filtered first
   var poly_simplifyDeps : Boolean = true // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
@@ -260,7 +261,7 @@ object Knowledge {
   var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter
   var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
   var l3tmp_genVectorFields : Boolean = false // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
-  var l3tmp_numVecDims : Int = (if (l3tmp_genVectorFields) 2 else 1) // number of components the PDE is to be solved for
+  var l3tmp_numVecDims : Int = if (l3tmp_genVectorFields) 2 else 1 // number of components the PDE is to be solved for
   var l3tmp_genFragLoops : Boolean = false // adds fragment loops to the L4 DSL file
   var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
   var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
@@ -311,19 +312,26 @@ object Knowledge {
 
   var experimental_addPerformanceEstimate : Boolean = false
 
-  var experimental_cuda_enabled : Boolean = false
-  var experimental_cuda_deviceId : Int = 0 // device id of the CUDA device to be used; only relevant in multi-GPU systems
-  var experimental_cuda_preferredExecution : String = "Performance" // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
-  var experimental_cuda_syncDeviceAfterKernelCalls : Boolean = true // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
-  var experimental_cuda_syncHostForWrites : Boolean = false // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
-  var experimental_cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
+  var experimental_memoryDistanceAnalysis : Boolean = false
 
-  var experimental_cuda_blockSize_x : Int = 8 // default block size in x dimension
-  var experimental_cuda_blockSize_y : Int = 8 // default block size in x dimension
-  var experimental_cuda_blockSize_z : Int = 8 // default block size in x dimension
-  def experimental_cuda_blockSizeAsVec = Array(experimental_cuda_blockSize_x, experimental_cuda_blockSize_y, experimental_cuda_blockSize_z)
-  def experimental_cuda_blockSizeTotal = experimental_cuda_blockSize_x * experimental_cuda_blockSize_y * experimental_cuda_blockSize_z
-  var experimental_cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels
+  var cuda_enabled : Boolean = false
+  var cuda_deviceId : Int = 0 // device id of the CUDA device to be used; only relevant in multi-GPU systems
+  var cuda_preferredExecution : String = "Performance" // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
+  var cuda_syncDeviceAfterKernelCalls : Boolean = true // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
+  var cuda_syncHostForWrites : Boolean = false // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
+  var cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
+
+  var cuda_blockSize_x : Long = 8 // default block size in x dimension
+  var cuda_blockSize_y : Long = 8 // default block size in y dimension
+  var cuda_blockSize_z : Long = 8 // default block size in z dimension
+  def cuda_blockSizeAsVec = Array(cuda_blockSize_x, cuda_blockSize_y, cuda_blockSize_z)
+  def cuda_blockSizeTotal = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
+  var cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels
+  var cuda_useSharedMemory : Boolean = false // specify if shared memory should be used within kernels
+  var cuda_linearizeSharedMemoryAccess : Boolean = false
+  var cuda_spatialBlockingWithSmem : Boolean = false
+  var cuda_favorL1CacheOverSharedMemory : Boolean = false
+  var cuda_spatialBlockingWithROC : Boolean = false // apply spatial blocking with read-only cache
 
   var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
   var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements
@@ -509,14 +517,28 @@ object Knowledge {
     Constraints.condEnsureValue(mpi_useBusyWait, true, experimental_allowCommInFragLoops && domain_numFragmentsPerBlock > 1, s"mpi_useBusyWait must be true when experimental_allowCommInFragLoops is used in conjunction with multiple fragments per block")
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
-    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, experimental_cuda_enabled && "Performance" == experimental_cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
-    Constraints.condEnsureValue(experimental_cuda_deviceId, 0, experimental_cuda_enabled && experimental_cuda_deviceId >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+    Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, cuda_enabled && "Performance" == cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
+    Constraints.condEnsureValue(cuda_deviceId, 0, cuda_enabled && cuda_deviceId >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
-    Constraints.condEnsureValue(experimental_cuda_blockSize_y, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
-    Constraints.condEnsureValue(experimental_cuda_blockSize_z, 1, experimental_cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
+    Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
+    Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
 
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
-    Constraints.condWarn(experimental_cuda_enabled && experimental_cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $experimental_cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+
+    Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
+    Constraints.condWarn(cuda_spatialBlockingWithSmem && !cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
+    Constraints.condEnsureValue(cuda_spatialBlockingWithSmem, false, !cuda_useSharedMemory)
+    Constraints.condWarn((cuda_useSharedMemory || cuda_spatialBlockingWithSmem) && cuda_spatialBlockingWithROC, "Shared memory and/or spatial blocking with shared memory cannot be used if spatial blocking with read-only cache is enabled!")
+    Constraints.condEnsureValue(cuda_useSharedMemory, false, cuda_spatialBlockingWithROC)
+    Constraints.condEnsureValue(cuda_spatialBlockingWithSmem, false, cuda_spatialBlockingWithROC)
+    Constraints.condWarn(cuda_enabled && poly_performDCE, "Polyhedral dead code elimination cannot be performed if CUDA is used!")
+    Constraints.condEnsureValue(poly_performDCE, false, cuda_enabled)
+    Constraints.condWarn(cuda_enabled && opt_loopCarriedCSE, "Loop carried CSE cannot be applied if CUDA is used!")
+    Constraints.condEnsureValue(opt_loopCarriedCSE, false, cuda_enabled)
+
+    Constraints.condWarn(cuda_enabled && opt_conventionalCSE && !useDblPrecision, "Double precision should be used if CUDA is enabled and CSE should be applied!")
+    Constraints.condEnsureValue(useDblPrecision, true, cuda_enabled && opt_conventionalCSE)
 
     Constraints.condWarn(experimental_splitLoopsForAsyncComm && 26 != comm_strategyFragment, s"Using asynchronous communication with comm_strategyFragment != 26 leads to problems with stencils containing diagonal entries")
 

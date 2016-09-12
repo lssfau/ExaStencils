@@ -19,6 +19,7 @@ OUT_FILE=${5} # stdout and stderr should already be redirected to this file
 OUT_FILE_URL=${6} # url to ${OUT_FILE}
 PROGRESS=${7}
 BRANCH=${8}
+FAILURE_MAIL=${9}
 
 
 # HACK: otherwise ant wouldn't find it...
@@ -30,10 +31,13 @@ ANT_BUILD="${REPO_DIR}/Compiler/build.xml"
 TESTING_DIR="${REPO_DIR}/Testing"
 TESTING_CONF="${TESTING_DIR}/test_confs.txt"
 
-FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
 FAILURE_MAIL_FILE="${TESTING_DIR}/failure_mails.txt"
-if [[ -s "${FAILURE_MAIL_FILE}" ]]; then
-  FAILURE_MAIL=$(cat ${FAILURE_MAIL_FILE})
+if [[ -z ${FAILURE_MAIL} ]]; then
+  if [[ -s "${FAILURE_MAIL_FILE}" ]]; then
+    FAILURE_MAIL=$(cat ${FAILURE_MAIL_FILE})
+  else
+    FAILURE_MAIL="exastencils-dev@www.uni-passau.de"
+  fi
 fi
 
 ERROR_MARKER_NAME="error"
@@ -44,11 +48,11 @@ LOG_DIR=$(dirname "${OUT_FILE}")
 
 function update_progress {
   if [[ "${1}" -eq 0 ]]; then
-    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n  Done!</div></body></html>" > "${PROGRESS}"
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)  (Reload this page manually.)\n Log can be found <a href=./${BRANCH}/>here</a>.\n\n  Done!\n\n  New tests can be triggered <a href=../trigger-eg-tests.html>here</a></div></body></html>" > "${PROGRESS}"
   elif [[ "${1}" -eq 1 ]]; then
-    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)  (Reload this page manually.)\n Log can be found <a href=./${BRANCH}/>here</a>.\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
   else
-    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)  (Reload this page manually.)\n Log can be found <a href=./${BRANCH}/>here</a>.\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
   fi
 }
 
@@ -161,7 +165,7 @@ do
   COMPILE_CONSTR=""
   if [[ ${constraints} =~ GPU ]] || [[ ${constraints} = "E5" ]]; then
     PLATFORM="chimaira.platform"
-    COMPILE_CONSTR="-A cl -p chimaira" # HACK: the cuda compiler is not installed on all machines
+    COMPILE_CONSTR="-A cl -p chimaira -c 20" # HACK: the cuda compiler is not installed on all machines; use more compile threads for CUDA code
   elif [[ ${constraints} = "AVX2" ]]; then
     PLATFORM="anyavx2.platform"
   elif [[ ${constraints} = "AVX" ]]; then
@@ -172,6 +176,7 @@ do
 
   echo "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">" > "${TEST_LOG}"
   echo "Test ID:  ${id}" >> "${TEST_LOG}"
+  echo "<a href=./>Back to overview.</a>" >> "${TEST_LOG}"
 
   echo "Enqueue generation and compilation job for id  ${id}."
   # configuration is fine, start a new job for it
@@ -223,7 +228,7 @@ for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
   ACC="anywhere"
   PART="anywhere"
   CONSTR_PARAM="--constraint=${constraints}"
-  if [[ $(( ${nodes} * ${cores} )) -gt 56 ]] || [[ ${cores} -gt 8 ]] || [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
+  if [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
     ACC="cl"
     PART="chimaira"
     CONSTR_PARAM=""

@@ -225,7 +225,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     case func : FunctionStatement if ("Application" == func.name) => {
       func.returntype = IntegerDatatype
       func.name = "main"
-      func.parameters = ListBuffer(VariableAccess("argc", Some("int")), VariableAccess("argv", Some("char**"))) ++ func.parameters
+      func.parameters = ListBuffer(FunctionArgument("argc", IntegerDatatype), FunctionArgument("argv", SpecialDatatype("char**"))) ++ func.parameters
       func.allowFortranInterface = false
       //if (true) {
       //func.body.append(new ConditionStatement(new MPI_IsRootProc,
@@ -236,7 +236,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       //CallTracker::ClearCallStack();
       //#endif""")
       //}
-      if (Knowledge.experimental_cuda_enabled) {
+      if (Knowledge.cuda_enabled) {
         func.body.prepend(new CUDA_Init)
         func.body.append(new CUDA_Finalize)
       }

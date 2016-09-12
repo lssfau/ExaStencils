@@ -1,59 +1,72 @@
 package exastencils.util
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-
-import exastencils.core.Duplicate
-import exastencils.core.StateManager
-import exastencils.datastructures._
+import exastencils.core._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.knowledge.FieldSelection
 import exastencils.logger._
-import exastencils.strategies.SimplifyStrategy
+import exastencils.strategies._
+
+import scala.collection._
+import scala.collection.mutable.{HashMap, ListBuffer}
 
 object SimplifyExpression {
 
   /**
-    * Completely evaluates an integral expression.
-    * Only IntegerConstants are allowed!
-    * Other scalar constants or variable accesses lead to an EvaluationException.
-    */
+   * Completely evaluates an integral expression.
+   * Only IntegerConstants are allowed!
+   * Other scalar constants or variable accesses lead to an EvaluationException.
+   */
   def evalIntegral(expr : Expression) : Long = expr match {
-    case IntegerConstant(v)                                      => v
-    case AdditionExpression(sums : ListBuffer[Expression])       => sums.view.map(s => evalIntegral(s)).reduce(_ + _)
-    case SubtractionExpression(l : Expression, r : Expression)   => evalIntegral(l) - evalIntegral(r)
-    case MultiplicationExpression(facs : ListBuffer[Expression]) => facs.view.map(s => evalIntegral(s)).reduce(_ * _)
-    case DivisionExpression(l : Expression, r : Expression)      => evalIntegral(l) / evalIntegral(r)
-    case ModuloExpression(l : Expression, r : Expression)        => evalIntegral(l) % evalIntegral(r)
-    case MinimumExpression(l : ListBuffer[Expression])           => l.view.map(e => evalIntegral(e)).reduce(_ min _)
-    case MaximumExpression(l : ListBuffer[Expression])           => l.view.map(e => evalIntegral(e)).reduce(_ max _)
+    case IntegerConstant(v) => v
+    case AdditionExpression(sums : ListBuffer[Expression]) => sums.view.map(s => evalIntegral(s)).sum
+    case SubtractionExpression(l : Expression, r : Expression) => evalIntegral(l) - evalIntegral(r)
+    case MultiplicationExpression(facs : ListBuffer[Expression]) => facs.view.map(s => evalIntegral(s)).product
+    case DivisionExpression(l : Expression, r : Expression) => evalIntegral(l) / evalIntegral(r)
+    case ModuloExpression(l : Expression, r : Expression) => evalIntegral(l) % evalIntegral(r)
+    case MinimumExpression(l : ListBuffer[Expression]) => l.view.map(e => evalIntegral(e)).min
+    case MaximumExpression(l : ListBuffer[Expression]) => l.view.map(e => evalIntegral(e)).max
     case _ =>
-      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
+      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
+  }
+
+  final val EXTREMA_MAP : String = "extremaMap" // associated value must be HashMap[String, (Long,Long)]
+
+  def evalIntegralExtrema(expr : Expression) : (Long, Long) = {
+    evalIntegralExtrema(expr, mutable.Map[String, (Long, Long)]())
   }
 
   /**
-    * Completely evaluates an integral expression and computes a lower bound and an upper bound
-    *   for its value depending on the minOffset and maxOffset in potential OffsetIndex nodes.
-    * Only IntegerConstants are allowed! (Except for the offset field in OffsetIndex, which is not evaluated at all.)
-    * Other scalar constants or variable accesses lead to an EvaluationException.
-    */
-  def evalIntegralExtrema(expr : Expression) : (Long, Long) = expr match {
+   * Completely evaluates an integral expression and computes a lower bound and an upper bound
+   * for its value depending on the minOffset and maxOffset in potential OffsetIndex nodes.
+   * Only IntegerConstants are allowed! (Except for the offset field in OffsetIndex, which is not evaluated at all.)
+   * Other scalar constants or variable accesses lead to an EvaluationException.
+   */
+  def evalIntegralExtrema(expr : Expression, extremaLookup : Map[String, (Long, Long)]) : (Long, Long) = expr match {
     case IntegerConstant(v) =>
       (v, v)
 
+    case StringConstant(value) if extremaLookup.contains(value) =>
+      extremaLookup(value)
+
+    case StringLiteral(value) if extremaLookup.contains(value) =>
+      extremaLookup(value)
+
+    case VariableAccess(name, dType) if extremaLookup.contains(name) =>
+      extremaLookup(name)
+
     case AdditionExpression(sums : ListBuffer[Expression]) =>
-      sums.view.map(s => evalIntegralExtrema(s)).reduce { (x, y) =>
+      sums.view.map(s => evalIntegralExtrema(s, extremaLookup)).reduce { (x, y) =>
         (x._1 + y._1, x._2 + y._2)
       }
 
     case SubtractionExpression(l : Expression, r : Expression) =>
-      val x = evalIntegralExtrema(l)
-      val y = evalIntegralExtrema(r)
+      val x = evalIntegralExtrema(l, extremaLookup)
+      val y = evalIntegralExtrema(r, extremaLookup)
       (x._1 - y._2, x._2 - y._1)
 
     case MultiplicationExpression(facs : ListBuffer[Expression]) =>
-      facs.view.map(s => evalIntegralExtrema(s)).reduce { (x, y) =>
+      facs.view.map(s => evalIntegralExtrema(s, extremaLookup)).reduce { (x, y) =>
         val a = x._1 * y._1
         val b = x._1 * y._2
         val c = x._2 * y._1
@@ -62,8 +75,8 @@ object SimplifyExpression {
       }
 
     case DivisionExpression(l : Expression, r : Expression) =>
-      val x = evalIntegralExtrema(l)
-      val y = evalIntegralExtrema(r)
+      val x = evalIntegralExtrema(l, extremaLookup)
+      val y = evalIntegralExtrema(r, extremaLookup)
       val a = x._1 / y._1
       val b = x._1 / y._2
       val c = x._2 / y._1
@@ -71,8 +84,8 @@ object SimplifyExpression {
       (a min b min c min d, a max b max c max d)
 
     case ModuloExpression(l : Expression, r : Expression) =>
-      val x = evalIntegralExtrema(l)
-      val y = evalIntegralExtrema(r)
+      val x = evalIntegralExtrema(l, extremaLookup)
+      val y = evalIntegralExtrema(r, extremaLookup)
       val a = x._1 % y._1
       val b = x._1 % y._2
       val c = x._2 % y._1
@@ -80,23 +93,27 @@ object SimplifyExpression {
       (a min b min c min d, a max b max c max d)
 
     case MinimumExpression(l : ListBuffer[Expression]) =>
-      l.view.map(e => evalIntegralExtrema(e)).reduce { (x, y) =>
+      l.view.map(e => evalIntegralExtrema(e, extremaLookup)).reduce { (x, y) =>
         (x._1 min y._1, x._2 min y._2)
       }
 
     case MaximumExpression(l : ListBuffer[Expression]) =>
-      l.view.map(e => evalIntegralExtrema(e)).reduce { (x, y) =>
+      l.view.map(e => evalIntegralExtrema(e, extremaLookup)).reduce { (x, y) =>
         (x._1 max y._1, x._2 max y._2)
       }
+
+    case NegativeExpression(left : Expression) =>
+      val (min, max) = evalIntegralExtrema(left, extremaLookup)
+      (-max, -min)
 
     case BoundedExpression(min, max, _) =>
       (min, max)
 
     case FunctionCallExpression("floord", ListBuffer(l : Expression, r : Expression)) =>
-      evalIntegralExtrema(DivisionExpression(l,r))
+      evalIntegralExtrema(DivisionExpression(l,r), extremaLookup)
 
     case _ =>
-      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
+      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
 
   /**
@@ -191,6 +208,10 @@ object SimplifyExpression {
       case VariableAccess(varName, _) =>
         res = new HashMap[Expression, Long]()
         res(VariableAccess(varName, Some(IntegerDatatype))) = 1L
+
+      case m : MemberAccess =>
+        res = new mutable.HashMap[Expression, Long]()
+        res(m) = 1L
 
       case StringLiteral(varName) =>
         res = new HashMap[Expression, Long]()
@@ -520,7 +541,7 @@ object SimplifyExpression {
         if (MathFunctions.signatures.contains(call.name))
           simplifyFloatingArgs(MathFunctions.signatures(call.name)._1)
         else for (func <- StateManager.findFirst({ f : FunctionStatement => f.name == call.name }))
-          simplifyFloatingArgs(func.parameters.view.map(_.dType.orNull))
+          simplifyFloatingArgs(func.parameters.view.map(_.datatype))
         res = new HashMap[Expression, Double]()
         res(call) = 1d
 

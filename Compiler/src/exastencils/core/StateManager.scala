@@ -9,6 +9,7 @@ import scala.reflect.ClassTag
 import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
 import exastencils.logger._
+import exastencils.datastructures.Traverser
 
 /**
   * The central entity to apply transformations to the current program state.
@@ -260,17 +261,17 @@ object StateManager {
         // ###############################################################################################
         case set : scala.collection.mutable.Set[_] => {
           var newSet = set.flatMap(f => f match {
-            case n: Node => applyAtNode(n, transformation).inner match {
+            case n : Node => applyAtNode(n, transformation).inner match {
               case NoMatch =>
                 replace(n, transformation); List(n) // no match occurred => use old element
-              case newN: Node => {
+              case newN : Node => {
                 newN.annotate(n)
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   replace(newN, transformation) // Recursive call for new element
                 }
                 List(newN) // element of type Node was returned => use it
               }
-              case newN: NodeList => {
+              case newN : NodeList => {
                 if (transformation.recursive || (!transformation.recursive && previousMatches >= progresses_(transformation).getMatches)) {
                   newN.nodes.foreach(replace(_, transformation)) // recursive call for new elements
                 }
@@ -530,6 +531,16 @@ object StateManager {
     }
   }
 
+  def traverse(element : Any, traverser : Traverser) = {
+    val r = Reflector(element)
+    traverser.enter(element, r)
+    traverser.leave(element)
+  }
+
+  def invoke(element : Any, method : scala.reflect.runtime.universe.MethodSymbol) : Any = {
+    Reflector.invoke(element, method)
+  }
+
   /**
     * Finds all instances of a certain type in the current program state.
     *
@@ -618,14 +629,42 @@ object StateManager {
     list.toList
   }
 
+  protected object Reflector {
+    protected var mirrors = new HashMap[Class[_ <: Any], scala.reflect.runtime.universe.InstanceMirror]
+    protected var methods = new HashMap[Class[_ <: Any], List[scala.reflect.runtime.universe.MethodSymbol]]
+
+    protected def getMirror(o : Any) = {
+      mirrors.getOrElseUpdate(o.getClass(), {
+        val currentMirror = scala.reflect.runtime.universe.runtimeMirror(o.getClass.getClassLoader)
+        currentMirror.reflect(o)
+      })
+    }
+
+    def apply(o : Any) : List[scala.reflect.runtime.universe.MethodSymbol] = {
+      methods.getOrElseUpdate(o.getClass(), {
+        val oMir = getMirror(o)
+        oMir.symbol.toType.members.sorted.filter(m => m.isMethod && m.isPublic).map(_.asMethod).filter(_.isGetter)
+      })
+    }
+
+    //    def invoke[T](o : AnyRef, m : scala.reflect.runtime.universe.MethodSymbol) : T = {
+    //      val oMir = getMirror(o)
+    //      oMir.reflectMethod(m).asInstanceOf[T]
+    //    }
+
+    def invoke(o : Any, m : scala.reflect.runtime.universe.MethodSymbol) : Any = {
+      val oMir = getMirror(o)
+      oMir.reflectMethod(m)()
+    }
+  }
+
   protected object Vars {
     protected var cache = new HashMap[Class[_ <: AnyRef], List[java.lang.reflect.Field]]
     protected val setterSuffix = "_$eq"
-    protected val excludeList = List()
 
     def apply[T](o : AnyRef) : List[java.lang.reflect.Field] = {
       cache.getOrElseUpdate(o.getClass(), {
-        val vars = gettt(o.getClass).filterNot(p => p.getName().endsWith("$$annotations_")).filterNot(p => p.getName().endsWith("MODULE$"))
+        val vars = gettt(o.getClass).filterNot(p => p.getName().endsWith("$$annotations_") || p.getName().endsWith("MODULE$"))
         Logger.info(s"""StateManager::Vars: Caching ${vars.length} members of class "${o.getClass.getName()}"""")
         Logger.info(s"""StateManager::Vars: "${o.getClass.getName()}": ${vars}""")
         vars

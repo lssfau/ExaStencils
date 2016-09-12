@@ -21,7 +21,9 @@ case object NullStatement extends Statement {
 }
 
 case class Scope(var body : ListBuffer[Statement]) extends Statement {
+  def this(body : List[Statement]) = this(body.to[ListBuffer])
   def this(body : Statement*) = this(body.to[ListBuffer])
+  def this(body : Statement) = this(ListBuffer[Statement](body))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "{\n"
@@ -143,10 +145,10 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
 
   override def prettyprint(out : PpStream) : Unit = {
     // BEGIN AMAZING HACK as workaround for IBM XL compiler
-    var realEnd = end.prettyprint
+    var realEnd = end.prettyprint(out.env)
     if (realEnd.size > 2 && realEnd(0) == '(')
       realEnd = realEnd.substring(1, realEnd.size - 1)
-    var realInc = inc.prettyprint
+    var realInc = inc.prettyprint(out.env)
     if (realInc.size > 2 && realInc(0) == '(')
       realInc = realInc.substring(1, realInc.size - 1)
     out << "for (" << begin << ' ' << realEnd << "; " << realInc
@@ -233,21 +235,21 @@ abstract class AbstractFunctionStatement(var isHeaderOnly : Boolean = false) ext
 case class FunctionStatement(
     var returntype : Datatype,
     var name : String,
-    var parameters : ListBuffer[VariableAccess],
+    var parameters : ListBuffer[FunctionArgument],
     var body : ListBuffer[Statement],
     var allowInlining : Boolean = true,
     var allowFortranInterface : Boolean = true,
     var functionQualifiers : String = "" // e.g. "__global__" etc
     ) extends AbstractFunctionStatement {
-  def this(returntype : Datatype, name : String, parameters : ListBuffer[VariableAccess], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
-  def this(returntype : Datatype, name : String, parameters : VariableAccess, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[VariableAccess](parameters), body)
+  def this(returntype : Datatype, name : String, parameters : ListBuffer[FunctionArgument], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
+  def this(returntype : Datatype, name : String, parameters : FunctionArgument, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[FunctionArgument](parameters), body)
 
   override def prettyprint(out : PpStream) : Unit = { // FIXME: add specialized node for parameter specification with own PP
     if (!functionQualifiers.isEmpty) out << functionQualifiers << ' '
     out << returntype << ' ' << name << ' ' << '('
     if (!parameters.isEmpty) {
       for (param <- parameters)
-        out << param.printDeclaration << ", "
+        out << param.prettyprintDeclaration << ", "
       out.removeLast(2)
     }
     out << ") {\n"
@@ -258,11 +260,17 @@ case class FunctionStatement(
   override def prettyprint_decl() : String = {
     var decl = ""
     if (!functionQualifiers.isEmpty) decl += functionQualifiers + ' '
-    decl += s"${returntype.prettyprint} $name (" + parameters.map(param => s"${param.printDeclaration}").mkString(", ") + ");\n"
+    decl += s"${returntype.prettyprint} $name (" + parameters.map(param => s"${param.prettyprintDeclaration}").mkString(", ") + ");\n"
     decl
   }
 }
 
+case class FunctionArgument(var name : String, var datatype : Datatype) extends Expression { // FIXME: really Expression?
+  override def prettyprint(out : PpStream) = {
+    out << name
+  }
+  def prettyprintDeclaration = s"${datatype.prettyprint} ${name}"
+}
 //////////////////////////// SIMD Statements \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var aligned : Boolean) extends Statement {
