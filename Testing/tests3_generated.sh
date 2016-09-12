@@ -73,9 +73,9 @@ if grep -q "Communication connection failure" ${RESULT}; then
 fi
 
 if diff -B -w --strip-trailing-cr -I "time" -I "No root privilege"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then
-  echo '<span style="color: #00E000">============== Test OK ==============</span>'
+  echo '<span style="color: #00E000"><b>============== Test OK ==============</b></span>'
 else
-  echo '<span style="color: #E00000">============== Test ERROR ==============</span>'
+  echo '<span style="color: #E00000"><b>============== Test ERROR ==============</b></span>'
   echo "invalid result, expected:"
   cat "${EXP_RESULT}"
   touch ${ERROR_MARKER}
