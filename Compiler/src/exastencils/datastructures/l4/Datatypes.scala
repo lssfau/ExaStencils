@@ -91,3 +91,57 @@ case class MatrixDatatype(var datatype : Datatype, var rows : Int, var columns :
   override def dimensionality : Int = 2 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(rows, columns) ++ datatype.getSizeArray
 }
+
+object GetResultingDatatype2 {
+  def apply(a : Datatype, b : Datatype) : Datatype = {
+    if (a eq UnitDatatype) return UnitDatatype
+    if (b eq UnitDatatype) return UnitDatatype
+
+    a match {
+      case IntegerDatatype => b match {
+        case IntegerDatatype          => IntegerDatatype
+        case RealDatatype             => RealDatatype
+        case StringDatatype           => StringDatatype
+        case CharDatatype             => IntegerDatatype
+        case ArrayDatatype(dt, l)     => ArrayDatatype(dt, l)
+        case ComplexDatatype(dt)      => ComplexDatatype(dt)
+        case VectorDatatype(dt, l, r) => VectorDatatype(dt, l, r)
+        case MatrixDatatype(dt, m, n) => MatrixDatatype(dt, m, n)
+      }
+      case RealDatatype => b match {
+        case IntegerDatatype          => RealDatatype
+        case RealDatatype             => RealDatatype
+        case StringDatatype           => StringDatatype
+        case CharDatatype             => RealDatatype
+        case ArrayDatatype(dt, l)     => ArrayDatatype(GetResultingDatatype2(dt, a), l)
+        case ComplexDatatype(dt)      => ComplexDatatype(GetResultingDatatype2(dt, a))
+        case VectorDatatype(dt, l, r) => VectorDatatype(GetResultingDatatype2(dt, a), l, r)
+        case MatrixDatatype(dt, m, n) => MatrixDatatype(GetResultingDatatype2(dt, a), m, n)
+      }
+      case StringDatatype => b match {
+        case IntegerDatatype          => StringDatatype
+        case RealDatatype             => StringDatatype
+        case StringDatatype           => StringDatatype
+        case CharDatatype             => StringDatatype
+        case ArrayDatatype(dt, l)     => StringDatatype
+        case ComplexDatatype(dt)      => StringDatatype
+        case VectorDatatype(dt, l, r) => StringDatatype
+        case MatrixDatatype(dt, m, n) => StringDatatype
+      }
+      case CharDatatype => b match {
+        case IntegerDatatype          => IntegerDatatype
+        case RealDatatype             => RealDatatype
+        case StringDatatype           => StringDatatype
+        case ArrayDatatype(dt, l)     => ArrayDatatype(dt, l)
+        case ComplexDatatype(dt)      => ComplexDatatype(dt)
+        case VectorDatatype(dt, l, r) => VectorDatatype(dt, l, r)
+        case MatrixDatatype(dt, m, n) => MatrixDatatype(dt, m, n)
+      }
+      case ArrayDatatype(dt, l)     => ArrayDatatype(GetResultingDatatype2(dt, a), l)
+      case ComplexDatatype(dt)      => ComplexDatatype(GetResultingDatatype2(dt, a))
+      case VectorDatatype(dt, l, r) => VectorDatatype(GetResultingDatatype2(dt, a), l, r)
+      case MatrixDatatype(dt, m, n) => MatrixDatatype(GetResultingDatatype2(dt, a), m, n)
+    }
+  }
+  def apply(a : Datatype, b : Datatype, c : Datatype) : Datatype = apply(apply(a, b), c)
+}

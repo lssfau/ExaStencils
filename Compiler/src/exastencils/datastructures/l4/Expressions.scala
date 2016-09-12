@@ -157,7 +157,7 @@ case class UnresolvedAccess(var name : String,
 case class BasicAccess(var name : String) extends Access {
   def prettyprint(out : PpStream) = { out << name }
 
-  def progressToIr : ir.StringLiteral = ir.StringLiteral(name)
+  def progressToIr : ir.StringLiteral = { Logger.warn("New ir.StringLiteral: " + name); ir.StringLiteral(name) }
 }
 
 case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {

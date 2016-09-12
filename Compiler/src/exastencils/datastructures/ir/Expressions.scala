@@ -238,7 +238,14 @@ case class VectorExpression(var innerDatatype : Option[Datatype], var expression
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.forall(e => e.isInstanceOf[Number])
 
-  override def datatype = new VectorDatatype(innerDatatype.getOrElse(RealDatatype), expressions.length, rowVector)
+  override def datatype = {
+    if (innerDatatype.isEmpty) {
+      var ret = expressions(0).datatype
+      expressions.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+      innerDatatype = Some(ret)
+    }
+    new VectorDatatype(innerDatatype.getOrElse(RealDatatype), expressions.length, rowVector)
+  }
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     out << innerDatatype << "[]){" <<< (expressions, ",") << "})"
@@ -256,7 +263,18 @@ case class VectorExpression(var innerDatatype : Option[Datatype], var expression
 }
 
 case class MatrixExpression(var innerDatatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
-  override def datatype = new MatrixDatatype(innerDatatype.getOrElse(RealDatatype), expressions.length, expressions(0).length)
+  Logger.warn("new MatrixExp: " + innerDatatype + " -> " + this.datatype + ": " + this)
+
+  override def datatype = {
+    if (innerDatatype.isEmpty) {
+      var l = expressions.flatten
+      var ret = l(0).datatype
+      l.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+      innerDatatype = Some(ret)
+    }
+    new MatrixDatatype(innerDatatype.getOrElse(RealDatatype), this.rows, this.columns)
+  }
+
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     out << innerDatatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
@@ -711,10 +729,17 @@ case class FunctionCallExpression(var name : String, var arguments : ListBuffer[
 
   override def datatype = {
     name match {
-      case "diag" => arguments(0).datatype
+      case "diag" | "diag_inv" | "diag_inverse" => arguments(0).datatype
+      case "inv" | "inverse"                    => arguments(0).datatype
+      case "Vec3"                               => UnitDatatype
       case _ => {
         var fct = StateManager.findAll[FunctionStatement]((t : FunctionStatement) => { t.name == this.name })
-        fct(0).returntype
+        if (fct.length <= 0) {
+          Logger.warn(s"""Did not find function '${name}'""")
+          UnitDatatype
+        } else {
+          fct(0).returntype
+        }
       }
     }
   }

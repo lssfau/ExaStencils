@@ -197,7 +197,6 @@ object Main {
     SetupCommunication.firstCall = true
     SetupCommunication.apply()
 
-    ResolveSystems.apply()
     ResolveSpecialFunctionsAndConstants.apply()
 
     ResolveLoopOverPoints.apply()
@@ -215,6 +214,7 @@ object Main {
     } while (convChanged)
 
     ResolveDiagFunction.apply()
+    ResolveSystems.apply()
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 

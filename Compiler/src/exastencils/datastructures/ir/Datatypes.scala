@@ -412,6 +412,18 @@ object GetResultingDatatype2 {
         case VectorDatatype(dt, l, r) => VectorDatatype(GetResultingDatatype2(dt, a), l, r)
         case MatrixDatatype(dt, m, n) => MatrixDatatype(GetResultingDatatype2(dt, a), m, n)
       }
+      case DoubleDatatype => b match {
+        case IntegerDatatype          => DoubleDatatype
+        case RealDatatype             => DoubleDatatype
+        case FloatDatatype            => DoubleDatatype
+        case DoubleDatatype           => DoubleDatatype
+        case StringDatatype           => StringDatatype
+        case CharDatatype             => DoubleDatatype
+        case ArrayDatatype(dt, l)     => ArrayDatatype(GetResultingDatatype2(dt, a), l)
+        case ComplexDatatype(dt)      => ComplexDatatype(GetResultingDatatype2(dt, a))
+        case VectorDatatype(dt, l, r) => VectorDatatype(GetResultingDatatype2(dt, a), l, r)
+        case MatrixDatatype(dt, m, n) => MatrixDatatype(GetResultingDatatype2(dt, a), m, n)
+      }
       case StringDatatype => b match {
         case IntegerDatatype          => StringDatatype
         case RealDatatype             => StringDatatype
@@ -439,6 +451,7 @@ object GetResultingDatatype2 {
       case ComplexDatatype(dt)      => ComplexDatatype(GetResultingDatatype2(dt, a))
       case VectorDatatype(dt, l, r) => VectorDatatype(GetResultingDatatype2(dt, a), l, r)
       case MatrixDatatype(dt, m, n) => MatrixDatatype(GetResultingDatatype2(dt, a), m, n)
+      case x : SpecialDatatype      => x
     }
   }
   def apply(a : Datatype, b : Datatype, c : Datatype) : Datatype = apply(apply(a, b), c)
