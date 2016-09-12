@@ -25,6 +25,7 @@ FAILURE_MAIL=${9}
 # HACK: otherwise ant wouldn't find it...
 JAVA_DIR="/usr/lib/jvm/default-java/"
 
+PREV_TEMP_DIR="${TEMP_DIR}/prev"
 COMPILER_JAR="${TEMP_DIR}/compiler.jar"
 
 ANT_BUILD="${REPO_DIR}/Compiler/build.xml"
@@ -106,8 +107,10 @@ if [[ -n "${OLD_JOBS}" ]]; then
     echo "Old job ${job} canceled."
   done
 fi
-# remove old files (if some)
-rm -rf "${TEMP_DIR}"/*
+# remove old files (if some) and backup existing
+mkdir -p "${PREV_TEMP_DIR}"
+rm -rf "${PREV_TEMP_DIR}"/*
+find "${TEMP_DIR}" -maxdepth 1 -mindepth 1 ! -samefile "${PREV_TEMP_DIR}" -exec mv '{}' "${PREV_TEMP_DIR}" \;
 TESTS_DIR="${TEMP_DIR}/tests"
 mkdir "${TESTS_DIR}"
 
