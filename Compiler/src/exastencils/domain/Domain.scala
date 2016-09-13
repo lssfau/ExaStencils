@@ -247,7 +247,7 @@ case class ConnectFragments() extends IR_Statement with Expandable {
                 LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), neigh.index, d))
             }) : IR_Statement))
 
-        body += Scope(statements)
+        body += IR_Scope(statements)
       }
     }
 
@@ -397,7 +397,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
     for (d <- 0 until DomainCollection.domains.size) {
       body += AssignmentStatement(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
     }
-    body += Scope(ListBuffer(
+    body += IR_Scope(
       AssignmentStatement(iv.PrimitiveId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       AssignmentStatement(iv.CommId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       ForLoopStatement(VariableDeclarationStatement(IR_IntegerDatatype, "i", Some(0)), IR_LowerExpression(VariableAccess("i", Some(IR_IntegerDatatype)), math.pow(2, Knowledge.dimensionality)), IR_PreIncrementExpression(VariableAccess("i", Some(IR_IntegerDatatype))), ListBuffer(
@@ -417,7 +417,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
       (if (Knowledge.dimensionality == 2) AssignmentStatement("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       (if (Knowledge.dimensionality == 3) AssignmentStatement("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       AssignmentStatement(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
-    ))
+    )
     for (d <- 0 until DomainCollection.domains.size) {
       body += ForLoopStatement("int location = 0", s" location < ${ FragmentCollection.getNumberOfNeighbors() } ", "++location", ListBuffer(
         ConditionStatement(ReadValueFrom(IR_BooleanDatatype, "data"),

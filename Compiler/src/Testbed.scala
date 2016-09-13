@@ -482,7 +482,7 @@ object Testbed {
 }  // tet_gs_coeff
       """
 
-    var root = Scope(statements)
+    var root = IR_Scope(statements)
 
     StateManager.root_ = root
 

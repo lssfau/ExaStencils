@@ -157,7 +157,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       Logger.setLevel(Logger.WARNING)
       for ((lab, (stmt, _)) <- stmts) {
         found = false
-        this.execute(search, Some(Scope(stmt)))
+        this.execute(search, Some(IR_Scope(stmt)))
         if (found) {
           if (fstStmt < 0)
             fstStmt = i

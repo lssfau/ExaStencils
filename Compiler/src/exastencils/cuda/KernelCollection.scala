@@ -244,7 +244,7 @@ case class Kernel(var identifier : String,
     GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart.clear
     GatherLocalFieldAccessLikeForSharedMemory.maximalFieldDim = math.min(parallelDims, Platform.hw_cuda_maxNumDimsBlock)
     GatherLocalFieldAccessLikeForSharedMemory.writtenFields.clear
-    GatherLocalFieldAccessLikeForSharedMemory.applyStandalone(Scope(body))
+    GatherLocalFieldAccessLikeForSharedMemory.applyStandalone(IR_Scope(body))
     var fieldToFieldAccesses = GatherLocalFieldAccessLikeForSharedMemory.fieldAccesses
     val writtenFields = GatherLocalFieldAccessLikeForSharedMemory.writtenFields
     val fieldIndicesConstantPart = GatherLocalFieldAccessLikeForSharedMemory.fieldIndicesConstantPart
@@ -355,17 +355,17 @@ case class Kernel(var identifier : String,
   def evalAccesses() = {
     if (!evaluatedAccesses) {
       GatherLocalLinearizedFieldAccess.fieldAccesses.clear
-      GatherLocalLinearizedFieldAccess.applyStandalone(Scope(body))
+      GatherLocalLinearizedFieldAccess.applyStandalone(IR_Scope(body))
       linearizedFieldAccesses = GatherLocalLinearizedFieldAccess.fieldAccesses
 
       if (Knowledge.cuda_spatialBlockingWithROC) {
         GatherWrittenLocalLinearizedFieldAccess.writtenFieldAccesses.clear
-        GatherWrittenLocalLinearizedFieldAccess.applyStandalone(Scope(body))
+        GatherWrittenLocalLinearizedFieldAccess.applyStandalone(IR_Scope(body))
         writtenFieldAccesses = GatherWrittenLocalLinearizedFieldAccess.writtenFieldAccesses
       }
 
       GatherLocalIVs.ivAccesses.clear
-      GatherLocalIVs.applyStandalone(Scope(body))
+      GatherLocalIVs.applyStandalone(IR_Scope(body))
       ivAccesses = GatherLocalIVs.ivAccesses
 
       // postprocess iv's -> generate parameter names
@@ -476,7 +476,7 @@ case class Kernel(var identifier : String,
         // 1. Annotate the loop variables appearing in the shared memory accesses to guarantee the right substitution later
         AnnotatingLoopVariablesForSharedMemoryAccess.loopVariables = loopVariables
         AnnotatingLoopVariablesForSharedMemoryAccess.accessName = field
-        AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccessesForSharedMemory(field).map(x => IR_ExpressionStatement(x))))
+        AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(IR_Scope(fieldAccessesForSharedMemory(field).map(x => IR_ExpressionStatement(x))))
 
         // 2. Add local Thread ID calculation for indexing shared memory
         statements ++= (0 until executionDim).map(dim => {
@@ -598,16 +598,16 @@ case class Kernel(var identifier : String,
         ReplacingLocalFieldAccessLikeForSharedMemory.executionDim = executionDim
         ReplacingLocalFieldAccessLikeForSharedMemory.baseIndex = fieldBaseIndex(field)
         ReplacingLocalFieldAccessLikeForSharedMemory.applySpatialBlocking = spatialBlockingCanBeApplied
-        ReplacingLocalFieldAccessLikeForSharedMemory.applyStandalone(Scope(body))
+        ReplacingLocalFieldAccessLikeForSharedMemory.applyStandalone(IR_Scope(body))
       })
     }
 
-    ReplacingLocalLinearizedFieldAccess.applyStandalone(Scope(body))
+    ReplacingLocalLinearizedFieldAccess.applyStandalone(IR_Scope(body))
     ReplacingLocalIVs.ivAccesses = ivAccesses
-    ReplacingLocalIVs.applyStandalone(Scope(body))
-    ReplacingLocalIVArrays.applyStandalone(Scope(body))
+    ReplacingLocalIVs.applyStandalone(IR_Scope(body))
+    ReplacingLocalIVArrays.applyStandalone(IR_Scope(body))
     ReplacingLoopVariables.loopVariables = loopVariables.drop(firstNSeqDims)
-    ReplacingLoopVariables.applyStandalone(Scope(body))
+    ReplacingLoopVariables.applyStandalone(IR_Scope(body))
 
     body
   }

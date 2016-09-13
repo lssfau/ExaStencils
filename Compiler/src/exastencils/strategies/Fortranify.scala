@@ -116,6 +116,6 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
       if (FortranifyFunctionsInsideStatement.callByValReplacements.isEmpty)
         s
       else
-        Scope(FortranifyFunctionsInsideStatement.callByValReplacements.map(_._2).to[ListBuffer] ++ ListBuffer[IR_Statement](s))
+        IR_Scope(FortranifyFunctionsInsideStatement.callByValReplacements.map(_._2).to[ListBuffer] ++ ListBuffer[IR_Statement](s))
   })
 }

@@ -433,7 +433,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         case ex : EvaluationException => // what a pitty...
       }
       if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned
-        bufferAllocs += (id -> buf.wrapInLoops(new Scope(ListBuffer[IR_Statement](
+        bufferAllocs += (id -> buf.wrapInLoops(IR_Scope(ListBuffer[IR_Statement](
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * SizeOfExpression(IR_RealDatatype))),
           AssignmentStatement(buf.basePtr, Allocation(IR_RealDatatype, size + Platform.simd_vectorSize - 1)),
@@ -459,7 +459,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
         if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
-          func.body += new Scope(genericAlloc._2)
+          func.body += IR_Scope(genericAlloc._2)
         else
           func.body += genericAlloc._2
 
@@ -479,13 +479,13 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       globals
     case func : FunctionStatement if ("initGlobals" == func.name)    =>
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
-        func.body ++= ctorMap.toSeq.sortBy(_._1).map(s => new Scope(s._2))
+        func.body ++= ctorMap.toSeq.sortBy(_._1).map(s => IR_Scope(s._2))
       else
         func.body ++= ctorMap.toSeq.sortBy(_._1).map(_._2)
       func
     case func : FunctionStatement if ("destroyGlobals" == func.name) =>
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
-        func.body ++= dtorMap.toSeq.sortBy(_._1).map(s => new Scope(s._2))
+        func.body ++= dtorMap.toSeq.sortBy(_._1).map(s => IR_Scope(s._2))
       else
         func.body ++= dtorMap.toSeq.sortBy(_._1).map(_._2)
       func

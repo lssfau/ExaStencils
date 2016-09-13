@@ -1,6 +1,6 @@
 package exastencils.omp
 
-import exastencils.base.ir.IR_Statement
+import exastencils.base.ir._
 import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -15,7 +15,7 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
     if (Platform.omp_requiresCriticalSections) {
       this.execute(new Transformation("Adding OMP critical pragmas", {
         case target : OMP_PotentiallyCritical => target match {
-          case target : Scope        => new OMP_Critical(target)
+          case target : IR_Scope     => new OMP_Critical(target)
           case target : IR_Statement => new OMP_Critical(target)
         }
       }, false))

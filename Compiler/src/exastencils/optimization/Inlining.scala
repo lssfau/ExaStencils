@@ -142,7 +142,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     }), Some(callScope))
 
     // rename conflicts
-    val bodyWrapper = new Scope(Duplicate(funcStmt.body)) // wrap in Scope to allow removing statements
+    val bodyWrapper = IR_Scope(Duplicate(funcStmt.body)) // wrap in Scope to allow removing statements
     val rename = new Renamer(reserved, potConflicts)
     var exit = false
     var retStmt : ReturnStatement = null

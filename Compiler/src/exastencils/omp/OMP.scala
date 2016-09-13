@@ -21,12 +21,12 @@ case class OMP_Barrier() extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "#pragma omp barrier"
 }
 
-case class OMP_Critical(var body : Scope) extends IR_Statement {
+case class OMP_Critical(var body : IR_Scope) extends IR_Statement {
 
   import OMP_Critical._
 
-  def this(body : IR_Statement) = this(new Scope(body))
-  def this(body : ListBuffer[IR_Statement]) = this(new Scope(body))
+  def this(body : IR_Statement) = this(IR_Scope(body))
+  def this(body : ListBuffer[IR_Statement]) = this(IR_Scope(body))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "#pragma omp critical"
@@ -57,7 +57,7 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var additionalOMPClauses
         return res // no more than one statement allowed: not perfectly nested anymore, return last valid collapse level
       stmts =
         filtered(0) match {
-          case s : Scope            => s.body
+          case s : IR_Scope         => s.body
           case l : ForLoopStatement => { res += 1; l.body }
           case _                    => return res // any other statement: not perfectly nested anymore, return last valid collapse level
         }

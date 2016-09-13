@@ -314,7 +314,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
       // gather occuring field access offsets - will determine bounds of inner and outer loop
       GatherFieldAccessOffsets.accesses.clear
-      GatherFieldAccessOffsets.applyStandalone(Scope(body))
+      GatherFieldAccessOffsets.applyStandalone(IR_Scope(body))
 
       // check dimensionality of involved fields
       val numDims = field.fieldLayout.numDimsGrid
@@ -708,7 +708,7 @@ case class LoopOverDimensions(var numDimensions : Int,
       ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IR_IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
-      retStmts = ListBuffer(Scope(decl +=: init ++=: wrappedBody += red))
+      retStmts = ListBuffer(IR_Scope(decl +=: init ++=: wrappedBody += red))
     }
 
     retStmts
@@ -750,7 +750,7 @@ case class LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction 
 
     if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
       // eliminate fragment loops in case of only one fragment per block
-      statements = ListBuffer(Scope(body))
+      statements = ListBuffer(IR_Scope(body))
 
       // replace references to old loop iterator
       ReplaceStringConstantsStrategy.toReplace = defIt
@@ -787,7 +787,7 @@ case class LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction 
         ReplaceStringConstantsStrategy.applyStandalone(body)
         body.prepend(VariableDeclarationStatement(IR_IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
-        statements += Scope(ListBuffer[IR_Statement](decl)
+        statements += IR_Scope(ListBuffer[IR_Statement](decl)
           ++ init
           ++ ListBuffer[IR_Statement](generateBasicLoop(parallelize), red))
       }

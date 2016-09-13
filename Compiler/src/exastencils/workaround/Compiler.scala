@@ -22,7 +22,7 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
             func.parameters.isEmpty &&
             func.body.forall {
               s => s == IR_NullStatement ||
-                s.isInstanceOf[Scope] ||
+                s.isInstanceOf[IR_Scope] ||
                 s.isInstanceOf[CommentStatement] ||
                 s.isInstanceOf[SwitchStatement] ||
                 s.isInstanceOf[ConditionStatement] ||

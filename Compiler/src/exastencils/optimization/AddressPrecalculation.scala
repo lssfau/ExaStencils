@@ -281,6 +281,6 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
       bases.addToDecls(stmts)
 
     stmts += node.asInstanceOf[IR_Statement]
-    return new Scope(stmts)
+    return IR_Scope(stmts)
   }
 }

@@ -155,7 +155,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
   // integration over faces of staggered CVs is done by defining stagDim - the dimension in which the grid is staggered
   def integrateOverRFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
     // check if there are any field accesses in the current (sub-)expression
-    CollectFieldAccesses.applyStandalone(new Scope(exp))
+    CollectFieldAccesses.applyStandalone(IR_Scope(exp))
 
     // TODO: find a way to handle constants
     if (0 == CollectFieldAccesses.fieldAccesses.size) {
@@ -259,10 +259,10 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         }
       }, false) // not recursive -> don't look inside eval functions
     }
-    WrappingFieldAccesses.applyStandalone(new Scope(exp))
+    WrappingFieldAccesses.applyStandalone(IR_Scope(exp))
 
     // step 2: check if integration by parts is required
-    var piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, new Scope(exp)).isDefined
+    var piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, IR_Scope(exp)).isDefined
 
     // step 3: apply chosen integration
     object ShiftFieldAccessIndices_ extends QuietDefaultStrategy("Shifting indices of field accesses") {

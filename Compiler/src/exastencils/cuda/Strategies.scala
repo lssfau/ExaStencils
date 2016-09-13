@@ -100,7 +100,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
     GatherLocalFieldAccess.fieldAccesses.clear
-    GatherLocalFieldAccess.applyStandalone(Scope(loop.body))
+    GatherLocalFieldAccess.applyStandalone(IR_Scope(loop.body))
 
     // host sync stmts
 
@@ -320,10 +320,10 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           var loopDependsOnSurroundingIterators = false
           FindSurroundingLoopIteratorUsages.loopIterators = extremaMap.keySet
           FindSurroundingLoopIteratorUsages.usedLoopIterators.clear()
-          FindSurroundingLoopIteratorUsages.applyStandalone(new Scope(IR_ExpressionStatement(lowerBounds.head)))
+          FindSurroundingLoopIteratorUsages.applyStandalone(IR_Scope(IR_ExpressionStatement(lowerBounds.head)))
           loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
           FindSurroundingLoopIteratorUsages.usedLoopIterators.clear()
-          FindSurroundingLoopIteratorUsages.applyStandalone(new Scope(IR_ExpressionStatement(upperBounds.head)))
+          FindSurroundingLoopIteratorUsages.applyStandalone(IR_Scope(IR_ExpressionStatement(upperBounds.head)))
           loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
 
           extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap) _1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap) _2))
@@ -392,7 +392,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
       loop.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
       updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop)
       loop
-    case scope : Scope if scope.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)          =>
+    case scope : IR_Scope if scope.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)       =>
       scope.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
 
       val varDeclarations = scope.body.takeWhile(x => x.isInstanceOf[VariableDeclarationStatement])
@@ -401,7 +401,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
       remainingBody match {
         case ListBuffer(c : CommentStatement, loop : ForLoopStatement) =>
           updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop, varDeclarations)
-          new Scope(c, loop)
+          IR_Scope(c, loop)
         case _                                                         =>
           scope
       }
@@ -480,7 +480,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
 
       // collect local variable accesses because these variables need to be passed to the kernel at call
       GatherLocalVariableAccesses.clear()
-      GatherLocalVariableAccesses.applyStandalone(new Scope(loop))
+      GatherLocalVariableAccesses.applyStandalone(IR_Scope(loop))
       val variableAccesses = GatherLocalVariableAccesses.accesses.toSeq.sortBy(_._1).map(_._2).to[ListBuffer]
 
       var extremaMap = mutable.HashMap[String, (Long, Long)]()
@@ -545,7 +545,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
 
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
       ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, MultiIndex(stride))
-      ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
+      ReplaceReductionAssignements.applyStandalone(IR_Scope(kernel.body))
       kernel
   })
 }

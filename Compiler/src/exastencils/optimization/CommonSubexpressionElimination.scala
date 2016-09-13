@@ -124,7 +124,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           uses += acc
         usageIn(vName) += assignTo
         acc
-    }), Some(Scope(body))) // restrict to body only
+    }), Some(IR_Scope(body))) // restrict to body only
 
     for ((_, (decl, uses)) <- accesses) {
       decl.annotate(REMOVE_ANNOT)
@@ -148,7 +148,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       return Nil
 
     // first, number all nodes for overlap-test later
-    val currItBody = Scope(loop.body)
+    val currItBody = IR_Scope(loop.body)
     var maxID : Int = 0
     this.execute(new Transformation("number nodes", {
       case _ : ConcatenationExpression =>
@@ -175,7 +175,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     var tmpBufLen = new Array[IR_Expression](0)
     var tmpBufInd = new Array[IR_Expression](0)
     for (((loopItVar, loopBegin, loopEnd, loopIncr), dim) <- loopIt.zipWithIndex) {
-      val prevItBody = Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
+      val prevItBody = IR_Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
       this.execute(new Transformation("create previous iteration body", {
         case varAcc : VariableAccess if (varAcc.name == loopItVar)    =>
           IR_SubtractionExpression(varAcc, IR_IntegerConstant(loopIncr))
@@ -322,7 +322,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     do {
       val coll = new CollectBaseCSes(curFunc)
       this.register(coll)
-      this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(Scope(body)))
+      this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(IR_Scope(body)))
       this.unregister(coll)
       val commonSubs : Map[Node, Subexpression] = coll.commonSubs
       commonSubs.retain { (_, cs) => cs != null && cs.getPositions().size > 1 }
@@ -426,7 +426,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     if (repl)
       this.execute(new Transformation("replace common subexpressions", {
         case x if (x.hasAnnotation(REPLACE_ANNOT)) => x.removeAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]
-      }), Some(Scope(body)))
+      }), Some(IR_Scope(body)))
 
     // add declaration after transformation to prevent modifying it
     commSub.declaration +=: body
@@ -521,7 +521,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         node.removeAnnotation(REPLACE_ANNOT).isDefined) =>
         // match nodes for which we removed something (so the number of nodes modifed is counted by the statemanager)
         node
-    }), Some(Scope(body)))
+    }), Some(IR_Scope(body)))
   }
 }
 

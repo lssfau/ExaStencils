@@ -9,18 +9,6 @@ import exastencils.knowledge._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-case class Scope(var body : ListBuffer[IR_Statement]) extends IR_Statement {
-  def this(body : List[IR_Statement]) = this(body.to[ListBuffer])
-  def this(body : IR_Statement*) = this(body.to[ListBuffer])
-  def this(body : IR_Statement) = this(ListBuffer[IR_Statement](body))
-
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "{\n"
-    out <<< (body, "\n") << '\n'
-    out << '}'
-  }
-}
-
 case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : String, var expression : Option[IR_Expression] = None) extends IR_Statement {
   var alignment : Int = 1
   def this(dT : IR_Datatype, n : String, e : IR_Expression) = this(dT, n, Option(e))

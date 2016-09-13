@@ -126,7 +126,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
   }
 
-  def expandSpecial : Output[Scope] = {
+  def expandSpecial : Output[IR_Scope] = {
     fVals = ListBuffer.fill(unknowns.length)(IR_AdditionExpression())
     AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(IR_AdditionExpression()))
 
@@ -178,6 +178,6 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
         IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
         AssignmentStatement(unknowns(i), hackVecComponentAccess(u, i)))
 
-    Scope(stmts)
+    IR_Scope(stmts)
   }
 }

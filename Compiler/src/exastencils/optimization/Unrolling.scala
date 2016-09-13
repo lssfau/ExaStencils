@@ -165,7 +165,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     if (unrolled)
       return res
     else
-      return new Scope(res)
+      return IR_Scope(res)
   }
 
   private[optimization] def extractBoundsAndIncrement(begin : IR_Statement, end : IR_Expression, inc : IR_Statement) : (String, IR_Expression, IR_Expression, Long) = {

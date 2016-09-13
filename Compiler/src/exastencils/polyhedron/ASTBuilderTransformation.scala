@@ -174,7 +174,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           scopeList += decl
       }
       scopeList ++= nju
-      return new Scope(loop.createOMPThreadsWrapper(scopeList))
+      return IR_Scope(loop.createOMPThreadsWrapper(scopeList))
     } else
       return loop.createOMPThreadsWrapper(nju)
   }
@@ -240,7 +240,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
         for (d <- 1 until args.length)
           repl.put(loopVars(loopVars.size - d), args(d))
 
-        replaceCallback(repl, Scope(stmts))
+        replaceCallback(repl, IR_Scope(stmts))
         if (condition != null)
           for (stmt <- stmts) {
             val cond : IR_Expression = Duplicate(condition)

@@ -18,12 +18,12 @@ case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement w
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
       case "Chrono"       => AssignmentStatement(lhs, new FunctionCallExpression("std::chrono::high_resolution_clock::now"))
-      case "QPC"          => Scope(ListBuffer[IR_Statement](
+      case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("LARGE_INTEGER"), "now"),
         FunctionCallExpression("QueryPerformanceCounter", ListBuffer(IR_AddressofExpression("now"))),
         AssignmentStatement(lhs, MemberAccess(VariableAccess("now"), "QuadPart"))))
       case "WIN_TIME"     => AssignmentStatement(lhs, CastExpression(IR_DoubleDatatype, FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
-      case "UNIX_TIME"    => Scope(ListBuffer[IR_Statement](
+      case "UNIX_TIME"    => IR_Scope(ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("timeval"), "timePoint"),
         FunctionCallExpression("gettimeofday", ListBuffer(IR_AddressofExpression("timePoint"), "NULL")),
         AssignmentStatement(lhs,
@@ -56,7 +56,7 @@ case class TimerDetail_ReturnConvertToMS(var time : IR_Expression) extends IR_St
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
       case "Chrono"       => ReturnStatement(Some(new MemberFunctionCallExpression(new FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
-      case "QPC"          => Scope(ListBuffer[IR_Statement](
+      case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
         VariableDeclarationStatement(IR_SpecialDatatype("static BOOL"), "s_use_qpc", Some(FunctionCallExpression("QueryPerformanceFrequency", ListBuffer(IR_AddressofExpression("s_frequency"))))),
         ReturnStatement(Some(time / ("s_frequency.QuadPart" / 1000.0)))))
@@ -211,7 +211,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
 
     statements += PrintStatement(ListBuffer("\"Mean mean total time for Timer " + timer.name.prettyprint() + ":\"", "timerValue"))
 
-    Scope(statements)
+    IR_Scope(statements)
   }
 
   override def expand() : Output[FunctionStatement] = {

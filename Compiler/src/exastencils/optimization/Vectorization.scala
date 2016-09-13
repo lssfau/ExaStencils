@@ -397,7 +397,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
     oldLoop.annotate(Vectorization.VECT_ANNOT)
     oldLoop.annotate(Unrolling.UNROLLED_ANNOT, intermDecl)
-    return new Scope(res)
+    return IR_Scope(res)
   }
 
   private def vectorizeStmt(stmt : IR_Statement, ctx : LoopCtx) : Unit = {

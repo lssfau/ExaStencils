@@ -227,7 +227,7 @@ case class ColorWithStatement(var colors : List[L4_Expression], var loop : LoopO
     out << "}\n"
   }
 
-  override def progress : ir.Scope = {
+  override def progress : IR_Scope = {
     // TODO: think about extracting loop duplication to separate transformation
     var loops = colors.map(color => {
       var newLoop = Duplicate(loop)
@@ -238,7 +238,7 @@ case class ColorWithStatement(var colors : List[L4_Expression], var loop : LoopO
       newLoop
     })
 
-    ir.Scope(loops.map(_.progress : IR_Statement).to[ListBuffer])
+    IR_Scope(loops.map(_.progress : IR_Statement).to[ListBuffer])
   }
 }
 

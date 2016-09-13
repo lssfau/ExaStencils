@@ -176,11 +176,11 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case IR_NegativeExpression(m : MatrixExpression) =>
       MatrixExpression(m.datatype, m.expressions.map { x => x.map { y => IR_NegativeExpression(y) : IR_Expression } })
 
-    case Scope(ListBuffer(Scope(body))) => Scope(body)
+    case IR_Scope(ListBuffer(IR_Scope(body))) => IR_Scope(body)
 
-    case ConditionStatement(cond, ListBuffer(Scope(trueBody)), falseBody)  => ConditionStatement(cond, trueBody, falseBody)
-    case ConditionStatement(cond, trueBody, ListBuffer(Scope(falseBody)))  => ConditionStatement(cond, trueBody, falseBody)
-    case l @ ForLoopStatement(beg, end, inc, ListBuffer(Scope(body)), red) =>
+    case ConditionStatement(cond, ListBuffer(IR_Scope(trueBody)), falseBody)  => ConditionStatement(cond, trueBody, falseBody)
+    case ConditionStatement(cond, trueBody, ListBuffer(IR_Scope(falseBody)))  => ConditionStatement(cond, trueBody, falseBody)
+    case l @ ForLoopStatement(beg, end, inc, ListBuffer(IR_Scope(body)), red) =>
       l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
 
     case IR_EqEqExpression(IR_IntegerConstant(left), IR_IntegerConstant(right))         => IR_BooleanConstant(left == right)
@@ -456,7 +456,7 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   })
 
   this += new Transformation("Removing empty scopes", {
-    case Scope(ListBuffer()) => None
+    case IR_Scope(ListBuffer()) => None
   })
 
   //  this += new Transformation("Removing null-statements", {

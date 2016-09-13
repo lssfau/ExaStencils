@@ -29,9 +29,9 @@ case class CUDA_Finalize() extends CUDA_Statement {
 case class CUDA_CheckError(var exp : IR_Expression) extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_CheckError\n"
 
-  override def expand() : Output[Scope] = {
+  override def expand() : Output[IR_Scope] = {
     // TODO: replace with define?
-    Scope(ListBuffer[IR_Statement](
+    IR_Scope(ListBuffer[IR_Statement](
       VariableDeclarationStatement(IR_SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
       new ConditionStatement(IR_NeqExpression("cudaStatus", "cudaSuccess"),
         PrintStatement(ListBuffer("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", "cudaStatus",
