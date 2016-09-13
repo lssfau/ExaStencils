@@ -3,9 +3,6 @@ package exastencils.base.ir
 import exastencils.prettyprinting._
 
 trait IR_Expression extends IR_Node with PrettyPrintable {
-
-  //TODO: trait IR_Expression extends IR_Node with PrettyPrintable {}
-
   def +(other : IR_Expression) = IR_AdditionExpression(this, other)
   def -(other : IR_Expression) = IR_SubtractionExpression(this, other)
   def *(other : IR_Expression) = IR_MultiplicationExpression(this, other)
