@@ -17,7 +17,7 @@ trait MPI_Statement extends Statement
 
 // TODO: replace pp with expand where suitable
 
-case class MPI_IsRootProc() extends Expression {
+case class MPI_IsRootProc() extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "0 == mpiRank"
 }
 
@@ -29,7 +29,7 @@ case class MPI_Finalize() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Finalize();"
 }
 
-case class MPI_SetRankAndSize(var communicator : Expression) extends MPI_Statement {
+case class MPI_SetRankAndSize(var communicator : IR_Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "int mpiRank;\n"
     out << "int mpiSize;\n"
@@ -38,22 +38,22 @@ case class MPI_SetRankAndSize(var communicator : Expression) extends MPI_Stateme
   }
 }
 
-case class MPI_Receive(var buffer : Expression, var size : Expression, var datatype : IR_Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends MPI_Statement {
+case class MPI_Receive(var buffer : IR_Expression, var size : IR_Expression, var datatype : IR_Datatype, var rank : IR_Expression, var tag : IR_Expression, var request : IR_Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "MPI_Irecv(" << buffer << ", " << size << ", " << datatype.prettyprint_mpi << ", " << rank << ", " << tag << ", mpiCommunicator, &" << request << ");"
   }
 }
 
-case class MPI_Send(var buffer : Expression, var size : Expression, var datatype : IR_Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends MPI_Statement {
+case class MPI_Send(var buffer : IR_Expression, var size : IR_Expression, var datatype : IR_Datatype, var rank : IR_Expression, var tag : IR_Expression, var request : IR_Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "MPI_Isend(" << buffer << ", " << size << ", " << datatype.prettyprint_mpi << ", " << rank << ", " << tag << ", mpiCommunicator, &" << request << ");"
   }
 }
 
-case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var datatype : IR_Datatype, var count : Expression, var op : Expression) extends MPI_Statement {
-  def this(sendbuf : Expression, recvbuf : Expression, datatype : IR_Datatype, count : Expression, op : String) = this(sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
-  def this(buf : Expression, datatype : IR_Datatype, count : Expression, op : Expression) = this("MPI_IN_PLACE", buf, datatype, count, op)
-  def this(buf : Expression, datatype : IR_Datatype, count : Expression, op : String) = this("MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
+case class MPI_Allreduce(var sendbuf : IR_Expression, var recvbuf : IR_Expression, var datatype : IR_Datatype, var count : IR_Expression, var op : IR_Expression) extends MPI_Statement {
+  def this(sendbuf : IR_Expression, recvbuf : IR_Expression, datatype : IR_Datatype, count : IR_Expression, op : String) = this(sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
+  def this(buf : IR_Expression, datatype : IR_Datatype, count : IR_Expression, op : IR_Expression) = this("MPI_IN_PLACE", buf, datatype, count, op)
+  def this(buf : IR_Expression, datatype : IR_Datatype, count : IR_Expression, op : String) = this("MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", mpiCommunicator);"
@@ -61,7 +61,7 @@ case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var
 }
 
 object MPI_Allreduce {
-  def mapOp(op : String) : Expression = {
+  def mapOp(op : String) : IR_Expression = {
     op match {
       case "+"   => "MPI_SUM"
       case "*"   => "MPI_PROD"
@@ -72,10 +72,10 @@ object MPI_Allreduce {
   }
 }
 
-case class MPI_Reduce(var root : Expression, var sendbuf : Expression, var recvbuf : Expression, var datatype : IR_Datatype, var count : Expression, var op : Expression) extends MPI_Statement {
-  def this(root : Expression, sendbuf : Expression, recvbuf : Expression, datatype : IR_Datatype, count : Expression, op : String) = this(root, sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
-  def this(root : Expression, buf : Expression, datatype : IR_Datatype, count : Expression, op : Expression) = this(root, "MPI_IN_PLACE", buf, datatype, count, op)
-  def this(root : Expression, buf : Expression, datatype : IR_Datatype, count : Expression, op : String) = this(root, "MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
+case class MPI_Reduce(var root : IR_Expression, var sendbuf : IR_Expression, var recvbuf : IR_Expression, var datatype : IR_Datatype, var count : IR_Expression, var op : IR_Expression) extends MPI_Statement {
+  def this(root : IR_Expression, sendbuf : IR_Expression, recvbuf : IR_Expression, datatype : IR_Datatype, count : IR_Expression, op : String) = this(root, sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
+  def this(root : IR_Expression, buf : IR_Expression, datatype : IR_Datatype, count : IR_Expression, op : IR_Expression) = this(root, "MPI_IN_PLACE", buf, datatype, count, op)
+  def this(root : IR_Expression, buf : IR_Expression, datatype : IR_Datatype, count : IR_Expression, op : String) = this(root, "MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
 
   def reallyPrint(out : PpStream) : Unit = {
     out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", mpiCommunicator);"
@@ -84,7 +84,7 @@ case class MPI_Reduce(var root : Expression, var sendbuf : Expression, var recvb
   override def prettyprint(out : PpStream) : Unit = {
     sendbuf match {
       case StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
-        out << "if (" << EqEqExpression(root, "mpiRank") << ") {\n"
+        out << "if (" << IR_EqEqExpression(root, "mpiRank") << ") {\n"
         MPI_Reduce(root, sendbuf, recvbuf, datatype, count, op).reallyPrint(out) // MPI_IN_PLACE for root proc
         out << "\n} else {\n"
         MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
@@ -95,8 +95,8 @@ case class MPI_Reduce(var root : Expression, var sendbuf : Expression, var recvb
   }
 }
 
-case class MPI_Gather(var sendbuf : Expression, var recvbuf : Expression, var datatype : IR_Datatype, var count : Expression) extends MPI_Statement {
-  def this(buf : Expression, datatype : IR_Datatype, count : Expression) = this("MPI_IN_PLACE", buf, datatype, count)
+case class MPI_Gather(var sendbuf : IR_Expression, var recvbuf : IR_Expression, var datatype : IR_Datatype, var count : IR_Expression) extends MPI_Statement {
+  def this(buf : IR_Expression, datatype : IR_Datatype, count : IR_Expression) = this("MPI_IN_PLACE", buf, datatype, count)
 
   override def prettyprint(out : PpStream) : Unit = {
     (out << "MPI_Gather("
@@ -110,7 +110,7 @@ case class MPI_Barrier() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
 
-case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange, var condition : Option[Expression]) extends IR_Datatype {
+case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi = generateName
 
@@ -126,9 +126,9 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange,
     Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${ indexRange.print }")
 
   // determine data type parameters
-  var blockLengthExp : Expression = indexRange.end(0) - indexRange.begin(0)
-  var blockCountExp : Expression = 1
-  var strideExp : Expression = field.fieldLayout(0).total
+  var blockLengthExp : IR_Expression = indexRange.end(0) - indexRange.begin(0)
+  var blockCountExp : IR_Expression = 1
+  var strideExp : IR_Expression = field.fieldLayout(0).total
 
   var done = false
   for (dim <- 1 until indexRange.size; if !done) {
@@ -145,7 +145,7 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange,
   val stride = SimplifyExpression.evalIntegral(strideExp)
 
   def generateName : String = s"mpiDatatype_${ blockCount }_${ blockLength }_${ stride }"
-  def mpiTypeNameArg : Expression = AddressofExpression(generateName)
+  def mpiTypeNameArg : IR_Expression = IR_AddressofExpression(generateName)
 
   def generateDecl : VariableDeclarationStatement = {
     VariableDeclarationStatement("MPI_Datatype", generateName)
@@ -167,7 +167,7 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange,
 }
 
 object MPI_DataType {
-  def shouldBeUsed(indexRange : IndexRange, condition : Option[Expression]) : Boolean = {
+  def shouldBeUsed(indexRange : IndexRange, condition : Option[IR_Expression]) : Boolean = {
     if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
       false
     else if (condition.isDefined) // skip communication steps with conditions for now
@@ -188,11 +188,11 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
   override def expand : Output[ForLoopStatement] = {
     ForLoopStatement(
       VariableDeclarationStatement(IR_IntegerDatatype, "curRank", Some(0)),
-      LowerExpression("curRank", Knowledge.mpi_numThreads),
-      PreIncrementExpression("curRank"),
+      IR_LowerExpression("curRank", Knowledge.mpi_numThreads),
+      IR_PreIncrementExpression("curRank"),
       ListBuffer[Statement](
         MPI_Barrier(),
-        new ConditionStatement(EqEqExpression("mpiRank", "curRank"), body)))
+        new ConditionStatement(IR_EqEqExpression("mpiRank", "curRank"), body)))
   }
 }
 
@@ -216,15 +216,15 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
           new VariableDeclarationStatement(flag, 0),
-          new WhileLoopStatement(EqEqExpression(0, flag),
+          new WhileLoopStatement(IR_EqEqExpression(0, flag),
             new AssignmentStatement(result, FunctionCallExpression("MPI_Test", ListBuffer(
-              request, AddressofExpression(flag), AddressofExpression(stat)))) with OMP_PotentiallyCritical,
-            new ConditionStatement(EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[Statement](
+              request, IR_AddressofExpression(flag), IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
+            new ConditionStatement(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[Statement](
               new VariableDeclarationStatement(msg),
               new VariableDeclarationStatement(len),
-              new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
-                MemberAccess(stat, "MPI_ERROR"), msg, AddressofExpression(len))),
-              new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
+              new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
+                MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
+              new PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     } else {
@@ -232,13 +232,13 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
         ListBuffer[Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
-          new AssignmentStatement(result, FunctionCallExpression("MPI_Wait", ListBuffer(request, AddressofExpression(stat)))) with OMP_PotentiallyCritical,
-          new ConditionStatement(EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[Statement](
+          new AssignmentStatement(result, FunctionCallExpression("MPI_Wait", ListBuffer(request, IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
+          new ConditionStatement(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[Statement](
             new VariableDeclarationStatement(msg),
             new VariableDeclarationStatement(len),
-            new FunctionCallExpression("MPI_Error_string", ListBuffer[Expression](
-              MemberAccess(stat, "MPI_ERROR"), msg, AddressofExpression(len))),
-            new PrintStatement(ListBuffer[Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
+            new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
+              MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
+            new PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     }

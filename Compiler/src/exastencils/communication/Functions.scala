@@ -25,7 +25,7 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
   }
 }
 
-case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {
+case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expression, var fragment : IR_Expression) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetIterationOffset\n"
 
   override def expand : Output[SwitchStatement] = {

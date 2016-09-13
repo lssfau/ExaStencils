@@ -2,7 +2,7 @@ package exastencils.performance
 
 import scala.collection.mutable._
 
-import exastencils.base.ir.IR_RealDatatype
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.core.StateManager
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -87,7 +87,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
     for ((arg, i) <- args.view.zipWithIndex)
       out << new SIMD_StoreStatement(aVAcc(i), new VariableAccess(arg, SIMD_RealDatatype), true) << '\n'
     for (i <- 0 until Platform.simd_vectorSize)
-      out << new AssignmentStatement(aSAcc(0, i), new FunctionCallExpression(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : Expression).to[ListBuffer])) << '\n'
+      out << new AssignmentStatement(aSAcc(0, i), new FunctionCallExpression(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
     out << new ReturnStatement(SIMD_LoadExpression(aVAcc(0), true)) << '\n'
     out << '}'
   }

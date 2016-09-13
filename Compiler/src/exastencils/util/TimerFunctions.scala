@@ -12,7 +12,7 @@ import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
 
-case class TimerDetail_AssignNow(var lhs : Expression) extends Statement with Expandable {
+case class TimerDetail_AssignNow(var lhs : IR_Expression) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerDetail_AssignNow\n"
 
   override def expand() : Output[Statement] = {
@@ -20,12 +20,12 @@ case class TimerDetail_AssignNow(var lhs : Expression) extends Statement with Ex
       case "Chrono"       => AssignmentStatement(lhs, new FunctionCallExpression("std::chrono::high_resolution_clock::now"))
       case "QPC"          => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("LARGE_INTEGER"), "now"),
-        FunctionCallExpression("QueryPerformanceCounter", ListBuffer(AddressofExpression("now"))),
+        FunctionCallExpression("QueryPerformanceCounter", ListBuffer(IR_AddressofExpression("now"))),
         AssignmentStatement(lhs, MemberAccess(VariableAccess("now"), "QuadPart"))))
       case "WIN_TIME"     => AssignmentStatement(lhs, CastExpression(IR_DoubleDatatype, FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
       case "UNIX_TIME"    => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("timeval"), "timePoint"),
-        FunctionCallExpression("gettimeofday", ListBuffer(AddressofExpression("timePoint"), "NULL")),
+        FunctionCallExpression("gettimeofday", ListBuffer(IR_AddressofExpression("timePoint"), "NULL")),
         AssignmentStatement(lhs,
           CastExpression(IR_DoubleDatatype, MemberAccess(VariableAccess("timePoint"), "tv_sec") * 1e3
             + CastExpression(IR_DoubleDatatype, MemberAccess(VariableAccess("timePoint"), "tv_usec") * 1e-3)))))
@@ -36,7 +36,7 @@ case class TimerDetail_AssignNow(var lhs : Expression) extends Statement with Ex
   }
 }
 
-case class TimerDetail_Zero() extends Expression {
+case class TimerDetail_Zero() extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     out << (Knowledge.timer_type match {
       case "Chrono"       => "std::chrono::nanoseconds::zero()"
@@ -50,7 +50,7 @@ case class TimerDetail_Zero() extends Expression {
   }
 }
 
-case class TimerDetail_ReturnConvertToMS(var time : Expression) extends Statement with Expandable {
+case class TimerDetail_ReturnConvertToMS(var time : IR_Expression) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerDetail_ReturnConvertToMS\n"
 
   override def expand() : Output[Statement] = {
@@ -58,7 +58,7 @@ case class TimerDetail_ReturnConvertToMS(var time : Expression) extends Statemen
       case "Chrono"       => ReturnStatement(Some(new MemberFunctionCallExpression(new FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
       case "QPC"          => Scope(ListBuffer[Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
-        VariableDeclarationStatement(IR_SpecialDatatype("static BOOL"), "s_use_qpc", Some(FunctionCallExpression("QueryPerformanceFrequency", ListBuffer(AddressofExpression("s_frequency"))))),
+        VariableDeclarationStatement(IR_SpecialDatatype("static BOOL"), "s_use_qpc", Some(FunctionCallExpression("QueryPerformanceFrequency", ListBuffer(IR_AddressofExpression("s_frequency"))))),
         ReturnStatement(Some(time / ("s_frequency.QuadPart" / 1000.0)))))
       case "WIN_TIME"     => ReturnStatement(Some(time * 1e3))
       case "UNIX_TIME"    => ReturnStatement(Some(time))
@@ -105,11 +105,11 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
 
   override def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
-      new ConditionStatement(EqEqExpression(0, accessMember("numEntries")), ListBuffer[Statement](
+      new ConditionStatement(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[Statement](
         TimerDetail_AssignNow(accessMember("timerStarted")),
         AssignmentStatement(accessMember("lastTimeMeasured"), TimerDetail_Zero()))),
       if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
-      PreIncrementExpression(accessMember("numEntries")))
+      IR_PreIncrementExpression(accessMember("numEntries")))
 
     FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
   }
@@ -125,8 +125,8 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
 
   override def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
-      PreDecrementExpression(accessMember("numEntries")),
-      new ConditionStatement(EqEqExpression(0, accessMember("numEntries")), ListBuffer[Statement](
+      IR_PreDecrementExpression(accessMember("numEntries")),
+      new ConditionStatement(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[Statement](
         TimerDetail_AssignNow(accessMember("timerEnded")),
         AssignmentStatement(accessMember("lastTimeMeasured"),
           if ("Chrono" == Knowledge.timer_type)
@@ -135,7 +135,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
             accessMember("timerEnded") - accessMember("timerStarted")),
         AssignmentStatement(accessMember("totalTimeMeasured"), accessMember("lastTimeMeasured"), "+="),
         if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
-        PreIncrementExpression(accessMember("numMeasurements")))))
+        IR_PreIncrementExpression(accessMember("numMeasurements")))))
 
     FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
   }
@@ -168,7 +168,7 @@ case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFu
   override def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[Statement](
       ReturnStatement(Some(new TernaryConditionExpression(
-        GreaterExpression(accessMember("numMeasurements"), 0),
+        IR_GreaterExpression(accessMember("numMeasurements"), 0),
         FunctionCallExpression("getTotalTime", ListBuffer("stopWatch")) / accessMember("numMeasurements"),
         0.0))))
 
@@ -251,12 +251,12 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
   def genPrint(timers : HashMap[String, iv.Timer]) : ListBuffer[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
 
-    val stride : Expression = if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) "mpiIt" else 0
+    val stride : IR_Expression = if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) "mpiIt" else 0
 
     var it = 0
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
-      statements += PrintExpression(VariableAccess("outFile"), ListBuffer[Expression](
+      statements += PrintExpression(VariableAccess("outFile"), ListBuffer[IR_Expression](
         StringConstant(timer._2.name.prettyprint()), sep,
         ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
         ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), StringConstant("\\n")
@@ -271,8 +271,8 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
       statements = ListBuffer[Statement](
         ForLoopStatement(
           VariableDeclarationStatement(IR_IntegerDatatype, stride.prettyprint, Some(0)),
-          LowerExpression(stride, Knowledge.mpi_numThreads),
-          PreIncrementExpression(stride),
+          IR_LowerExpression(stride, Knowledge.mpi_numThreads),
+          IR_PreIncrementExpression(stride),
           statements))
     }
 
@@ -305,7 +305,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
         statements ++= genDataCollect(timers)
         statements += new MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
         def timerId = VariableAccess("timerId", Some(IR_IntegerDatatype))
-        statements += new ForLoopStatement(new VariableDeclarationStatement(timerId, 0), LowerExpression(timerId, 2 * timers.size), PreIncrementExpression(timerId),
+        statements += new ForLoopStatement(new VariableDeclarationStatement(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
           AssignmentStatement(ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
         statements += new ConditionStatement(MPI_IsRootProc(), genPrint(timers))
       }

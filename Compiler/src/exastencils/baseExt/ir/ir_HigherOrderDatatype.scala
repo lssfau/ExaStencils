@@ -1,7 +1,6 @@
 package exastencils.baseExt.ir
 
 import exastencils.base.ir._
-import exastencils.datastructures.ir
 import exastencils.prettyprinting.PpStream
 
 /// higher order data types
@@ -24,7 +23,7 @@ case class IR_ArrayDatatype(datatype : IR_Datatype, numElements : Int) extends I
   override def typicalByteSize = numElements * datatype.typicalByteSize
 }
 
-case class IR_ArrayDatatype_VS(datatype : IR_Datatype, numElements : ir.Expression) extends IR_HigherOrderDatatype {
+case class IR_ArrayDatatype_VS(datatype : IR_Datatype, numElements : IR_Expression) extends IR_HigherOrderDatatype {
   override def prettyprint(out : PpStream) : Unit = out << this.resolveDeclType << this.resolveDeclPostscript
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 

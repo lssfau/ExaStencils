@@ -2,11 +2,12 @@ package exastencils.grid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Expression
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.logger._
 
 object PrepareShiftedEvaluationFunctions extends DefaultStrategy("PrepareShiftedEvaluationFunctions") {
@@ -68,8 +69,8 @@ object ResolveEvaluationFunctions extends DefaultStrategy("ResolveEvaluationFunc
         args match {
           case ListBuffer(access : FieldAccess)                                 => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, "default")
           case ListBuffer(access : FieldAccess, interpolation : StringConstant) => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, interpolation.value)
-          case _ => {
-            Logger.warn(s"Arguments (${args.map(_.prettyprint).mkString(", ")}) are currently not supported for function $functionName")
+          case _                                                                => {
+            Logger.warn(s"Arguments (${ args.map(_.prettyprint).mkString(", ") }) are currently not supported for function $functionName")
             args(0)
           }
         }
@@ -130,7 +131,7 @@ object CollectFieldAccesses extends QuietDefaultStrategy("Collecting field acces
   }
 
   this += new Transformation("Collecting", {
-    case fieldAccess : FieldAccess =>
+    case fieldAccess : FieldAccess        =>
       fieldAccesses += fieldAccess
       fieldAccess
     case fieldAccess : VirtualFieldAccess =>
@@ -140,11 +141,11 @@ object CollectFieldAccesses extends QuietDefaultStrategy("Collecting field acces
 }
 
 object ShiftFieldAccessIndices extends QuietDefaultStrategy("Shifting indices of field accesses") {
-  var offset : Expression = 0
+  var offset : IR_Expression = 0
   var dim : Int = 0
 
   this += new Transformation("Searching and shifting", {
-    case fieldAccess : FieldAccess =>
+    case fieldAccess : FieldAccess        =>
       fieldAccess.index(dim) += offset
       fieldAccess
     case fieldAccess : VirtualFieldAccess =>
@@ -154,7 +155,7 @@ object ShiftFieldAccessIndices extends QuietDefaultStrategy("Shifting indices of
 }
 
 object ReplaceFieldAccesses extends QuietDefaultStrategy("Replace field accesses with another expression") {
-  var replacement : Expression = NullExpression
+  var replacement : IR_Expression = NullExpression
 
   this += new Transformation("SearchAndReplace", {
     case _ : FieldAccess => Duplicate(replacement)

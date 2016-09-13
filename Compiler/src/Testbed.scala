@@ -1,10 +1,11 @@
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Expression
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 import exastencils.strategies._
@@ -266,10 +267,10 @@ object Testbed {
             k_bnw_bn  = koe[bp_tr + i - 1] + koe[bp_tr + i];
             k_bn_be   = koe[bp_tr + i]     + koe[bp_mr + i + 1];
             // 196-15 = 181 Flops
-    """
+      """
 
     var aabb = IndexRange(new MultiIndex(0, 0, 0), new MultiIndex(4, 4, 4))
-    var k : Expression = "k_el"
+    var k : IR_Expression = "k_el"
     for (group <- 0 to 5) {
       for (position <- 0 to 3) {
         statements += AssignmentStatement(k, "k_tc_mn + k_mc_me")
@@ -479,7 +480,7 @@ object Testbed {
    delete[] c;
    c=0;
 }  // tet_gs_coeff
-"""
+      """
 
     var root = Scope(statements)
 

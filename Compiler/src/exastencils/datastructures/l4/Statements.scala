@@ -3,11 +3,10 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils._
-import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir._
 import exastencils.base.l4.L4_Datatype
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.domain._
 import exastencils.logger._
 import exastencils.prettyprinting._
@@ -380,7 +379,7 @@ case class RepeatUntilStatement(var comparison : Expression, var statements : Li
   override def prettyprint(out : PpStream) = { out << "repeat until " << comparison << "{\n" <<< statements << "}\n" }
 
   override def progressToIr : ir.WhileLoopStatement = {
-    ir.WhileLoopStatement(NegationExpression(comparison.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
+    ir.WhileLoopStatement(IR_NegationExpression(comparison.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer])
   }
 }
 

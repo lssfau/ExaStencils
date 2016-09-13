@@ -2,7 +2,7 @@ package exastencils.polyhedron
 
 import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder }
 
-import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir._
 import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures._
@@ -41,7 +41,7 @@ object Extractor {
     symbolicConstants.add(constName)
   }
 
-  private def extractConstraints(expr : Expression, constraints : StringBuilder, formatString : Boolean, paramExprs : Set[Expression],
+  private def extractConstraints(expr : IR_Expression, constraints : StringBuilder, formatString : Boolean, paramExprs : Set[IR_Expression],
       lParConstr : StringBuilder = null, gParConstr : StringBuilder = null, vars : Set[String] = null) : Boolean = {
 
     var bool : Boolean = false
@@ -134,7 +134,7 @@ object Extractor {
           gParConstr.append(" and ")
         }
 
-      case AdditionExpression(sums) =>
+      case IR_AdditionExpression(sums) =>
         constraints.append('(')
         for (s <- sums) {
           bool |= extractConstraints(s, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -142,14 +142,14 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last '+'
 
-      case SubtractionExpression(l, r) =>
+      case IR_SubtractionExpression(l, r) =>
         constraints.append('(')
         bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('-')
         bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case MultiplicationExpression(facs) =>
+      case IR_MultiplicationExpression(facs) =>
         constraints.append('(')
         for (s <- facs) {
           bool |= extractConstraints(s, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -157,14 +157,14 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last '*'
 
-      case DivisionExpression(l, r) =>
+      case IR_DivisionExpression(l, r) =>
         constraints.append("floord(")
         bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(',')
         bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case ModuloExpression(l, r) =>
+      case IR_ModuloExpression(l, r) =>
         constraints.append('(')
         bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('%')
@@ -173,7 +173,7 @@ object Extractor {
         bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case MinimumExpression(es) =>
+      case IR_MinimumExpression(es) =>
         constraints.append("min(")
         for (e <- es) {
           bool |= extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -181,7 +181,7 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last ','
 
-      case MaximumExpression(es) =>
+      case IR_MaximumExpression(es) =>
         constraints.append("max(")
         for (e <- es) {
           bool |= extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -189,13 +189,13 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last ','
 
-      case NegationExpression(e) =>
+      case IR_NegationExpression(e) =>
         constraints.append("!(")
         extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
-      case LowerExpression(l, r) =>
+      case IR_LowerExpression(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('<')
@@ -203,7 +203,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case LowerEqualExpression(l, r) =>
+      case IR_LowerEqualExpression(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append("<=")
@@ -211,7 +211,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case GreaterEqualExpression(l, r) =>
+      case IR_GreaterEqualExpression(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(">=")
@@ -219,7 +219,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case GreaterExpression(l, r) =>
+      case IR_GreaterExpression(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('>')
@@ -227,7 +227,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case EqEqExpression(l, r) =>
+      case IR_EqEqExpression(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('=')
@@ -235,7 +235,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case NeqExpression(l, r) =>
+      case IR_NeqExpression(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append("!=")
@@ -243,7 +243,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case AndAndExpression(l, r) =>
+      case IR_AndAndExpression(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(" and ")
@@ -251,7 +251,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case OrOrExpression(l, r) =>
+      case IR_OrOrExpression(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(" or ")
@@ -325,7 +325,7 @@ class Extractor extends Collector {
   private final val executeAfterExtraction = new ListBuffer[() => Unit]()
 
   /** set of (potentially non-affine) expressions that should be treated as a single, new parameter */
-  private final val paramExprs = HashSet[Expression]()
+  private final val paramExprs = HashSet[IR_Expression]()
 
   /** all found static control parts */
   final val scops = new ArrayBuffer[Scop](256)
@@ -553,18 +553,18 @@ class Extractor extends Collector {
           case _ : IntegerConstant
                | _ : FloatConstant
                | _ : BooleanConstant
-               | _ : NegativeExpression
-               | _ : NegationExpression
-               | _ : AddressofExpression
+               | _ : IR_NegativeExpression
+               | _ : IR_NegationExpression
+               | _ : IR_AddressofExpression
                | _ : DerefAccess
-               | _ : AdditionExpression
-               | _ : SubtractionExpression
-               | _ : MultiplicationExpression
-               | _ : DivisionExpression
-               | _ : ModuloExpression
-               | _ : PowerExpression
-               | _ : MinimumExpression
-               | _ : MaximumExpression
+               | _ : IR_AdditionExpression
+               | _ : IR_SubtractionExpression
+               | _ : IR_MultiplicationExpression
+               | _ : IR_DivisionExpression
+               | _ : IR_ModuloExpression
+               | _ : IR_PowerExpression
+               | _ : IR_MinimumExpression
+               | _ : IR_MaximumExpression
                | _ : CommentStatement
                | NullStatement => // nothing to do for all of them...
 
@@ -663,7 +663,7 @@ class Extractor extends Collector {
       constrs.append('<')
       bool |= extractConstraints(end(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append(" and ")
-      val lVar : Expression = loopVarExps(i)
+      val lVar : IR_Expression = loopVarExps(i)
       modelLoopVars.push(ScopNameMapping.expr2id(lVar))
       origLoopVars += lVar.asInstanceOf[VariableAccess].name
       i += 1
@@ -840,7 +840,7 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterArrayAccess(name : String, index : Expression, deadAfterScop : Boolean = false) : Unit = {
+  private def enterArrayAccess(name : String, index : IR_Expression, deadAfterScop : Boolean = false) : Unit = {
 
     if (!curScop.curStmt.exists() || (!isRead && !isWrite))
       throw new ExtractionException("misplaced access expression?")

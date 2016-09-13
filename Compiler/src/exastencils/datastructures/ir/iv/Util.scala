@@ -14,7 +14,7 @@ import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._
 
 // FIXME: why is name an Expression?
-case class Timer(var name : Expression) extends UnduplicatedVariable with Access {
+case class Timer(var name : IR_Expression) extends UnduplicatedVariable with Access {
   override def resolveName = s"timer_" + stripName
   override def resolveDatatype = "StopWatch"
 
@@ -79,14 +79,14 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
     var wrappedBody = super.wrapInLoops(body)
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
       val begin = new VariableDeclarationStatement(IR_IntegerDatatype, LoopOverDimensions.threadIdxName, IntegerConstant(0))
-      val end = new LowerExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IntegerConstant(Knowledge.omp_numThreads))
-      val inc = new PreIncrementExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
+      val end = new IR_LowerExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IntegerConstant(Knowledge.omp_numThreads))
+      val inc = new IR_PreIncrementExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
       wrappedBody = new ForLoopStatement(begin, end, inc, wrappedBody) with OMP_PotentiallyParallel
     }
     return wrappedBody
   }
 
-  override def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = baseAccess
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
       access = new ArrayAccess(access, StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
@@ -105,7 +105,7 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
     return new IR_PointerDatatype(baseDatatype)
   }
 
-  override def resolveDefValue() : Option[Expression] = {
+  override def resolveDefValue() : Option[IR_Expression] = {
     return Some(0)
   }
 

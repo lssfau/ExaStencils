@@ -4,7 +4,7 @@ import scala.collection.mutable.{ Node => _, _ }
 
 import java.io.PrintWriter
 
-import exastencils.base.ir.IR_Datatype
+import exastencils.base.ir._
 import exastencils.core.Settings
 import exastencils.data._
 import exastencils.datastructures.Transformation._
@@ -293,16 +293,16 @@ object EvaluatePerformanceEstimates_Ops extends QuietDefaultStrategy("Evaluating
   }
 
   this += new Transformation("Searching", {
-    case exp : AdditionExpression       =>
+    case exp : IR_AdditionExpression       =>
       numAdd += 1
       exp
-    case exp : SubtractionExpression    =>
+    case exp : IR_SubtractionExpression    =>
       numAdd += 1
       exp
-    case exp : MultiplicationExpression =>
+    case exp : IR_MultiplicationExpression =>
       numMul += 1
       exp
-    case exp : DivisionExpression       =>
+    case exp : IR_DivisionExpression       =>
       if (exp.right.isInstanceOf[IntegerConstant])
         numMul += 0 // ignore integer divs for now
       else if (exp.right.isInstanceOf[FloatConstant]) // TODO: replace with eval float exp?

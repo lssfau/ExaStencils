@@ -13,18 +13,18 @@ import exastencils.mpi._
 import exastencils.prettyprinting._
 
 object PrintExpression {
-  val endl : Expression = new VariableAccess("std::endl", IR_StringDatatype)
+  val endl : IR_Expression = new VariableAccess("std::endl", IR_StringDatatype)
 }
 
-case class PrintExpression(var stream : Expression, toPrint : ListBuffer[Expression]) extends Expression {
-  def this(stream : Expression, toPrint : Expression*) = this(stream, toPrint.to[ListBuffer])
+case class PrintExpression(var stream : IR_Expression, toPrint : ListBuffer[IR_Expression]) extends IR_Expression {
+  def this(stream : IR_Expression, toPrint : IR_Expression*) = this(stream, toPrint.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << stream << " << " <<< (toPrint, " << ")
   }
 }
 
-case class BuildStringStatement(var stringName : Expression, var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
+case class BuildStringStatement(var stringName : IR_Expression, var toPrint : ListBuffer[IR_Expression]) extends Statement with Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BuildStringStatement\n"
 
@@ -47,8 +47,8 @@ private object BuildStringStatement {
   }
 }
 
-case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : String = "std::cout") extends Statement with Expandable {
-  def this(toPrint : Expression) = this(ListBuffer(toPrint))
+case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : String = "std::cout") extends Statement with Expandable {
+  def this(toPrint : IR_Expression) = this(ListBuffer(toPrint))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
 
@@ -65,14 +65,14 @@ case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : Str
   }
 }
 
-case class PrintFieldStatement(var filename : Expression, var field : FieldSelection, var condition : Expression = BooleanConstant(true)) extends Statement with Expandable {
+case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = BooleanConstant(true)) extends Statement with Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
 
-  def getPos(field : FieldSelection, dim : Int) : Expression = {
+  def getPos(field : FieldSelection, dim : Int) : IR_Expression = {
     field.field.discretization match {
       case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
       case "cell"                                   => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
@@ -113,8 +113,8 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
           new LoopOverDimensions(numDimsData, new IndexRange(
-            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
-            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
+            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : IR_Expression)),
+            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : IR_Expression))),
             new ConditionStatement(condition,
               new PrintExpression(new VariableAccess(streamName, streamType),
                 ((0 until numDimsGrid).view.flatMap { dim =>

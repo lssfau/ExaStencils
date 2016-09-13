@@ -47,7 +47,7 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       a
   })
 
-  private final def simplify(expr : Expression) : Expression = {
+  private final def simplify(expr : IR_Expression) : IR_Expression = {
     try {
       return SimplifyExpression.simplifyFloatingExpr(expr)
     } catch {

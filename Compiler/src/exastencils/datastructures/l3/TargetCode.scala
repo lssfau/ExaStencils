@@ -1,13 +1,16 @@
 package exastencils.datastructures.l3
 
-import scala.language.implicitConversions
-import exastencils.datastructures._
 import scala.collection.mutable._
+import scala.language.implicitConversions
+
+import exastencils.base.ir.IR_Expression
+import exastencils.datastructures._
 
 /** Dynamic computations */
 object TargetCode {
   def apply(comps : Node*) = new TargetCode(comps.toList)
 }
+
 class TargetCode(val computation : List[Node]) {
 
   def ++(rhs : TargetCode) : TargetCode = {
@@ -26,6 +29,7 @@ trait StatementsTcb {
 object TcbImplicits {
   implicit def TcStatement2Tcb(stm : l4.Statement) = new TcStatementTcb(stm)
 }
+
 class TcStatementTcb(val stm : l4.Statement) extends StatementsTcb {
   override def build() : List[l4.Statement] = List(stm)
 }
@@ -42,7 +46,7 @@ class TcbBlock() {
 }
 
 case class TcUnit() extends l4.Expression {
-  def progressToIr : ir.Expression = throw new Exception("This should not be transformed")
+  def progressToIr : IR_Expression = throw new Exception("This should not be transformed")
   def prettyprint(out : exastencils.prettyprinting.PpStream) = { out << "<<<<<< Unit >>>>>>" }
 }
 

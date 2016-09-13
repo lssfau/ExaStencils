@@ -2,13 +2,14 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Expression
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.data._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
@@ -52,9 +53,11 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       val numDims = communicateStatement.field.field.fieldLayout.numDimsData
 
       var commDup = false;
-      var dupBegin = new MultiIndex(Array.fill(numDims)(0)); var dupEnd = new MultiIndex(Array.fill(numDims)(0))
+      var dupBegin = new MultiIndex(Array.fill(numDims)(0));
+      var dupEnd = new MultiIndex(Array.fill(numDims)(0))
       var commGhost = false
-      var ghostBegin = new MultiIndex(Array.fill(numDims)(0)); var ghostEnd = new MultiIndex(Array.fill(numDims)(0))
+      var ghostBegin = new MultiIndex(Array.fill(numDims)(0));
+      var ghostEnd = new MultiIndex(Array.fill(numDims)(0))
 
       var cond = communicateStatement.condition
 
@@ -89,21 +92,21 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
       var functionName = (if (Knowledge.experimental_useLevelIndepFcts)
         communicateStatement.op match {
-        case "begin"  => s"beginExch${communicateStatement.field.field.identifier}"
-        case "finish" => s"finishExch${communicateStatement.field.field.identifier}"
-        case "both"   => s"exch${communicateStatement.field.field.identifier}"
-      }
+          case "begin"  => s"beginExch${ communicateStatement.field.field.identifier }"
+          case "finish" => s"finishExch${ communicateStatement.field.field.identifier }"
+          case "both"   => s"exch${ communicateStatement.field.field.identifier }"
+        }
       else communicateStatement.op match {
-        case "begin"  => s"beginExch${communicateStatement.field.codeName}"
-        case "finish" => s"finishExch${communicateStatement.field.codeName}"
-        case "both"   => s"exch${communicateStatement.field.codeName}"
+        case "begin"  => s"beginExch${ communicateStatement.field.codeName }"
+        case "finish" => s"finishExch${ communicateStatement.field.codeName }"
+        case "both"   => s"exch${ communicateStatement.field.codeName }"
       })
-      functionName += s"_${communicateStatement.field.arrayIndex.getOrElse("a")}_" +
-        communicateStatement.targets.map(t => s"${t.target}_${
-          val begin : MultiIndex = t.begin.getOrElse(new MultiIndex(Array.fill(numDims)("a" : Expression)))
+      functionName += s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +
+        communicateStatement.targets.map(t => s"${ t.target }_${
+          val begin : MultiIndex = t.begin.getOrElse(new MultiIndex(Array.fill(numDims)("a" : IR_Expression)))
           (0 until numDims).toArray.map(dim => begin(dim).prettyprint).mkString("_")
         }_${
-          val end : MultiIndex = t.end.getOrElse(new MultiIndex(Array.fill(numDims)("a" : Expression)))
+          val end : MultiIndex = t.end.getOrElse(new MultiIndex(Array.fill(numDims)("a" : IR_Expression)))
           (0 until numDims).toArray.map(dim => end(dim).prettyprint).mkString("_")
         }").mkString("_")
       if (insideFragLoop)
@@ -130,10 +133,10 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
       communicateStatement.field.slot match {
         case SlotAccess(slot, _) if StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _ =>
+        case _                                                                                 =>
       }
 
-      var fctArgs : ListBuffer[Expression] = ListBuffer()
+      var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
       fctArgs += communicateStatement.field.slot
       if (Knowledge.experimental_useLevelIndepFcts)
         fctArgs += communicateStatement.field.level
@@ -151,9 +154,9 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       }
 
       var functionName = (if (Knowledge.experimental_useLevelIndepFcts)
-        s"applyBCs${applyBCsStatement.field.field.identifier}"
+        s"applyBCs${ applyBCsStatement.field.field.identifier }"
       else
-        s"applyBCs${applyBCsStatement.field.codeName}")
+        s"applyBCs${ applyBCsStatement.field.codeName }")
       if (insideFragLoop) functionName += "_ifl"
 
       if (!addedFunctions.contains(functionName)) {
@@ -165,10 +168,10 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
       applyBCsStatement.field.slot match {
         case SlotAccess(slot, _) if StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _ =>
+        case _                                                                                 =>
       }
 
-      var fctArgs : ListBuffer[Expression] = ListBuffer()
+      var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
       fctArgs += applyBCsStatement.field.slot
       if (Knowledge.experimental_useLevelIndepFcts)
         fctArgs += applyBCsStatement.field.level
@@ -190,7 +193,7 @@ object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate st
       (body(i - 1), body(i)) match {
         case (cs : CommunicateStatement, loop : LoopOverPoints) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
           loop.preComms += cs // already merged: newBody += cs
-        case (first, second) => newBody += first
+        case (first, second)                                                                                => newBody += first
       }
     }
     newBody += body.last
@@ -201,7 +204,7 @@ object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate st
         (body(i - 1), body(i)) match {
           case (loop : LoopOverPoints, cs : CommunicateStatement) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
             loop.postComms += cs // already merged: newBody += cs
-          case (first, second) => newBody.prepend(second)
+          case (first, second)                                                                                => newBody.prepend(second)
         }
       }
       newBody.prepend(body.head)

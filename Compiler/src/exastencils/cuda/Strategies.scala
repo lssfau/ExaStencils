@@ -4,13 +4,12 @@ import scala.annotation._
 import scala.collection.mutable._
 import scala.collection.{ Set, SortedSet => _, _ }
 
-import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.BinaryOperators.{ apply => _ }
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -38,7 +37,7 @@ object CudaStrategiesUtils {
     */
   def verifyCudaLoopSuitability(loop : ForLoopStatement) : Boolean = {
     loop.begin.isInstanceOf[VariableDeclarationStatement] &&
-      (loop.end.isInstanceOf[LowerExpression] || loop.end.isInstanceOf[LowerEqualExpression]) &&
+      (loop.end.isInstanceOf[IR_LowerExpression] || loop.end.isInstanceOf[IR_LowerEqualExpression]) &&
       loop.inc.isInstanceOf[AssignmentStatement]
   }
 
@@ -62,24 +61,24 @@ object CudaStrategiesUtils {
     */
   def extractRelevantLoopInformation(loops : ListBuffer[ForLoopStatement]) = {
     var loopVariables = ListBuffer[String]()
-    var lowerBounds = ListBuffer[Expression]()
-    var upperBounds = ListBuffer[Expression]()
-    var stepSize = ListBuffer[Expression]()
+    var lowerBounds = ListBuffer[IR_Expression]()
+    var upperBounds = ListBuffer[IR_Expression]()
+    var stepSize = ListBuffer[IR_Expression]()
 
     loops foreach { loop =>
       val loopDeclaration = loop.begin.asInstanceOf[VariableDeclarationStatement]
       loopVariables += loopDeclaration.name
       lowerBounds += loopDeclaration.expression.get
       upperBounds += (loop.end match {
-        case l : LowerExpression      =>
+        case l : IR_LowerExpression      =>
           l.right
-        case e : LowerEqualExpression =>
-          new AdditionExpression(e.right, IntegerConstant(1))
-        case o                        => o
+        case e : IR_LowerEqualExpression =>
+          IR_AdditionExpression(e.right, IntegerConstant(1))
+        case o                           => o
       })
       stepSize += (loop.inc match {
-        case AssignmentStatement(_, src : Expression, "=") => src
-        case _                                             => IntegerConstant(1)
+        case AssignmentStatement(_, src : IR_Expression, "=") => src
+        case _                                                => IntegerConstant(1)
       })
     }
 
@@ -508,10 +507,10 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       if (loop.reduction.isDefined) {
         val red = loop.reduction.get
         deviceStatements += AssignmentStatement(red.target,
-          BinaryOperators.CreateExpression(red.op, red.target,
-            FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))))
+          IR_BinaryOperators.createExpression(red.op, red.target,
+            FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))))
       } else {
-        deviceStatements += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[Expression]))
+        deviceStatements += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))
       }
 
       deviceStatements
@@ -525,7 +524,7 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
         def it = VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), Some(IR_IntegerDatatype))
         kernel.body = ListBuffer[Statement](ForLoopStatement(
           new VariableDeclarationStatement(it, kernel.lowerBounds.last),
-          LowerExpression(it, kernel.upperBounds.last),
+          IR_LowerExpression(it, kernel.upperBounds.last),
           AssignmentStatement(it, kernel.stepSize.last, "+="),
           kernel.body))
         kernel.parallelDims -= 1
@@ -540,12 +539,12 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
       val index = MultiIndex((0 until kernel.parallelDims).map(dim =>
-        VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype)) : Expression).toArray)
+        VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype)) : IR_Expression).toArray)
 
-      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => SubtractionExpression(x, y) : Expression)
+      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_SubtractionExpression(x, y) : IR_Expression)
 
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
-      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(MultiplicationExpression(ListBuffer[Expression](stride : _*))), index, MultiIndex(stride))
+      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, MultiIndex(stride))
       ReplaceReductionAssignements.applyStandalone(Scope(kernel.body))
       kernel
   })
@@ -553,7 +552,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
 
 object ReplaceReductionAssignements extends QuietDefaultStrategy("Replace assignments to reduction targets") {
   var redTarget : String = ""
-  var replacement : Expression = NullExpression
+  var replacement : IR_Expression = NullExpression
 
   this += new Transformation("Searching", {
     case assignment : AssignmentStatement =>

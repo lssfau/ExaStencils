@@ -2,7 +2,7 @@ package exastencils.grid
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir._
 import exastencils.base.l4.L4_RealDatatype
 import exastencils.core._
 import exastencils.datastructures._
@@ -16,20 +16,20 @@ import exastencils.util._
 
 abstract class GridGeometry() {
   // information always required
-  def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression
-  def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression
+  def nodePosition(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
+  def cellCenter(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
 
-  def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression
-  def gridWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = cellWidth(level, index, arrayIndex, dim) // simple alias for most grids
+  def cellWidth(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
+  def gridWidth(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = cellWidth(level, index, arrayIndex, dim) // simple alias for most grids
 
-  def cellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = {
-    var exp : Expression = cellWidth(level, index, arrayIndex, 0)
+  def cellVolume(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int]) : IR_Expression = {
+    var exp : IR_Expression = cellWidth(level, index, arrayIndex, 0)
     for (dim <- 1 until Knowledge.dimensionality)
       exp *= cellWidth(level, index, arrayIndex, dim)
     exp
   }
 
-  def cellCenterToFace(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = { 0.5 * cellWidth(level, index, arrayIndex, dim) }
+  def cellCenterToFace(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = { 0.5 * cellWidth(level, index, arrayIndex, dim) }
 
   // resolution of special function accessing virtual fields
   def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method] = {
@@ -37,29 +37,29 @@ abstract class GridGeometry() {
   }
 
   // helper method to map names of special fields to actual member functions implementing the resolving step
-  def invokeAccessResolve(virtualField : VirtualFieldAccess) : Expression = {
+  def invokeAccessResolve(virtualField : VirtualFieldAccess) : IR_Expression = {
     var functionName = virtualField.fieldName
     if (functionName.startsWith("vf_")) functionName = functionName.substring(3)
     functionName.substring(functionName.length() - 2) match {
       case "_x" => {
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 0 : Integer).asInstanceOf[Expression]
+        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 0 : Integer).asInstanceOf[IR_Expression]
       }
       case "_y" => {
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 1 : Integer).asInstanceOf[Expression]
+        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 1 : Integer).asInstanceOf[IR_Expression]
       }
       case "_z" => {
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 2 : Integer).asInstanceOf[Expression]
+        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 2 : Integer).asInstanceOf[IR_Expression]
       }
       case _    => {
         val method = resolveGridMemberFunction(functionName)
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex).asInstanceOf[Expression]
+        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex).asInstanceOf[IR_Expression]
       }
     }
   }
@@ -86,7 +86,7 @@ object GridGeometry {
 
 trait GridGeometry_uniform extends GridGeometry {
   // properties of uniform grids
-  override def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+  override def cellWidth(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
     val levelIndex = level.asInstanceOf[IntegerConstant].v.toInt - Knowledge.minLevel
     dim match {
       case 0 => Knowledge.discr_hx(levelIndex)
@@ -95,29 +95,29 @@ trait GridGeometry_uniform extends GridGeometry {
     }
   }
 
-  override def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+  override def nodePosition(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
     //index(dim) * cellWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
     index(dim) * cellWidth(level, index, arrayIndex, dim) + MemberAccess(iv.PrimitivePositionBegin(), dimToString(dim)) // FIXME: HACK
   }
 
-  override def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression = {
+  override def cellCenter(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
     (index(dim) + 0.5) * cellWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
   }
 }
 
 trait GridGeometry_nonUniform extends GridGeometry {
   // direct accesses
-  override def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def nodePosition(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${ dimToString(dim) }", level).get
     FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }
 
   // compound accesses
-  override def cellCenter(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def cellCenter(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     0.5 * (nodePosition(level, GridUtil.offsetIndex(index, 1, dim), arrayIndex, dim) + nodePosition(level, Duplicate(index), arrayIndex, dim))
   }
 
-  override def cellWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def cellWidth(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     nodePosition(level, GridUtil.offsetIndex(index, 1, dim), arrayIndex, dim) - nodePosition(level, Duplicate(index), arrayIndex, dim)
   }
 
@@ -189,7 +189,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = new ConditionStatement(
-      NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[Statement](
         AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
@@ -205,7 +205,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = new ConditionStatement(
-      NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[Statement](
         AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
@@ -284,7 +284,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = new ConditionStatement(
-      NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[Statement](
         AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
@@ -300,7 +300,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = new ConditionStatement(
-      NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[Statement](
         AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
@@ -316,10 +316,10 @@ trait GridGeometry_nonUniform extends GridGeometry {
           new MultiIndex(1, 1, 1),
           ListBuffer[Statement](
             innerItDecl,
-            new ConditionStatement(LowerEqualExpression(innerIt, xf + 1),
+            new ConditionStatement(IR_LowerEqualExpression(innerIt, xf + 1),
               AssignmentStatement(Duplicate(baseAccess),
                 domainBounds.lower(dim) + 0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
-              new ConditionStatement(LowerEqualExpression(innerIt, xs + 1),
+              new ConditionStatement(IR_LowerEqualExpression(innerIt, xs + 1),
                 AssignmentStatement(Duplicate(baseAccess),
                   domainBounds.lower(dim) - 0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
                 AssignmentStatement(Duplicate(baseAccess),
@@ -333,11 +333,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
 trait GridGeometry_staggered extends GridGeometry {
   // additional information introduced by the staggered property
-  def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : Expression // depends on uniform property
+  def stagCVWidth(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression // depends on uniform property
 
   // compound accesses
-  def staggeredCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
-    var exp : Expression = (
+  def staggeredCellVolume(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], stagDim : Int) = {
+    var exp : IR_Expression = (
       if (0 == stagDim)
         stagCVWidth(level, index, arrayIndex, 0)
       else
@@ -350,9 +350,9 @@ trait GridGeometry_staggered extends GridGeometry {
     exp
   }
 
-  def xStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 0)
-  def yStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 1)
-  def zStagCellVolume(level : Expression, index : MultiIndex, arrayIndex : Option[Int]) : Expression = staggeredCellVolume(level, index, arrayIndex, 2)
+  def xStagCellVolume(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int]) : IR_Expression = staggeredCellVolume(level, index, arrayIndex, 0)
+  def yStagCellVolume(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int]) : IR_Expression = staggeredCellVolume(level, index, arrayIndex, 1)
+  def zStagCellVolume(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int]) : IR_Expression = staggeredCellVolume(level, index, arrayIndex, 2)
 }
 
 object GridGeometry_uniform_nonStaggered_AA extends GridGeometry_uniform {
@@ -363,7 +363,7 @@ object GridGeometry_uniform_nonStaggered_AA extends GridGeometry_uniform {
 
 object GridGeometry_uniform_staggered_AA extends GridGeometry_uniform with GridGeometry_staggered {
   // direct accesses
-  override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def stagCVWidth(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     // TODO: this introduces a slight extension at the physical boundary in the stagger dimension -> how to handle this? relevant or neglectable?
     0.5 * (cellWidth(level, GridUtil.offsetIndex(index, -1, dim), arrayIndex, dim) + cellWidth(level, index, arrayIndex, dim))
   }
@@ -391,7 +391,7 @@ object GridGeometry_nonUniform_nonStaggered_AA extends GridGeometry_nonUniform {
 
 object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with GridGeometry_staggered {
   // direct accesses
-  override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def stagCVWidth(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${ dimToString(dim) }", level).get
     FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }
@@ -463,20 +463,20 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
         new MultiIndex(1, 1, 1),
         ListBuffer[Statement](
-          new ConditionStatement(LowerEqualExpression(innerIt, 0),
+          new ConditionStatement(IR_LowerEqualExpression(innerIt, 0),
             AssignmentStatement(Duplicate(baseAccess), 0.0),
-            new ConditionStatement(LowerEqualExpression(innerIt, 1 * zoneSize),
+            new ConditionStatement(IR_LowerEqualExpression(innerIt, 1 * zoneSize),
               AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
-                + zoneLength * FunctionCallExpression("pow", ListBuffer[Expression](step * (LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
-              new ConditionStatement(LowerEqualExpression(innerIt, 2 * zoneSize),
+                + zoneLength * FunctionCallExpression("pow", ListBuffer[IR_Expression](step * (LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
+              new ConditionStatement(IR_LowerEqualExpression(innerIt, 2 * zoneSize),
                 AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
                   + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
-                new ConditionStatement(LowerEqualExpression(innerIt, 3 * zoneSize),
+                new ConditionStatement(IR_LowerEqualExpression(innerIt, 3 * zoneSize),
                   AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
                     + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
-                  new ConditionStatement(LowerEqualExpression(innerIt, 4 * zoneSize),
+                  new ConditionStatement(IR_LowerEqualExpression(innerIt, 4 * zoneSize),
                     AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
-                      + zoneLength * (1.0 - FunctionCallExpression("pow", ListBuffer[Expression](1.0 - step * (LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
+                      + zoneLength * (1.0 - FunctionCallExpression("pow", ListBuffer[IR_Expression](1.0 - step * (LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
                     AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))),
       AssignmentStatement(Duplicate(leftGhostAccess),
         2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
@@ -520,15 +520,15 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
         new MultiIndex(1, 1, 1),
         ListBuffer[Statement](
-          new ConditionStatement(LowerEqualExpression(innerIt, 0),
+          new ConditionStatement(IR_LowerEqualExpression(innerIt, 0),
             AssignmentStatement(Duplicate(baseAccess), 0.0),
-            new ConditionStatement(LowerEqualExpression(innerIt, zoneSize_1),
+            new ConditionStatement(IR_LowerEqualExpression(innerIt, zoneSize_1),
               AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt, dim)
-                + zoneLength_1 * FunctionCallExpression("pow", ListBuffer[Expression](step_1 * (LoopOverDimensions.defItForDim(dim)), expo))),
-              new ConditionStatement(LowerEqualExpression(innerIt, (zoneSize_1 + zoneSize_2)),
+                + zoneLength_1 * FunctionCallExpression("pow", ListBuffer[IR_Expression](step_1 * (LoopOverDimensions.defItForDim(dim)), expo))),
+              new ConditionStatement(IR_LowerEqualExpression(innerIt, (zoneSize_1 + zoneSize_2)),
                 AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + zoneSize_1, dim)
                   + zoneLength_2 * step_2 * (LoopOverDimensions.defItForDim(dim) - zoneSize_1)),
-                new ConditionStatement(LowerEqualExpression(innerIt, innerIt + (zoneSize_1 + zoneSize_2 + zoneSize_3)),
+                new ConditionStatement(IR_LowerEqualExpression(innerIt, innerIt + (zoneSize_1 + zoneSize_2 + zoneSize_3)),
                   AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + (zoneSize_1 + zoneSize_2), dim)
                     + zoneLength_3 * step_3 * (LoopOverDimensions.defItForDim(dim) - (zoneSize_1 + zoneSize_2))),
                   AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim)))))))),
@@ -571,7 +571,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = new ConditionStatement(
-      NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[Statement](
         AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
         AssignmentStatement(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
@@ -585,7 +585,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = new ConditionStatement(
-      NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[Statement](
         AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim), GridUtil.offsetAccess(rightGhostAccess, -2, dim)),
         AssignmentStatement(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim))))
@@ -599,11 +599,11 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
           new MultiIndex(1, 1, 1),
           ListBuffer[Statement](
             innerItDecl,
-            new ConditionStatement(EqEqExpression(0, innerIt),
+            new ConditionStatement(IR_EqEqExpression(0, innerIt),
               AssignmentStatement(Duplicate(baseAccess),
                 0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
                   - Duplicate(npBaseAccess)),
-              new ConditionStatement(EqEqExpression(numCellsTotal, innerIt),
+              new ConditionStatement(IR_EqEqExpression(numCellsTotal, innerIt),
                 AssignmentStatement(Duplicate(baseAccess),
                   Duplicate(npBaseAccess)
                     - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),

@@ -1,27 +1,29 @@
 package exastencils.performance
-import scala.collection.mutable.HashMap
-import exastencils.datastructures._
-import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
-import exastencils.core.{Duplicate, Settings}
-import exastencils.core.collectors.Collector
-import exastencils.strategies.SimplifyStrategy
 
+import scala.collection.mutable.HashMap
+
+import exastencils.base.ir._
+import exastencils.core.Duplicate
+import exastencils.core.collectors.Collector
+import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
+import exastencils.datastructures.ir._
+import exastencils.strategies.SimplifyStrategy
 
 /**
   * = Analysis for memory access distance in iteration space in loop nests =
   *
   * @author Georg Altmann <georg.altmann@fau.de>
   *
-  * This is a naive attempt to extract the distances of the memory accesses in a loop nest.
-  * The intention is to provide a basis for the prediction of the performance of loop nests regarding CPU caches and
-  * for estimating optimal tile sizes for loop tiling.
+  *         This is a naive attempt to extract the distances of the memory accesses in a loop nest.
+  *         The intention is to provide a basis for the prediction of the performance of loop nests regarding CPU caches and
+  *         for estimating optimal tile sizes for loop tiling.
   *
-  * The analysis assumes unit stride, hyperrectangle iteration spaces.
+  *         The analysis assumes unit stride, hyperrectangle iteration spaces.
   *
-  * TODO:
-  *  * collect accesses per field
-  *  * print per field analysis
+  *         TODO:
+  *         * collect accesses per field
+  *         * print per field analysis
   */
 
 /** Models the offset of an array access index (or field access in exastencils slang) in the iteration space.
@@ -82,16 +84,15 @@ case class InfiniteIndexOffset() extends IndexOffset {
   override def toString() : String = "inf"
 }
 
-
 /** Analysis pass to extract memory access distances in iteration space. See [[IndexOffset]]
   */
 object AnalyzeIterationDistance extends QuietDefaultStrategy(
   "Analyzing memory access distances in iteration space") {
 
-// TODO:
-//  * Constant only indices field[1,x,y] should map to [0,0,0] offsets and not to [1,0,0]
-//  * Use of loop variables of a higher dimension than the supscript dimension should map to zero offset,
-//  * example: [z,y,y] should map to [0,0,0] since y is a constant in the inner-loop
+  // TODO:
+  //  * Constant only indices field[1,x,y] should map to [0,0,0] offsets and not to [1,0,0]
+  //  * Use of loop variables of a higher dimension than the supscript dimension should map to zero offset,
+  //  * example: [z,y,y] should map to [0,0,0] since y is a constant in the inner-loop
 
   var curLoop : LoopOverDimensions = null
 
@@ -100,14 +101,14 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
       node match {
         case loop : LoopOverDimensions => curLoop = null
           println("============================================")
-        case _ =>
+        case _                         =>
       }
     }
 
     override def enter(node : Node) : Unit = {
       node match {
         case loop : LoopOverDimensions => curLoop = loop
-        case _ =>
+        case _                         =>
       }
     }
 
@@ -141,7 +142,7 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
 
         val accessDistBytes =
           accessDist match {
-            case co : ConstantIndexOffset =>
+            case co : ConstantIndexOffset  =>
               co * ConstantIndexOffset(fa.fieldSelection.field.gridDatatype.typicalByteSize)
             case inf : InfiniteIndexOffset => inf
           }
@@ -150,7 +151,6 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
       }
       fa
   })
-
 
   /** Honer's-method-like scheme to compute distance from iteration vector to accessed element in iteration space.
     *
@@ -175,7 +175,7 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
       } else {
         val off = offs(dim)
         off match {
-          case infoff : InfiniteIndexOffset => infoff
+          case infoff : InfiniteIndexOffset   => infoff
           case constoff : ConstantIndexOffset =>
             val highOff = rec(dim + 1)
 
@@ -192,20 +192,20 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
 
 /** Analyze offset of array (field) subscript for single dimension.
   *
-  * @param ssExpr The subscript expression of a single dimension in the array (field) subscript.
-  * @param dim    The dimension of the subscript expression corresponds to (0 is the the most continuous dimension of the array).
+  * @param ssExpr         The subscript expression of a single dimension in the array (field) subscript.
+  * @param dim            The dimension of the subscript expression corresponds to (0 is the the most continuous dimension of the array).
   * @param iterationSpace Size of each dimension in the iteration.
   */
-class AnalyzeSubscriptExpression(val ssExpr : Expression, val dim : Int, val iterationSpace : Array[Long]) {
+class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val iterationSpace : Array[Long]) {
 
   def apply() : IndexOffset = {
     ssExpr match {
-      case AdditionExpression(summands) => summands.map(s => addTerm(s, true)).reduce(_ + _)
+      case IR_AdditionExpression(summands) => summands.map(s => addTerm(s, true)).reduce(_ + _)
 
-      case SubtractionExpression(left, right) => addTerm(left, true) + addTerm(right, false)
+      case IR_SubtractionExpression(left, right) => addTerm(left, true) + addTerm(right, false)
 
-      case MultiplicationExpression(factors) => InfiniteIndexOffset()
-      case va : VariableAccess => addTerm(va, true)
+      case IR_MultiplicationExpression(factors) => InfiniteIndexOffset()
+      case va : VariableAccess                  => addTerm(va, true)
 
     }
   }
@@ -215,14 +215,13 @@ class AnalyzeSubscriptExpression(val ssExpr : Expression, val dim : Int, val ite
   def signedConstantIndexOffset(off : Long, pos : Boolean) =
     if (pos) ConstantIndexOffset(off) else ConstantIndexOffset(-off)
 
-
   /** Evaluate addition term in subscript expression as an IndexOffset.
     *
     * @param sign true if expression has positive sign, false if expression has negative sign.
     */
-  def addTerm(t : Expression, sign : Boolean) : IndexOffset = {
+  def addTerm(t : IR_Expression, sign : Boolean) : IndexOffset = {
     t match {
-      case VariableAccess(id, _) =>
+      case VariableAccess(id, _)                              =>
         val loopVarDimOpt = loopIndexVarDim(id)
         loopVarDimOpt match {
           case Some(loopVarDim) =>
@@ -231,17 +230,17 @@ class AnalyzeSubscriptExpression(val ssExpr : Expression, val dim : Int, val ite
             else
             // Loop index variable dimension does not match array index dimension. Assume this is infinitely far away.
               InfiniteIndexOffset()
-          case None =>
+          case None             =>
             // Non-loop index variable.
             InfiniteIndexOffset()
         }
-      case NegativeExpression(VariableAccess(name, dType)) => addTerm(VariableAccess(name, dType), !sign)
-      case IntegerConstant(x) => signedConstantIndexOffset(x, sign)
-      case NegativeExpression(IntegerConstant(x)) => signedConstantIndexOffset(x, !sign)
+      case IR_NegativeExpression(VariableAccess(name, dType)) => addTerm(VariableAccess(name, dType), !sign)
+      case IntegerConstant(x)                                 => signedConstantIndexOffset(x, sign)
+      case IR_NegativeExpression(IntegerConstant(x))          => signedConstantIndexOffset(x, !sign)
 
       // nested expressions -> not simplfied to (a * x + b) -> non-constant offset
-      case AdditionExpression(_) => InfiniteIndexOffset()
-      case MultiplicationExpression(_) => InfiniteIndexOffset()
+      case IR_AdditionExpression(_)       => InfiniteIndexOffset()
+      case IR_MultiplicationExpression(_) => InfiniteIndexOffset()
 
       case _ => throw new Exception("Unhandled expression")
     }
@@ -265,7 +264,7 @@ class AnalyzeSubscriptExpression(val ssExpr : Expression, val dim : Int, val ite
 }
 
 object AnalyzeSubscriptExpression {
-  def apply(idxExpr : Expression, dim : Int, iterationSpace : Array[Long]) : IndexOffset = {
+  def apply(idxExpr : IR_Expression, dim : Int, iterationSpace : Array[Long]) : IndexOffset = {
     new AnalyzeSubscriptExpression(idxExpr, dim, iterationSpace).apply()
   }
 }

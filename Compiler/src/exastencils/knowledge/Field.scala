@@ -2,7 +2,7 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Datatype
+import exastencils.base.ir._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -45,7 +45,7 @@ case class FieldLayout(
 
   def defTotal(dim : Int) = { defIdxPadRightEnd(dim) }
 
-  def idxById(id : String, dim : Int) : Expression = {
+  def idxById(id : String, dim : Int) : IR_Expression = {
     if (Knowledge.data_genVariableFieldSizes && dim < Knowledge.dimensionality)
       iv.IndexFromField(identifier, level, id, dim)
     // TODO : total
@@ -83,7 +83,7 @@ case class FieldLayoutPerDim(
     var numGhostLayersRight : Int, // number of ghost data points added to the right (/ upper / back) side of the field used for communication
     var numPadLayersRight : Int // number of padding data points added to the right (/ upper / back) side of the field
 ) {
-  var total : Expression = "NOT SET"
+  var total : IR_Expression = "NOT SET"
 
   def updateTotal() = {
     total = numPadLayersLeft + numGhostLayersLeft + numDupLayersLeft + numInnerLayers + numDupLayersRight + numGhostLayersRight + numPadLayersRight
@@ -111,7 +111,7 @@ case class Field(
     var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
     var level : Int, // the (geometric) level the field lives on
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
-    var boundaryConditions : Option[Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
+    var boundaryConditions : Option[IR_Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
 ) {
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype
@@ -125,10 +125,10 @@ case class Field(
 
 case class FieldSelection(
     var field : Field,
-    var level : Expression,
-    var slot : Expression,
+    var level : IR_Expression,
+    var slot : IR_Expression,
     var arrayIndex : Option[Int] = None, // TODO: delete
-    var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
+    var fragIdx : IR_Expression = LoopOverFragments.defIt) extends Node {
 
   // shortcuts to Field members
   def codeName = field.codeName
@@ -154,7 +154,7 @@ object FieldCollection {
     ret
   }
 
-  def getFieldByIdentifierLevExp(identifier : String, level : Expression, suppressError : Boolean = false) : Option[Field] = {
+  def getFieldByIdentifierLevExp(identifier : String, level : IR_Expression, suppressError : Boolean = false) : Option[Field] = {
     level match {
       case IntegerConstant(constLevel) => getFieldByIdentifier(identifier, constLevel.toInt, suppressError)
       case _                           => {

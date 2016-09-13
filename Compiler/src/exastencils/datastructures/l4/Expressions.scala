@@ -3,6 +3,7 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils._
+import exastencils.base.ir._
 import exastencils.base.l4.L4_Datatype
 import exastencils.core._
 import exastencils.datastructures._
@@ -10,7 +11,7 @@ import exastencils.logger._
 import exastencils.prettyprinting._
 
 trait Expression extends Node with ProgressableToIr with PrettyPrintable {
-  def progressToIr : ir.Expression
+  def progressToIr : IR_Expression
 }
 
 trait Number extends Expression {
@@ -164,7 +165,7 @@ case class BasicAccess(var name : String) extends Access {
 case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
-  def progressToIr : ir.Expression = {
+  def progressToIr : IR_Expression = {
     ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 }
@@ -252,7 +253,7 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
     ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 
-  def progressToIr : ir.Expression = {
+  def progressToIr : IR_Expression = {
     if (arrayIndex.isDefined && dirAccess.isDefined)
       Logger.warn(s"Access to stencil $name on level ${ level.asInstanceOf[SingleLevelSpecification].level } has dirAccess and array subscript modifiers; array index will be given precendence, dirAccess will be ignored")
 
@@ -305,7 +306,7 @@ case class StencilFieldAccess(var name : String,
     ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
   }
 
-  def progressToIr : ir.Expression = {
+  def progressToIr : IR_Expression = {
     if (arrayIndex.isDefined && dirAccess.isDefined)
       Logger.warn(s"Access to stencilfield $name on level ${ level.asInstanceOf[SingleLevelSpecification].level } has direction access and array subscript modifiers; array index will be given precendence, offset will be ignored")
 
@@ -368,20 +369,20 @@ case class VariableExpression(var access : Access, var datatype : L4_Datatype) e
 case class UnaryExpression(var operator : String, var exp : Expression) extends Expression {
   def prettyprint(out : PpStream) = { out << operator << '(' << exp << ')' }
 
-  def progressToIr : ir.Expression = {
-    ir.UnaryOperators.CreateExpression(operator, exp.progressToIr)
+  def progressToIr : IR_Expression = {
+    IR_UnaryOperators.createExpression(operator, exp.progressToIr)
   }
 }
 
 case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
   def prettyprint(out : PpStream) = { out << '(' << left << ' ' << operator << ' ' << right << ')' }
 
-  def progressToIr : ir.Expression = {
+  def progressToIr : IR_Expression = {
     this match {
       case BinaryExpression("**", left, IntegerConstant(1)) => left.progressToIr
       case BinaryExpression("**", left, IntegerConstant(2)) => left.progressToIr * Duplicate(left).progressToIr
       case BinaryExpression("**", left, IntegerConstant(3)) => left.progressToIr * Duplicate(left).progressToIr * Duplicate(left).progressToIr
-      case _                                                => ir.BinaryOperators.CreateExpression(operator, left.progressToIr, right.progressToIr)
+      case _                                                => IR_BinaryOperators.createExpression(operator, left.progressToIr, right.progressToIr)
     }
   }
 }
@@ -389,16 +390,16 @@ case class BinaryExpression(var operator : String, var left : Expression, var ri
 case class BooleanExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
   def prettyprint(out : PpStream) = { out << '(' << left << ' ' << operator << ' ' << right << ')' }
 
-  def progressToIr : ir.Expression = {
-    ir.BinaryOperators.CreateExpression(operator, left.progressToIr, right.progressToIr)
+  def progressToIr : IR_Expression = {
+    IR_BinaryOperators.createExpression(operator, left.progressToIr, right.progressToIr)
   }
 }
 
 case class UnaryBooleanExpression(var operator : String, var exp : Expression) extends Expression {
   def prettyprint(out : PpStream) = { out << '(' << operator << ' ' << exp << ')' }
 
-  def progressToIr : ir.Expression = {
-    ir.BinaryOperators.CreateExpression(operator, exp.progressToIr, null) // second argument is ignored
+  def progressToIr : IR_Expression = {
+    IR_BinaryOperators.createExpression(operator, exp.progressToIr, null) // second argument is ignored
   }
 }
 

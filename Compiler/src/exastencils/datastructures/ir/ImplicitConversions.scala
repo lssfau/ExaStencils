@@ -7,7 +7,7 @@ object ImplicitConversions {
   import scala.language.implicitConversions
 
   implicit def StringToStringLiteral(s : String) = new StringLiteral(s);
-  implicit def ExpressionToExpressionStatement(e : Expression) = new ExpressionStatement(e);
+  implicit def ExpressionToExpressionStatement(e : IR_Expression) = new ExpressionStatement(e);
   implicit def StringToStatement(s : String) = (new ExpressionStatement(new StringLiteral(s)) : Statement);
 
   implicit def StringToDatatype(s : String) = (new IR_SpecialDatatype(s) : IR_Datatype);

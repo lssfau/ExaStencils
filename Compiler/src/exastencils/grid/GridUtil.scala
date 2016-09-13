@@ -1,18 +1,18 @@
 package exastencils.grid
 
+import exastencils.base.ir.IR_Expression
 import exastencils.core._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
 
 object GridUtil {
   // helper functions of shifting indices and accesses
-  def offsetIndex(index : MultiIndex, offset : Expression, dim : Int) : MultiIndex = {
+  def offsetIndex(index : MultiIndex, offset : IR_Expression, dim : Int) : MultiIndex = {
     var modIndex = Duplicate(index)
     modIndex(dim) += offset
     modIndex
   }
 
-  def offsetAccess(fieldAccess : FieldAccess, offset : Expression, dim : Int) : FieldAccess = {
+  def offsetAccess(fieldAccess : FieldAccess, offset : IR_Expression, dim : Int) : FieldAccess = {
     var modAccess = Duplicate(fieldAccess)
     modAccess.index(dim) += offset
     modAccess

@@ -43,16 +43,16 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
 
 private final class ArrayBases(val arrayName : String) {
 
-  private val inits = new HashMap[HashMap[Expression, Long], (String, Expression)]()
+  private val inits = new HashMap[HashMap[IR_Expression, Long], (String, IR_Expression)]()
   private var idCount = -1
 
-  def getName(initVec : HashMap[Expression, Long], base : Expression, al : Boolean) : String = {
+  def getName(initVec : HashMap[IR_Expression, Long], base : IR_Expression, al : Boolean) : String = {
     inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
   }
 
   def addToDecls(decls : ListBuffer[Statement]) : Unit = {
-    for ((name : String, init : Expression) <- inits.values.toArray.sortBy(_._1))
-      decls += new VariableDeclarationStatement(IR_ConstPointerDatatype(IR_RealDatatype), name, AddressofExpression(init))
+    for ((name : String, init : IR_Expression) <- inits.values.toArray.sortBy(_._1))
+      decls += new VariableDeclarationStatement(IR_ConstPointerDatatype(IR_RealDatatype), name, IR_AddressofExpression(init))
   }
 }
 
@@ -60,7 +60,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
   import AddressPrecalculation._
 
-  private def generateName(expr : Expression) : String = {
+  private def generateName(expr : IR_Expression) : String = {
     return filter('_' + expr.prettyprint())
   }
 
@@ -75,7 +75,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     return res.toString()
   }
 
-  def containsLoopVar(expr : Expression, allowed : String = null) : Boolean = {
+  def containsLoopVar(expr : IR_Expression, allowed : String = null) : Boolean = {
     object Search extends QuietDefaultStrategy("Anonymous search") {
       var res : Boolean = false
       var allowed : String = null
@@ -100,14 +100,14 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     return Search.res
   }
 
-  private def splitIndex(ind : Expression) : (Expression, HashMap[Expression, Long]) = {
+  private def splitIndex(ind : IR_Expression) : (IR_Expression, HashMap[IR_Expression, Long]) = {
 
-    val outMap = new HashMap[Expression, Long]
+    val outMap = new HashMap[IR_Expression, Long]
     if (inVars == null)
       return (ind, outMap)
 
     // TODO: add support for MultiIndexExpression?
-    val inMap : HashMap[Expression, Long] =
+    val inMap : HashMap[IR_Expression, Long] =
     try {
       SimplifyExpression.extractIntegralSum(ind)
     } catch {
@@ -152,37 +152,37 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         }
         val d = new HashMap[String, ArrayBases]()
         l.inc match { // TODO: remove StringLiteral
-          case AssignmentStatement(VariableAccess(name, _), _, _)                    =>
+          case AssignmentStatement(VariableAccess(name, _), _, _)                       =>
             decls = d
             inVars = Set(name)
-          case AssignmentStatement(StringLiteral(name), _, _)                        =>
+          case AssignmentStatement(StringLiteral(name), _, _)                           =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreIncrementExpression(VariableAccess(name, _)))  =>
+          case ExpressionStatement(IR_PreIncrementExpression(VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreIncrementExpression(StringLiteral(name)))      =>
+          case ExpressionStatement(IR_PreIncrementExpression(StringLiteral(name)))      =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PostIncrementExpression(VariableAccess(name, _))) =>
+          case ExpressionStatement(IR_PostIncrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PostIncrementExpression(StringLiteral(name)))     =>
+          case ExpressionStatement(IR_PostIncrementExpression(StringLiteral(name)))     =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreDecrementExpression(VariableAccess(name, _)))  =>
+          case ExpressionStatement(IR_PreDecrementExpression(VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreDecrementExpression(StringLiteral(name)))      =>
+          case ExpressionStatement(IR_PreDecrementExpression(StringLiteral(name)))      =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PostDecrementExpression(VariableAccess(name, _))) =>
+          case ExpressionStatement(IR_PostDecrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PostDecrementExpression(StringLiteral(name)))     =>
+          case ExpressionStatement(IR_PostDecrementExpression(StringLiteral(name)))     =>
             decls = d
             inVars = Set(name)
-          case _                                                                     =>
+          case _                                                                        =>
             Logger.dbg("[addr precalc]  cannot determine loop variable name, inc of ForLoopStatement is not recognized:  " + l.inc)
             decls = d
         }
@@ -220,7 +220,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
         for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
-          val (in : Expression, outMap : HashMap[Expression, Long]) = splitIndex(index)
+          val (in : IR_Expression, outMap : HashMap[IR_Expression, Long]) = splitIndex(index)
           // if (!outMap.isEmpty) {
           var name : String = generateName(base)
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
@@ -248,7 +248,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     toAnalyze.clear()
   }
 
-  private def resolveName(expr : Expression) : String = {
+  private def resolveName(expr : IR_Expression) : String = {
     expr match {
       case ArrayAccess(base, _, _) => resolveName(base)
       case VariableAccess(name, _) => name

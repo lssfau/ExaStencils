@@ -2,7 +2,7 @@ package exastencils.globals
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -31,7 +31,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         func.body ++= ListBuffer[Statement](
           VariableDeclarationStatement(IR_IntegerDatatype, "deviceCount", Some(0)),
           "cuDeviceGetCount(&deviceCount)",
-          AssertStatement(LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
+          AssertStatement(IR_LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
             ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", "deviceCount", "\")\""),
             new FunctionCallExpression("exit", 1)),
           s"cuDeviceGet(&cudaDevice, ${ Knowledge.cuda_deviceId })")

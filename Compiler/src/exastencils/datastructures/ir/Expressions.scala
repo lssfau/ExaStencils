@@ -5,208 +5,37 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 
-trait Expression extends Node with PrettyPrintable {
-  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
-  def ~(exp : Expression) : ConcatenationExpression = {
-    new ConcatenationExpression(this, exp)
-  }
+trait Access extends IR_Expression
 
-  def +(other : Expression) = new AdditionExpression(this, other)
-  def :+(other : Expression) = new ElementwiseAdditionExpression(this, other)
-  // Scala does not allow .+ and fails with Dot+
-  def -(other : Expression) = new SubtractionExpression(this, other)
-  def :-(other : Expression) = new ElementwiseSubtractionExpression(this, other)
-  // Scala does not allow .- and fails with Dot-
-  def *(other : Expression) = new MultiplicationExpression(this, other)
-  def :*(other : Expression) = new ElementwiseMultiplicationExpression(this, other)
-  // Scala does not allow .* and fails with Dot*
-  def /(other : Expression) = new DivisionExpression(this, other)
-  def :/(other : Expression) = new ElementwiseDivisionExpression(this, other)
-  // Scala does not allow ./ and fails with Dot/
-  def Pow(other : Expression) = new PowerExpression(this, other)
-  def DotPow(other : Expression) = new ElementwisePowerExpression(this, other)
-  // Scala does not allow .% and fails with Dot% and fails with :%
-  def Mod(other : Expression) = new ModuloExpression(this, other)
-  def Modulo(other : Expression) = new ModuloExpression(this, other)
-  def DotMod(other : Expression) = new ElementwiseModuloExpression(this, other)
-  def DotModulo(other : Expression) = new ElementwiseModuloExpression(this, other)
-  def And(other : Expression) = new AndAndExpression(this, other)
-  def AndAnd(other : Expression) = new AndAndExpression(this, other)
-  def Or(other : Expression) = new OrOrExpression(this, other)
-  def OrOr(other : Expression) = new OrOrExpression(this, other)
-  def EqEq(other : Expression) = new EqEqExpression(this, other)
-  def Neq(other : Expression) = new NeqExpression(this, other)
-  def <(other : Expression) = new LowerExpression(this, other)
-  def <=(other : Expression) = new LowerEqualExpression(this, other)
-  def >(other : Expression) = new GreaterExpression(this, other)
-  def >=(other : Expression) = new GreaterEqualExpression(this, other)
-  def <<(other : Expression) = new LeftShiftExpression(this, other)
-}
-
-object BinaryOperators extends Enumeration {
-  type BinaryOperators = Value
-  val Addition = Value("+")
-  val Subtraction = Value("-")
-  val Multiplication = Value("*")
-  val Division = Value("/")
-  val Power = Value("**")
-  val Power_Alt = Value("^")
-  val Modulo = Value("%")
-
-  val ElementwiseAddition = Value(".+")
-  val ElementwiseSubtraction = Value(".-")
-  val ElementwiseMultiplication = Value(".*")
-  val ElementwiseDivision = Value("./")
-  val ElementwisePower = Value(".**")
-  val ElementwiseModulo = Value(".%")
-
-  val AndAnd = Value("&&")
-  val AndAndWritten = Value("and")
-  val OrOr = Value("||")
-  val OrOrWritten = Value("or")
-  val Negation = Value("!")
-  val EqEq = Value("==")
-  val Neq = Value("!=")
-  val Lower = Value("<")
-  val LowerEqual = Value("<=")
-  val Greater = Value(">")
-  val GreaterEqual = Value(">=")
-  val Maximum = Value("max")
-  val Minimum = Value("min")
-  val BitwiseAnd = Value("&")
-  val LeftShift = Value("<<")
-
-  exastencils.core.Duplicate.registerImmutable(this.getClass())
-
-  //  Conversions for Enumeration:
-  // BinaryOperators -> String:  op.toString()
-  // String -> BinaryOperators:  BinaryOperators.withName(op)
-
-  def CreateExpression(op : String, left : Expression, right : Expression) : Expression = CreateExpression(withName(op), left, right)
-  def CreateExpression(op : Value, left : Expression, right : Expression) : Expression = op match {
-    case Addition       => return new AdditionExpression(left, right)
-    case Subtraction    => return new SubtractionExpression(left, right)
-    case Multiplication => return new MultiplicationExpression(left, right)
-    case Division       => return new DivisionExpression(left, right)
-    case Power          => return new PowerExpression(left, right)
-    case Power_Alt      => return new PowerExpression(left, right)
-    case Modulo         => return new ModuloExpression(left, right)
-
-    case ElementwiseAddition       => return new ElementwiseAdditionExpression(left, right)
-    case ElementwiseSubtraction    => return new ElementwiseSubtractionExpression(left, right)
-    case ElementwiseMultiplication => return new ElementwiseMultiplicationExpression(left, right)
-    case ElementwiseDivision       => return new ElementwiseDivisionExpression(left, right)
-    case ElementwisePower          => return new ElementwisePowerExpression(left, right)
-    case ElementwiseModulo         => return new ElementwiseModuloExpression(left, right)
-
-    case AndAnd | AndAndWritten => return new AndAndExpression(left, right)
-    case OrOr | OrOrWritten     => return new OrOrExpression(left, right)
-    case Negation               => return new NegationExpression(left)
-    case EqEq                   => return new EqEqExpression(left, right)
-    case Neq                    => return new NeqExpression(left, right)
-    case Lower                  => return new LowerExpression(left, right)
-    case LowerEqual             => return new LowerEqualExpression(left, right)
-    case Greater                => return new GreaterExpression(left, right)
-    case GreaterEqual           => return new GreaterEqualExpression(left, right)
-    case Maximum                => return new MaximumExpression(left, right)
-    case Minimum                => return new MinimumExpression(left, right)
-    case BitwiseAnd             => return new BitwiseAndExpression(left, right)
-    case LeftShift              => return new LeftShiftExpression(left, right)
-  }
-
-  def opAsIdent(op : String) = {
-    op match {
-      case "+"  => "Addition"
-      case "-"  => "Subtraction"
-      case "*"  => "Multiplication"
-      case "/"  => "Division"
-      case "**" => "Power"
-      case "^"  => "Power_Alt"
-      case "%"  => "Modulo"
-
-      case ".+"  => "ElementwiseAddition"
-      case ".-"  => "ElementwiseSubtraction"
-      case ".*"  => "ElementwiseMultiplication"
-      case "./"  => "ElementwiseDivision"
-      case ".**" => "ElementwisePower"
-      case ".%"  => "ElementwiseModulo"
-
-      case "&&"  => "AndAnd"
-      case "and" => "AndAndWritten"
-      case "||"  => "OrOr"
-      case "or"  => "OrOrWritten"
-      case "!"   => "Negation"
-      case "=="  => "EqEq"
-      case "!="  => "Neq"
-      case "<"   => "Lower"
-      case "<="  => "LowerEqual"
-      case ">"   => "Greater"
-      case ">="  => "GreaterEqual"
-      case "max" => "Maximum"
-      case "min" => "Minimum"
-      case "&"   => "BitwiseAnd"
-
-      case _ => Logger.warn(s"Unknown op $op"); op
-    }
-  }
-}
-
-object UnaryOperators extends Enumeration {
-  type UnaryOperators = Value
-  //  val Positive = Value("")
-  val Negative = Value("-")
-  val Not = Value("!")
-  val AddressOf = Value("&")
-  val Indirection = Value("*")
-  //  val BitwiseNegation = Value("~")
-
-  exastencils.core.Duplicate.registerImmutable(this.getClass())
-
-  def CreateExpression(op : String, exp : Expression) : Expression = CreateExpression(withName(op), exp)
-  def CreateExpression(op : Value, exp : Expression) : Expression = op match {
-    case Negative => return new NegativeExpression(exp)
-    case Not      => return new NegationExpression(exp)
-  }
-}
-
-trait Access extends Expression
-
-trait Number extends Expression {
+trait Number extends IR_Expression {
   def value : AnyVal
 }
 
-case object NullExpression extends Expression {
+case object NullExpression extends IR_Expression {
   exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = ()
 }
 
 @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
-case class ConcatenationExpression(var expressions : ListBuffer[Expression]) extends Expression {
-  def this(exprs : Expression*) = this(exprs.to[ListBuffer])
+case class ConcatenationExpression(var expressions : ListBuffer[IR_Expression]) extends IR_Expression {
+  def this(exprs : IR_Expression*) = this(exprs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = out <<< expressions
-
-  @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
-  override def ~(exp : Expression) : ConcatenationExpression = {
-    expressions += exp
-    this
-  }
 }
 
-case class StringLiteral(var value : String) extends Expression {
+case class StringLiteral(var value : String) extends IR_Expression {
   def this(s : StringConstant) = this(s.value)
   override def prettyprint(out : PpStream) : Unit = out << value
   override def toString : String = value
 }
 
-case class StringConstant(var value : String) extends Expression {
+case class StringConstant(var value : String) extends IR_Expression {
   def this(s : StringLiteral) = this(s.value)
   override def prettyprint(out : PpStream) : Unit = out << '"' << value << '"'
 }
@@ -225,11 +54,11 @@ case class FloatConstant(var v : Double) extends Number {
   override def value = v
 }
 
-case class BooleanConstant(var value : Boolean) extends Expression {
+case class BooleanConstant(var value : Boolean) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << value
 }
 
-case class VectorExpression(var datatype : Option[IR_Datatype], var expressions : ListBuffer[Expression], var rowVector : Option[Boolean]) extends Expression {
+case class VectorExpression(var datatype : Option[IR_Datatype], var expressions : ListBuffer[IR_Expression], var rowVector : Option[Boolean]) extends IR_Expression {
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
@@ -251,7 +80,7 @@ case class VectorExpression(var datatype : Option[IR_Datatype], var expressions 
   }
 }
 
-case class MatrixExpression(var datatype : Option[IR_Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
+case class MatrixExpression(var datatype : Option[IR_Datatype], var expressions : ListBuffer[ListBuffer[IR_Expression]]) extends IR_Expression {
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     out << datatype.getOrElse(IR_RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
@@ -272,15 +101,15 @@ case class MatrixExpression(var datatype : Option[IR_Datatype], var expressions 
   def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IntegerConstant])
 }
 
-case class Allocation(var datatype : IR_Datatype, var size : Expression) extends Expression {
+case class Allocation(var datatype : IR_Datatype, var size : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "new" << ' ' << datatype << "[" << size << "]"
 }
 
-case class SizeOfExpression(var datatype : IR_Datatype) extends Expression {
+case class SizeOfExpression(var datatype : IR_Datatype) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "sizeof" << "(" << datatype << ")"
 }
 
-case class CastExpression(var datatype : IR_Datatype, var toCast : Expression) extends Expression {
+case class CastExpression(var datatype : IR_Datatype, var toCast : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "((" << datatype << ")" << toCast << ")"
 }
 
@@ -293,35 +122,35 @@ case class VariableAccess(var name : String, var datatype : Option[IR_Datatype] 
   def printDeclaration() : String = datatype.get.resolveDeclType.prettyprint + " " + name + datatype.get.resolveDeclPostscript
 }
 
-case class ArrayAccess(var base : Expression, var index : Expression, var alignedAccessPossible : Boolean = false) extends Access {
+case class ArrayAccess(var base : IR_Expression, var index : IR_Expression, var alignedAccessPossible : Boolean = false) extends Access {
   override def prettyprint(out : PpStream) : Unit = {
     index match {
-      case ind : MultiIndex => out << base << ind
-      case ind : Expression => out << base << '[' << ind << ']'
+      case ind : MultiIndex    => out << base << ind
+      case ind : IR_Expression => out << base << '[' << ind << ']'
     }
   }
 }
 
 //TODO specific expression for reading from fragment data file
-case class ReadValueFrom(var datatype : IR_Datatype, data : Expression) extends Expression {
+case class ReadValueFrom(var datatype : IR_Datatype, data : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << datatype << '>' << "(" << data << ")"
 }
 
-case class BoundedExpression(var min : Long, var max : Long, var expr : Expression) extends Expression {
+case class BoundedExpression(var min : Long, var max : Long, var expr : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BoundedExpression(" << expr << ')'
 
-  def expandSpecial() : Expression = {
+  def expandSpecial() : IR_Expression = {
     return expr
   }
 }
 
-case class MultiIndex(var indices : Array[Expression]) extends Expression with Iterable[Expression] {
-  def this(indices : Expression*) = this(indices.toArray)
-  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression))
+case class MultiIndex(var indices : Array[IR_Expression]) extends IR_Expression with Iterable[IR_Expression] {
+  def this(indices : IR_Expression*) = this(indices.toArray)
+  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : IR_Expression))
   // legacy support
-  def this(indices : Array[Long]) = this(indices.map(IntegerConstant(_) : Expression))
+  def this(indices : Array[Long]) = this(indices.map(IntegerConstant(_) : IR_Expression))
   // legacy support
-  def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) =
+  def this(left : MultiIndex, right : MultiIndex, f : (IR_Expression, IR_Expression) => IR_Expression) =
   this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
 
   // FIXME: add variable accesses to begin with...
@@ -353,16 +182,16 @@ case class MultiIndex(var indices : Array[Expression]) extends Expression with I
   }
 
   // expose array functions
-  override def iterator() : scala.collection.Iterator[Expression] = indices.iterator
-  override def head() : Expression = indices.head
-  override def last() : Expression = indices.last
+  override def iterator() : scala.collection.Iterator[IR_Expression] = indices.iterator
+  override def head() : IR_Expression = indices.head
+  override def last() : IR_Expression = indices.last
 
   def apply(i : Int) = indices.apply(i)
-  def update(i : Int, x : Expression) = indices.update(i, x)
+  def update(i : Int, x : IR_Expression) = indices.update(i, x)
   def length = indices.length
 }
 
-case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, var strides : MultiIndex) extends Expression {
+case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, var strides : MultiIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TempBufferAccess\n"
 
   def linearize : ArrayAccess = {
@@ -372,7 +201,7 @@ case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, v
   }
 }
 
-case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : MultiIndex, var strides : MultiIndex) extends Expression {
+case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : MultiIndex, var strides : MultiIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ReductionDeviceDataAccess\n"
 
   def linearize : ArrayAccess = {
@@ -380,7 +209,7 @@ case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var inde
   }
 }
 
-case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : MultiIndex) extends Expression {
+case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : MultiIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopCarriedCSEBufferAccess\n"
 
   def linearize() : ArrayAccess = {
@@ -391,7 +220,7 @@ case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var in
   }
 }
 
-abstract class FieldAccessLike extends Expression {
+abstract class FieldAccessLike extends IR_Expression {
   def fieldSelection : FieldSelection
   def index : MultiIndex
 }
@@ -413,15 +242,15 @@ case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiInd
 }
 
 case class VirtualFieldAccess(var fieldName : String,
-    var level : Expression,
+    var level : IR_Expression,
     var index : MultiIndex,
     var arrayIndex : Option[Int] = None,
-    var fragIdx : Expression = LoopOverFragments.defIt) extends Expression {
+    var fragIdx : IR_Expression = LoopOverFragments.defIt) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
 
 }
 
-case class ExternalFieldAccess(var name : Expression, var field : ExternalField, var index : MultiIndex) extends Expression {
+case class ExternalFieldAccess(var name : IR_Expression, var field : ExternalField, var index : MultiIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   def x = new VariableAccess("x", IR_IntegerDatatype)
@@ -442,19 +271,19 @@ case class ExternalFieldAccess(var name : Expression, var field : ExternalField,
   }
 }
 
-case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : Expression) extends Expression with Expandable {
+case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : IR_Expression) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
 
-  override def expand() : Output[Expression] = {
+  override def expand() : Output[IR_Expression] = {
     new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index, Knowledge.data_alignFieldPointers)
   }
 }
 
-case class StencilAccess(var stencil : Stencil) extends Expression {
+case class StencilAccess(var stencil : Stencil) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilAccess\n"
 }
 
-case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : MultiIndex) extends Expression {
+case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : MultiIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldAccess\n"
 
   def buildStencil : Stencil = {
@@ -478,199 +307,41 @@ case class DerefAccess(var base : Access) extends Access {
   override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
 }
 
-case class AdditionExpression(var summands : ListBuffer[Expression]) extends Expression {
-  def this(left : Expression, right : Expression) = this(ListBuffer(left, right))
-  override def prettyprint(out : PpStream) : Unit = out << '(' <<< (summands, "+") << ')'
-}
-
-case class SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '-' << right << ')'
-}
-
-case class MultiplicationExpression(var factors : ListBuffer[Expression]) extends Expression {
-  def this(left : Expression, right : Expression) = this(ListBuffer(left, right))
-  override def prettyprint(out : PpStream) : Unit = out << '(' <<< (factors, "*") << ')'
-}
-
-case class DivisionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '/' << right << ')'
-}
-
-case class ModuloExpression(var left : Expression, var right : Expression) extends Expression {
-  // assumes "left >= 0"   if not, generate something like "(left%right + right) % right"
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '%' << right << ')'
-}
-
-case class PowerExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "pow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
-}
-
-case class ElementwiseAdditionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
-}
-
-case class ElementwiseSubtractionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
-}
-
-case class ElementwiseMultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '*' << right << ')'
-}
-
-case class ElementwiseDivisionExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '/' << right << ')'
-}
-
-case class ElementwiseModuloExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '%' << right << ')'
-}
-
-case class ElementwisePowerExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "dotpow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
-}
-
-case class EqEqExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "==" << right << ')'
-}
-
-case class NeqExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "!=" << right << ')'
-}
-
-case class AndAndExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "&&" << right << ')'
-}
-
-case class OrOrExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
-}
-
-case class NegationExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '!' << '(' << left << ')'
-}
-
-case class LowerExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '<' << right << ')'
-}
-
-case class GreaterExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '>' << right << ')'
-}
-
-case class LowerEqualExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<=" << right << ')'
-}
-
-case class GreaterEqualExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << ">=" << right << ')'
-}
-
-case class BitwiseAndExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '&' << right << ')'
-}
-
-case class LeftShiftExpression(var left : Expression, var right : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<<" << right << ')'
-}
-
-case class PreDecrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "(--" << left << ')'
-}
-
-case class PostDecrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "--)"
-}
-
-case class PreIncrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "(++" << left << ')'
-}
-
-case class PostIncrementExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "++)"
-}
-
-case class NegativeExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "(-" << left << ')'
-}
-
-case class AddressofExpression(var left : Expression) extends Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "(&" << left << ')'
-}
-
-private object MinMaxPrinter {
-  def prettyprintsb(out : PpStream, args : ListBuffer[Expression], method : String) : Unit = {
-    if (args.length == 1)
-      out << args(0)
-
-    else if (Platform.supports_initializerList && PrintEnvironment.CPP == out.env)
-      out << method << "({" <<< (args, ",") << "})"
-
-    else {
-      for (i <- 0 until args.length - 1)
-        out << method << '('
-      val it : Iterator[Expression] = args.iterator
-      out << it.next()
-      while (it.hasNext)
-        out << ',' << it.next() << ')'
-    }
-  }
-}
-
-case class MinimumExpression(var args : ListBuffer[Expression]) extends Expression {
-  def this(varargs : Expression*) = this(varargs.to[ListBuffer])
-
-  override def prettyprint(out : PpStream) : Unit = {
-    import PrintEnvironment._
-    val name = if (out.env == CUDA) "min" else "std::min"
-    MinMaxPrinter.prettyprintsb(out, args, name)
-  }
-}
-
-case class MaximumExpression(var args : ListBuffer[Expression]) extends Expression {
-  def this(varargs : Expression*) = this(varargs.to[ListBuffer])
-
-  override def prettyprint(out : PpStream) : Unit = {
-    import PrintEnvironment._
-    val name = if (out.env == CUDA) "max" else "std::max"
-    MinMaxPrinter.prettyprintsb(out, args, name)
-  }
-}
-
-case class FunctionCallExpression(var name : String, var arguments : ListBuffer[Expression]) extends Expression {
-  def this(name : String, args : Expression*) = this(name, args.to[ListBuffer])
+case class FunctionCallExpression(var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+  def this(name : String, args : IR_Expression*) = this(name, args.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
 }
 
-case class InitializerList(var arguments : ListBuffer[Expression]) extends Expression {
-  def this(args : Expression*) = this(args.to[ListBuffer])
+case class InitializerList(var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+  def this(args : IR_Expression*) = this(args.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = out << "{ " <<< (arguments, ", ") << " }"
 }
 
-case class MemberFunctionCallExpression(var objectName : Expression, var name : String, var arguments : ListBuffer[Expression]) extends Expression {
-  def this(objectName : Expression, name : String, args : Expression*) = this(objectName, name, args.to[ListBuffer])
+case class MemberFunctionCallExpression(var objectName : IR_Expression, var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+  def this(objectName : IR_Expression, name : String, args : IR_Expression*) = this(objectName, name, args.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
 }
 
-case class TernaryConditionExpression(var condition : Expression, var trueBody : Expression, var falseBody : Expression) extends Expression {
+case class TernaryConditionExpression(var condition : IR_Expression, var trueBody : IR_Expression, var falseBody : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << condition << " ? " << trueBody << " : " << falseBody << ')'
 }
 
-case class Reduction(var op : String, var target : VariableAccess) extends Expression {
+case class Reduction(var op : String, var target : VariableAccess) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
 }
 
-case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAccess) extends Expression with Expandable {
+case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAccess) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
-  def resolveEntry(idx : Int) : Expression = {
+  def resolveEntry(idx : Int) : IR_Expression = {
     stencil.entries(idx).coefficient * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
   }
 
-  override def expand() : Output[Expression] = {
-    val ret : Expression = stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
+  override def expand() : Output[IR_Expression] = {
+    val ret : IR_Expression = stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
@@ -678,10 +349,10 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
 
 // TODO: update convolutions with new dimensionality logic
 
-case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends Expression with Expandable {
+case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
-  def resolveEntry(idx : Int) : Expression = {
+  def resolveEntry(idx : Int) : IR_Expression = {
     val stencilFieldIdx = Duplicate(stencilFieldAccess.index)
     stencilFieldIdx(Knowledge.dimensionality) = idx
 
@@ -689,14 +360,14 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
       new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
   }
 
-  override def expand() : Output[Expression] = {
-    val ret : Expression = stencilFieldAccess.stencilFieldSelection.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
+  override def expand() : Output[IR_Expression] = {
+    val ret : IR_Expression = stencilFieldAccess.stencilFieldSelection.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
     SimplifyStrategy.doUntilDoneStandalone(ret)
     ret
   }
 }
 
-case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends Expression with Expandable {
+case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
 
   override def expand() : Output[StencilAccess] = {
@@ -709,17 +380,17 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
         val leftOffset = Duplicate(le.offset)
         if (stencilRight.level > stencilLeft.level) {
           for (d <- 0 until Knowledge.dimensionality)
-            leftOffset(d) = (dimToString(d) : Expression) / 2 + leftOffset(d)
+            leftOffset(d) = (dimToString(d) : IR_Expression) / 2 + leftOffset(d)
         } else {
           for (d <- 0 until Knowledge.dimensionality)
-            leftOffset(d) = (dimToString(d) : Expression) + leftOffset(d)
+            leftOffset(d) = (dimToString(d) : IR_Expression) + leftOffset(d)
         }
 
         val combOff = leftOffset
         ResolveCoordinates.replacement = rightOffset
         ResolveCoordinates.doUntilDoneStandalone(combOff)
 
-        var combCoeff : Expression = (re.coefficient * le.coefficient)
+        var combCoeff : IR_Expression = (re.coefficient * le.coefficient)
         SimplifyStrategy.doUntilDoneStandalone(combOff)
         SimplifyStrategy.doUntilDoneStandalone(combCoeff)
         val addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
@@ -735,7 +406,7 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
   }
 }
 
-case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends Expression with Expandable {
+case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
 
   override def expand() : Output[StencilAccess] = {
@@ -755,17 +426,17 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
         val leftOffset = Duplicate(stencilLeft.stencilFieldSelection.stencil.entries(e).offset)
         if (stencilRight.level > stencilLeft.stencilFieldSelection.stencil.level) {
           for (d <- 0 until Knowledge.dimensionality)
-            leftOffset(d) = (dimToString(d) : Expression) / 2 + leftOffset(d)
+            leftOffset(d) = (dimToString(d) : IR_Expression) / 2 + leftOffset(d)
         } else {
           for (d <- 0 until Knowledge.dimensionality)
-            leftOffset(d) = (dimToString(d) : Expression) + leftOffset(d)
+            leftOffset(d) = (dimToString(d) : IR_Expression) + leftOffset(d)
         }
 
         val combOff = leftOffset
         ResolveCoordinates.replacement = rightOffset
         ResolveCoordinates.doUntilDoneStandalone(combOff)
 
-        var combCoeff : Expression = (re.coefficient * new FieldAccess(fieldSel, stencilFieldIdx))
+        var combCoeff : IR_Expression = (re.coefficient * new FieldAccess(fieldSel, stencilFieldIdx))
         SimplifyStrategy.doUntilDoneStandalone(combOff)
         SimplifyStrategy.doUntilDoneStandalone(combCoeff)
         val addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
@@ -783,7 +454,7 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
 
 //////////////////////////// SIMD Expressions \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) extends Expression {
+case class SIMD_LoadExpression(var mem : IR_Expression, val aligned : Boolean) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     val alig = if (aligned) "" else "u"
@@ -799,7 +470,7 @@ case class SIMD_LoadExpression(var mem : Expression, val aligned : Boolean) exte
   }
 }
 
-case class SIMD_ExtractScalarExpression(var expr : Expression, var index : Int) extends Expression {
+case class SIMD_ExtractScalarExpression(var expr : IR_Expression, var index : Int) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     out << expr
     if (Platform.targetCompiler == "MSVC")
@@ -814,7 +485,7 @@ case class SIMD_ExtractScalarExpression(var expr : Expression, var index : Int) 
   }
 }
 
-case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, val offset : Int) extends Expression {
+case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, val offset : Int) extends IR_Expression {
   private var shiftIV : iv.VecShiftIndex = null
 
   Platform.simd_instructionSet match {
@@ -890,7 +561,7 @@ case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess,
   }
 }
 
-case class SIMD_NegateExpression(var vect : Expression) extends Expression {
+case class SIMD_NegateExpression(var vect : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val (prec, ts) = if (Knowledge.useDblPrecision) ('d', "d") else ('s', "")
     Platform.simd_instructionSet match {
@@ -904,7 +575,7 @@ case class SIMD_NegateExpression(var vect : Expression) extends Expression {
   }
 }
 
-case class SIMD_AdditionExpression(var left : Expression, var right : Expression) extends Expression {
+case class SIMD_AdditionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -918,7 +589,7 @@ case class SIMD_AdditionExpression(var left : Expression, var right : Expression
   }
 }
 
-case class SIMD_SubtractionExpression(var left : Expression, var right : Expression) extends Expression {
+case class SIMD_SubtractionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -932,7 +603,7 @@ case class SIMD_SubtractionExpression(var left : Expression, var right : Express
   }
 }
 
-case class SIMD_MultiplicationExpression(var left : Expression, var right : Expression) extends Expression {
+case class SIMD_MultiplicationExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -946,16 +617,16 @@ case class SIMD_MultiplicationExpression(var left : Expression, var right : Expr
   }
 }
 
-case class SIMD_MultiplyAddExpression(var factor1 : Expression, var factor2 : Expression,
-    var summand : Expression) extends Expression {
+case class SIMD_MultiplyAddExpression(var factor1 : IR_Expression, var factor2 : IR_Expression,
+    var summand : IR_Expression) extends IR_Expression {
 
   override def prettyprint(out : PpStream) : Unit = {
     FusedPrinterHelper.prettyprint(out, factor1, factor2, summand, "add")
   }
 }
 
-case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Expression,
-    var summand : Expression) extends Expression {
+case class SIMD_MultiplySubExpression(var factor1 : IR_Expression, var factor2 : IR_Expression,
+    var summand : IR_Expression) extends IR_Expression {
 
   override def prettyprint(out : PpStream) : Unit = {
     FusedPrinterHelper.prettyprint(out, factor1, factor2, summand, "sub")
@@ -963,7 +634,7 @@ case class SIMD_MultiplySubExpression(var factor1 : Expression, var factor2 : Ex
 }
 
 private object FusedPrinterHelper {
-  def prettyprint(out : PpStream, factor1 : Expression, factor2 : Expression, summand : Expression, addSub : String) : Unit = {
+  def prettyprint(out : PpStream, factor1 : IR_Expression, factor2 : IR_Expression, summand : IR_Expression, addSub : String) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
       case "SSE3"            => out << "_mm_" << addSub << "_p" << prec << "(_mm_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
@@ -980,7 +651,7 @@ private object FusedPrinterHelper {
   }
 }
 
-case class SIMD_DivisionExpression(var left : Expression, var right : Expression) extends Expression {
+case class SIMD_DivisionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -995,7 +666,7 @@ case class SIMD_DivisionExpression(var left : Expression, var right : Expression
   }
 }
 
-case class SIMD_MinimumExpression(var left : Expression, var right : Expression) extends Expression {
+case class SIMD_MinimumExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX") // TODO: export function
       out << "vec_sel(" << right << ", " << left << ", vec_cmplt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...
@@ -1013,7 +684,7 @@ case class SIMD_MinimumExpression(var left : Expression, var right : Expression)
   }
 }
 
-case class SIMD_MaximumExpression(var left : Expression, var right : Expression) extends Expression {
+case class SIMD_MaximumExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX") // TODO: export function
       out << "vec_sel(" << right << ", " << left << ", vec_cmpgt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...
@@ -1031,7 +702,7 @@ case class SIMD_MaximumExpression(var left : Expression, var right : Expression)
   }
 }
 
-case class SIMD_Scalar2VectorExpression(var scalar : Expression) extends Expression {
+case class SIMD_Scalar2VectorExpression(var scalar : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {

@@ -118,8 +118,8 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     // functions
 
     // HACK to implement min/max functions
-    case FunctionCallExpression("min", args) => MinimumExpression(args)
-    case FunctionCallExpression("max", args) => MaximumExpression(args)
+    case FunctionCallExpression("min", args) => IR_MinimumExpression(args)
+    case FunctionCallExpression("max", args) => IR_MaximumExpression(args)
 
     // FIXME: UGLY HACK to realize native code functionality
     case FunctionCallExpression("native", args) =>
@@ -155,7 +155,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       if (!x.isConstant || !y.isConstant) {
         f // do nothing for vectors containing variable expressions
       } else {
-        val r = ListBuffer[Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
+        val r = ListBuffer[IR_Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
         VectorExpression(x.datatype, r, x.rowVector)
       }
     }
@@ -278,11 +278,11 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
-    case ElementwiseAdditionExpression(left, right)       => FunctionCallExpression("elementwiseAdd", ListBuffer(left, right))
-    case ElementwiseSubtractionExpression(left, right)    => FunctionCallExpression("elementwiseSub", ListBuffer(left, right))
-    case ElementwiseMultiplicationExpression(left, right) => FunctionCallExpression("elementwiseMul", ListBuffer(left, right))
-    case ElementwiseDivisionExpression(left, right)       => FunctionCallExpression("elementwiseDiv", ListBuffer(left, right))
-    case ElementwiseModuloExpression(left, right)         => FunctionCallExpression("elementwiseMod", ListBuffer(left, right))
-    case FunctionCallExpression("dot", args)              => FunctionCallExpression("dotProduct", args)
+    case IR_ElementwiseAdditionExpression(left, right)       => FunctionCallExpression("elementwiseAdd", ListBuffer(left, right))
+    case IR_ElementwiseSubtractionExpression(left, right)    => FunctionCallExpression("elementwiseSub", ListBuffer(left, right))
+    case IR_ElementwiseMultiplicationExpression(left, right) => FunctionCallExpression("elementwiseMul", ListBuffer(left, right))
+    case IR_ElementwiseDivisionExpression(left, right)       => FunctionCallExpression("elementwiseDiv", ListBuffer(left, right))
+    case IR_ElementwiseModuloExpression(left, right)         => FunctionCallExpression("elementwiseMod", ListBuffer(left, right))
+    case FunctionCallExpression("dot", args)                 => FunctionCallExpression("dotProduct", args)
   })
 }

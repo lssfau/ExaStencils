@@ -4,12 +4,11 @@ import scala.collection._
 import scala.collection.mutable._
 import scala.language.postfixOps
 
-import exastencils.base.ir.{ BinaryOperators => _, _ }
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.BinaryOperators.{ apply => _ }
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -69,7 +68,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   }
 
   def addDefaultReductionKernel(op : String) = {
-    val opAsIdent = BinaryOperators.opAsIdent(op)
+    val opAsIdent = IR_BinaryOperators.opAsIdent(op)
     val kernelName = "DefaultReductionKernel" + opAsIdent
     val wrapperName = kernelName + "_wrapper"
 
@@ -92,13 +91,13 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
 
       // add index bounds conditions
       fctBody += new ConditionStatement(
-        OrOrExpression(LowerExpression(it, 0), GreaterEqualExpression(it, numElements)),
+        IR_OrOrExpression(IR_LowerExpression(it, 0), IR_GreaterEqualExpression(it, numElements)),
         ReturnStatement())
 
       // add values with stride
       fctBody += new ConditionStatement(
-        LowerExpression(it + stride, numElements),
-        AssignmentStatement(ArrayAccess(data, it), BinaryOperators.CreateExpression(op, ArrayAccess(data, it), ArrayAccess(data, it + stride))))
+        IR_LowerExpression(it + stride, numElements),
+        AssignmentStatement(ArrayAccess(data, it), IR_BinaryOperators.createExpression(op, ArrayAccess(data, it), ArrayAccess(data, it + stride))))
 
       // compile final kernel function
       var fct = FunctionStatement(
@@ -126,18 +125,18 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       def blocks = VariableAccess("blocks", Some(IR_SpecialDatatype("size_t")))
       var loopBody = ListBuffer[Statement]()
       loopBody += new VariableDeclarationStatement(blocks, (numElements + (blockSize * stride - 1)) / (blockSize * stride))
-      loopBody += new ConditionStatement(EqEqExpression(0, blocks), AssignmentStatement(blocks, 1))
-      loopBody += CUDA_FunctionCallExpression(kernelName, ListBuffer[Expression](data, numElements, stride),
-        Array[Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */), Array[Expression](blockSize))
+      loopBody += new ConditionStatement(IR_EqEqExpression(0, blocks), AssignmentStatement(blocks, 1))
+      loopBody += CUDA_FunctionCallExpression(kernelName, ListBuffer[IR_Expression](data, numElements, stride),
+        Array[IR_Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */), Array[IR_Expression](blockSize))
 
       fctBody += ForLoopStatement(
         new VariableDeclarationStatement(stride, 1),
-        LowerExpression(stride, numElements),
+        IR_LowerExpression(stride, numElements),
         AssignmentStatement(stride, 2, "*="),
         loopBody)
 
       fctBody += new VariableDeclarationStatement(ret)
-      fctBody += CUDA_Memcpy(AddressofExpression(ret), data, SizeOfExpression(IR_RealDatatype), "cudaMemcpyDeviceToHost")
+      fctBody += CUDA_Memcpy(IR_AddressofExpression(ret), data, SizeOfExpression(IR_RealDatatype), "cudaMemcpyDeviceToHost")
 
       fctBody += ReturnStatement(Some(ret))
 
@@ -166,9 +165,9 @@ case class Kernel(var identifier : String,
     var parallelDims : Int,
     var passThroughArgs : ListBuffer[FunctionArgument],
     var loopVariables : ListBuffer[String],
-    var lowerBounds : ListBuffer[Expression],
-    var upperBounds : ListBuffer[Expression],
-    var stepSize : ListBuffer[Expression],
+    var lowerBounds : ListBuffer[IR_Expression],
+    var upperBounds : ListBuffer[IR_Expression],
+    var stepSize : ListBuffer[IR_Expression],
     var body : ListBuffer[Statement],
     var reduction : Option[Reduction] = None,
     var loopVariableExtrema : mutable.Map[String, (Long, Long)] = mutable.Map[String, (Long, Long)]()) extends Node {
@@ -209,8 +208,8 @@ case class Kernel(var identifier : String,
   var numBlocksPerDim = Array[Long]()
 
   // thread ids
-  var localThreadId = Array[Expression]()
-  var globalThreadId = Array[Expression]()
+  var localThreadId = Array[IR_Expression]()
+  var globalThreadId = Array[IR_Expression]()
 
   def getKernelFctName : String = identifier
   def getWrapperFctName : String = identifier + wrapperPostfix
@@ -263,17 +262,17 @@ case class Kernel(var identifier : String,
       // 2.1 colllect some basic informations required for further calculations
       var requiredMemoryInByte = 0L
       val offset = fieldAccesses.head.fieldSelection.fieldLayout.referenceOffset
-      val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => new AdditionExpression(VariableAccess(x), y)).toArray[Expression]
+      val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => IR_AdditionExpression(VariableAccess(x), y)).toArray[IR_Expression]
 
       // 2.2 calculate negative and positive deviation from the basic field index
       val leftDeviationFromBaseIndex = fieldIndicesConstantPart(name).foldLeft(Array.fill(parallelDims)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
-        math.min(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(SubtractionExpression(y, z)))
+        math.min(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(IR_SubtractionExpression(y, z)))
       })).map(x => math.abs(x))
       var firstDeviation = leftDeviationFromBaseIndex.head
       var isSameRadius = leftDeviationFromBaseIndex.forall(x => firstDeviation.equals(x))
 
       val rightDeviationFromBaseIndex = fieldIndicesConstantPart(name).foldLeft(Array.fill(parallelDims)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
-        math.max(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(SubtractionExpression(y, z)))
+        math.max(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(IR_SubtractionExpression(y, z)))
       }))
       firstDeviation = rightDeviationFromBaseIndex.head
       isSameRadius &= rightDeviationFromBaseIndex.forall(x => firstDeviation.equals(x))
@@ -344,10 +343,10 @@ case class Kernel(var identifier : String,
   def evalThreadIds() = {
     localThreadId = (0 until executionDim).map(dim => {
       VariableAccess(KernelVariablePrefix + KernelLocalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype))
-    }).toArray[Expression]
+    }).toArray[IR_Expression]
     globalThreadId = (0 until executionDim).map(dim => {
       VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype))
-    }).toArray[Expression]
+    }).toArray[IR_Expression]
   }
 
   /**
@@ -455,13 +454,13 @@ case class Kernel(var identifier : String,
     // add index bounds conditions
     val conditionParts = (0 until executionDim).map(dim => {
       val variableAccess = VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype))
-      AndAndExpression(
-        GreaterEqualExpression(variableAccess, s"${ KernelVariablePrefix }begin_$dim"), LowerExpression(variableAccess, s"${ KernelVariablePrefix }end_$dim"))
+      IR_AndAndExpression(
+        IR_GreaterEqualExpression(variableAccess, s"${ KernelVariablePrefix }begin_$dim"), IR_LowerExpression(variableAccess, s"${ KernelVariablePrefix }end_$dim"))
     })
 
     val condition = VariableDeclarationStatement(IR_BooleanDatatype, KernelVariablePrefix + "condition",
-      Some(conditionParts.reduceLeft[AndAndExpression] { (acc, n) =>
-        AndAndExpression(acc, n)
+      Some(conditionParts.reduceLeft[IR_AndAndExpression] { (acc, n) =>
+        IR_AndAndExpression(acc, n)
       }))
     val conditionAccess = VariableAccess(KernelVariablePrefix + "condition", Some(IR_BooleanDatatype))
     statements += condition
@@ -528,16 +527,16 @@ case class Kernel(var identifier : String,
           val it = dimToString(dim)
 
           // 7.1 Check if current thread resides on the left border in any dimension
-          val condition = OrOrExpression(LowerExpression(MemberAccess(VariableAccess("threadIdx", Some(IR_SpecialDatatype("dim3"))), it), leftDeviations(field)(dim)), EqEqExpression(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
+          val condition = IR_OrOrExpression(IR_LowerExpression(MemberAccess(VariableAccess("threadIdx", Some(IR_SpecialDatatype("dim3"))), it), leftDeviations(field)(dim)), IR_EqEqExpression(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
           val conditionBody = ListBuffer[Statement]()
 
           // 7.2 Calculate the offset from the left to the right border of the actual field
           val localFieldOffsetName : String = "localFieldOffset"
           conditionBody += VariableDeclarationStatement(IR_IntegerDatatype, localFieldOffsetName, Some(
             CUDA_MinimumExpression(
-              SubtractionExpression(MemberAccess(VariableAccess("blockDim", Some(IR_SpecialDatatype("dim3"))), it),
+              IR_SubtractionExpression(MemberAccess(VariableAccess("blockDim", Some(IR_SpecialDatatype("dim3"))), it),
                 MemberAccess(VariableAccess("threadIdx", Some(IR_SpecialDatatype("dim3"))), it)),
-              SubtractionExpression(s"${ KernelVariablePrefix }end_$dim", globalThreadId(dim)))))
+              IR_SubtractionExpression(s"${ KernelVariablePrefix }end_$dim", globalThreadId(dim)))))
           val localFieldOffset = VariableAccess(localFieldOffsetName, Some(IR_IntegerDatatype))
 
           // 7.3 Calculate the indices for writing into the shared memory and loading from the global memory
@@ -545,17 +544,17 @@ case class Kernel(var identifier : String,
           // on the right border of the actual field
           (1L to leftDeviations(field)(dim)).foreach(x => {
             val localLeftIndex = Duplicate(localThreadId)
-            localLeftIndex(dim) = SubtractionExpression(localLeftIndex(dim), x)
+            localLeftIndex(dim) = IR_SubtractionExpression(localLeftIndex(dim), x)
             val globalLeftIndex = MultiIndex(Duplicate(globalThreadId)) + fieldOffset(field)
-            globalLeftIndex(dim) = SubtractionExpression(globalLeftIndex(dim), x)
+            globalLeftIndex(dim) = IR_SubtractionExpression(globalLeftIndex(dim), x)
 
             conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalLeftIndex).linearize)
           })
           (0L until rightDeviations(field)(dim)).foreach(x => {
             val localRightIndex = Duplicate(localThreadId)
-            localRightIndex(dim) = new AdditionExpression(new AdditionExpression(localRightIndex(dim), localFieldOffset), x)
+            localRightIndex(dim) = IR_AdditionExpression(IR_AdditionExpression(localRightIndex(dim), localFieldOffset), x)
             val globalRightIndex = MultiIndex(Duplicate(globalThreadId)) + fieldOffset(field)
-            globalRightIndex(dim) = new AdditionExpression(new AdditionExpression(globalRightIndex(dim), localFieldOffset), x)
+            globalRightIndex(dim) = IR_AdditionExpression(IR_AdditionExpression(globalRightIndex(dim), localFieldOffset), x)
 
             conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalRightIndex).linearize)
           })
@@ -570,7 +569,7 @@ case class Kernel(var identifier : String,
           zDimLoopBody += new ConditionStatement(conditionAccess, body)
           zDimLoopBody += CUDA_SyncThreads()
 
-          statements += ForLoopStatement(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), LowerExpression(VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), AssignmentStatement(loopVariables(executionDim), IntegerConstant(1), "+="), zDimLoopBody)
+          statements += ForLoopStatement(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_LowerExpression(VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), AssignmentStatement(loopVariables(executionDim), IntegerConstant(1), "+="), zDimLoopBody)
 
           // 9. Remove the used loop variable to avoid later complications in loop variable substitution
           loopVariables.remove(executionDim)
@@ -630,7 +629,7 @@ case class Kernel(var identifier : String,
     ReplacingLoopVariablesInWrapper.applyStandalone(upperArgs)
 
     // compile arguments for device function call
-    var callArgs = ListBuffer[Expression]()
+    var callArgs = ListBuffer[IR_Expression]()
 
     for (dim <- 0 until parallelDims) {
       callArgs += lowerArgs(dim)
@@ -653,8 +652,8 @@ case class Kernel(var identifier : String,
       val access = Duplicate(ivAccess._2)
       // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
       access.resolveDatatype match {
-        case IR_SpecialDatatype("Vec3")  => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer])
-        case IR_SpecialDatatype("Vec3i") => callArgs ++= (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : Expression).to[ListBuffer]
+        case IR_SpecialDatatype("Vec3")  => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : IR_Expression).to[ListBuffer])
+        case IR_SpecialDatatype("Vec3i") => callArgs ++= (0 until 3).map(dim => ArrayAccess(ivAccess._2, dim) : IR_Expression).to[ListBuffer]
         case _                           => callArgs += ivAccess._2
       }
     }
@@ -670,8 +669,8 @@ case class Kernel(var identifier : String,
       def bufAccess = iv.ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.datatype.get)
       body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
-      body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${ BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
-        ListBuffer[Expression](bufAccess, bufSize))))
+      body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
+        ListBuffer[IR_Expression](bufAccess, bufSize))))
 
       StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
     } else {
@@ -818,7 +817,7 @@ object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gat
   }
 
   this += new Transformation("Searching", {
-    case stmt @ AssignmentStatement(access @ LinearizedFieldAccess(fieldSelection : FieldSelection, index : Expression), _, _) =>
+    case stmt @ AssignmentStatement(access @ LinearizedFieldAccess(fieldSelection : FieldSelection, index : IR_Expression), _, _) =>
       mapFieldAccess(access)
       stmt
   })
@@ -861,14 +860,14 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
 
       accessIndices.indices.foreach(i => {
         accessIndices(i) match {
-          case AdditionExpression(ListBuffer(va @ VariableAccess(name : String, _), IntegerConstant(v : Long))) =>
+          case IR_AdditionExpression(ListBuffer(va @ VariableAccess(name : String, _), IntegerConstant(v : Long))) =>
             suitableForSharedMemory &= loopVariables.contains(name)
             indexConstantPart(i) = v
-          case va @ VariableAccess(name : String, _)                                                            =>
+          case va @ VariableAccess(name : String, _)                                                               =>
             suitableForSharedMemory &= loopVariables.contains(name)
-          case IntegerConstant(v : Long)                                                                        =>
+          case IntegerConstant(v : Long)                                                                           =>
             indexConstantPart(i) = v
-          case _                                                                                                =>
+          case _                                                                                                   =>
             suitableForSharedMemory = false
         }
       })
@@ -1004,7 +1003,7 @@ object AnnotatingLoopVariablesForSharedMemoryAccess extends QuietDefaultStrategy
 
 object ReplacingLoopVariablesInWrapper extends QuietDefaultStrategy("Replacing loop variables in wrapper with provided bounds expressions") {
   var loopVariables = ListBuffer[String]()
-  var bounds = ListBuffer[Expression]()
+  var bounds = ListBuffer[IR_Expression]()
 
   this += new Transformation("Searching", {
     case StringLiteral(v @ value) if loopVariables.contains(v) =>

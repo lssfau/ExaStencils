@@ -2,7 +2,7 @@ package exastencils.polyhedron
 
 import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Set }
 
-import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -12,10 +12,10 @@ import exastencils.omp._
 import exastencils.optimization._
 import isl.Conversions._
 
-class ASTBuilderTransformation(replaceCallback : (Map[String, Expression], Node) => Unit)
+class ASTBuilderTransformation(replaceCallback : (Map[String, IR_Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
 
-private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression], Node) => Unit)
+private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Expression], Node) => Unit)
   extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val ZERO_VAL : isl.Val = isl.Val.zero(Isl.ctx)
@@ -29,7 +29,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
   private var privateVars : ListBuffer[VariableAccess] = null
-  private var condition : Expression = null
+  private var condition : IR_Expression = null
 
   private def invalidateScop(scop : Scop) : Unit = {
     // remove all annotations for the merged scops, as they are invalid now
@@ -198,7 +198,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
           val it : VariableAccess = new VariableAccess(itStr, IR_IntegerDatatype)
           val init : Statement = new VariableDeclarationStatement(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
-          val cond : Expression = processIslExpr(node.forGetCond())
+          val cond : IR_Expression = processIslExpr(node.forGetCond())
           val incr : Statement = new AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
 
           val body : ListBuffer[Statement] = processIslNode(node.forGetBody())
@@ -216,7 +216,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
         }
 
       case isl.AstNodeType.NodeIf =>
-        val cond : Expression = processIslExpr(node.ifGetCond())
+        val cond : IR_Expression = processIslExpr(node.ifGetCond())
         val thenBranch : ListBuffer[Statement] = processIslNode(node.ifGetThen())
         if (node.ifHasElse()) {
           val els : ListBuffer[Statement] = processIslNode(node.ifGetElse())
@@ -232,18 +232,18 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       case isl.AstNodeType.NodeUser =>
         val expr : isl.AstExpr = node.userGetExpr()
         assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
-        val args : Array[Expression] = processArgs(expr)
+        val args : Array[IR_Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[StringLiteral].value
         val (oldStmt : ListBuffer[Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
         val stmts : ListBuffer[Statement] = Duplicate(oldStmt)
-        val repl = new HashMap[String, Expression]()
+        val repl = new HashMap[String, IR_Expression]()
         for (d <- 1 until args.length)
           repl.put(loopVars(loopVars.size - d), args(d))
 
         replaceCallback(repl, Scope(stmts))
         if (condition != null)
           for (stmt <- stmts) {
-            val cond : Expression = Duplicate(condition)
+            val cond : IR_Expression = Duplicate(condition)
             replaceCallback(repl, cond)
             stmt.annotate(PolyOpt.IMPL_CONDITION_ANNOT, cond)
           }
@@ -254,7 +254,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     }
   }
 
-  private def processIslExpr(expr : isl.AstExpr) : Expression = {
+  private def processIslExpr(expr : isl.AstExpr) : IR_Expression = {
 
     return expr.getType() match { // TODO: check if ExprId contains only variable identifier
       case isl.AstExprType.ExprId    =>
@@ -267,43 +267,43 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   }
 
   /** Process an isl.AstExpr of type isl.AstExprType.ExprOp. Caller must ensure only this type of node is passed! */
-  private def processIslExprOp(expr : isl.AstExpr) : Expression = {
+  private def processIslExprOp(expr : isl.AstExpr) : IR_Expression = {
 
-    val args : Array[Expression] = processArgs(expr)
+    val args : Array[IR_Expression] = processArgs(expr)
     val n : Int = args.length
 
     return expr.getOpType() match {
       case isl.AstOpType.OpEq if n == 2 && args(0).isInstanceOf[iv.NeighborIsValid] =>
         args(1) match {
           case IntegerConstant(1) => args(0)
-          case IntegerConstant(0) => new NegationExpression(args(0))
+          case IntegerConstant(0) => new IR_NegationExpression(args(0))
         }
 
-      case isl.AstOpType.OpAndThen if n == 2 => new AndAndExpression(args(0), args(1))
-      case isl.AstOpType.OpAnd if n == 2     => new AndAndExpression(args(0), args(1))
-      case isl.AstOpType.OpOrElse if n == 2  => new OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpOr if n == 2      => new OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpMinus if n == 1   => new NegativeExpression(args(0))
-      case isl.AstOpType.OpAdd if n == 2     => new AdditionExpression(args(0), args(1))
-      case isl.AstOpType.OpSub if n == 2     => new SubtractionExpression(args(0), args(1))
-      case isl.AstOpType.OpMul if n == 2     => new MultiplicationExpression(args(0), args(1))
-      case isl.AstOpType.OpDiv if n == 2     => new DivisionExpression(args(0), args(1))
+      case isl.AstOpType.OpAndThen if n == 2 => IR_AndAndExpression(args(0), args(1))
+      case isl.AstOpType.OpAnd if n == 2     => IR_AndAndExpression(args(0), args(1))
+      case isl.AstOpType.OpOrElse if n == 2  => IR_OrOrExpression(args(0), args(1))
+      case isl.AstOpType.OpOr if n == 2      => IR_OrOrExpression(args(0), args(1))
+      case isl.AstOpType.OpMinus if n == 1   => IR_NegativeExpression(args(0))
+      case isl.AstOpType.OpAdd if n == 2     => IR_AdditionExpression(args(0), args(1))
+      case isl.AstOpType.OpSub if n == 2     => IR_SubtractionExpression(args(0), args(1))
+      case isl.AstOpType.OpMul if n == 2     => IR_MultiplicationExpression(args(0), args(1))
+      case isl.AstOpType.OpDiv if n == 2     => IR_DivisionExpression(args(0), args(1))
       case isl.AstOpType.OpFdivQ if n == 2   => new FunctionCallExpression("floord", args(0), args(1)) // TODO: ensure integer division
-      case isl.AstOpType.OpPdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division
-      case isl.AstOpType.OpPdivR if n == 2   => new ModuloExpression(args(0), args(1))
-      case isl.AstOpType.OpZdivR if n == 2   => new ModuloExpression(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
+      case isl.AstOpType.OpPdivQ if n == 2   => IR_DivisionExpression(args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.OpPdivR if n == 2   => IR_ModuloExpression(args(0), args(1))
+      case isl.AstOpType.OpZdivR if n == 2   => IR_ModuloExpression(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
       case isl.AstOpType.OpCond if n == 3    => new TernaryConditionExpression(args(0), args(1), args(2))
-      case isl.AstOpType.OpEq if n == 2      => new EqEqExpression(args(0), args(1))
-      case isl.AstOpType.OpLe if n == 2      => new LowerEqualExpression(args(0), args(1))
-      case isl.AstOpType.OpLt if n == 2      => new LowerExpression(args(0), args(1))
-      case isl.AstOpType.OpGe if n == 2      => new GreaterEqualExpression(args(0), args(1))
-      case isl.AstOpType.OpGt if n == 2      => new GreaterExpression(args(0), args(1))
-      case isl.AstOpType.OpMax if n >= 2     => new MaximumExpression(args : _*)
-      case isl.AstOpType.OpMin if n >= 2     => new MinimumExpression(args : _*)
+      case isl.AstOpType.OpEq if n == 2      => IR_EqEqExpression(args(0), args(1))
+      case isl.AstOpType.OpLe if n == 2      => IR_LowerEqualExpression(args(0), args(1))
+      case isl.AstOpType.OpLt if n == 2      => IR_LowerExpression(args(0), args(1))
+      case isl.AstOpType.OpGe if n == 2      => IR_GreaterEqualExpression(args(0), args(1))
+      case isl.AstOpType.OpGt if n == 2      => IR_GreaterExpression(args(0), args(1))
+      case isl.AstOpType.OpMax if n >= 2     => IR_MaximumExpression(args : _*)
+      case isl.AstOpType.OpMin if n >= 2     => IR_MinimumExpression(args : _*)
       case isl.AstOpType.OpSelect if n == 3  => new TernaryConditionExpression(args(0), args(1), args(2))
 
       case isl.AstOpType.OpCall if n >= 1 =>
-        val fArgs = ListBuffer[Expression](args : _*)
+        val fArgs = ListBuffer[IR_Expression](args : _*)
         fArgs.remove(0)
         FunctionCallExpression(args(0).asInstanceOf[StringLiteral].value, fArgs)
 
@@ -312,10 +312,10 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     }
   }
 
-  private def processArgs(expr : isl.AstExpr) : Array[Expression] = {
+  private def processArgs(expr : isl.AstExpr) : Array[IR_Expression] = {
 
     val nArgs : Int = expr.getOpNArg()
-    val args = new Array[Expression](nArgs)
+    val args = new Array[IR_Expression](nArgs)
     for (i <- 0 until nArgs)
       args(i) = processIslExpr(expr.getOpArg(i))
 

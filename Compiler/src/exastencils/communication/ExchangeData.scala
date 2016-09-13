@@ -20,7 +20,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
   def compileName : String
   def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement]
 
-  def resolveIndex(indexId : String, dim : Int) : Expression = {
+  def resolveIndex(indexId : String, dim : Int) : IR_Expression = {
     if (Knowledge.experimental_useLevelIndepFcts) {
       // FIXME
       ??? //ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
@@ -121,7 +121,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
     var dupLayerExch : Boolean, var dupLayerBegin : MultiIndex, var dupLayerEnd : MultiIndex,
     var ghostLayerExch : Boolean, var ghostLayerBegin : MultiIndex, var ghostLayerEnd : MultiIndex,
     var insideFragLoop : Boolean,
-    var condition : Option[Expression]) extends FieldBoundaryFunction {
+    var condition : Option[IR_Expression]) extends FieldBoundaryFunction {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
   override def prettyprint_decl = prettyprint
 

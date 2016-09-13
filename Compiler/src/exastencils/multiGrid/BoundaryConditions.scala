@@ -2,11 +2,12 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -28,7 +29,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
           case "boundaryCoord_x" | "vf_boundaryCoord_x" => 0
           case "boundaryCoord_y" | "vf_boundaryCoord_y" => 1
           case "boundaryCoord_z" | "vf_boundaryCoord_z" => 2
-          case _                                        => Logger.error(s"Invalid virtual field named ${virtualField.fieldName} found")
+          case _                                        => Logger.error(s"Invalid virtual field named ${ virtualField.fieldName } found")
         }
 
         field.fieldLayout.discretization match {
@@ -106,14 +107,14 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
           neighbors.map({ neigh =>
             var adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
             // TODO: assumes equal bc's for all components
-            adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : Expression)
+            adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : IR_Expression)
             adaptedIndexRange.end.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => layout.idxById("TOT", dim))
             val loopOverDims = new LoopOverDimensions(
               field.fieldLayout.numDimsData,
               adaptedIndexRange,
               setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
             loopOverDims.optLevel = 1
-            new ConditionStatement(NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : Statement
+            new ConditionStatement(IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : Statement
           }))) with OMP_PotentiallyParallel
     } else {
       NullStatement

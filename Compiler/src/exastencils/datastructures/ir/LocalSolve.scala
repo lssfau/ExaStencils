@@ -2,7 +2,7 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_RealDatatype
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication._
 import exastencils.core._
@@ -13,24 +13,24 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 
 // FIXME: update with actual accessors
-case class hackVecComponentAccess(var vec : VariableAccess, var i : Expression) extends Expression {
+case class hackVecComponentAccess(var vec : VariableAccess, var i : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << vec << "(" << i << ", " << 0 << ")"
 }
 
 // FIXME: update with actual accessors
-case class hackMatComponentAccess(var mat : VariableAccess, var i : Expression, var j : Expression) extends Expression {
+case class hackMatComponentAccess(var mat : VariableAccess, var i : IR_Expression, var j : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
-case class EquationExpression(var lhs : Expression, var rhs : Expression) extends Expression {
+case class EquationExpression(var lhs : IR_Expression, var rhs : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EquationExpression\n"
 }
 
 case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equations : ListBuffer[EquationExpression]) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SolveLocallyStatement\n"
 
-  var fVals = ListBuffer[AdditionExpression]()
-  var AVals = ListBuffer[ListBuffer[AdditionExpression]]()
+  var fVals = ListBuffer[IR_AdditionExpression]()
+  var AVals = ListBuffer[ListBuffer[IR_AdditionExpression]]()
 
   def validate() = {
     // TODO
@@ -45,80 +45,80 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     -1 // no match => constant value
   }
 
-  def processExpression(pos : Int, ex : Expression, switchSign : Boolean) : Unit = {
+  def processExpression(pos : Int, ex : IR_Expression, switchSign : Boolean) : Unit = {
     ex match {
-      case const : Number => fVals(pos).summands += (if (switchSign) const else NegativeExpression(const))
+      case const : Number => fVals(pos).summands += (if (switchSign) const else IR_NegativeExpression(const))
 
-      case NegativeExpression(exp) => processExpression(pos, exp, !switchSign)
+      case IR_NegativeExpression(exp) => processExpression(pos, exp, !switchSign)
 
       case access : FieldAccess => {
         val uPos = matchUnknowns(access)
         if (uPos < 0)
-          fVals(pos).summands += (if (switchSign) access else NegativeExpression(access)) // no match -> rhs
+          fVals(pos).summands += (if (switchSign) access else IR_NegativeExpression(access)) // no match -> rhs
         else
           AVals(pos)(uPos).summands += FloatConstant(if (switchSign) -1 else 1) // match -> matrix
       }
 
-      case multEx @ MultiplicationExpression(factors) => {
+      case multEx @ IR_MultiplicationExpression(factors) => {
         // split into known and unknown
-        var localFactors = ListBuffer[Expression]()
+        var localFactors = ListBuffer[IR_Expression]()
         var localUnknowns = ListBuffer[FieldAccess]()
         for (ex <- factors) {
           ex match {
-            case access : FieldAccess         =>
+            case access : FieldAccess            =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
               else localUnknowns += access
-            case e : MultiplicationExpression =>
+            case e : IR_MultiplicationExpression =>
               Logger.warn(s"Nested multiplication expressions are currently unsupported: $e")
               localFactors += e
-            case e : AdditionExpression       =>
+            case e : IR_AdditionExpression       =>
               Logger.warn(s"Nested addition expressions are currently unsupported: $e")
               localFactors += e
-            case e : Expression               => localFactors += e
+            case e : IR_Expression               => localFactors += e
           }
         }
         if (localUnknowns.size > 1)
           Logger.warn("Non-linear equations are currently unsupported")
         if (localUnknowns.isEmpty) // no unknowns -> add to rhs
-          fVals(pos).summands += (if (switchSign) multEx else NegativeExpression(multEx))
+          fVals(pos).summands += (if (switchSign) multEx else IR_NegativeExpression(multEx))
         else // unknowns detected -> add to matrix
           AVals(pos)(matchUnknowns(localUnknowns.head)).summands += (
             if (switchSign)
-              NegativeExpression(MultiplicationExpression(localFactors))
+              IR_NegativeExpression(IR_MultiplicationExpression(localFactors))
             else
-              MultiplicationExpression(localFactors))
+              IR_MultiplicationExpression(localFactors))
       }
 
       case _ => Logger.warn(s"Found unsupported node type ${ ex.getClass.getName }: $ex")
     }
   }
 
-  def processEqSummands(pos : Int, summands : ListBuffer[Expression], switchSign : Boolean = false) = {
+  def processEqSummands(pos : Int, summands : ListBuffer[IR_Expression], switchSign : Boolean = false) = {
     for (ex <- summands)
       processExpression(pos, ex, switchSign)
   }
 
   def sortEquations() = {
     // preparation: bring all entries to left side and simplify
-    var zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : Expression)
+    var zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : IR_Expression)
     for (eq <- zeroEqs)
       SimplifyStrategy.doUntilDoneStandalone(eq, true)
 
     // scan lhs for constants
     for (eqNumber <- 0 until zeroEqs.size) {
       zeroEqs(eqNumber) match {
-        case AdditionExpression(adds)        => processEqSummands(eqNumber, adds)
-        case SubtractionExpression(pos, neg) =>
+        case IR_AdditionExpression(adds)        => processEqSummands(eqNumber, adds)
+        case IR_SubtractionExpression(pos, neg) =>
           pos match {
-            case AdditionExpression(adds) => processEqSummands(eqNumber, adds)
-            case e : Expression           => processEqSummands(eqNumber, ListBuffer(e))
+            case IR_AdditionExpression(adds) => processEqSummands(eqNumber, adds)
+            case e : IR_Expression           => processEqSummands(eqNumber, ListBuffer(e))
           }
           neg match {
-            case AdditionExpression(adds) => processEqSummands(eqNumber, adds, true)
-            case e : Expression           => processEqSummands(eqNumber, ListBuffer(e), true)
+            case IR_AdditionExpression(adds) => processEqSummands(eqNumber, adds, true)
+            case e : IR_Expression           => processEqSummands(eqNumber, ListBuffer(e), true)
           }
-        case _                               => Logger.warn(s"Equation doesn't hold enough information (${ zeroEqs(eqNumber).getClass.getName })")
+        case _                                  => Logger.warn(s"Equation doesn't hold enough information (${ zeroEqs(eqNumber).getClass.getName })")
       }
     }
 
@@ -127,8 +127,8 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
   }
 
   def expandSpecial : Output[Scope] = {
-    fVals = ListBuffer.fill(unknowns.length)(AdditionExpression(ListBuffer()))
-    AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(AdditionExpression(ListBuffer())))
+    fVals = ListBuffer.fill(unknowns.length)(IR_AdditionExpression())
+    AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(IR_AdditionExpression()))
 
     validate()
     sortEquations()
@@ -145,9 +145,9 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     stmts += new VariableDeclarationStatement(A)
 
     // initialize with zero - TODO: adapt to new matrix types
-    stmts += MemberFunctionCallExpression(u, "set", ListBuffer[Expression](0))
-    stmts += MemberFunctionCallExpression(f, "set", ListBuffer[Expression](0))
-    stmts += MemberFunctionCallExpression(A, "set", ListBuffer[Expression](0))
+    stmts += MemberFunctionCallExpression(u, "set", ListBuffer[IR_Expression](0))
+    stmts += MemberFunctionCallExpression(f, "set", ListBuffer[IR_Expression](0))
+    stmts += MemberFunctionCallExpression(A, "set", ListBuffer[IR_Expression](0))
 
     // construct rhs and matrix
     for (i <- 0 until unknowns.length) {
@@ -170,7 +170,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     }
 
     // solve local system - TODO: replace inverse function call with internal function
-    stmts += AssignmentStatement(u, MultiplicationExpression(ListBuffer(MemberFunctionCallExpression(A, "inverse", ListBuffer()), f)))
+    stmts += AssignmentStatement(u, IR_MultiplicationExpression(MemberFunctionCallExpression(A, "inverse", ListBuffer()), f))
 
     // write back results
     for (i <- 0 until unknowns.length)

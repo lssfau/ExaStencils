@@ -2,14 +2,15 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Expression
 import exastencils.datastructures.ir._
 import exastencils.logger._
 
 case class IterationSet(var identifier : String,
-  var begin : MultiIndex,
-  var end : MultiIndex,
-  var increment : MultiIndex,
-  var condition : Option[Expression]) {}
+    var begin : MultiIndex,
+    var end : MultiIndex,
+    var increment : MultiIndex,
+    var condition : Option[IR_Expression]) {}
 
 object IterationSetCollection {
   var sets : ListBuffer[IterationSet] = ListBuffer()

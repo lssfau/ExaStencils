@@ -4,7 +4,7 @@ import scala.collection.mutable.{ ArrayBuffer, Buffer, ListBuffer, Map, Set }
 
 import java.util.IdentityHashMap
 
-import exastencils.base.ir.IR_UnitDatatype
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
@@ -194,7 +194,7 @@ object Inlining extends CustomStrategy("Function inlining") {
         body // return value is not available/used
       case stmt : Statement if (stmt eq callStmt)                                   =>
         body += stmt
-      case call : Expression if (call eq callExpr)                                  =>
+      case call : IR_Expression if (call eq callExpr)                               =>
         if (retStmt == null || retStmt.expr.isEmpty)
           Logger.error("[inline]  Return type is Unit, but call is not inside an ExpressionStatement node")
         else

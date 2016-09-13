@@ -13,7 +13,7 @@ import exastencils.util._
 abstract class Statement
   extends Node with PrettyPrintable
 
-case class ExpressionStatement(var expression : Expression) extends Statement {
+case class ExpressionStatement(var expression : IR_Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << expression.prettyprint << ';'
 }
 
@@ -34,11 +34,11 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
   }
 }
 
-case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : String, var expression : Option[Expression] = None) extends Statement {
+case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : String, var expression : Option[IR_Expression] = None) extends Statement {
   var alignment : Int = 1
-  def this(dT : IR_Datatype, n : String, e : Expression) = this(dT, n, Option(e))
+  def this(dT : IR_Datatype, n : String, e : IR_Expression) = this(dT, n, Option(e))
   def this(va : VariableAccess) = this(va.datatype.get, va.name, None)
-  def this(va : VariableAccess, e : Expression) = this(va.datatype.get, va.name, Option(e))
+  def this(va : VariableAccess, e : IR_Expression) = this(va.datatype.get, va.name, Option(e))
 
   override def prettyprint(out : PpStream) : Unit = {
     datatype match {
@@ -75,8 +75,8 @@ case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : S
   def prettyprint_onlyDeclaration() : String = VariableDeclarationStatement(datatype, name, None).prettyprint()
 }
 
-case class ObjectInstantiation(var datatype : IR_Datatype, var name : String, var ctorArgs : ListBuffer[Expression]) extends Statement {
-  def this(datatype : IR_Datatype, name : String, ctorArgs : Expression*) = this(datatype, name, ctorArgs.to[ListBuffer])
+case class ObjectInstantiation(var datatype : IR_Datatype, var name : String, var ctorArgs : ListBuffer[IR_Expression]) extends Statement {
+  def this(datatype : IR_Datatype, name : String, ctorArgs : IR_Expression*) = this(datatype, name, ctorArgs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << datatype.resolveDeclType << ' ' << name << datatype.resolveDeclPostscript
@@ -86,14 +86,14 @@ case class ObjectInstantiation(var datatype : IR_Datatype, var name : String, va
   }
 }
 
-case class FreeStatement(var pointer : Expression) extends Statement {
+case class FreeStatement(var pointer : IR_Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "delete[] " << pointer << ";"
   }
 }
 
-case class DefineStatement(var name : Expression, var value : Option[Expression] = None) extends Statement {
-  def this(n : Expression, v : Expression) = this(n, Option(v))
+case class DefineStatement(var name : IR_Expression, var value : Option[IR_Expression] = None) extends Statement {
+  def this(n : IR_Expression, v : IR_Expression) = this(n, Option(v))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "#define " << name
@@ -106,7 +106,7 @@ case class CommentStatement(var comment : String) extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "/* " << comment << " */"
 }
 
-case class AssignmentStatement(var dest : Expression, var src : Expression, var op : String = "=") extends Statement {
+case class AssignmentStatement(var dest : IR_Expression, var src : IR_Expression, var op : String = "=") extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     src match {
       //      case x : VectorExpression => {
@@ -124,8 +124,8 @@ case class AssignmentStatement(var dest : Expression, var src : Expression, var 
   }
 }
 
-case class WhileLoopStatement(var comparison : Expression, var body : ListBuffer[Statement]) extends Statement {
-  def this(comparison : Expression, body : Statement*) = this(comparison, body.to[ListBuffer])
+case class WhileLoopStatement(var comparison : IR_Expression, var body : ListBuffer[Statement]) extends Statement {
+  def this(comparison : IR_Expression, body : Statement*) = this(comparison, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "while (" << comparison << ") {\n"
@@ -134,9 +134,9 @@ case class WhileLoopStatement(var comparison : Expression, var body : ListBuffer
   }
 }
 
-case class ForLoopStatement(var begin : Statement, var end : Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
-  def this(begin : Statement, end : Expression, inc : Statement, reduction : Reduction, body : Statement*) = this(begin, end, inc, body.to[ListBuffer], Option(reduction))
-  def this(begin : Statement, end : Expression, inc : Statement, body : Statement*) = this(begin, end, inc, body.to[ListBuffer])
+case class ForLoopStatement(var begin : Statement, var end : IR_Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
+  def this(begin : Statement, end : IR_Expression, inc : Statement, reduction : Reduction, body : Statement*) = this(begin, end, inc, body.to[ListBuffer], Option(reduction))
+  def this(begin : Statement, end : IR_Expression, inc : Statement, body : Statement*) = this(begin, end, inc, body.to[ListBuffer])
 
   def maxIterationCount() = {
     if (hasAnnotation("numLoopIterations"))
@@ -165,13 +165,13 @@ case class ForLoopStatement(var begin : Statement, var end : Expression, var inc
   }
 }
 
-case class ConditionStatement(var condition : Expression, var trueBody : ListBuffer[Statement], var falseBody : ListBuffer[Statement]) extends Statement {
-  def this(condition : Expression, trueBody : ListBuffer[Statement]) = this(condition, trueBody, ListBuffer[Statement]())
-  def this(condition : Expression, trueBranch : Statement) = this(condition, ListBuffer(trueBranch))
+case class ConditionStatement(var condition : IR_Expression, var trueBody : ListBuffer[Statement], var falseBody : ListBuffer[Statement]) extends Statement {
+  def this(condition : IR_Expression, trueBody : ListBuffer[Statement]) = this(condition, trueBody, ListBuffer[Statement]())
+  def this(condition : IR_Expression, trueBranch : Statement) = this(condition, ListBuffer(trueBranch))
 
-  def this(condition : Expression, trueBranch : Statement, falseBranch : Statement) = this(condition, ListBuffer(trueBranch), ListBuffer(falseBranch))
-  def this(condition : Expression, trueBody : ListBuffer[Statement], falseBranch : Statement) = this(condition, trueBody, ListBuffer(falseBranch))
-  def this(condition : Expression, trueBranch : Statement, falseBody : ListBuffer[Statement]) = this(condition, ListBuffer(trueBranch), falseBody)
+  def this(condition : IR_Expression, trueBranch : Statement, falseBranch : Statement) = this(condition, ListBuffer(trueBranch), ListBuffer(falseBranch))
+  def this(condition : IR_Expression, trueBody : ListBuffer[Statement], falseBranch : Statement) = this(condition, trueBody, ListBuffer(falseBranch))
+  def this(condition : IR_Expression, trueBranch : Statement, falseBody : ListBuffer[Statement]) = this(condition, ListBuffer(trueBranch), falseBody)
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "if (" << condition << ") {\n"
@@ -184,8 +184,8 @@ case class ConditionStatement(var condition : Expression, var trueBody : ListBuf
   }
 }
 
-case class CaseStatement(var toMatch : Expression, var body : ListBuffer[Statement]) extends Statement {
-  def this(toMatch : Expression, body : Statement*) = this(toMatch, body.to[ListBuffer])
+case class CaseStatement(var toMatch : IR_Expression, var body : ListBuffer[Statement]) extends Statement {
+  def this(toMatch : IR_Expression, body : Statement*) = this(toMatch, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "case " << toMatch << ": {\n"
@@ -194,8 +194,8 @@ case class CaseStatement(var toMatch : Expression, var body : ListBuffer[Stateme
   }
 }
 
-case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStatement]) extends Statement {
-  def this(what : Expression, body : CaseStatement*) = this(what, body.to[ListBuffer])
+case class SwitchStatement(var what : IR_Expression, var body : ListBuffer[CaseStatement]) extends Statement {
+  def this(what : IR_Expression, body : CaseStatement*) = this(what, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "switch (" << what << ") {\n"
@@ -204,8 +204,8 @@ case class SwitchStatement(var what : Expression, var body : ListBuffer[CaseStat
   }
 }
 
-case class ReturnStatement(var expr : Option[Expression] = None) extends Statement {
-  def this(expr : Expression) = this(Option(expr))
+case class ReturnStatement(var expr : Option[IR_Expression] = None) extends Statement {
+  def this(expr : IR_Expression) = this(Option(expr))
 
   override def prettyprint(out : PpStream) = {
     out << "return"
@@ -220,11 +220,11 @@ case class BreakStatement() extends Statement {
   }
 }
 
-case class AssertStatement(var check : Expression, var msg : ListBuffer[Expression], var abort : Statement) extends Statement with Expandable {
+case class AssertStatement(var check : IR_Expression, var msg : ListBuffer[IR_Expression], var abort : Statement) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
 
   override def expand : Output[ConditionStatement] = {
-    new ConditionStatement(NegationExpression(check),
+    new ConditionStatement(IR_NegationExpression(check),
       ListBuffer[Statement](new PrintStatement(msg), abort))
   }
 }
@@ -267,7 +267,7 @@ case class FunctionStatement(
   }
 }
 
-case class FunctionArgument(var name : String, var datatype : IR_Datatype) extends Expression {
+case class FunctionArgument(var name : String, var datatype : IR_Datatype) extends IR_Expression {
   // FIXME: really Expression?
   override def prettyprint(out : PpStream) = {
     out << name
@@ -277,7 +277,7 @@ case class FunctionArgument(var name : String, var datatype : IR_Datatype) exten
 
 //////////////////////////// SIMD Statements \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var aligned : Boolean) extends Statement {
+case class SIMD_StoreStatement(var mem : IR_Expression, var value : IR_Expression, var aligned : Boolean) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     val alig = if (aligned) "" else "u"
@@ -296,7 +296,7 @@ case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var
   }
 }
 
-case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expression) extends Statement {
+case class SIMD_HorizontalAddStatement(var dest : IR_Expression, var src : IR_Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     Platform.simd_instructionSet match {
       case "SSE3" =>
@@ -331,13 +331,13 @@ case class SIMD_HorizontalAddStatement(var dest : Expression, var src : Expressi
   }
 }
 
-case class SIMD_HorizontalMulStatement(var dest : Expression, var src : Expression) extends Statement {
+case class SIMD_HorizontalMulStatement(var dest : IR_Expression, var src : IR_Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     HorizontalPrinterHelper.prettyprint(out, dest, src, "mul", "*=")
   }
 }
 
-case class SIMD_HorizontalMinStatement(var dest : Expression, var src : Expression) extends Statement {
+case class SIMD_HorizontalMinStatement(var dest : IR_Expression, var src : IR_Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX")
       out << "NOT VALID ; vec_min not available on BG/Q" // FIXME: cmp and sel!
@@ -346,7 +346,7 @@ case class SIMD_HorizontalMinStatement(var dest : Expression, var src : Expressi
   }
 }
 
-case class SIMD_HorizontalMaxStatement(var dest : Expression, var src : Expression) extends Statement {
+case class SIMD_HorizontalMaxStatement(var dest : IR_Expression, var src : IR_Expression) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX")
       out << "NOT VALID ; vec_max not available on BG/Q" // FIXME: cmp and sel!
@@ -356,7 +356,7 @@ case class SIMD_HorizontalMaxStatement(var dest : Expression, var src : Expressi
 }
 
 private object HorizontalPrinterHelper {
-  def prettyprint(out : PpStream, dest : Expression, src : Expression, redName : String, assOp : String, redFunc : String = null) : Unit = {
+  def prettyprint(out : PpStream, dest : IR_Expression, src : IR_Expression, redName : String, assOp : String, redFunc : String = null) : Unit = {
     out << "{\n"
     Platform.simd_instructionSet match {
       case "SSE3" =>

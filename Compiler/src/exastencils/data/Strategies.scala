@@ -172,7 +172,7 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
 }
 
 object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipulation functions") {
-  var layoutMap : HashMap[String, (String, Expression)] = HashMap()
+  var layoutMap : HashMap[String, (String, IR_Expression)] = HashMap()
 
   override def apply(node : Option[Node] = None) = {
     layoutMap.clear
@@ -232,7 +232,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
         // generate function calls with adapted sizes
         for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {
           body += FunctionCallExpression(s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
-            (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim) : Expression).to[ListBuffer])
+            (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim) : IR_Expression).to[ListBuffer])
         }
 
         // set up function
@@ -260,11 +260,11 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   var ctorMap : HashMap[String, Statement] = HashMap()
   var dtorMap : HashMap[String, Statement] = HashMap()
 
-  var bufferSizes : HashMap[String, Expression] = HashMap()
+  var bufferSizes : HashMap[String, IR_Expression] = HashMap()
   var bufferAllocs : HashMap[String, Statement] = HashMap()
   var fieldAllocs : HashMap[String, Statement] = HashMap()
 
-  var deviceBufferSizes : HashMap[String, Expression] = HashMap()
+  var deviceBufferSizes : HashMap[String, IR_Expression] = HashMap()
   var deviceBufferAllocs : HashMap[String, Statement] = HashMap()
   var deviceFieldAllocs : HashMap[String, Statement] = HashMap()
 
@@ -287,9 +287,9 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (bufferSizes.contains(id))
-          bufferSizes.get(id).get.asInstanceOf[MaximumExpression].args += Duplicate(buf.size)
+          bufferSizes.get(id).get.asInstanceOf[IR_MaximumExpression].args += Duplicate(buf.size)
         else
-          bufferSizes += (id -> MaximumExpression(ListBuffer(Duplicate(buf.size))))
+          bufferSizes += (id -> IR_MaximumExpression(ListBuffer(Duplicate(buf.size))))
       } else {
         val size = SimplifyExpression.evalIntegral(buf.size).toLong
         bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
@@ -302,7 +302,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = LoopOverFragments.defIt
 
-      var numDataPoints : Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+      var numDataPoints : IR_Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
       var statements : ListBuffer[Statement] = ListBuffer()
 
       val newFieldData = Duplicate(cleanedField)
@@ -325,8 +325,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (field.field.numSlots > 1)
         statements += new ForLoopStatement(
           VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
-          LowerExpression("slot", field.field.numSlots),
-          PreIncrementExpression("slot"),
+          IR_LowerExpression("slot", field.field.numSlots),
+          IR_PreIncrementExpression("slot"),
           innerStmts)
       else
         statements ++= innerStmts
@@ -342,7 +342,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = LoopOverFragments.defIt
 
-      var numDataPoints : Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
+      var numDataPoints : IR_Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
       var statements : ListBuffer[Statement] = ListBuffer()
 
       val newFieldData = Duplicate(cleanedField)
@@ -354,8 +354,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (field.field.numSlots > 1)
         statements += new ForLoopStatement(
           VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
-          LowerExpression("slot", field.field.numSlots),
-          PreIncrementExpression("slot"),
+          IR_LowerExpression("slot", field.field.numSlots),
+          IR_PreIncrementExpression("slot"),
           innerStmts)
       else
         statements ++= innerStmts
@@ -370,9 +370,9 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, NullExpression, NullExpression, NullExpression).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (deviceBufferSizes.contains(id))
-          deviceBufferSizes.get(id).get.asInstanceOf[MaximumExpression].args += Duplicate(buf.size)
+          deviceBufferSizes.get(id).get.asInstanceOf[IR_MaximumExpression].args += Duplicate(buf.size)
         else
-          deviceBufferSizes += (id -> MaximumExpression(ListBuffer(Duplicate(buf.size))))
+          deviceBufferSizes += (id -> IR_MaximumExpression(ListBuffer(Duplicate(buf.size))))
       } else {
         val size = SimplifyExpression.evalIntegral(buf.size).toLong
         deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
@@ -382,15 +382,15 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
     case buf : iv.LoopCarriedCSBuffer => {
       val id = buf.resolveName
-      val size : Expression =
+      val size : IR_Expression =
         if (buf.dimSizes.isEmpty)
           IntegerConstant(1)
         else
           Duplicate(buf.dimSizes.reduce(_ * _))
       bufferSizes.get(id) match {
-        case Some(MaximumExpression(maxList)) => maxList += size
-        case None                             => bufferSizes += (id -> MaximumExpression(ListBuffer(size)))
-        case _                                => Logger.error("should not happen...")
+        case Some(IR_MaximumExpression(maxList)) => maxList += size
+        case None                                => bufferSizes += (id -> IR_MaximumExpression(ListBuffer(size)))
+        case _                                   => Logger.error("should not happen...")
       }
       buf
     }
@@ -450,8 +450,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (Knowledge.experimental_useLevelIndepFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {
-          case StringLiteral("level")     => Knowledge.maxLevel : Expression
-          case VariableAccess("level", _) => Knowledge.maxLevel : Expression
+          case StringLiteral("level")     => Knowledge.maxLevel : IR_Expression
+          case VariableAccess("level", _) => Knowledge.maxLevel : IR_Expression
         })
         for (buf <- bufferSizes)
           s.applyStandalone(buf._2)

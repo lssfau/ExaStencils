@@ -57,10 +57,10 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     def numGhostExternalLeft(dim : Integer) = external.idxById("DLB", dim) - external.idxById("GLB", dim)
     def numGhostInternalRight(dim : Integer) = internal.idxById("GRE", dim) - internal.idxById("DRE", dim)
     def numGhostExternalRight(dim : Integer) = external.idxById("GRE", dim) - external.idxById("DRE", dim)
-    def idxBegin(dim : Integer) : Expression =
-      internal.idxById("DLB", dim) - new MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
-    def idxEnd(dim : Integer) : Expression =
-      internal.idxById("DRE", dim) + new MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
+    def idxBegin(dim : Integer) : IR_Expression =
+      internal.idxById("DLB", dim) - new IR_MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
+    def idxEnd(dim : Integer) : IR_Expression =
+      internal.idxById("DRE", dim) + new IR_MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
     def offsetForExtField = MultiIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim)).toArray)
 
     // compile final function
@@ -106,10 +106,10 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     def numGhostExternalLeft(dim : Integer) = external.idxById("DLB", dim) - external.idxById("GLB", dim)
     def numGhostInternalRight(dim : Integer) = internal.idxById("GRE", dim) - internal.idxById("DRE", dim)
     def numGhostExternalRight(dim : Integer) = external.idxById("GRE", dim) - external.idxById("DRE", dim)
-    def idxBegin(dim : Integer) : Expression =
-      internal.idxById("DLB", dim) - new MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
-    def idxEnd(dim : Integer) : Expression =
-      internal.idxById("DRE", dim) + new MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
+    def idxBegin(dim : Integer) : IR_Expression =
+      internal.idxById("DLB", dim) - new IR_MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
+    def idxEnd(dim : Integer) : IR_Expression =
+      internal.idxById("DRE", dim) + new IR_MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
     def offsetForExtField = MultiIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim)).toArray)
 
     // compile final function
@@ -125,7 +125,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
   }
 }
 
-case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expression {
+case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends IR_Expression {
   // ensure: 0 <= offset < slot.field.numSlots
   offset %= slot.field.numSlots
   if (offset < 0)
@@ -133,7 +133,7 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends Expre
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SlotAccess\n"
 
-  def expandSpecial : Expression = {
+  def expandSpecial : IR_Expression = {
     (slot + offset) Mod slot.field.numSlots // offset is always positive
   }
 }
