@@ -12,10 +12,6 @@ import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-abstract class Statement extends Node with ProgressableToIr with PrettyPrintable {
-  override def progress : ir.Statement
-}
-
 abstract class SpecialStatement /*TODO: think about an appropriate name*/ extends Node with ProgressableToIr with PrettyPrintable {
   override def progress : Any
 }
@@ -92,7 +88,7 @@ case class StencilDeclarationStatement(override var identifier : Identifier, var
 }
 
 case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatement], var variables : List[VariableDeclarationStatement]) extends SpecialStatement {
-  def this(entries : List[Statement]) = this(entries.filter(_ match {
+  def this(entries : List[L4_Statement]) = this(entries.filter(_ match {
     case x : ValueDeclarationStatement => true
     case _                             => false
   }).asInstanceOf[List[ValueDeclarationStatement]],
@@ -108,7 +104,7 @@ case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatemen
   }
 }
 
-case class VariableDeclarationStatement(override var identifier : Identifier, var datatype : L4_Datatype, var expression : Option[L4_Expression] = None) extends Statement with HasIdentifier {
+case class VariableDeclarationStatement(override var identifier : Identifier, var datatype : L4_Datatype, var expression : Option[L4_Expression] = None) extends L4_Statement with HasIdentifier {
   override def prettyprint(out : PpStream) = {
     out << "Variable " << identifier << " : " << datatype
     if (expression.isDefined)
@@ -123,7 +119,7 @@ case class VariableDeclarationStatement(override var identifier : Identifier, va
   }
 }
 
-case class ValueDeclarationStatement(override var identifier : Identifier, var datatype : L4_Datatype, var expression : L4_Expression) extends Statement with HasIdentifier {
+case class ValueDeclarationStatement(override var identifier : Identifier, var datatype : L4_Datatype, var expression : L4_Expression) extends L4_Statement with HasIdentifier {
   //  def progress : ir.ValueDeclarationStatement = {
   //    ir.ValueDeclarationStatement(datatype.progress,
   //      identifier.progress.asInstanceOf[ir.StringConstant].value,
@@ -131,10 +127,10 @@ case class ValueDeclarationStatement(override var identifier : Identifier, var d
   //  }
   override def prettyprint(out : PpStream) = { out << "Value " << identifier << " : " << datatype << " = " << expression << '\n' }
 
-  override def progress : ir.Statement = ir.NullStatement
+  override def progress : IR_Statement = IR_NullStatement
 }
 
-case class AssignmentStatement(var dest : Access, var src : L4_Expression, var op : String) extends Statement {
+case class AssignmentStatement(var dest : Access, var src : L4_Expression, var op : String) extends L4_Statement {
   override def prettyprint(out : PpStream) = { out << dest << ' ' << op << ' ' << src << '\n' }
 
   override def progress : ir.AssignmentStatement = {
@@ -150,10 +146,10 @@ case class LoopOverPointsStatement(
     var startOffset : Option[ExpressionIndex],
     var endOffset : Option[ExpressionIndex],
     var increment : Option[ExpressionIndex],
-    var statements : List[Statement],
+    var statements : List[L4_Statement],
     var reduction : Option[ReductionStatement],
     var preComms : List[CommunicateStatement],
-    var postComms : List[CommunicateStatement]) extends Statement {
+    var postComms : List[CommunicateStatement]) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "loop over " << field << ' '
@@ -210,7 +206,7 @@ case class LoopOverPointsStatement(
   }
 }
 
-case class LoopOverFragmentsStatement(var statements : List[Statement], var reduction : Option[ReductionStatement]) extends Statement {
+case class LoopOverFragmentsStatement(var statements : List[L4_Statement], var reduction : Option[ReductionStatement]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "loop over fragments "
     if (reduction.isDefined) out << "with " << reduction.get
@@ -223,7 +219,7 @@ case class LoopOverFragmentsStatement(var statements : List[Statement], var redu
   }
 }
 
-case class ColorWithStatement(var colors : List[L4_Expression], var loop : LoopOverPointsStatement) extends Statement {
+case class ColorWithStatement(var colors : List[L4_Expression], var loop : LoopOverPointsStatement) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "color with {\n"
     out <<< (colors, ",\n") << ",\n"
@@ -242,15 +238,15 @@ case class ColorWithStatement(var colors : List[L4_Expression], var loop : LoopO
       newLoop
     })
 
-    ir.Scope(loops.map(_.progress : ir.Statement).to[ListBuffer])
+    ir.Scope(loops.map(_.progress : IR_Statement).to[ListBuffer])
   }
 }
 
 case class FunctionStatement(override var identifier : Identifier,
     var returntype : L4_Datatype,
     var arguments : List[FunctionArgument],
-    var statements : List[Statement],
-    var allowInlining : Boolean = true) extends Statement with HasIdentifier {
+    var statements : List[L4_Statement],
+    var allowInlining : Boolean = true) extends L4_Statement with HasIdentifier {
 
   override def prettyprint(out : PpStream) = {
     out << "Function " << identifier << " ("
@@ -287,7 +283,7 @@ case class FunctionTemplateStatement(var name : String,
     var templateArgs : List[String],
     var functionArgs : List[FunctionArgument],
     var returntype : L4_Datatype,
-    var statements : List[Statement]) extends Statement {
+    var statements : List[L4_Statement]) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "FunctionTemplate " << name << " < " << templateArgs.mkString(", ") << " > ( "
@@ -300,15 +296,15 @@ case class FunctionTemplateStatement(var name : String,
     out << "}\n"
   }
 
-  override def progress : ir.Statement = {
+  override def progress : IR_Statement = {
     Logger.warn("Trying to progress FunctionTemplateStatement to ir which is not supported")
-    ir.NullStatement
+    IR_NullStatement
   }
 }
 
 case class FunctionInstantiationStatement(var templateName : String,
     args : List[L4_Expression],
-    targetFct : Identifier) extends Statement {
+    targetFct : Identifier) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "Instantiate " << templateName << " < "
     if (!args.isEmpty) {
@@ -318,9 +314,9 @@ case class FunctionInstantiationStatement(var templateName : String,
     out << " > " << " as " << targetFct << "\n"
   }
 
-  override def progress : ir.Statement = {
+  override def progress : IR_Statement = {
     Logger.warn("Trying to progress FunctionTemplateStatement to ir which is not supported")
-    ir.NullStatement
+    IR_NullStatement
   }
 }
 
@@ -339,7 +335,7 @@ case class ContractionSpecification(var posExt : Index, var negExt : Option[Inde
 case class RepeatTimesStatement(var number : Int,
     var iterator : Option[Access],
     var contraction : Option[ContractionSpecification],
-    var statements : List[Statement]) extends Statement {
+    var statements : List[L4_Statement]) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "repeat " << number << " times"
@@ -348,7 +344,7 @@ case class RepeatTimesStatement(var number : Int,
     out << " {\n" <<< statements << "}\n"
   }
 
-  override def progress : ir.Statement = {
+  override def progress : IR_Statement = {
     if (contraction.isDefined)
     // FIXME: to[ListBuffer]
       return new ir.ContractingLoop(number, iterator.map(i => i.progress), statements.map(s => s.progress).to[ListBuffer], contraction.get.progress)
@@ -375,7 +371,7 @@ case class RepeatTimesStatement(var number : Int,
   }
 }
 
-case class RepeatUntilStatement(var comparison : L4_Expression, var statements : List[Statement]) extends Statement {
+case class RepeatUntilStatement(var comparison : L4_Expression, var statements : List[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) = { out << "repeat until " << comparison << "{\n" <<< statements << "}\n" }
 
   override def progress : ir.WhileLoopStatement = {
@@ -399,15 +395,15 @@ case class RegionSpecification(var region : String, var dir : Index, var onlyOnB
   }
 }
 
-case class FunctionCallStatement(var call : FunctionCallExpression) extends Statement {
+case class FunctionCallStatement(var call : FunctionCallExpression) extends L4_Statement {
   override def prettyprint(out : PpStream) = { out << call << '\n' }
 
-  override def progress : ir.ExpressionStatement = {
-    ir.ExpressionStatement(call.progress)
+  override def progress : IR_ExpressionStatement = {
+    IR_ExpressionStatement(call.progress)
   }
 }
 
-case class ReturnStatement(var expr : Option[L4_Expression]) extends Statement {
+case class ReturnStatement(var expr : Option[L4_Expression]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "return"
     if (expr.isDefined) out << ' ' << expr.get.prettyprint()
@@ -419,7 +415,7 @@ case class ReturnStatement(var expr : Option[L4_Expression]) extends Statement {
   }
 }
 
-case class BreakStatement() extends Statement {
+case class BreakStatement() extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "break\n"
   }
@@ -429,7 +425,7 @@ case class BreakStatement() extends Statement {
   }
 }
 
-case class ConditionalStatement(var expression : L4_Expression, var statements : List[Statement], var elsestatements : List[Statement]) extends Statement {
+case class ConditionalStatement(var expression : L4_Expression, var statements : List[L4_Statement], var elsestatements : List[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "if ( " << expression << " )" << " {\n" <<< statements << '}'
     if (!elsestatements.isEmpty) out << " else {\n" <<< elsestatements << '}'
@@ -441,7 +437,7 @@ case class ConditionalStatement(var expression : L4_Expression, var statements :
   }
 }
 
-case class AdvanceStatement(var field : Access) extends Statement {
+case class AdvanceStatement(var field : Access) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "advance "
     field.prettyprint(out)
@@ -454,7 +450,7 @@ case class AdvanceStatement(var field : Access) extends Statement {
   }
 }
 
-case class LeveledScopeStatement(var level : LevelSpecification, var statements : List[Statement]) extends Statement {
+case class LeveledScopeStatement(var level : LevelSpecification, var statements : List[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << level << " {\n"
     statements.foreach(_.prettyprint(out))

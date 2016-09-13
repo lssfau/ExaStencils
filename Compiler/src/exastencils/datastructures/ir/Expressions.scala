@@ -17,11 +17,6 @@ trait Number extends IR_Expression {
   def value : AnyVal
 }
 
-case object NullExpression extends IR_Expression {
-  exastencils.core.Duplicate.registerConstant(this)
-  override def prettyprint(out : PpStream) : Unit = ()
-}
-
 @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
 case class ConcatenationExpression(var expressions : ListBuffer[IR_Expression]) extends IR_Expression {
   def this(exprs : IR_Expression*) = this(exprs.to[ListBuffer])

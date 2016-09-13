@@ -1,6 +1,6 @@
 package exastencils.base.ir
 
-import exastencils.prettyprinting.PrettyPrintable
+import exastencils.prettyprinting._
 
 trait IR_Expression extends IR_Node with PrettyPrintable {
 
@@ -38,4 +38,10 @@ trait IR_Expression extends IR_Node with PrettyPrintable {
   def >=(other : IR_Expression) = IR_GreaterEqualExpression(this, other)
 
   def <<(other : IR_Expression) = IR_LeftShiftExpression(this, other)
+}
+
+case object IR_NullExpression extends IR_Expression {
+  exastencils.core.Duplicate.registerConstant(this)
+
+  override def prettyprint(out : PpStream) : Unit = {}
 }

@@ -215,9 +215,9 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
     case ConditionStatement(IR_BooleanConstant(cond), tBranch, fBranch) => {
       if (cond) {
-        if (tBranch.isEmpty) NullStatement else tBranch
+        if (tBranch.isEmpty) IR_NullStatement else tBranch
       } else {
-        if (fBranch.isEmpty) NullStatement else fBranch
+        if (fBranch.isEmpty) IR_NullStatement else fBranch
       }
     }
   })
@@ -452,7 +452,7 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   })
 
   this += new Transformation("Removing obsolete references", {
-    case FunctionCallExpression(fName, _) if emptyFunctions.contains(fName) => NullExpression
+    case FunctionCallExpression(fName, _) if emptyFunctions.contains(fName) => IR_NullExpression
   })
 
   this += new Transformation("Removing empty scopes", {

@@ -566,10 +566,10 @@ class Extractor extends Collector {
                | _ : IR_MinimumExpression
                | _ : IR_MaximumExpression
                | _ : CommentStatement
-               | NullStatement => // nothing to do for all of them...
+               | IR_NullStatement => // nothing to do for all of them...
 
           // deny
-          case e : ExpressionStatement    => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
+          case e : IR_ExpressionStatement => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
           case ArrayAccess(a, _, _)       => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
           case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
           case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
@@ -763,7 +763,7 @@ class Extractor extends Collector {
       conditions.pop()
   }
 
-  private def enterStmt(stmt : Statement) : Unit = {
+  private def enterStmt(stmt : IR_Statement) : Unit = {
 
     val scop : Scop = curScop.get()
 

@@ -23,7 +23,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
   private final val NEG_ONE_VAL : isl.Val = isl.Val.negone(Isl.ctx)
 
   private val loopStmts = new HashMap[String, ListBuffer[OptimizationHint]]()
-  private var oldStmts : HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])] = null
+  private var oldStmts : HashMap[String, (ListBuffer[IR_Statement], ArrayBuffer[String])] = null
   private var parDims : Set[String] = null
   private var vecDims : Set[String] = null
   private var parallelize_omp : Boolean = false
@@ -51,7 +51,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     val loop = node.asInstanceOf[LoopOverDimensions]
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
-      return NullStatement
+      return IR_NullStatement
     reduction = scop.root.reduction
     condition = scop.root.condition.orNull
 
@@ -141,7 +141,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     islBuild = islBuild.setIterators(itersId)
     val scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
     val islNode : isl.AstNode = islBuild.astFromSchedule(scattering)
-    var nju : ListBuffer[Statement] =
+    var nju : ListBuffer[IR_Statement] =
       try {
         processIslNode(islNode)
       } catch {
@@ -167,7 +167,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
     comment +=: nju // prepend
     if (!scop.decls.isEmpty) {
-      val scopeList = new ListBuffer[Statement]
+      val scopeList = new ListBuffer[IR_Statement]
       for (decl : VariableDeclarationStatement <- scop.decls) {
         decl.expression = None
         if (!scopeList.contains(decl)) // only add if not yet available
@@ -179,7 +179,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
       return loop.createOMPThreadsWrapper(nju)
   }
 
-  private def processIslNode(node : isl.AstNode) : ListBuffer[Statement] = {
+  private def processIslNode(node : isl.AstNode) : ListBuffer[IR_Statement] = {
 
     return node.getType() match {
 
@@ -187,7 +187,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
         if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
-          val decl : Statement = new VariableDeclarationStatement(IR_IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
+          val decl : IR_Statement = new VariableDeclarationStatement(IR_IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
           processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
@@ -197,11 +197,11 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           val parOMP : Boolean = parallelize_omp && parDims.contains(itStr)
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
           val it : VariableAccess = new VariableAccess(itStr, IR_IntegerDatatype)
-          val init : Statement = new VariableDeclarationStatement(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
+          val init : IR_Statement = new VariableDeclarationStatement(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
           val cond : IR_Expression = processIslExpr(node.forGetCond())
-          val incr : Statement = new AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
+          val incr : IR_Statement = new AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
 
-          val body : ListBuffer[Statement] = processIslNode(node.forGetBody())
+          val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
           val loop : ForLoopStatement with OptimizationHint =
           if (parOMP)
@@ -212,20 +212,20 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           loop.isVectorizable = vecDims != null && vecDims.contains(itStr)
           loop.privateVars ++= privateVars
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
-          ListBuffer[Statement](loop)
+          ListBuffer[IR_Statement](loop)
         }
 
       case isl.AstNodeType.NodeIf =>
         val cond : IR_Expression = processIslExpr(node.ifGetCond())
-        val thenBranch : ListBuffer[Statement] = processIslNode(node.ifGetThen())
+        val thenBranch : ListBuffer[IR_Statement] = processIslNode(node.ifGetThen())
         if (node.ifHasElse()) {
-          val els : ListBuffer[Statement] = processIslNode(node.ifGetElse())
-          ListBuffer[Statement](new ConditionStatement(cond, thenBranch, els))
+          val els : ListBuffer[IR_Statement] = processIslNode(node.ifGetElse())
+          ListBuffer[IR_Statement](new ConditionStatement(cond, thenBranch, els))
         } else
-          ListBuffer[Statement](new ConditionStatement(cond, thenBranch))
+          ListBuffer[IR_Statement](new ConditionStatement(cond, thenBranch))
 
       case isl.AstNodeType.NodeBlock =>
-        val stmts = new ListBuffer[Statement]
+        val stmts = new ListBuffer[IR_Statement]
         node.blockGetChildren().foreach({ stmt : isl.AstNode => stmts ++= processIslNode(stmt) })
         stmts
 
@@ -234,8 +234,8 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
         assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
         val args : Array[IR_Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[IR_StringLiteral].value
-        val (oldStmt : ListBuffer[Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
-        val stmts : ListBuffer[Statement] = Duplicate(oldStmt)
+        val (oldStmt : ListBuffer[IR_Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
+        val stmts : ListBuffer[IR_Statement] = Duplicate(oldStmt)
         val repl = new HashMap[String, IR_Expression]()
         for (d <- 1 until args.length)
           repl.put(loopVars(loopVars.size - d), args(d))

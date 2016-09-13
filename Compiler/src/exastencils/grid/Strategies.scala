@@ -63,7 +63,7 @@ object ResolveEvaluationFunctions extends DefaultStrategy("ResolveEvaluationFunc
     case FunctionCallExpression(functionName, args) if functions.contains(functionName) => {
       if (0 == args.length) {
         Logger.warn(s"Trying to use build-in function $functionName without arguments")
-        NullExpression
+        IR_NullExpression
       } else {
         if (args.length > 2) Logger.warn(s"Trying to use build-in function $functionName with more than one arguments; additional arguments are discarded")
         args match {
@@ -93,7 +93,7 @@ object ResolveIntegrationFunctions extends DefaultStrategy("ResolveIntegrateFunc
     case FunctionCallExpression(functionName, args) if functions.contains(functionName) => {
       if (0 == args.length) {
         Logger.warn(s"Trying to use build-in function $functionName without arguments")
-        NullExpression
+        IR_NullExpression
       } else {
         if (args.length > 1) Logger.warn(s"Trying to use build-in function $functionName with more than one arguments; additional arguments are discarded")
         GridEvaluator.getEvaluator.invokeIntegrateResolve(functionName, args(0))
@@ -155,7 +155,7 @@ object ShiftFieldAccessIndices extends QuietDefaultStrategy("Shifting indices of
 }
 
 object ReplaceFieldAccesses extends QuietDefaultStrategy("Replace field accesses with another expression") {
-  var replacement : IR_Expression = NullExpression
+  var replacement : IR_Expression = IR_NullExpression
 
   this += new Transformation("SearchAndReplace", {
     case _ : FieldAccess => Duplicate(replacement)

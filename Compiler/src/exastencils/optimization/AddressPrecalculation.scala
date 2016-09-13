@@ -50,7 +50,7 @@ private final class ArrayBases(val arrayName : String) {
     inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
   }
 
-  def addToDecls(decls : ListBuffer[Statement]) : Unit = {
+  def addToDecls(decls : ListBuffer[IR_Statement]) : Unit = {
     for ((name : String, init : IR_Expression) <- inits.values.toArray.sortBy(_._1))
       decls += new VariableDeclarationStatement(IR_ConstPointerDatatype(IR_RealDatatype), name, IR_AddressofExpression(init))
   }
@@ -152,37 +152,37 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         }
         val d = new HashMap[String, ArrayBases]()
         l.inc match { // TODO: remove StringLiteral
-          case AssignmentStatement(VariableAccess(name, _), _, _)                       =>
+          case AssignmentStatement(VariableAccess(name, _), _, _)                          =>
             decls = d
             inVars = Set(name)
-          case AssignmentStatement(IR_StringLiteral(name), _, _)                        =>
+          case AssignmentStatement(IR_StringLiteral(name), _, _)                           =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PreIncrementExpression(VariableAccess(name, _)))  =>
+          case IR_ExpressionStatement(IR_PreIncrementExpression(VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PreIncrementExpression(IR_StringLiteral(name)))   =>
+          case IR_ExpressionStatement(IR_PreIncrementExpression(IR_StringLiteral(name)))   =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PostIncrementExpression(VariableAccess(name, _))) =>
+          case IR_ExpressionStatement(IR_PostIncrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PostIncrementExpression(IR_StringLiteral(name)))  =>
+          case IR_ExpressionStatement(IR_PostIncrementExpression(IR_StringLiteral(name)))  =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PreDecrementExpression(VariableAccess(name, _)))  =>
+          case IR_ExpressionStatement(IR_PreDecrementExpression(VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PreDecrementExpression(IR_StringLiteral(name)))   =>
+          case IR_ExpressionStatement(IR_PreDecrementExpression(IR_StringLiteral(name)))   =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PostDecrementExpression(VariableAccess(name, _))) =>
+          case IR_ExpressionStatement(IR_PostDecrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PostDecrementExpression(IR_StringLiteral(name)))  =>
+          case IR_ExpressionStatement(IR_PostDecrementExpression(IR_StringLiteral(name)))  =>
             decls = d
             inVars = Set(name)
-          case _                                                                        =>
+          case _                                                                           =>
             Logger.dbg("[addr precalc]  cannot determine loop variable name, inc of ForLoopStatement is not recognized:  " + l.inc)
             decls = d
         }
@@ -276,11 +276,11 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
     if (decls.isEmpty)
       return node
 
-    val stmts = new ListBuffer[Statement]()
+    val stmts = new ListBuffer[IR_Statement]()
     for ((_, bases : ArrayBases) <- decls.toArray.sortBy(_._1))
       bases.addToDecls(stmts)
 
-    stmts += node.asInstanceOf[Statement]
+    stmts += node.asInstanceOf[IR_Statement]
     return new Scope(stmts)
   }
 }

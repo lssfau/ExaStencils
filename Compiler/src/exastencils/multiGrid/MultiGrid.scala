@@ -2,7 +2,7 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_UnitDatatype
+import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -19,7 +19,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
 
   override def expand() : Output[FunctionStatement] = {
     val fields = FieldCollection.getSortedFields
-    var statements : ListBuffer[Statement] = new ListBuffer
+    var statements : ListBuffer[IR_Statement] = new ListBuffer
 
     for (field <- fields) {
       val numDims = field.fieldLayout.numDimsData
@@ -31,7 +31,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
             new DirectFieldAccess(FieldSelection(field, field.level, slot), index),
-            0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
+            0.0) : IR_Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
       loopOverDims.optLevel = 1
 
       val wrapped = new LoopOverFragments(

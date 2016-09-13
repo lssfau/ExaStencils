@@ -151,7 +151,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       toFind = name
       var fstStmt : Int = -1
       var lstStmt : Int = -1
-      var stmts : mutable.Buffer[(String, (ListBuffer[Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
+      var stmts : mutable.Buffer[(String, (ListBuffer[IR_Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
       var i : Int = 0
       val oldLvl = Logger.getLevel
       Logger.setLevel(Logger.WARNING)
@@ -186,7 +186,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       for (i <- 1 until remDoms.length)
         if (!proto.isEqual(remDoms(i).resetTupleId()))
           Breaks.break() // continue... different domains, cannot merge statements
-      val mergedStmts = new ListBuffer[Statement]()
+      val mergedStmts = new ListBuffer[IR_Statement]()
       var mergedLoopIts : ArrayBuffer[String] = null
       for ((lab, (stmt, loopIts)) <- stmts) {
         mergedStmts ++= stmt

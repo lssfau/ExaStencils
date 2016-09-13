@@ -17,7 +17,7 @@ abstract class CommVariable extends InternalVariable(Knowledge.comm_sepDataByFra
 }
 
 case class RemoteReqOutstanding(var field : Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"remoteReqOutstanding_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDatatype = IR_BooleanDatatype
@@ -25,7 +25,7 @@ case class RemoteReqOutstanding(var field : Field, var direction : String, var n
 }
 
 case class LocalReqOutstanding(var field : Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"localReqOutstanding_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDatatype = IR_BooleanDatatype
@@ -33,14 +33,14 @@ case class LocalReqOutstanding(var field : Field, var direction : String, var ne
 }
 
 case class MpiRequest(var field : Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"mpiRequest_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDatatype = "MPI_Request"
 }
 
 case class LocalCommReady(var field : Field, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"localCommReady" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDatatype = IR_VolatileDatatype(IR_BooleanDatatype)
@@ -48,7 +48,7 @@ case class LocalCommReady(var field : Field, var neighIdx : IR_Expression, var f
 }
 
 case class LocalCommDone(var field : Field, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"localCommDone" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDatatype = IR_VolatileDatatype(IR_BooleanDatatype)
@@ -64,16 +64,16 @@ abstract class AbstractTmpBuffer extends CommVariable {
   var neighIdx : IR_Expression
   var fragmentIdx : IR_Expression
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveDatatype = new IR_PointerDatatype(field.resolveBaseDatatype)
   override def resolveDefValue = Some(0)
 
-  override def getDtor() : Option[Statement] = {
-    val ptrExpr = resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+  override def getDtor() : Option[IR_Statement] = {
+    val ptrExpr = resolveAccess(resolveName, fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
     Some(wrapInLoops(
       new ConditionStatement(ptrExpr,
-        ListBuffer[Statement](
+        ListBuffer[IR_Statement](
           FreeStatement(ptrExpr),
           new AssignmentStatement(ptrExpr, 0)))))
   }
@@ -89,7 +89,7 @@ case class TmpBuffer(override var field : Field, override var direction : String
 
   override def resolveName = s"buffer_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
-  override def getDtor() : Option[Statement] = {
+  override def getDtor() : Option[IR_Statement] = {
     if (Knowledge.data_alignTmpBufferPointers) {
       var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
       Some(wrapInLoops(new AssignmentStatement(access, 0)))
@@ -98,7 +98,7 @@ case class TmpBuffer(override var field : Field, override var direction : String
     }
   }
 
-  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     declarations += (resolveName -> getDeclaration)
     ctors += (resolveName -> getCtor().get)
     dtors += (resolveName -> getDtor().get)
@@ -109,7 +109,7 @@ case class TmpBuffer(override var field : Field, override var direction : String
 }
 
 case class TmpBufferIterator(var field : Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends CommVariable {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, field.index, field.level, neighIdx)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
   override def resolveName = s"tmpBufferIndex_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDatatype = IR_IntegerDatatype

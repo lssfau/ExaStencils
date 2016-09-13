@@ -1,6 +1,6 @@
 package exastencils.grid
 
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -74,8 +74,8 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
       val baseIndex = fieldAccess.index
       val level = field.level
 
-      var a0 : (() => IR_Expression) = (() => { NullExpression })
-      var a1 : (() => IR_Expression) = (() => { NullExpression })
+      var a0 : (() => IR_Expression) = (() => { IR_NullExpression })
+      var a1 : (() => IR_Expression) = (() => { IR_NullExpression })
       var x0 = (() => { Duplicate(fieldAccess) })
       var x1 = (() => { GridUtil.offsetAccess(fieldAccess, 1, faceDim) })
 
@@ -147,7 +147,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
   def integrateOverLFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
     ShiftFieldAccessIndices.offset = -1
     ShiftFieldAccessIndices.dim = faceDim
-    ShiftFieldAccessIndices.applyStandalone(ExpressionStatement(exp))
+    ShiftFieldAccessIndices.applyStandalone(IR_ExpressionStatement(exp))
 
     integrateOverRFace(exp, faceDim, stagDim)
   }
@@ -299,7 +299,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         ShiftFieldAccessIndices_.offset = 1
         ShiftFieldAccessIndices_.dim = curStagDim
         ShiftFieldAccessIndices_.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
-        ShiftFieldAccessIndices_.applyStandalone(ExpressionStatement(offsetExp))
+        ShiftFieldAccessIndices_.applyStandalone(IR_ExpressionStatement(offsetExp))
 
         (VirtualFieldAccess(s"vf_cellWidth_${ dimToString(compDim) }", level, index) *
           (VirtualFieldAccess(s"vf_cellCenterToFace_${ dimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp

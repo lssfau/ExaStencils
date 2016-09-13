@@ -29,7 +29,7 @@ abstract class FieldFlag extends InternalVariable(true, false, true, true, false
       IR_BooleanDatatype
   }
 
-  override def wrapInLoops(body : Statement) : Statement = {
+  override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = super.wrapInLoops(body)
     if (field.numSlots > 1)
       wrappedBody = new ForLoopStatement(
@@ -40,7 +40,7 @@ abstract class FieldFlag extends InternalVariable(true, false, true, true, false
     wrappedBody
   }
 
-  override def getCtor() : Option[Statement] = {
+  override def getCtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
     val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
@@ -50,7 +50,7 @@ abstract class FieldFlag extends InternalVariable(true, false, true, true, false
 }
 
 case class HostDataUpdated(override var field : Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends FieldFlag {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
@@ -59,7 +59,7 @@ case class HostDataUpdated(override var field : Field, override var slot : IR_Ex
 }
 
 case class DeviceDataUpdated(override var field : Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends FieldFlag {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
@@ -73,14 +73,14 @@ case class FieldDeviceData(override var field : Field, override var level : IR_E
   override def resolveName = (if (1 == field.numSlots) s"fieldDeviceData" else "slottedFieldDeviceData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
 
-  override def getDtor() : Option[Statement] = {
+  override def getDtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
     var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
 
     val ret = Some(wrapInLoops(
       new ConditionStatement(access,
-        ListBuffer[Statement](
+        ListBuffer[IR_Statement](
           CUDA_FreeStatement(access),
           new AssignmentStatement(access, 0)))))
     slot = origSlot
@@ -93,10 +93,10 @@ case class ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Ex
   // TODO: extend for other types
   override def resolveName : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
 
-  override def getDtor() : Option[Statement] = {
+  override def getDtor() : Option[IR_Statement] = {
     var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
     Some(new ConditionStatement(access,
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         CUDA_FreeStatement(access),
         new AssignmentStatement(access, 0))))
   }

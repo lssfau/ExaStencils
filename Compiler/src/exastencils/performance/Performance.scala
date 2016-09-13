@@ -236,7 +236,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
           addLoopTimeToStack(loop)
 
-          loop.body = ListBuffer[Statement](
+          loop.body = ListBuffer[IR_Statement](
             CommentStatement(s"Estimated host time for loop: ${ estimatedTime_host * 1000.0 } ms"),
             CommentStatement(s"Estimated device time for loop: ${ estimatedTime_device * 1000.0 } ms")) ++ loop.body
         }
@@ -270,9 +270,9 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
   this += new Transformation("Searching", {
     case assign : AssignmentStatement =>
       inWriteOp = true
-      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(ExpressionStatement(assign.dest))
+      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       inWriteOp = false
-      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(ExpressionStatement(assign.src))
+      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.src))
       assign
     case access : FieldAccessLike     =>
       mapFieldAccess(access)

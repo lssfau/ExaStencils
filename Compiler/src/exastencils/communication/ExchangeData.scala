@@ -18,7 +18,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
   def insideFragLoop : Boolean
 
   def compileName : String
-  def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement]
+  def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[IR_Statement]
 
   def resolveIndex(indexId : String, dim : Int) : IR_Expression = {
     if (Knowledge.experimental_useLevelIndepFcts) {
@@ -31,7 +31,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
   }
 
   override def expand : Output[FunctionStatement] = {
-    var body = new ListBuffer[Statement]
+    var body = new ListBuffer[IR_Statement]
 
     val updatedFieldSelection = if (Knowledge.experimental_useLevelIndepFcts) {
       val updatedFieldSelection = Duplicate(fieldSelection)
@@ -106,8 +106,8 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
   }
 
   override def compileName : String = name
-  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement] = {
-    var body = new ListBuffer[Statement]
+  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[IR_Statement] = {
+    var body = new ListBuffer[IR_Statement]
 
     val boundaryNeighs = neighbors.filter(neigh => (1 == neigh.dir.map(i => if (0 != i) 1 else 0).reduce(_ + _))) // exactly one non-zero entry
     body += new HandleBoundaries(updatedFieldSelection, genIndicesBoundaryHandling(boundaryNeighs))
@@ -433,8 +433,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
   }
 
   override def compileName : String = name
-  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement] = {
-    var body = new ListBuffer[Statement]
+  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[IR_Statement] = {
+    var body = new ListBuffer[IR_Statement]
     val field = updatedFieldSelection.field
 
     // sync duplicate values

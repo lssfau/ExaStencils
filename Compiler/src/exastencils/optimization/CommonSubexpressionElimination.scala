@@ -30,7 +30,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       StrategyTimer.startTiming(name)
 
     // contains function name, actual loop node, (loop iterator, begin, end, and increment)*, and shortcut to its body buffer
-    val scopes = new ArrayBuffer[(String, LoopOverDimensions, Array[(String, IR_Expression, IR_Expression, Long)], () => ListBuffer[Statement])]()
+    val scopes = new ArrayBuffer[(String, LoopOverDimensions, Array[(String, IR_Expression, IR_Expression, Long)], () => ListBuffer[IR_Statement])]()
     var curFunc : String = null
     this.execute(new Transformation("find and extract relevant scopes", {
       case f : FunctionStatement  =>
@@ -54,7 +54,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     for ((curFunc, parentLoop, loopIt, body) <- scopes) {
       // inline declarations with no additional write to the same variable first (CSE afterwards may find larger CSes)
       inlineDecls(parentLoop, body())
-      val njuScopes : Seq[ListBuffer[Statement]] =
+      val njuScopes : Seq[ListBuffer[IR_Statement]] =
         if (Knowledge.opt_loopCarriedCSE && parentLoop.condition.isEmpty)
           loopCarriedCSE(curFunc, parentLoop, loopIt, orderMap)
         else
@@ -75,7 +75,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     this.commit()
   }
 
-  private def inlineDecls(parent : Node, body : ListBuffer[Statement]) : Unit = {
+  private def inlineDecls(parent : Node, body : ListBuffer[IR_Statement]) : Unit = {
     val accesses = new HashMap[String, (VariableDeclarationStatement, Buffer[IR_Expression])]()
     val usageIn = new HashMap[String, ListBuffer[String]]().withDefault(_ => new ListBuffer[String]())
     var assignTo : String = null
@@ -143,7 +143,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 
   private def loopCarriedCSE(curFunc : String, loop : LoopOverDimensions,
-      loopIt : Array[(String, IR_Expression, IR_Expression, Long)], orderMap : Map[Any, Int]) : Seq[ListBuffer[Statement]] = {
+      loopIt : Array[(String, IR_Expression, IR_Expression, Long)], orderMap : Map[Any, Int]) : Seq[ListBuffer[IR_Statement]] = {
     if (loopIt == null || loopIt.forall(_ == null))
       return Nil
 
@@ -155,21 +155,21 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression are too difficult to analyze")
         return Nil // don't do anything, since we cannot ensure the transformation is correct
       // there are some singleton datatypes, so don't enumerate them
-      case d : IR_Datatype => d
-      case NullStatement   => NullStatement
-      case NullExpression  => NullExpression
-      case node : Node     => // only enumerate subtypes of Node, all others are irrelevant
+      case d : IR_Datatype   => d
+      case IR_NullStatement  => IR_NullStatement
+      case IR_NullExpression => IR_NullExpression
+      case node : Node       => // only enumerate subtypes of Node, all others are irrelevant
         node.annotate(ID_ANNOT, maxID)
         maxID += 1
         node
-      case x               => x // no node, so don't enumerate it, as it may appear multiple times (legally) in the AST
+      case x                 => x // no node, so don't enumerate it, as it may appear multiple times (legally) in the AST
     }), Some(currItBody))
     currItBody.annotate(ID_ANNOT, maxID) // trafo does not get access to the AST root, so set annotation manually
 
     assert(collectIDs(currItBody, new BitSet(maxID)))
 
     var foundIDs = new BitSet(maxID)
-    val njuScopes = new ArrayBuffer[ListBuffer[Statement]]()
+    val njuScopes = new ArrayBuffer[ListBuffer[IR_Statement]]()
     var bufferCounter : Int = 0
 
     var tmpBufLen = new Array[IR_Expression](0)
@@ -215,7 +215,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       java.util.Arrays.sort(filteredCS, Ordering.Tuple2[Int, String] on { x : (Int, String, Subexpression) => (x._1, x._2) })
 
       val decls = new ArrayBuffer[VariableDeclarationStatement]()
-      val firstInits = new ListBuffer[Statement]()
+      val firstInits = new ListBuffer[IR_Statement]()
       val nextUpdates = new ArrayBuffer[AssignmentStatement]()
       for (commonExp <- filteredCS.view.map(_._3)) {
         val ids : BitSet = foundIDs.clone()
@@ -239,7 +239,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
               IR_AdditionExpression(strLit, IR_IntegerConstant(loopIncr))
           }, false), Some(csNext))
           csNext = SimplifyExpression.simplifyFloatingExpr(csNext)
-          val csNextWrap = ExpressionStatement(csNext)
+          val csNextWrap = IR_ExpressionStatement(csNext)
           SimplifyStrategy.doUntilDoneStandalone(csNextWrap, true)
           csNext = csNextWrap.expression
 
@@ -317,7 +317,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     return disjunct
   }
 
-  private def conventionalCSE(curFunc : String, body : ListBuffer[Statement], orderMap : Map[Any, Int]) : Unit = {
+  private def conventionalCSE(curFunc : String, body : ListBuffer[IR_Statement], orderMap : Map[Any, Int]) : Unit = {
     var repeat : Boolean = false
     do {
       val coll = new CollectBaseCSes(curFunc)
@@ -401,7 +401,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     }
   }
 
-  private def updateAST(body : ListBuffer[Statement], commSubs : Map[Node, Subexpression]) : Boolean = {
+  private def updateAST(body : ListBuffer[IR_Statement], commSubs : Map[Node, Subexpression]) : Boolean = {
     val commSubSorted = commSubs.toList.sortBy {
       case (_, cs) => (-cs.prio, -cs.getPositions().size, cs.ppString)
     }
@@ -513,7 +513,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     return dups
   }
 
-  private def removeAnnotations(body : ListBuffer[Statement]) : Unit = {
+  private def removeAnnotations(body : ListBuffer[IR_Statement]) : Unit = {
     this.execute(new Transformation("remove old CSE annotations", {
       // eager `or` is required, since we want to remove ALL, not only the first available
       case node if (node.removeAnnotation(ID_ANNOT).isDefined |

@@ -1,8 +1,9 @@
 package exastencils.omp
 
+import exastencils.base.ir.IR_Statement
 import exastencils.cuda._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.optimization.OptimizationHint
@@ -14,8 +15,8 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
     if (Platform.omp_requiresCriticalSections) {
       this.execute(new Transformation("Adding OMP critical pragmas", {
         case target : OMP_PotentiallyCritical => target match {
-          case target : Scope     => new OMP_Critical(target)
-          case target : Statement => new OMP_Critical(target)
+          case target : Scope        => new OMP_Critical(target)
+          case target : IR_Statement => new OMP_Critical(target)
         }
       }, false))
     }
@@ -30,7 +31,7 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
           case l : OptimizationHint =>
             if (l.privateVars.nonEmpty)
               target.additionalOMPClauses += new OMP_Private(l.privateVars.clone())
-          case _ =>
+          case _                    =>
         }
         new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
           target.additionalOMPClauses, target.collapse)

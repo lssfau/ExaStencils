@@ -2,6 +2,7 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.l4.L4_Statement
 import exastencils.datastructures._
 import exastencils.globals._
 import exastencils.knowledge._
@@ -19,7 +20,7 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
   var globals : ListBuffer[GlobalDeclarationStatement] = new ListBuffer()
   var functionTemplates : ListBuffer[FunctionTemplateStatement] = new ListBuffer()
   var functions : ListBuffer[FunctionStatement] = new ListBuffer()
-  var statements : ListBuffer[Statement] = new ListBuffer()
+  var statements : ListBuffer[L4_Statement] = new ListBuffer()
 
   nodes.foreach(n => n match {
     case p : DomainDeclarationStatement        => domains.+=(p)
@@ -31,7 +32,7 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
     case p : GlobalDeclarationStatement        => globals.+=(p)
     case p : FunctionTemplateStatement         => functionTemplates.+=(p)
     case p : FunctionStatement                 => functions.+=(p)
-    case p : Statement                         => statements.+=(p)
+    case p : L4_Statement                      => statements.+=(p)
   })
 
   // set domain indices -> just number consecutively

@@ -129,11 +129,11 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       new ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
-    case ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
-      ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
+    case IR_ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
+      IR_ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
 
-    case ExpressionStatement(FunctionCallExpression("stopTimer", args)) =>
-      ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
+    case IR_ExpressionStatement(FunctionCallExpression("stopTimer", args)) =>
+      IR_ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
 
     case FunctionCallExpression("getMeanFromTimer", args) =>
       FunctionCallExpression("getMeanTime", ListBuffer(iv.Timer(args(0))))
@@ -205,9 +205,9 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     }
 
     // HACK for print functionality
-    case ExpressionStatement(FunctionCallExpression("print", args))      =>
+    case IR_ExpressionStatement(FunctionCallExpression("print", args))      =>
       new PrintStatement(args)
-    case ExpressionStatement(FunctionCallExpression("printField", args)) => {
+    case IR_ExpressionStatement(FunctionCallExpression("printField", args)) => {
       args.length match {
         case 1 => // option 1: only field -> deduce name
           new PrintFieldStatement("\"" + args(0).asInstanceOf[FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[FieldAccess].fieldSelection)
@@ -218,7 +218,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       }
     }
 
-    case ExpressionStatement(FunctionCallExpression("buildString", args)) =>
+    case IR_ExpressionStatement(FunctionCallExpression("buildString", args)) =>
       new BuildStringStatement(args(0), args.slice(1, args.size))
 
     // FIXME: HACK to realize application functionality

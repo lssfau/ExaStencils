@@ -138,7 +138,7 @@ object SimplifyExpression {
     * Constant string that is used to hold the additive constant of an affine expression in the result map of
     * evalIntegralAffine(Expression).
     */
-  final val constName : IR_Expression = NullExpression
+  final val constName : IR_Expression = IR_NullExpression
 
   /**
     * Evaluates and (implicitly) simplifies an integral expression.
@@ -436,7 +436,7 @@ object SimplifyExpression {
 
   def simplifyIntegralExpr(expr : IR_Expression) : IR_Expression = {
     try {
-      val res = ExpressionStatement(recreateExprFromIntSum(extractIntegralSum(expr)))
+      val res = IR_ExpressionStatement(recreateExprFromIntSum(extractIntegralSum(expr)))
       SimplifyStrategy.doUntilDoneStandalone(res)
       return res.expression
     } catch {
@@ -454,19 +454,19 @@ object SimplifyExpression {
 
       case d : DirectFieldAccess =>
         for (i <- 0 until 4)
-          if (d.index(i) != NullExpression)
+          if (d.index(i) != IR_NullExpression)
             d.index(i) = SimplifyExpression.simplifyIntegralExpr(d.index(i))
         d
 
       case f : FieldAccess =>
         for (i <- 0 until 4)
-          if (f.index(i) != NullExpression)
+          if (f.index(i) != IR_NullExpression)
             f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))
         f
 
       case f : ExternalFieldAccess =>
         for (i <- 0 until 4)
-          if (f.index(i) != NullExpression)
+          if (f.index(i) != IR_NullExpression)
             f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))
         f
     })
@@ -759,7 +759,7 @@ object SimplifyExpression {
 
   def simplifyFloatingExpr(expr : IR_Expression) : IR_Expression = {
     try {
-      val res = ExpressionStatement(recreateExprFromFloatSum(extractFloatingSum(expr)))
+      val res = IR_ExpressionStatement(recreateExprFromFloatSum(extractFloatingSum(expr)))
       SimplifyStrategy.doUntilDoneStandalone(res)
       return res.expression
     } catch {

@@ -14,7 +14,7 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
   val collector = new StatementCollector
 
   var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, IR_Datatype)]] = HashMap()
-  var callByValReplacements : HashMap[String, Statement] = HashMap()
+  var callByValReplacements : HashMap[String, IR_Statement] = HashMap()
 
   override def apply(node : Option[Node]) = {
     callByValReplacements.clear
@@ -109,13 +109,13 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
   })
 
   this += new Transformation("Prepending underscores to function calls", {
-    case s : Statement if !s.isInstanceOf[FunctionStatement] =>
+    case s : IR_Statement if !s.isInstanceOf[FunctionStatement] =>
       FortranifyFunctionsInsideStatement.functionsToBeProcessed = functionsToBeProcessed
       FortranifyFunctionsInsideStatement.applyStandalone(s)
 
       if (FortranifyFunctionsInsideStatement.callByValReplacements.isEmpty)
         s
       else
-        Scope(FortranifyFunctionsInsideStatement.callByValReplacements.map(_._2).to[ListBuffer] ++ ListBuffer[Statement](s))
+        Scope(FortranifyFunctionsInsideStatement.callByValReplacements.map(_._2).to[ListBuffer] ++ ListBuffer[IR_Statement](s))
   })
 }

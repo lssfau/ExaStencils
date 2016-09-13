@@ -63,7 +63,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     }
   }
 
-  private def vectorizeLoop(loop : ForLoopStatement) : Statement = {
+  private def vectorizeLoop(loop : ForLoopStatement) : IR_Statement = {
 
     // excessive testing if loop header allows vectorization
     return loop match {
@@ -80,14 +80,14 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
         val incr : Long =
           incrExpr match {
-            case ExpressionStatement(IR_PreIncrementExpression(VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n)  => 1L
-            case ExpressionStatement(IR_PostIncrementExpression(VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n) => 1L
+            case IR_ExpressionStatement(IR_PreIncrementExpression(VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n)  => 1L
+            case IR_ExpressionStatement(IR_PostIncrementExpression(VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n) => 1L
             case AssignmentStatement(VariableAccess(n, Some(IR_IntegerDatatype)),
             IR_IntegerConstant(i),
-            "+=") if (itName == n)                                                                                             => i
+            "+=") if (itName == n)                                                                                                => i
             case AssignmentStatement(VariableAccess(n1, Some(IR_IntegerDatatype)),
             IR_AdditionExpression(ListBuffer(IR_IntegerConstant(i), VariableAccess(n2, Some(IR_IntegerDatatype)))),
-            "=") if (itName == n1 && itName == n2)                                                                             => i
+            "=") if (itName == n1 && itName == n2)                                                                                => i
             case AssignmentStatement(VariableAccess(n1, Some(IR_IntegerDatatype)),
             IR_AdditionExpression(ListBuffer(VariableAccess(n2, Some(IR_IntegerDatatype)), IR_IntegerConstant(i))),
             "=") if (itName == n1 && itName == n2)                                                                             => i
@@ -102,12 +102,12 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   private final class LoopCtx(val itName : String, val incr : Long) {
 
-    private val vectStmtsStack = new ArrayBuffer[ListBuffer[Statement]]()
-    var storesTmp : Statement = null
+    private val vectStmtsStack = new ArrayBuffer[ListBuffer[IR_Statement]]()
+    var storesTmp : IR_Statement = null
     var ignIncr : Boolean = false
 
-    private val preLoopStmts = new ListBuffer[Statement]()
-    private val postLoopStmts = new ListBuffer[Statement]()
+    private val preLoopStmts = new ListBuffer[IR_Statement]()
+    private val postLoopStmts = new ListBuffer[IR_Statement]()
 
     val toFinish_LCSE = Map[String, SIMD_ConcShift]()
 
@@ -122,7 +122,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     // init
     pushScope()
 
-    def addStmt(stmt : Statement) : Unit = {
+    def addStmt(stmt : IR_Statement) : Unit = {
       vectStmtsStack.last += stmt
     }
 
@@ -131,24 +131,24 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       preLoopStmts += decl
     }
 
-    def getPreLoopStmts() : ListBuffer[Statement] = {
+    def getPreLoopStmts() : ListBuffer[IR_Statement] = {
       return preLoopStmts
     }
 
-    def addStmtPostLoop(stmt : Statement) : Unit = {
+    def addStmtPostLoop(stmt : IR_Statement) : Unit = {
       postLoopStmts += stmt
     }
 
-    def getPostLoopStmts() : ListBuffer[Statement] = {
+    def getPostLoopStmts() : ListBuffer[IR_Statement] = {
       return postLoopStmts
     }
 
     def pushScope() : Unit = {
       temporaryMappingStack += Map[IR_Expression, String]()
-      vectStmtsStack += new ListBuffer[Statement]()
+      vectStmtsStack += new ListBuffer[IR_Statement]()
     }
 
-    def popScope() : ListBuffer[Statement] = {
+    def popScope() : ListBuffer[IR_Statement] = {
       temporaryMappingStack.remove(temporaryMappingStack.length - 1)
       return vectStmtsStack.remove(vectStmtsStack.length - 1)
     }
@@ -232,10 +232,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
   }
 
   private def vectorizeLoop(oldLoop : ForLoopStatement, itVar : String, begin : IR_Expression, endExcl : IR_Expression,
-      incr : Long, body : ListBuffer[Statement], reduction : Option[Reduction]) : Statement = {
+      incr : Long, body : ListBuffer[IR_Statement], reduction : Option[Reduction]) : IR_Statement = {
 
     val ctx = new LoopCtx(itVar, incr)
-    var postLoopStmt : Statement = null
+    var postLoopStmt : IR_Statement = null
     if (reduction.isDefined) {
       val target = reduction.get.target
       val operator = reduction.get.op
@@ -338,15 +338,15 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     oldLoop.inc = new AssignmentStatement(itVarAcc, IR_IntegerConstant(newIncr), "+=")
     oldLoop.body = ctx.popScope()
 
-    var postLoop : Statement = null
+    var postLoop : IR_Statement = null
     val annot = oldLoop.removeAnnotation(Unrolling.UNROLLED_ANNOT)
     val unrolled : Boolean = annot.isDefined
-    var res : ListBuffer[Statement] = null
+    var res : ListBuffer[IR_Statement] = null
     if (unrolled) {
-      res = new ListBuffer[Statement]()
+      res = new ListBuffer[IR_Statement]()
     } else {
       // old AST will be replaced completely, so we can reuse the body once here (and duplicate later)
-      val (boundsDecls, postLoop_) : (ListBuffer[Statement], Statement) =
+      val (boundsDecls, postLoop_) : (ListBuffer[IR_Statement], IR_Statement) =
       Unrolling.getBoundsDeclAndPostLoop(itVar, begin, endExcl, incr, body, Duplicate(reduction))
       postLoop = postLoop_
       res = boundsDecls
@@ -357,7 +357,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       val preEndVar : String = "_preEnd"
       def preEndVarAcc = new VariableAccess(preEndVar, IR_IntegerDatatype)
 
-      val wrappedAlignExpr = new ExpressionStatement(Duplicate(alignmentExpr))
+      val wrappedAlignExpr = new IR_ExpressionStatement(Duplicate(alignmentExpr))
       val replItVar = new QuietDefaultStrategy("Replace iteration variable...")
       replItVar += new Transformation("seaching...", {
         case VariableAccess(name, _) if (name == itVar) =>
@@ -385,7 +385,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       res += intermDecl
     }
 
-    val emptyLoopGuard = new ConditionStatement(IR_LowerExpression(Unrolling.startVarAcc, Unrolling.intermVarAcc), new ListBuffer[Statement]())
+    val emptyLoopGuard = new ConditionStatement(IR_LowerExpression(Unrolling.startVarAcc, Unrolling.intermVarAcc), new ListBuffer[IR_Statement]())
     emptyLoopGuard.trueBody ++= ctx.getPreLoopStmts()
     emptyLoopGuard.trueBody += oldLoop
     emptyLoopGuard.trueBody ++= ctx.getPostLoopStmts()
@@ -400,16 +400,16 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     return new Scope(res)
   }
 
-  private def vectorizeStmt(stmt : Statement, ctx : LoopCtx) : Unit = {
+  private def vectorizeStmt(stmt : IR_Statement, ctx : LoopCtx) : Unit = {
     stmt match {
-      case NullStatement => // SIMD_NullStatement? no way...
+      case IR_NullStatement => // SIMD_NullStatement? no way...
 
       case CommentStatement(str) =>
         ctx.addStmt(new CommentStatement(str)) // new instance
 
       case AssignmentStatement(lhsSca, rhsSca, assOp) =>
         ctx.addStmt(new CommentStatement(stmt.prettyprint()))
-        val srcWrap = new ExpressionStatement(Duplicate(assOp match {
+        val srcWrap = new IR_ExpressionStatement(Duplicate(assOp match {
           case "="  => rhsSca
           case "+=" => IR_AdditionExpression(lhsSca, rhsSca)
           case "-=" => IR_SubtractionExpression(lhsSca, rhsSca)
@@ -442,7 +442,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
       case VariableDeclarationStatement(dataType, name, Some(init)) =>
         ctx.addStmt(new CommentStatement(stmt.prettyprint()))
-        val initWrap = new ExpressionStatement(Duplicate(init))
+        val initWrap = new IR_ExpressionStatement(Duplicate(init))
         SimplifyStrategy.doUntilDoneStandalone(initWrap)
         val initVec = vectorizeExpr(initWrap.expression, ctx.setLoad())
         val (vecTmp : String, true) = ctx.getName(new VariableAccess(name, Some(dataType)))

@@ -15,11 +15,11 @@ import exastencils.omp._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 
-case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends Statement with Expandable {
+case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = HandleBoundaries\n"
 
-  def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[Statement] = {
-    var statements : ListBuffer[Statement] = ListBuffer()
+  def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     // apply local trafo and replace boundaryCoord
     val strat = QuietDefaultStrategy("ResolveBoundaryCoordinates")
@@ -53,7 +53,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
       }
     })
     val bc = Duplicate(field.field.boundaryConditions.get)
-    strat.applyStandalone(ExpressionStatement(bc))
+    strat.applyStandalone(IR_ExpressionStatement(bc))
 
     // FIXME: this works for now, but users may want to specify bc's per vector element
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
@@ -99,7 +99,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     statements
   }
 
-  override def expand : Output[Statement] = {
+  override def expand : Output[IR_Statement] = {
     val layout = field.field.fieldLayout
     if (field.field.boundaryConditions.isDefined) {
       new LoopOverFragments(
@@ -114,10 +114,10 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
               adaptedIndexRange,
               setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
             loopOverDims.optLevel = 1
-            new ConditionStatement(IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : Statement
+            new ConditionStatement(IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
           }))) with OMP_PotentiallyParallel
     } else {
-      NullStatement
+      IR_NullStatement
     }
   }
 }

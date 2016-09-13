@@ -58,7 +58,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     val toInline = Map[String, Int]()
     for ((func, funcStmt) <- analyzer.functions) {
       // some heuristics to identify which functions to inline
-      val stmts : Buffer[Statement] = analyzer.flatFunctionBody(func)
+      val stmts : Buffer[IR_Statement] = analyzer.flatFunctionBody(func)
       var inline : Boolean = stmts.length <= Knowledge.ir_maxInliningSize
       if (heuristics_prepareCSE) {
         var singleRet : Boolean = false
@@ -119,7 +119,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     this.commit()
   }
 
-  private def inline(callScope : Node, callStmt : Statement, callExpr : FunctionCallExpression, funcStmt : FunctionStatement,
+  private def inline(callScope : Node, callStmt : IR_Statement, callExpr : FunctionCallExpression, funcStmt : FunctionStatement,
       potConflicts : Set[String], potConflToUpdate : Set[String]) : Boolean = {
 
     // each function parameter must be given in call
@@ -163,7 +163,7 @@ object Inlining extends CustomStrategy("Function inlining") {
       case r : ReturnStatement if (r eq retStmt) =>
         List()
     }), Some(bodyWrapper))
-    val body : ListBuffer[Statement] = bodyWrapper.body
+    val body : ListBuffer[IR_Statement] = bodyWrapper.body
 
     // prepend declarations for method parameters (after renaming, as initialization must not be modified)
     body.++=:(funcStmt.parameters.zip(callExpr.arguments).map {
@@ -190,11 +190,11 @@ object Inlining extends CustomStrategy("Function inlining") {
 
     // perform actual inlining
     this.execute(new Transformation("inline", {
-      case ExpressionStatement(call : FunctionCallExpression) if (call eq callExpr) =>
+      case IR_ExpressionStatement(call : FunctionCallExpression) if (call eq callExpr) =>
         body // return value is not available/used
-      case stmt : Statement if (stmt eq callStmt)                                   =>
+      case stmt : IR_Statement if (stmt eq callStmt)                                   =>
         body += stmt
-      case call : IR_Expression if (call eq callExpr)                               =>
+      case call : IR_Expression if (call eq callExpr)                                  =>
         if (retStmt == null || retStmt.expr.isEmpty)
           Logger.error("[inline]  Return type is Unit, but call is not inside an ExpressionStatement node")
         else
@@ -207,14 +207,14 @@ object Inlining extends CustomStrategy("Function inlining") {
   private final class Analyzer extends StackCollector {
 
     private[Inlining] final val functions = Map[String, FunctionStatement]()
-    private[Inlining] final val flatFunctionBody = Map[String, Buffer[Statement]]((null, ArrayBuffer()))
+    private[Inlining] final val flatFunctionBody = Map[String, Buffer[IR_Statement]]((null, ArrayBuffer()))
     // value of calls: (call itself, statement containing it, statement's parent, function containing statement)
-    private[Inlining] final val calls = Map[String, ListBuffer[(FunctionCallExpression, Statement, Node, String)]]()
+    private[Inlining] final val calls = Map[String, ListBuffer[(FunctionCallExpression, IR_Statement, Node, String)]]()
     private[Inlining] final val potConflicts = Map[String, Set[String]]()
 
     private var curFunc : String = null
     private var inlinable : Boolean = false
-    private var allowedReturn : Statement = null
+    private var allowedReturn : IR_Statement = null
 
     override def enter(node : Node) : Unit = {
       node match {
@@ -239,8 +239,8 @@ object Inlining extends CustomStrategy("Function inlining") {
           var it = stack.iterator
           while (it != null && it.hasNext) {
             val next = it.next()
-            if (next.isInstanceOf[Statement]) {
-              callSites += ((call, next.asInstanceOf[Statement], it.next(), curFunc))
+            if (next.isInstanceOf[IR_Statement]) {
+              callSites += ((call, next.asInstanceOf[IR_Statement], it.next(), curFunc))
               it = null // break
             }
           }
@@ -256,7 +256,7 @@ object Inlining extends CustomStrategy("Function inlining") {
         case IR_StringLiteral(retStr) if (retStr.contains("return")) =>
           inlinable = false
 
-        case stmt : Statement =>
+        case stmt : IR_Statement =>
           flatFunctionBody(curFunc) += stmt
 
         case _ => // ignore

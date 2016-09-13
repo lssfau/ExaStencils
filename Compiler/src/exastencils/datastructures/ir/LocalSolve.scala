@@ -26,7 +26,7 @@ case class EquationExpression(var lhs : IR_Expression, var rhs : IR_Expression) 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EquationExpression\n"
 }
 
-case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equations : ListBuffer[EquationExpression]) extends Statement {
+case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equations : ListBuffer[EquationExpression]) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SolveLocallyStatement\n"
 
   var fVals = ListBuffer[IR_AdditionExpression]()
@@ -133,7 +133,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     validate()
     sortEquations()
 
-    var stmts = ListBuffer[Statement]()
+    var stmts = ListBuffer[IR_Statement]()
 
     def u = VariableAccess("_local_unknowns", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
     def f = VariableAccess("_local_rhs", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
@@ -151,8 +151,8 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
     // construct rhs and matrix
     for (i <- 0 until unknowns.length) {
-      var innerStmts = ListBuffer[Statement]()
-      var boundaryStmts = ListBuffer[Statement]()
+      var innerStmts = ListBuffer[IR_Statement]()
+      var boundaryStmts = ListBuffer[IR_Statement]()
 
       innerStmts += AssignmentStatement(hackVecComponentAccess(f, i), fVals(i))
       for (j <- 0 until unknowns.length)

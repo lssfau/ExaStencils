@@ -191,7 +191,7 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
     case exp : IR_MultiplicationExpression => {
       val newMult = transformMultiplication(exp)
       newMult.factors.size match {
-        case 0 => NullExpression
+        case 0 => IR_NullExpression
         case 1 => newMult.factors(0)
         case _ => newMult
       }
@@ -202,7 +202,7 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
 object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
   this += new Transformation("SearchAndMark", {
     case AssignmentStatement(stencilFieldAccess : StencilFieldAccess, StencilAccess(stencil), op) => {
-      var statements : ListBuffer[Statement] = ListBuffer()
+      var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val stencilRight = stencil
       val stencilLeft = stencilFieldAccess.stencilFieldSelection.stencil

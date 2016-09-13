@@ -127,21 +127,21 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
 
     if (DomainCollection.domains.size <= 1)
       this.execute(new Transformation("Resolving IsValidForSubdomain", {
-        case AssignmentStatement(_ : iv.IsValidForSubdomain, _, _) => NullStatement
+        case AssignmentStatement(_ : iv.IsValidForSubdomain, _, _) => IR_NullStatement
         case _ : iv.IsValidForSubdomain                            => IR_BooleanConstant(true)
       }))
 
     if (!Knowledge.mpi_enabled || Knowledge.mpi_numThreads <= 1)
       this.execute(new Transformation("Resolving NeighborIsRemote and NeighborRemoteRank", {
-        case AssignmentStatement(_ : iv.NeighborIsRemote, _, _)   => NullStatement
+        case AssignmentStatement(_ : iv.NeighborIsRemote, _, _)   => IR_NullStatement
         case _ : iv.NeighborIsRemote                              => IR_BooleanConstant(false)
-        case AssignmentStatement(_ : iv.NeighborRemoteRank, _, _) => NullStatement
+        case AssignmentStatement(_ : iv.NeighborRemoteRank, _, _) => IR_NullStatement
         case _ : iv.NeighborRemoteRank                            => IR_IntegerConstant(-1)
       }))
 
     if (Knowledge.domain_numFragmentsTotal <= 1 && !Knowledge.domain_rect_hasPeriodicity) {
       this.execute(new Transformation("Resolving NeighborIsValid", {
-        case AssignmentStatement(_ : iv.NeighborIsValid, _, _) => NullStatement
+        case AssignmentStatement(_ : iv.NeighborIsValid, _, _) => IR_NullStatement
         case _ : iv.NeighborIsValid                            => IR_BooleanConstant(false)
       }))
     } else if (Knowledge.domain_rect_generate) {
@@ -149,7 +149,7 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
         if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1 && !Knowledge.domain_rect_periodicAsVec(dim))
           this.execute(new Transformation(s"Resolving NeighborIsValid in dimension $dim", {
             case AssignmentStatement(niv : iv.NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
-              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => NullStatement
+              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_NullStatement
             case niv : iv.NeighborIsValid if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
               && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_BooleanConstant(false)
           }))
@@ -157,13 +157,13 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
 
     if (Knowledge.domain_numFragmentsPerBlock <= 1 || Knowledge.comm_disableLocalCommSync) {
       this.execute(new Transformation("Resolving local synchronization", {
-        case AssignmentStatement(_ : iv.LocalCommReady, _, _) => NullStatement
+        case AssignmentStatement(_ : iv.LocalCommReady, _, _) => IR_NullStatement
         case _ : iv.LocalCommReady                            => IR_BooleanConstant(true)
 
-        case AssignmentStatement(_ : iv.LocalCommDone, _, _) => NullStatement
+        case AssignmentStatement(_ : iv.LocalCommDone, _, _) => IR_NullStatement
         case _ : iv.LocalCommDone                            => IR_BooleanConstant(true)
 
-        case FunctionCallExpression("waitForFlag", _) => NullExpression
+        case FunctionCallExpression("waitForFlag", _) => IR_NullExpression
       }))
     }
 
@@ -193,7 +193,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
   this += new Transformation("Generating functions", {
     case multiGrid : MultiGridFunctions =>
       for (layout <- layoutMap) {
-        var body = ListBuffer[Statement]()
+        var body = ListBuffer[IR_Statement]()
         def newInnerSize(dim : Integer) = VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
         def idxShift(dim : Integer) = VariableAccess(s"idxShift_${ dimToString(dim) }", Some(IR_IntegerDatatype))
 
@@ -213,7 +213,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
         }
 
         // wrap body in fragment loop
-        body = ListBuffer[Statement](LoopOverFragments(body))
+        body = ListBuffer[IR_Statement](LoopOverFragments(body))
 
         // set up function
         multiGrid.functions += new FunctionStatement(
@@ -226,7 +226,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
 
       // generate a special resize functions for all fields on a given level
       for (level <- Knowledge.maxLevel to Knowledge.minLevel by -1) {
-        var body = ListBuffer[Statement]()
+        var body = ListBuffer[IR_Statement]()
         def newInnerSize(dim : Integer) = VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
 
         // generate function calls with adapted sizes
@@ -257,16 +257,16 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
 
 object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
   var declarationMap : HashMap[String, VariableDeclarationStatement] = HashMap()
-  var ctorMap : HashMap[String, Statement] = HashMap()
-  var dtorMap : HashMap[String, Statement] = HashMap()
+  var ctorMap : HashMap[String, IR_Statement] = HashMap()
+  var dtorMap : HashMap[String, IR_Statement] = HashMap()
 
   var bufferSizes : HashMap[String, IR_Expression] = HashMap()
-  var bufferAllocs : HashMap[String, Statement] = HashMap()
-  var fieldAllocs : HashMap[String, Statement] = HashMap()
+  var bufferAllocs : HashMap[String, IR_Statement] = HashMap()
+  var fieldAllocs : HashMap[String, IR_Statement] = HashMap()
 
   var deviceBufferSizes : HashMap[String, IR_Expression] = HashMap()
-  var deviceBufferAllocs : HashMap[String, Statement] = HashMap()
-  var deviceFieldAllocs : HashMap[String, Statement] = HashMap()
+  var deviceBufferAllocs : HashMap[String, IR_Statement] = HashMap()
+  var deviceFieldAllocs : HashMap[String, IR_Statement] = HashMap()
 
   var counter : Int = 0
 
@@ -284,7 +284,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer => {
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (bufferSizes.contains(id))
           bufferSizes.get(id).get.asInstanceOf[IR_MaximumExpression].args += Duplicate(buf.size)
@@ -303,12 +303,12 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       cleanedField.fragmentIdx = LoopOverFragments.defIt
 
       var numDataPoints : IR_Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-      var statements : ListBuffer[Statement] = ListBuffer()
+      var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val newFieldData = Duplicate(cleanedField)
       newFieldData.slot = (if (field.field.numSlots > 1) "slot" else 0)
 
-      var innerStmts : ListBuffer[Statement] =
+      var innerStmts : ListBuffer[IR_Statement] =
         if (Knowledge.data_alignFieldPointers) {
           counter += 1
           ListBuffer(
@@ -343,12 +343,12 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       cleanedField.fragmentIdx = LoopOverFragments.defIt
 
       var numDataPoints : IR_Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-      var statements : ListBuffer[Statement] = ListBuffer()
+      var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val newFieldData = Duplicate(cleanedField)
       newFieldData.slot = (if (field.field.numSlots > 1) "slot" else 0)
 
-      var innerStmts = ListBuffer[Statement](
+      var innerStmts = ListBuffer[IR_Statement](
         CUDA_AllocateStatement(newFieldData, numDataPoints, field.field.resolveBaseDatatype))
 
       if (field.field.numSlots > 1)
@@ -367,7 +367,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
     }
 
     case buf : iv.ReductionDeviceData => {
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, NullExpression, NullExpression, NullExpression).prettyprint
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (deviceBufferSizes.contains(id))
           deviceBufferSizes.get(id).get.asInstanceOf[IR_MaximumExpression].args += Duplicate(buf.size)
@@ -398,12 +398,12 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
   this += new Transformation("Updating temporary buffer allocations", {
     case buf : iv.TmpBuffer =>
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = bufferSizes(id)
 
       if (Knowledge.data_alignTmpBufferPointers) {
         counter += 1
-        bufferAllocs += (id -> new LoopOverFragments(ListBuffer[Statement](
+        bufferAllocs += (id -> new LoopOverFragments(ListBuffer[IR_Statement](
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * SizeOfExpression(IR_RealDatatype))),
           AssignmentStatement(buf.basePtr, Allocation(IR_RealDatatype, size + Platform.simd_vectorSize - 1)),
@@ -417,7 +417,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       buf
 
     case buf : iv.ReductionDeviceData =>
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, NullExpression, NullExpression, NullExpression, NullExpression).prettyprint
+      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
       deviceBufferAllocs += (id -> new LoopOverFragments(CUDA_AllocateStatement(buf, size, IR_RealDatatype /*FIXME*/)) with OMP_PotentiallyParallel)
@@ -433,7 +433,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         case ex : EvaluationException => // what a pitty...
       }
       if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned
-        bufferAllocs += (id -> buf.wrapInLoops(new Scope(ListBuffer[Statement](
+        bufferAllocs += (id -> buf.wrapInLoops(new Scope(ListBuffer[IR_Statement](
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * SizeOfExpression(IR_RealDatatype))),
           AssignmentStatement(buf.basePtr, Allocation(IR_RealDatatype, size + Platform.simd_vectorSize - 1)),

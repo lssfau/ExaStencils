@@ -13,7 +13,7 @@ import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-trait MPI_Statement extends Statement
+trait MPI_Statement extends IR_Statement
 
 // TODO: replace pp with expand where suitable
 
@@ -151,17 +151,17 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange,
     VariableDeclarationStatement("MPI_Datatype", generateName)
   }
 
-  def generateCtor : ListBuffer[Statement] = {
+  def generateCtor : ListBuffer[IR_Statement] = {
     val scalarDatatype = field.field.resolveBaseDatatype.prettyprint_mpi
 
     // compile statement(s)
-    ListBuffer[Statement](
+    ListBuffer[IR_Statement](
       FunctionCallExpression("MPI_Type_vector", ListBuffer(blockCount, blockLength, stride, scalarDatatype, mpiTypeNameArg)),
       FunctionCallExpression("MPI_Type_commit", ListBuffer(mpiTypeNameArg)))
   }
 
-  def generateDtor : ListBuffer[Statement] = {
-    ListBuffer[Statement](
+  def generateDtor : ListBuffer[IR_Statement] = {
+    ListBuffer[IR_Statement](
       FunctionCallExpression("MPI_Type_free", ListBuffer(mpiTypeNameArg)))
   }
 }
@@ -180,8 +180,8 @@ object MPI_DataType {
   }
 }
 
-case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement with Expandable {
-  def this(body : Statement) = this(ListBuffer(body))
+case class MPI_Sequential(var body : ListBuffer[IR_Statement]) extends IR_Statement with Expandable {
+  def this(body : IR_Statement) = this(ListBuffer(body))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = MPI_Sequential\n"
 
@@ -190,7 +190,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
       VariableDeclarationStatement(IR_IntegerDatatype, "curRank", Some(0)),
       IR_LowerExpression("curRank", Knowledge.mpi_numThreads),
       IR_PreIncrementExpression("curRank"),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         MPI_Barrier(),
         new ConditionStatement(IR_EqEqExpression("mpiRank", "curRank"), body)))
   }
@@ -212,14 +212,14 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
 
     if (Knowledge.mpi_useBusyWait) {
       FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(request.name, request.datatype.get)),
-        ListBuffer[Statement](
+        ListBuffer[IR_Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
           new VariableDeclarationStatement(flag, 0),
           new WhileLoopStatement(IR_EqEqExpression(0, flag),
             new AssignmentStatement(result, FunctionCallExpression("MPI_Test", ListBuffer(
               request, IR_AddressofExpression(flag), IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
-            new ConditionStatement(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[Statement](
+            new ConditionStatement(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
               new VariableDeclarationStatement(msg),
               new VariableDeclarationStatement(len),
               new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
@@ -229,11 +229,11 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
         false)
     } else {
       FunctionStatement(IR_UnitDatatype, s"waitForMPIReq", ListBuffer(FunctionArgument(request.name, request.datatype.get)),
-        ListBuffer[Statement](
+        ListBuffer[IR_Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
           new AssignmentStatement(result, FunctionCallExpression("MPI_Wait", ListBuffer(request, IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
-          new ConditionStatement(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[Statement](
+          new ConditionStatement(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
             new VariableDeclarationStatement(msg),
             new VariableDeclarationStatement(len),
             new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](

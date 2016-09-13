@@ -187,11 +187,11 @@ case class PointToOwningRank(var pos : Access, var domain : Domain) extends IR_E
   }
 }
 
-case class ConnectFragments() extends Statement with Expandable {
+case class ConnectFragments() extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
 
   override def expand : Output[LoopOverFragments] = {
-    var body = new ListBuffer[Statement]
+    var body = new ListBuffer[IR_Statement]
 
     val neighbors = exastencils.knowledge.Fragment.neighbors
     val domains = DomainCollection.domains
@@ -211,7 +211,7 @@ case class ConnectFragments() extends Statement with Expandable {
 
     if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
       for (neigh <- neighbors) {
-        var statements = ListBuffer[Statement]()
+        var statements = ListBuffer[IR_Statement]()
 
         statements += AssignmentStatement(s"Vec3 offsetPos",
           iv.PrimitivePosition() + s"Vec3(${ neigh.dir(0) } * ${ fragWidth_x }, ${ neigh.dir(1) } * ${ fragWidth_y }, ${ neigh.dir(2) } * ${ fragWidth_z })")
@@ -245,7 +245,7 @@ case class ConnectFragments() extends Statement with Expandable {
             } else {
               FunctionCallExpression("connectLocalElement", ListBuffer[IR_Expression](
                 LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), neigh.index, d))
-            }) : Statement))
+            }) : IR_Statement))
 
         body += Scope(statements)
       }
@@ -270,7 +270,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
     // FIXME: Constructor?
     val vecDelta = new FunctionCallExpression("Vec3", (0.5 * fragWidth_x), (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0), (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0))
 
-    var body = ListBuffer[Statement]()
+    var body = ListBuffer[IR_Statement]()
 
     if (Knowledge.mpi_enabled)
       body += AssertStatement(IR_EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
@@ -300,7 +300,7 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
     body += ConnectFragments()
 
-    body += new ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
+    body += new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
 
     FunctionStatement(IR_UnitDatatype, name, ListBuffer(), body)
   }
@@ -326,7 +326,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
               VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
               ConditionStatement(
                 "file.is_open()",
-                ListBuffer[Statement](
+                ListBuffer[IR_Statement](
                   VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("file.tellg()")),
                   VariableDeclarationStatement(IR_PointerDatatype("char"), "memblock", Some("new char[size]")),
                   "file.seekg (0, std::ios::beg)",
@@ -335,7 +335,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
                   AssignmentStatement("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
                   AssignmentStatement("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
                   (if (Knowledge.mpi_enabled) VariableDeclarationStatement(IR_IntegerDatatype, "fileOffset", Some("bufsize"))
-                  else NullStatement),
+                  else IR_NullStatement),
                   (if (Knowledge.mpi_enabled) {
                     ForLoopStatement("int i = 1", " i < numRanks ", "++i", ListBuffer(
                       VariableDeclarationStatement(IR_IntegerDatatype, "n", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
@@ -344,8 +344,8 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
                       MPI_Send("&fileOffset", "1", IR_IntegerDatatype, "i", 1, "mpiRequest_Send_0[i][1]"),
                       MPI_Send("&b", "1", IR_IntegerDatatype, "i", 2, "mpiRequest_Send_0[i][2]"),
                       AssignmentStatement("fileOffset", IR_AdditionExpression("fileOffset", "b"))))
-                  } else NullStatement),
-                  "file.close()"), ListBuffer[Statement]()),
+                  } else IR_NullStatement),
+                  "file.close()"), ListBuffer[IR_Statement]()),
               AssignmentStatement("fileOffset", 0)),
             ListBuffer(
               "MPI_Irecv(&numFragments, 1, MPI_INT, 0, 0, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][0])",
@@ -358,7 +358,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
           "MPI_Barrier(MPI_COMM_WORLD)",
           "MPI_File_close(&fh)",
           "setValues(buf,numFragments)",
-          new ExpressionStatement(new FunctionCallExpression("setupBuffers")))
+          new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")))
       } else {
         ListBuffer(
           VariableDeclarationStatement(IR_IntegerDatatype, "numFragments", Some("0")),
@@ -367,7 +367,7 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
           VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
           ConditionStatement(
             "file.is_open()",
-            ListBuffer[Statement](
+            ListBuffer[IR_Statement](
               VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("file.tellg()")),
               VariableDeclarationStatement(IR_PointerDatatype("char"), "memblock", Some("new char[size]")),
               "file.seekg (0, std::ios::beg)",
@@ -375,13 +375,13 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
               VariableDeclarationStatement(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
               AssignmentStatement("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
               AssignmentStatement("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
-              "file.close()"), ListBuffer[Statement]()),
+              "file.close()"), ListBuffer[IR_Statement]()),
           VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), s"""fileFrags("./Domains/fragments.dat", std::ios::binary | std::ios::in)"""),
           VariableDeclarationStatement(IR_CharDatatype, "buf[bufsize]"),
           "fileFrags.read (buf, bufsize)",
           "fileFrags.close()",
           "setValues(buf,numFragments)",
-          new ExpressionStatement(new FunctionCallExpression("setupBuffers")))
+          new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")))
       }))
 
   }
@@ -393,7 +393,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
   override def name = "setValues"
 
   override def expand : Output[FunctionStatement] = {
-    var body = new ListBuffer[Statement]
+    var body = new ListBuffer[IR_Statement]
     for (d <- 0 until DomainCollection.domains.size) {
       body += AssignmentStatement(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
     }
@@ -404,8 +404,8 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
         // FIXME: Constructor?
         // s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
         VariableDeclarationStatement(IR_SpecialDatatype("Vec3"), "vertPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
-        (if (Knowledge.dimensionality == 2) AssignmentStatement("vertPos.y", ReadValueFrom(IR_RealDatatype, "data")) else NullStatement),
-        (if (Knowledge.dimensionality == 3) AssignmentStatement("vertPos.z", ReadValueFrom(IR_RealDatatype, "data")) else NullStatement),
+        (if (Knowledge.dimensionality == 2) AssignmentStatement("vertPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
+        (if (Knowledge.dimensionality == 3) AssignmentStatement("vertPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
         SwitchStatement("i", ListBuffer(
           CaseStatement("0", ListBuffer(AssignmentStatement(iv.PrimitivePositionBegin(), "vertPos"))),
           CaseStatement("1", ListBuffer(AssignmentStatement(iv.PrimitivePositionEnd(), "vertPos"))),
@@ -414,8 +414,8 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
       // FIXME: Constructor?
       // s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
       VariableDeclarationStatement(IR_SpecialDatatype("Vec3"), "fragPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
-      (if (Knowledge.dimensionality == 2) AssignmentStatement("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else NullStatement),
-      (if (Knowledge.dimensionality == 3) AssignmentStatement("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else NullStatement),
+      (if (Knowledge.dimensionality == 2) AssignmentStatement("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
+      (if (Knowledge.dimensionality == 3) AssignmentStatement("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       AssignmentStatement(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
     ))
     for (d <- 0 until DomainCollection.domains.size) {
@@ -426,12 +426,12 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
               ListBuffer(//neighbor is remote
                 VariableDeclarationStatement(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
                 VariableDeclarationStatement(IR_IntegerDatatype, "neighRank", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
-                (if (Knowledge.mpi_enabled) s"connectRemoteElement (${ iv.CommId().prettyprint() }, neighIdx, neighRank, location, $d)" else NullStatement)),
+                (if (Knowledge.mpi_enabled) s"connectRemoteElement (${ iv.CommId().prettyprint() }, neighIdx, neighRank, location, $d)" else IR_NullStatement)),
               ListBuffer(//neighbor is local
                 VariableDeclarationStatement(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
-                if (FragmentCollection.fragments.length > 1) s"connectLocalElement(${ iv.CommId().prettyprint() },neighIdx,location,$d)" else NullStatement))),
+                if (FragmentCollection.fragments.length > 1) s"connectLocalElement(${ iv.CommId().prettyprint() },neighIdx,location,$d)" else IR_NullStatement))),
           ListBuffer(
-            NullStatement))))
+            IR_NullStatement))))
     }
     body += ConditionStatement(ReadValueFrom(IR_BooleanDatatype, "data"),
       ListBuffer(
@@ -439,7 +439,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
         ForLoopStatement("int i = 0", " i < 12 ", "++i", ListBuffer(
           AssignmentStatement("trafoTmp[i]", ReadValueFrom(IR_RealDatatype, "data")))),
         AssignmentStatement(iv.PrimitiveTransformation(), "trafoTmp")),
-      ListBuffer(NullStatement))
+      ListBuffer(IR_NullStatement))
     FunctionStatement(IR_UnitDatatype, name,
       ListBuffer[FunctionArgument](FunctionArgument("data", IR_SpecialDatatype("char*")), FunctionArgument("numFragments", IR_IntegerDatatype)),
       //      ListBuffer((LoopOverFragments(body))))
@@ -468,7 +468,7 @@ case class DomainFunctions() extends FunctionCollection(
       ListBuffer[FunctionArgument](
         FunctionArgument("memblock", IR_SpecialDatatype("char*&")),
         FunctionArgument("title = \"\"", IR_SpecialDatatype("std::string"))),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("sizeof(T)")),
         VariableDeclarationStatement(IR_CharDatatype, "bytes[size]"),
         ForLoopStatement("int j = 0", " j < size ", "++j", ListBuffer("bytes[size-1-j] = memblock[j]")),

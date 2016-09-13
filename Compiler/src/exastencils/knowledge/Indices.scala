@@ -68,13 +68,13 @@ object dimToString extends (Int => String) {
   }
 }
 
-case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : MultiIndex = new MultiIndex(0, 0, 0) /* was float index before */) extends Statement with Expandable {
+case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : MultiIndex = new MultiIndex(0, 0, 0) /* was float index before */) extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeomCoords\n"
 
   override def expand : Output[StatementList] = {
     if (Knowledge.domain_fragmentTransformation) {
       // TODO: integrate into the new grid class family
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
           case "node" | "face_x"            =>
             Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : IR_Expression)) + offset(0))
@@ -122,14 +122,14 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
               + ("yPosTMP" : IR_Expression) * ArrayAccess(iv.PrimitiveTransformation(), 5)
               + ("zPosTMP" : IR_Expression) * ArrayAccess(iv.PrimitiveTransformation(), 6)
               + ArrayAccess(iv.PrimitiveTransformation(), 7)))
-        else NullStatement,
+        else IR_NullStatement,
         if (Knowledge.dimensionality > 2)
           VariableDeclarationStatement(IR_RealDatatype, "zPos", Some(
             ("xPosTMP" : IR_Expression) * ArrayAccess(iv.PrimitiveTransformation(), 8)
               + ("yPosTMP" : IR_Expression) * ArrayAccess(iv.PrimitiveTransformation(), 9)
               + ("zPosTMP" : IR_Expression) * ArrayAccess(iv.PrimitiveTransformation(), 10)
               + ArrayAccess(iv.PrimitiveTransformation(), 11)))
-        else NullStatement)
+        else IR_NullStatement)
     } else {
       Logger.error("deprecated")
     }

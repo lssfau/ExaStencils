@@ -39,7 +39,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     new VariableDeclarationStatement(datatype, resolveName)
   }
 
-  def wrapInLoops(body : Statement) : Statement = {
+  def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = body
 
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
@@ -56,14 +56,14 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     wrappedBody
   }
 
-  def getCtor() : Option[Statement] = {
+  def getCtor() : Option[IR_Statement] = {
     if (resolveDefValue.isDefined)
       Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
     else
       None
   }
 
-  def getDtor() : Option[Statement] = None
+  def getDtor() : Option[IR_Statement] = None
 
   def resolvePostfix(fragment : String, domain : String, field : String, level : String, neigh : String) : String = {
     var postfix : String = ""
@@ -106,7 +106,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     access
   }
 
-  def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+  def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     declarations += (resolveName -> getDeclaration)
     for (ctor <- getCtor())
       ctors += (resolveName -> ctor)

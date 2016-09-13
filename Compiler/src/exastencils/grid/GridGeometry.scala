@@ -66,7 +66,7 @@ abstract class GridGeometry() {
 
   // injection of  missing l4 information for virtual fields and generation of setup code
   def initL4() : Unit
-  def generateInitCode() : ListBuffer[Statement]
+  def generateInitCode() : ListBuffer[IR_Statement]
 }
 
 object GridGeometry {
@@ -153,7 +153,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
         l4.LeveledIdentifier("node_pos_z", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
-  def setupNodePos_Uniform(dim : Int, level : Int) : ListBuffer[Statement] = {
+  def setupNodePos_Uniform(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
     val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
     val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
@@ -175,7 +175,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
       VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        NullStatement
+        IR_NullStatement
       else
         new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
@@ -190,7 +190,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     val leftBoundaryUpdate = new ConditionStatement(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
         AssignmentStatement(Duplicate(leftGhostAccess),
@@ -206,20 +206,20 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     val rightBoundaryUpdate = new ConditionStatement(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
         AssignmentStatement(Duplicate(rightGhostAccess),
           2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim))))
 
     // compile final loop
-    ListBuffer[Statement](
-      LoopOverFragments(ListBuffer[Statement](
+    ListBuffer[IR_Statement](
+      LoopOverFragments(ListBuffer[IR_Statement](
         LoopOverPoints(field, None, true,
           GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
           GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
           new MultiIndex(1, 1, 1),
-          ListBuffer[Statement](
+          ListBuffer[IR_Statement](
             innerItDecl,
             AssignmentStatement(Duplicate(baseAccess),
               domainBounds.lower(dim) - innerIt * cellWidth))),
@@ -227,7 +227,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
         rightBoundaryUpdate)))
   }
 
-  def setupNodePos_LinearFct(dim : Int, level : Int) : ListBuffer[Statement] = {
+  def setupNodePos_LinearFct(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
     val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
     val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
@@ -270,7 +270,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
       VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        NullStatement
+        IR_NullStatement
       else
         new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
@@ -285,7 +285,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     val leftBoundaryUpdate = new ConditionStatement(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
         AssignmentStatement(Duplicate(leftGhostAccess),
@@ -301,20 +301,20 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     val rightBoundaryUpdate = new ConditionStatement(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
         AssignmentStatement(Duplicate(rightGhostAccess),
           2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim))))
 
     // compile final loop
-    ListBuffer[Statement](
-      LoopOverFragments(ListBuffer[Statement](
+    ListBuffer[IR_Statement](
+      LoopOverFragments(ListBuffer[IR_Statement](
         LoopOverPoints(field, None, true,
           GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
           GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -2, dim),
           new MultiIndex(1, 1, 1),
-          ListBuffer[Statement](
+          ListBuffer[IR_Statement](
             innerItDecl,
             new ConditionStatement(IR_LowerEqualExpression(innerIt, xf + 1),
               AssignmentStatement(Duplicate(baseAccess),
@@ -434,7 +434,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     }
   }
 
-  def setupNodePos_Diego(dim : Int, level : Int) : ListBuffer[Statement] = {
+  def setupNodePos_Diego(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
     val expo = 1.5
     val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
     val zoneSize = numCells / 4
@@ -462,7 +462,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
         GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
         new MultiIndex(1, 1, 1),
-        ListBuffer[Statement](
+        ListBuffer[IR_Statement](
           new ConditionStatement(IR_LowerEqualExpression(innerIt, 0),
             AssignmentStatement(Duplicate(baseAccess), 0.0),
             new ConditionStatement(IR_LowerEqualExpression(innerIt, 1 * zoneSize),
@@ -484,7 +484,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim)))
   }
 
-  def setupNodePos_Diego2(dim : Int, level : Int) : ListBuffer[Statement] = {
+  def setupNodePos_Diego2(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
     // virtually the same as setupNodePos_Diego but with only three zones -> replicates the new test cases
     val expo = 1.5
     val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
@@ -519,7 +519,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
         GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
         new MultiIndex(1, 1, 1),
-        ListBuffer[Statement](
+        ListBuffer[IR_Statement](
           new ConditionStatement(IR_LowerEqualExpression(innerIt, 0),
             AssignmentStatement(Duplicate(baseAccess), 0.0),
             new ConditionStatement(IR_LowerEqualExpression(innerIt, zoneSize_1),
@@ -538,7 +538,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim)))
   }
 
-  def setupStagCVWidth(dim : Int, level : Int) : ListBuffer[Statement] = {
+  def setupStagCVWidth(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
     val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
     val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
@@ -557,7 +557,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
       VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        NullStatement
+        IR_NullStatement
       else
         new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
@@ -572,7 +572,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     val leftBoundaryUpdate = new ConditionStatement(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
         AssignmentStatement(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
 
@@ -586,18 +586,18 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     val rightBoundaryUpdate = new ConditionStatement(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim), GridUtil.offsetAccess(rightGhostAccess, -2, dim)),
         AssignmentStatement(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim))))
 
     // compile final loop
-    ListBuffer[Statement](
-      LoopOverFragments(ListBuffer[Statement](
+    ListBuffer[IR_Statement](
+      LoopOverFragments(ListBuffer[IR_Statement](
         LoopOverPoints(field, None, true,
           GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
           GridUtil.offsetIndex(new MultiIndex(0, 0, 0), -1, dim),
           new MultiIndex(1, 1, 1),
-          ListBuffer[Statement](
+          ListBuffer[IR_Statement](
             innerItDecl,
             new ConditionStatement(IR_EqEqExpression(0, innerIt),
               AssignmentStatement(Duplicate(baseAccess),

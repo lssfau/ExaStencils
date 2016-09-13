@@ -214,7 +214,7 @@ object Testbed {
   println(node.prettyprint)
 */
 
-    var statements = new ListBuffer[Statement]
+    var statements = new ListBuffer[IR_Statement]
 
     statements +=
       """void tet_gs_coeff_1c(double* u, double* f, double *koe, double* stiff, int *p_tsize) {

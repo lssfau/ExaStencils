@@ -2,7 +2,7 @@ package exastencils.polyhedron
 
 import scala.collection.mutable._
 
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.datastructures.ir._
 import isl.Conversions._
 
@@ -17,7 +17,7 @@ class Scop(val root : LoopOverDimensions with PolyhedronAccessible, var localCon
   def getContext() : isl.Set = localContext.intersect(globalContext)
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
-  val stmts = new HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])]()
+  val stmts = new HashMap[String, (ListBuffer[IR_Statement], ArrayBuffer[String])]()
   val decls = new ListBuffer[VariableDeclarationStatement]()
 
   final val loopVarTempl : String = "_i%d"

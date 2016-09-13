@@ -2,7 +2,7 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.l4.L4_Expression
+import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.prettyprinting._
 
@@ -14,7 +14,7 @@ case class EquationExpression(var lhs : L4_Expression, var rhs : L4_Expression) 
   }
 }
 
-case class SolveLocallyStatement(var unknowns : List[L4_Expression], var equations : List[EquationExpression]) extends Statement {
+case class SolveLocallyStatement(var unknowns : List[L4_Expression], var equations : List[EquationExpression]) extends L4_Statement {
   override def prettyprint(out : PpStream) : Unit = ???
 
   override def progress : ir.SolveLocallyStatement = {

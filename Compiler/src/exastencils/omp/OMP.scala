@@ -17,16 +17,16 @@ trait OMP_PotentiallyParallel {
   var collapse = 1
 }
 
-case class OMP_Barrier() extends Statement {
+case class OMP_Barrier() extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "#pragma omp barrier"
 }
 
-case class OMP_Critical(var body : Scope) extends Statement {
+case class OMP_Critical(var body : Scope) extends IR_Statement {
 
   import OMP_Critical._
 
-  def this(body : Statement) = this(new Scope(body))
-  def this(body : ListBuffer[Statement]) = this(new Scope(body))
+  def this(body : IR_Statement) = this(new Scope(body))
+  def this(body : ListBuffer[IR_Statement]) = this(new Scope(body))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "#pragma omp critical"
@@ -42,7 +42,7 @@ case object OMP_Critical {
   var counter = 0
 }
 
-case class OMP_ParallelFor(var body : ForLoopStatement, var additionalOMPClauses : ListBuffer[OMP_Clause], var collapse : Int = 1) extends Statement {
+case class OMP_ParallelFor(var body : ForLoopStatement, var additionalOMPClauses : ListBuffer[OMP_Clause], var collapse : Int = 1) extends IR_Statement {
 
   /**
     * Computes the actual omp collapse level,
@@ -50,9 +50,9 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var additionalOMPClauses
     */
   private def getCollapseLvl() : Int = {
     var res : Int = 1
-    var stmts : ListBuffer[Statement] = body.body
+    var stmts : ListBuffer[IR_Statement] = body.body
     while (res < collapse) {
-      val filtered = stmts.filterNot(s => s.isInstanceOf[CommentStatement] || s == NullStatement)
+      val filtered = stmts.filterNot(s => s.isInstanceOf[CommentStatement] || s == IR_NullStatement)
       if (filtered.length != 1)
         return res // no more than one statement allowed: not perfectly nested anymore, return last valid collapse level
       stmts =
@@ -85,8 +85,8 @@ case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
     def flag = VariableAccess("flag", Some(IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype))))
 
     FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(flag.name, flag.datatype.get)),
-      ListBuffer[Statement](
-        new WhileLoopStatement(IR_NegationExpression(DerefAccess(flag)), ListBuffer[Statement]()),
+      ListBuffer[IR_Statement](
+        new WhileLoopStatement(IR_NegationExpression(DerefAccess(flag)), ListBuffer[IR_Statement]()),
         new AssignmentStatement(DerefAccess(flag), IR_BooleanConstant(false))),
       false)
   }

@@ -12,7 +12,7 @@ import exastencils.prettyprinting._
 /// variables and flags
 
 case class CurrentSlot(var field : Field, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, NullExpression)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
@@ -22,7 +22,7 @@ case class CurrentSlot(var field : Field, var fragmentIdx : IR_Expression = Loop
 }
 
 case class IndexFromField(var layoutIdentifier : String, var level : IR_Expression, var indexId : String, var dim : Int, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
@@ -30,20 +30,20 @@ case class IndexFromField(var layoutIdentifier : String, var level : IR_Expressi
   override def resolveName = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "") + s"_${ dimToString(dim) }"
   override def resolveDatatype = IR_IntegerDatatype
 
-  override def getCtor() : Option[Statement] = {
-    var statements : ListBuffer[Statement] = ListBuffer()
+  override def getCtor() : Option[IR_Statement] = {
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
     val oldLev = level
     for (l <- Knowledge.minLevel to Knowledge.maxLevel) {
       level = l
       val field = FieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
       if (field.isDefined) {
-        statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
+        statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
           field.get.fieldLayout.defIdxById(indexId, dim))
       } else {
         // no field found -> try external fields
         val extField = ExternalFieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
         if (extField.isDefined) {
-          statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
+          statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
             extField.get.fieldLayout.defIdxById(indexId, dim))
         } else {
           // doesn't exist on this level
@@ -63,7 +63,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   var slot : IR_Expression
   var fragmentIdx : IR_Expression
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, level, NullExpression)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
@@ -76,7 +76,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
 
   override def resolveDefValue = Some(0)
 
-  override def wrapInLoops(body : Statement) : Statement = {
+  override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = body
     if (field.numSlots > 1)
       wrappedBody = new ForLoopStatement(
@@ -87,7 +87,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
     return super.wrapInLoops(wrappedBody)
   }
 
-  override def getCtor() : Option[Statement] = {
+  override def getCtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
     val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
@@ -95,14 +95,14 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
     ret
   }
 
-  override def getDtor() : Option[Statement] = {
+  override def getDtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
     val access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
 
     val ret = Some(wrapInLoops(
       new ConditionStatement(access,
-        ListBuffer[Statement](
+        ListBuffer[IR_Statement](
           FreeStatement(access),
           new AssignmentStatement(access, 0)))))
     slot = origSlot
@@ -129,7 +129,7 @@ case class FieldData(override var field : Field, override var level : IR_Express
   override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
 
-  override def getDtor() : Option[Statement] = {
+  override def getDtor() : Option[IR_Statement] = {
     if (Knowledge.data_alignFieldPointers) {
       val origSlot = slot
       slot = "slot"
@@ -142,7 +142,7 @@ case class FieldData(override var field : Field, override var level : IR_Express
     }
   }
 
-  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     declarations += (resolveName -> getDeclaration)
     ctors += (resolveName -> getCtor().get)
     dtors += (resolveName -> getDtor().get)

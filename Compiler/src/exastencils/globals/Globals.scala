@@ -2,7 +2,7 @@ package exastencils.globals
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_UnitDatatype
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -13,8 +13,8 @@ case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = ne
   ListBuffer("Util/Vector.h", "Util/Matrix.h") /*
     ++ Settings.additionalIncludes*/ ,
   ListBuffer(
-    new FunctionStatement(IR_UnitDatatype, "initGlobals", new ListBuffer[FunctionArgument], new ListBuffer[Statement]),
-    new FunctionStatement(IR_UnitDatatype, "destroyGlobals", new ListBuffer[FunctionArgument], new ListBuffer[Statement]))) {
+    new FunctionStatement(IR_UnitDatatype, "initGlobals", new ListBuffer[FunctionArgument], new ListBuffer[IR_Statement]),
+    new FunctionStatement(IR_UnitDatatype, "destroyGlobals", new ListBuffer[FunctionArgument], new ListBuffer[IR_Statement]))) {
 
   // add conditional dependencies
   if (Knowledge.mpi_enabled)

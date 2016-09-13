@@ -79,7 +79,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       def stride = FunctionArgument("stride", IR_IntegerDatatype /*FIXME: size_t*/)
       def it = Duplicate(LoopOverDimensions.defItForDim(0))
 
-      var fctBody = ListBuffer[Statement]()
+      var fctBody = ListBuffer[IR_Statement]()
 
       // add index calculation
       // FIXME: datatype for VariableAccess
@@ -119,11 +119,11 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
 
       def blockSize = Knowledge.cuda_reductionBlockSize
 
-      var fctBody = ListBuffer[Statement]()
+      var fctBody = ListBuffer[IR_Statement]()
 
       // compile loop body
       def blocks = VariableAccess("blocks", Some(IR_SpecialDatatype("size_t")))
-      var loopBody = ListBuffer[Statement]()
+      var loopBody = ListBuffer[IR_Statement]()
       loopBody += new VariableDeclarationStatement(blocks, (numElements + (blockSize * stride - 1)) / (blockSize * stride))
       loopBody += new ConditionStatement(IR_EqEqExpression(0, blocks), AssignmentStatement(blocks, 1))
       loopBody += CUDA_FunctionCallExpression(kernelName, ListBuffer[IR_Expression](data, numElements, stride),
@@ -168,7 +168,7 @@ case class Kernel(var identifier : String,
     var lowerBounds : ListBuffer[IR_Expression],
     var upperBounds : ListBuffer[IR_Expression],
     var stepSize : ListBuffer[IR_Expression],
-    var body : ListBuffer[Statement],
+    var body : ListBuffer[IR_Statement],
     var reduction : Option[Reduction] = None,
     var loopVariableExtrema : mutable.Map[String, (Long, Long)] = mutable.Map[String, (Long, Long)]()) extends Node {
 
@@ -429,12 +429,12 @@ case class Kernel(var identifier : String,
     }
   }
 
-  def compileKernelBody : ListBuffer[Statement] = {
+  def compileKernelBody : ListBuffer[IR_Statement] = {
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
     evalAccesses() // ensure that field accesses have been mapped
     evalExecutionConfiguration() // ensure that execution configuration is already calculated
 
-    var statements = ListBuffer[Statement]()
+    var statements = ListBuffer[IR_Statement]()
 
     // add CUDA global Thread ID (x,y,z) calculation for a dim3 execution configuration
     // global thread id x = blockIdx.x *blockDim.x + threadIdx.x + offset1;
@@ -468,15 +468,15 @@ case class Kernel(var identifier : String,
     if (smemCanBeUsed && fieldForSharedMemory.nonEmpty) {
       fieldNames.foreach(field => {
         val localPrefix = KernelVariablePrefix + "local_"
-        val sharedMemoryStatements = ListBuffer[Statement]()
+        val sharedMemoryStatements = ListBuffer[IR_Statement]()
         val sharedArrayStrides = new MultiIndex(sharedArraySize(field))
-        var zDimLoopBody = ListBuffer[Statement]()
+        var zDimLoopBody = ListBuffer[IR_Statement]()
         val current = new VariableAccess("current", IR_IntegerDatatype)
 
         // 1. Annotate the loop variables appearing in the shared memory accesses to guarantee the right substitution later
         AnnotatingLoopVariablesForSharedMemoryAccess.loopVariables = loopVariables
         AnnotatingLoopVariablesForSharedMemoryAccess.accessName = field
-        AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccessesForSharedMemory(field).map(x => ExpressionStatement(x))))
+        AnnotatingLoopVariablesForSharedMemoryAccess.applyStandalone(new Scope(fieldAccessesForSharedMemory(field).map(x => IR_ExpressionStatement(x))))
 
         // 2. Add local Thread ID calculation for indexing shared memory
         statements ++= (0 until executionDim).map(dim => {
@@ -528,7 +528,7 @@ case class Kernel(var identifier : String,
 
           // 7.1 Check if current thread resides on the left border in any dimension
           val condition = IR_OrOrExpression(IR_LowerExpression(MemberAccess(VariableAccess("threadIdx", Some(IR_SpecialDatatype("dim3"))), it), leftDeviations(field)(dim)), IR_EqEqExpression(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
-          val conditionBody = ListBuffer[Statement]()
+          val conditionBody = ListBuffer[IR_Statement]()
 
           // 7.2 Calculate the offset from the left to the right border of the actual field
           val localFieldOffsetName : String = "localFieldOffset"
@@ -662,7 +662,7 @@ case class Kernel(var identifier : String,
       callArgs += Duplicate(variableAccess)
     }
 
-    var body = ListBuffer[Statement]()
+    var body = ListBuffer[IR_Statement]()
 
     if (reduction.isDefined) {
       def bufSize = requiredThreadsPerDim.product

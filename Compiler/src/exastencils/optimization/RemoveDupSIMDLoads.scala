@@ -42,8 +42,8 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
 
   private val SortLoads : PartialFunction[Node, Transformation.OutputType] = {
     case l : ForLoopStatement if (l.hasAnnotation(Vectorization.VECT_ANNOT)) =>
-      val newBody = new ListBuffer[Statement]()
-      val toSort = new ArrayBuffer[(Statement, IR_Expression, IR_Expression)]()
+      val newBody = new ListBuffer[IR_Statement]()
+      val toSort = new ArrayBuffer[(IR_Statement, IR_Expression, IR_Expression)]()
       for (s <- l.body) {
         s match {
           case VariableDeclarationStatement(SIMD_RealDatatype, _,
@@ -60,8 +60,8 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
             toSort += ((s, sh, null))
 
           case _ =>
-            val sorted = toSort.sorted(new Ordering[(Statement, IR_Expression, IR_Expression)]() {
-              def compare(x : (Statement, IR_Expression, IR_Expression), y : (Statement, IR_Expression, IR_Expression)) : Int = {
+            val sorted = toSort.sorted(new Ordering[(IR_Statement, IR_Expression, IR_Expression)]() {
+              def compare(x : (IR_Statement, IR_Expression, IR_Expression), y : (IR_Statement, IR_Expression, IR_Expression)) : Int = {
                 (x._2, y._2) match {
                   case (a : SIMD_ConcShift, b : SIMD_ConcShift) => return a.prettyprint() compare b.prettyprint()
                   case (a : SIMD_ConcShift, _)                  => return 1
@@ -90,7 +90,7 @@ private[optimization] final class Analyze extends StackCollector {
 
   import RemoveDupSIMDLoads._
 
-  private var preLoopDecls : ListBuffer[Statement] = null
+  private var preLoopDecls : ListBuffer[IR_Statement] = null
   private var loads : HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (VariableDeclarationStatement, Buffer[List[Node]])] = null
   private var load1s : HashMap[SIMD_Scalar2VectorExpression, (VariableDeclarationStatement, Buffer[List[Node]])] = null
   private var concShifts : HashMap[SIMD_ConcShift, (VariableDeclarationStatement, Buffer[List[Node]])] = null
@@ -107,7 +107,7 @@ private[optimization] final class Analyze extends StackCollector {
       _, _) if (lVar == lVar2 && lVar2 == lVar3) //
       =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
-          preLoopDecls = new ListBuffer[Statement]
+          preLoopDecls = new ListBuffer[IR_Statement]
           node.annotate(ADD_BEFORE_ANNOT, preLoopDecls)
           loads = new HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (VariableDeclarationStatement, Buffer[List[Node]])]()
           load1s = new HashMap[SIMD_Scalar2VectorExpression, (VariableDeclarationStatement, Buffer[List[Node]])]()
@@ -206,7 +206,7 @@ private[optimization] final class Analyze extends StackCollector {
         if (load ne loadAncs.head) {
           // load declaration must be moved out, directly before node loadAncs.head
           val annot = loadAncs.head.asInstanceOf[Annotatable]
-          annot.annotations.getOrElseUpdate(ADD_BEFORE_ANNOT, new ListBuffer[Statement]()).asInstanceOf[ListBuffer[Statement]] += Duplicate(load)
+          annot.annotations.getOrElseUpdate(ADD_BEFORE_ANNOT, new ListBuffer[IR_Statement]()).asInstanceOf[ListBuffer[IR_Statement]] += Duplicate(load)
           load.annotate(REMOVE_ANNOT)
         }
       }
@@ -281,17 +281,17 @@ private final object Adapt extends PartialFunction[Node, Transformation.OutputTy
     if (repl.isDefined)
       return repl.get
 
-    val decls = node.removeAnnotation(ADD_BEFORE_ANNOT).asInstanceOf[Option[ListBuffer[Statement]]]
+    val decls = node.removeAnnotation(ADD_BEFORE_ANNOT).asInstanceOf[Option[ListBuffer[IR_Statement]]]
     if (decls.isDefined) {
       decls.get.transform { // some of decls can have a REPL_ANNOT, which must be replaced, but it is not matched (again) in this trafo
-        stmt : Statement =>
-          val repl = stmt.removeAnnotation(REPL_ANNOT).asInstanceOf[Option[Statement]]
+        stmt : IR_Statement =>
+          val repl = stmt.removeAnnotation(REPL_ANNOT).asInstanceOf[Option[IR_Statement]]
           if (repl.isDefined)
             repl.get
           else
             stmt
       }
-      return decls.get += node.asInstanceOf[Statement]
+      return decls.get += node.asInstanceOf[IR_Statement]
     }
 
     Logger.error("Adapt.isDefinedAt(Node) does not match Adapt.apply(Node)  in exastencils/optimization/RemoveDupSIMDLoads.scala")

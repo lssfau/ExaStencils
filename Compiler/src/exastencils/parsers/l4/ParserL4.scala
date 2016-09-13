@@ -136,7 +136,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ##### Statements
   // ######################################
 
-  lazy val statement : Parser[Statement] = (
+  lazy val statement : Parser[L4_Statement] = (
     variableDeclaration
       ||| valueDeclaration
       ||| repeatNTimes
@@ -196,7 +196,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ~ (("else" ~ "{") ~> statement.+ <~ "}").?
       ^^ { case exp ~ stmts ~ elsestmts => ConditionalStatement(exp, stmts, elsestmts.getOrElse(List())) })
       ||| locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ~ ("else" ~> conditional)
-      ^^ { case exp ~ stmts ~ elsecond => ConditionalStatement(exp, stmts, List[Statement](elsecond)) }))
+      ^^ { case exp ~ stmts ~ elsecond => ConditionalStatement(exp, stmts, List[L4_Statement](elsecond)) }))
 
   lazy val applyBCsStatement = locationize(("apply" ~ "bc" ~ "to") ~> genericAccess //fieldAccess
     ^^ { case field => ApplyBCsStatement(field) })
@@ -227,7 +227,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { case entries => new GlobalDeclarationStatement(entries) })
-  lazy val globalEntry : PackratParser[Statement] = locationize(valueDeclaration ||| variableDeclaration)
+  lazy val globalEntry : PackratParser[L4_Statement] = locationize(valueDeclaration ||| variableDeclaration)
 
   // ######################################
   // ##### Object Declarations

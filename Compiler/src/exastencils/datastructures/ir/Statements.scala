@@ -5,27 +5,14 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-abstract class Statement
-  extends Node with PrettyPrintable
-
-case class ExpressionStatement(var expression : IR_Expression) extends Statement {
-  override def prettyprint(out : PpStream) : Unit = out << expression.prettyprint << ';'
-}
-
-case object NullStatement extends Statement {
-  exastencils.core.Duplicate.registerConstant(this)
-  override def prettyprint(out : PpStream) : Unit = out << ';'
-}
-
-case class Scope(var body : ListBuffer[Statement]) extends Statement {
-  def this(body : List[Statement]) = this(body.to[ListBuffer])
-  def this(body : Statement*) = this(body.to[ListBuffer])
-  def this(body : Statement) = this(ListBuffer[Statement](body))
+case class Scope(var body : ListBuffer[IR_Statement]) extends IR_Statement {
+  def this(body : List[IR_Statement]) = this(body.to[ListBuffer])
+  def this(body : IR_Statement*) = this(body.to[ListBuffer])
+  def this(body : IR_Statement) = this(ListBuffer[IR_Statement](body))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "{\n"
@@ -34,7 +21,7 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
   }
 }
 
-case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : String, var expression : Option[IR_Expression] = None) extends Statement {
+case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : String, var expression : Option[IR_Expression] = None) extends IR_Statement {
   var alignment : Int = 1
   def this(dT : IR_Datatype, n : String, e : IR_Expression) = this(dT, n, Option(e))
   def this(va : VariableAccess) = this(va.datatype.get, va.name, None)
@@ -75,7 +62,7 @@ case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : S
   def prettyprint_onlyDeclaration() : String = VariableDeclarationStatement(datatype, name, None).prettyprint()
 }
 
-case class ObjectInstantiation(var datatype : IR_Datatype, var name : String, var ctorArgs : ListBuffer[IR_Expression]) extends Statement {
+case class ObjectInstantiation(var datatype : IR_Datatype, var name : String, var ctorArgs : ListBuffer[IR_Expression]) extends IR_Statement {
   def this(datatype : IR_Datatype, name : String, ctorArgs : IR_Expression*) = this(datatype, name, ctorArgs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -86,13 +73,13 @@ case class ObjectInstantiation(var datatype : IR_Datatype, var name : String, va
   }
 }
 
-case class FreeStatement(var pointer : IR_Expression) extends Statement {
+case class FreeStatement(var pointer : IR_Expression) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "delete[] " << pointer << ";"
   }
 }
 
-case class DefineStatement(var name : IR_Expression, var value : Option[IR_Expression] = None) extends Statement {
+case class DefineStatement(var name : IR_Expression, var value : Option[IR_Expression] = None) extends IR_Statement {
   def this(n : IR_Expression, v : IR_Expression) = this(n, Option(v))
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -102,11 +89,11 @@ case class DefineStatement(var name : IR_Expression, var value : Option[IR_Expre
   }
 }
 
-case class CommentStatement(var comment : String) extends Statement {
+case class CommentStatement(var comment : String) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "/* " << comment << " */"
 }
 
-case class AssignmentStatement(var dest : IR_Expression, var src : IR_Expression, var op : String = "=") extends Statement {
+case class AssignmentStatement(var dest : IR_Expression, var src : IR_Expression, var op : String = "=") extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     src match {
       //      case x : VectorExpression => {
@@ -124,8 +111,8 @@ case class AssignmentStatement(var dest : IR_Expression, var src : IR_Expression
   }
 }
 
-case class WhileLoopStatement(var comparison : IR_Expression, var body : ListBuffer[Statement]) extends Statement {
-  def this(comparison : IR_Expression, body : Statement*) = this(comparison, body.to[ListBuffer])
+case class WhileLoopStatement(var comparison : IR_Expression, var body : ListBuffer[IR_Statement]) extends IR_Statement {
+  def this(comparison : IR_Expression, body : IR_Statement*) = this(comparison, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "while (" << comparison << ") {\n"
@@ -134,9 +121,9 @@ case class WhileLoopStatement(var comparison : IR_Expression, var body : ListBuf
   }
 }
 
-case class ForLoopStatement(var begin : Statement, var end : IR_Expression, var inc : Statement, var body : ListBuffer[Statement], var reduction : Option[Reduction] = None) extends Statement {
-  def this(begin : Statement, end : IR_Expression, inc : Statement, reduction : Reduction, body : Statement*) = this(begin, end, inc, body.to[ListBuffer], Option(reduction))
-  def this(begin : Statement, end : IR_Expression, inc : Statement, body : Statement*) = this(begin, end, inc, body.to[ListBuffer])
+case class ForLoopStatement(var begin : IR_Statement, var end : IR_Expression, var inc : IR_Statement, var body : ListBuffer[IR_Statement], var reduction : Option[Reduction] = None) extends IR_Statement {
+  def this(begin : IR_Statement, end : IR_Expression, inc : IR_Statement, reduction : Reduction, body : IR_Statement*) = this(begin, end, inc, body.to[ListBuffer], Option(reduction))
+  def this(begin : IR_Statement, end : IR_Expression, inc : IR_Statement, body : IR_Statement*) = this(begin, end, inc, body.to[ListBuffer])
 
   def maxIterationCount() = {
     if (hasAnnotation("numLoopIterations"))
@@ -165,13 +152,13 @@ case class ForLoopStatement(var begin : Statement, var end : IR_Expression, var 
   }
 }
 
-case class ConditionStatement(var condition : IR_Expression, var trueBody : ListBuffer[Statement], var falseBody : ListBuffer[Statement]) extends Statement {
-  def this(condition : IR_Expression, trueBody : ListBuffer[Statement]) = this(condition, trueBody, ListBuffer[Statement]())
-  def this(condition : IR_Expression, trueBranch : Statement) = this(condition, ListBuffer(trueBranch))
+case class ConditionStatement(var condition : IR_Expression, var trueBody : ListBuffer[IR_Statement], var falseBody : ListBuffer[IR_Statement]) extends IR_Statement {
+  def this(condition : IR_Expression, trueBody : ListBuffer[IR_Statement]) = this(condition, trueBody, ListBuffer[IR_Statement]())
+  def this(condition : IR_Expression, trueBranch : IR_Statement) = this(condition, ListBuffer(trueBranch))
 
-  def this(condition : IR_Expression, trueBranch : Statement, falseBranch : Statement) = this(condition, ListBuffer(trueBranch), ListBuffer(falseBranch))
-  def this(condition : IR_Expression, trueBody : ListBuffer[Statement], falseBranch : Statement) = this(condition, trueBody, ListBuffer(falseBranch))
-  def this(condition : IR_Expression, trueBranch : Statement, falseBody : ListBuffer[Statement]) = this(condition, ListBuffer(trueBranch), falseBody)
+  def this(condition : IR_Expression, trueBranch : IR_Statement, falseBranch : IR_Statement) = this(condition, ListBuffer(trueBranch), ListBuffer(falseBranch))
+  def this(condition : IR_Expression, trueBody : ListBuffer[IR_Statement], falseBranch : IR_Statement) = this(condition, trueBody, ListBuffer(falseBranch))
+  def this(condition : IR_Expression, trueBranch : IR_Statement, falseBody : ListBuffer[IR_Statement]) = this(condition, ListBuffer(trueBranch), falseBody)
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "if (" << condition << ") {\n"
@@ -184,8 +171,8 @@ case class ConditionStatement(var condition : IR_Expression, var trueBody : List
   }
 }
 
-case class CaseStatement(var toMatch : IR_Expression, var body : ListBuffer[Statement]) extends Statement {
-  def this(toMatch : IR_Expression, body : Statement*) = this(toMatch, body.to[ListBuffer])
+case class CaseStatement(var toMatch : IR_Expression, var body : ListBuffer[IR_Statement]) extends IR_Statement {
+  def this(toMatch : IR_Expression, body : IR_Statement*) = this(toMatch, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "case " << toMatch << ": {\n"
@@ -194,7 +181,7 @@ case class CaseStatement(var toMatch : IR_Expression, var body : ListBuffer[Stat
   }
 }
 
-case class SwitchStatement(var what : IR_Expression, var body : ListBuffer[CaseStatement]) extends Statement {
+case class SwitchStatement(var what : IR_Expression, var body : ListBuffer[CaseStatement]) extends IR_Statement {
   def this(what : IR_Expression, body : CaseStatement*) = this(what, body.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -204,7 +191,7 @@ case class SwitchStatement(var what : IR_Expression, var body : ListBuffer[CaseS
   }
 }
 
-case class ReturnStatement(var expr : Option[IR_Expression] = None) extends Statement {
+case class ReturnStatement(var expr : Option[IR_Expression] = None) extends IR_Statement {
   def this(expr : IR_Expression) = this(Option(expr))
 
   override def prettyprint(out : PpStream) = {
@@ -214,22 +201,22 @@ case class ReturnStatement(var expr : Option[IR_Expression] = None) extends Stat
   }
 }
 
-case class BreakStatement() extends Statement {
+case class BreakStatement() extends IR_Statement {
   override def prettyprint(out : PpStream) = {
     out << "break;"
   }
 }
 
-case class AssertStatement(var check : IR_Expression, var msg : ListBuffer[IR_Expression], var abort : Statement) extends Statement with Expandable {
+case class AssertStatement(var check : IR_Expression, var msg : ListBuffer[IR_Expression], var abort : IR_Statement) extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
 
   override def expand : Output[ConditionStatement] = {
     new ConditionStatement(IR_NegationExpression(check),
-      ListBuffer[Statement](new PrintStatement(msg), abort))
+      ListBuffer[IR_Statement](new PrintStatement(msg), abort))
   }
 }
 
-abstract class AbstractFunctionStatement(var isHeaderOnly : Boolean = false) extends Statement {
+abstract class AbstractFunctionStatement(var isHeaderOnly : Boolean = false) extends IR_Statement {
   def name : String
   def prettyprint_decl() : String
 }
@@ -238,13 +225,13 @@ case class FunctionStatement(
     var returntype : IR_Datatype,
     var name : String,
     var parameters : ListBuffer[FunctionArgument],
-    var body : ListBuffer[Statement],
+    var body : ListBuffer[IR_Statement],
     var allowInlining : Boolean = true,
     var allowFortranInterface : Boolean = true,
     var functionQualifiers : String = "" // e.g. "__global__" etc
 ) extends AbstractFunctionStatement {
-  def this(returntype : IR_Datatype, name : String, parameters : ListBuffer[FunctionArgument], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
-  def this(returntype : IR_Datatype, name : String, parameters : FunctionArgument, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[FunctionArgument](parameters), body)
+  def this(returntype : IR_Datatype, name : String, parameters : ListBuffer[FunctionArgument], body : IR_Statement) = this(returntype, name, parameters, ListBuffer[IR_Statement](body))
+  def this(returntype : IR_Datatype, name : String, parameters : FunctionArgument, body : ListBuffer[IR_Statement]) = this(returntype, name, ListBuffer[FunctionArgument](parameters), body)
 
   override def prettyprint(out : PpStream) : Unit = { // FIXME: add specialized node for parameter specification with own PP
     if (!functionQualifiers.isEmpty) out << functionQualifiers << ' '
@@ -277,7 +264,7 @@ case class FunctionArgument(var name : String, var datatype : IR_Datatype) exten
 
 //////////////////////////// SIMD Statements \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-case class SIMD_StoreStatement(var mem : IR_Expression, var value : IR_Expression, var aligned : Boolean) extends Statement {
+case class SIMD_StoreStatement(var mem : IR_Expression, var value : IR_Expression, var aligned : Boolean) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     val alig = if (aligned) "" else "u"
@@ -296,7 +283,7 @@ case class SIMD_StoreStatement(var mem : IR_Expression, var value : IR_Expressio
   }
 }
 
-case class SIMD_HorizontalAddStatement(var dest : IR_Expression, var src : IR_Expression) extends Statement {
+case class SIMD_HorizontalAddStatement(var dest : IR_Expression, var src : IR_Expression) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     Platform.simd_instructionSet match {
       case "SSE3" =>
@@ -331,13 +318,13 @@ case class SIMD_HorizontalAddStatement(var dest : IR_Expression, var src : IR_Ex
   }
 }
 
-case class SIMD_HorizontalMulStatement(var dest : IR_Expression, var src : IR_Expression) extends Statement {
+case class SIMD_HorizontalMulStatement(var dest : IR_Expression, var src : IR_Expression) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     HorizontalPrinterHelper.prettyprint(out, dest, src, "mul", "*=")
   }
 }
 
-case class SIMD_HorizontalMinStatement(var dest : IR_Expression, var src : IR_Expression) extends Statement {
+case class SIMD_HorizontalMinStatement(var dest : IR_Expression, var src : IR_Expression) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX")
       out << "NOT VALID ; vec_min not available on BG/Q" // FIXME: cmp and sel!
@@ -346,7 +333,7 @@ case class SIMD_HorizontalMinStatement(var dest : IR_Expression, var src : IR_Ex
   }
 }
 
-case class SIMD_HorizontalMaxStatement(var dest : IR_Expression, var src : IR_Expression) extends Statement {
+case class SIMD_HorizontalMaxStatement(var dest : IR_Expression, var src : IR_Expression) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX")
       out << "NOT VALID ; vec_max not available on BG/Q" // FIXME: cmp and sel!
@@ -412,7 +399,7 @@ private object HorizontalPrinterHelper {
 }
 
 /** Special declaration for a SIMD vector, which is initialized with the values 0, 1, ..., Knowledge.simd_vectorSize-1. */
-case class SIMD_IncrementVectorDeclaration(var name : String, var incr : Long) extends Statement {
+case class SIMD_IncrementVectorDeclaration(var name : String, var incr : Long) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << SIMD_RealDatatype << ' ' << name
     val is = Platform.simd_instructionSet

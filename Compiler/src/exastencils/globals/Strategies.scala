@@ -28,7 +28,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
     case func : FunctionStatement if ("initGlobals" == func.name) => {
       if (Knowledge.cuda_enabled) {
         // init device
-        func.body ++= ListBuffer[Statement](
+        func.body ++= ListBuffer[IR_Statement](
           VariableDeclarationStatement(IR_IntegerDatatype, "deviceCount", Some(0)),
           "cuDeviceGetCount(&deviceCount)",
           AssertStatement(IR_LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
@@ -38,7 +38,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
 
         // print device info (name)
         if (!Knowledge.l3tmp_genForAutoTests) {
-          func.body ++= ListBuffer[Statement](
+          func.body ++= ListBuffer[IR_Statement](
             "cudaDeviceProp devProp",
             s"cudaGetDeviceProperties(&devProp, ${ Knowledge.cuda_deviceId })",
             PrintStatement(ListBuffer("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", "devProp.name", "std::endl")))

@@ -24,14 +24,14 @@ case class PrintExpression(var stream : IR_Expression, toPrint : ListBuffer[IR_E
   }
 }
 
-case class BuildStringStatement(var stringName : IR_Expression, var toPrint : ListBuffer[IR_Expression]) extends Statement with Expandable {
+case class BuildStringStatement(var stringName : IR_Expression, var toPrint : ListBuffer[IR_Expression]) extends IR_Statement with Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BuildStringStatement\n"
 
   override def expand() : Output[StatementList] = {
     val streamName = BuildStringStatement.getNewName()
     def streamType = IR_SpecialDatatype("std::ostringstream")
-    val statements = ListBuffer[Statement](
+    val statements = ListBuffer[IR_Statement](
       VariableDeclarationStatement(streamType, streamName),
       PrintExpression(new VariableAccess(streamName, streamType), toPrint),
       AssignmentStatement(stringName, MemberFunctionCallExpression(VariableAccess(streamName, Some(IR_SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
@@ -47,16 +47,16 @@ private object BuildStringStatement {
   }
 }
 
-case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : String = "std::cout") extends Statement with Expandable {
+case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : String = "std::cout") extends IR_Statement with Expandable {
   def this(toPrint : IR_Expression) = this(ListBuffer(toPrint))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
 
-  override def expand() : Output[Statement] = {
+  override def expand() : Output[IR_Statement] = {
     if (toPrint.isEmpty) {
-      return NullStatement
+      return IR_NullStatement
     } else {
-      val printStmt : Statement = new PrintExpression(VariableAccess(stream), toPrint.view.flatMap { e => List(e, IR_StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
+      val printStmt : IR_Statement = new PrintExpression(VariableAccess(stream), toPrint.view.flatMap { e => List(e, IR_StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
       if (Knowledge.mpi_enabled) // filter by mpi rank if required
         return new ConditionStatement(MPI_IsRootProc(), printStmt)
       else
@@ -65,7 +65,7 @@ case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : 
   }
 }
 
-case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = IR_BooleanConstant(true)) extends Statement with Expandable {
+case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = IR_BooleanConstant(true)) extends IR_Statement with Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
@@ -98,7 +98,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
     def streamType = IR_SpecialDatatype("std::ofstream")
 
     val fileHeader = {
-      var ret : Statement = NullStatement
+      var ret : IR_Statement = IR_NullStatement
       if (Knowledge.experimental_generateParaviewFiles) {
         ret = (streamName + " << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
         if (Knowledge.mpi_enabled)
@@ -107,7 +107,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
       ret
     }
 
-    var innerLoop = ListBuffer[Statement](
+    var innerLoop = ListBuffer[IR_Statement](
       new ObjectInstantiation(streamType, streamName, filename, VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
       fileHeader,
       new LoopOverFragments(
@@ -128,11 +128,11 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
             )))),
       new MemberFunctionCallExpression(new VariableAccess(streamName, streamType), "close"))
 
-    var statements : ListBuffer[Statement] = ListBuffer()
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     if (Knowledge.mpi_enabled) {
       statements += new ConditionStatement(MPI_IsRootProc(),
-        ListBuffer[Statement](
+        ListBuffer[IR_Statement](
           new ObjectInstantiation(streamType, streamName, filename, VariableAccess("std::ios::trunc")),
           new MemberFunctionCallExpression(new VariableAccess(streamName, streamType), "close")))
 

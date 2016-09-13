@@ -19,7 +19,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
   override def name = "setupBuffers"
 
   override def expand : Output[FunctionStatement] = {
-    var body = ListBuffer[Statement]()
+    var body = ListBuffer[IR_Statement]()
 
     // add static allocations here
 
@@ -66,7 +66,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     // compile final function
     new FunctionStatement(IR_UnitDatatype, name,
       ListBuffer(new FunctionArgument("dest", externalDT), new FunctionArgument("slot", IR_IntegerDatatype)),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           new MultiIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           new MultiIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
@@ -115,7 +115,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     // compile final function
     new FunctionStatement(IR_UnitDatatype, name,
       ListBuffer(new FunctionArgument("src", externalDT), new FunctionArgument("slot", IR_IntegerDatatype)),
-      ListBuffer[Statement](
+      ListBuffer[IR_Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           new MultiIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           new MultiIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
@@ -138,10 +138,10 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends IR_Ex
   }
 }
 
-case class AdvanceSlotStatement(var slot : iv.CurrentSlot) extends Statement {
+case class AdvanceSlotStatement(var slot : iv.CurrentSlot) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
 
-  def expandSpecial : Statement = {
+  def expandSpecial : IR_Statement = {
     AssignmentStatement(slot, (slot + 1) Mod slot.field.numSlots) // slot never contains negative values (currently)
   }
 }

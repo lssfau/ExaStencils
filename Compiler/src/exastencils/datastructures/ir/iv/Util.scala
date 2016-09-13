@@ -20,7 +20,7 @@ case class Timer(var name : IR_Expression) extends UnduplicatedVariable with Acc
 
   def stripName = name.prettyprint.replaceAll("[^a-zA-Z0-9]", "_")
 
-  override def getCtor() : Option[Statement] = {
+  override def getCtor() : Option[IR_Statement] = {
     // FIXME: datatype for VariableAccess
     Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), IR_StringConstant(stripName)))
   }
@@ -41,7 +41,7 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
   override def resolveName = "vShift" + offset
   override def resolveDatatype = IR_SpecialDatatype("__m512i")
 
-  override def getCtor() : Option[Statement] = {
+  override def getCtor() : Option[IR_Statement] = {
     val init = new IR_StringLiteral(null : String)
     Platform.simd_instructionSet match {
       case "AVX512" =>
@@ -75,7 +75,7 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
     return superDecl
   }
 
-  override def wrapInLoops(body : Statement) : Statement = {
+  override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = super.wrapInLoops(body)
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
       val begin = new VariableDeclarationStatement(IR_IntegerDatatype, LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
@@ -109,12 +109,12 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
     return Some(0)
   }
 
-  override def getDtor() : Option[Statement] = {
+  override def getDtor() : Option[IR_Statement] = {
     val ptrExpr = resolveAccess(resolveName, null, null, null, null, null)
     if (freeInDtor)
       return Some(wrapInLoops(
         new ConditionStatement(ptrExpr,
-          ListBuffer[Statement](
+          ListBuffer[IR_Statement](
             FreeStatement(ptrExpr),
             new AssignmentStatement(ptrExpr, 0)))))
     else
@@ -127,7 +127,7 @@ case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : IR_Datat
 
   lazy val basePtr = new LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
 
-  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     super.registerIV(declarations, ctors, dtors)
     if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
       basePtr.registerIV(declarations, ctors, dtors)

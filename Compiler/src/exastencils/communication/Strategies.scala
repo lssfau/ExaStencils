@@ -143,7 +143,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (insideFragLoop)
         fctArgs += LoopOverFragments.defIt
 
-      FunctionCallExpression(functionName, fctArgs) : Statement
+      FunctionCallExpression(functionName, fctArgs) : IR_Statement
     }
 
     case applyBCsStatement : ApplyBCsStatement => {
@@ -178,16 +178,16 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (insideFragLoop)
         fctArgs += LoopOverFragments.defIt
 
-      FunctionCallExpression(functionName, fctArgs) : Statement
+      FunctionCallExpression(functionName, fctArgs) : IR_Statement
     }
   }, false)
 }
 
 object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate statements with loop nodes") {
-  def processFctBody(body : ListBuffer[Statement]) : ListBuffer[Statement] = {
+  def processFctBody(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     if (body.length < 2) return body
 
-    var newBody = ListBuffer[Statement]()
+    var newBody = ListBuffer[IR_Statement]()
 
     for (i <- 1 until body.length) { // check for pre communications steps
       (body(i - 1), body(i)) match {

@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils._
 import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.l4.L4_Expression
+import exastencils.base.l4._
 import exastencils.prettyprinting._
 
 case class CommunicateTarget(var target : String, var begin : Option[Index], var end : Option[Index]) extends L4_Expression {
@@ -22,7 +22,7 @@ case class CommunicateTarget(var target : String, var begin : Option[Index], var
   }
 }
 
-case class ApplyBCsStatement(var field : Access) extends Statement {
+case class ApplyBCsStatement(var field : Access) extends L4_Statement {
   override def prettyprint(out : PpStream) = { out << "apply bc to " << field << '\n' }
 
   override def progress : communication.ApplyBCsStatement = {
@@ -37,7 +37,7 @@ case class ApplyBCsStatement(var field : Access) extends Statement {
   }
 }
 
-case class CommunicateStatement(var field : Access, var op : String, var targets : List[CommunicateTarget], var condition : Option[L4_Expression]) extends Statement {
+case class CommunicateStatement(var field : Access, var op : String, var targets : List[CommunicateTarget], var condition : Option[L4_Expression]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     if ("both" != op) out << op + ' '
     out << "communicate " <<< (targets, " ") << (if (targets.isEmpty) "" else " of ") << field
