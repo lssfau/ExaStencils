@@ -2,9 +2,11 @@ package exastencils.mpi
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.omp._
@@ -36,22 +38,22 @@ case class MPI_SetRankAndSize(var communicator : Expression) extends MPI_Stateme
   }
 }
 
-case class MPI_Receive(var buffer : Expression, var size : Expression, var datatype : Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends MPI_Statement {
+case class MPI_Receive(var buffer : Expression, var size : Expression, var datatype : IR_Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "MPI_Irecv(" << buffer << ", " << size << ", " << datatype.prettyprint_mpi << ", " << rank << ", " << tag << ", mpiCommunicator, &" << request << ");"
   }
 }
 
-case class MPI_Send(var buffer : Expression, var size : Expression, var datatype : Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends MPI_Statement {
+case class MPI_Send(var buffer : Expression, var size : Expression, var datatype : IR_Datatype, var rank : Expression, var tag : Expression, var request : Expression) extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "MPI_Isend(" << buffer << ", " << size << ", " << datatype.prettyprint_mpi << ", " << rank << ", " << tag << ", mpiCommunicator, &" << request << ");"
   }
 }
 
-case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression, var op : Expression) extends MPI_Statement {
-  def this(sendbuf : Expression, recvbuf : Expression, datatype : Datatype, count : Expression, op : String) = this(sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
-  def this(buf : Expression, datatype : Datatype, count : Expression, op : Expression) = this("MPI_IN_PLACE", buf, datatype, count, op)
-  def this(buf : Expression, datatype : Datatype, count : Expression, op : String) = this("MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
+case class MPI_Allreduce(var sendbuf : Expression, var recvbuf : Expression, var datatype : IR_Datatype, var count : Expression, var op : Expression) extends MPI_Statement {
+  def this(sendbuf : Expression, recvbuf : Expression, datatype : IR_Datatype, count : Expression, op : String) = this(sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
+  def this(buf : Expression, datatype : IR_Datatype, count : Expression, op : Expression) = this("MPI_IN_PLACE", buf, datatype, count, op)
+  def this(buf : Expression, datatype : IR_Datatype, count : Expression, op : String) = this("MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", mpiCommunicator);"
@@ -70,10 +72,10 @@ object MPI_Allreduce {
   }
 }
 
-case class MPI_Reduce(var root : Expression, var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression, var op : Expression) extends MPI_Statement {
-  def this(root : Expression, sendbuf : Expression, recvbuf : Expression, datatype : Datatype, count : Expression, op : String) = this(root, sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
-  def this(root : Expression, buf : Expression, datatype : Datatype, count : Expression, op : Expression) = this(root, "MPI_IN_PLACE", buf, datatype, count, op)
-  def this(root : Expression, buf : Expression, datatype : Datatype, count : Expression, op : String) = this(root, "MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
+case class MPI_Reduce(var root : Expression, var sendbuf : Expression, var recvbuf : Expression, var datatype : IR_Datatype, var count : Expression, var op : Expression) extends MPI_Statement {
+  def this(root : Expression, sendbuf : Expression, recvbuf : Expression, datatype : IR_Datatype, count : Expression, op : String) = this(root, sendbuf, recvbuf, datatype, count, MPI_Allreduce.mapOp(op))
+  def this(root : Expression, buf : Expression, datatype : IR_Datatype, count : Expression, op : Expression) = this(root, "MPI_IN_PLACE", buf, datatype, count, op)
+  def this(root : Expression, buf : Expression, datatype : IR_Datatype, count : Expression, op : String) = this(root, "MPI_IN_PLACE", buf, datatype, count, MPI_Allreduce.mapOp(op))
 
   def reallyPrint(out : PpStream) : Unit = {
     out << "MPI_Reduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", " << root << ", mpiCommunicator);"
@@ -87,14 +89,14 @@ case class MPI_Reduce(var root : Expression, var sendbuf : Expression, var recvb
         out << "\n} else {\n"
         MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
         out << "\n}"
-      case _ => reallyPrint(out) // otherwise a simple print suffices
+      case _                             => reallyPrint(out) // otherwise a simple print suffices
     }
 
   }
 }
 
-case class MPI_Gather(var sendbuf : Expression, var recvbuf : Expression, var datatype : Datatype, var count : Expression) extends MPI_Statement {
-  def this(buf : Expression, datatype : Datatype, count : Expression) = this("MPI_IN_PLACE", buf, datatype, count)
+case class MPI_Gather(var sendbuf : Expression, var recvbuf : Expression, var datatype : IR_Datatype, var count : Expression) extends MPI_Statement {
+  def this(buf : Expression, datatype : IR_Datatype, count : Expression) = this("MPI_IN_PLACE", buf, datatype, count)
 
   override def prettyprint(out : PpStream) : Unit = {
     (out << "MPI_Gather("
@@ -108,20 +110,20 @@ case class MPI_Barrier() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
 
-case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange, var condition : Option[Expression]) extends Datatype {
+case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange, var condition : Option[Expression]) extends IR_Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi = generateName
 
   override def dimensionality : Int = ???
   override def getSizeArray : Array[Int] = ???
-  override def resolveBaseDatatype : Datatype = field.field.resolveBaseDatatype
-  override def resolveDeclType : Datatype = this
+  override def resolveBaseDatatype : IR_Datatype = field.field.resolveBaseDatatype
+  override def resolveDeclType : IR_Datatype = this
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 
   if (!MPI_DataType.shouldBeUsed(indexRange, condition))
-    Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${indexRange.print}")
+    Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${ indexRange.print }")
 
   // determine data type parameters
   var blockLengthExp : Expression = indexRange.end(0) - indexRange.begin(0)
@@ -142,7 +144,7 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange,
   val blockCount = SimplifyExpression.evalIntegral(blockCountExp)
   val stride = SimplifyExpression.evalIntegral(strideExp)
 
-  def generateName : String = s"mpiDatatype_${blockCount}_${blockLength}_${stride}"
+  def generateName : String = s"mpiDatatype_${ blockCount }_${ blockLength }_${ stride }"
   def mpiTypeNameArg : Expression = AddressofExpression(generateName)
 
   def generateDecl : VariableDeclarationStatement = {
@@ -185,7 +187,7 @@ case class MPI_Sequential(var body : ListBuffer[Statement]) extends Statement wi
 
   override def expand : Output[ForLoopStatement] = {
     ForLoopStatement(
-      VariableDeclarationStatement(IntegerDatatype, "curRank", Some(0)),
+      VariableDeclarationStatement(IR_IntegerDatatype, "curRank", Some(0)),
       LowerExpression("curRank", Knowledge.mpi_numThreads),
       PreIncrementExpression("curRank"),
       ListBuffer[Statement](
@@ -200,16 +202,16 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
   override def name = "waitForMPIReq"
 
   override def expand : Output[FunctionStatement] = {
-    def request = VariableAccess("request", Some(PointerDatatype(SpecialDatatype("MPI_Request"))))
-    def stat = VariableAccess("stat", Some(SpecialDatatype("MPI_Status")))
-    def flag = VariableAccess("flag", Some(IntegerDatatype))
-    def result = VariableAccess("result", Some(IntegerDatatype))
+    def request = VariableAccess("request", Some(IR_PointerDatatype(IR_SpecialDatatype("MPI_Request"))))
+    def stat = VariableAccess("stat", Some(IR_SpecialDatatype("MPI_Status")))
+    def flag = VariableAccess("flag", Some(IR_IntegerDatatype))
+    def result = VariableAccess("result", Some(IR_IntegerDatatype))
 
-    def msg = VariableAccess("msg", Some(ArrayDatatype(SpecialDatatype("char"), 64 * 1024)))
-    def len = VariableAccess("len", Some(IntegerDatatype))
+    def msg = VariableAccess("msg", Some(IR_ArrayDatatype(IR_SpecialDatatype("char"), 64 * 1024)))
+    def len = VariableAccess("len", Some(IR_IntegerDatatype))
 
     if (Knowledge.mpi_useBusyWait) {
-      FunctionStatement(UnitDatatype, name, ListBuffer(FunctionArgument(request.name, request.dType.get)),
+      FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(request.name, request.datatype.get)),
         ListBuffer[Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
@@ -226,7 +228,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     } else {
-      FunctionStatement(UnitDatatype, s"waitForMPIReq", ListBuffer(FunctionArgument(request.name, request.dType.get)),
+      FunctionStatement(IR_UnitDatatype, s"waitForMPIReq", ListBuffer(FunctionArgument(request.name, request.datatype.get)),
         ListBuffer[Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),

@@ -2,8 +2,10 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures._
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 import exastencils.util._
@@ -32,15 +34,15 @@ case class Scope(var body : ListBuffer[Statement]) extends Statement {
   }
 }
 
-case class VariableDeclarationStatement(var dataType : Datatype, var name : String, var expression : Option[Expression] = None) extends Statement {
+case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : String, var expression : Option[Expression] = None) extends Statement {
   var alignment : Int = 1
-  def this(dT : Datatype, n : String, e : Expression) = this(dT, n, Option(e))
-  def this(va : VariableAccess) = this(va.dType.get, va.name, None)
-  def this(va : VariableAccess, e : Expression) = this(va.dType.get, va.name, Option(e))
+  def this(dT : IR_Datatype, n : String, e : Expression) = this(dT, n, Option(e))
+  def this(va : VariableAccess) = this(va.datatype.get, va.name, None)
+  def this(va : VariableAccess, e : Expression) = this(va.datatype.get, va.name, Option(e))
 
   override def prettyprint(out : PpStream) : Unit = {
-    dataType match {
-      case x : VectorDatatype => {
+    datatype match {
+      case x : IR_VectorDatatype => {
         out << x << ' ' << name
         if (expression.isDefined) {
           out << "("
@@ -48,7 +50,7 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
           out << ")"
         }
       }
-      case x : MatrixDatatype => {
+      case x : IR_MatrixDatatype => {
         out << x << ' ' << name
         if (expression.isDefined) {
           out << "("
@@ -56,10 +58,10 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
           out << ")"
         }
       }
-      case _ => {
+      case _                     => {
         if (alignment > 1 && "MSVC" == Platform.targetCompiler)
           out << "__declspec(align(" << alignment * 8 << ")) "
-        out << dataType.resolveDeclType << ' ' << name << dataType.resolveDeclPostscript
+        out << datatype.resolveDeclType << ' ' << name << datatype.resolveDeclPostscript
         if (alignment > 1 && "MSVC" != Platform.targetCompiler)
           out << " __attribute__((aligned(" << alignment * 8 << ")))"
         if (expression.isDefined)
@@ -70,14 +72,14 @@ case class VariableDeclarationStatement(var dataType : Datatype, var name : Stri
     out << ';'
   }
 
-  def prettyprint_onlyDeclaration() : String = VariableDeclarationStatement(dataType, name, None).prettyprint()
+  def prettyprint_onlyDeclaration() : String = VariableDeclarationStatement(datatype, name, None).prettyprint()
 }
 
-case class ObjectInstantiation(var dataType : Datatype, var name : String, var ctorArgs : ListBuffer[Expression]) extends Statement {
-  def this(dataType : Datatype, name : String, ctorArgs : Expression*) = this(dataType, name, ctorArgs.to[ListBuffer])
+case class ObjectInstantiation(var datatype : IR_Datatype, var name : String, var ctorArgs : ListBuffer[Expression]) extends Statement {
+  def this(datatype : IR_Datatype, name : String, ctorArgs : Expression*) = this(datatype, name, ctorArgs.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << dataType.resolveDeclType << ' ' << name << dataType.resolveDeclPostscript
+    out << datatype.resolveDeclType << ' ' << name << datatype.resolveDeclPostscript
     if (ctorArgs.length > 0)
       out << '(' <<< (ctorArgs, ", ") << ')'
     out << ';'
@@ -233,16 +235,16 @@ abstract class AbstractFunctionStatement(var isHeaderOnly : Boolean = false) ext
 }
 
 case class FunctionStatement(
-    var returntype : Datatype,
+    var returntype : IR_Datatype,
     var name : String,
     var parameters : ListBuffer[FunctionArgument],
     var body : ListBuffer[Statement],
     var allowInlining : Boolean = true,
     var allowFortranInterface : Boolean = true,
     var functionQualifiers : String = "" // e.g. "__global__" etc
-    ) extends AbstractFunctionStatement {
-  def this(returntype : Datatype, name : String, parameters : ListBuffer[FunctionArgument], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
-  def this(returntype : Datatype, name : String, parameters : FunctionArgument, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[FunctionArgument](parameters), body)
+) extends AbstractFunctionStatement {
+  def this(returntype : IR_Datatype, name : String, parameters : ListBuffer[FunctionArgument], body : Statement) = this(returntype, name, parameters, ListBuffer[Statement](body))
+  def this(returntype : IR_Datatype, name : String, parameters : FunctionArgument, body : ListBuffer[Statement]) = this(returntype, name, ListBuffer[FunctionArgument](parameters), body)
 
   override def prettyprint(out : PpStream) : Unit = { // FIXME: add specialized node for parameter specification with own PP
     if (!functionQualifiers.isEmpty) out << functionQualifiers << ' '
@@ -260,17 +262,19 @@ case class FunctionStatement(
   override def prettyprint_decl() : String = {
     var decl = ""
     if (!functionQualifiers.isEmpty) decl += functionQualifiers + ' '
-    decl += s"${returntype.prettyprint} $name (" + parameters.map(param => s"${param.prettyprintDeclaration}").mkString(", ") + ");\n"
+    decl += s"${ returntype.prettyprint } $name (" + parameters.map(param => s"${ param.prettyprintDeclaration }").mkString(", ") + ");\n"
     decl
   }
 }
 
-case class FunctionArgument(var name : String, var datatype : Datatype) extends Expression { // FIXME: really Expression?
+case class FunctionArgument(var name : String, var datatype : IR_Datatype) extends Expression {
+  // FIXME: really Expression?
   override def prettyprint(out : PpStream) = {
     out << name
   }
-  def prettyprintDeclaration = s"${datatype.prettyprint} ${name}"
+  def prettyprintDeclaration = s"${ datatype.prettyprint } ${ name }"
 }
+
 //////////////////////////// SIMD Statements \\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 case class SIMD_StoreStatement(var mem : Expression, var value : Expression, var aligned : Boolean) extends Statement {
@@ -386,7 +390,7 @@ private object HorizontalPrinterHelper {
       case "QPX" =>
         out << " vector4double _v = " << src << ";\n"
         out << " _v = vec_" << redName << "(_v, vec_sldw(_v, _v, 2));\n"
-        out << ' ' << RealDatatype << " _r = (" << RealDatatype << ") vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
+        out << ' ' << IR_RealDatatype << " _r = (" << IR_RealDatatype << ") vec_extract(vec_" << redName << "(_v, vec_sldw(_v, _v, 1)), 0);\n"
 
       case "NEON" =>
         out << " float32x4_t _v = " << src << ";\n"

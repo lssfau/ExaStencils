@@ -1,15 +1,11 @@
 package exastencils.optimization
 
+import scala.collection.mutable.{ ArrayBuffer, Buffer, ListBuffer, Map, Set }
+
 import java.util.IdentityHashMap
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
-
-import exastencils.core.Duplicate
-import exastencils.core.Settings
+import exastencils.base.ir.IR_UnitDatatype
+import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -42,9 +38,9 @@ object Inlining extends CustomStrategy("Function inlining") {
 
   /**
     * @param heuristics_prepareCSE
-    *            If set inline only functions with exacly one `ReturnStatement` and any number of
-    *            `VariableDeclarationStatement`s, otherwise perform a "normal" inlining (which respects
-    *            `Knowledge.ir_maxInliningSize`).
+    * If set inline only functions with exacly one `ReturnStatement` and any number of
+    * `VariableDeclarationStatement`s, otherwise perform a "normal" inlining (which respects
+    * `Knowledge.IR_maxInliningSize`).
     */
   def apply(heuristics_prepareCSE : Boolean) : Unit = {
     this.transaction()
@@ -124,7 +120,7 @@ object Inlining extends CustomStrategy("Function inlining") {
   }
 
   private def inline(callScope : Node, callStmt : Statement, callExpr : FunctionCallExpression, funcStmt : FunctionStatement,
-    potConflicts : Set[String], potConflToUpdate : Set[String]) : Boolean = {
+      potConflicts : Set[String], potConflToUpdate : Set[String]) : Boolean = {
 
     // each function parameter must be given in call
     val nrPar = funcStmt.parameters.size
@@ -137,10 +133,10 @@ object Inlining extends CustomStrategy("Function inlining") {
       case v @ VariableDeclarationStatement(_, name, _) =>
         reserved += name
         v
-      case a @ VariableAccess(name, _) =>
+      case a @ VariableAccess(name, _)                  =>
         reserved += name
         a
-      case s @ StringLiteral(name) =>
+      case s @ StringLiteral(name)                      =>
         reserved += name
         s
     }), Some(callScope))
@@ -154,8 +150,8 @@ object Inlining extends CustomStrategy("Function inlining") {
       case VariableDeclarationStatement(t, name, i) if (potConflicts.contains(name)) => VariableDeclarationStatement(t, rename(name), i)
       case VariableAccess(name, t) if (potConflicts.contains(name))                  => VariableAccess(rename(name), t)
       case StringLiteral(name) if (potConflicts.contains(name))                      => StringLiteral(rename(name))
-      case ret : ReturnStatement =>
-        if (ret.expr.isEmpty != (funcStmt.returntype == UnitDatatype))
+      case ret : ReturnStatement                                                     =>
+        if (ret.expr.isEmpty != (funcStmt.returntype == IR_UnitDatatype))
           exit = true
         retStmt = ret
         ret // keep ReturnStatement to ensure variables in its expression are renamed, too; it will be removed later
@@ -196,9 +192,9 @@ object Inlining extends CustomStrategy("Function inlining") {
     this.execute(new Transformation("inline", {
       case ExpressionStatement(call : FunctionCallExpression) if (call eq callExpr) =>
         body // return value is not available/used
-      case stmt : Statement if (stmt eq callStmt) =>
+      case stmt : Statement if (stmt eq callStmt)                                   =>
         body += stmt
-      case call : Expression if (call eq callExpr) =>
+      case call : Expression if (call eq callExpr)                                  =>
         if (retStmt == null || retStmt.expr.isEmpty)
           Logger.error("[inline]  Return type is Unit, but call is not inside an ExpressionStatement node")
         else
@@ -290,4 +286,5 @@ object Inlining extends CustomStrategy("Function inlining") {
       super.reset()
     }
   }
+
 }

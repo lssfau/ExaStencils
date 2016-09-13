@@ -2,10 +2,11 @@ package exastencils.optimization
 
 import scala.collection.mutable.Map
 
+import exastencils.base.ir.IR_Datatype
 import exastencils.core._
 import exastencils.core.collectors.ScopeCollector
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.logger._
 
@@ -42,18 +43,19 @@ object TypeInference extends CustomStrategy("Type inference") {
   }
 }
 
-private final class AnnotateStringConstants extends ScopeCollector(Map[String, Datatype]()) {
+private final class AnnotateStringConstants extends ScopeCollector(Map[String, IR_Datatype]()) {
+
   import TypeInference._
 
-  override def cloneCurScope() : Map[String, Datatype] = {
+  override def cloneCurScope() : Map[String, IR_Datatype] = {
     return curScope.clone()
   }
 
-  private def declare(name : String, dType : Datatype) : Unit = {
-    curScope(name) = dType
+  private def declare(name : String, datatype : IR_Datatype) : Unit = {
+    curScope(name) = datatype
   }
 
-  private def findType(name : String) : Datatype = {
+  private def findType(name : String) : IR_Datatype = {
     return curScope.getOrElse(name, null)
   }
 
@@ -64,16 +66,16 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
       return
 
     node match {
-      case VariableDeclarationStatement(ty : Datatype, name : String, _) =>
+      case VariableDeclarationStatement(ty : IR_Datatype, name : String, _) =>
         declare(name, ty)
 
       case node @ StringLiteral(str) =>
-        val ty : Datatype = findType(str)
+        val ty : IR_Datatype = findType(str)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
 
       case node @ VariableAccess(name, None) =>
-        val ty : Datatype = findType(name)
+        val ty : IR_Datatype = findType(name)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
         else if (warnMissingDeclarations)
@@ -101,6 +103,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, D
 }
 
 private final object CreateVariableAccesses extends PartialFunction[Node, Transformation.OutputType] {
+
   import TypeInference._
 
   override def isDefinedAt(node : Node) : Boolean = {
@@ -110,7 +113,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
   override def apply(node : Node) : Transformation.OutputType = {
 
     // do not remove annotation as the same object could be used multiple times in AST (which is a bug, yes ;))
-    val typee : Datatype = node.getAnnotation(TYPE_ANNOT).get.asInstanceOf[Datatype]
+    val typee : IR_Datatype = node.getAnnotation(TYPE_ANNOT).get.asInstanceOf[IR_Datatype]
     val varr : String =
       node match {
         case StringLiteral(name)     => name

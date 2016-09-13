@@ -2,14 +2,14 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils._
+import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.l4.L4_Datatype
 import exastencils.core._
-import exastencils.data
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.domain._
-import exastencils.knowledge
 import exastencils.logger._
-import exastencils.omp
 import exastencils.prettyprinting._
 import exastencils.util._
 
@@ -32,7 +32,7 @@ case class DomainDeclarationStatement(var name : String, var lower : Any, var up
     (lower, upper) match {
       case (null, null)                   => out << s"Domain = fromFile($name) \n"
       case (l : RealIndex, u : RealIndex) => out << "Domain " << name << "< " << l << " to " << u << " >\n"
-      case (lo : List[_], up : List[_]) => {
+      case (lo : List[_], up : List[_])   => {
         (lo.head, up.head) match {
           case (_ : RealIndex, _ : RealIndex) => {
             val sep = lo.map(m => ", ").dropRight(1) :+ " >\n"
@@ -46,24 +46,23 @@ case class DomainDeclarationStatement(var name : String, var lower : Any, var up
   }
   override def progressToIr : knowledge.Domain = {
     (lower, upper) match {
-      case (null, null) => {
+      case (null, null)                       => {
         new knowledge.FileInputGlobalDomain("global", index, DomainFileHeader.domainIdentifier.zipWithIndex.map {
           case (identifier, index) => new knowledge.FileInputDomain(identifier, index, new FileInputDomainShape(identifier))
         }.toList)
       }
-      case (lo : List[_], up : List[_]) =>
-        {
-          (lo.head, up.head) match {
-            case (_ : RealIndex2D, _ : RealIndex2D) => {
-              val rectUnionDomains : List[RectangularDomainShape] =
-                (lo.zip(up)).map {
-                  case (li : RealIndex2D, ui : RealIndex2D) =>
-                    new RectangularDomainShape(new AABB(li.x, ui.x, li.y, ui.y, 0.0, 0.0))
-                }
-              new knowledge.ShapedDomain(name, index, new ShapedDomainShape(rectUnionDomains))
-            }
+      case (lo : List[_], up : List[_])       => {
+        (lo.head, up.head) match {
+          case (_ : RealIndex2D, _ : RealIndex2D) => {
+            val rectUnionDomains : List[RectangularDomainShape] =
+              (lo.zip(up)).map {
+                case (li : RealIndex2D, ui : RealIndex2D) =>
+                  new RectangularDomainShape(new AABB(li.x, ui.x, li.y, ui.y, 0.0, 0.0))
+              }
+            new knowledge.ShapedDomain(name, index, new ShapedDomainShape(rectUnionDomains))
           }
         }
+      }
       case (l : RealIndex2D, u : RealIndex2D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, 0, 0)))
       case (l : RealIndex3D, u : RealIndex3D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, l.z, u.z)))
       case _                                  => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB()))
@@ -110,7 +109,7 @@ case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatemen
   }
 }
 
-case class VariableDeclarationStatement(override var identifier : Identifier, var datatype : Datatype, var expression : Option[Expression] = None) extends Statement with HasIdentifier {
+case class VariableDeclarationStatement(override var identifier : Identifier, var datatype : L4_Datatype, var expression : Option[Expression] = None) extends Statement with HasIdentifier {
   override def prettyprint(out : PpStream) = {
     out << "Variable " << identifier << " : " << datatype
     if (expression.isDefined)
@@ -119,13 +118,13 @@ case class VariableDeclarationStatement(override var identifier : Identifier, va
   }
 
   override def progressToIr : ir.VariableDeclarationStatement = {
-    ir.VariableDeclarationStatement(datatype.progressToIr,
+    ir.VariableDeclarationStatement(datatype.progress,
       identifier.fullName,
       if (expression.isDefined) Some(expression.get.progressToIr) else None)
   }
 }
 
-case class ValueDeclarationStatement(override var identifier : Identifier, var datatype : Datatype, var expression : Expression) extends Statement with HasIdentifier {
+case class ValueDeclarationStatement(override var identifier : Identifier, var datatype : L4_Datatype, var expression : Expression) extends Statement with HasIdentifier {
   //  def progressToIr : ir.ValueDeclarationStatement = {
   //    ir.ValueDeclarationStatement(datatype.progressToIr,
   //      identifier.progressToIr.asInstanceOf[ir.StringConstant].value,
@@ -249,7 +248,7 @@ case class ColorWithStatement(var colors : List[Expression], var loop : LoopOver
 }
 
 case class FunctionStatement(override var identifier : Identifier,
-    var returntype : Datatype,
+    var returntype : L4_Datatype,
     var arguments : List[FunctionArgument],
     var statements : List[Statement],
     var allowInlining : Boolean = true) extends Statement with HasIdentifier {
@@ -267,7 +266,7 @@ case class FunctionStatement(override var identifier : Identifier,
 
   override def progressToIr : ir.AbstractFunctionStatement = {
     ir.FunctionStatement(
-      returntype.progressToIr,
+      returntype.progress,
       identifier.fullName,
       arguments.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
       statements.map(s => s.progressToIr).to[ListBuffer], // FIXME: .to[ListBuffer]
@@ -276,19 +275,19 @@ case class FunctionStatement(override var identifier : Identifier,
 }
 
 case class FunctionArgument(override var identifier : Identifier,
-    var datatype : Datatype) extends Access with HasIdentifier with ProgressableToIr {
+    var datatype : L4_Datatype) extends Access with HasIdentifier with ProgressableToIr {
   override def name = identifier.name
   override def prettyprint(out : PpStream) {
     out << identifier.name << " : " << datatype.prettyprint
   }
 
-  override def progressToIr = ir.FunctionArgument(identifier.fullName, datatype.progressToIr)
+  override def progressToIr = ir.FunctionArgument(identifier.fullName, datatype.progress)
 }
 
 case class FunctionTemplateStatement(var name : String,
     var templateArgs : List[String],
     var functionArgs : List[FunctionArgument],
-    var returntype : Datatype,
+    var returntype : L4_Datatype,
     var statements : List[Statement]) extends Statement {
 
   override def prettyprint(out : PpStream) = {
@@ -352,7 +351,7 @@ case class RepeatTimesStatement(var number : Int,
 
   override def progressToIr : ir.Statement = {
     if (contraction.isDefined)
-      // FIXME: to[ListBuffer]
+    // FIXME: to[ListBuffer]
       return new ir.ContractingLoop(number, iterator.map(i => i.progressToIr), statements.map(s => s.progressToIr).to[ListBuffer], contraction.get.progressToIr)
 
     val (loopVar, begin) =
@@ -361,7 +360,7 @@ case class RepeatTimesStatement(var number : Int,
         (lv, ir.AssignmentStatement(lv, ir.IntegerConstant(0)))
       } else {
         val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
-        (ir.StringLiteral(lv), ir.VariableDeclarationStatement(ir.IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
+        (ir.StringLiteral(lv), ir.VariableDeclarationStatement(IR_IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
       }
 
     val ret = ir.ForLoopStatement(

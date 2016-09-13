@@ -1,26 +1,22 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
+import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Set }
 
+import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.logger._
 import exastencils.omp._
 import exastencils.optimization._
-
 import isl.Conversions._
 
 class ASTBuilderTransformation(replaceCallback : (Map[String, Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
 
 private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression], Node) => Unit)
-    extends PartialFunction[Node, Transformation.OutputType] {
+  extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val ZERO_VAL : isl.Val = isl.Val.zero(Isl.ctx)
   private final val ONE_VAL : isl.Val = isl.Val.one(Isl.ctx)
@@ -47,7 +43,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   override def isDefinedAt(node : Node) : Boolean = node match {
     case loop : LoopOverDimensions with PolyhedronAccessible =>
       loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
-    case _ => false
+    case _                                                   => false
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
@@ -169,7 +165,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
 
     // add comment (for debugging) and (eventually) declarations outside loop nest
     val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
-    comment +=: nju// prepend
+    comment +=: nju // prepend
     if (!scop.decls.isEmpty) {
       val scopeList = new ListBuffer[Statement]
       for (decl : VariableDeclarationStatement <- scop.decls) {
@@ -191,7 +187,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
         if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
-          val decl : Statement = new VariableDeclarationStatement(IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
+          val decl : Statement = new VariableDeclarationStatement(IR_IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
           processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
@@ -200,18 +196,18 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
           val itStr : String = islIt.getId().getName()
           val parOMP : Boolean = parallelize_omp && parDims.contains(itStr)
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
-          val it : VariableAccess = new VariableAccess(itStr, IntegerDatatype)
-          val init : Statement = new VariableDeclarationStatement(IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
+          val it : VariableAccess = new VariableAccess(itStr, IR_IntegerDatatype)
+          val init : Statement = new VariableDeclarationStatement(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
           val cond : Expression = processIslExpr(node.forGetCond())
           val incr : Statement = new AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
 
           val body : ListBuffer[Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
           val loop : ForLoopStatement with OptimizationHint =
-            if (parOMP)
-              new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
-            else
-              new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
+          if (parOMP)
+            new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
+          else
+            new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
           loop.isParallel = parDims != null && parDims.contains(itStr)
           loop.isVectorizable = vecDims != null && vecDims.contains(itStr)
           loop.privateVars ++= privateVars
@@ -261,7 +257,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   private def processIslExpr(expr : isl.AstExpr) : Expression = {
 
     return expr.getType() match { // TODO: check if ExprId contains only variable identifier
-      case isl.AstExprType.ExprId =>
+      case isl.AstExprType.ExprId    =>
         val id : String = expr.getId().getName()
         Duplicate(ScopNameMapping.id2expr(id)).getOrElse(StringLiteral(id))
       case isl.AstExprType.ExprInt   => IntegerConstant(expr.getVal().toString().toLong)

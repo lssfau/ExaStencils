@@ -2,10 +2,12 @@ package exastencils.data
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype_VS
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
@@ -21,7 +23,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 
     // add static allocations here
 
-    return FunctionStatement(UnitDatatype, name, ListBuffer(), body)
+    return FunctionStatement(IR_UnitDatatype, name, ListBuffer(), body)
   }
 }
 
@@ -30,10 +32,10 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
   override def prettyprint_decl : String = prettyprint
   override def name = "get" + dest.identifier
 
-  def getFortranCompDT() : Datatype = {
-    var dt : Datatype = dest.resolveBaseDatatype
+  def getFortranCompDT() : IR_Datatype = {
+    var dt = dest.resolveBaseDatatype
     for (dim <- 0 until dest.fieldLayout.numDimsData)
-      dt = ArrayDatatype_VS(dt, dest.fieldLayout.idxById("TOT", dim))
+      dt = IR_ArrayDatatype_VS(dt, dest.fieldLayout.idxById("TOT", dim))
     dt
   }
 
@@ -41,7 +43,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
-      PointerDatatype(src.resolveBaseDatatype)
+      IR_PointerDatatype(src.resolveBaseDatatype)
 
     val loopDim = dest.fieldLayout.numDimsData
     var multiIndex = LoopOverDimensions.defIt(loopDim)
@@ -62,8 +64,8 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     def offsetForExtField = MultiIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim)).toArray)
 
     // compile final function
-    new FunctionStatement(UnitDatatype, name,
-      ListBuffer(new FunctionArgument("dest", externalDT), new FunctionArgument("slot", IntegerDatatype)),
+    new FunctionStatement(IR_UnitDatatype, name,
+      ListBuffer(new FunctionArgument("dest", externalDT), new FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           new MultiIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
@@ -79,10 +81,10 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
   override def prettyprint_decl : String = prettyprint
   override def name = "set" + src.identifier
 
-  def getFortranCompDT() : Datatype = {
-    var dt : Datatype = src.resolveBaseDatatype
+  def getFortranCompDT() : IR_Datatype = {
+    var dt : IR_Datatype = src.resolveBaseDatatype
     for (dim <- 0 until src.fieldLayout.numDimsData)
-      dt = ArrayDatatype_VS(dt, src.fieldLayout.idxById("TOT", dim))
+      dt = IR_ArrayDatatype_VS(dt, src.fieldLayout.idxById("TOT", dim))
     dt
   }
 
@@ -90,7 +92,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
-      PointerDatatype(dest.resolveBaseDatatype)
+      IR_PointerDatatype(dest.resolveBaseDatatype)
 
     val loopDim = src.fieldLayout.numDimsData
     var multiIndex = LoopOverDimensions.defIt(loopDim)
@@ -111,8 +113,8 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     def offsetForExtField = MultiIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim)).toArray)
 
     // compile final function
-    new FunctionStatement(UnitDatatype, name,
-      ListBuffer(new FunctionArgument("src", externalDT), new FunctionArgument("slot", IntegerDatatype)),
+    new FunctionStatement(IR_UnitDatatype, name,
+      ListBuffer(new FunctionArgument("src", externalDT), new FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           new MultiIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),

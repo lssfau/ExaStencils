@@ -2,8 +2,10 @@ package exastencils.datastructures.ir.iv
 
 import scala.collection.mutable.HashMap
 
-import exastencils.datastructures.ir._
+import exastencils.base.ir.IR_Datatype
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
@@ -17,24 +19,24 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def usesNeighborArrays : Boolean = true
 
   def resolveName : String
-  def resolveDataType : Datatype
+  def resolveDatatype : IR_Datatype
   def resolveDefValue : Option[Expression] = None
 
   def getDeclaration() : VariableDeclarationStatement = {
-    var dt : Datatype = resolveDataType
+    var datatype : IR_Datatype = resolveDatatype
 
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
-      dt = ArrayDatatype(dt, Knowledge.domain_numFragmentsPerBlock)
+      datatype = IR_ArrayDatatype(datatype, Knowledge.domain_numFragmentsPerBlock)
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
-      dt = ArrayDatatype(dt, DomainCollection.domains.size)
+      datatype = IR_ArrayDatatype(datatype, DomainCollection.domains.size)
     if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
-      dt = ArrayDatatype(dt, FieldCollection.fields.size)
+      datatype = IR_ArrayDatatype(datatype, FieldCollection.fields.size)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
-      dt = ArrayDatatype(dt, Knowledge.numLevels)
+      datatype = IR_ArrayDatatype(datatype, Knowledge.numLevels)
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      dt = ArrayDatatype(dt, Fragment.neighbors.size)
+      datatype = IR_ArrayDatatype(datatype, Fragment.neighbors.size)
 
-    new VariableDeclarationStatement(dt, resolveName)
+    new VariableDeclarationStatement(datatype, resolveName)
   }
 
   def wrapInLoops(body : Statement) : Statement = {

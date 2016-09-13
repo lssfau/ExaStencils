@@ -2,10 +2,11 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.prettyprinting._
@@ -22,7 +23,8 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
   def resolveIndex(indexId : String, dim : Int) : Expression = {
     if (Knowledge.experimental_useLevelIndepFcts) {
       // FIXME
-      ??? //ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
+      ??? //ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
+
     } else {
       fieldSelection.field.fieldLayout.idxById(indexId, dim)
     }
@@ -42,13 +44,13 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
     }
 
     var fctArgs : ListBuffer[FunctionArgument] = ListBuffer()
-    fctArgs += FunctionArgument("slot", SpecialDatatype("unsigned int"))
+    fctArgs += FunctionArgument("slot", IR_SpecialDatatype("unsigned int"))
     if (Knowledge.experimental_useLevelIndepFcts)
-      FunctionArgument("level", SpecialDatatype("unsigned int"))
+      FunctionArgument("level", IR_SpecialDatatype("unsigned int"))
     if (insideFragLoop)
-      fctArgs += FunctionArgument(LoopOverFragments.defIt, IntegerDatatype)
+      fctArgs += FunctionArgument(LoopOverFragments.defIt, IR_IntegerDatatype)
 
-    FunctionStatement(UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
+    FunctionStatement(IR_UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
   }
 }
 
@@ -134,8 +136,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("DLB", i)
             case 26 => resolveIndex("IB", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
         })),
       new MultiIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
@@ -143,8 +145,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("DRE", i)
             case 26 => resolveIndex("DRE", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
         })))))
 
     // TODO: honor fieldSelection.arrayIndex
@@ -163,8 +165,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           })),
         new MultiIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
@@ -172,8 +174,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           }))),
       new IndexRange(
         new MultiIndex(
@@ -182,8 +184,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           })),
         new MultiIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
@@ -191,15 +193,13 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1,
-        { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 },
-        { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -213,8 +213,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           })),
         new MultiIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
@@ -222,8 +222,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           }))),
       new IndexRange(
         new MultiIndex(
@@ -232,8 +232,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           })),
         new MultiIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
@@ -241,15 +241,13 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1,
-        { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 },
-        { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -262,8 +260,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("DLB", i)
             case 26 => resolveIndex("IB", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
         })),
       new MultiIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
@@ -271,8 +269,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("DRE", i)
             case 26 => resolveIndex("DRE", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
         })))))
 
     // TODO: honor fieldSelection.arrayIndex
@@ -290,8 +288,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("GLB", i)
             case 26 => resolveIndex("DLB", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
         })),
       new MultiIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
@@ -299,8 +297,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("GRE", i)
             case 26 => resolveIndex("DRE", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
         })))))
 
     // TODO: honor fieldSelection.arrayIndex
@@ -319,8 +317,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
           })),
         new MultiIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
@@ -328,8 +326,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
           }))),
       new IndexRange(
         new MultiIndex(
@@ -338,8 +336,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
           })),
         new MultiIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
@@ -347,15 +345,13 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
           })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1,
-        { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 },
-        { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -369,8 +365,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
           })),
         new MultiIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
@@ -378,8 +374,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
           }))),
       new IndexRange(
         new MultiIndex(
@@ -388,8 +384,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
           })),
         new MultiIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
@@ -397,15 +393,13 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
           })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1,
-        { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 },
-        { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -418,8 +412,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("GLB", i)
             case 26 => resolveIndex("DLB", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
         })),
       new MultiIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
@@ -427,8 +421,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
             case 6  => resolveIndex("GRE", i)
             case 26 => resolveIndex("DRE", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
         })))))
 
     // TODO: honor fieldSelection.arrayIndex
@@ -448,7 +442,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
       val concurrencyId = (if (begin && finish) 0 else 0)
       if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
-          case 6 => {
+          case 6  => {
             for (dim <- 0 until field.fieldLayout.numDimsGrid) {
               var recvNeighbors = ListBuffer(neighbors(2 * dim + 0))
               var sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
@@ -488,7 +482,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
       val concurrencyId = (if (begin && finish) 0 else 1)
       if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
-          case 6 => {
+          case 6  => {
             for (dim <- 0 until field.fieldLayout.numDimsGrid) {
               var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
 

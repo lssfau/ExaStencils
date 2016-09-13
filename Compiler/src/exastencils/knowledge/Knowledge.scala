@@ -6,7 +6,8 @@ import exastencils.spl._
 object Knowledge {
   var useDblPrecision : Boolean = true // if true uses double precision for floating point numbers and single precision otherwise
 
-  var generateFortranInterface : Boolean = false // generates fortran compliant function names and marks functions for interfacing
+  var generateFortranInterface : Boolean = false
+  // generates fortran compliant function names and marks functions for interfacing
   var generateCInterface : Boolean = false // generates plain C interfaces
 
   var simd_avoidUnaligned : Boolean = false
@@ -26,8 +27,10 @@ object Knowledge {
   // === Layer 2 ===
 
   // TODO: check if these parameters will be necessary or can be implicitly assumed once an appropriate field collection is in place
-  var minLevel : Int = 0 // [0~4§minLevel+1]  // nonSISC [0~12] // @constant // the coarsest level
-  var maxLevel : Int = 6 // [4~12§maxLevel+1] // @constant // the finest level
+  var minLevel : Int = 0
+  // [0~4§minLevel+1]  // nonSISC [0~12] // @constant // the coarsest level
+  var maxLevel : Int = 6
+  // [4~12§maxLevel+1] // @constant // the finest level
   def numLevels : Int = maxLevel - minLevel + 1 // the number of levels -> this assumes that the cycle descents to the coarsest level
 
   // --- Domain Decomposition ---
@@ -50,9 +53,12 @@ object Knowledge {
   def domain_numFragmentsTotal : Int = domain_numBlocks * domain_numFragmentsPerBlock
 
   // the length of each fragment per dimension - this will either be one or specify the length in unit-fragments, i.e. the number of aggregated fragments per dimension
-  var domain_fragmentLength_x : Int = 1 // [1~64§domain_fragmentLength_x*2]
-  var domain_fragmentLength_y : Int = 1 // [1~64§domain_fragmentLength_y*2]
-  var domain_fragmentLength_z : Int = 1 // [1~64§domain_fragmentLength_z*2]
+  var domain_fragmentLength_x : Int = 1
+  // [1~64§domain_fragmentLength_x*2]
+  var domain_fragmentLength_y : Int = 1
+  // [1~64§domain_fragmentLength_y*2]
+  var domain_fragmentLength_z : Int = 1
+  // [1~64§domain_fragmentLength_z*2]
   def domain_fragmentLengthAsVec : Array[Int] = Array(domain_fragmentLength_x, domain_fragmentLength_y, domain_fragmentLength_z)
 
   /// specific flags for setting rectangular domains
@@ -66,14 +72,19 @@ object Knowledge {
   var domain_rect_numBlocks_z : Int = 1
 
   // number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
-  var domain_rect_numFragsPerBlock_x : Int = 1 // [1~64§domain_rect_numFragsPerBlock_x*2]
-  var domain_rect_numFragsPerBlock_y : Int = 1 // [1~64§domain_rect_numFragsPerBlock_y*2]
+  var domain_rect_numFragsPerBlock_x : Int = 1
+  // [1~64§domain_rect_numFragsPerBlock_x*2]
+  var domain_rect_numFragsPerBlock_y : Int = 1
+  // [1~64§domain_rect_numFragsPerBlock_y*2]
   var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64§domain_rect_numFragsPerBlock_z*2]
 
   // periodicity for rectangular domains -> this information will be handed down from layer 2 later
-  var domain_rect_periodic_x : Boolean = false // periodicity of the global domain in x direction
-  var domain_rect_periodic_y : Boolean = false // periodicity of the global domain in y direction
-  var domain_rect_periodic_z : Boolean = false // periodicity of the global domain in z direction
+  var domain_rect_periodic_x : Boolean = false
+  // periodicity of the global domain in x direction
+  var domain_rect_periodic_y : Boolean = false
+  // periodicity of the global domain in y direction
+  var domain_rect_periodic_z : Boolean = false
+  // periodicity of the global domain in z direction
   def domain_rect_periodicAsVec : Array[Boolean] = Array(domain_rect_periodic_x, domain_rect_periodic_y, domain_rect_periodic_z)
   def domain_rect_hasPeriodicity : Boolean = domain_rect_periodic_x || domain_rect_periodic_y || domain_rect_periodic_z
 
@@ -85,13 +96,18 @@ object Knowledge {
   var grid_spacingModel : String = "uniform" // must be uniform if grid_isUniform; may be "diego", "diego2" or "linearFct" otherwise
 
   // options for SISC Paper
-  var sisc2015_numNodes : Int = 64 // [16~64§sisc2015_numNodes*2]
-  var sisc2015_ranksPerNode : Int = 64 // [16~64§sisc2015_ranksPerNode*2]
-  var sisc2015_firstDim : Int = 1 // [0~1]
+  var sisc2015_numNodes : Int = 64
+  // [16~64§sisc2015_numNodes*2]
+  var sisc2015_ranksPerNode : Int = 64
+  // [16~64§sisc2015_ranksPerNode*2]
+  var sisc2015_firstDim : Int = 1
+  // [0~1]
   var sisc2015_secondDim : Int = 1 // [0~1]
 
-  var sisc2015_numOMP_x : Int = 2 // [1~64§sisc2015_numOMP_x*2]
-  var sisc2015_numOMP_y : Int = 2 // [1~64§sisc2015_numOMP_y*2]
+  var sisc2015_numOMP_x : Int = 2
+  // [1~64§sisc2015_numOMP_x*2]
+  var sisc2015_numOMP_y : Int = 2
+  // [1~64§sisc2015_numOMP_y*2]
   var sisc2015_numOMP_z : Int = 2 // [1~64§sisc2015_numOMP_z*2]
   // options for SISC Paper ENDE
 
@@ -111,13 +127,16 @@ object Knowledge {
   def domain_canHaveRemoteNeighs : Boolean = domain_numBlocks > 1 || (mpi_enabled && domain_rect_hasPeriodicity)
 
   /// Student project - Jeremias
-  var domain_useCase : String = "" // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
+  var domain_useCase : String = ""
+  // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
   var domain_generateDomainFile : Boolean = false
   var domain_fragmentTransformation : Boolean = false
 
   // TODO: ignore for IDE support for now
-  var discr_hx : Array[Double] = Array() // grid widths in x direction per level
-  var discr_hy : Array[Double] = Array() // grid widths in y direction per level
+  var discr_hx : Array[Double] = Array()
+  // grid widths in x direction per level
+  var discr_hy : Array[Double] = Array()
+  // grid widths in y direction per level
   var discr_hz : Array[Double] = Array() // grid widths in z direction per level
 
   // === Layer 3 ===
@@ -125,53 +144,75 @@ object Knowledge {
   // === Layer 4 ===
 
   // === Post Layer 4 ===
-  var ir_genSepLayoutsPerField : Boolean = true // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
+  var ir_genSepLayoutsPerField : Boolean = true
+  // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
   var ir_maxInliningSize : Int = 10 // inlines functions containing less or equal number of statement nodes (0 disables inlining)
 
   // --- Data Structures ---
-  var data_initAllFieldsWithZero : Boolean = true // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
+  var data_initAllFieldsWithZero : Boolean = true
+  // specifies if all data points in all fields on all levels should initially be set zero (before the l4 initField functions are applied)
   var data_useFieldNamesAsIdx : Boolean = true // specifies if generated data field names should hold the clear text field identifier
 
-  var data_alignFieldPointers : Boolean = false // specifies if pointers to field data are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
+  var data_alignFieldPointers : Boolean = false
+  // specifies if pointers to field data are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
   var data_alignTmpBufferPointers : Boolean = false // specifies if pointers to communication buffers are to be aligned to simd_vectorSize, e.g. to ensure correct alignment for SIMD accesses
 
   var data_genVariableFieldSizes : Boolean = false // generates global variables for employed field indices such as ghost/duplicate/inner begin and end
 
   // --- OpenMP and MPI Parallelization ---
-  var comm_strategyFragment : Int = 6 // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
-  var comm_useFragmentLoopsForEachOp : Boolean = true // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops
-  var comm_pushLocalData : Boolean = false // [true|false] // specifies if local data exchanges are implemented using push (true) or pull (false) schemes
+  var comm_strategyFragment : Int = 6
+  // [6|26] // specifies if communication is only performed along coordinate axis or to all neighbors
+  var comm_useFragmentLoopsForEachOp : Boolean = true
+  // [true|false] // specifies if comm ops (buffer copy, send/ recv, wait) should each be aggregated and handled in distinct fragment loops
+  var comm_pushLocalData : Boolean = false
+  // [true|false] // specifies if local data exchanges are implemented using push (true) or pull (false) schemes
   var comm_disableLocalCommSync = true // [true|false] // specifies if local communication is synchronized using flags; usually not necessary unless communication in fragment loops is allowed
 
   // TODO: check in how far the following parameters can be adapted by the SPL
-  var comm_sepDataByFragment : Boolean = true // specifies if communication variables that could be fragment specific are handled separately
-  var comm_sepDataByDomain : Boolean = false // specifies if communication variables that could be domain specific are handled separately
-  var comm_sepDataByField : Boolean = false // specifies if communication variables that could be field specific are handled separately
-  var comm_sepDataByLevel : Boolean = false // specifies if communication variables that could be level specific are handled separately
+  var comm_sepDataByFragment : Boolean = true
+  // specifies if communication variables that could be fragment specific are handled separately
+  var comm_sepDataByDomain : Boolean = false
+  // specifies if communication variables that could be domain specific are handled separately
+  var comm_sepDataByField : Boolean = false
+  // specifies if communication variables that could be field specific are handled separately
+  var comm_sepDataByLevel : Boolean = false
+  // specifies if communication variables that could be level specific are handled separately
   var comm_sepDataByNeighbor : Boolean = true // specifies if communication variables that could be neighbor specific are handled separately
 
-  var comm_useFragmentArrays : Boolean = true // specifies if fragment specific variables are summarized in array form
-  var comm_useDomainArrays : Boolean = true // specifies if domain specific variables are summarized in array form
-  var comm_useFieldArrays : Boolean = false // specifies if domain field variables are summarized in array form
-  var comm_useLevelArrays : Boolean = false // specifies if domain level variables are summarized in array form
+  var comm_useFragmentArrays : Boolean = true
+  // specifies if fragment specific variables are summarized in array form
+  var comm_useDomainArrays : Boolean = true
+  // specifies if domain specific variables are summarized in array form
+  var comm_useFieldArrays : Boolean = false
+  // specifies if domain field variables are summarized in array form
+  var comm_useLevelArrays : Boolean = false
+  // specifies if domain level variables are summarized in array form
   var comm_useNeighborArrays : Boolean = true // specifies if neighbor specific variables are summarized in array form
 
   // --- OpenMP Parallelization ---
-  var omp_enabled : Boolean = false // [true|false]
+  var omp_enabled : Boolean = false
+  // [true|false]
   var omp_numThreads : Int = 1 // TODO // the number of omp threads to be used; may be incorporated in omp pragmas
 
-  var omp_parallelizeLoopOverFragments : Boolean = true // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
-  var omp_parallelizeLoopOverDimensions : Boolean = false // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
-  var omp_useCollapse : Boolean = false // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
-  var omp_minWorkItemsPerThread : Int = 400 // [1~inf§omp_minWorkItemsPerThread+1] // threshold specifying which loops yield enough workload to amortize the omp overhead
+  var omp_parallelizeLoopOverFragments : Boolean = true
+  // [true|false] // specifies if loops over fragments may be parallelized with omp if marked correspondingly
+  var omp_parallelizeLoopOverDimensions : Boolean = false
+  // [true|false] // specifies if loops over dimensions may be parallelized with omp if marked correspondingly
+  var omp_useCollapse : Boolean = false
+  // [true|false] // if true the 'collapse' directive may be used in omp for regions; this will only be done if the minimum omp version supports this
+  var omp_minWorkItemsPerThread : Int = 400
+  // [1~inf§omp_minWorkItemsPerThread+1] // threshold specifying which loops yield enough workload to amortize the omp overhead
   var omp_nameCriticalSections : Boolean = false // specifies if unique (usually consecutively numbered) identifiers are to be generated for OMP critical sections => allows entering multiple, disctinct sections concurrently
 
   // --- MPI Parallelization ---
-  var mpi_enabled : Boolean = true // [true|false]
+  var mpi_enabled : Boolean = true
+  // [true|false]
   var mpi_numThreads : Int = 1 // TODO // the number of mpi threads to be used
 
-  var mpi_useCustomDatatypes : Boolean = false // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
-  var mpi_useLoopsWherePossible : Boolean = true // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
+  var mpi_useCustomDatatypes : Boolean = false
+  // [true|false] // allows to use custom mpi data types when reading from/ writing to fields thus circumventing temp send/ receive buffers
+  var mpi_useLoopsWherePossible : Boolean = true
+  // [true|false] // allows to summarize some code blocks into loops in order to shorten the resulting code length
   var mpi_defaultCommunicator : String = "MPI_COMM_WORLD" // sets the initial communicator used by most MPI operations
 
   var mpi_useBusyWait : Boolean = false // [true|false] // specifies if MPI_Test (true) or MPI_Wait (false) is to be used when waiting for async communication
@@ -185,95 +226,160 @@ object Knowledge {
   //   2: optimize the loop nest by trying to minimze the dependences specified by poly_optimizeDeps
   //   3: tile the optimized loop nest using poly_tileSize_{x|y|z|w}  (slowest)
   // TODO: Alex: range of the following options
-  var poly_optLevel_fine : Int = 0 // [0~3§poly_optLevel_fine+1] // poly opt-level for poly_numFinestLevels finest fields
-  var poly_optLevel_coarse : Int = 0 // [0~poly_optLevel_fine§poly_optLevel_coarse+1] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
-  var poly_numFinestLevels : Int = 2 // [1~numLevels§poly_numFinestLevels+1] // number of levels that should be optimized in PolyOpt (starting from the finest)
-  var poly_performDCE : Boolean = true // [true|false] // specifies if the polyhedral dead code elimination should be performed (which can increase the generation time)
+  var poly_optLevel_fine : Int = 0
+  // [0~3§poly_optLevel_fine+1] // poly opt-level for poly_numFinestLevels finest fields
+  var poly_optLevel_coarse : Int = 0
+  // [0~poly_optLevel_fine§poly_optLevel_coarse+1] // polyhedral optimization level for coarsest fields  0: disable (fastest);  3: aggressive (slowest)
+  var poly_numFinestLevels : Int = 2
+  // [1~numLevels§poly_numFinestLevels+1] // number of levels that should be optimized in PolyOpt (starting from the finest)
+  var poly_performDCE : Boolean = true
+  // [true|false] // specifies if the polyhedral dead code elimination should be performed (which can increase the generation time)
   // for tileSizes: these all default values if they are not set by the performance estimates; '0' means no tiling at all in this dimension
-  var poly_tileSize_x : Int = 0 // [112~1000000000 $32§poly_tileSize_x+32]
-  var poly_tileSize_y : Int = 0 // [16~1000000000 $32§poly_tileSize_y+32]
-  var poly_tileSize_z : Int = 0 // [16~1000000000 $32§poly_tileSize_z+32]
-  var poly_tileSize_w : Int = 0 // [16~1000000000 $32§poly_tileSize_w+32]
-  var poly_tileOuterLoop : Boolean = false // [true|false] // specify separately if the outermost loop should be tiled
-  var poly_scheduleAlgorithm : String = "isl" // [isl|feautrier|exploration] // choose which schedule algorithm should be used in PolyOpt
-  var poly_exploration_extended : Boolean = false // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
-  var poly_optimizeDeps : String = "raw" // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
-  var poly_filterDeps : Boolean = false // [true|false] // specifies if the dependences to optimize should be filtered first
-  var poly_simplifyDeps : Boolean = true // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
-  var poly_separateComponents : Boolean = false // [true|false] // specifies if parallel composition of schedule components should be sequentialized
-  var poly_serializeSCCs : Boolean = false // [true|false] // specifies if the SCCs of the dependence graph are serialized as soon as possible
-  var poly_maximizeBandDepth : Boolean = false // [true|false] // split bands as early as possible during schedule generation
-  var poly_maxConstantTerm : Int = -1 // [(-1)~inf] // enforces that the constant coefficients in the calculated schedule are not larger than the maximal constant term (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
+  var poly_tileSize_x : Int = 0
+  // [112~1000000000 $32§poly_tileSize_x+32]
+  var poly_tileSize_y : Int = 0
+  // [16~1000000000 $32§poly_tileSize_y+32]
+  var poly_tileSize_z : Int = 0
+  // [16~1000000000 $32§poly_tileSize_z+32]
+  var poly_tileSize_w : Int = 0
+  // [16~1000000000 $32§poly_tileSize_w+32]
+  var poly_tileOuterLoop : Boolean = false
+  // [true|false] // specify separately if the outermost loop should be tiled
+  var poly_scheduleAlgorithm : String = "isl"
+  // [isl|feautrier|exploration] // choose which schedule algorithm should be used in PolyOpt
+  var poly_exploration_extended : Boolean = false
+  // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
+  var poly_optimizeDeps : String = "raw"
+  // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
+  var poly_filterDeps : Boolean = false
+  // [true|false] // specifies if the dependences to optimize should be filtered first
+  var poly_simplifyDeps : Boolean = true
+  // [true|false] // simplify dependences before computing a new schedule; this reduces PolyOpt run-time, but it could also lead to slower generated code
+  var poly_separateComponents : Boolean = false
+  // [true|false] // specifies if parallel composition of schedule components should be sequentialized
+  var poly_serializeSCCs : Boolean = false
+  // [true|false] // specifies if the SCCs of the dependence graph are serialized as soon as possible
+  var poly_maximizeBandDepth : Boolean = false
+  // [true|false] // split bands as early as possible during schedule generation
+  var poly_maxConstantTerm : Int = -1
+  // [(-1)~inf] // enforces that the constant coefficients in the calculated schedule are not larger than the maximal constant term (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
   var poly_maxCoefficient : Int = -1 // [(-1)~inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
 
   // --- Other Optimizations ---
-  var opt_useAddressPrecalc : Boolean = false // [true|false]
-  var opt_vectorize : Boolean = false // [true|false]
-  var opt_unroll : Int = 1 // [1~5]
-  var opt_unroll_interleave : Boolean = false // [true|false]
-  var opt_useColorSplitting : Boolean = false // [true|false] // only relevant for RBGS smoother currently
+  var opt_useAddressPrecalc : Boolean = false
+  // [true|false]
+  var opt_vectorize : Boolean = false
+  // [true|false]
+  var opt_unroll : Int = 1
+  // [1~5]
+  var opt_unroll_interleave : Boolean = false
+  // [true|false]
+  var opt_useColorSplitting : Boolean = false
+  // [true|false] // only relevant for RBGS smoother currently
   // for both CSE: currently assumes RealDatatype for ALL common subexpressions
-  var opt_conventionalCSE : Boolean = false // [true|false] // apply a conventional common subexpression elimination
-  var opt_loopCarriedCSE : Boolean = false // [true|false] // apply a loop carried common subexpression elimination; this effectively serializes optimized loop-nests, so parallelize LoopOverFragments!
+  var opt_conventionalCSE : Boolean = false
+  // [true|false] // apply a conventional common subexpression elimination
+  var opt_loopCarriedCSE : Boolean = false
+  // [true|false] // apply a loop carried common subexpression elimination; this effectively serializes optimized loop-nests, so parallelize LoopOverFragments!
   var opt_loopCarriedCSE_skipOuter : Int = 0 // [0~dimensionality] // do not take this number of outer dimensions into account when performing a loop carried CSE
 
   /// BEGIN HACK config options for generating L4 DSL file
   var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
 
   /// SPL connected
-  var l3tmp_smoother : String = "Jac" // [Jac|RBGS] // [Jac|GS|RBGS|BS] // the l3tmp_smoother to be generated
-  var l3tmp_cgs : String = "CG" // [CG] // the coarse grid solver to be generated
-  var l3tmp_maxNumCGSSteps : Int = 512 // maximum number of coarse grid solver iterations
-  var l3tmp_numRecCycleCalls : Int = 1 // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
-  var l3tmp_numPre : Int = 3 // [0~4§l3tmp_numPre+1] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_numPost : Int = 3 // [0~4§l3tmp_numPost+1] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
-  var l3tmp_omega : Double = 1.0 // [0.1~2.0$0.1§l3tmp_omega+0.1] // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
-  var l3tmp_genStencilStencilConv : Boolean = false // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
-  var l3tmp_genStencilFields : Boolean = false // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
-  var l3tmp_genInvDiagStencil : Boolean = false // [true|false] // generates a separate stencil (field) for inverse ( diag ( laplace ) ) and uses it in the smoother
-  var l3tmp_genAsyncCommunication : Boolean = false // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts
-  var l3tmp_genTemporalBlocking : Boolean = false // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
-  var l3tmp_tempBlockingMinLevel : Int = 1 // [1+minLevel|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
-  var l3tmp_useConditionsForRBGS : Boolean = true // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
-  var l3tmp_useSlotsForJac : Boolean = true // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
-  var l3tmp_useSlotVariables : Boolean = true // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
-  var l3tmp_genHDepStencils : Boolean = false // [true|false] // generates stencils dependent on the grid width h
+  var l3tmp_smoother : String = "Jac"
+  // [Jac|RBGS] // [Jac|GS|RBGS|BS] // the l3tmp_smoother to be generated
+  var l3tmp_cgs : String = "CG"
+  // [CG] // the coarse grid solver to be generated
+  var l3tmp_maxNumCGSSteps : Int = 512
+  // maximum number of coarse grid solver iterations
+  var l3tmp_numRecCycleCalls : Int = 1
+  // [1~2] // 1 corresponds to v-cycles while 2 corresponds to w-cycles
+  var l3tmp_numPre : Int = 3
+  // [0~4§l3tmp_numPre+1] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_numPost : Int = 3
+  // [0~4§l3tmp_numPost+1] // [0-12] // has to be divisible by 2 for Jac if l3tmp_useSlotsForJac or l3tmp_useSlotVariables are disabled
+  var l3tmp_omega : Double = 1.0
+  // [0.1~2.0$0.1§l3tmp_omega+0.1] // [0.1-10.0] // the relaxation parameter to be used for the l3tmp_smoother
+  var l3tmp_genStencilStencilConv : Boolean = false
+  // [true|false] // tests stencil-stencil convolutions by using RAP instead of A
+  var l3tmp_genStencilFields : Boolean = false
+  // [true|false] // generates stencil fields that are used to store stencils of A (or RAP if l3tmp_genStencilStencilConv is true)
+  var l3tmp_genInvDiagStencil : Boolean = false
+  // [true|false] // generates a separate stencil (field) for inverse ( diag ( laplace ) ) and uses it in the smoother
+  var l3tmp_genAsyncCommunication : Boolean = false
+  // [true|false] // replaces some sync communication statements in the L4 DSL file with their async counterparts
+  var l3tmp_genTemporalBlocking : Boolean = false
+  // [true|false] // adds the necessary statements to the L4 DSL file to implement temporal blocking; adapts field layouts as well
+  var l3tmp_tempBlockingMinLevel : Int = 1
+  // [1+minLevel|maxLevel] // specifies a threshold for adding temporal blocking to generated l4 files; only levels larger or equal to this threshold are blocked
+  var l3tmp_useConditionsForRBGS : Boolean = true
+  // [true|false] // uses conditions to realize red-black patterns (as opposed to adapted offsets and strides)
+  var l3tmp_useSlotsForJac : Boolean = true
+  // [true|false] // uses sloted solution fields for Jacobi (as opposed to multiple distinct fields)
+  var l3tmp_useSlotVariables : Boolean = true
+  // [true|false] // uses slot variables (currentSlot, nextSlot, previousSlot) for access to slotted solution fields; allows for odd number of smoothing steps
+  var l3tmp_genHDepStencils : Boolean = false
+  // [true|false] // generates stencils dependent on the grid width h
   var l3tmp_genFMG : Boolean = false // [true|false] // generates a full multigrid solver
 
   /// timer generation
-  var l3tmp_genTimersPerFunction : Boolean = false // generates different timers for each function in the mg cycle
-  var l3tmp_genTimersPerLevel : Boolean = false // generates different timers for each (mg) level
-  var l3tmp_genTimersForComm : Boolean = false // generates additional timers for the communication
-  var l3tmp_genCommTimersPerField : Boolean = false // generates different communication timers for each field
+  var l3tmp_genTimersPerFunction : Boolean = false
+  // generates different timers for each function in the mg cycle
+  var l3tmp_genTimersPerLevel : Boolean = false
+  // generates different timers for each (mg) level
+  var l3tmp_genTimersForComm : Boolean = false
+  // generates additional timers for the communication
+  var l3tmp_genCommTimersPerField : Boolean = false
+  // generates different communication timers for each field
   var l3tmp_genCommTimersPerLevel : Boolean = false // generates different communication timers for each level
 
-  var l3tmp_printTimersToFile : Boolean = false // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
-  var l3tmp_printTimersToFileForEachRank : Boolean = false // prints separate timer values for each rank -> requires some additional memory for the gather op
-  var l3tmp_printAllTimers : Boolean = false // prints results for all used timers at the end of the application
+  var l3tmp_printTimersToFile : Boolean = false
+  // prints results for all used timers at the end of the application; uses l3tmp_timerOuputFile as target file
+  var l3tmp_printTimersToFileForEachRank : Boolean = false
+  // prints separate timer values for each rank -> requires some additional memory for the gather op
+  var l3tmp_printAllTimers : Boolean = false
+  // prints results for all used timers at the end of the application
   var l3tmp_timerOuputFile : String = "timings.csv" // the file timer data is to be written to if l3tmp_printTimersToFile is activated
 
   var l3tmp_timeoutLimit : Int = 20 * 60 * 1000 // threshold in ms for the total cycle time after which solving is canceled; 0 deactivates the feature
 
   /// functionality test
-  var l3tmp_exactSolution : String = "Zero" // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Kappa', 'Kappa_VC'
-  var l3tmp_genNonZeroRhs : Boolean = false // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
-  var l3tmp_genExtFields : Boolean = false // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
-  var l3tmp_genGlobalOmega : Boolean = false // treats l3tmp_omega as a global (modifiable) parameter
-  var l3tmp_genSetableStencil : Boolean = false // generates stencil weights as global variables instead of constant values
-  var l3tmp_genVectorFields : Boolean = false // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
-  var l3tmp_numVecDims : Int = if (l3tmp_genVectorFields) 2 else 1 // number of components the PDE is to be solved for
-  var l3tmp_genFragLoops : Boolean = false // adds fragment loops to the L4 DSL file
-  var l3tmp_genEmbeddedDomain : Boolean = false // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
-  var l3tmp_useMaxNorm : Boolean = false // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
-  var l3tmp_genCellBasedDiscr : Boolean = false // sets up a cell based discretization
-  var l3tmp_targetResReduction : Double = 0.0 // exit criterion for the solver loop as target reduction of the residual in the chosen norm
+  var l3tmp_exactSolution : String = "Zero"
+  // specifies which function (type) is used for the solution/ rhs is used; allowed options are 'Zero', 'Polynomial', 'Trigonometric' and 'Kappa', 'Kappa_VC'
+  var l3tmp_genNonZeroRhs : Boolean = false
+  // generates more complex variants of the chosen solution function resulting in non-trival right hand sides
+  var l3tmp_genExtFields : Boolean = false
+  // adds one or more external fields to the L4 DSL file to test generation of subsequent functions
+  var l3tmp_genGlobalOmega : Boolean = false
+  // treats l3tmp_omega as a global (modifiable) parameter
+  var l3tmp_genSetableStencil : Boolean = false
+  // generates stencil weights as global variables instead of constant values
+  var l3tmp_genVectorFields : Boolean = false
+  // attempts to solve Poisson's equation for (l3tmp_numVecDims)D vectors; all components are solved independently
+  var l3tmp_numVecDims : Int = if (l3tmp_genVectorFields) 2 else 1
+  // number of components the PDE is to be solved for
+  var l3tmp_genFragLoops : Boolean = false
+  // adds fragment loops to the L4 DSL file
+  var l3tmp_genEmbeddedDomain : Boolean = false
+  // adds a second domain to perform all computations on; the new domain is one fragment smaller on each boundary
+  var l3tmp_useMaxNorm : Boolean = false
+  // uses the maximum norm instead of the L2 norm when reducing the residual on the finest level
+  var l3tmp_genCellBasedDiscr : Boolean = false
+  // sets up a cell based discretization
+  var l3tmp_targetResReduction : Double = 0.0
+  // exit criterion for the solver loop as target reduction of the residual in the chosen norm
   var l3tmp_genPeriodicBounds : Boolean = false // generates a solver for a problem with periodic boundaries
 
   /// optional features
-  var l3tmp_printFieldAtEnd : Boolean = false // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
-  var l3tmp_initSolWithRand : Boolean = true // initializes the solution on the finest level with random values
-  var l3tmp_genForAutoTests : Boolean = false // generates code for automatic testing purposes - if l3tmp_printError is activated NO residual is printed
-  var l3tmp_printError : Boolean = false // generates code that calculates and prints the error in each iteration
+  var l3tmp_printFieldAtEnd : Boolean = false
+  // prints the solution field at the end of the application (or the mean solution in l3tmp_kelvin's case)
+  var l3tmp_initSolWithRand : Boolean = true
+  // initializes the solution on the finest level with random values
+  var l3tmp_genForAutoTests : Boolean = false
+  // generates code for automatic testing purposes - if l3tmp_printError is activated NO residual is printed
+  var l3tmp_printError : Boolean = false
+  // generates code that calculates and prints the error in each iteration
   var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
 
   /// paper project - SISC
@@ -283,15 +389,19 @@ object Knowledge {
   var library_CImg : Boolean = false // Adds the CImg library
 
   /// student project - Kelvin
-  var l3tmp_kelvin : Boolean = false // currently only works for 2D
-  var l3tmp_kelvin_numSamples : Int = 10 // only required for l3tmp_kelvin; number of samples to be evaluated
+  var l3tmp_kelvin : Boolean = false
+  // currently only works for 2D
+  var l3tmp_kelvin_numSamples : Int = 10
+  // only required for l3tmp_kelvin; number of samples to be evaluated
   var l3tmp_kelvin_numHaloFrags : Int = 2 // only required for l3tmp_kelvin; number of halo fragments used to implement the open boundary approximation
 
   /// experimental features
   var experimental_useLevelIndepFcts : Boolean = false
 
-  var experimental_Neumann : Boolean = false // highly experimental -> use only if you know what you are doing
-  var experimental_NeumannOrder : Int = 2 // may currently be 1 or 2
+  var experimental_Neumann : Boolean = false
+  // highly experimental -> use only if you know what you are doing
+  var experimental_NeumannOrder : Int = 2
+  // may currently be 1 or 2
   var experimental_NeumannNormalize : Boolean = false // normalize solution after each v-cycle
 
   var experimental_timerEnableCallStacks : Boolean = false // generates call stacks for all employed timers
@@ -315,26 +425,37 @@ object Knowledge {
   var experimental_memoryDistanceAnalysis : Boolean = false
 
   var cuda_enabled : Boolean = false
-  var cuda_deviceId : Int = 0 // device id of the CUDA device to be used; only relevant in multi-GPU systems
-  var cuda_preferredExecution : String = "Performance" // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
-  var cuda_syncDeviceAfterKernelCalls : Boolean = true // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
-  var cuda_syncHostForWrites : Boolean = false // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
+  var cuda_deviceId : Int = 0
+  // device id of the CUDA device to be used; only relevant in multi-GPU systems
+  var cuda_preferredExecution : String = "Performance"
+  // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
+  var cuda_syncDeviceAfterKernelCalls : Boolean = true
+  // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
+  var cuda_syncHostForWrites : Boolean = false
+  // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
   var cuda_syncDeviceForWrites : Boolean = true // specifies if fields with (exclusive) write accesses should be synchronized before device kernel executions
 
-  var cuda_blockSize_x : Long = 8 // default block size in x dimension
-  var cuda_blockSize_y : Long = 8 // default block size in y dimension
-  var cuda_blockSize_z : Long = 8 // default block size in z dimension
+  var cuda_blockSize_x : Long = 8
+  // default block size in x dimension
+  var cuda_blockSize_y : Long = 8
+  // default block size in y dimension
+  var cuda_blockSize_z : Long = 8
+  // default block size in z dimension
   def cuda_blockSizeAsVec = Array(cuda_blockSize_x, cuda_blockSize_y, cuda_blockSize_z)
   def cuda_blockSizeTotal = cuda_blockSize_x * cuda_blockSize_y * cuda_blockSize_z
-  var cuda_reductionBlockSize = 1024 // default (1D) block size for default reduction kernels
-  var cuda_useSharedMemory : Boolean = false // specify if shared memory should be used within kernels
+  var cuda_reductionBlockSize = 1024
+  // default (1D) block size for default reduction kernels
+  var cuda_useSharedMemory : Boolean = false
+  // specify if shared memory should be used within kernels
   var cuda_linearizeSharedMemoryAccess : Boolean = false
   var cuda_spatialBlockingWithSmem : Boolean = false
   var cuda_favorL1CacheOverSharedMemory : Boolean = false
   var cuda_spatialBlockingWithROC : Boolean = false // apply spatial blocking with read-only cache
 
-  var experimental_mergeCommIntoLoops : Boolean = false // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
-  var experimental_splitLoopsForAsyncComm : Boolean = false // attempts to overlap communication and computation of loops with added communication statements
+  var experimental_mergeCommIntoLoops : Boolean = false
+  // tries to merge communication statements and loop over points in function bodies -> allows automatic overlap of communication and computation
+  var experimental_splitLoopsForAsyncComm : Boolean = false
+  // attempts to overlap communication and computation of loops with added communication statements
   var experimental_splitLoops_minInnerWidth : Int = 4 // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   /// END HACK
 
@@ -523,8 +644,8 @@ object Knowledge {
     Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
 
-    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
-    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
 
     Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
     Constraints.condWarn(cuda_spatialBlockingWithSmem && !cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")

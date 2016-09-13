@@ -2,12 +2,12 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.StatementList
+import exastencils.datastructures.ir.{ StatementList, _ }
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.omp._
@@ -23,14 +23,15 @@ case class CommunicateTarget(var target : String, var begin : Option[MultiIndex]
 }
 
 case class CommunicateStatement(var field : FieldSelection, var op : String, var targets : ListBuffer[CommunicateTarget], var condition : Option[Expression]) extends Statement {
+
   object ShiftIndexAccesses extends QuietDefaultStrategy("Shifting index accesses") {
     this += new Transformation("SearchAndReplace", {
-      case s : StringLiteral => {
+      case s : StringLiteral   => {
         var ret : Expression = s
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (dimToString(dim) == s.value)
-            ret = VariableAccess(dimToString(dim), Some(IntegerDatatype)) - field.field.referenceOffset(dim)
+            ret = VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
         ret
       }
       case va : VariableAccess => {
@@ -38,7 +39,7 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (dimToString(dim) == va.name)
-            ret = VariableAccess(dimToString(dim), Some(IntegerDatatype)) - field.field.referenceOffset(dim)
+            ret = VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
         ret
       }
     }, false)
@@ -249,22 +250,22 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
     var body = {
       val maxCnt = indices.getTotalSize
       val cnt = (if (condition.isDefined)
-        iv.TmpBufferIterator(field.field, s"Send_${concurrencyId}", neighbor.index)
+        iv.TmpBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
       else
         maxCnt)
       if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == SimplifyExpression.evalIntegral(cnt))) {
-        RemoteSend(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
         RemoteSend(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${concurrencyId}", maxCnt, neighbor.index), cnt, RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo) : Statement = {
-    new WaitForTransfer(field, neighbor, s"Send_${concurrencyId}")
+    new WaitForTransfer(field, neighbor, s"Send_${ concurrencyId }")
   }
 
   override def expand : Output[StatementList] = {
@@ -317,18 +318,18 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
       val maxCnt = indices.getTotalSize
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
       if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(cnt)) {
-        RemoteRecv(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
         RemoteRecv(field, neighbor, AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", maxCnt, neighbor.index), cnt, RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo) : Statement = {
-    new WaitForTransfer(field, neighbor, s"Recv_${concurrencyId}")
+    new WaitForTransfer(field, neighbor, s"Recv_${ concurrencyId }")
   }
 
   override def expand : Output[StatementList] = {
@@ -374,10 +375,10 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
 
     if (condition.isDefined) {
       // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
-      def it = iv.TmpBufferIterator(field.field, s"Send_${concurrencyId}", neighbor.index)
+      def it = iv.TmpBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
 
-      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getTotalSize, neighbor.index),
-        new MultiIndex(it), new MultiIndex(0) /* dummy stride */ )
+      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+        new MultiIndex(it), new MultiIndex(0) /* dummy stride */)
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
       ret += AssignmentStatement(it, 0)
@@ -386,7 +387,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
           AssignmentStatement(tmpBufAccess, fieldAccess),
           AssignmentStatement(it, 1, "+="))))
     } else {
-      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${concurrencyId}", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         new MultiIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
@@ -408,10 +409,10 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
 
     if (condition.isDefined) {
       // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
-      def it = iv.TmpBufferIterator(field.field, s"Recv_${concurrencyId}", neighbor.index)
+      def it = iv.TmpBufferIterator(field.field, s"Recv_${ concurrencyId }", neighbor.index)
 
-      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getTotalSize, neighbor.index),
-        new MultiIndex(it), new MultiIndex(0) /* dummy stride */ )
+      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+        new MultiIndex(it), new MultiIndex(0) /* dummy stride */)
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
       ret += AssignmentStatement(it, 0)
@@ -420,7 +421,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
           AssignmentStatement(fieldAccess, tmpBufAccess),
           AssignmentStatement(it, 1, "+="))))
     } else {
-      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${concurrencyId}", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         new MultiIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
@@ -432,19 +433,19 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
   }
 }
 
-case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, var src : Expression, var numDataPoints : Expression, var datatype : Datatype, var concurrencyId : Int) extends Statement with Expandable {
+case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, var src : Expression, var numDataPoints : Expression, var datatype : IR_Datatype, var concurrencyId : Int) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSend\n"
 
   override def expand : Output[StatementList] = {
     ListBuffer[Statement](
       new MPI_Send(src, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
         GeneratedMPITag(iv.CommId(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index), neighbor.index, concurrencyId),
-        iv.MpiRequest(field.field, s"Send_${concurrencyId}", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(iv.RemoteReqOutstanding(field.field, s"Send_${concurrencyId}", neighbor.index), true))
+        iv.MpiRequest(field.field, s"Send_${ concurrencyId }", neighbor.index)) with OMP_PotentiallyCritical,
+      AssignmentStatement(iv.RemoteReqOutstanding(field.field, s"Send_${ concurrencyId }", neighbor.index), true))
   }
 }
 
-case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : Expression, var numDataPoints : Expression, var datatype : Datatype, var concurrencyId : Int) extends Statement with Expandable {
+case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : Expression, var numDataPoints : Expression, var datatype : IR_Datatype, var concurrencyId : Int) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecv\n"
 
   override def expand : Output[StatementList] = {
@@ -452,8 +453,8 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
       new MPI_Receive(dest, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
         GeneratedMPITag(iv.NeighborFragLocalId(field.domainIndex, neighbor.index), iv.CommId(),
           Fragment.getOpposingNeigh(neighbor.index).index, concurrencyId),
-        iv.MpiRequest(field.field, s"Recv_${concurrencyId}", neighbor.index)) with OMP_PotentiallyCritical,
-      AssignmentStatement(iv.RemoteReqOutstanding(field.field, s"Recv_${concurrencyId}", neighbor.index), true))
+        iv.MpiRequest(field.field, s"Recv_${ concurrencyId }", neighbor.index)) with OMP_PotentiallyCritical,
+      AssignmentStatement(iv.RemoteReqOutstanding(field.field, s"Recv_${ concurrencyId }", neighbor.index), true))
   }
 }
 

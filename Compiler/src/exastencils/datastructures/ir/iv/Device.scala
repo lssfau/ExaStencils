@@ -1,13 +1,13 @@
 package exastencils.datastructures.ir.iv
 
-import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.cuda._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
-import exastencils.omp._
 import exastencils.prettyprinting._
 
 /// general variables and flags
@@ -22,18 +22,18 @@ abstract class FieldFlag extends InternalVariable(true, false, true, true, false
     super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
 
-  override def resolveDataType = {
+  override def resolveDatatype = {
     if (field.numSlots > 1)
-      ArrayDatatype(BooleanDatatype, field.numSlots)
+      IR_ArrayDatatype(IR_BooleanDatatype, field.numSlots)
     else
-      BooleanDatatype
+      IR_BooleanDatatype
   }
 
   override def wrapInLoops(body : Statement) : Statement = {
     var wrappedBody = super.wrapInLoops(body)
     if (field.numSlots > 1)
       wrappedBody = new ForLoopStatement(
-        VariableDeclarationStatement(IntegerDatatype, "slot", Some(0)),
+        VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
         LowerExpression("slot", field.numSlots),
         PreIncrementExpression("slot"),
         wrappedBody)
@@ -89,7 +89,8 @@ case class FieldDeviceData(override var field : Field, override var level : Expr
 }
 
 case class ReductionDeviceData(var size : Expression, var fragmentIdx : Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
-  override def resolveDataType = PointerDatatype(RealDatatype) // TODO: extend for other types
+  override def resolveDatatype = IR_PointerDatatype(IR_RealDatatype)
+  // TODO: extend for other types
   override def resolveName : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
 
   override def getDtor() : Option[Statement] = {

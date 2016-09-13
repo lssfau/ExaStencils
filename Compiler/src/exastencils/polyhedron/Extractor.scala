@@ -1,14 +1,9 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.ArrayStack
-import scala.collection.mutable.HashSet
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Set
-import scala.collection.mutable.StringBuilder
+import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder }
 
+import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.core.collectors._
-import exastencils.cuda.CudaStrategiesUtils
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -528,7 +523,7 @@ class Extractor extends Collector {
             enterLoopCarriedCSBufferAccess(buffer, index)
 
           case d : VariableDeclarationStatement =>
-            d.dataType.annotate(SKIP_ANNOT)
+            d.datatype.annotate(SKIP_ANNOT)
             enterDecl(d)
 
           // for the following 4 matches: do not distinguish between different elements of
@@ -664,7 +659,7 @@ class Extractor extends Collector {
     do {
       bool |= extractConstraints(begin(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append("<=")
-      constrs.append(ScopNameMapping.expr2id(new VariableAccess(dimToString(i), IntegerDatatype)))
+      constrs.append(ScopNameMapping.expr2id(new VariableAccess(dimToString(i), IR_IntegerDatatype)))
       constrs.append('<')
       bool |= extractConstraints(end(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append(" and ")
@@ -931,7 +926,7 @@ class Extractor extends Collector {
 
     if (decl.expression.isDefined) {
       val stmt = new AssignmentStatement(
-        new VariableAccess(decl.name, decl.dataType), decl.expression.get, "=")
+        new VariableAccess(decl.name, decl.datatype), decl.expression.get, "=")
       enterStmt(stmt) // as a declaration is also a statement
       decl.expression.get.annotate(Access.ANNOT, Access.READ)
       isWrite = true

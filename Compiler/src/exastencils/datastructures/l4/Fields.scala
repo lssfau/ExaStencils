@@ -1,10 +1,11 @@
 package exastencils.datastructures.l4
 
+import exastencils.base.l4.L4_Datatype
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.knowledge
-import exastencils.prettyprinting._
 import exastencils.logger._
+import exastencils.prettyprinting._
 
 case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
 
@@ -39,56 +40,56 @@ object LayoutDeclarationStatement {
 
   def default_innerPoints(discretization : String, identifier : Identifier, duplicateLayers : Option[Index]) : Index = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
-    val l4_duplicateLayers : Index = duplicateLayers.getOrElse(default_duplicateLayers(discretization))
+    val L4_duplicateLayers : Index = duplicateLayers.getOrElse(default_duplicateLayers(discretization))
 
     knowledge.Knowledge.dimensionality match {
       case 2 => discretization match {
-        case "node" => new Index2D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
-        case "cell" => new Index2D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1))
-        case "face_x" => new Index2D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1))
-        case "face_y" => new Index2D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1))
+        case "node"      => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * L4_duplicateLayers(1))
+        case "cell"      => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1))
+        case "face_x"    => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1))
+        case "face_y"    => new Index2D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * L4_duplicateLayers(1))
         case "edge_node" => new Index2D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
           1)
         case "edge_cell" => new Index2D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
           1)
       }
       case 3 => discretization match {
-        case "node" => new Index3D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
-        case "cell" => new Index3D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
-        case "face_x" => new Index3D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
-        case "face_y" => new Index3D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * l4_duplicateLayers(1),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * l4_duplicateLayers(2))
-        case "face_z" => new Index3D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * l4_duplicateLayers(1),
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * l4_duplicateLayers(2))
+        case "node"      => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * L4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * L4_duplicateLayers(2))
+        case "cell"      => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * L4_duplicateLayers(2))
+        case "face_x"    => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * L4_duplicateLayers(2))
+        case "face_y"    => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * L4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * L4_duplicateLayers(2))
+        case "face_z"    => new Index3D(
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * L4_duplicateLayers(2))
         case "edge_node" => new Index3D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
           1,
           1)
         case "edge_cell" => new Index3D(
-          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * l4_duplicateLayers(0),
+          ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
           1,
           1)
       }
@@ -98,7 +99,7 @@ object LayoutDeclarationStatement {
 
 case class LayoutDeclarationStatement(
     override var identifier : Identifier,
-    var datatype : Datatype,
+    var datatype : L4_Datatype,
     var discretization : String,
     var ghostLayers : Option[Index] = None,
     var ghostLayersCommunication : Option[Boolean] = None,
@@ -112,7 +113,7 @@ case class LayoutDeclarationStatement(
 
   def set(option : LayoutOption) : Unit = {
     option.name match {
-      case "ghostLayers" | "ghost" =>
+      case "ghostLayers" | "ghost"                 =>
         ghostLayers = Some(option.value)
         ghostLayersCommunication = option.hasCommunication
       case "duplicateLayers" | "duplicate" | "dup" =>
@@ -138,26 +139,26 @@ case class LayoutDeclarationStatement(
     val numDimsGrid = knowledge.Knowledge.dimensionality // TODO: adapt for edge data structures
     val numDimsData = numDimsGrid + datatype.dimensionality
 
-    val l4_ghostLayers : Index = ghostLayers.getOrElse(default_ghostLayers(discretization))
-    val l4_duplicateLayers : Index = duplicateLayers.getOrElse(default_duplicateLayers(discretization))
+    val L4_ghostLayers : Index = ghostLayers.getOrElse(default_ghostLayers(discretization))
+    val L4_duplicateLayers : Index = duplicateLayers.getOrElse(default_duplicateLayers(discretization))
 
-    val l4_innerPoints : Index = innerPoints.getOrElse(default_innerPoints(discretization, identifier, duplicateLayers))
+    val L4_innerPoints : Index = innerPoints.getOrElse(default_innerPoints(discretization, identifier, duplicateLayers))
 
-    val l4_ghostComm = ghostLayersCommunication.getOrElse(default_ghostComm)
-    val l4_dupComm = duplicateLayersCommunication.getOrElse(default_dupComm)
+    val L4_ghostComm = ghostLayersCommunication.getOrElse(default_ghostComm)
+    val L4_dupComm = duplicateLayersCommunication.getOrElse(default_dupComm)
 
     var layouts = Array[knowledge.FieldLayoutPerDim]()
 
     // add layouts for grid dimensions
     layouts ++= (0 until numDimsGrid).map(dim => new knowledge.FieldLayoutPerDim(
       0, // default, only first requires != 0
-      l4_ghostLayers(dim),
-      l4_duplicateLayers(dim),
-      l4_innerPoints(dim),
-      l4_duplicateLayers(dim),
-      l4_ghostLayers(dim),
+      L4_ghostLayers(dim),
+      L4_duplicateLayers(dim),
+      L4_innerPoints(dim),
+      L4_duplicateLayers(dim),
+      L4_ghostLayers(dim),
       0 // default, only first requires != 0
-      ))
+    ))
 
     // add layouts for additional dimensions introduced by the datatype
     if (numDimsData > numDimsGrid) {
@@ -183,22 +184,22 @@ case class LayoutDeclarationStatement(
 
     // adapt discretization identifier for low-dimensional primitives
     val finalDiscretization =
-      if (discretization.startsWith("edge_"))
-        discretization.drop(5)
-      else
-        discretization
+    if (discretization.startsWith("edge_"))
+      discretization.drop(5)
+    else
+      discretization
 
     knowledge.FieldLayout(
-      s"${identifier.name}_$targetFieldName",
+      s"${ identifier.name }_$targetFieldName",
       level,
-      datatype.progressToIr,
+      datatype.progress,
       finalDiscretization,
       layouts,
       numDimsGrid,
       numDimsData,
       refOffset,
-      l4_dupComm,
-      l4_ghostComm)
+      L4_dupComm,
+      L4_ghostComm)
   }
 }
 
@@ -219,17 +220,17 @@ case class FieldDeclarationStatement(
   override def progressToIr : knowledge.Field = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
 
-    val ir_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
+    val IR_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
       // layouts must not be shared -> generate a field specific layout
-      val l4_layout_opt = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
+      val L4_layout_opt = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
         l => l.identifier.asInstanceOf[LeveledIdentifier].name == layout
           && l.identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level == level)
-      if (l4_layout_opt.isEmpty)
+      if (L4_layout_opt.isEmpty)
         Logger.warn(s"Trying to access invalid field layout $layout on level $level")
-      val l4_layout = l4_layout_opt.get
-      val ir_layout = l4_layout.progressToIr(identifier.name)
-      knowledge.FieldLayoutCollection.fieldLayouts += ir_layout
-      ir_layout
+      val L4_layout = L4_layout_opt.get
+      val IR_layout = L4_layout.progressToIr(identifier.name)
+      knowledge.FieldLayoutCollection.fieldLayouts += IR_layout
+      IR_layout
     } else {
       // layouts have already been processed -> find the required one
       knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(layout, level).get
@@ -240,7 +241,7 @@ case class FieldDeclarationStatement(
       index,
       knowledge.DomainCollection.getDomainByIdentifier(domain).get,
       identifier.name.toLowerCase + "Data_" + level,
-      ir_layout,
+      IR_layout,
       level,
       slots,
       if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
@@ -271,21 +272,21 @@ case class ExternalFieldDeclarationStatement(
   override def progressToIr : knowledge.ExternalField = {
     val level = correspondingField.level.asInstanceOf[SingleLevelSpecification].level
 
-    val ir_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
+    val IR_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
       // layouts must not be shared -> generate a field specific layout
-      val l4_layout = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
+      val L4_layout = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
         l => l.identifier.asInstanceOf[LeveledIdentifier].name == extLayout
           && l.identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level == level).get
-      val ir_layout = l4_layout.progressToIr(extIdentifier)
-      knowledge.FieldLayoutCollection.fieldLayouts += ir_layout
-      ir_layout
+      val IR_layout = L4_layout.progressToIr(extIdentifier)
+      knowledge.FieldLayoutCollection.fieldLayouts += IR_layout
+      IR_layout
     } else {
       // layouts have already been processed -> find the required one
       knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(extLayout, level).get
     }
 
-    //val ir_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(extLayout, level).get
+    //val IR_layout = knowledge.FieldLayoutCollection.getFieldLayoutByIdentifier(extLayout, level).get
 
-    new knowledge.ExternalField(extIdentifier, correspondingField.resolveField, ir_layout, level)
+    new knowledge.ExternalField(extIdentifier, correspondingField.resolveField, IR_layout, level)
   }
 }

@@ -2,6 +2,7 @@ package exastencils.omp
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
@@ -9,13 +10,19 @@ import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 trait OMP_PotentiallyCritical
-trait OMP_PotentiallyParallel { var reduction : Option[Reduction]; var additionalOMPClauses = new ListBuffer[OMP_Clause]; var collapse = 1 }
+
+trait OMP_PotentiallyParallel {
+  var reduction : Option[Reduction];
+  var additionalOMPClauses = new ListBuffer[OMP_Clause];
+  var collapse = 1
+}
 
 case class OMP_Barrier() extends Statement {
   override def prettyprint(out : PpStream) : Unit = out << "#pragma omp barrier"
 }
 
 case class OMP_Critical(var body : Scope) extends Statement {
+
   import OMP_Critical._
 
   def this(body : Statement) = this(new Scope(body))
@@ -75,9 +82,9 @@ case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
   override def name = "waitForFlag"
 
   override def expand : Output[FunctionStatement] = {
-    def flag = VariableAccess("flag", Some(PointerDatatype(VolatileDatatype(BooleanDatatype))))
+    def flag = VariableAccess("flag", Some(IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype))))
 
-    FunctionStatement(UnitDatatype, name, ListBuffer(FunctionArgument(flag.name, flag.dType.get)),
+    FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(flag.name, flag.datatype.get)),
       ListBuffer[Statement](
         new WhileLoopStatement(NegationExpression(DerefAccess(flag)), ListBuffer[Statement]()),
         new AssignmentStatement(DerefAccess(flag), BooleanConstant(false))),

@@ -2,25 +2,25 @@ package exastencils.util
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.StatementList
+import exastencils.datastructures.ir.{ StatementList, _ }
 import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
 
 object PrintExpression {
-  val endl : Expression = new VariableAccess("std::endl", StringDatatype)
+  val endl : Expression = new VariableAccess("std::endl", IR_StringDatatype)
 }
 
 case class PrintExpression(var stream : Expression, toPrint : ListBuffer[Expression]) extends Expression {
   def this(stream : Expression, toPrint : Expression*) = this(stream, toPrint.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << stream << " << " <<<(toPrint, " << ")
+    out << stream << " << " <<< (toPrint, " << ")
   }
 }
 
@@ -30,11 +30,11 @@ case class BuildStringStatement(var stringName : Expression, var toPrint : ListB
 
   override def expand() : Output[StatementList] = {
     val streamName = BuildStringStatement.getNewName()
-    def streamType = SpecialDatatype("std::ostringstream")
+    def streamType = IR_SpecialDatatype("std::ostringstream")
     val statements = ListBuffer[Statement](
       VariableDeclarationStatement(streamType, streamName),
       PrintExpression(new VariableAccess(streamName, streamType), toPrint),
-      AssignmentStatement(stringName, MemberFunctionCallExpression(VariableAccess(streamName, Some(SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
+      AssignmentStatement(stringName, MemberFunctionCallExpression(VariableAccess(streamName, Some(IR_SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
     return statements
   }
 }
@@ -74,10 +74,10 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
   def getPos(field : FieldSelection, dim : Int) : Expression = {
     field.field.discretization match {
-      case "node" => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
-      case "cell" => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "cell"                                   => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
       case discr @ ("face_x" | "face_y" | "face_z") => {
-        if (s"face_${dimToString(dim)}" == discr)
+        if (s"face_${ dimToString(dim) }" == discr)
           GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
         else
           GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
@@ -95,7 +95,7 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
 
     def separator = StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
     val streamName = PrintFieldStatement.getNewName()
-    def streamType = SpecialDatatype("std::ofstream")
+    def streamType = IR_SpecialDatatype("std::ofstream")
 
     val fileHeader = {
       var ret : Statement = NullStatement

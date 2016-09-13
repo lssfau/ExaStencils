@@ -1,5 +1,6 @@
 import java.util.Locale
 
+import exastencils.base.l4.L4_UnitDatatype
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
@@ -35,7 +36,7 @@ object MainL3 {
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
-        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }
@@ -68,7 +69,7 @@ object MainL3 {
     // version without comm
     StateManager.root.asInstanceOf[l4.Root].functions += new l4.FunctionStatement(
       l4.LeveledIdentifier("UpResidual", l4.AllLevelsSpecification),
-      l4.UnitDatatype,
+      L4_UnitDatatype,
       List(),
       statements)
 
@@ -94,7 +95,7 @@ object MainL3 {
 
     if (Knowledge.l3tmp_generateL4) {
       // print current L4 state to string
-      val l4_from_l3 = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
+      val L4_from_l3 = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       // generate other half of l4
       StateManager.root_ = new l3.Generate.Root
@@ -103,7 +104,7 @@ object MainL3 {
 
       // add parts coming from L3 to the new L4 file
       val outFile = new java.io.FileWriter(Settings.getL4file, true)
-      outFile.write((Indenter.addIndentations(l4_from_l3)))
+      outFile.write((Indenter.addIndentations(L4_from_l3)))
       outFile.close
     }
 
@@ -113,10 +114,10 @@ object MainL3 {
 
     if (false) // re-print the merged L4 state
     {
-      val l4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
+      val L4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(l4_printed)))
+      outFile.write((Indenter.addIndentations(L4_printed)))
       outFile.close
 
       // re-parse the file to check for errors

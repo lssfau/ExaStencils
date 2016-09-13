@@ -1,9 +1,10 @@
 package exastencils.datastructures.l3
 
-import TcbImplicits._
-import exastencils.datastructures.l4
-import exastencils.logger._
 import scala.collection.mutable._
+
+import exastencils.base.l4.L4_UnitDatatype
+import exastencils.datastructures.l3.TcbImplicits._
+import exastencils.datastructures.l4
 
 /** Static values. */
 trait StaticValue extends Value
@@ -15,6 +16,7 @@ case class NilStaticValue() extends StaticValue {
 case class StaticInteger(n : Int) extends StaticValue {
   override def scType = IntegerDatatype()
 }
+
 case class StaticReal(n : Double) extends StaticValue {
   override def scType = RealDatatype()
 }
@@ -33,11 +35,11 @@ trait AbstractFunctionRValue {
 
 /** User defined functions. */
 case class FunctionRValue(
-  val id : String,
-  val scReturnType : ScType,
-  val arguments : List[FunctionArgument],
-  val body : List[Statement])
-    extends StaticValue with AbstractFunctionRValue {
+    val id : String,
+    val scReturnType : ScType,
+    val arguments : List[FunctionArgument],
+    val body : List[Statement])
+  extends StaticValue with AbstractFunctionRValue {
 
   // runtime arguments
   def dynamicArguments : List[FunctionArgument] = {
@@ -64,9 +66,9 @@ case class FunctionRValue(
 
   /** Return the target code of an instance of this function. */
   def writeTcInstance(
-    ctx : Context,
-    givenStaticArgs : List[StaticLocation],
-    predefinedTcId : Option[String]) {
+      ctx : Context,
+      givenStaticArgs : List[StaticLocation],
+      predefinedTcId : Option[String]) {
 
     val tcId = predefinedTcId match {
       case Some(i) => i
@@ -90,7 +92,7 @@ case class FunctionRValue(
     // write the function
     ctx.tcb += new l4.FunctionStatement(
       l4.LeveledIdentifier(tcId, l4.AllLevelsSpecification),
-      l4.UnitDatatype,
+      L4_UnitDatatype,
       tcArgs.toList,
       body_ctx.tcb.build())
   }

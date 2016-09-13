@@ -1,11 +1,13 @@
 package exastencils.datastructures.l3
 
-import TcbImplicits._
+import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_ArrayDatatype
 import exastencils.datastructures._
+import exastencils.datastructures.l3.TcbImplicits._
 
 /** Types */
 sealed class ScType {
-  def toTcType : l4.Datatype = {
+  def toTcType : L4_Datatype = {
     throw new Exception("This type has no L4 equivalence.")
   }
 
@@ -15,37 +17,45 @@ sealed class ScType {
     throw new Exception("This datatype has no dynamic representation.")
   }
 }
+
 case class FunctionDatatype() extends ScType
 
 case class NilDatatype() extends ScType
+
 case class LocationDatatype() extends ScType
+
 case class IntegerDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.IntegerDatatype
+  override def toTcType : L4_Datatype = L4_IntegerDatatype
 }
+
 case class RealDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.RealDatatype
+  override def toTcType : L4_Datatype = L4_RealDatatype
 
   override def createDynamicLocation(ctx : Context) : DynamicLocation = {
     new DynamicRealLocation(ctx.genId())
   }
 }
+
 case class StringDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.StringDatatype
+  override def toTcType : L4_Datatype = L4_StringDatatype
 }
 
 case class CharDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.CharDatatype
+  override def toTcType : L4_Datatype = L4_CharDatatype
 }
 
 case class UnitDatatype() extends ScType {
-  override def toTcType : l4.Datatype = l4.UnitDatatype
+  override def toTcType : L4_Datatype = L4_UnitDatatype
 }
+
 case class ArrayDatatype(val elementType : ScType, val numElements : Int) extends ScType {
-  override def toTcType : l4.Datatype = l4.ArrayDatatype(elementType.toTcType, numElements)
+  override def toTcType : L4_Datatype = L4_ArrayDatatype(elementType.toTcType, numElements)
 }
+
 case class ComplexDatatype(val baseType : ScType) extends ScType {
-  override def toTcType : l4.Datatype = l4.ComplexDatatype(baseType.toTcType)
+  override def toTcType : L4_Datatype = L4_ComplexDatatype(baseType.toTcType)
 }
+
 case class StaticListDatatype() extends ScType
 
 /* # Static types */
@@ -56,13 +66,15 @@ sealed class StaticScType() extends ScType {
 }
 
 case class FieldDatatype() extends StaticScType
+
 case class StencilDatatype() extends StaticScType
+
 case class StaticDatatype() extends StaticScType
 
 /**
   * This class contains the target code for obtaining a location.
   *
-  *  Thus it contains methods for obtaining or setting a value at runtime.
+  * Thus it contains methods for obtaining or setting a value at runtime.
   */
 abstract class DynamicLocation extends StaticValue {
 
@@ -96,14 +108,14 @@ class DynamicRealLocation(id : String) extends DynamicLocation {
       // Scalar * Vector
       case e : DynamicFieldLocationExpression =>
         DynamicFieldLocationExpression(l4.BinaryExpression("*", tcForReading, rhs.tcForReading))
-      case f : DynamicFieldLocation =>
+      case f : DynamicFieldLocation           =>
         DynamicFieldLocationExpression(l4.BinaryExpression("*", tcForReading, rhs.tcForReading))
     }
   }
 
-  override def tcForReading() : l4.Expression = l4.VariableExpression(new l4.BasicAccess(id), l4.RealDatatype)
+  override def tcForReading() : l4.Expression = l4.VariableExpression(new l4.BasicAccess(id), L4_RealDatatype)
 
-  override def argumentTc() : l4.VariableExpression = l4.VariableExpression(new l4.BasicAccess(id), l4.RealDatatype)
+  override def argumentTc() : l4.VariableExpression = l4.VariableExpression(new l4.BasicAccess(id), L4_RealDatatype)
 }
 
 case class DynamicFieldLocation(tcId : String) extends DynamicLocation {

@@ -1,11 +1,12 @@
 package jeremias.dsl
+
 import scala.collection.mutable._
-import java.io.{ FileDescriptor, BufferedOutputStream, DataOutputStream, FileOutputStream }
-import exastencils.knowledge._
-import exastencils.datastructures.ir._
-import exastencils.knowledge._
-import exastencils.datastructures.ir.iv._
+
+import java.io._
+
+import exastencils.base.ir._
 import exastencils.core._
+import exastencils.knowledge._
 
 object FragmentKnowledge {
 
@@ -34,29 +35,27 @@ object FragmentKnowledge {
 
     val outData = new FragmentDataWriter(new BufferedOutputStream(new FileOutputStream(Settings.fragmentFile_config_path_binary)))
     FragmentCollection.fragments.foreach(f => {
-      DomainCollection.domains.foreach { d => f.binarySize += outData.writeBinary(BooleanDatatype, FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
-      f.binarySize += outData.writeBinary(IntegerDatatype, f.globalId)
-      f.binarySize += outData.writeBinary(IntegerDatatype, f.localId)
-      f.vertices.foreach { v => v.Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype, c) } }
-      FragmentCollection.getFragPos(f.vertices).Coords.foreach { c => f.binarySize += outData.writeBinary(RealDatatype, c) }
+      DomainCollection.domains.foreach { d => f.binarySize += outData.writeBinary(IR_BooleanDatatype, FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
+      f.binarySize += outData.writeBinary(IR_IntegerDatatype, f.globalId)
+      f.binarySize += outData.writeBinary(IR_IntegerDatatype, f.localId)
+      f.vertices.foreach { v => v.Coords.foreach { c => f.binarySize += outData.writeBinary(IR_RealDatatype, c) } }
+      FragmentCollection.getFragPos(f.vertices).Coords.foreach { c => f.binarySize += outData.writeBinary(IR_RealDatatype, c) }
 
-      DomainCollection.domains.foreach { d =>
-        {
-          f.neighborIDs.foreach { n =>
-            {
-              val valid = FragmentCollection.isNeighborValid(f.globalId, n, d.index)
-              f.binarySize += outData.writeBinary(BooleanDatatype, valid)
-              if (valid) {
-                val remote = FragmentCollection.isNeighborRemote(f.globalId, n, d.index)
-                f.binarySize += outData.writeBinary(BooleanDatatype, remote)
-                f.binarySize += outData.writeBinary(IntegerDatatype, FragmentCollection.getLocalFragId(n))
-                if (remote) {
-                  f.binarySize += outData.writeBinary(IntegerDatatype, FragmentCollection.getMpiRank(n))
-                }
-              }
+      DomainCollection.domains.foreach { d => {
+        f.neighborIDs.foreach { n => {
+          val valid = FragmentCollection.isNeighborValid(f.globalId, n, d.index)
+          f.binarySize += outData.writeBinary(IR_BooleanDatatype, valid)
+          if (valid) {
+            val remote = FragmentCollection.isNeighborRemote(f.globalId, n, d.index)
+            f.binarySize += outData.writeBinary(IR_BooleanDatatype, remote)
+            f.binarySize += outData.writeBinary(IR_IntegerDatatype, FragmentCollection.getLocalFragId(n))
+            if (remote) {
+              f.binarySize += outData.writeBinary(IR_IntegerDatatype, FragmentCollection.getMpiRank(n))
             }
           }
         }
+        }
+      }
       }
     })
     outData.close()
@@ -112,29 +111,27 @@ object FragmentCollection {
 
   def isNeighborValid(globalId : Int, neighborId : Int, domain : Int) : Boolean = {
     fragments.find(f => f.globalId == globalId) match {
-      case Some(n) =>
-        {
-          n.neighborIDs.contains(neighborId) &&
-            (fragments.find { nf => nf.globalId == neighborId } match {
-              case Some(m) => m.domainIds.contains(domain)
-              case None    => false
-            })
-        }
-      case None => false
+      case Some(n) => {
+        n.neighborIDs.contains(neighborId) &&
+          (fragments.find { nf => nf.globalId == neighborId } match {
+            case Some(m) => m.domainIds.contains(domain)
+            case None    => false
+          })
+      }
+      case None    => false
     }
   }
 
   def isNeighborRemote(globalId : Int, neighborId : Int, domain : Int) : Boolean = {
     fragments.find(f => f.globalId == globalId) match {
-      case Some(n) =>
-        {
-          n.neighborIDs.contains(neighborId) &&
-            (fragments.find { nf => nf.globalId == neighborId }.get match {
-              case m : Fragment => m.domainIds.contains(domain) && (getMpiRank(globalId) != getMpiRank(neighborId))
-              case _            => false
-            })
-        }
-      case None => false
+      case Some(n) => {
+        n.neighborIDs.contains(neighborId) &&
+          (fragments.find { nf => nf.globalId == neighborId }.get match {
+            case m : Fragment => m.domainIds.contains(domain) && (getMpiRank(globalId) != getMpiRank(neighborId))
+            case _            => false
+          })
+      }
+      case None    => false
     }
   }
 
@@ -152,21 +149,21 @@ class FragmentDataWriter(s : BufferedOutputStream) extends DataOutputStream(s) {
   val intSize = 4
   val doubleSize = 8
 
-  def writeBinary(t : Datatype, v : Any) : Int = {
-    t match {
-      case IntegerDatatype => {
-        writeInt(v.asInstanceOf[Int])
+  def writeBinary(datatype : IR_Datatype, value : Any) : Int = {
+    datatype match {
+      case IR_IntegerDatatype => {
+        writeInt(value.asInstanceOf[Int])
         intSize
       }
-      case BooleanDatatype => {
-        writeBoolean(v.asInstanceOf[Boolean])
+      case IR_BooleanDatatype => {
+        writeBoolean(value.asInstanceOf[Boolean])
         boolSize
       }
-      case RealDatatype => {
-        writeDouble(v.asInstanceOf[Double])
+      case IR_RealDatatype    => {
+        writeDouble(value.asInstanceOf[Double])
         doubleSize
       }
-      case _ => 0
+      case _                  => 0
     }
   }
 }

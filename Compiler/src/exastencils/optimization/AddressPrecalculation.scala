@@ -1,18 +1,17 @@
 package exastencils.optimization
 
 import scala.collection.immutable.StringLike
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Node => _, _ }
 
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.core.collectors.Collector
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.iv.FieldData
 import exastencils.logger._
-import exastencils.util.EvaluationException
-import exastencils.util.SimplifyExpression
+import exastencils.util._
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
 
@@ -53,14 +52,13 @@ private final class ArrayBases(val arrayName : String) {
 
   def addToDecls(decls : ListBuffer[Statement]) : Unit = {
     for ((name : String, init : Expression) <- inits.values.toArray.sortBy(_._1))
-      decls += new VariableDeclarationStatement(ConstPointerDatatype(RealDatatype), name, AddressofExpression(init))
+      decls += new VariableDeclarationStatement(IR_ConstPointerDatatype(IR_RealDatatype), name, AddressofExpression(init))
   }
 }
 
 private final class AnnotateLoopsAndAccesses extends Collector {
-  import AddressPrecalculation.DECLS_ANNOT
-  import AddressPrecalculation.ORIG_IND_ANNOT
-  import AddressPrecalculation.REPL_ANNOT
+
+  import AddressPrecalculation._
 
   private def generateName(expr : Expression) : String = {
     return filter('_' + expr.prettyprint())
@@ -82,11 +80,11 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       var res : Boolean = false
       var allowed : String = null
       this += new Transformation("contains loop var", {
-        case strC : StringLiteral =>
+        case strC : StringLiteral    =>
           val name = strC.value
           res |= (allowed != name) && inVars.contains(name)
           strC
-        case varA : VariableAccess =>
+        case varA : VariableAccess   =>
           val name = varA.name
           res |= (allowed != name) && inVars.contains(name)
           varA
@@ -110,18 +108,18 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
     // TODO: add support for MultiIndexExpression?
     val inMap : HashMap[Expression, Long] =
-      try {
-        SimplifyExpression.extractIntegralSum(ind)
-      } catch {
-        case ex : EvaluationException =>
-          var cause : Throwable = ex
-          while (cause.getCause() != null)
-            cause = cause.getCause()
-          val stackTraceHead = cause.getStackTrace()(0)
-          Logger.dbg("[APC]  cannot deal with index expression  (" + ex.msg + ")  in  " + ind.prettyprint() +
-            "  (" + stackTraceHead.getFileName() + ':' + stackTraceHead.getLineNumber() + ')')
-          return (ind, outMap)
-      }
+    try {
+      SimplifyExpression.extractIntegralSum(ind)
+    } catch {
+      case ex : EvaluationException =>
+        var cause : Throwable = ex
+        while (cause.getCause() != null)
+          cause = cause.getCause()
+        val stackTraceHead = cause.getStackTrace()(0)
+        Logger.dbg("[APC]  cannot deal with index expression  (" + ex.msg + ")  in  " + ind.prettyprint() +
+          "  (" + stackTraceHead.getFileName() + ':' + stackTraceHead.getLineNumber() + ')')
+        return (ind, outMap)
+    }
 
     // constant part should stay inside the loop, as this reduces the number of required pointers outside
     for ((expr, value) <- inMap)
@@ -154,37 +152,37 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         }
         val d = new HashMap[String, ArrayBases]()
         l.inc match { // TODO: remove StringLiteral
-          case AssignmentStatement(VariableAccess(name, _), _, _) =>
+          case AssignmentStatement(VariableAccess(name, _), _, _)                    =>
             decls = d
             inVars = Set(name)
-          case AssignmentStatement(StringLiteral(name), _, _) =>
+          case AssignmentStatement(StringLiteral(name), _, _)                        =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreIncrementExpression(VariableAccess(name, _))) =>
+          case ExpressionStatement(PreIncrementExpression(VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreIncrementExpression(StringLiteral(name))) =>
+          case ExpressionStatement(PreIncrementExpression(StringLiteral(name)))      =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(PostIncrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PostIncrementExpression(StringLiteral(name))) =>
+          case ExpressionStatement(PostIncrementExpression(StringLiteral(name)))     =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreDecrementExpression(VariableAccess(name, _))) =>
+          case ExpressionStatement(PreDecrementExpression(VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PreDecrementExpression(StringLiteral(name))) =>
+          case ExpressionStatement(PreDecrementExpression(StringLiteral(name)))      =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(PostDecrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(PostDecrementExpression(StringLiteral(name))) =>
+          case ExpressionStatement(PostDecrementExpression(StringLiteral(name)))     =>
             decls = d
             inVars = Set(name)
-          case _ =>
+          case _                                                                     =>
             Logger.dbg("[addr precalc]  cannot determine loop variable name, inc of ForLoopStatement is not recognized:  " + l.inc)
             decls = d
         }
@@ -199,10 +197,10 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       case AssignmentStatement(dst, _, _) if (decls != null && inVars != null) =>
         dst match {
           case _ : StringLiteral
-            | _ : VariableAccess
-            | _ : ArrayAccess
-            | _ : iv.InternalVariable => inVars += resolveName(dst)
-          case _ => // nothing; expand match here, if more vars should stay inside the loop
+               | _ : VariableAccess
+               | _ : ArrayAccess
+               | _ : iv.InternalVariable => inVars += resolveName(dst)
+          case _                         => // nothing; expand match here, if more vars should stay inside the loop
         }
 
       case VariableDeclarationStatement(_, name, _) if (decls != null && inVars != null) =>
@@ -227,11 +225,11 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           var name : String = generateName(base)
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
           name = bases.getName(outMap, base, al)
-          val dType : Option[Datatype] = base match {
-            case fd : FieldData => Some(ConstPointerDatatype(fd.field.resolveDeclType))
+          val datatype : Option[IR_Datatype] = base match {
+            case fd : FieldData => Some(IR_ConstPointerDatatype(fd.field.resolveDeclType))
             case _              => None
           }
-          val newAcc = new ArrayAccess(new VariableAccess(name, dType), in, al)
+          val newAcc = new ArrayAccess(new VariableAccess(name, datatype), in, al)
           newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
           acc.annotate(REPL_ANNOT, newAcc)
           // }
@@ -239,7 +237,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         decls = null
         inVars = null
         toAnalyze.clear()
-      case _ => // ignore
+      case _                                                             => // ignore
     }
   }
 
@@ -261,6 +259,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 }
 
 private final object IntegrateAnnotations extends PartialFunction[Node, Transformation.OutputType] {
+
   import AddressPrecalculation._
 
   def isDefinedAt(node : Node) : Boolean = {

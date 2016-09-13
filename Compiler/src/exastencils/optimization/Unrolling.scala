@@ -1,16 +1,14 @@
 package exastencils.optimization
 
-import scala.collection.mutable.HashSet
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Node => _, _ }
 
-import exastencils.core._
+import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.knowledge._
-import exastencils.logger._
-import exastencils.omp._
-import exastencils.util._
+import exastencils.knowledge.Knowledge
+import exastencils.logger.Logger
+import exastencils.util.SimplifyExpression
 
 object Unrolling extends DefaultStrategy("Loop unrolling") {
 
@@ -20,20 +18,20 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   private[optimization] final val intermVar : String = "_intermediate"
   private[optimization] final val endVar : String = "_end"
 
-  private[optimization] def startVarAcc = new VariableAccess(startVar, IntegerDatatype)
-  private[optimization] def intermVarAcc = new VariableAccess(intermVar, IntegerDatatype)
-  private[optimization] def endVarAcc = new VariableAccess(endVar, IntegerDatatype)
+  private[optimization] def startVarAcc = new VariableAccess(startVar, IR_IntegerDatatype)
+  private[optimization] def intermVarAcc = new VariableAccess(intermVar, IR_IntegerDatatype)
+  private[optimization] def endVarAcc = new VariableAccess(endVar, IR_IntegerDatatype)
 
   private[optimization] def getBoundsDeclAndPostLoop(itVar : String, start : Expression, endExcl : Expression, oldIncr : Long,
-    body : ListBuffer[Statement], reduction : Option[Reduction]) : (ListBuffer[Statement], Statement) = {
+      body : ListBuffer[Statement], reduction : Option[Reduction]) : (ListBuffer[Statement], Statement) = {
 
-    def itVarAcc = new VariableAccess(itVar, IntegerDatatype)
+    def itVarAcc = new VariableAccess(itVar, IR_IntegerDatatype)
 
     val boundsDecls = new ListBuffer[Statement]()
-    boundsDecls += new VariableDeclarationStatement(IntegerDatatype, startVar, start)
-    boundsDecls += new VariableDeclarationStatement(IntegerDatatype, endVar, endExcl)
+    boundsDecls += new VariableDeclarationStatement(IR_IntegerDatatype, startVar, start)
+    boundsDecls += new VariableDeclarationStatement(IR_IntegerDatatype, endVar, endExcl)
 
-    val postBegin = new VariableDeclarationStatement(IntegerDatatype, itVar, intermVarAcc)
+    val postBegin = new VariableDeclarationStatement(IR_IntegerDatatype, itVar, intermVarAcc)
     val postEnd = new LowerExpression(itVarAcc, endVarAcc)
     val postIncr = new AssignmentStatement(itVarAcc, IntegerConstant(oldIncr), "+=")
 
@@ -43,7 +41,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   }
 
   private[optimization] def getIntermDecl(newIncr : Long) : VariableDeclarationStatement = {
-    return new VariableDeclarationStatement(IntegerDatatype, intermVar, getIntermExpr(newIncr))
+    return new VariableDeclarationStatement(IR_IntegerDatatype, intermVar, getIntermExpr(newIncr))
   }
 
   def getIntermExpr(newIncr : Long) : Expression = {
@@ -51,22 +49,22 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   }
 
   private[optimization] def addBounds(itVar : String, begin : Statement, end : Expression, incr : Expression,
-    writeDecls : Boolean, stmts : ListBuffer[Statement]) : Boolean = {
+      writeDecls : Boolean, stmts : ListBuffer[Statement]) : Boolean = {
 
     val (lower, isDecl) : (Expression, Boolean) =
       begin match {
-        case AssignmentStatement(VariableAccess(itVar2, Some(IntegerDatatype)), init, "=") if (itVar == itVar2) => (init, false)
-        case VariableDeclarationStatement(IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2) => (init, true)
+        case AssignmentStatement(VariableAccess(itVar2, Some(IR_IntegerDatatype)), init, "=") if (itVar == itVar2) => (init, false)
+        case VariableDeclarationStatement(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2)             => (init, true)
 
         case _ => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
 
     val upperExcl : Expression =
       if (writeDecls) end match {
-        case LowerExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) =>
+        case LowerExpression(VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) =>
           bound
 
-        case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) =>
+        case LowerEqualExpression(VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) =>
           new AdditionExpression(bound, IntegerConstant(1))
 
         case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
@@ -79,14 +77,14 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   }
 
   private[optimization] def addBounds(lower : Expression, upperExcl : Expression, incr : Expression,
-    writeDecls : Boolean, stmts : ListBuffer[Statement]) : Unit = {
+      writeDecls : Boolean, stmts : ListBuffer[Statement]) : Unit = {
 
     val intermExpr = new MaximumExpression(endVarAcc - ((endVarAcc - startVarAcc) Mod incr), startVarAcc)
 
     if (writeDecls) {
-      stmts += new VariableDeclarationStatement(IntegerDatatype, startVar, lower)
-      stmts += new VariableDeclarationStatement(IntegerDatatype, endVar, upperExcl)
-      stmts += new VariableDeclarationStatement(IntegerDatatype, intermVar, intermExpr)
+      stmts += new VariableDeclarationStatement(IR_IntegerDatatype, startVar, lower)
+      stmts += new VariableDeclarationStatement(IR_IntegerDatatype, endVar, upperExcl)
+      stmts += new VariableDeclarationStatement(IR_IntegerDatatype, intermVar, intermExpr)
     } else
       stmts += new AssignmentStatement(intermVarAcc, intermExpr, "=")
   }
@@ -105,7 +103,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     return node match {
       case loop : ForLoopStatement with OptimizationHint =>
         loop.isInnermost && !loop.removeAnnotation(SKIP_ANNOT).isDefined
-      case _ =>
+      case _                                             =>
         false
     }
   }
@@ -115,7 +113,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     val loop = node.asInstanceOf[ForLoopStatement with OptimizationHint]
 
     var itVar : String = null
-    def itVarAcc = new VariableAccess(itVar, IntegerDatatype)
+    def itVarAcc = new VariableAccess(itVar, IR_IntegerDatatype)
     var start : Expression = null
     var endExcl : Expression = null
     var oldStride : Long = 0
@@ -135,7 +133,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     }
 
     val oldBody = Duplicate(loop.body) // duplicate for later use in post loop
-    loop.begin = new VariableDeclarationStatement(IntegerDatatype, itVar, Unrolling.startVarAcc)
+    loop.begin = new VariableDeclarationStatement(IR_IntegerDatatype, itVar, Unrolling.startVarAcc)
     loop.end = new LowerExpression(itVarAcc, Unrolling.intermVarAcc)
     loop.inc = new AssignmentStatement(itVarAcc, IntegerConstant(newStride), "+=")
     // duplicate private vars would also be possible...
@@ -173,18 +171,18 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
   private[optimization] def extractBoundsAndIncrement(begin : Statement, end : Expression, inc : Statement) : (String, Expression, Expression, Long) = {
 
     val (itVar, stride) = inc match {
-      case ExpressionStatement(PreIncrementExpression(VariableAccess(itVar, Some(IntegerDatatype))))      => (itVar, 1L)
-      case ExpressionStatement(PostIncrementExpression(VariableAccess(itVar, Some(IntegerDatatype))))     => (itVar, 1L)
-      case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)), IntegerConstant(incr), "+=") => (itVar, incr)
+      case ExpressionStatement(PreIncrementExpression(VariableAccess(itVar, Some(IR_IntegerDatatype))))      => (itVar, 1L)
+      case ExpressionStatement(PostIncrementExpression(VariableAccess(itVar, Some(IR_IntegerDatatype))))     => (itVar, 1L)
+      case AssignmentStatement(VariableAccess(itVar, Some(IR_IntegerDatatype)), IntegerConstant(incr), "+=") => (itVar, incr)
 
-      case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)),
-        AdditionExpression(ListBuffer(VariableAccess(itVar2, Some(IntegerDatatype)), IntegerConstant(incr))),
-        "=") if (itVar == itVar2) =>
+      case AssignmentStatement(VariableAccess(itVar, Some(IR_IntegerDatatype)),
+      AdditionExpression(ListBuffer(VariableAccess(itVar2, Some(IR_IntegerDatatype)), IntegerConstant(incr))),
+      "=") if (itVar == itVar2) =>
         (itVar, incr)
 
-      case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)),
-        AdditionExpression(ListBuffer(IntegerConstant(incr), VariableAccess(itVar2, Some(IntegerDatatype)))),
-        "=") if (itVar == itVar2) =>
+      case AssignmentStatement(VariableAccess(itVar, Some(exastencils.base.ir.IR_IntegerDatatype)),
+      AdditionExpression(ListBuffer(IntegerConstant(incr), VariableAccess(itVar2, Some(exastencils.base.ir.IR_IntegerDatatype)))),
+      "=") if (itVar == itVar2) =>
         (itVar, incr)
 
       case _ => throw new UnrollException("cannot determine stride or it is negative:  " + inc.prettyprint())
@@ -194,22 +192,22 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
     val lower : Expression =
       begin match {
-        case VariableDeclarationStatement(IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2) => init
-        case _ => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
+        case VariableDeclarationStatement(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2) => init
+        case _                                                                                         => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
 
     val upperExcl : Expression =
       end match {
-        case LowerExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => bound
-        case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => new AdditionExpression(bound, IntegerConstant(1))
-        case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
+        case LowerExpression(VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2)      => bound
+        case LowerEqualExpression(VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) => new AdditionExpression(bound, IntegerConstant(1))
+        case _                                                                                                  => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
       }
 
     return (itVar, lower, upperExcl, stride)
   }
 
   private def duplicateStmts(body : ListBuffer[Statement], unrollFactor : Int,
-    itVar : String, oldInc : Long, interleave : Boolean) : ListBuffer[Statement] = {
+      itVar : String, oldInc : Long, interleave : Boolean) : ListBuffer[Statement] = {
 
     var njuBody : ListBuffer[Statement] = null
     val replaceStrat = new UpdateLoopVarAndNames(itVar)
@@ -241,7 +239,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
   }
 
   private[optimization] class UpdateLoopVarAndNames(itVar : String)
-      extends QuietDefaultStrategy("Add loop var offset, rename declarations, and/or add annotation") {
+    extends QuietDefaultStrategy("Add loop var offset, rename declarations, and/or add annotation") {
 
     private final val SKIP_ANNOT = "UpLVSkip"
     private val rename = new HashSet[String]()
@@ -252,7 +250,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       case vAcc @ VariableAccess(v, _) if (v == itVar) =>
         if (offset != 0 && !vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
           vAcc.annotate(SKIP_ANNOT) // already done
-          vAcc.dType = Some(IntegerDatatype) // fix type, if required
+          vAcc.datatype = Some(IR_IntegerDatatype) // fix type, if required
           new AdditionExpression(vAcc, IntegerConstant(offset))
         } else
           vAcc
@@ -271,4 +269,5 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         decl
     })
   }
+
 }

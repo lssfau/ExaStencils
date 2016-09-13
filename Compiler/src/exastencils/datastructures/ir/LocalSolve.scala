@@ -2,6 +2,8 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_RealDatatype
+import exastencils.baseExt.ir._
 import exastencils.communication._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
@@ -14,6 +16,7 @@ import exastencils.strategies._
 case class hackVecComponentAccess(var vec : VariableAccess, var i : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << vec << "(" << i << ", " << 0 << ")"
 }
+
 // FIXME: update with actual accessors
 case class hackMatComponentAccess(var mat : VariableAccess, var i : Expression, var j : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
@@ -44,7 +47,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
   def processExpression(pos : Int, ex : Expression, switchSign : Boolean) : Unit = {
     ex match {
-      case const : Number          => fVals(pos).summands += (if (switchSign) const else NegativeExpression(const))
+      case const : Number => fVals(pos).summands += (if (switchSign) const else NegativeExpression(const))
 
       case NegativeExpression(exp) => processExpression(pos, exp, !switchSign)
 
@@ -62,17 +65,17 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
         var localUnknowns = ListBuffer[FieldAccess]()
         for (ex <- factors) {
           ex match {
-            case access : FieldAccess =>
+            case access : FieldAccess         =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
               else localUnknowns += access
             case e : MultiplicationExpression =>
               Logger.warn(s"Nested multiplication expressions are currently unsupported: $e")
               localFactors += e
-            case e : AdditionExpression =>
+            case e : AdditionExpression       =>
               Logger.warn(s"Nested addition expressions are currently unsupported: $e")
               localFactors += e
-            case e : Expression => localFactors += e
+            case e : Expression               => localFactors += e
           }
         }
         if (localUnknowns.size > 1)
@@ -87,7 +90,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
               MultiplicationExpression(localFactors))
       }
 
-      case _ => Logger.warn(s"Found unsupported node type ${ex.getClass.getName}: $ex")
+      case _ => Logger.warn(s"Found unsupported node type ${ ex.getClass.getName }: $ex")
     }
   }
 
@@ -105,7 +108,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     // scan lhs for constants
     for (eqNumber <- 0 until zeroEqs.size) {
       zeroEqs(eqNumber) match {
-        case AdditionExpression(adds) => processEqSummands(eqNumber, adds)
+        case AdditionExpression(adds)        => processEqSummands(eqNumber, adds)
         case SubtractionExpression(pos, neg) =>
           pos match {
             case AdditionExpression(adds) => processEqSummands(eqNumber, adds)
@@ -115,7 +118,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
             case AdditionExpression(adds) => processEqSummands(eqNumber, adds, true)
             case e : Expression           => processEqSummands(eqNumber, ListBuffer(e), true)
           }
-        case _ => Logger.warn(s"Equation doesn't hold enough information (${zeroEqs(eqNumber).getClass.getName})")
+        case _                               => Logger.warn(s"Equation doesn't hold enough information (${ zeroEqs(eqNumber).getClass.getName })")
       }
     }
 
@@ -132,9 +135,9 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
     var stmts = ListBuffer[Statement]()
 
-    def u = VariableAccess("_local_unknowns", Some(VectorDatatype(RealDatatype, unknowns.length, Some(false))))
-    def f = VariableAccess("_local_rhs", Some(VectorDatatype(RealDatatype, unknowns.length, Some(false))))
-    def A = VariableAccess("_local_matrix", Some(MatrixDatatype(RealDatatype, unknowns.length, unknowns.length)))
+    def u = VariableAccess("_local_unknowns", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
+    def f = VariableAccess("_local_rhs", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
+    def A = VariableAccess("_local_matrix", Some(IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length)))
 
     // declare local variables -> to be merged later
     stmts += new VariableDeclarationStatement(u)
@@ -171,7 +174,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
     // write back results
     for (i <- 0 until unknowns.length)
-      stmts += new ConditionStatement( // don't write back result on boundaries
+      stmts += new ConditionStatement(// don't write back result on boundaries
         IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
         AssignmentStatement(unknowns(i), hackVecComponentAccess(u, i)))
 

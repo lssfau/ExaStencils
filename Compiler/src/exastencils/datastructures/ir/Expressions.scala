@@ -2,9 +2,10 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -17,17 +18,21 @@ trait Expression extends Node with PrettyPrintable {
     new ConcatenationExpression(this, exp)
   }
 
-  import BinaryOperators._
   def +(other : Expression) = new AdditionExpression(this, other)
-  def :+(other : Expression) = new ElementwiseAdditionExpression(this, other) // Scala does not allow .+ and fails with Dot+
+  def :+(other : Expression) = new ElementwiseAdditionExpression(this, other)
+  // Scala does not allow .+ and fails with Dot+
   def -(other : Expression) = new SubtractionExpression(this, other)
-  def :-(other : Expression) = new ElementwiseSubtractionExpression(this, other) // Scala does not allow .- and fails with Dot-
+  def :-(other : Expression) = new ElementwiseSubtractionExpression(this, other)
+  // Scala does not allow .- and fails with Dot-
   def *(other : Expression) = new MultiplicationExpression(this, other)
-  def :*(other : Expression) = new ElementwiseMultiplicationExpression(this, other) // Scala does not allow .* and fails with Dot*
+  def :*(other : Expression) = new ElementwiseMultiplicationExpression(this, other)
+  // Scala does not allow .* and fails with Dot*
   def /(other : Expression) = new DivisionExpression(this, other)
-  def :/(other : Expression) = new ElementwiseDivisionExpression(this, other) // Scala does not allow ./ and fails with Dot/
+  def :/(other : Expression) = new ElementwiseDivisionExpression(this, other)
+  // Scala does not allow ./ and fails with Dot/
   def Pow(other : Expression) = new PowerExpression(this, other)
-  def DotPow(other : Expression) = new ElementwisePowerExpression(this, other) // Scala does not allow .% and fails with Dot% and fails with :%
+  def DotPow(other : Expression) = new ElementwisePowerExpression(this, other)
+  // Scala does not allow .% and fails with Dot% and fails with :%
   def Mod(other : Expression) = new ModuloExpression(this, other)
   def Modulo(other : Expression) = new ModuloExpression(this, other)
   def DotMod(other : Expression) = new ElementwiseModuloExpression(this, other)
@@ -86,13 +91,13 @@ object BinaryOperators extends Enumeration {
 
   def CreateExpression(op : String, left : Expression, right : Expression) : Expression = CreateExpression(withName(op), left, right)
   def CreateExpression(op : Value, left : Expression, right : Expression) : Expression = op match {
-    case Addition                  => return new AdditionExpression(left, right)
-    case Subtraction               => return new SubtractionExpression(left, right)
-    case Multiplication            => return new MultiplicationExpression(left, right)
-    case Division                  => return new DivisionExpression(left, right)
-    case Power                     => return new PowerExpression(left, right)
-    case Power_Alt                 => return new PowerExpression(left, right)
-    case Modulo                    => return new ModuloExpression(left, right)
+    case Addition       => return new AdditionExpression(left, right)
+    case Subtraction    => return new SubtractionExpression(left, right)
+    case Multiplication => return new MultiplicationExpression(left, right)
+    case Division       => return new DivisionExpression(left, right)
+    case Power          => return new PowerExpression(left, right)
+    case Power_Alt      => return new PowerExpression(left, right)
+    case Modulo         => return new ModuloExpression(left, right)
 
     case ElementwiseAddition       => return new ElementwiseAdditionExpression(left, right)
     case ElementwiseSubtraction    => return new ElementwiseSubtractionExpression(left, right)
@@ -101,30 +106,30 @@ object BinaryOperators extends Enumeration {
     case ElementwisePower          => return new ElementwisePowerExpression(left, right)
     case ElementwiseModulo         => return new ElementwiseModuloExpression(left, right)
 
-    case AndAnd | AndAndWritten    => return new AndAndExpression(left, right)
-    case OrOr | OrOrWritten        => return new OrOrExpression(left, right)
-    case Negation                  => return new NegationExpression(left)
-    case EqEq                      => return new EqEqExpression(left, right)
-    case Neq                       => return new NeqExpression(left, right)
-    case Lower                     => return new LowerExpression(left, right)
-    case LowerEqual                => return new LowerEqualExpression(left, right)
-    case Greater                   => return new GreaterExpression(left, right)
-    case GreaterEqual              => return new GreaterEqualExpression(left, right)
-    case Maximum                   => return new MaximumExpression(left, right)
-    case Minimum                   => return new MinimumExpression(left, right)
-    case BitwiseAnd                => return new BitwiseAndExpression(left, right)
-    case LeftShift                 => return new LeftShiftExpression(left, right)
+    case AndAnd | AndAndWritten => return new AndAndExpression(left, right)
+    case OrOr | OrOrWritten     => return new OrOrExpression(left, right)
+    case Negation               => return new NegationExpression(left)
+    case EqEq                   => return new EqEqExpression(left, right)
+    case Neq                    => return new NeqExpression(left, right)
+    case Lower                  => return new LowerExpression(left, right)
+    case LowerEqual             => return new LowerEqualExpression(left, right)
+    case Greater                => return new GreaterExpression(left, right)
+    case GreaterEqual           => return new GreaterEqualExpression(left, right)
+    case Maximum                => return new MaximumExpression(left, right)
+    case Minimum                => return new MinimumExpression(left, right)
+    case BitwiseAnd             => return new BitwiseAndExpression(left, right)
+    case LeftShift              => return new LeftShiftExpression(left, right)
   }
 
   def opAsIdent(op : String) = {
     op match {
-      case "+"   => "Addition"
-      case "-"   => "Subtraction"
-      case "*"   => "Multiplication"
-      case "/"   => "Division"
-      case "**"  => "Power"
-      case "^"   => "Power_Alt"
-      case "%"   => "Modulo"
+      case "+"  => "Addition"
+      case "-"  => "Subtraction"
+      case "*"  => "Multiplication"
+      case "/"  => "Division"
+      case "**" => "Power"
+      case "^"  => "Power_Alt"
+      case "%"  => "Modulo"
 
       case ".+"  => "ElementwiseAddition"
       case ".-"  => "ElementwiseSubtraction"
@@ -148,7 +153,7 @@ object BinaryOperators extends Enumeration {
       case "min" => "Minimum"
       case "&"   => "BitwiseAnd"
 
-      case _     => Logger.warn(s"Unknown op $op"); op
+      case _ => Logger.warn(s"Unknown op $op"); op
     }
   }
 }
@@ -172,6 +177,7 @@ object UnaryOperators extends Enumeration {
 }
 
 trait Access extends Expression
+
 trait Number extends Expression {
   def value : AnyVal
 }
@@ -223,7 +229,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << value
 }
 
-case class VectorExpression(var datatype : Option[Datatype], var expressions : ListBuffer[Expression], var rowVector : Option[Boolean]) extends Expression {
+case class VectorExpression(var datatype : Option[IR_Datatype], var expressions : ListBuffer[Expression], var rowVector : Option[Boolean]) extends Expression {
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
@@ -231,10 +237,10 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
 
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
-    out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions, ",") << "})"
+    out << datatype.getOrElse(IR_RealDatatype) << "[]){" <<< (expressions, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "Matrix<" << datatype.getOrElse(RealDatatype) << ", "
+    out << "Matrix<" << datatype.getOrElse(IR_RealDatatype) << ", "
     if (rowVector.getOrElse(true)) {
       out << "1, " << length << "> (" // row vector
     } else {
@@ -245,10 +251,10 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
   }
 }
 
-case class MatrixExpression(var datatype : Option[Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
+case class MatrixExpression(var datatype : Option[IR_Datatype], var expressions : ListBuffer[ListBuffer[Expression]]) extends Expression {
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
-    out << datatype.getOrElse(RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
+    out << datatype.getOrElse(IR_RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
@@ -266,25 +272,25 @@ case class MatrixExpression(var datatype : Option[Datatype], var expressions : L
   def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IntegerConstant])
 }
 
-case class Allocation(var datatype : Datatype, var size : Expression) extends Expression {
+case class Allocation(var datatype : IR_Datatype, var size : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "new" << ' ' << datatype << "[" << size << "]"
 }
 
-case class SizeOfExpression(var datatype : Datatype) extends Expression {
+case class SizeOfExpression(var datatype : IR_Datatype) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "sizeof" << "(" << datatype << ")"
 }
 
-case class CastExpression(var datatype : Datatype, var toCast : Expression) extends Expression {
+case class CastExpression(var datatype : IR_Datatype, var toCast : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "((" << datatype << ")" << toCast << ")"
 }
 
-case class VariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
-  def this(n : String, dT : Datatype) = this(n, Option(dT))
-  def this(decl : VariableDeclarationStatement) = this(decl.name, decl.dataType)
+case class VariableAccess(var name : String, var datatype : Option[IR_Datatype] = None) extends Access {
+  def this(n : String, dT : IR_Datatype) = this(n, Option(dT))
+  def this(decl : VariableDeclarationStatement) = this(decl.name, decl.datatype)
 
   override def prettyprint(out : PpStream) : Unit = out << name
 
-  def printDeclaration() : String = dType.get.resolveDeclType.prettyprint + " " + name + dType.get.resolveDeclPostscript
+  def printDeclaration() : String = datatype.get.resolveDeclType.prettyprint + " " + name + datatype.get.resolveDeclPostscript
 }
 
 case class ArrayAccess(var base : Expression, var index : Expression, var alignedAccessPossible : Boolean = false) extends Access {
@@ -297,7 +303,7 @@ case class ArrayAccess(var base : Expression, var index : Expression, var aligne
 }
 
 //TODO specific expression for reading from fragment data file
-case class ReadValueFrom(var datatype : Datatype, data : Expression) extends Expression {
+case class ReadValueFrom(var datatype : IR_Datatype, data : Expression) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << datatype << '>' << "(" << data << ")"
 }
 
@@ -311,16 +317,18 @@ case class BoundedExpression(var min : Long, var max : Long, var expr : Expressi
 
 case class MultiIndex(var indices : Array[Expression]) extends Expression with Iterable[Expression] {
   def this(indices : Expression*) = this(indices.toArray)
-  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
-  def this(indices : Array[Long]) = this(indices.map(IntegerConstant(_) : Expression)) // legacy support
+  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : Expression))
+  // legacy support
+  def this(indices : Array[Long]) = this(indices.map(IntegerConstant(_) : Expression))
+  // legacy support
   def this(left : MultiIndex, right : MultiIndex, f : (Expression, Expression) => Expression) =
-    this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
+  this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
 
   // FIXME: add variable accesses to begin with...
   for (i <- 0 until length) {
-    this(i) = this(i) match {
-      case StringLiteral(s) => VariableAccess(s, Some(IntegerDatatype))
-      case _                => this(i)
+    this (i) = this (i) match {
+      case StringLiteral(s) => VariableAccess(s, Some(IR_IntegerDatatype))
+      case _                => this (i)
     }
   }
 
@@ -416,13 +424,14 @@ case class VirtualFieldAccess(var fieldName : String,
 case class ExternalFieldAccess(var name : Expression, var field : ExternalField, var index : MultiIndex) extends Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
-  def x = new VariableAccess("x", IntegerDatatype)
-  def y = new VariableAccess("y", IntegerDatatype)
-  def z = new VariableAccess("z", IntegerDatatype)
-  def w = new VariableAccess("w", IntegerDatatype)
+  def x = new VariableAccess("x", IR_IntegerDatatype)
+  def y = new VariableAccess("y", IR_IntegerDatatype)
+  def z = new VariableAccess("z", IR_IntegerDatatype)
+  def w = new VariableAccess("w", IR_IntegerDatatype)
 
   def linearize : ArrayAccess = {
-    if (Knowledge.generateFortranInterface) { // Fortran requires multi-index access to multidimensional arrays
+    if (Knowledge.generateFortranInterface) {
+      // Fortran requires multi-index access to multidimensional arrays
       val it = LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
       var ret = name
       for (dim <- field.fieldLayout.numDimsData - 1 to 0)
@@ -962,7 +971,7 @@ private object FusedPrinterHelper {
       case "AVX2"            => out << "_mm256_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
       case "AVX512" | "IMCI" => out << "_mm512_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
       case "QPX"             => out << "vec_m" << addSub << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
-      case "NEON" =>
+      case "NEON"            =>
         if (addSub == "add")
           out << "vmlaq_f32(" << summand << ", " << factor1 << ", " << factor2 << ')' // use unfused for compatibility with gcc 4.7 and older
         else // vmlsq_f32(a,b,c) is a-b*c and not a*b-c; thanks ARM  -.-

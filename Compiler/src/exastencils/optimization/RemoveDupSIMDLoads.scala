@@ -1,14 +1,12 @@
 package exastencils.optimization
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Node => _, _ }
 
+import exastencils.base.ir.IR_IntegerDatatype
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.logger._
 import exastencils.omp.OMP_PotentiallyParallel
@@ -49,13 +47,13 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
       for (s <- l.body) {
         s match {
           case VariableDeclarationStatement(SIMD_RealDatatype, _,
-            Some(SIMD_LoadExpression(AddressofExpression(ArrayAccess(base, index, _)), _))) //
-            =>
+          Some(SIMD_LoadExpression(AddressofExpression(ArrayAccess(base, index, _)), _))) //
+          =>
             toSort += ((s, base, index))
 
           case VariableDeclarationStatement(SIMD_RealDatatype, _,
-            Some(SIMD_Scalar2VectorExpression(ArrayAccess(base, index, _)))) //
-            =>
+          Some(SIMD_Scalar2VectorExpression(ArrayAccess(base, index, _)))) //
+          =>
             toSort += ((s, base, index))
 
           case VariableDeclarationStatement(SIMD_RealDatatype, _, Some(sh : SIMD_ConcShift)) =>
@@ -89,6 +87,7 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
 }
 
 private[optimization] final class Analyze extends StackCollector {
+
   import RemoveDupSIMDLoads._
 
   private var preLoopDecls : ListBuffer[Statement] = null
@@ -102,11 +101,11 @@ private[optimization] final class Analyze extends StackCollector {
   override def enter(node : Node) : Unit = {
     super.enter(node)
     node match {
-      case ForLoopStatement(VariableDeclarationStatement(IntegerDatatype, lVar, Some(start)),
-        LowerExpression(VariableAccess(lVar3, _), end),
-        AssignmentStatement(VariableAccess(lVar2, _), IntegerConstant(incr), "+="),
-        _, _) if (lVar == lVar2 && lVar2 == lVar3) //
-        =>
+      case ForLoopStatement(VariableDeclarationStatement(IR_IntegerDatatype, lVar, Some(start)),
+      LowerExpression(VariableAccess(lVar3, _), end),
+      AssignmentStatement(VariableAccess(lVar2, _), IntegerConstant(incr), "+="),
+      _, _) if (lVar == lVar2 && lVar2 == lVar3) //
+      =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
           preLoopDecls = new ListBuffer[Statement]
           node.annotate(ADD_BEFORE_ANNOT, preLoopDecls)
@@ -119,7 +118,7 @@ private[optimization] final class Analyze extends StackCollector {
         }
 
       case decl @ VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
-        Some(load @ SIMD_LoadExpression(AddressofExpression(ArrayAccess(base, index, _)), aligned))) =>
+      Some(load @ SIMD_LoadExpression(AddressofExpression(ArrayAccess(base, index, _)), aligned))) =>
 
         val indSum : HashMap[Expression, Long] = SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
@@ -190,7 +189,7 @@ private[optimization] final class Analyze extends StackCollector {
         var loadAncs = ancss.head
         for (i <- 1 until ancss.length) {
           val reuseAncs : List[Node] = ancss(i)
-          import scala.util.control.Breaks.{breakable, break}
+          import scala.util.control.Breaks._
           breakable {
             do {
               var rAs : List[Node] = reuseAncs
@@ -232,13 +231,13 @@ private[optimization] final class Analyze extends StackCollector {
   }
 
   private class UpdateLoopVar(itName : String, offset : Long, nju : Expression)
-      extends QuietDefaultStrategy("Add loop var offset") {
+    extends QuietDefaultStrategy("Add loop var offset") {
 
     private final val SKIP_ANNOT = "RDSL_Skip"
     private var replace : Boolean = false
 
     this += new Transformation("apply", {
-      case vAcc @ VariableAccess(v, Some(IntegerDatatype)) if (v == itName) =>
+      case vAcc @ VariableAccess(v, Some(IR_IntegerDatatype)) if (v == itName) =>
         if (replace)
           SubtractionExpression(Duplicate(nju), IntegerConstant(offset))
         else if (!vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
@@ -262,9 +261,11 @@ private[optimization] final class Analyze extends StackCollector {
       return expr2.pointer
     }
   }
+
 }
 
 private final object Adapt extends PartialFunction[Node, Transformation.OutputType] {
+
   import RemoveDupSIMDLoads._
 
   def isDefinedAt(node : Node) : Boolean = {

@@ -1,13 +1,11 @@
 package exastencils.strategies
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Queue
+import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Queue }
 
+import exastencils.base.ir._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -60,7 +58,7 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
               case expandable : Expandable =>
                 val output = expandable.expand
                 output.inner match {
-                  case single : Node => nodes.update(n, single)
+                  case single : Node   => nodes.update(n, single)
                   case list : NodeList => {
                     val split = nodes.splitAt(n)
                     split._2.remove(0)
@@ -68,7 +66,7 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
                   }
                 }
                 expandedSth = true
-              case _ =>
+              case _                       =>
             }
           }
         }
@@ -133,42 +131,42 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       nju
 
     // deal with constants
-    case NegativeExpression(IntegerConstant(value))                        => IntegerConstant(-value)
-    case NegativeExpression(FloatConstant(value))                          => FloatConstant(-value)
+    case NegativeExpression(IntegerConstant(value)) => IntegerConstant(-value)
+    case NegativeExpression(FloatConstant(value))   => FloatConstant(-value)
 
     case DivisionExpression(IntegerConstant(left), IntegerConstant(right)) => IntegerConstant(left / right)
     case DivisionExpression(IntegerConstant(left), FloatConstant(right))   => FloatConstant(left / right)
     case DivisionExpression(FloatConstant(left), IntegerConstant(right))   => FloatConstant(left / right)
     case DivisionExpression(FloatConstant(left), FloatConstant(right))     => FloatConstant(left / right)
 
-    case DivisionExpression(left : Expression, IntegerConstant(1))         => left
-    case DivisionExpression(left : Expression, FloatConstant(f))           => new MultiplicationExpression(left, FloatConstant(1.0 / f))
-    case DivisionExpression(FloatConstant(0.0), right : Expression)        => FloatConstant(0.0)
-    case DivisionExpression(IntegerConstant(0), right : Expression)        => IntegerConstant(0)
+    case DivisionExpression(left : Expression, IntegerConstant(1))  => left
+    case DivisionExpression(left : Expression, FloatConstant(f))    => new MultiplicationExpression(left, FloatConstant(1.0 / f))
+    case DivisionExpression(FloatConstant(0.0), right : Expression) => FloatConstant(0.0)
+    case DivisionExpression(IntegerConstant(0), right : Expression) => IntegerConstant(0)
 
-    case ModuloExpression(IntegerConstant(left), IntegerConstant(right))   => IntegerConstant(left % right)
+    case ModuloExpression(IntegerConstant(left), IntegerConstant(right)) => IntegerConstant(left % right)
 
-    case PowerExpression(IntegerConstant(base), IntegerConstant(exp))      => IntegerConstant(pow(base, exp))
-    case PowerExpression(FloatConstant(base), IntegerConstant(exp))        => FloatConstant(pow(base, exp))
-    case PowerExpression(IntegerConstant(base), FloatConstant(exp))        => FloatConstant(math.pow(base, exp))
-    case PowerExpression(FloatConstant(base), FloatConstant(exp))          => FloatConstant(math.pow(base, exp))
+    case PowerExpression(IntegerConstant(base), IntegerConstant(exp)) => IntegerConstant(pow(base, exp))
+    case PowerExpression(FloatConstant(base), IntegerConstant(exp))   => FloatConstant(pow(base, exp))
+    case PowerExpression(IntegerConstant(base), FloatConstant(exp))   => FloatConstant(math.pow(base, exp))
+    case PowerExpression(FloatConstant(base), FloatConstant(exp))     => FloatConstant(math.pow(base, exp))
 
-    case PowerExpression(base, IntegerConstant(0))                         => IntegerConstant(1)
-    case PowerExpression(base, IntegerConstant(1))                         => base
-    case PowerExpression(base, IntegerConstant(e)) if (e >= 2 && e <= 6)   => MultiplicationExpression(ListBuffer.fill(e.toInt)(Duplicate(base)))
-    case PowerExpression(b, FloatConstant(e)) if (e.toLong.toDouble == e)  => PowerExpression(b, IntegerConstant(e.toLong))
+    case PowerExpression(base, IntegerConstant(0))                        => IntegerConstant(1)
+    case PowerExpression(base, IntegerConstant(1))                        => base
+    case PowerExpression(base, IntegerConstant(e)) if (e >= 2 && e <= 6)  => MultiplicationExpression(ListBuffer.fill(e.toInt)(Duplicate(base)))
+    case PowerExpression(b, FloatConstant(e)) if (e.toLong.toDouble == e) => PowerExpression(b, IntegerConstant(e.toLong))
 
     // deal with negatives
-    case NegativeExpression(NegativeExpression(expr))                      => expr
-    case NegativeExpression(AdditionExpression(sums))                      => AdditionExpression(sums.transform { s => NegativeExpression(s) })
-    case NegativeExpression(SubtractionExpression(left, right))            => SubtractionExpression(right, left)
+    case NegativeExpression(NegativeExpression(expr))           => expr
+    case NegativeExpression(AdditionExpression(sums))           => AdditionExpression(sums.transform { s => NegativeExpression(s) })
+    case NegativeExpression(SubtractionExpression(left, right)) => SubtractionExpression(right, left)
 
-    case DivisionExpression(NegativeExpression(l), NegativeExpression(r))  => DivisionExpression(l, r)
-    case DivisionExpression(l, NegativeExpression(r))                      => NegativeExpression(DivisionExpression(l, r))
-    case DivisionExpression(NegativeExpression(l), r)                      => NegativeExpression(DivisionExpression(l, r))
+    case DivisionExpression(NegativeExpression(l), NegativeExpression(r)) => DivisionExpression(l, r)
+    case DivisionExpression(l, NegativeExpression(r))                     => NegativeExpression(DivisionExpression(l, r))
+    case DivisionExpression(NegativeExpression(l), r)                     => NegativeExpression(DivisionExpression(l, r))
 
-    case NegativeExpression(MaximumExpression(exps))                       => MinimumExpression(exps.transform { s => NegativeExpression(s) })
-    case NegativeExpression(MinimumExpression(exps))                       => MaximumExpression(exps.transform { s => NegativeExpression(s) })
+    case NegativeExpression(MaximumExpression(exps)) => MinimumExpression(exps.transform { s => NegativeExpression(s) })
+    case NegativeExpression(MinimumExpression(exps)) => MaximumExpression(exps.transform { s => NegativeExpression(s) })
 
     // Simplify vectors
     case NegativeExpression(v : VectorExpression) =>
@@ -178,10 +176,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case NegativeExpression(m : MatrixExpression) =>
       MatrixExpression(m.datatype, m.expressions.map { x => x.map { y => NegativeExpression(y) : Expression } })
 
-    case Scope(ListBuffer(Scope(body)))                                   => Scope(body)
+    case Scope(ListBuffer(Scope(body))) => Scope(body)
 
-    case ConditionStatement(cond, ListBuffer(Scope(trueBody)), falseBody) => ConditionStatement(cond, trueBody, falseBody)
-    case ConditionStatement(cond, trueBody, ListBuffer(Scope(falseBody))) => ConditionStatement(cond, trueBody, falseBody)
+    case ConditionStatement(cond, ListBuffer(Scope(trueBody)), falseBody)  => ConditionStatement(cond, trueBody, falseBody)
+    case ConditionStatement(cond, trueBody, ListBuffer(Scope(falseBody)))  => ConditionStatement(cond, trueBody, falseBody)
     case l @ ForLoopStatement(beg, end, inc, ListBuffer(Scope(body)), red) =>
       l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
 
@@ -192,28 +190,28 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case GreaterExpression(IntegerConstant(left), IntegerConstant(right))      => BooleanConstant(left > right)
     case GreaterEqualExpression(IntegerConstant(left), IntegerConstant(right)) => BooleanConstant(left >= right)
 
-    case NegationExpression(BooleanConstant(b))                                => BooleanConstant(!b)
+    case NegationExpression(BooleanConstant(b)) => BooleanConstant(!b)
 
-    case NegationExpression(EqEqExpression(left, right))                       => NeqExpression(left, right)
-    case NegationExpression(NeqExpression(left, right))                        => EqEqExpression(left, right)
+    case NegationExpression(EqEqExpression(left, right)) => NeqExpression(left, right)
+    case NegationExpression(NeqExpression(left, right))  => EqEqExpression(left, right)
 
-    case NegationExpression(LowerExpression(left, right))                      => GreaterEqualExpression(left, right)
-    case NegationExpression(GreaterEqualExpression(left, right))               => LowerExpression(left, right)
-    case NegationExpression(LowerEqualExpression(left, right))                 => GreaterExpression(left, right)
-    case NegationExpression(GreaterExpression(left, right))                    => LowerEqualExpression(left, right)
+    case NegationExpression(LowerExpression(left, right))        => GreaterEqualExpression(left, right)
+    case NegationExpression(GreaterEqualExpression(left, right)) => LowerExpression(left, right)
+    case NegationExpression(LowerEqualExpression(left, right))   => GreaterExpression(left, right)
+    case NegationExpression(GreaterExpression(left, right))      => LowerEqualExpression(left, right)
 
-    case NegationExpression(AndAndExpression(left, right))                     => OrOrExpression(NegationExpression(left), NegationExpression(right))
-    case NegationExpression(OrOrExpression(left, right))                       => AndAndExpression(NegationExpression(left), NegationExpression(right))
+    case NegationExpression(AndAndExpression(left, right)) => OrOrExpression(NegationExpression(left), NegationExpression(right))
+    case NegationExpression(OrOrExpression(left, right))   => AndAndExpression(NegationExpression(left), NegationExpression(right))
 
-    case AndAndExpression(BooleanConstant(true), expr : Expression)            => expr
-    case AndAndExpression(expr : Expression, BooleanConstant(true))            => expr
-    case AndAndExpression(BooleanConstant(false), expr : Expression)           => BooleanConstant(false)
-    case AndAndExpression(expr : Expression, BooleanConstant(false))           => BooleanConstant(false)
+    case AndAndExpression(BooleanConstant(true), expr : Expression)  => expr
+    case AndAndExpression(expr : Expression, BooleanConstant(true))  => expr
+    case AndAndExpression(BooleanConstant(false), expr : Expression) => BooleanConstant(false)
+    case AndAndExpression(expr : Expression, BooleanConstant(false)) => BooleanConstant(false)
 
-    case OrOrExpression(BooleanConstant(true), expr : Expression)              => BooleanConstant(true)
-    case OrOrExpression(expr : Expression, BooleanConstant(true))              => BooleanConstant(true)
-    case OrOrExpression(BooleanConstant(false), expr : Expression)             => expr
-    case OrOrExpression(expr : Expression, BooleanConstant(false))             => expr
+    case OrOrExpression(BooleanConstant(true), expr : Expression)  => BooleanConstant(true)
+    case OrOrExpression(expr : Expression, BooleanConstant(true))  => BooleanConstant(true)
+    case OrOrExpression(BooleanConstant(false), expr : Expression) => expr
+    case OrOrExpression(expr : Expression, BooleanConstant(false)) => expr
 
     case ConditionStatement(BooleanConstant(cond), tBranch, fBranch) => {
       if (cond) {
@@ -237,10 +235,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       do {
         val (expr, pos) = workQ.dequeue()
         expr match {
-          case IntegerConstant(i)       => if (pos) intCst += i else intCst -= i
-          case FloatConstant(f)         => if (pos) floatCst += f else floatCst -= f
-          case AdditionExpression(sums) => workQ.enqueue(sums.view.map { x => (x, pos) } : _*)
-          case NegativeExpression(e)    => workQ.enqueue((e, !pos))
+          case IntegerConstant(i)                 => if (pos) intCst += i else intCst -= i
+          case FloatConstant(f)                   => if (pos) floatCst += f else floatCst -= f
+          case AdditionExpression(sums)           => workQ.enqueue(sums.view.map { x => (x, pos) } : _*)
+          case NegativeExpression(e)              => workQ.enqueue((e, !pos))
           case SubtractionExpression(left, right) =>
             workQ.enqueue((left, pos))
             workQ.enqueue((right, !pos))
@@ -262,7 +260,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
                   vecExprsView.zip(vExprs).map { x => x._1 + x._2 : Expression }.to[ListBuffer],
                   if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
             }
-          case e : Expression =>
+          case e : Expression       =>
             if (pos)
               posSums += e
             else
@@ -282,9 +280,9 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       else
         negSums += FloatConstant(-cst)
     } else if (intCst != 0L)
-      // if compactAST is set, no SubtractionExpression is created, so prevent creating a Neg(Const),
-      //   which would lead to a non-terminating recursion
-      // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
+    // if compactAST is set, no SubtractionExpression is created, so prevent creating a Neg(Const),
+    //   which would lead to a non-terminating recursion
+    // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
       if (intCst > 0 || compactAST || posSums.isEmpty)
         posSums += IntegerConstant(intCst)
       else
@@ -320,12 +318,12 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       do {
         val expr = workQ.dequeue()
         expr match {
-          case IntegerConstant(iv) => intCst *= iv
-          case FloatConstant(fv)   => floatCst *= fv
-          case NegativeExpression(e) =>
+          case IntegerConstant(iv)                          => intCst *= iv
+          case FloatConstant(fv)                            => floatCst *= fv
+          case NegativeExpression(e)                        =>
             workQ.enqueue(e)
             intCst = -intCst
-          case MultiplicationExpression(iFacs) =>
+          case MultiplicationExpression(iFacs)              =>
             workQ.enqueue(iFacs : _*)
           case d @ DivisionExpression(FloatConstant(fv), _) =>
             floatCst *= fv
@@ -333,19 +331,19 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
             if (div == null)
               div = d
             remA += d
-          case _ : VectorExpression | _ : MatrixExpression =>
+          case _ : VectorExpression | _ : MatrixExpression  =>
             if (remA.isEmpty)
               remA += expr
             else
-              // merging with one previous only is sufficient, if simplifyMult only matches first arg with vect/mat types
+            // merging with one previous only is sufficient, if simplifyMult only matches first arg with vect/mat types
               remA ++= simplifyBinMult(remA.last, expr)
-          case r : Expression =>
+          case r : Expression                               =>
             remA += r
         }
       } while (!workQ.isEmpty)
     }
     val rem = remA.to[ListBuffer]
-    var cstDt : Option[Datatype] = None
+    var cstDt : Option[IR_Datatype] = None
     val negative : Boolean = floatCst * intCst < 0d
     floatCst = math.abs(floatCst)
     intCst = math.abs(intCst)
@@ -356,10 +354,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       div.left = FloatConstant(floatCst * intCst)
     } else if (floatCst != 1d) {
       FloatConstant(floatCst * intCst) +=: rem // add constant at first position (it is expected as rem.head later)
-      cstDt = Some(RealDatatype)
+      cstDt = Some(IR_RealDatatype)
     } else if (intCst != 1L) {
       IntegerConstant(intCst) +=: rem // add constant at first position (it is expected as rem.head later)
-      cstDt = Some(IntegerDatatype)
+      cstDt = Some(IR_IntegerDatatype)
     }
 
     var result : Expression = null
@@ -380,7 +378,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
           case m : MatrixExpression if (!found) =>
             found = true
             MatrixExpression(GetResultingDatatype(cstDt, m.datatype), m.expressions.map(_.map(Duplicate(coeff) * _ : Expression)))
-          case x => x
+          case x                                => x
         }
         if (found)
           rem.remove(0)
@@ -399,7 +397,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         if (left.length != right.length) Logger.error("Vector sizes must match for multiplication")
         if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for multiplication")
         List(AdditionExpression(left.expressions.view.zip(right.expressions).map { x => x._1 * x._2 : Expression }.to[ListBuffer]))
-      case (left, right) =>
+      case (left, right)                                       =>
         List(left, right)
     }
   }
@@ -509,7 +507,7 @@ object GatherFieldAccessOffsets extends QuietDefaultStrategy("Gathering field ac
   }
 
   this += new Transformation("TODO", {
-    case fa : FieldAccess =>
+    case fa : FieldAccess        =>
       addAccess(fa.fieldSelection.field.codeName, fa.index - LoopOverDimensions.defIt(fa.index.length))
       fa
     case dfa : DirectFieldAccess =>

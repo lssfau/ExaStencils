@@ -2,10 +2,12 @@ package exastencils.grid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_IntegerDatatype
+import exastencils.base.l4.L4_RealDatatype
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.domain._
 import exastencils.knowledge
 import exastencils.knowledge._
@@ -54,7 +56,7 @@ abstract class GridGeometry() {
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
         method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 2 : Integer).asInstanceOf[Expression]
       }
-      case _ => {
+      case _    => {
         val method = resolveGridMemberFunction(functionName)
         if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
         method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex).asInstanceOf[Expression]
@@ -78,7 +80,7 @@ object GridGeometry {
     else if (!Knowledge.grid_isUniform && Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
       GridGeometry_nonUniform_staggered_AA
     else
-      Logger.error(s"Trying to get geometry for unsupported configuration of ( uniform : ${Knowledge.grid_isUniform} ), ( staggered : ${Knowledge.grid_isStaggered} ), ( axis-aligned : ${Knowledge.grid_isAxisAligned} )")
+      Logger.error(s"Trying to get geometry for unsupported configuration of ( uniform : ${ Knowledge.grid_isUniform } ), ( staggered : ${ Knowledge.grid_isStaggered } ), ( axis-aligned : ${ Knowledge.grid_isAxisAligned } )")
   }
 }
 
@@ -106,7 +108,7 @@ trait GridGeometry_uniform extends GridGeometry {
 trait GridGeometry_nonUniform extends GridGeometry {
   // direct accesses
   override def nodePosition(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${dimToString(dim)}", level).get
+    val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${ dimToString(dim) }", level).get
     FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }
 
@@ -124,19 +126,19 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val root = StateManager.root_.asInstanceOf[l4.Root]
     root.fieldLayouts += l4.LayoutDeclarationStatement(
       l4.LeveledIdentifier("DefNodeLineLayout_x", l4.AllLevelsSpecification),
-      l4.RealDatatype, "Edge_Node".toLowerCase(),
+      L4_RealDatatype, "Edge_Node".toLowerCase(),
       Some(l4.Index3D(2, 0, 0)), None,
       Some(l4.Index3D(1, 0, 0)), None,
       Some(l4.Index3D((1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_x - 1, 1, 1)))
     root.fieldLayouts += l4.LayoutDeclarationStatement(
       l4.LeveledIdentifier("DefNodeLineLayout_y", l4.AllLevelsSpecification),
-      l4.RealDatatype, "Edge_Node".toLowerCase(),
+      L4_RealDatatype, "Edge_Node".toLowerCase(),
       Some(l4.Index3D(0, 2, 0)), None,
       Some(l4.Index3D(0, 1, 0)), None,
       Some(l4.Index3D(1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_y - 1, 1)))
     root.fieldLayouts += l4.LayoutDeclarationStatement(
       l4.LeveledIdentifier("DefNodeLineLayout_z", l4.AllLevelsSpecification),
-      l4.RealDatatype, "Edge_Node".toLowerCase(),
+      L4_RealDatatype, "Edge_Node".toLowerCase(),
       Some(l4.Index3D(0, 0, 2)), None,
       Some(l4.Index3D(0, 0, 1)), None,
       Some(l4.Index3D(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1)))
@@ -161,16 +163,16 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val cellWidth = (domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal
 
     // look up field and compile access to base element
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
-      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        LoopOverDimensions.defItForDim(dim)
-      else
-        VariableAccess(s"global_${dimToString(dim)}", Some(IntegerDatatype))
+    if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+      LoopOverDimensions.defItForDim(dim)
+    else
+      VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         NullStatement
@@ -178,10 +180,12 @@ trait GridGeometry_nonUniform extends GridGeometry {
         new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    var leftDir = Array(0, 0, 0); leftDir(dim) = -1
+    var leftDir = Array(0, 0, 0);
+    leftDir(dim) = -1
     val leftNeighIndex = knowledge.Fragment.getNeigh(leftDir).index
 
-    var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -2
+    var leftGhostIndex = new MultiIndex(0, 0, 0, 0);
+    leftGhostIndex(dim) = -2
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = new ConditionStatement(
@@ -192,10 +196,12 @@ trait GridGeometry_nonUniform extends GridGeometry {
         AssignmentStatement(Duplicate(leftGhostAccess),
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
-    var rightDir = Array(0, 0, 0); rightDir(dim) = 1
+    var rightDir = Array(0, 0, 0);
+    rightDir(dim) = 1
     val rightNeighIndex = knowledge.Fragment.getNeigh(rightDir).index
 
-    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCellsPerFrag + 2
+    var rightGhostIndex = new MultiIndex(0, 0, 0, 0);
+    rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = new ConditionStatement(
@@ -252,16 +258,16 @@ trait GridGeometry_nonUniform extends GridGeometry {
     //Logger.debug(s"Using alpha $alpha and beta $beta")
 
     // look up field and compile access to base element
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
-      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        LoopOverDimensions.defItForDim(dim)
-      else
-        VariableAccess(s"global_${dimToString(dim)}", Some(IntegerDatatype))
+    if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+      LoopOverDimensions.defItForDim(dim)
+    else
+      VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         NullStatement
@@ -269,10 +275,12 @@ trait GridGeometry_nonUniform extends GridGeometry {
         new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    var leftDir = Array(0, 0, 0); leftDir(dim) = -1
+    var leftDir = Array(0, 0, 0);
+    leftDir(dim) = -1
     val leftNeighIndex = knowledge.Fragment.getNeigh(leftDir).index
 
-    var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -2
+    var leftGhostIndex = new MultiIndex(0, 0, 0, 0);
+    leftGhostIndex(dim) = -2
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = new ConditionStatement(
@@ -283,10 +291,12 @@ trait GridGeometry_nonUniform extends GridGeometry {
         AssignmentStatement(Duplicate(leftGhostAccess),
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
-    var rightDir = Array(0, 0, 0); rightDir(dim) = 1
+    var rightDir = Array(0, 0, 0);
+    rightDir(dim) = 1
     val rightNeighIndex = knowledge.Fragment.getNeigh(rightDir).index
 
-    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCellsPerFrag + 2
+    var rightGhostIndex = new MultiIndex(0, 0, 0, 0);
+    rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = new ConditionStatement(
@@ -366,7 +376,7 @@ object GridGeometry_uniform_staggered_AA extends GridGeometry_uniform with GridG
 object GridGeometry_nonUniform_nonStaggered_AA extends GridGeometry_nonUniform {
   override def generateInitCode = {
     Knowledge.grid_spacingModel match {
-      case "uniform" =>
+      case "uniform"   =>
         ((Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
           (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Uniform(dim, level)))
           .reduceLeft(_ ++ _))
@@ -382,7 +392,7 @@ object GridGeometry_nonUniform_nonStaggered_AA extends GridGeometry_nonUniform {
 object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with GridGeometry_staggered {
   // direct accesses
   override def stagCVWidth(level : Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) = {
-    val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${dimToString(dim)}", level).get
+    val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${ dimToString(dim) }", level).get
     FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }
 
@@ -412,10 +422,10 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     /// |-|   |---|   |-|
 
     Knowledge.grid_spacingModel match {
-      case "diego" =>
+      case "diego"     =>
         (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Diego(dim, Knowledge.maxLevel)) ++
           (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
-      case "diego2" =>
+      case "diego2"    =>
         (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Diego2(dim, Knowledge.maxLevel)) ++
           (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
       case "linearFct" =>
@@ -432,15 +442,17 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     val zoneLength = 0.0095 //* 8 / zoneSize
 
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
     val innerIt = LoopOverDimensions.defItForDim(dim)
 
-    var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -1
+    var leftGhostIndex = new MultiIndex(0, 0, 0, 0);
+    leftGhostIndex(dim) = -1
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
-    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCells + 1
+    var rightGhostIndex = new MultiIndex(0, 0, 0, 0);
+    rightGhostIndex(dim) = numCells + 1
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
@@ -487,15 +499,17 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val zoneLength_2 = 0.014 // * 8 / zoneSize_2
     val zoneLength_3 = 0.012 // * 8 / zoneSize_3
 
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
     val innerIt = LoopOverDimensions.defItForDim(dim)
 
-    var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -1
+    var leftGhostIndex = new MultiIndex(0, 0, 0, 0);
+    leftGhostIndex(dim) = -1
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
-    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCells + 1
+    var rightGhostIndex = new MultiIndex(0, 0, 0, 0);
+    rightGhostIndex(dim) = numCells + 1
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
@@ -530,17 +544,17 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // look up field and compile access to base element
     val baseIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
-    val field = FieldCollection.getFieldByIdentifier(s"stag_cv_width_${dimToString(dim)}", level).get
+    val field = FieldCollection.getFieldByIdentifier(s"stag_cv_width_${ dimToString(dim) }", level).get
     val baseAccess = FieldAccess(FieldSelection(field, field.level, 0), Duplicate(baseIndex))
-    val npField = FieldCollection.getFieldByIdentifier(s"node_pos_${dimToString(dim)}", level).get
+    val npField = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val npBaseAccess = FieldAccess(FieldSelection(npField, npField.level, 0), Duplicate(baseIndex))
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
-      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        LoopOverDimensions.defItForDim(dim)
-      else
-        VariableAccess(s"global_${dimToString(dim)}", Some(IntegerDatatype))
+    if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+      LoopOverDimensions.defItForDim(dim)
+    else
+      VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         NullStatement
@@ -548,10 +562,12 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    var leftDir = Array(0, 0, 0); leftDir(dim) = -1
+    var leftDir = Array(0, 0, 0);
+    leftDir(dim) = -1
     val leftNeighIndex = knowledge.Fragment.getNeigh(leftDir).index
 
-    var leftGhostIndex = new MultiIndex(0, 0, 0, 0); leftGhostIndex(dim) = -2
+    var leftGhostIndex = new MultiIndex(0, 0, 0, 0);
+    leftGhostIndex(dim) = -2
     val leftGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = new ConditionStatement(
@@ -560,10 +576,12 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
         AssignmentStatement(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
 
-    var rightDir = Array(0, 0, 0); rightDir(dim) = 1
+    var rightDir = Array(0, 0, 0);
+    rightDir(dim) = 1
     val rightNeighIndex = knowledge.Fragment.getNeigh(rightDir).index
 
-    var rightGhostIndex = new MultiIndex(0, 0, 0, 0); rightGhostIndex(dim) = numCellsPerFrag + 2
+    var rightGhostIndex = new MultiIndex(0, 0, 0, 0);
+    rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = new ConditionStatement(

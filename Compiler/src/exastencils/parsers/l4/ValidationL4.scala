@@ -3,8 +3,9 @@ package exastencils.parsers.l4
 import scala.collection.immutable.HashSet
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures._
+import exastencils.baseExt.l4._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.logger._
 
@@ -25,17 +26,17 @@ object ValidationL4 {
 
   // No need to transform Domain- and LayoutDeclarationStatements because their names are not outputted.
   s += Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
-    case x : Identifier if (protectedkeywords.contains(x.name)) =>
+    case x : Identifier if (protectedkeywords.contains(x.name))                                              =>
       x.name = "user_" + x.name; x
-    case x : Identifier if (x.name.startsWith("_")) =>
+    case x : Identifier if (x.name.startsWith("_"))                                                          =>
       x.name = "user_" + x.name; x
     case x : UnresolvedAccess if (protectedkeywords.contains(x.name) && !x.hasAnnotation("NO_PROTECT_THIS")) =>
       x.name = "user_" + x.name; x
-    case x : UnresolvedAccess if (x.name.startsWith("_")) =>
+    case x : UnresolvedAccess if (x.name.startsWith("_"))                                                    =>
       x.name = "user_" + x.name; x
-    case x : ExternalFieldDeclarationStatement if (protectedkeywords.contains(x.extIdentifier)) =>
+    case x : ExternalFieldDeclarationStatement if (protectedkeywords.contains(x.extIdentifier))              =>
       x.extIdentifier = "user_" + x.extIdentifier; x
-    case x : ExternalFieldDeclarationStatement if (x.extIdentifier.startsWith("_")) =>
+    case x : ExternalFieldDeclarationStatement if (x.extIdentifier.startsWith("_"))                          =>
       x.extIdentifier = "user_" + x.extIdentifier; x
   })
 
@@ -66,14 +67,14 @@ object ValidationL4 {
   })
 
   s += Transformation("Check assignment of vectors and matrices", {
-    case x : ValueDeclarationStatement if (x.datatype.isInstanceOf[VectorDatatype] && x.expression.isInstanceOf[VectorExpression]) =>
-      if (x.datatype.asInstanceOf[VectorDatatype].length != x.expression.asInstanceOf[VectorExpression].length) Logger.error("Sizes of vectors must match for assignments!"); x
-    case x : ValueDeclarationStatement if (x.datatype.isInstanceOf[MatrixDatatype] && x.expression.isInstanceOf[MatrixExpression]) =>
-      if (x.datatype.asInstanceOf[MatrixDatatype].rows != x.datatype.asInstanceOf[MatrixDatatype].rows || x.datatype.asInstanceOf[MatrixDatatype].columns != x.datatype.asInstanceOf[MatrixDatatype].columns) Logger.error("Sizes of matrices must match for assignments!"); x
-    case x : VariableDeclarationStatement if (x.datatype.isInstanceOf[VectorDatatype]) =>
+    case x : ValueDeclarationStatement if (x.datatype.isInstanceOf[L4_VectorDatatype] && x.expression.isInstanceOf[VectorExpression]) =>
+      if (x.datatype.asInstanceOf[L4_VectorDatatype].numElements != x.expression.asInstanceOf[VectorExpression].length) Logger.error("Sizes of vectors must match for assignments!"); x
+    case x : ValueDeclarationStatement if (x.datatype.isInstanceOf[L4_MatrixDatatype] && x.expression.isInstanceOf[MatrixExpression]) =>
+      if (x.datatype.asInstanceOf[L4_MatrixDatatype].numRows != x.datatype.asInstanceOf[L4_MatrixDatatype].numRows || x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns != x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns) Logger.error("Sizes of matrices must match for assignments!"); x
+    case x : VariableDeclarationStatement if (x.datatype.isInstanceOf[L4_VectorDatatype])                                             =>
       if (x.expression.isDefined && x.expression.get.isInstanceOf[VectorExpression] && x.expression.get.asInstanceOf[VectorExpression].length != x.expression.get.asInstanceOf[VectorExpression].length) Logger.error("Sizes of vectors must match for assignments!"); x
-    case x : VariableDeclarationStatement /*(_, mat : MatrixDatatype, exp)*/ if (x.datatype.isInstanceOf[MatrixDatatype]) =>
-      if (x.expression.isDefined && x.expression.get.isInstanceOf[MatrixExpression] && (x.datatype.asInstanceOf[MatrixDatatype].rows != x.expression.get.asInstanceOf[MatrixExpression].rows || x.datatype.asInstanceOf[MatrixDatatype].columns != x.expression.get.asInstanceOf[MatrixExpression].columns)) Logger.error("Sizes of matrices must match for assignments!"); x
+    case x : VariableDeclarationStatement /*(_, mat : L4_MatrixDatatype, exp)*/ if (x.datatype.isInstanceOf[L4_MatrixDatatype])       =>
+      if (x.expression.isDefined && x.expression.get.isInstanceOf[MatrixExpression] && (x.datatype.asInstanceOf[L4_MatrixDatatype].numRows != x.expression.get.asInstanceOf[MatrixExpression].rows || x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns != x.expression.get.asInstanceOf[MatrixExpression].columns)) Logger.error("Sizes of matrices must match for assignments!"); x
   })
 
   s.apply()

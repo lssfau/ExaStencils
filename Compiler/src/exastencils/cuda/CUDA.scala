@@ -2,6 +2,7 @@ package exastencils.cuda
 
 import scala.collection.mutable._
 
+import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -31,21 +32,21 @@ case class CUDA_CheckError(var exp : Expression) extends Statement with Expandab
   override def expand() : Output[Scope] = {
     // TODO: replace with define?
     Scope(ListBuffer[Statement](
-      VariableDeclarationStatement(SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
+      VariableDeclarationStatement(IR_SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
       new ConditionStatement(NeqExpression("cudaStatus", "cudaSuccess"),
         PrintStatement(ListBuffer("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", "cudaStatus",
           "\" -> \"", new FunctionCallExpression("cudaGetErrorString", "cudaStatus"), "std::endl")))))
   }
 }
 
-case class CUDA_AllocateStatement(var pointer : Expression, var numElements : Expression, var datatype : Datatype) extends Statement with Expandable {
+case class CUDA_AllocateStatement(var pointer : Expression, var numElements : Expression, var datatype : IR_Datatype) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_AllocateStatement\n"
 
   override def expand() : Output[Statement] = {
     CUDA_CheckError(
       FunctionCallExpression("cudaMalloc",
         ListBuffer[Expression](
-          CastExpression(PointerDatatype(PointerDatatype(UnitDatatype)), AddressofExpression(pointer)),
+          CastExpression(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), AddressofExpression(pointer)),
           numElements * SizeOfExpression(datatype))))
   }
 }
@@ -168,7 +169,7 @@ case class CUDA_Memcpy(var dest : Expression, var src : Expression, var sizeInBy
   }
 }
 
-case class CUDA_Memset(var data : Expression, var value : Expression, var numElements : Expression, var datatype : Datatype) extends Statement with Expandable {
+case class CUDA_Memset(var data : Expression, var value : Expression, var numElements : Expression, var datatype : IR_Datatype) extends Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_Memset\n"
 
   override def expand() : Output[Statement] = {
@@ -182,7 +183,7 @@ case class CUDA_SyncThreads() extends Statement {
   }
 }
 
-case class CUDA_SharedArray(name : String, arrayType : Datatype, var size : Array[Long]) extends Statement {
+case class CUDA_SharedArray(name : String, arrayType : IR_Datatype, var size : Array[Long]) extends Statement {
   size = if (Knowledge.cuda_linearizeSharedMemoryAccess) Array(size.product) else size
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -192,7 +193,7 @@ case class CUDA_SharedArray(name : String, arrayType : Datatype, var size : Arra
   }
 }
 
-case class CUDA_UnsizedExternSharedArray(name : String, arrayType : ScalarDatatype) extends Statement {
+case class CUDA_UnsizedExternSharedArray(name : String, arrayType : IR_ScalarDatatype) extends Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "extern __shared__ " << arrayType << " " << name << "[];"
   }
@@ -221,9 +222,9 @@ case class CUDA_MinimumExpression(left : Expression, right : Expression) extends
   }
 }
 
-case class CUDA_RestrictVariableAccess(var name : String, var dType : Option[Datatype] = None) extends Access {
-  def this(n : String, dT : Datatype) = this(n, Option(dT))
+case class CUDA_RestrictVariableAccess(var name : String, var datatype : Option[IR_Datatype] = None) extends Access {
+  def this(n : String, dT : IR_Datatype) = this(n, Option(dT))
   override def prettyprint(out : PpStream) : Unit = out << name
 
-  def printDeclaration() : String = "const " + dType.get.resolveDeclType.prettyprint + " __restrict__ " + name + dType.get.resolveDeclPostscript
+  def printDeclaration() : String = "const " + datatype.get.resolveDeclType.prettyprint + " __restrict__ " + name + datatype.get.resolveDeclPostscript
 }

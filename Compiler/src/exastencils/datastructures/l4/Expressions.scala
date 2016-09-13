@@ -2,10 +2,10 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils._
+import exastencils.base.l4.L4_Datatype
 import exastencils.core._
-import exastencils.data
 import exastencils.datastructures._
-import exastencils.knowledge
 import exastencils.logger._
 import exastencils.prettyprinting._
 
@@ -53,7 +53,7 @@ case class BooleanConstant(var value : Boolean) extends Expression {
   def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-case class VectorExpression(var datatype : Option[Datatype], var expressions : List[Expression], var rowVector : Option[Boolean]) extends Expression {
+case class VectorExpression(var datatype : Option[L4_Datatype], var expressions : List[Expression], var rowVector : Option[Boolean]) extends Expression {
   // rowVector == true: Row; false: Column; None: unspecified
   def length = expressions.length
 
@@ -66,7 +66,7 @@ case class VectorExpression(var datatype : Option[Datatype], var expressions : L
       out << 'T';
     }
   }
-  def progressToIr = new ir.VectorExpression(if (datatype.isDefined) Some(datatype.get.progressToIr); else None, expressions.map(_.progressToIr).to[ListBuffer], rowVector)
+  def progressToIr = new ir.VectorExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.progressToIr).to[ListBuffer], rowVector)
 }
 
 object VectorExpression {
@@ -89,14 +89,14 @@ object VectorExpression {
   }
 }
 
-case class MatrixExpression(var datatype : Option[Datatype], var expressions : List[VectorExpression]) extends Expression {
+case class MatrixExpression(var datatype : Option[L4_Datatype], var expressions : List[VectorExpression]) extends Expression {
   if (expressions.filter(x => x.length != expressions(0).length).length > 0) {
     Logger.error("Rows of matrix must be of equal length")
   }
 
   def prettyprint(out : PpStream) = { out << '{'; expressions.foreach(e => { e.prettyprint(out); out << ",\n" }); out << "} '" }
 
-  def progressToIr = new ir.MatrixExpression(if (datatype.isDefined) Some(datatype.get.progressToIr); else None, expressions.map(_.expressions.map(_.progressToIr).to[ListBuffer]).to[ListBuffer])
+  def progressToIr = new ir.MatrixExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.expressions.map(_.progressToIr).to[ListBuffer]).to[ListBuffer])
 
   def rows = expressions.length
   def columns = expressions(0).length
@@ -136,7 +136,7 @@ case class UnresolvedAccess(var name : String,
     try {
       FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active), arrayIndex, offset)
     } catch {
-      case e : Exception => Logger.warn(s"""Could not resolve field "${name}""""); throw e
+      case e : Exception => Logger.warn(s"""Could not resolve field "${ name }""""); throw e
     }
   }
   def resolveToVirtualFieldAccess = {
@@ -228,7 +228,8 @@ case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecific
 
 object FieldAccess {
   def resolveSlot(field : knowledge.Field, slot : SlotModifier) = {
-    if (1 == field.numSlots) ir.IntegerConstant(0) else slot match {
+    if (1 == field.numSlots) ir.IntegerConstant(0)
+    else slot match {
       case SlotModifier.Active       => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
       case SlotModifier.Next         => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
       case SlotModifier.Previous     => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
@@ -246,14 +247,14 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
 
   def getBasicStencilAccess : ir.StencilAccess = {
     if (arrayIndex.isDefined || dirAccess.isDefined)
-      Logger.warn(s"Discarding modifiers of access to stencil $name on level ${level.asInstanceOf[SingleLevelSpecification].level}")
+      Logger.warn(s"Discarding modifiers of access to stencil $name on level ${ level.asInstanceOf[SingleLevelSpecification].level }")
 
     ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 
   def progressToIr : ir.Expression = {
     if (arrayIndex.isDefined && dirAccess.isDefined)
-      Logger.warn(s"Access to stencil $name on level ${level.asInstanceOf[SingleLevelSpecification].level} has dirAccess and array subscript modifiers; array index will be given precendence, dirAccess will be ignored")
+      Logger.warn(s"Access to stencil $name on level ${ level.asInstanceOf[SingleLevelSpecification].level } has dirAccess and array subscript modifiers; array index will be given precendence, dirAccess will be ignored")
 
     val stencil = knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
@@ -286,7 +287,7 @@ case class StencilFieldAccess(var name : String,
 
   def getBasicStencilFieldAccess : ir.StencilFieldAccess = {
     if (arrayIndex.isDefined || dirAccess.isDefined)
-      Logger.warn(s"Discarding modifiers of access to stencilfield $name on level ${level.asInstanceOf[SingleLevelSpecification].level}")
+      Logger.warn(s"Discarding modifiers of access to stencilfield $name on level ${ level.asInstanceOf[SingleLevelSpecification].level }")
 
     val stencilField = knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
@@ -306,7 +307,7 @@ case class StencilFieldAccess(var name : String,
 
   def progressToIr : ir.Expression = {
     if (arrayIndex.isDefined && dirAccess.isDefined)
-      Logger.warn(s"Access to stencilfield $name on level ${level.asInstanceOf[SingleLevelSpecification].level} has direction access and array subscript modifiers; array index will be given precendence, offset will be ignored")
+      Logger.warn(s"Access to stencilfield $name on level ${ level.asInstanceOf[SingleLevelSpecification].level } has direction access and array subscript modifiers; array index will be given precendence, offset will be ignored")
 
     val stencilField = knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
@@ -358,10 +359,10 @@ case class LeveledIdentifier(var name : String, var level : LevelSpecification) 
   def fullName = name + "_" + level.prettyprint
 }
 
-case class VariableExpression(var access : Access, var datatype : Datatype) extends Expression {
+case class VariableExpression(var access : Access, var datatype : L4_Datatype) extends Expression {
   def prettyprint(out : PpStream) = access.prettyprint(out)
 
-  def progressToIr = ir.VariableAccess(access.name, Some(datatype.progressToIr))
+  def progressToIr = ir.VariableAccess(access.name, Some(datatype.progress))
 }
 
 case class UnaryExpression(var operator : String, var exp : Expression) extends Expression {
@@ -380,7 +381,7 @@ case class BinaryExpression(var operator : String, var left : Expression, var ri
       case BinaryExpression("**", left, IntegerConstant(1)) => left.progressToIr
       case BinaryExpression("**", left, IntegerConstant(2)) => left.progressToIr * Duplicate(left).progressToIr
       case BinaryExpression("**", left, IntegerConstant(3)) => left.progressToIr * Duplicate(left).progressToIr * Duplicate(left).progressToIr
-      case _ => ir.BinaryOperators.CreateExpression(operator, left.progressToIr, right.progressToIr)
+      case _                                                => ir.BinaryOperators.CreateExpression(operator, left.progressToIr, right.progressToIr)
     }
   }
 }

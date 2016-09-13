@@ -1,12 +1,12 @@
 package exastencils.datastructures.ir.iv
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable._
 
-import exastencils.datastructures.ir._
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
-import exastencils.logger._
 import exastencils.prettyprinting._
 
 /// variables and flags
@@ -17,7 +17,7 @@ case class CurrentSlot(var field : Field, var fragmentIdx : Expression = LoopOve
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
   override def resolveName = s"currentSlot" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
-  override def resolveDataType = "int"
+  override def resolveDatatype = "int"
   override def resolveDefValue = Some(IntegerConstant(0))
 }
 
@@ -27,8 +27,8 @@ case class IndexFromField(var layoutIdentifier : String, var level : Expression,
   override def usesFieldArrays : Boolean = false
   override def usesLevelArrays : Boolean = true
 
-  override def resolveName = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "") + s"_${dimToString(dim)}"
-  override def resolveDataType = IntegerDatatype
+  override def resolveName = s"idx$indexId" + resolvePostfix(fragmentIdx.prettyprint, "", layoutIdentifier, level.prettyprint, "") + s"_${ dimToString(dim) }"
+  override def resolveDatatype = IR_IntegerDatatype
 
   override def getCtor() : Option[Statement] = {
     var statements : ListBuffer[Statement] = ListBuffer()
@@ -39,7 +39,8 @@ case class IndexFromField(var layoutIdentifier : String, var level : Expression,
       if (field.isDefined) {
         statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
           field.get.fieldLayout.defIdxById(indexId, dim))
-      } else { // no field found -> try external fields
+      } else {
+        // no field found -> try external fields
         val extField = ExternalFieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
         if (extField.isDefined) {
           statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, NullExpression, layoutIdentifier, level, NullExpression),
@@ -66,11 +67,11 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
-  override def resolveDataType = {
+  override def resolveDatatype = {
     if (field.numSlots > 1)
-      new ArrayDatatype(new PointerDatatype(field.resolveDeclType), field.numSlots)
+      new IR_ArrayDatatype(new IR_PointerDatatype(field.resolveDeclType), field.numSlots)
     else
-      new PointerDatatype(field.resolveDeclType)
+      new IR_PointerDatatype(field.resolveDeclType)
   }
 
   override def resolveDefValue = Some(0)
@@ -79,7 +80,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
     var wrappedBody = body
     if (field.numSlots > 1)
       wrappedBody = new ForLoopStatement(
-        VariableDeclarationStatement(IntegerDatatype, "slot", Some(0)),
+        VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
         LowerExpression("slot", field.numSlots),
         PreIncrementExpression("slot"),
         wrappedBody)

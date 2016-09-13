@@ -1,26 +1,28 @@
 package exastencils.datastructures.ir.iv
 
+import scala.collection.mutable._
+
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.core._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._
 
-import scala.collection.mutable._
-
 // FIXME: why is name an Expression?
 case class Timer(var name : Expression) extends UnduplicatedVariable with Access {
   override def resolveName = s"timer_" + stripName
-  override def resolveDataType = "StopWatch"
+  override def resolveDatatype = "StopWatch"
 
   def stripName = name.prettyprint.replaceAll("[^a-zA-Z0-9]", "_")
 
   override def getCtor() : Option[Statement] = {
     // FIXME: datatype for VariableAccess
-    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDataType)), "timerName"), StringConstant(stripName)))
+    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), StringConstant(stripName)))
   }
 }
 
@@ -37,7 +39,7 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
     Logger.error("VecShiftIndex out of bounds: " + offset)
 
   override def resolveName = "vShift" + offset
-  override def resolveDataType = SpecialDatatype("__m512i")
+  override def resolveDatatype = IR_SpecialDatatype("__m512i")
 
   override def getCtor() : Option[Statement] = {
     val init = new StringLiteral(null : String)
@@ -55,7 +57,7 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
       case si => Logger.error("VecShiftIndex cannot be used for instruction set " + si)
     }
 
-    return Some(AssignmentStatement(new VariableAccess(resolveName, resolveDataType), init))
+    return Some(AssignmentStatement(new VariableAccess(resolveName, resolveDatatype), init))
   }
 }
 
@@ -64,21 +66,21 @@ object LoopCarriedCSBuffer {
 }
 
 abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private val namePostfix : String,
-    private val baseDatatype : Datatype, private val freeInDtor : Boolean) extends UnduplicatedVariable {
+    private val baseDatatype : IR_Datatype, private val freeInDtor : Boolean) extends UnduplicatedVariable {
 
   override def getDeclaration() : VariableDeclarationStatement = {
     val superDecl = super.getDeclaration()
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
-      superDecl.dataType = ArrayDatatype(superDecl.dataType, Knowledge.omp_numThreads)
+      superDecl.datatype = IR_ArrayDatatype(superDecl.datatype, Knowledge.omp_numThreads)
     return superDecl
   }
 
   override def wrapInLoops(body : Statement) : Statement = {
     var wrappedBody = super.wrapInLoops(body)
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
-      val begin = new VariableDeclarationStatement(IntegerDatatype, LoopOverDimensions.threadIdxName, IntegerConstant(0))
-      val end = new LowerExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IntegerDatatype), IntegerConstant(Knowledge.omp_numThreads))
-      val inc = new PreIncrementExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IntegerDatatype))
+      val begin = new VariableDeclarationStatement(IR_IntegerDatatype, LoopOverDimensions.threadIdxName, IntegerConstant(0))
+      val end = new LowerExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IntegerConstant(Knowledge.omp_numThreads))
+      val inc = new PreIncrementExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
       wrappedBody = new ForLoopStatement(begin, end, inc, wrappedBody) with OMP_PotentiallyParallel
     }
     return wrappedBody
@@ -99,8 +101,8 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
     return LoopCarriedCSBuffer.commonPrefix + identifier + namePostfix
   }
 
-  override def resolveDataType() : Datatype = {
-    return new PointerDatatype(baseDatatype)
+  override def resolveDatatype() : IR_Datatype = {
+    return new IR_PointerDatatype(baseDatatype)
   }
 
   override def resolveDefValue() : Option[Expression] = {
@@ -120,7 +122,7 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
   }
 }
 
-case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : Datatype, val dimSizes : MultiIndex)
+case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : IR_Datatype, val dimSizes : MultiIndex)
   extends AbstractLoopCarriedCSBuffer(identifier, "", baseDatatype, !Knowledge.data_alignFieldPointers) {
 
   lazy val basePtr = new LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
@@ -132,5 +134,5 @@ case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : Datatype
   }
 }
 
-case class LoopCarriedCSBufferBasePtr(var identifier : Int, val baseDatatype : Datatype)
+case class LoopCarriedCSBufferBasePtr(var identifier : Int, val baseDatatype : IR_Datatype)
   extends AbstractLoopCarriedCSBuffer(identifier, "_base", baseDatatype, true)

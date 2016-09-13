@@ -2,15 +2,16 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Datatype
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.logger._
 
 case class FieldLayout(
     var identifier : String, // will be used to find the field
     var level : Int, // the (geometric) level the layout is associated with
-    var datatype : Datatype, // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
+    var datatype : IR_Datatype, // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
     var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}"
     var layoutsPerDim : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
     var numDimsGrid : Int, // dimensionality of the associated grid; usually lesser than or equal to 3
@@ -18,7 +19,7 @@ case class FieldLayout(
     var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
-    ) {
+) {
   def apply(dim : Int) = layoutsPerDim(dim)
 
   def defIdxPadLeftBegin(dim : Int) = { 0 }
@@ -81,7 +82,7 @@ case class FieldLayoutPerDim(
     var numDupLayersRight : Int, // number of duplicated data points added to the right (/ upper / back) side of the field; will usually be treated as inner points; can be directly communicated to/ from the opposite dup layers
     var numGhostLayersRight : Int, // number of ghost data points added to the right (/ upper / back) side of the field used for communication
     var numPadLayersRight : Int // number of padding data points added to the right (/ upper / back) side of the field
-    ) {
+) {
   var total : Expression = "NOT SET"
 
   def updateTotal() = {
@@ -111,7 +112,7 @@ case class Field(
     var level : Int, // the (geometric) level the field lives on
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var boundaryConditions : Option[Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
-    ) {
+) {
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype
   def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype
@@ -156,8 +157,8 @@ object FieldCollection {
   def getFieldByIdentifierLevExp(identifier : String, level : Expression, suppressError : Boolean = false) : Option[Field] = {
     level match {
       case IntegerConstant(constLevel) => getFieldByIdentifier(identifier, constLevel.toInt, suppressError)
-      case _ => {
-        if (!suppressError) Logger.warn(s"Trying to find field $identifier on level ${level.prettyprint} - non-constant levels are not supported")
+      case _                           => {
+        if (!suppressError) Logger.warn(s"Trying to find field $identifier on level ${ level.prettyprint } - non-constant levels are not supported")
         None
       }
     }
@@ -175,7 +176,7 @@ case class ExternalField(
     var targetField : Field, // the (internal) field to be copied to/ from
     var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
     var level : Int // the (geometric) level the field lives on
-    ) {
+) {
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype
   def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype

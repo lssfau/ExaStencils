@@ -2,20 +2,20 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.communication._
 import exastencils.core._
-import exastencils.core.collectors.IRLevelCollector
-import exastencils.core.collectors.StackCollector
+import exastencils.core.collectors._
 import exastencils.cuda._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
-import exastencils.util._
 import exastencils.strategies.ReplaceStringConstantsStrategy
+import exastencils.util._
 
 object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
   val collector = new IRLevelCollector
@@ -49,14 +49,14 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
     }
 
     case access : FieldAccess if collector.inLevelScope &&
-      SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel => {
+      SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel        => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = fieldAccess.index(i) / 2
       fieldAccess
     }
     case access : FieldAccess if collector.inLevelScope &&
-      SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel => {
+      SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel        => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = 2 * fieldAccess.index(i)
@@ -76,7 +76,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
         stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
       stencilFieldAccess
     }
-  }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */ )
+  }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */)
 }
 
 object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
@@ -85,7 +85,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
 
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression("diag", args) => args(0) match {
-      case access : StencilAccess =>
+      case access : StencilAccess      =>
         val centralOffset = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
         access.stencil.findStencilEntry(centralOffset).get.coefficient
       case access : StencilFieldAccess => {
@@ -93,7 +93,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
         new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
       }
-      case _ => {
+      case _                           => {
         Logger.warn("diag with unknown arg " + args(0))
         FunctionCallExpression("diag", args)
       }
@@ -205,7 +205,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     }
 
     // HACK for print functionality
-    case ExpressionStatement(FunctionCallExpression("print", args)) =>
+    case ExpressionStatement(FunctionCallExpression("print", args))      =>
       new PrintStatement(args)
     case ExpressionStatement(FunctionCallExpression("printField", args)) => {
       args.length match {
@@ -223,9 +223,9 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
 
     // FIXME: HACK to realize application functionality
     case func : FunctionStatement if ("Application" == func.name) => {
-      func.returntype = IntegerDatatype
+      func.returntype = IR_IntegerDatatype
       func.name = "main"
-      func.parameters = ListBuffer(FunctionArgument("argc", IntegerDatatype), FunctionArgument("argv", SpecialDatatype("char**"))) ++ func.parameters
+      func.parameters = ListBuffer(FunctionArgument("argc", IR_IntegerDatatype), FunctionArgument("argv", IR_SpecialDatatype("char**"))) ++ func.parameters
       func.allowFortranInterface = false
       //if (true) {
       //func.body.append(new ConditionStatement(new MPI_IsRootProc,
@@ -253,23 +253,23 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
-    case FunctionCallExpression("isOnEastBoundaryOf", args) => {
+    case FunctionCallExpression("isOnEastBoundaryOf", args)   => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(1, 0, 0)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnWestBoundaryOf", args) => {
+    case FunctionCallExpression("isOnWestBoundaryOf", args)   => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(-1, 0, 0)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnNorthBoundaryOf", args) => {
+    case FunctionCallExpression("isOnNorthBoundaryOf", args)  => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 1, 0)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnSouthBoundaryOf", args) => {
+    case FunctionCallExpression("isOnSouthBoundaryOf", args)  => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, -1, 0)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnTopBoundaryOf", args) => {
+    case FunctionCallExpression("isOnTopBoundaryOf", args)    => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, 1)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }

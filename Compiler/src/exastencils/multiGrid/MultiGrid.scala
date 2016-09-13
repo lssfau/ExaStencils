@@ -2,9 +2,10 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_UnitDatatype
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.performance._
@@ -42,7 +43,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         statements += wrapped
     }
 
-    new FunctionStatement(UnitDatatype, name, ListBuffer[FunctionArgument](), statements)
+    new FunctionStatement(IR_UnitDatatype, name, ListBuffer[FunctionArgument](), statements)
   }
 }
 
