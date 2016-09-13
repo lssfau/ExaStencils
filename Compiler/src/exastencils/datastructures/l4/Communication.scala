@@ -3,8 +3,8 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils._
+import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.l4.L4_Expression
-import exastencils.datastructures._
 import exastencils.prettyprinting._
 
 case class CommunicateTarget(var target : String, var begin : Option[Index], var end : Option[Index]) extends L4_Expression {
@@ -29,7 +29,7 @@ case class ApplyBCsStatement(var field : Access) extends Statement {
     val resolvedField = field match {
       case f : FieldAccess         => f.progress.fieldSelection
       case sf : StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
-        ir.IntegerConstant(sf.level.asInstanceOf[SingleLevelSpecification].level),
+        IR_IntegerConstant(sf.level.asInstanceOf[SingleLevelSpecification].level),
         FieldAccess.resolveSlot(sf.resolveField, sf.slot),
         sf.arrayIndex)
     }
@@ -49,7 +49,7 @@ case class CommunicateStatement(var field : Access, var op : String, var targets
     val progressedField = field match {
       case f : FieldAccess         => f.progress.fieldSelection
       case sf : StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
-        ir.IntegerConstant(sf.level.asInstanceOf[SingleLevelSpecification].level),
+        IR_IntegerConstant(sf.level.asInstanceOf[SingleLevelSpecification].level),
         FieldAccess.resolveSlot(sf.resolveField, sf.slot),
         sf.arrayIndex)
     }

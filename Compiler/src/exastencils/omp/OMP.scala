@@ -87,7 +87,7 @@ case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
     FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(flag.name, flag.datatype.get)),
       ListBuffer[Statement](
         new WhileLoopStatement(IR_NegationExpression(DerefAccess(flag)), ListBuffer[Statement]()),
-        new AssignmentStatement(DerefAccess(flag), BooleanConstant(false))),
+        new AssignmentStatement(DerefAccess(flag), IR_BooleanConstant(false))),
       false)
   }
 }

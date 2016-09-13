@@ -56,7 +56,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
         if (uPos < 0)
           fVals(pos).summands += (if (switchSign) access else IR_NegativeExpression(access)) // no match -> rhs
         else
-          AVals(pos)(uPos).summands += FloatConstant(if (switchSign) -1 else 1) // match -> matrix
+          AVals(pos)(uPos).summands += IR_RealConstant(if (switchSign) -1 else 1) // match -> matrix
       }
 
       case multEx @ IR_MultiplicationExpression(factors) => {

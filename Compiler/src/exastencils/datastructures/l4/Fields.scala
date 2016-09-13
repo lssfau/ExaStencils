@@ -1,5 +1,6 @@
 package exastencils.datastructures.l4
 
+import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
@@ -180,7 +181,7 @@ case class LayoutDeclarationStatement(
     // TODO: this should work for now but may be adapted in the future
     var refOffset = new ir.MultiIndex(Array.fill(numDimsData)(0))
     for (dim <- 0 until numDimsGrid)
-      refOffset(dim) = ir.IntegerConstant(layouts(dim).numPadLayersLeft + layouts(dim).numGhostLayersLeft)
+      refOffset(dim) = IR_IntegerConstant(layouts(dim).numPadLayersLeft + layouts(dim).numGhostLayersLeft)
 
     // adapt discretization identifier for low-dimensional primitives
     val finalDiscretization =

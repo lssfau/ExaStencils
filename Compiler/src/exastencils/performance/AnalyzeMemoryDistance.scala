@@ -235,8 +235,8 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
             InfiniteIndexOffset()
         }
       case IR_NegativeExpression(VariableAccess(name, dType)) => addTerm(VariableAccess(name, dType), !sign)
-      case IntegerConstant(x)                                 => signedConstantIndexOffset(x, sign)
-      case IR_NegativeExpression(IntegerConstant(x))          => signedConstantIndexOffset(x, !sign)
+      case IR_IntegerConstant(x)                              => signedConstantIndexOffset(x, sign)
+      case IR_NegativeExpression(IR_IntegerConstant(x))       => signedConstantIndexOffset(x, !sign)
 
       // nested expressions -> not simplfied to (a * x + b) -> non-constant offset
       case IR_AdditionExpression(_)       => InfiniteIndexOffset()

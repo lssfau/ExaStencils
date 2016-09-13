@@ -176,7 +176,7 @@ case class Kernel(var identifier : String,
 
   var originalParallelDims = parallelDims
   var firstNSeqDims = loopVariables.size - parallelDims
-  var smemCanBeUsed = Knowledge.cuda_useSharedMemory && firstNSeqDims == 0 && stepSize.forall(x => IntegerConstant(1).equals(x))
+  var smemCanBeUsed = Knowledge.cuda_useSharedMemory && firstNSeqDims == 0 && stepSize.forall(x => IR_IntegerConstant(1).equals(x))
   var spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
   var executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
 
@@ -569,7 +569,7 @@ case class Kernel(var identifier : String,
           zDimLoopBody += new ConditionStatement(conditionAccess, body)
           zDimLoopBody += CUDA_SyncThreads()
 
-          statements += ForLoopStatement(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_LowerExpression(VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), AssignmentStatement(loopVariables(executionDim), IntegerConstant(1), "+="), zDimLoopBody)
+          statements += ForLoopStatement(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_LowerExpression(VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), AssignmentStatement(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
 
           // 9. Remove the used loop variable to avoid later complications in loop variable substitution
           loopVariables.remove(executionDim)
@@ -755,9 +755,9 @@ object GatherLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering 
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset) => identifier += s"_o$offset"
-        case IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                     => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -781,9 +781,9 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset) => identifier += s"_o$offset"
-        case IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                     => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -807,9 +807,9 @@ object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gat
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset) => identifier += s"_o$offset"
-        case IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                     => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -836,9 +836,9 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
 
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset) => identifier += s"_o$offset"
-        case IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                     => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -860,14 +860,14 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
 
       accessIndices.indices.foreach(i => {
         accessIndices(i) match {
-          case IR_AdditionExpression(ListBuffer(va @ VariableAccess(name : String, _), IntegerConstant(v : Long))) =>
+          case IR_AdditionExpression(ListBuffer(va @ VariableAccess(name : String, _), IR_IntegerConstant(v : Long))) =>
             suitableForSharedMemory &= loopVariables.contains(name)
             indexConstantPart(i) = v
-          case va @ VariableAccess(name : String, _)                                                               =>
+          case va @ VariableAccess(name : String, _)                                                                  =>
             suitableForSharedMemory &= loopVariables.contains(name)
-          case IntegerConstant(v : Long)                                                                           =>
+          case IR_IntegerConstant(v : Long)                                                                           =>
             indexConstantPart(i) = v
-          case _                                                                                                   =>
+          case _                                                                                                      =>
             suitableForSharedMemory = false
         }
       })
@@ -897,9 +897,9 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset) => identifier += s"_o$offset"
-        case IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                     => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -948,9 +948,9 @@ object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local Arra
     var result = false
 
     (ivArray.base, ivArray.index) match {
-      case (ivAccess : VariableAccess, i : IntegerConstant) =>
+      case (ivAccess : VariableAccess, i : IR_IntegerConstant) =>
         result = ivAccess.datatype.contains(IR_SpecialDatatype("Vec3i"))
-      case _                                                =>
+      case _                                                   =>
     }
 
     result
@@ -959,7 +959,7 @@ object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local Arra
   this += new Transformation("Searching", {
     case ivArray : ArrayAccess if checkAccess(ivArray) =>
       val iv = ivArray.base.asInstanceOf[VariableAccess]
-      val i = ivArray.index.asInstanceOf[IntegerConstant]
+      val i = ivArray.index.asInstanceOf[IR_IntegerConstant]
       VariableAccess(iv.name + '_' + i.v, Some(IR_SpecialDatatype("double")))
   })
 }
@@ -976,7 +976,7 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
       }
 
       VariableAccess(newName, Some(IR_IntegerDatatype))
-    case s @ StringLiteral(v @ value) if loopVariables.contains(v)                       =>
+    case s @ IR_StringLiteral(v @ value) if loopVariables.contains(v)                    =>
       var newName = Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(loopVariables.indexOf(v))
 
       if (s.hasAnnotation(Kernel.CUDASharedMemoryAccess)) {
@@ -995,7 +995,7 @@ object AnnotatingLoopVariablesForSharedMemoryAccess extends QuietDefaultStrategy
     case v @ VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
       v.annotate(Kernel.CUDASharedMemoryAccess, accessName)
       v
-    case s @ StringLiteral(v @ value) if loopVariables.contains(v)                       =>
+    case s @ IR_StringLiteral(v @ value) if loopVariables.contains(v)                    =>
       s.annotate(Kernel.CUDASharedMemoryAccess, accessName)
       s
   })
@@ -1006,7 +1006,7 @@ object ReplacingLoopVariablesInWrapper extends QuietDefaultStrategy("Replacing l
   var bounds = ListBuffer[IR_Expression]()
 
   this += new Transformation("Searching", {
-    case StringLiteral(v @ value) if loopVariables.contains(v) =>
+    case IR_StringLiteral(v @ value) if loopVariables.contains(v) =>
       bounds(loopVariables.indexOf(v))
 
     case VariableAccess(n, Some(IR_IntegerDatatype)) if loopVariables.contains(n) =>

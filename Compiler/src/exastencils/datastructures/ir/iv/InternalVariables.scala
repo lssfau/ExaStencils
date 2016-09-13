@@ -91,8 +91,8 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1) {
       val simplifiedLevel : IR_Expression =
         level match {
-          case IntegerConstant(v) => v - Knowledge.minLevel
-          case _                  => level - Knowledge.minLevel
+          case IR_IntegerConstant(v) => v - Knowledge.minLevel
+          case _                     => level - Knowledge.minLevel
         }
       access = new ArrayAccess(access, simplifiedLevel)
     }

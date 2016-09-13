@@ -74,7 +74,7 @@ case class StencilEntry(var offset : ExpressionIndex, var coeff : L4_Expression)
 
   override def progress : knowledge.StencilEntry = {
     var off = offset.progress
-    while (off.length < knowledge.Knowledge.dimensionality + 1) off.indices :+= ir.IntegerConstant(0)
+    while (off.length < knowledge.Knowledge.dimensionality + 1) off.indices :+= IR_IntegerConstant(0)
     knowledge.StencilEntry(off, coeff.progress)
   }
 }
@@ -356,16 +356,16 @@ case class RepeatTimesStatement(var number : Int,
     val (loopVar, begin) =
       if (iterator.isDefined) {
         val lv = iterator.get.progress
-        (lv, ir.AssignmentStatement(lv, ir.IntegerConstant(0)))
+        (lv, ir.AssignmentStatement(lv, IR_IntegerConstant(0)))
       } else {
         val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
-        (ir.StringLiteral(lv), ir.VariableDeclarationStatement(IR_IntegerDatatype, lv, Some(ir.IntegerConstant(0))))
+        (IR_StringLiteral(lv), ir.VariableDeclarationStatement(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
       }
 
     val ret = ir.ForLoopStatement(
       begin,
-      loopVar < ir.IntegerConstant(number),
-      ir.AssignmentStatement(loopVar, ir.IntegerConstant(1), "+="),
+      loopVar < IR_IntegerConstant(number),
+      ir.AssignmentStatement(loopVar, IR_IntegerConstant(1), "+="),
       statements.map(s => s.progress).to[ListBuffer], // FIXME: to[ListBuffer]
       None)
 
@@ -450,7 +450,7 @@ case class AdvanceStatement(var field : Access) extends Statement {
 
   override def progress = {
     data.AdvanceSlotStatement(ir.iv.CurrentSlot(field.asInstanceOf[FieldAccess].progress.fieldSelection.field,
-      ir.StringLiteral(ir.LoopOverFragments.defIt)))
+      IR_StringLiteral(ir.LoopOverFragments.defIt)))
   }
 }
 

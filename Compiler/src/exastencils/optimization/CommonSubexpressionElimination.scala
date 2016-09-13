@@ -39,8 +39,8 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       case l : LoopOverDimensions =>
         val incr = (0 until l.stepSize.length - Knowledge.opt_loopCarriedCSE_skipOuter).view.map { d =>
           l.stepSize(d) match {
-            case IntegerConstant(i) if (i > 0) => (dimToString(d), l.indices.begin(d), l.indices.end(d), i)
-            case _                             => null
+            case IR_IntegerConstant(i) if (i > 0) => (dimToString(d), l.indices.begin(d), l.indices.end(d), i)
+            case _                                => null
           }
         }.toArray
         scopes += ((curFunc, l, incr, l.body _))
@@ -177,10 +177,10 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     for (((loopItVar, loopBegin, loopEnd, loopIncr), dim) <- loopIt.zipWithIndex) {
       val prevItBody = Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
       this.execute(new Transformation("create previous iteration body", {
-        case varAcc : VariableAccess if (varAcc.name == loopItVar) =>
-          IR_SubtractionExpression(varAcc, IntegerConstant(loopIncr))
-        case strLit : StringLiteral if (strLit.value == loopItVar) =>
-          IR_SubtractionExpression(strLit, IntegerConstant(loopIncr))
+        case varAcc : VariableAccess if (varAcc.name == loopItVar)    =>
+          IR_SubtractionExpression(varAcc, IR_IntegerConstant(loopIncr))
+        case strLit : IR_StringLiteral if (strLit.value == loopItVar) =>
+          IR_SubtractionExpression(strLit, IR_IntegerConstant(loopIncr))
       }, false), Some(prevItBody))
 
       SimplifyFloatExpressions.applyStandalone(prevItBody)
@@ -233,10 +233,10 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
           var csNext : IR_Expression = Duplicate(commonExp.witness)
           this.execute(new Transformation("create subsequent iteration body", {
-            case varAcc : VariableAccess if (varAcc.name == loopItVar) =>
-              IR_AdditionExpression(varAcc, IntegerConstant(loopIncr))
-            case strLit : StringLiteral if (strLit.value == loopItVar) =>
-              IR_AdditionExpression(strLit, IntegerConstant(loopIncr))
+            case varAcc : VariableAccess if (varAcc.name == loopItVar)    =>
+              IR_AdditionExpression(varAcc, IR_IntegerConstant(loopIncr))
+            case strLit : IR_StringLiteral if (strLit.value == loopItVar) =>
+              IR_AdditionExpression(strLit, IR_IntegerConstant(loopIncr))
           }, false), Some(csNext))
           csNext = SimplifyExpression.simplifyFloatingExpr(csNext)
           val csNextWrap = ExpressionStatement(csNext)
@@ -275,13 +275,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
       val loopBeginOpt =
         try {
-          IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopBegin)._1)
+          IR_IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopBegin)._1)
         } catch {
           case ex : EvaluationException => Duplicate(loopBegin)
         }
       val loopEndOpt =
         try {
-          IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopEnd)._2)
+          IR_IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopEnd)._2)
         } catch {
           case ex : EvaluationException => loopEnd // must not be duplicated, since it is not used elsewhere
         }
@@ -297,7 +297,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         try {
           val (_, size : Long) = SimplifyExpression.evalIntegralExtrema(tmpBufLen(len))
           val vecSize : Long = Platform.simd_vectorSize
-          tmpBufLen(len) = IntegerConstant((size + vecSize) & ~(vecSize - 1))
+          tmpBufLen(len) = IR_IntegerConstant((size + vecSize) & ~(vecSize - 1))
         } catch {
           case e : EvaluationException => // what a pitty...
         }
@@ -562,11 +562,11 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
       case AssignmentStatement(tba : TempBufferAccess, _, _)                      =>
         commonSubs(tba) = null
 
-      case _ : IntegerConstant
-           | _ : FloatConstant
-           | _ : BooleanConstant
+      case _ : IR_IntegerConstant
+           | _ : IR_RealConstant
+           | _ : IR_BooleanConstant
            | _ : VariableAccess
-           | _ : StringLiteral
+           | _ : IR_StringLiteral
            | _ : ArrayAccess
            | _ : DirectFieldAccess
            | _ : TempBufferAccess

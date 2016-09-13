@@ -257,9 +257,9 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
       statements += PrintExpression(VariableAccess("outFile"), ListBuffer[IR_Expression](
-        StringConstant(timer._2.name.prettyprint()), sep,
+        IR_StringConstant(timer._2.name.prettyprint()), sep,
         ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
-        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), StringConstant("\\n")
+        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")
       )
       )
 

@@ -22,7 +22,7 @@ case class Timer(var name : IR_Expression) extends UnduplicatedVariable with Acc
 
   override def getCtor() : Option[Statement] = {
     // FIXME: datatype for VariableAccess
-    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), StringConstant(stripName)))
+    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), IR_StringConstant(stripName)))
   }
 }
 
@@ -42,7 +42,7 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
   override def resolveDatatype = IR_SpecialDatatype("__m512i")
 
   override def getCtor() : Option[Statement] = {
-    val init = new StringLiteral(null : String)
+    val init = new IR_StringLiteral(null : String)
     Platform.simd_instructionSet match {
       case "AVX512" =>
         if (Knowledge.useDblPrecision)
@@ -78,8 +78,8 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
   override def wrapInLoops(body : Statement) : Statement = {
     var wrappedBody = super.wrapInLoops(body)
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
-      val begin = new VariableDeclarationStatement(IR_IntegerDatatype, LoopOverDimensions.threadIdxName, IntegerConstant(0))
-      val end = new IR_LowerExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IntegerConstant(Knowledge.omp_numThreads))
+      val begin = new VariableDeclarationStatement(IR_IntegerDatatype, LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
+      val end = new IR_LowerExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = new IR_PreIncrementExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
       wrappedBody = new ForLoopStatement(begin, end, inc, wrappedBody) with OMP_PotentiallyParallel
     }
@@ -89,7 +89,7 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = baseAccess
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
-      access = new ArrayAccess(access, StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
+      access = new ArrayAccess(access, IR_StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
     return super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
 

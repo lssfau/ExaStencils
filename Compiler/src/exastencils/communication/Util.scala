@@ -12,9 +12,9 @@ case class GeneratedMPITag(var from : IR_Expression, var to : IR_Expression, var
   def expand : Output[IR_Expression] = {
     // ("((unsigned int)" ~ from ~ " << 20)") + ("((unsigned int)(" ~ to ~ ") << 10)") + concurrencyId
     //CastExpression(SpecialDatatype("unsigned int"), from << IntegerConstant(20)) + CastExpression(SpecialDatatype("unsigned int"), to << IntegerConstant(10)) + concurrencyId
-    (CastExpression(IR_SpecialDatatype("unsigned int"), from << IntegerConstant(31 - 8))
-      + CastExpression(IR_SpecialDatatype("unsigned int"), to << IntegerConstant(31 - 16))
-      + CastExpression(IR_SpecialDatatype("unsigned int"), dirOfSend << IntegerConstant(31 - 21))
+    (CastExpression(IR_SpecialDatatype("unsigned int"), from << IR_IntegerConstant(31 - 8))
+      + CastExpression(IR_SpecialDatatype("unsigned int"), to << IR_IntegerConstant(31 - 16))
+      + CastExpression(IR_SpecialDatatype("unsigned int"), dirOfSend << IR_IntegerConstant(31 - 21))
       + concurrencyId)
   }
 }

@@ -2,7 +2,7 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.data._
@@ -132,8 +132,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       }
 
       communicateStatement.field.slot match {
-        case SlotAccess(slot, _) if StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _                                                                                 =>
+        case SlotAccess(slot, _) if IR_StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _                                                                                    =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
@@ -167,8 +167,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       }
 
       applyBCsStatement.field.slot match {
-        case SlotAccess(slot, _) if StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _                                                                                 =>
+        case SlotAccess(slot, _) if IR_StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _                                                                                    =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()

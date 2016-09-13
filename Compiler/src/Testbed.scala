@@ -1,6 +1,6 @@
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -33,16 +33,16 @@ object Testbed {
 
     Knowledge.dimensionality match {
       case 1 => this += new Transformation("SearchAndReplace", {
-        case StringLiteral("x0") => replacement(0)
+        case IR_StringLiteral("x0") => replacement(0)
       })
       case 2 => this += new Transformation("SearchAndReplace", {
-        case StringLiteral("x0") => replacement(0)
-        case StringLiteral("y0") => replacement(1)
+        case IR_StringLiteral("x0") => replacement(0)
+        case IR_StringLiteral("y0") => replacement(1)
       })
       case 3 => this += new Transformation("SearchAndReplace", {
-        case StringLiteral("x0") => replacement(0)
-        case StringLiteral("y0") => replacement(1)
-        case StringLiteral("z0") => replacement(2)
+        case IR_StringLiteral("x0") => replacement(0)
+        case IR_StringLiteral("y0") => replacement(1)
+        case IR_StringLiteral("z0") => replacement(2)
       })
     }
   }

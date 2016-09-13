@@ -83,13 +83,13 @@ case class MPI_Reduce(var root : IR_Expression, var sendbuf : IR_Expression, var
 
   override def prettyprint(out : PpStream) : Unit = {
     sendbuf match {
-      case StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
+      case IR_StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
         out << "if (" << IR_EqEqExpression(root, "mpiRank") << ") {\n"
         MPI_Reduce(root, sendbuf, recvbuf, datatype, count, op).reallyPrint(out) // MPI_IN_PLACE for root proc
         out << "\n} else {\n"
         MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
         out << "\n}"
-      case _                             => reallyPrint(out) // otherwise a simple print suffices
+      case _                                => reallyPrint(out) // otherwise a simple print suffices
     }
 
   }

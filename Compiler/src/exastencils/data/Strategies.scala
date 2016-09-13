@@ -128,40 +128,40 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
     if (DomainCollection.domains.size <= 1)
       this.execute(new Transformation("Resolving IsValidForSubdomain", {
         case AssignmentStatement(_ : iv.IsValidForSubdomain, _, _) => NullStatement
-        case _ : iv.IsValidForSubdomain                            => BooleanConstant(true)
+        case _ : iv.IsValidForSubdomain                            => IR_BooleanConstant(true)
       }))
 
     if (!Knowledge.mpi_enabled || Knowledge.mpi_numThreads <= 1)
       this.execute(new Transformation("Resolving NeighborIsRemote and NeighborRemoteRank", {
         case AssignmentStatement(_ : iv.NeighborIsRemote, _, _)   => NullStatement
-        case _ : iv.NeighborIsRemote                              => BooleanConstant(false)
+        case _ : iv.NeighborIsRemote                              => IR_BooleanConstant(false)
         case AssignmentStatement(_ : iv.NeighborRemoteRank, _, _) => NullStatement
-        case _ : iv.NeighborRemoteRank                            => IntegerConstant(-1)
+        case _ : iv.NeighborRemoteRank                            => IR_IntegerConstant(-1)
       }))
 
     if (Knowledge.domain_numFragmentsTotal <= 1 && !Knowledge.domain_rect_hasPeriodicity) {
       this.execute(new Transformation("Resolving NeighborIsValid", {
         case AssignmentStatement(_ : iv.NeighborIsValid, _, _) => NullStatement
-        case _ : iv.NeighborIsValid                            => BooleanConstant(false)
+        case _ : iv.NeighborIsValid                            => IR_BooleanConstant(false)
       }))
     } else if (Knowledge.domain_rect_generate) {
       for (dim <- 0 until Knowledge.dimensionality)
         if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1 && !Knowledge.domain_rect_periodicAsVec(dim))
           this.execute(new Transformation(s"Resolving NeighborIsValid in dimension $dim", {
-            case AssignmentStatement(niv : iv.NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IntegerConstant])
-              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IntegerConstant].value.toInt).dir(dim) != 0) => NullStatement
-            case niv : iv.NeighborIsValid if (niv.neighIdx.isInstanceOf[IntegerConstant])
-              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IntegerConstant].value.toInt).dir(dim) != 0) => BooleanConstant(false)
+            case AssignmentStatement(niv : iv.NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
+              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => NullStatement
+            case niv : iv.NeighborIsValid if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
+              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_BooleanConstant(false)
           }))
     }
 
     if (Knowledge.domain_numFragmentsPerBlock <= 1 || Knowledge.comm_disableLocalCommSync) {
       this.execute(new Transformation("Resolving local synchronization", {
         case AssignmentStatement(_ : iv.LocalCommReady, _, _) => NullStatement
-        case _ : iv.LocalCommReady                            => BooleanConstant(true)
+        case _ : iv.LocalCommReady                            => IR_BooleanConstant(true)
 
         case AssignmentStatement(_ : iv.LocalCommDone, _, _) => NullStatement
-        case _ : iv.LocalCommDone                            => BooleanConstant(true)
+        case _ : iv.LocalCommDone                            => IR_BooleanConstant(true)
 
         case FunctionCallExpression("waitForFlag", _) => NullExpression
       }))
@@ -292,7 +292,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           bufferSizes += (id -> IR_MaximumExpression(ListBuffer(Duplicate(buf.size))))
       } else {
         val size = SimplifyExpression.evalIntegral(buf.size).toLong
-        bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
+        bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
       }
       buf
     }
@@ -375,7 +375,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           deviceBufferSizes += (id -> IR_MaximumExpression(ListBuffer(Duplicate(buf.size))))
       } else {
         val size = SimplifyExpression.evalIntegral(buf.size).toLong
-        deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IntegerConstant(0)).asInstanceOf[IntegerConstant].v))
+        deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
       }
       buf
     }
@@ -384,7 +384,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       val id = buf.resolveName
       val size : IR_Expression =
         if (buf.dimSizes.isEmpty)
-          IntegerConstant(1)
+          IR_IntegerConstant(1)
         else
           Duplicate(buf.dimSizes.reduce(_ * _))
       bufferSizes.get(id) match {
@@ -450,7 +450,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (Knowledge.experimental_useLevelIndepFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {
-          case StringLiteral("level")     => Knowledge.maxLevel : IR_Expression
+          case IR_StringLiteral("level")  => Knowledge.maxLevel : IR_Expression
           case VariableAccess("level", _) => Knowledge.maxLevel : IR_Expression
         })
         for (buf <- bufferSizes)

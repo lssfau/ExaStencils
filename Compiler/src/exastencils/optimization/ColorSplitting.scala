@@ -31,12 +31,12 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
         return false
       val (expr, cValue) : (IR_Expression, Long) =
         cond match {
-          case IR_EqEqExpression(IntegerConstant(c),
-          IR_ModuloExpression(sum, IntegerConstant(nrColors2))) if (nrColors == nrColors2) =>
+          case IR_EqEqExpression(IR_IntegerConstant(c),
+          IR_ModuloExpression(sum, IR_IntegerConstant(nrColors2))) if (nrColors == nrColors2) =>
             (sum, c)
 
-          case IR_EqEqExpression(IR_ModuloExpression(sum, IntegerConstant(nrColors2)),
-          IntegerConstant(c)) if (nrColors == nrColors2) =>
+          case IR_EqEqExpression(IR_ModuloExpression(sum, IR_IntegerConstant(nrColors2)),
+          IR_IntegerConstant(c)) if (nrColors == nrColors2) =>
             (sum, c)
 
           case _ =>
@@ -47,7 +47,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       if (accCSum != SimplifyExpression.extractIntegralSum(expr))
         return false
       val color : Long = ((cValue + cOffset) % nrColors + nrColors) % nrColors // mathematical modulo
-      index(dim) += IntegerConstant(color * colorOffset)
+      index(dim) += IR_IntegerConstant(color * colorOffset)
       return true
     }
 
@@ -71,8 +71,8 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
       val index : MultiIndex = dfa.index
       if (!addColorOffset(index, outerD, colorOffset))
-        index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IntegerConstant(nrColors)) * IntegerConstant(colorOffset.longValue())
-      index(innerD) = index(innerD) / IntegerConstant(nrColors)
+        index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IR_IntegerConstant(nrColors)) * IR_IntegerConstant(colorOffset.longValue())
+      index(innerD) = index(innerD) / IR_IntegerConstant(nrColors)
 
       return dfa
     }

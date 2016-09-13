@@ -58,9 +58,9 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
             entries.find(
               e => e.offset match {
                 case index : MultiIndex if index.length >= 3 => (
-                  (index(0) match { case IntegerConstant(xOff) if x == xOff => true; case _ => false })
-                    && (index(1) match { case IntegerConstant(yOff) if y == yOff => true; case _ => false })
-                    && (index(2) match { case IntegerConstant(zOff) if z == zOff => true; case _ => false }))
+                  (index(0) match { case IR_IntegerConstant(xOff) if x == xOff => true; case _ => false })
+                    && (index(1) match { case IR_IntegerConstant(yOff) if y == yOff => true; case _ => false })
+                    && (index(2) match { case IR_IntegerConstant(zOff) if z == zOff => true; case _ => false }))
                 case _                                       => false
               }).getOrElse(StencilEntry(new MultiIndex, 0)).coefficient.prettyprint
         s += "\n"

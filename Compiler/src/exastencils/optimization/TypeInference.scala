@@ -2,7 +2,7 @@ package exastencils.optimization
 
 import scala.collection.mutable.Map
 
-import exastencils.base.ir.IR_Datatype
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.core.collectors.ScopeCollector
 import exastencils.datastructures.Transformation._
@@ -69,7 +69,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
       case VariableDeclarationStatement(ty : IR_Datatype, name : String, _) =>
         declare(name, ty)
 
-      case node @ StringLiteral(str) =>
+      case node @ IR_StringLiteral(str) =>
         val ty : IR_Datatype = findType(str)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
@@ -107,7 +107,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
   import TypeInference._
 
   override def isDefinedAt(node : Node) : Boolean = {
-    return (node.isInstanceOf[StringLiteral] || node.isInstanceOf[VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
+    return (node.isInstanceOf[IR_StringLiteral] || node.isInstanceOf[VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
@@ -116,7 +116,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
     val typee : IR_Datatype = node.getAnnotation(TYPE_ANNOT).get.asInstanceOf[IR_Datatype]
     val varr : String =
       node match {
-        case StringLiteral(name)     => name
+        case IR_StringLiteral(name)  => name
         case VariableAccess(name, _) => name
       }
     return new VariableAccess(varr, typee)

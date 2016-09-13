@@ -49,7 +49,7 @@ object CudaStrategiesUtils {
     */
   def verifyCudaLoopParallel(loop : ForLoopStatement) : Boolean = {
     loop.inc.isInstanceOf[AssignmentStatement] &&
-      loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IntegerConstant] &&
+      loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IR_IntegerConstant] &&
       loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
   }
 
@@ -73,12 +73,12 @@ object CudaStrategiesUtils {
         case l : IR_LowerExpression      =>
           l.right
         case e : IR_LowerEqualExpression =>
-          IR_AdditionExpression(e.right, IntegerConstant(1))
+          IR_AdditionExpression(e.right, IR_IntegerConstant(1))
         case o                           => o
       })
       stepSize += (loop.inc match {
         case AssignmentStatement(_, src : IR_Expression, "=") => src
-        case _                                                => IntegerConstant(1)
+        case _                                                => IR_IntegerConstant(1)
       })
     }
 
@@ -119,7 +119,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldSelection = access._2.fieldSelection
       if (access._1.startsWith("write"))
-        afterHost += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+        afterHost += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
     }
 
     // device sync stmts
@@ -143,7 +143,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
         val fieldSelection = access._2.fieldSelection
         if (access._1.startsWith("write"))
-          afterDevice += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), BooleanConstant(true))
+          afterDevice += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
       }
     }
 
@@ -579,9 +579,9 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset) => identifier += s"_o$offset"
-        case IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                     => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 

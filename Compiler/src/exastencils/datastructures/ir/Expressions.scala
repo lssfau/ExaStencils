@@ -29,35 +29,6 @@ case class ConcatenationExpression(var expressions : ListBuffer[IR_Expression]) 
   override def prettyprint(out : PpStream) : Unit = out <<< expressions
 }
 
-case class StringLiteral(var value : String) extends IR_Expression {
-  def this(s : StringConstant) = this(s.value)
-  override def prettyprint(out : PpStream) : Unit = out << value
-  override def toString : String = value
-}
-
-case class StringConstant(var value : String) extends IR_Expression {
-  def this(s : StringLiteral) = this(s.value)
-  override def prettyprint(out : PpStream) : Unit = out << '"' << value << '"'
-}
-
-case class IntegerConstant(var v : Long) extends Number {
-  override def prettyprint(out : PpStream) : Unit = out << v
-  override def value = v
-}
-
-case class FloatConstant(var v : Double) extends Number {
-  override def prettyprint(out : PpStream) : Unit = {
-    out << value // this uses value.toString(), which is Locale-independent and the string can be parsed without a loss of precision later
-    if (!Knowledge.useDblPrecision) out << "f"
-  }
-
-  override def value = v
-}
-
-case class BooleanConstant(var value : Boolean) extends IR_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << value
-}
-
 case class VectorExpression(var datatype : Option[IR_Datatype], var expressions : ListBuffer[IR_Expression], var rowVector : Option[Boolean]) extends IR_Expression {
   def length = expressions.length
 
@@ -98,7 +69,7 @@ case class MatrixExpression(var datatype : Option[IR_Datatype], var expressions 
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.flatten.forall(e => e.isInstanceOf[Number])
-  def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IntegerConstant])
+  def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IR_IntegerConstant])
 }
 
 case class Allocation(var datatype : IR_Datatype, var size : IR_Expression) extends IR_Expression {
@@ -146,9 +117,9 @@ case class BoundedExpression(var min : Long, var max : Long, var expr : IR_Expre
 
 case class MultiIndex(var indices : Array[IR_Expression]) extends IR_Expression with Iterable[IR_Expression] {
   def this(indices : IR_Expression*) = this(indices.toArray)
-  def this(indices : Array[Int]) = this(indices.map(IntegerConstant(_) : IR_Expression))
+  def this(indices : Array[Int]) = this(indices.map(IR_IntegerConstant(_) : IR_Expression))
   // legacy support
-  def this(indices : Array[Long]) = this(indices.map(IntegerConstant(_) : IR_Expression))
+  def this(indices : Array[Long]) = this(indices.map(IR_IntegerConstant(_) : IR_Expression))
   // legacy support
   def this(left : MultiIndex, right : MultiIndex, f : (IR_Expression, IR_Expression) => IR_Expression) =
   this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
@@ -156,8 +127,8 @@ case class MultiIndex(var indices : Array[IR_Expression]) extends IR_Expression 
   // FIXME: add variable accesses to begin with...
   for (i <- 0 until length) {
     this (i) = this (i) match {
-      case StringLiteral(s) => VariableAccess(s, Some(IR_IntegerDatatype))
-      case _                => this (i)
+      case IR_StringLiteral(s) => VariableAccess(s, Some(IR_IntegerDatatype))
+      case _                   => this (i)
     }
   }
 
@@ -214,7 +185,7 @@ case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var in
 
   def linearize() : ArrayAccess = {
     if (buffer.dimSizes.isEmpty)
-      return new ArrayAccess(buffer, IntegerConstant(0), Knowledge.data_alignFieldPointers)
+      return new ArrayAccess(buffer, IR_IntegerConstant(0), Knowledge.data_alignFieldPointers)
 
     return new ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
   }

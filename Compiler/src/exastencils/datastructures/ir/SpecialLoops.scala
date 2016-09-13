@@ -37,8 +37,8 @@ case class ContractingLoop(var number : Int, var iterator : Option[IR_Expression
       case e if Knowledge.experimental_useStefanOffsets =>
         e // don't do anything here
 
-      case IntegerConstant(i) =>
-        IntegerConstant(i - extent)
+      case IR_IntegerConstant(i) =>
+        IR_IntegerConstant(i - extent)
 
       case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
         (bOff * (extent + 1)) - extent
@@ -50,7 +50,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[IR_Expression
           case x                                                                              =>
             x
         }
-        add.summands += IntegerConstant(-extent)
+        add.summands += IR_IntegerConstant(-extent)
         SimplifyExpression.simplifyIntegralExpr(add)
 
       // case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
@@ -67,8 +67,8 @@ case class ContractingLoop(var number : Int, var iterator : Option[IR_Expression
       case e if Knowledge.experimental_useStefanOffsets =>
         e // don't do anything here
 
-      case IntegerConstant(i) =>
-        IntegerConstant(i + extent)
+      case IR_IntegerConstant(i) =>
+        IR_IntegerConstant(i + extent)
 
       case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
         (bOff * (extent + 1)) + extent
@@ -80,7 +80,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[IR_Expression
           case x                                                                            =>
             x
         }
-        add.summands += IntegerConstant(extent)
+        add.summands += IR_IntegerConstant(extent)
         SimplifyExpression.simplifyIntegralExpr(add)
 
       // case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
@@ -280,7 +280,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
     // fix iteration space for reduction operations if required
     if (Knowledge.experimental_trimBoundsForReductionLoops && reduction.isDefined && !region.isDefined) {
-      if (!condition.isDefined) condition = Some(BooleanConstant(true))
+      if (!condition.isDefined) condition = Some(IR_BooleanConstant(true))
       for (dim <- 0 until numDims)
         if (field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft > 0)
         /*if ("node" == field.fieldLayout.discretization
@@ -368,7 +368,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
       // innerRegion
       var coreLoop = Duplicate(loop)
-      coreLoop.condition = Some(IR_AndAndExpression(coreLoop.condition.getOrElse(BooleanConstant(true)),
+      coreLoop.condition = Some(IR_AndAndExpression(coreLoop.condition.getOrElse(IR_BooleanConstant(true)),
         (0 until field.fieldLayout.numDimsGrid).map(dim =>
           IR_AndAndExpression(IR_GreaterEqualExpression(loopIt(dim), lowerBounds(dim)), IR_LowerExpression(loopIt(dim), upperBounds(dim))) : IR_Expression).reduce(IR_AndAndExpression(_, _))))
 
@@ -380,7 +380,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
       // outerRegion
       var boundaryLoop = Duplicate(loop)
-      boundaryLoop.condition = Some(IR_OrOrExpression(boundaryLoop.condition.getOrElse(BooleanConstant(false)),
+      boundaryLoop.condition = Some(IR_OrOrExpression(boundaryLoop.condition.getOrElse(IR_BooleanConstant(false)),
         (0 until field.fieldLayout.numDimsGrid).map(dim =>
           IR_OrOrExpression(IR_LowerExpression(loopIt(dim), lowerBounds(dim)), IR_GreaterEqualExpression(loopIt(dim), upperBounds(dim))) : IR_Expression).reduce(IR_OrOrExpression(_, _))))
       stmts += boundaryLoop
@@ -430,7 +430,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
       // outerRegion
       var boundaryLoop = Duplicate(loop)
-      boundaryLoop.condition = Some(IR_OrOrExpression(boundaryLoop.condition.getOrElse(BooleanConstant(false)),
+      boundaryLoop.condition = Some(IR_OrOrExpression(boundaryLoop.condition.getOrElse(IR_BooleanConstant(false)),
         (0 until field.fieldLayout.numDimsGrid).map(dim =>
           IR_OrOrExpression(IR_LowerExpression(loopIt(dim), lowerBounds(dim)), IR_GreaterEqualExpression(loopIt(dim), upperBounds(dim))) : IR_Expression).reduce(IR_OrOrExpression(_, _))))
       stmts += boundaryLoop
@@ -441,7 +441,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
       // innerRegion
       var coreLoop = Duplicate(loop)
-      coreLoop.condition = Some(IR_AndAndExpression(coreLoop.condition.getOrElse(BooleanConstant(true)),
+      coreLoop.condition = Some(IR_AndAndExpression(coreLoop.condition.getOrElse(IR_BooleanConstant(true)),
         (0 until field.fieldLayout.numDimsGrid).map(dim =>
           IR_AndAndExpression(IR_GreaterEqualExpression(loopIt(dim), lowerBounds(dim)), IR_LowerExpression(loopIt(dim), upperBounds(dim))) : IR_Expression).reduce(IR_AndAndExpression(_, _))))
 
@@ -592,8 +592,8 @@ case class LoopOverDimensions(var numDimensions : Int,
 
   def createOMPThreadsWrapper(body : ListBuffer[Statement]) : ListBuffer[Statement] = {
     if (explParLoop) {
-      val begin = new VariableDeclarationStatement(IR_IntegerDatatype, threadIdxName, IntegerConstant(0))
-      val end = new IR_LowerExpression(new VariableAccess(threadIdxName, IR_IntegerDatatype), IntegerConstant(Knowledge.omp_numThreads))
+      val begin = new VariableDeclarationStatement(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
+      val end = new IR_LowerExpression(new VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = new ExpressionStatement(new IR_PreIncrementExpression(new VariableAccess(threadIdxName, IR_IntegerDatatype)))
       return ListBuffer(new ForLoopStatement(begin, end, inc, body) with OMP_PotentiallyParallel)
 
@@ -622,7 +622,7 @@ case class LoopOverDimensions(var numDimensions : Int,
     def oldBegin = Duplicate(indices.begin(outer))
     def oldEnd = Duplicate(indices.end(outer))
     def inc = Duplicate(stepSize(outer))
-    SimplifyExpression.simplifyIntegralExpr(oldEnd - oldBegin + inc).isInstanceOf[IntegerConstant]
+    SimplifyExpression.simplifyIntegralExpr(oldEnd - oldBegin + inc).isInstanceOf[IR_IntegerConstant]
   }
 
   lazy val ompIndices : IndexRange = {
@@ -754,7 +754,7 @@ case class LoopOverFragments(var body : ListBuffer[Statement], var reduction : O
 
       // replace references to old loop iterator
       ReplaceStringConstantsStrategy.toReplace = defIt
-      ReplaceStringConstantsStrategy.replacement = IntegerConstant(0)
+      ReplaceStringConstantsStrategy.replacement = IR_IntegerConstant(0)
       ReplaceStringConstantsStrategy.applyStandalone(statements)
     } else {
       val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && this.isInstanceOf[OMP_PotentiallyParallel]

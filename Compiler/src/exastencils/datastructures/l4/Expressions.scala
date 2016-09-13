@@ -13,42 +13,6 @@ trait Number extends L4_Expression {
   def value : AnyVal
 }
 
-case class StringConstant(var value : String) extends L4_Expression {
-  def this(s : l4.StringLiteral) = this(s.value)
-  def prettyprint(out : PpStream) = { out << '\'' << value << '\'' }
-  def progress = ir.StringConstant(value)
-}
-
-case class StringLiteral(var value : String) extends L4_Expression {
-  def this(s : l4.StringConstant) = this(s.value)
-  def prettyprint(out : PpStream) = { out << '"' << value << '"' }
-  def progress = ir.StringLiteral(value)
-}
-
-case class IntegerConstant(var v : Long) extends Number {
-  override def value = v
-
-  def prettyprint(out : PpStream) = { out << v }
-
-  def progress : ir.IntegerConstant = ir.IntegerConstant(v)
-}
-
-case class FloatConstant(var v : Double) extends Number {
-  override def value = v
-
-  def prettyprint(out : PpStream) = {
-    out << String.format(java.util.Locale.US, "%s", Double.box(value)) // ensure the compiler can parse the string
-  }
-
-  def progress : ir.FloatConstant = ir.FloatConstant(v)
-}
-
-case class BooleanConstant(var value : Boolean) extends L4_Expression {
-  def prettyprint(out : PpStream) = { out << value }
-
-  def progress : ir.BooleanConstant = ir.BooleanConstant(value)
-}
-
 case class VectorExpression(var datatype : Option[L4_Datatype], var expressions : List[L4_Expression], var rowVector : Option[Boolean]) extends L4_Expression {
   // rowVector == true: Row; false: Column; None: unspecified
   def length = expressions.length
@@ -118,7 +82,7 @@ case class UnresolvedAccess(var name : String,
     if (dirAccess.isDefined) out << ':' << dirAccess
   }
 
-  def progress : ir.StringLiteral = ir.StringLiteral("ERROR - Unresolved Access")
+  def progress : IR_StringLiteral = IR_StringLiteral("ERROR - Unresolved Access")
 
   def resolveToBasicOrLeveledAccess = {
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
@@ -153,7 +117,7 @@ case class UnresolvedAccess(var name : String,
 case class BasicAccess(var name : String) extends Access {
   def prettyprint(out : PpStream) = { out << name }
 
-  def progress : ir.StringLiteral = ir.StringLiteral(name)
+  def progress : IR_StringLiteral = IR_StringLiteral(name)
   //def progress : ir.StringLiteral = Logger.error("ProgressToIr for BasicAccess " + name)
 }
 
@@ -161,7 +125,7 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
   def progress : IR_Expression = {
-    ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
+    IR_StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 }
 
@@ -174,7 +138,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
   }
 
   def progressNameToIr = {
-    ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
+    IR_StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 
   def resolveField : knowledge.Field = {
@@ -187,15 +151,15 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
     var multiIndex = ir.LoopOverDimensions.defIt(numDims)
     if (arrayIndex.isDefined)
-      multiIndex(numDims - 1) = ir.IntegerConstant(arrayIndex.get)
+      multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
       var progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
       multiIndex += progressedOffset
     }
 
     val field = knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
-    ir.FieldAccess(knowledge.FieldSelection(field, ir.IntegerConstant(field.level), FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
+    ir.FieldAccess(knowledge.FieldSelection(field, IR_IntegerConstant(field.level), FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
   }
 }
 
@@ -211,25 +175,25 @@ case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecific
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
     var multiIndex = ir.LoopOverDimensions.defIt(numDims)
     if (arrayIndex.isDefined)
-      multiIndex(numDims - 1) = ir.IntegerConstant(arrayIndex.get)
+      multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
       var progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
       multiIndex += progressedOffset
     }
 
-    ir.VirtualFieldAccess(name, ir.IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
+    ir.VirtualFieldAccess(name, IR_IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
   }
 }
 
 object FieldAccess {
   def resolveSlot(field : knowledge.Field, slot : SlotModifier) = {
-    if (1 == field.numSlots) ir.IntegerConstant(0)
+    if (1 == field.numSlots) IR_IntegerConstant(0)
     else slot match {
       case SlotModifier.Active       => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
       case SlotModifier.Next         => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
       case SlotModifier.Previous     => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
-      case x : SlotModifier.Constant => ir.IntegerConstant(x.number)
+      case x : SlotModifier.Constant => IR_IntegerConstant(x.number)
       case _                         => Logger.error("Unknown slot modifier " + slot)
     }
   }
@@ -291,14 +255,14 @@ case class StencilFieldAccess(var name : String,
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
     var multiIndex = ir.LoopOverDimensions.defIt(numDims)
     if (arrayIndex.isDefined)
-      multiIndex(numDims - 1) = ir.IntegerConstant(arrayIndex.get)
+      multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
       var progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
       multiIndex += progressedOffset
     }
 
-    ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
+    ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
   }
 
   def progress : IR_Expression = {
@@ -319,21 +283,21 @@ case class StencilFieldAccess(var name : String,
     var multiIndex = ir.LoopOverDimensions.defIt(numDims)
 
     if (accessIndex < 0)
-      multiIndex(numDims - 1) = ir.IntegerConstant(0)
+      multiIndex(numDims - 1) = IR_IntegerConstant(0)
     else
-      multiIndex(numDims - 1) = ir.IntegerConstant(accessIndex)
+      multiIndex(numDims - 1) = IR_IntegerConstant(accessIndex)
 
     if (offset.isDefined) {
       var progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
       multiIndex += progressedOffset
     }
 
     if (accessIndex < 0)
-      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None),
+      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None),
         multiIndex)
     else
-      ir.FieldAccess(knowledge.FieldSelection(stencilField.field, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
+      ir.FieldAccess(knowledge.FieldSelection(stencilField.field, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
         multiIndex)
   }
 }
@@ -373,7 +337,7 @@ case class FunctionCallExpression(var identifier : Access, var arguments : List[
   def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
   def progress : ir.FunctionCallExpression = {
-    ir.FunctionCallExpression(identifier.progress.asInstanceOf[ir.StringLiteral].value,
+    ir.FunctionCallExpression(identifier.progress.asInstanceOf[IR_StringLiteral].value,
       arguments.map(s => s.progress).to[ListBuffer])
   }
 }

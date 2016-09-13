@@ -76,7 +76,7 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccessLike) extends Statem
           (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
             * SizeOfExpression(field.resolveBaseDatatype),
           "cudaMemcpyDeviceToHost"),
-        AssignmentStatement(iv.DeviceDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
+        AssignmentStatement(iv.DeviceDataUpdated(field, fieldSelection.slot), IR_BooleanConstant(false))))
   }
 }
 
@@ -95,7 +95,7 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccessLike) extends Stat
           (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
             * SizeOfExpression(field.resolveBaseDatatype),
           "cudaMemcpyHostToDevice"),
-        AssignmentStatement(iv.HostDataUpdated(field, fieldSelection.slot), BooleanConstant(false))))
+        AssignmentStatement(iv.HostDataUpdated(field, fieldSelection.slot), IR_BooleanConstant(false))))
   }
 }
 

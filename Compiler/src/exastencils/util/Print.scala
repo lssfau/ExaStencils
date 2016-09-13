@@ -56,7 +56,7 @@ case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : 
     if (toPrint.isEmpty) {
       return NullStatement
     } else {
-      val printStmt : Statement = new PrintExpression(VariableAccess(stream), toPrint.view.flatMap { e => List(e, StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
+      val printStmt : Statement = new PrintExpression(VariableAccess(stream), toPrint.view.flatMap { e => List(e, IR_StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
       if (Knowledge.mpi_enabled) // filter by mpi rank if required
         return new ConditionStatement(MPI_IsRootProc(), printStmt)
       else
@@ -65,7 +65,7 @@ case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : 
   }
 }
 
-case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = BooleanConstant(true)) extends Statement with Expandable {
+case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = IR_BooleanConstant(true)) extends Statement with Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
@@ -93,7 +93,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
       if (field.arrayIndex.isEmpty) (0 until field.field.gridDatatype.resolveFlattendSize)
       else (field.arrayIndex.get to field.arrayIndex.get))
 
-    def separator = StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
+    def separator = IR_StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
     val streamName = PrintFieldStatement.getNewName()
     def streamType = IR_SpecialDatatype("std::ofstream")
 

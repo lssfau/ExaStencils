@@ -352,13 +352,13 @@ class ParserL4 extends ExaParser with PackratParsers {
       ||| rowVectorExpression
       ||| columnVectorExpression
       ||| matrixExpression
-      ||| locationize(stringLit ^^ { case s => StringConstant(s) })
-      ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
+      ||| locationize(stringLit ^^ { case s => L4_StringConstant(s) })
+      ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L4_IntegerConstant((s.getOrElse("") + n).toInt) else L4_RealConstant((s.getOrElse("") + n).toDouble) })
       ||| locationize("-" ~> functionCall ^^ { case x => UnaryExpression("-", x) })
       ||| functionCall
       ||| locationize("-" ~> genericAccess ^^ { case x => UnaryExpression("-", x) })
       ||| genericAccess
-      ||| locationize(booleanLit ^^ { case s => BooleanConstant(s) }))
+      ||| locationize(booleanLit ^^ { case s => L4_BooleanConstant(s) }))
 
   lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => VectorExpression(None, x :+ y, None) })
 

@@ -61,10 +61,10 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
   def resolveParameterToConstant(obj : AnyRef, ident : String) : L4_Expression = {
     val ret = obj.getClass.getMethod(ident).invoke(obj)
 
-    if (ret.isInstanceOf[Int]) IntegerConstant(ret.asInstanceOf[Int])
-    else if (ret.isInstanceOf[Float]) FloatConstant(ret.asInstanceOf[Float])
-    else if (ret.isInstanceOf[Boolean]) BooleanConstant(ret.asInstanceOf[Boolean])
-    else if (ret.isInstanceOf[String]) StringConstant(ret.asInstanceOf[String])
+    if (ret.isInstanceOf[Int]) L4_IntegerConstant(ret.asInstanceOf[Int])
+    else if (ret.isInstanceOf[Float]) L4_RealConstant(ret.asInstanceOf[Float])
+    else if (ret.isInstanceOf[Boolean]) L4_BooleanConstant(ret.asInstanceOf[Boolean])
+    else if (ret.isInstanceOf[String]) L4_StringConstant(ret.asInstanceOf[String])
     else Logger.error(s"Trying to access parameter $ident from L4 with unsupported type")
   }
 
@@ -134,31 +134,31 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     this.execute(new Transformation("special functions and constants", {
       // get knowledge/settings/platform
-      case FunctionCallExpression(BasicAccess("getKnowledge"), List(StringConstant(ident))) =>
+      case FunctionCallExpression(BasicAccess("getKnowledge"), List(L4_StringConstant(ident))) =>
         resolveParameterToConstant(knowledge.Knowledge, ident)
-      case FunctionCallExpression(BasicAccess("getSetting"), List(StringConstant(ident)))   =>
+      case FunctionCallExpression(BasicAccess("getSetting"), List(L4_StringConstant(ident)))   =>
         resolveParameterToConstant(Settings, ident)
-      case FunctionCallExpression(BasicAccess("getPlatform"), List(StringConstant(ident)))  =>
+      case FunctionCallExpression(BasicAccess("getPlatform"), List(L4_StringConstant(ident)))  =>
         resolveParameterToConstant(knowledge.Platform, ident)
 
       // levelIndex
-      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List())      => IntegerConstant(level)
-      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List())  => IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level)), List()) => StringConstant(level.toString())
+      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List())      => L4_IntegerConstant(level)
+      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List())  => L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
+      case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level)), List()) => L4_StringConstant(level.toString())
 
       // constants
-      case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => FloatConstant(math.Pi)
+      case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi") => L4_RealConstant(math.Pi)
     }))
 
     this.execute(new Transformation("Resolving string constants to literals", {
       case f : FunctionCallExpression =>
         f.identifier.name match {
-          case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "getMeanFromTimer"  => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "getMeanTime"       => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "getTotalFromTimer" => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "getTotalTime"      => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "getMeanFromTimer"  => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "getMeanTime"       => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "getTotalFromTimer" => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "getTotalTime"      => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
           case _                   =>
         }
         f

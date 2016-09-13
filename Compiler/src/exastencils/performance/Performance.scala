@@ -258,9 +258,9 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
 
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset) => identifier += s"_o$offset"
-        case IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                     => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -303,9 +303,9 @@ object EvaluatePerformanceEstimates_Ops extends QuietDefaultStrategy("Evaluating
       numMul += 1
       exp
     case exp : IR_DivisionExpression       =>
-      if (exp.right.isInstanceOf[IntegerConstant])
+      if (exp.right.isInstanceOf[IR_IntegerConstant])
         numMul += 0 // ignore integer divs for now
-      else if (exp.right.isInstanceOf[FloatConstant]) // TODO: replace with eval float exp?
+      else if (exp.right.isInstanceOf[IR_RealConstant]) // TODO: replace with eval float exp?
         numMul += 1
       else
         numDiv += 1

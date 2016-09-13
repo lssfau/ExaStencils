@@ -55,7 +55,7 @@ case class HostDataUpdated(override var field : Field, override var slot : IR_Ex
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
   override def resolveName = s"hostDataUpdated" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
-  override def resolveDefValue = Some(BooleanConstant(true))
+  override def resolveDefValue = Some(IR_BooleanConstant(true))
 }
 
 case class DeviceDataUpdated(override var field : Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends FieldFlag {
@@ -64,7 +64,7 @@ case class DeviceDataUpdated(override var field : Field, override var slot : IR_
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
   override def resolveName = s"deviceDataUpdated" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
-  override def resolveDefValue = Some(BooleanConstant(false))
+  override def resolveDefValue = Some(IR_BooleanConstant(false))
 }
 
 /// memory management

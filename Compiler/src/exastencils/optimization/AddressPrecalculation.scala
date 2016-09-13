@@ -80,7 +80,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       var res : Boolean = false
       var allowed : String = null
       this += new Transformation("contains loop var", {
-        case strC : StringLiteral    =>
+        case strC : IR_StringLiteral =>
           val name = strC.value
           res |= (allowed != name) && inVars.contains(name)
           strC
@@ -155,31 +155,31 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           case AssignmentStatement(VariableAccess(name, _), _, _)                       =>
             decls = d
             inVars = Set(name)
-          case AssignmentStatement(StringLiteral(name), _, _)                           =>
+          case AssignmentStatement(IR_StringLiteral(name), _, _)                        =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(IR_PreIncrementExpression(VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PreIncrementExpression(StringLiteral(name)))      =>
+          case ExpressionStatement(IR_PreIncrementExpression(IR_StringLiteral(name)))   =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(IR_PostIncrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PostIncrementExpression(StringLiteral(name)))     =>
+          case ExpressionStatement(IR_PostIncrementExpression(IR_StringLiteral(name)))  =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(IR_PreDecrementExpression(VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PreDecrementExpression(StringLiteral(name)))      =>
+          case ExpressionStatement(IR_PreDecrementExpression(IR_StringLiteral(name)))   =>
             decls = d
             inVars = Set(name)
           case ExpressionStatement(IR_PostDecrementExpression(VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case ExpressionStatement(IR_PostDecrementExpression(StringLiteral(name)))     =>
+          case ExpressionStatement(IR_PostDecrementExpression(IR_StringLiteral(name)))  =>
             decls = d
             inVars = Set(name)
           case _                                                                        =>
@@ -189,14 +189,14 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         node.annotate(DECLS_ANNOT, d)
 
       // ArrayAccess with a constant index only cannot be optimized further
-      case acc : ArrayAccess if (decls != null && !acc.index.isInstanceOf[IntegerConstant]) =>
+      case acc : ArrayAccess if (decls != null && !acc.index.isInstanceOf[IR_IntegerConstant]) =>
         acc.annotate(SKIP_SUBTREE_ANNOT) // skip other ArrayAccesses below this one
         skipSubtree = true
         toAnalyze += acc
 
       case AssignmentStatement(dst, _, _) if (decls != null && inVars != null) =>
         dst match {
-          case _ : StringLiteral
+          case _ : IR_StringLiteral
                | _ : VariableAccess
                | _ : ArrayAccess
                | _ : iv.InternalVariable => inVars += resolveName(dst)
@@ -252,7 +252,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     expr match {
       case ArrayAccess(base, _, _) => resolveName(base)
       case VariableAccess(name, _) => name
-      case StringLiteral(str)      => str
+      case IR_StringLiteral(str)   => str
       case i : iv.InternalVariable => i.resolveName
     }
   }

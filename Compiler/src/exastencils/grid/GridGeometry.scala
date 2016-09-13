@@ -87,7 +87,7 @@ object GridGeometry {
 trait GridGeometry_uniform extends GridGeometry {
   // properties of uniform grids
   override def cellWidth(level : IR_Expression, index : MultiIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
-    val levelIndex = level.asInstanceOf[IntegerConstant].v.toInt - Knowledge.minLevel
+    val levelIndex = level.asInstanceOf[IR_IntegerConstant].v.toInt - Knowledge.minLevel
     dim match {
       case 0 => Knowledge.discr_hx(levelIndex)
       case 1 => Knowledge.discr_hy(levelIndex)

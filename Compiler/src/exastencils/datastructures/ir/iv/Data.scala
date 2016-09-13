@@ -18,7 +18,7 @@ case class CurrentSlot(var field : Field, var fragmentIdx : IR_Expression = Loop
 
   override def resolveName = s"currentSlot" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
   override def resolveDatatype = "int"
-  override def resolveDefValue = Some(IntegerConstant(0))
+  override def resolveDefValue = Some(IR_IntegerConstant(0))
 }
 
 case class IndexFromField(var layoutIdentifier : String, var level : IR_Expression, var indexId : String, var dim : Int, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {

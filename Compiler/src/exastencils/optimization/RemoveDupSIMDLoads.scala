@@ -103,7 +103,7 @@ private[optimization] final class Analyze extends StackCollector {
     node match {
       case ForLoopStatement(VariableDeclarationStatement(IR_IntegerDatatype, lVar, Some(start)),
       IR_LowerExpression(VariableAccess(lVar3, _), end),
-      AssignmentStatement(VariableAccess(lVar2, _), IntegerConstant(incr), "+="),
+      AssignmentStatement(VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
       _, _) if (lVar == lVar2 && lVar2 == lVar3) //
       =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
@@ -239,10 +239,10 @@ private[optimization] final class Analyze extends StackCollector {
     this += new Transformation("apply", {
       case vAcc @ VariableAccess(v, Some(IR_IntegerDatatype)) if (v == itName) =>
         if (replace)
-          IR_SubtractionExpression(Duplicate(nju), IntegerConstant(offset))
+          IR_SubtractionExpression(Duplicate(nju), IR_IntegerConstant(offset))
         else if (!vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
           vAcc.annotate(SKIP_ANNOT) // already done
-          IR_SubtractionExpression(vAcc, IntegerConstant(offset))
+          IR_SubtractionExpression(vAcc, IR_IntegerConstant(offset))
         } else
           vAcc
     })

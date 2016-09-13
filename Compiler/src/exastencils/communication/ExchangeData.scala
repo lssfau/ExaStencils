@@ -151,7 +151,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
 
     indices
   }
@@ -199,7 +199,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -247,7 +247,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -275,7 +275,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
 
     indices
   }
@@ -303,7 +303,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
 
     indices
   }
@@ -351,7 +351,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -399,7 +399,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -427,7 +427,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
 
     indices
   }

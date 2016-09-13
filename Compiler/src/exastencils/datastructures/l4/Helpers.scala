@@ -1,5 +1,6 @@
 package exastencils.datastructures.l4
 
+import exastencils.base.ir.IR_RealConstant
 import exastencils.base.l4.L4_Expression
 import exastencils.datastructures._
 import exastencils.prettyprinting._
@@ -56,19 +57,19 @@ trait RealIndex extends L4_Expression {
 case class RealIndex1D(var x : Double) extends RealIndex {
   def prettyprint(out : PpStream) = { out << "[ " << x << " ]" }
 
-  def progress : ir.MultiIndex = new ir.MultiIndex(ir.FloatConstant(x))
+  def progress : ir.MultiIndex = new ir.MultiIndex(IR_RealConstant(x))
 }
 
 case class RealIndex2D(var x : Double, var y : Double) extends RealIndex {
   def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << " ]" }
 
-  def progress : ir.MultiIndex = new ir.MultiIndex(ir.FloatConstant(x), ir.FloatConstant(y))
+  def progress : ir.MultiIndex = new ir.MultiIndex(IR_RealConstant(x), IR_RealConstant(y))
 }
 
 case class RealIndex3D(var x : Double, var y : Double, var z : Double) extends RealIndex {
   def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << ", " << z << " ]" }
 
-  def progress : ir.MultiIndex = new ir.MultiIndex(ir.FloatConstant(x), ir.FloatConstant(y), ir.FloatConstant(z))
+  def progress : ir.MultiIndex = new ir.MultiIndex(IR_RealConstant(x), IR_RealConstant(y), IR_RealConstant(z))
 }
 
 trait ExpressionIndex extends L4_Expression {

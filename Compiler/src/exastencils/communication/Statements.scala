@@ -26,7 +26,7 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
 
   object ShiftIndexAccesses extends QuietDefaultStrategy("Shifting index accesses") {
     this += new Transformation("SearchAndReplace", {
-      case s : StringLiteral   => {
+      case s : IR_StringLiteral => {
         var ret : IR_Expression = s
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
@@ -34,7 +34,7 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
             ret = VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
         ret
       }
-      case va : VariableAccess => {
+      case va : VariableAccess  => {
         var ret : IR_Expression = va
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
@@ -90,7 +90,7 @@ case class StartLocalComm(var field : FieldSelection,
       neighbors.map(neighbor =>
         new ConditionStatement(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
           AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
-          AssignmentStatement(iv.LocalCommReady(field.field, neighbor._1.index), BooleanConstant(true)))),
+          AssignmentStatement(iv.LocalCommReady(field.field, neighbor._1.index), IR_BooleanConstant(true)))),
       true)
   }
 
@@ -178,7 +178,7 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
         new FunctionCallExpression("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
         new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
-        AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
+        AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
   }
 }
 
@@ -203,7 +203,7 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
         new FunctionCallExpression("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
         new LoopOverDimensions(numDims, dest, innerStmt) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
-        AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), BooleanConstant(true))))
+        AssignmentStatement(iv.LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
   }
 }
 

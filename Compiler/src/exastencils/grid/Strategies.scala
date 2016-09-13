@@ -2,7 +2,7 @@ package exastencils.grid
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -67,9 +67,9 @@ object ResolveEvaluationFunctions extends DefaultStrategy("ResolveEvaluationFunc
       } else {
         if (args.length > 2) Logger.warn(s"Trying to use build-in function $functionName with more than one arguments; additional arguments are discarded")
         args match {
-          case ListBuffer(access : FieldAccess)                                 => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, "default")
-          case ListBuffer(access : FieldAccess, interpolation : StringConstant) => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, interpolation.value)
-          case _                                                                => {
+          case ListBuffer(access : FieldAccess)                                    => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, "default")
+          case ListBuffer(access : FieldAccess, interpolation : IR_StringConstant) => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, interpolation.value)
+          case _                                                                   => {
             Logger.warn(s"Arguments (${ args.map(_.prettyprint).mkString(", ") }) are currently not supported for function $functionName")
             args(0)
           }

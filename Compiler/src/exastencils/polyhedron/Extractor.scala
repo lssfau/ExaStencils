@@ -61,14 +61,14 @@ object Extractor {
         constraints.append(islStr)
 
       // a StringConstant is only allowed, if the value it represents was used correctly before (as a VariableAccess, for example)
-      case str : StringLiteral if (ScopNameMapping.id2expr(str.value).isDefined) =>
+      case str : IR_StringLiteral if (ScopNameMapping.id2expr(str.value).isDefined) =>
         val e = ScopNameMapping.id2expr(str.value).get
         val islStr : String = ScopNameMapping.expr2id(e)
         if (vars != null)
           vars.add(islStr)
         constraints.append(islStr)
 
-      case IntegerConstant(i) =>
+      case IR_IntegerConstant(i) =>
         constraints.append(java.lang.Long.toString(i))
 
       case b : iv.NeighborIsValid =>
@@ -481,7 +481,7 @@ class Extractor extends Collector {
           case a : AssignmentStatement =>
             enterAssign(a)
 
-          case StringLiteral(varName) =>
+          case IR_StringLiteral(varName) =>
             enterScalarAccess(varName)
 
           case VariableAccess(varName, ty) =>
@@ -489,7 +489,7 @@ class Extractor extends Collector {
               ty.get.annotate(SKIP_ANNOT)
             enterScalarAccess(varName)
 
-          case ArrayAccess(array @ StringLiteral(varName), index, _) =>
+          case ArrayAccess(array @ IR_StringLiteral(varName), index, _) =>
             array.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
@@ -550,9 +550,9 @@ class Extractor extends Collector {
           case FunctionCallExpression(name, _) if (allowedFunctions.contains(name)) =>
           // nothing to do...
 
-          case _ : IntegerConstant
-               | _ : FloatConstant
-               | _ : BooleanConstant
+          case _ : IR_IntegerConstant
+               | _ : IR_RealConstant
+               | _ : IR_BooleanConstant
                | _ : IR_NegativeExpression
                | _ : IR_NegationExpression
                | _ : IR_AddressofExpression
@@ -602,7 +602,7 @@ class Extractor extends Collector {
         case l : LoopOverDimensions           => leaveLoop(l)
         case c : ConditionStatement           => leaveCondition(c)
         case _ : AssignmentStatement          => leaveAssign()
-        case _ : StringLiteral                => leaveScalarAccess()
+        case _ : IR_StringLiteral             => leaveScalarAccess()
         case _ : VariableAccess               => leaveScalarAccess()
         case _ : ArrayAccess                  => leaveArrayAccess()
         case _ : DirectFieldAccess            => leaveFieldAccess()
@@ -631,7 +631,7 @@ class Extractor extends Collector {
   private def enterLoop(loop : LoopOverDimensions with PolyhedronAccessible, mergeWithPrev : Boolean) : Unit = {
 
     for (step <- loop.stepSize)
-      if (step != IntegerConstant(1))
+      if (step != IR_IntegerConstant(1))
         throw new ExtractionException("only stride 1 supported yet")
 
     val dims : Int = loop.numDimensions

@@ -123,10 +123,10 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
 
     // FIXME: UGLY HACK to realize native code functionality
     case FunctionCallExpression("native", args) =>
-      StringLiteral(args(0).asInstanceOf[StringConstant].value)
+      IR_StringLiteral(args(0).asInstanceOf[IR_StringConstant].value)
 
     case FunctionCallExpression("concat", args) =>
-      new ConcatenationExpression(args.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value) else a))
+      new ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
     case ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
@@ -244,7 +244,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         func.body.prepend(new MPI_Init)
         func.body.append(new MPI_Finalize)
       }
-      func.body.append(new ReturnStatement(Some(new IntegerConstant(0))))
+      func.body.append(new ReturnStatement(Some(new IR_IntegerConstant(0))))
       func
     }
 

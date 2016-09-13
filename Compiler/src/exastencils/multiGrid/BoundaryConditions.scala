@@ -68,7 +68,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
         || ("face_x" == d && 0 != neigh.dir(0))
         || ("face_y" == d && 0 != neigh.dir(1))
         || ("face_z" == d && 0 != neigh.dir(2)) =>
-        if (StringLiteral("Neumann") == bc)
+        if (IR_StringLiteral("Neumann") == bc)
           Knowledge.experimental_NeumannOrder match {
             case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index), new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
             case 2 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index),
@@ -86,7 +86,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
         || ("face_x" == d && 0 == neigh.dir(0))
         || ("face_y" == d && 0 == neigh.dir(1))
         || ("face_z" == d && 0 == neigh.dir(2)) =>
-        if (StringLiteral("Neumann") == bc)
+        if (IR_StringLiteral("Neumann") == bc)
           Knowledge.experimental_NeumannOrder match {
             case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index + offsetIndex),
               new FieldAccess(fieldSel, index))

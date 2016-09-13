@@ -156,8 +156,8 @@ object FieldCollection {
 
   def getFieldByIdentifierLevExp(identifier : String, level : IR_Expression, suppressError : Boolean = false) : Option[Field] = {
     level match {
-      case IntegerConstant(constLevel) => getFieldByIdentifier(identifier, constLevel.toInt, suppressError)
-      case _                           => {
+      case IR_IntegerConstant(constLevel) => getFieldByIdentifier(identifier, constLevel.toInt, suppressError)
+      case _                              => {
         if (!suppressError) Logger.warn(s"Trying to find field $identifier on level ${ level.prettyprint } - non-constant levels are not supported")
         None
       }

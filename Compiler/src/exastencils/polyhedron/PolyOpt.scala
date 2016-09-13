@@ -4,7 +4,7 @@ import scala.collection.mutable
 import scala.collection.mutable.{ ArrayBuffer, ListBuffer }
 import scala.util.control._
 
-import exastencils.base.ir.IR_Expression
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -139,10 +139,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var toFind : String = null
     var found : Boolean = false
     val search = new Transformation("search...", {
-      case va : VariableAccess if va.name == toFind =>
+      case va : VariableAccess if va.name == toFind    =>
         found = true
         va
-      case sc : StringLiteral if sc.value == toFind =>
+      case sc : IR_StringLiteral if sc.value == toFind =>
         found = true
         sc
     })
@@ -532,7 +532,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       this.execute(
         new Transformation("update loop iterator", {
           case VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
-          case StringLiteral(str) if repl.isDefinedAt(str)     => Duplicate(repl(str))
+          case IR_StringLiteral(str) if repl.isDefinedAt(str)  => Duplicate(repl(str))
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }
