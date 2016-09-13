@@ -282,7 +282,7 @@ object VariabilityParser {
     //    ProgressToIr.apply()
     //
     //    // TODO: integrate the next line into the ProgressToIr Strategy
-    //    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+    //    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progress.asInstanceOf[Node]
     //
     //    // Setup tree
     //    StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(

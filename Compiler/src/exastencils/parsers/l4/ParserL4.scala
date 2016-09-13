@@ -122,7 +122,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => FunctionArgument(new BasicIdentifier(id), t) })
 
   lazy val functionCallArgumentList = /*locationize*/ (((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex })
-  lazy val functionCall = locationize((flatAccess ||| leveledAccess) ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[Expression]())) })
+  lazy val functionCall = locationize((flatAccess ||| leveledAccess) ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[L4_Expression]())) })
 
   lazy val functionTemplateArgList = /*locationize*/ ((ident <~ ("," | newline)).* ~ ident ^^ { case args ~ arg => args :+ arg })
   lazy val functionInstArgList = /*locationize*/ ((functionInstArgument <~ ("," | newline)).* ~ functionInstArgument ^^ { case args ~ arg => args :+ arg })
@@ -334,16 +334,16 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ##### Expressions
   // ######################################
 
-  lazy val binaryexpression : PackratParser[Expression] = (
-    locationize((binaryexpression ~ ("+" ||| "-" ||| ".+" ||| ".-") ~ term) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+  lazy val binaryexpression : PackratParser[L4_Expression] = (
+    locationize((binaryexpression ~ ("+" ||| "-" ||| ".+" ||| ".-") ~ term) ^^ { case lhs ~ op ~ rhs => L4_BinaryOperators.createExpression(op, lhs, rhs) })
       ||| term)
 
-  lazy val term : PackratParser[Expression] = (
-    locationize((term ~ ("*" ||| "/" ||| "%" ||| ".*" ||| "./" ||| ".%") ~ term2) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+  lazy val term : PackratParser[L4_Expression] = (
+    locationize((term ~ ("*" ||| "/" ||| "%" ||| ".*" ||| "./" ||| ".%") ~ term2) ^^ { case lhs ~ op ~ rhs => L4_BinaryOperators.createExpression(op, lhs, rhs) })
       ||| term2)
 
-  lazy val term2 : PackratParser[Expression] = (
-    locationize((term2 ~ ("**" ||| "^" ||| ".**") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+  lazy val term2 : PackratParser[L4_Expression] = (
+    locationize((term2 ~ ("**" ||| "^" ||| ".**") ~ factor) ^^ { case lhs ~ op ~ rhs => L4_BinaryOperators.createExpression(op, lhs, rhs) })
       ||| factor)
 
   lazy val factor = (
@@ -366,23 +366,23 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   lazy val matrixExpression = locationize("{" ~> (rowVectorExpression <~ ",").+ ~ (rowVectorExpression <~ "}") ^^ { case x ~ y => MatrixExpression(None, x :+ y) })
 
-  lazy val booleanexpression : PackratParser[Expression] = (
-    locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+  lazy val booleanexpression : PackratParser[L4_Expression] = (
+    locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
       ||| booleanexpression1)
 
-  lazy val booleanexpression1 : PackratParser[Expression] = (
-    locationize((booleanexpression1 ~ ("&&" ||| "and") ~ booleanexpression2) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+  lazy val booleanexpression1 : PackratParser[L4_Expression] = (
+    locationize((booleanexpression1 ~ ("&&" ||| "and") ~ booleanexpression2) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
       ||| booleanexpression2)
 
-  lazy val booleanexpression2 : PackratParser[Expression] = (
-    locationize(("!" ~> booleanexpression3) ^^ { case ex => UnaryBooleanExpression("!", ex) })
+  lazy val booleanexpression2 : PackratParser[L4_Expression] = (
+    locationize(("!" ~> booleanexpression3) ^^ { case ex => L4_UnaryOperators.createExpression("!", ex) })
       ||| booleanexpression3)
 
-  lazy val booleanexpression3 : PackratParser[Expression] = (
+  lazy val booleanexpression3 : PackratParser[L4_Expression] = (
     "(" ~> booleanexpression <~ ")"
       ||| comparison
       ||| binaryexpression)
 
-  lazy val comparison : PackratParser[BooleanExpression] = //(
-    locationize((binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => BooleanExpression(op, ex1, ex2) })
+  lazy val comparison : PackratParser[L4_Expression] = //(
+    locationize((binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
 }

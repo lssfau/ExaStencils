@@ -63,7 +63,7 @@ object MainChristian {
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
-        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }
@@ -169,7 +169,7 @@ object MainChristian {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progress.asInstanceOf[Node]
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")
@@ -192,7 +192,7 @@ object MainChristian {
       Vector(),
       Matrix(), // TODO: only if required
       CImg() // TODO: only if required
-      )
+    )
 
     if (Knowledge.cuda_enabled)
       StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()

@@ -70,48 +70,48 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
       out <<< (statements, "\n") << '\n'
   }
 
-  override def progressToIr : Node = {
+  override def progress : Node = {
     var newRoot = new ir.Root
 
     // Domains
     DomainCollection.domains.clear
     for (domain <- domains)
-      DomainCollection.domains += domain.progressToIr
+      DomainCollection.domains += domain.progress
 
     // FieldLayouts
     FieldLayoutCollection.fieldLayouts.clear
     if (!Knowledge.ir_genSepLayoutsPerField) {
       for (fieldLayout <- fieldLayouts)
-        FieldLayoutCollection.fieldLayouts += fieldLayout.progressToIr("")
+        FieldLayoutCollection.fieldLayouts += fieldLayout.progress("")
     }
 
     // Fields => requires Domains and FieldLayouts
     FieldCollection.fields.clear
     for (field <- fields)
-      FieldCollection.fields += field.progressToIr
+      FieldCollection.fields += field.progress
 
     // Stencils
     StencilCollection.stencils.clear
     for (stencil <- stencils)
-      StencilCollection.stencils += stencil.progressToIr
+      StencilCollection.stencils += stencil.progress
 
     // StencilFields => requires Fields and Stencils
     StencilFieldCollection.stencilFields.clear
     for (stencilField <- stencilFields)
-      StencilFieldCollection.stencilFields += stencilField.progressToIr
+      StencilFieldCollection.stencilFields += stencilField.progress
 
     // ExternalFields => requires Fields
     ExternalFieldCollection.fields.clear
     for (extField <- externalFields)
-      ExternalFieldCollection.fields += extField.progressToIr
+      ExternalFieldCollection.fields += extField.progress
 
     // Globals
     var progGlobals = new Globals(new ListBuffer)
-    globals.foreach(f => progGlobals.variables ++= f.progressToIr)
+    globals.foreach(f => progGlobals.variables ++= f.progress)
     newRoot += progGlobals
 
     var multiGrid = new MultiGridFunctions // FIXME: think about how to manage (MG/other) functions
-    functions.foreach(multiGrid.functions += _.progressToIr)
+    functions.foreach(multiGrid.functions += _.progress)
     newRoot += multiGrid
 
     newRoot

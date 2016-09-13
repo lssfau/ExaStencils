@@ -1,6 +1,6 @@
 package exastencils.datastructures.l4
 
-import exastencils.base.l4.L4_Datatype
+import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.knowledge
@@ -131,9 +131,9 @@ case class LayoutDeclarationStatement(
     out << "}\n"
   }
 
-  override def progressToIr : knowledge.FieldLayout = progressToIr("GENERIC")
+  override def progress : knowledge.FieldLayout = progress("GENERIC")
 
-  def progressToIr(targetFieldName : String) : knowledge.FieldLayout = {
+  def progress(targetFieldName : String) : knowledge.FieldLayout = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
 
     val numDimsGrid = knowledge.Knowledge.dimensionality // TODO: adapt for edge data structures
@@ -207,7 +207,7 @@ case class FieldDeclarationStatement(
     override var identifier : Identifier,
     var domain : String,
     var layout : String,
-    var boundary : Option[Expression],
+    var boundary : Option[L4_Expression],
     var slots : Integer,
     var index : Int = 0) extends SpecialStatement with HasIdentifier {
 
@@ -217,7 +217,7 @@ case class FieldDeclarationStatement(
     out << '@' << identifier.asInstanceOf[LeveledIdentifier].level << '\n'
   }
 
-  override def progressToIr : knowledge.Field = {
+  override def progress : knowledge.Field = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
 
     val IR_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
@@ -228,7 +228,7 @@ case class FieldDeclarationStatement(
       if (L4_layout_opt.isEmpty)
         Logger.warn(s"Trying to access invalid field layout $layout on level $level")
       val L4_layout = L4_layout_opt.get
-      val IR_layout = L4_layout.progressToIr(identifier.name)
+      val IR_layout = L4_layout.progress(identifier.name)
       knowledge.FieldLayoutCollection.fieldLayouts += IR_layout
       IR_layout
     } else {
@@ -244,7 +244,7 @@ case class FieldDeclarationStatement(
       IR_layout,
       level,
       slots,
-      if (boundary.isDefined) Some(boundary.get.progressToIr) else None)
+      if (boundary.isDefined) Some(boundary.get.progress) else None)
   }
 }
 
@@ -255,7 +255,7 @@ case class StencilFieldDeclarationStatement(
 
   override def prettyprint(out : PpStream) = { out << "StencilField " << identifier.name << "< " << fieldName << " => " << stencilName << " >@" << identifier.asInstanceOf[LeveledIdentifier].level << '\n' }
 
-  override def progressToIr : knowledge.StencilField = {
+  override def progress : knowledge.StencilField = {
     new knowledge.StencilField(identifier.name,
       knowledge.FieldCollection.getFieldByIdentifier(fieldName, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level).get,
       knowledge.StencilCollection.getStencilByIdentifier(stencilName, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level).get)
@@ -269,7 +269,7 @@ case class ExternalFieldDeclarationStatement(
 
   override def prettyprint(out : PpStream) = { out << "external Field " << extIdentifier << " <" << extLayout << "> => " << correspondingField << '\n' }
 
-  override def progressToIr : knowledge.ExternalField = {
+  override def progress : knowledge.ExternalField = {
     val level = correspondingField.level.asInstanceOf[SingleLevelSpecification].level
 
     val IR_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
@@ -277,7 +277,7 @@ case class ExternalFieldDeclarationStatement(
       val L4_layout = StateManager.root.asInstanceOf[l4.Root].fieldLayouts.find(
         l => l.identifier.asInstanceOf[LeveledIdentifier].name == extLayout
           && l.identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level == level).get
-      val IR_layout = L4_layout.progressToIr(extIdentifier)
+      val IR_layout = L4_layout.progress(extIdentifier)
       knowledge.FieldLayoutCollection.fieldLayouts += IR_layout
       IR_layout
     } else {

@@ -4,30 +4,25 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils._
 import exastencils.base.ir._
-import exastencils.base.l4.L4_Datatype
-import exastencils.core._
+import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.prettyprinting._
 
-trait Expression extends Node with ProgressableToIr with PrettyPrintable {
-  def progressToIr : IR_Expression
-}
-
-trait Number extends Expression {
+trait Number extends L4_Expression {
   def value : AnyVal
 }
 
-case class StringConstant(var value : String) extends Expression {
+case class StringConstant(var value : String) extends L4_Expression {
   def this(s : l4.StringLiteral) = this(s.value)
   def prettyprint(out : PpStream) = { out << '\'' << value << '\'' }
-  def progressToIr = ir.StringConstant(value)
+  def progress = ir.StringConstant(value)
 }
 
-case class StringLiteral(var value : String) extends Expression {
+case class StringLiteral(var value : String) extends L4_Expression {
   def this(s : l4.StringConstant) = this(s.value)
   def prettyprint(out : PpStream) = { out << '"' << value << '"' }
-  def progressToIr = ir.StringLiteral(value)
+  def progress = ir.StringLiteral(value)
 }
 
 case class IntegerConstant(var v : Long) extends Number {
@@ -35,7 +30,7 @@ case class IntegerConstant(var v : Long) extends Number {
 
   def prettyprint(out : PpStream) = { out << v }
 
-  def progressToIr : ir.IntegerConstant = ir.IntegerConstant(v)
+  def progress : ir.IntegerConstant = ir.IntegerConstant(v)
 }
 
 case class FloatConstant(var v : Double) extends Number {
@@ -45,16 +40,16 @@ case class FloatConstant(var v : Double) extends Number {
     out << String.format(java.util.Locale.US, "%s", Double.box(value)) // ensure the compiler can parse the string
   }
 
-  def progressToIr : ir.FloatConstant = ir.FloatConstant(v)
+  def progress : ir.FloatConstant = ir.FloatConstant(v)
 }
 
-case class BooleanConstant(var value : Boolean) extends Expression {
+case class BooleanConstant(var value : Boolean) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << value }
 
-  def progressToIr : ir.BooleanConstant = ir.BooleanConstant(value)
+  def progress : ir.BooleanConstant = ir.BooleanConstant(value)
 }
 
-case class VectorExpression(var datatype : Option[L4_Datatype], var expressions : List[Expression], var rowVector : Option[Boolean]) extends Expression {
+case class VectorExpression(var datatype : Option[L4_Datatype], var expressions : List[L4_Expression], var rowVector : Option[Boolean]) extends L4_Expression {
   // rowVector == true: Row; false: Column; None: unspecified
   def length = expressions.length
 
@@ -67,7 +62,7 @@ case class VectorExpression(var datatype : Option[L4_Datatype], var expressions 
       out << 'T';
     }
   }
-  def progressToIr = new ir.VectorExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.progressToIr).to[ListBuffer], rowVector)
+  def progress = new ir.VectorExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.progress).to[ListBuffer], rowVector)
 }
 
 object VectorExpression {
@@ -90,21 +85,21 @@ object VectorExpression {
   }
 }
 
-case class MatrixExpression(var datatype : Option[L4_Datatype], var expressions : List[VectorExpression]) extends Expression {
+case class MatrixExpression(var datatype : Option[L4_Datatype], var expressions : List[VectorExpression]) extends L4_Expression {
   if (expressions.filter(x => x.length != expressions(0).length).length > 0) {
     Logger.error("Rows of matrix must be of equal length")
   }
 
   def prettyprint(out : PpStream) = { out << '{'; expressions.foreach(e => { e.prettyprint(out); out << ",\n" }); out << "} '" }
 
-  def progressToIr = new ir.MatrixExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.expressions.map(_.progressToIr).to[ListBuffer]).to[ListBuffer])
+  def progress = new ir.MatrixExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.expressions.map(_.progress).to[ListBuffer]).to[ListBuffer])
 
   def rows = expressions.length
   def columns = expressions(0).length
   def isConstant = expressions.filter(_.isConstant).length == expressions.length
 }
 
-abstract class Access() extends Expression {
+abstract class Access() extends L4_Expression {
   def name : String
 }
 
@@ -123,7 +118,7 @@ case class UnresolvedAccess(var name : String,
     if (dirAccess.isDefined) out << ':' << dirAccess
   }
 
-  def progressToIr : ir.StringLiteral = ir.StringLiteral("ERROR - Unresolved Access")
+  def progress : ir.StringLiteral = ir.StringLiteral("ERROR - Unresolved Access")
 
   def resolveToBasicOrLeveledAccess = {
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
@@ -158,14 +153,14 @@ case class UnresolvedAccess(var name : String,
 case class BasicAccess(var name : String) extends Access {
   def prettyprint(out : PpStream) = { out << name }
 
-  def progressToIr : ir.StringLiteral = ir.StringLiteral(name)
-  //def progressToIr : ir.StringLiteral = Logger.error("ProgressToIr for BasicAccess " + name)
+  def progress : ir.StringLiteral = ir.StringLiteral(name)
+  //def progress : ir.StringLiteral = Logger.error("ProgressToIr for BasicAccess " + name)
 }
 
 case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
-  def progressToIr : IR_Expression = {
+  def progress : IR_Expression = {
     ir.StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
   }
 }
@@ -186,7 +181,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
   }
 
-  def progressToIr : ir.FieldAccess = {
+  def progress : ir.FieldAccess = {
     // TODO: extract common index stuff from here and VirtualFieldAccess, StencilFieldAccess, etc
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
@@ -194,7 +189,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     if (arrayIndex.isDefined)
       multiIndex(numDims - 1) = ir.IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
-      var progressedOffset = offset.get.progressToIr
+      var progressedOffset = offset.get.progress
       while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
@@ -211,14 +206,14 @@ case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecific
     if (offset.isDefined) out << "@" << offset
   }
 
-  def progressToIr : ir.VirtualFieldAccess = {
+  def progress : ir.VirtualFieldAccess = {
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
     var multiIndex = ir.LoopOverDimensions.defIt(numDims)
     if (arrayIndex.isDefined)
       multiIndex(numDims - 1) = ir.IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
-      var progressedOffset = offset.get.progressToIr
+      var progressedOffset = offset.get.progress
       while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
@@ -253,7 +248,7 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
     ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 
-  def progressToIr : IR_Expression = {
+  def progress : IR_Expression = {
     if (arrayIndex.isDefined && dirAccess.isDefined)
       Logger.warn(s"Access to stencil $name on level ${ level.asInstanceOf[SingleLevelSpecification].level } has dirAccess and array subscript modifiers; array index will be given precendence, dirAccess will be ignored")
 
@@ -262,7 +257,7 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
     if (arrayIndex.isDefined)
       stencil.entries(arrayIndex.get).coefficient
     else if (dirAccess.isDefined)
-      stencil.findStencilEntry(dirAccess.get.progressToIr).get.coefficient
+      stencil.findStencilEntry(dirAccess.get.progress).get.coefficient
     else
       ir.StencilAccess(stencil)
   }
@@ -298,7 +293,7 @@ case class StencilFieldAccess(var name : String,
     if (arrayIndex.isDefined)
       multiIndex(numDims - 1) = ir.IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
-      var progressedOffset = offset.get.progressToIr
+      var progressedOffset = offset.get.progress
       while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
@@ -306,7 +301,7 @@ case class StencilFieldAccess(var name : String,
     ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, ir.IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
   }
 
-  def progressToIr : IR_Expression = {
+  def progress : IR_Expression = {
     if (arrayIndex.isDefined && dirAccess.isDefined)
       Logger.warn(s"Access to stencilfield $name on level ${ level.asInstanceOf[SingleLevelSpecification].level } has direction access and array subscript modifiers; array index will be given precendence, offset will be ignored")
 
@@ -317,7 +312,7 @@ case class StencilFieldAccess(var name : String,
     if (arrayIndex.isDefined)
       accessIndex = arrayIndex.get
     else if (dirAccess.isDefined)
-      accessIndex = stencilField.stencil.findStencilEntryIndex(dirAccess.get.progressToIr).get
+      accessIndex = stencilField.stencil.findStencilEntryIndex(dirAccess.get.progress).get
 
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
     numDims += 1 // TODO: remove array index and update function after integration of vec types
@@ -329,7 +324,7 @@ case class StencilFieldAccess(var name : String,
       multiIndex(numDims - 1) = ir.IntegerConstant(accessIndex)
 
     if (offset.isDefined) {
-      var progressedOffset = offset.get.progressToIr
+      var progressedOffset = offset.get.progress
       while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= ir.IntegerConstant(0)
       multiIndex += progressedOffset
     }
@@ -360,86 +355,57 @@ case class LeveledIdentifier(var name : String, var level : LevelSpecification) 
   def fullName = name + "_" + level.prettyprint
 }
 
-case class VariableExpression(var access : Access, var datatype : L4_Datatype) extends Expression {
+case class VariableExpression(var access : Access, var datatype : L4_Datatype) extends L4_Expression {
   def prettyprint(out : PpStream) = access.prettyprint(out)
 
-  def progressToIr = ir.VariableAccess(access.name, Some(datatype.progress))
+  def progress = ir.VariableAccess(access.name, Some(datatype.progress))
 }
 
-case class UnaryExpression(var operator : String, var exp : Expression) extends Expression {
+case class UnaryExpression(var operator : String, var exp : L4_Expression) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << operator << '(' << exp << ')' }
 
-  def progressToIr : IR_Expression = {
-    IR_UnaryOperators.createExpression(operator, exp.progressToIr)
+  def progress : IR_Expression = {
+    IR_UnaryOperators.createExpression(operator, exp.progress)
   }
 }
 
-case class BinaryExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
-  def prettyprint(out : PpStream) = { out << '(' << left << ' ' << operator << ' ' << right << ')' }
-
-  def progressToIr : IR_Expression = {
-    this match {
-      case BinaryExpression("**", left, IntegerConstant(1)) => left.progressToIr
-      case BinaryExpression("**", left, IntegerConstant(2)) => left.progressToIr * Duplicate(left).progressToIr
-      case BinaryExpression("**", left, IntegerConstant(3)) => left.progressToIr * Duplicate(left).progressToIr * Duplicate(left).progressToIr
-      case _                                                => IR_BinaryOperators.createExpression(operator, left.progressToIr, right.progressToIr)
-    }
-  }
-}
-
-case class BooleanExpression(var operator : String, var left : Expression, var right : Expression) extends Expression {
-  def prettyprint(out : PpStream) = { out << '(' << left << ' ' << operator << ' ' << right << ')' }
-
-  def progressToIr : IR_Expression = {
-    IR_BinaryOperators.createExpression(operator, left.progressToIr, right.progressToIr)
-  }
-}
-
-case class UnaryBooleanExpression(var operator : String, var exp : Expression) extends Expression {
-  def prettyprint(out : PpStream) = { out << '(' << operator << ' ' << exp << ')' }
-
-  def progressToIr : IR_Expression = {
-    IR_BinaryOperators.createExpression(operator, exp.progressToIr, null) // second argument is ignored
-  }
-}
-
-case class FunctionCallExpression(var identifier : Access, var arguments : List[Expression]) extends Expression {
+case class FunctionCallExpression(var identifier : Access, var arguments : List[L4_Expression]) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
-  def progressToIr : ir.FunctionCallExpression = {
-    ir.FunctionCallExpression(identifier.progressToIr.asInstanceOf[ir.StringLiteral].value,
-      arguments.map(s => s.progressToIr).to[ListBuffer])
+  def progress : ir.FunctionCallExpression = {
+    ir.FunctionCallExpression(identifier.progress.asInstanceOf[ir.StringLiteral].value,
+      arguments.map(s => s.progress).to[ListBuffer])
   }
 }
 
-case class StencilConvolution(var stencilAccess : StencilAccess, var fieldAccess : FieldAccess) extends Expression {
+case class StencilConvolution(var stencilAccess : StencilAccess, var fieldAccess : FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilAccess << " * " << fieldAccess }
 
-  def progressToIr : ir.StencilConvolution = {
-    ir.StencilConvolution(stencilAccess.getBasicStencilAccess.stencil, fieldAccess.progressToIr)
+  def progress : ir.StencilConvolution = {
+    ir.StencilConvolution(stencilAccess.getBasicStencilAccess.stencil, fieldAccess.progress)
   }
 }
 
-case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends Expression {
+case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilFieldAccess << " * " << fieldAccess }
 
-  def progressToIr : ir.StencilFieldConvolution = {
-    ir.StencilFieldConvolution(stencilFieldAccess.getBasicStencilFieldAccess, fieldAccess.progressToIr)
+  def progress : ir.StencilFieldConvolution = {
+    ir.StencilFieldConvolution(stencilFieldAccess.getBasicStencilFieldAccess, fieldAccess.progress)
   }
 }
 
-case class StencilStencilConvolution(var stencilLeft : StencilAccess, var stencilRight : StencilAccess) extends Expression {
+case class StencilStencilConvolution(var stencilLeft : StencilAccess, var stencilRight : StencilAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
 
-  def progressToIr : ir.StencilStencilConvolution = {
+  def progress : ir.StencilStencilConvolution = {
     ir.StencilStencilConvolution(stencilLeft.getBasicStencilAccess.stencil, stencilRight.getBasicStencilAccess.stencil)
   }
 }
 
-case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : StencilAccess) extends Expression {
+case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : StencilAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
 
-  def progressToIr : ir.StencilFieldStencilConvolution = {
+  def progress : ir.StencilFieldStencilConvolution = {
     ir.StencilFieldStencilConvolution(stencilLeft.getBasicStencilFieldAccess, stencilRight.getBasicStencilAccess.stencil)
   }
 }

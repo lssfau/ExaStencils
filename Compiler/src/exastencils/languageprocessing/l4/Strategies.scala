@@ -2,7 +2,7 @@ package exastencils.languageprocessing.l4
 
 import scala.collection.mutable.{ Node => _, _ }
 
-import exastencils.base.l4.L4_UnitDatatype
+import exastencils.base.l4._
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.datastructures.Transformation._
@@ -58,7 +58,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     "vf_cellCenterToFace_x", "vf_cellCenterToFace_y", "vf_cellCenterToFace_z").map(_.toLowerCase())
 
-  def resolveParameterToConstant(obj : AnyRef, ident : String) : Expression = {
+  def resolveParameterToConstant(obj : AnyRef, ident : String) : L4_Expression = {
     val ret = obj.getClass.getMethod(ident).invoke(obj)
 
     if (ret.isInstanceOf[Int]) IntegerConstant(ret.asInstanceOf[Int])
@@ -94,7 +94,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     this.unregister(valueCollector)
 
     // resolve globals (lower precendence than local values!)
-    val globalVals = collection.mutable.HashMap[String, Expression]()
+    val globalVals = collection.mutable.HashMap[String, L4_Expression]()
     StateManager.root_.asInstanceOf[l4.Root].globals.foreach(g => g.values.foreach(x => x.identifier match {
       case v : LeveledIdentifier => globalVals += ((v.name + "@@" + v.level, x.expression))
       case _                     => globalVals += ((x.identifier.name, x.expression))
@@ -186,7 +186,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 }
 
 object ReplaceExpressions extends DefaultStrategy("Replace something with something else") {
-  var replacements : Map[String, Expression] = Map()
+  var replacements : Map[String, L4_Expression] = Map()
 
   override def applyStandalone(node : Node) = {
     val oldLvl = Logger.getLevel
@@ -236,7 +236,7 @@ object ResolveFunctionTemplates extends DefaultStrategy("Resolving function temp
       if (template.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
       var instantiated = Duplicate(FunctionStatement(functionInst.targetFct, template.get.returntype, template.get.functionArgs, template.get.statements))
 
-      ReplaceExpressions.replacements = Map() ++ (template.get.templateArgs zip functionInst.args).toMap[String, Expression]
+      ReplaceExpressions.replacements = Map() ++ (template.get.templateArgs zip functionInst.args).toMap[String, L4_Expression]
       ReplaceExpressions.applyStandalone(instantiated)
       StateManager.root.asInstanceOf[Root].functions += instantiated
       None
