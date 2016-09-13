@@ -25,7 +25,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       return node.isInstanceOf[DirectFieldAccess]
     }
 
-    private def addColorOffset(index : MultiIndex, dim : Int, colorOffset : Int) : Boolean = {
+    private def addColorOffset(index : IR_ExpressionIndex, dim : Int, colorOffset : Int) : Boolean = {
       val cond : IR_Expression = ColorCondCollector.cond
       if (cond == null)
         return false
@@ -69,7 +69,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
         updatedFields.put(field, colorOffset)
       }
 
-      val index : MultiIndex = dfa.index
+      val index : IR_ExpressionIndex = dfa.index
       if (!addColorOffset(index, outerD, colorOffset))
         index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IR_IntegerConstant(nrColors)) * IR_IntegerConstant(colorOffset.longValue())
       index(innerD) = index(innerD) / IR_IntegerConstant(nrColors)

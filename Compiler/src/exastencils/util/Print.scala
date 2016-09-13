@@ -113,8 +113,8 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
           new LoopOverDimensions(numDimsData, new IndexRange(
-            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : IR_Expression)),
-            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : IR_Expression))),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : IR_Expression))),
             new ConditionStatement(condition,
               new PrintExpression(new VariableAccess(streamName, streamType),
                 ((0 until numDimsGrid).view.flatMap { dim =>

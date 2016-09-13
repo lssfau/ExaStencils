@@ -15,9 +15,9 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-case class CommunicateTarget(var target : String, var begin : Option[MultiIndex], var end : Option[MultiIndex]) extends IR_Expression {
+case class CommunicateTarget(var target : String, var begin : Option[IR_ExpressionIndex], var end : Option[IR_ExpressionIndex]) extends IR_Expression {
   if (begin.isDefined && !end.isDefined) // create end if only one 'index' is to be communicated
-    end = Some(Duplicate(begin.get) + new MultiIndex(Array.fill(begin.get.length)(1)))
+    end = Some(Duplicate(begin.get) + IR_ExpressionIndex(Array.fill(begin.get.length)(1)))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CommunicateTarget\n"
 }
@@ -165,8 +165,8 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
 
   override def expand : Output[IR_Statement] = {
     var innerStmt : IR_Statement = new AssignmentStatement(
-      new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), new MultiIndex(
-        new MultiIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)),
+      new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), IR_ExpressionIndex(
+        IR_ExpressionIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)),
       new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)))
 
     if (condition.isDefined)
@@ -192,7 +192,7 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
     var innerStmt : IR_Statement = AssignmentStatement(
       DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)),
       DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
-        new MultiIndex(new MultiIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
+        IR_ExpressionIndex(IR_ExpressionIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
 
     if (condition.isDefined)
       innerStmt = new ConditionStatement(condition.get, innerStmt)
@@ -378,7 +378,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
       def it = iv.TmpBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
 
       val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-        new MultiIndex(it), new MultiIndex(0) /* dummy stride */)
+        IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
       ret += AssignmentStatement(it, 0)
@@ -388,8 +388,8 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
           AssignmentStatement(it, 1, "+="))))
     } else {
       val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-        new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
-        new MultiIndex(indices.end, indices.begin, _ - _))
+        IR_ExpressionIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
+        IR_ExpressionIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
       ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
     }
@@ -412,7 +412,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
       def it = iv.TmpBufferIterator(field.field, s"Recv_${ concurrencyId }", neighbor.index)
 
       val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-        new MultiIndex(it), new MultiIndex(0) /* dummy stride */)
+        IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
       ret += AssignmentStatement(it, 0)
@@ -422,8 +422,8 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
           AssignmentStatement(it, 1, "+="))))
     } else {
       val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
-        new MultiIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
-        new MultiIndex(indices.end, indices.begin, _ - _))
+        IR_ExpressionIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
+        IR_ExpressionIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
       ret += new LoopOverDimensions(numDims, indices, AssignmentStatement(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
@@ -472,7 +472,7 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
 
 /// special boundary functions
 
-case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo, var index : MultiIndex) extends IR_Expression with Expandable {
+case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo, var index : IR_ExpressionIndex) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsOnSpecBoundary\n"
 
   override def expand() : Output[IR_Expression] = {
@@ -491,7 +491,7 @@ case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo
   }
 }
 
-case class IsOnBoundary(var field : FieldSelection, var index : MultiIndex) extends IR_Expression with Expandable {
+case class IsOnBoundary(var field : FieldSelection, var index : IR_ExpressionIndex) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsOnBoundary\n"
 
   override def expand() : Output[IR_Expression] = {
@@ -507,7 +507,7 @@ case class IsOnBoundary(var field : FieldSelection, var index : MultiIndex) exte
 }
 
 /// checks for IsOnBoundary as well as if outside inner/dup layers on fragment transitions
-case class IsValidPoint(var field : FieldSelection, var index : MultiIndex) extends IR_Expression with Expandable {
+case class IsValidPoint(var field : FieldSelection, var index : IR_ExpressionIndex) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsValidPoint\n"
 
   override def expand() : Output[IR_Expression] = {

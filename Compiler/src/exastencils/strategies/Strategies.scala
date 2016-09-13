@@ -499,9 +499,9 @@ object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) 
 }
 
 object GatherFieldAccessOffsets extends QuietDefaultStrategy("Gathering field access offsets honoring reference offsets") {
-  var accesses = HashMap[String, ListBuffer[MultiIndex]]()
+  var accesses = HashMap[String, ListBuffer[IR_ExpressionIndex]]()
 
-  def addAccess(key : String, index : MultiIndex) = {
+  def addAccess(key : String, index : IR_ExpressionIndex) = {
     if (!accesses.contains(key)) accesses.put(key, ListBuffer())
     accesses(key) += index
   }

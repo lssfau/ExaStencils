@@ -91,8 +91,8 @@ case class VariableAccess(var name : String, var datatype : Option[IR_Datatype] 
 case class ArrayAccess(var base : IR_Expression, var index : IR_Expression, var alignedAccessPossible : Boolean = false) extends Access {
   override def prettyprint(out : PpStream) : Unit = {
     index match {
-      case ind : MultiIndex    => out << base << ind
-      case ind : IR_Expression => out << base << '[' << ind << ']'
+      case ind : IR_ExpressionIndex => out << base << ind
+      case ind : IR_Expression      => out << base << '[' << ind << ']'
     }
   }
 }
@@ -110,54 +110,7 @@ case class BoundedExpression(var min : Long, var max : Long, var expr : IR_Expre
   }
 }
 
-case class MultiIndex(var indices : Array[IR_Expression]) extends IR_Expression with Iterable[IR_Expression] {
-  def this(indices : IR_Expression*) = this(indices.toArray)
-  def this(indices : Array[Int]) = this(indices.map(IR_IntegerConstant(_) : IR_Expression))
-  // legacy support
-  def this(indices : Array[Long]) = this(indices.map(IR_IntegerConstant(_) : IR_Expression))
-  // legacy support
-  def this(left : MultiIndex, right : MultiIndex, f : (IR_Expression, IR_Expression) => IR_Expression) =
-  this((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
-
-  // FIXME: add variable accesses to begin with...
-  for (i <- 0 until length) {
-    this (i) = this (i) match {
-      case IR_StringLiteral(s) => VariableAccess(s, Some(IR_IntegerDatatype))
-      case _                   => this (i)
-    }
-  }
-
-  override def prettyprint(out : PpStream) : Unit = {
-    out << '[' <<< (this, ", ") << ']'
-  }
-
-  def +(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ + _)
-  def -(that : MultiIndex) : MultiIndex = new MultiIndex(this, that, _ - _)
-
-  override def equals(other : Any) : Boolean = {
-    if (this eq other.asInstanceOf[AnyRef])
-      return true
-    return other match {
-      case MultiIndex(oIndices) => java.util.Arrays.equals(this.indices.asInstanceOf[Array[Object]], oIndices.asInstanceOf[Array[Object]])
-      case _                    => false
-    }
-  }
-
-  override def hashCode() : Int = {
-    return java.util.Arrays.hashCode(indices.asInstanceOf[Array[Object]]) * 31 + 42 // random modification to ensure the hashcode of this element differs from the hashcode of the array itself
-  }
-
-  // expose array functions
-  override def iterator() : scala.collection.Iterator[IR_Expression] = indices.iterator
-  override def head() : IR_Expression = indices.head
-  override def last() : IR_Expression = indices.last
-
-  def apply(i : Int) = indices.apply(i)
-  def update(i : Int, x : IR_Expression) = indices.update(i, x)
-  def length = indices.length
-}
-
-case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, var strides : MultiIndex) extends IR_Expression {
+case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TempBufferAccess\n"
 
   def linearize : ArrayAccess = {
@@ -167,7 +120,7 @@ case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : MultiIndex, v
   }
 }
 
-case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : MultiIndex, var strides : MultiIndex) extends IR_Expression {
+case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ReductionDeviceDataAccess\n"
 
   def linearize : ArrayAccess = {
@@ -175,7 +128,7 @@ case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var inde
   }
 }
 
-case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : MultiIndex) extends IR_Expression {
+case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopCarriedCSEBufferAccess\n"
 
   def linearize() : ArrayAccess = {
@@ -188,10 +141,10 @@ case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var in
 
 abstract class FieldAccessLike extends IR_Expression {
   def fieldSelection : FieldSelection
-  def index : MultiIndex
+  def index : IR_ExpressionIndex
 }
 
-case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends FieldAccessLike {
+case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : IR_ExpressionIndex) extends FieldAccessLike {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = DirectFieldAccess\n"
 
   def linearize : LinearizedFieldAccess = {
@@ -199,7 +152,7 @@ case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : Mu
   }
 }
 
-case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiIndex) extends FieldAccessLike {
+case class FieldAccess(var fieldSelection : FieldSelection, var index : IR_ExpressionIndex) extends FieldAccessLike {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
 
   def expandSpecial() : DirectFieldAccess = {
@@ -209,14 +162,14 @@ case class FieldAccess(var fieldSelection : FieldSelection, var index : MultiInd
 
 case class VirtualFieldAccess(var fieldName : String,
     var level : IR_Expression,
-    var index : MultiIndex,
+    var index : IR_ExpressionIndex,
     var arrayIndex : Option[Int] = None,
     var fragIdx : IR_Expression = LoopOverFragments.defIt) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
 
 }
 
-case class ExternalFieldAccess(var name : IR_Expression, var field : ExternalField, var index : MultiIndex) extends IR_Expression {
+case class ExternalFieldAccess(var name : IR_Expression, var field : ExternalField, var index : IR_ExpressionIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
   def x = new VariableAccess("x", IR_IntegerDatatype)
@@ -249,7 +202,7 @@ case class StencilAccess(var stencil : Stencil) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilAccess\n"
 }
 
-case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : MultiIndex) extends IR_Expression {
+case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : IR_ExpressionIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldAccess\n"
 
   def buildStencil : Stencil = {

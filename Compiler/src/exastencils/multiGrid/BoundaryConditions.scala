@@ -60,8 +60,8 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     var index = LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
     var fieldSel = new FieldSelection(field.field, field.level, field.slot, None, field.fragIdx) // TODO: check
 
-    def offsetIndex = new MultiIndex(neigh.dir ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
-    def offsetIndexWithTrafo(f : (Int => Int)) = new MultiIndex(neigh.dir.map(f) ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
+    def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
+    def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
 
     field.fieldLayout.discretization match {
       case d if "node" == d

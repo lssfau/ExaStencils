@@ -53,11 +53,11 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       val numDims = communicateStatement.field.field.fieldLayout.numDimsData
 
       var commDup = false;
-      var dupBegin = new MultiIndex(Array.fill(numDims)(0));
-      var dupEnd = new MultiIndex(Array.fill(numDims)(0))
+      var dupBegin = IR_ExpressionIndex(Array.fill(numDims)(0));
+      var dupEnd = IR_ExpressionIndex(Array.fill(numDims)(0))
       var commGhost = false
-      var ghostBegin = new MultiIndex(Array.fill(numDims)(0));
-      var ghostEnd = new MultiIndex(Array.fill(numDims)(0))
+      var ghostBegin = IR_ExpressionIndex(Array.fill(numDims)(0));
+      var ghostEnd = IR_ExpressionIndex(Array.fill(numDims)(0))
 
       var cond = communicateStatement.condition
 
@@ -71,23 +71,23 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (communicateStatement.targets.exists(t => "all" == t.target)) {
         val target = communicateStatement.targets.find(t => "all" == t.target).get
         commDup = true
-        dupBegin = target.begin.getOrElse(new MultiIndex(Array.fill(numDims)(0)))
-        dupEnd = target.end.getOrElse(new MultiIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numDupLayersLeft)))
+        dupBegin = target.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)(0)))
+        dupEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numDupLayersLeft)))
         commGhost = true
-        ghostBegin = target.begin.getOrElse(new MultiIndex(Array.fill(numDims)(0)))
-        ghostEnd = target.end.getOrElse(new MultiIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
+        ghostBegin = target.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)(0)))
+        ghostEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
       }
       if (communicateStatement.targets.exists(t => "dup" == t.target)) {
         val target = communicateStatement.targets.find(t => "dup" == t.target).get
         commDup = true
-        dupBegin = target.begin.getOrElse(new MultiIndex(Array.fill(numDims)(0)))
-        dupEnd = target.end.getOrElse(new MultiIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numDupLayersLeft)))
+        dupBegin = target.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)(0)))
+        dupEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numDupLayersLeft)))
       }
       if (communicateStatement.targets.exists(t => "ghost" == t.target)) {
         val target = communicateStatement.targets.find(t => "ghost" == t.target).get
         commGhost = true
-        ghostBegin = target.begin.getOrElse(new MultiIndex(Array.fill(numDims)(0)))
-        ghostEnd = target.end.getOrElse(new MultiIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
+        ghostBegin = target.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)(0)))
+        ghostEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
       }
 
       var functionName = (if (Knowledge.experimental_useLevelIndepFcts)
@@ -103,10 +103,10 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       })
       functionName += s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +
         communicateStatement.targets.map(t => s"${ t.target }_${
-          val begin : MultiIndex = t.begin.getOrElse(new MultiIndex(Array.fill(numDims)("a" : IR_Expression)))
+          val begin : IR_ExpressionIndex = t.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)("a" : IR_Expression)))
           (0 until numDims).toArray.map(dim => begin(dim).prettyprint).mkString("_")
         }_${
-          val end : MultiIndex = t.end.getOrElse(new MultiIndex(Array.fill(numDims)("a" : IR_Expression)))
+          val end : IR_ExpressionIndex = t.end.getOrElse(IR_ExpressionIndex(Array.fill(numDims)("a" : IR_Expression)))
           (0 until numDims).toArray.map(dim => end(dim).prettyprint).mkString("_")
         }").mkString("_")
       if (insideFragLoop)

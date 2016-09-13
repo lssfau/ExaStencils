@@ -26,8 +26,8 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
       val index = LoopOverDimensions.defIt(numDims)
 
       val loopOverDims = new LoopOverDimensions(numDims, new IndexRange(
-        new MultiIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
-        new MultiIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
+        IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
+        IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new AssignmentStatement(
             new DirectFieldAccess(FieldSelection(field, field.level, slot), index),

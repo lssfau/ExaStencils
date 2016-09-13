@@ -7,7 +7,7 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.l4._
 import exastencils.prettyprinting._
 
-case class CommunicateTarget(var target : String, var begin : Option[Index], var end : Option[Index]) extends L4_Expression {
+case class CommunicateTarget(var target : String, var begin : Option[L4_ConstIndex], var end : Option[L4_ConstIndex]) extends L4_Expression {
   override def prettyprint(out : PpStream) = {
     out << target
     if (begin.isDefined) out << ' ' << begin.get
@@ -17,8 +17,8 @@ case class CommunicateTarget(var target : String, var begin : Option[Index], var
   override def progress : communication.CommunicateTarget = {
     communication.CommunicateTarget(
       target,
-      if (begin.isDefined) Some(begin.get.progress) else None,
-      if (end.isDefined) Some(end.get.progress) else None)
+      if (begin.isDefined) Some(begin.get.progress.toExpressionIndex) else None, // TODO: remove .toExpressionIndex
+      if (end.isDefined) Some(end.get.progress.toExpressionIndex) else None) // TODO: remove .toExpressionIndex
   }
 }
 

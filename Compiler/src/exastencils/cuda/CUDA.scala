@@ -199,8 +199,8 @@ case class CUDA_UnsizedExternSharedArray(name : String, arrayType : IR_ScalarDat
   }
 }
 
-case class CUDA_SharedArrayAccess(base : IR_Expression, indices : ListBuffer[IR_Expression], strides : MultiIndex) extends Access {
-  def this(base : IR_Expression, indices : Array[IR_Expression], strides : MultiIndex) = this(base, indices.to[ListBuffer], strides)
+case class CUDA_SharedArrayAccess(base : IR_Expression, indices : ListBuffer[IR_Expression], strides : IR_ExpressionIndex) extends Access {
+  def this(base : IR_Expression, indices : Array[IR_Expression], strides : IR_ExpressionIndex) = this(base, indices.to[ListBuffer], strides)
 
   override def prettyprint(out : PpStream) : Unit = {
     out << base
@@ -212,7 +212,7 @@ case class CUDA_SharedArrayAccess(base : IR_Expression, indices : ListBuffer[IR_
   }
 
   def linearizeAccess() : IR_Expression = {
-    Mapping.resolveMultiIdx(MultiIndex(indices.toArray.reverse), strides : MultiIndex)
+    Mapping.resolveMultiIdx(IR_ExpressionIndex(indices.toArray.reverse), strides : IR_ExpressionIndex)
   }
 }
 

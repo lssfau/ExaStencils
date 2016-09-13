@@ -25,11 +25,11 @@ trait ExternalDeclarationStatement extends SpecialStatement
 case class DomainDeclarationStatement(var name : String, var lower : Any, var upper : Any, var index : Int = 0) extends SpecialStatement {
   override def prettyprint(out : PpStream) = {
     (lower, upper) match {
-      case (null, null)                   => out << s"Domain = fromFile($name) \n"
-      case (l : RealIndex, u : RealIndex) => out << "Domain " << name << "< " << l << " to " << u << " >\n"
-      case (lo : List[_], up : List[_])   => {
+      case (null, null)                 => out << s"Domain = fromFile($name) \n"
+      case (l : ConstVec, u : ConstVec) => out << "Domain " << name << "< " << l << " to " << u << " >\n"
+      case (lo : List[_], up : List[_]) => {
         (lo.head, up.head) match {
-          case (_ : RealIndex, _ : RealIndex) => {
+          case (_ : ConstVec, _ : ConstVec) => {
             val sep = lo.map(m => ", ").dropRight(1) :+ " >\n"
             out << "Domain " << name << "< "
             for (i <- lo.indices) { out << lo(i) << " to " << up(i) << sep(i) }
@@ -41,31 +41,31 @@ case class DomainDeclarationStatement(var name : String, var lower : Any, var up
   }
   override def progress : knowledge.Domain = {
     (lower, upper) match {
-      case (null, null)                       => {
+      case (null, null)                     => {
         new knowledge.FileInputGlobalDomain("global", index, DomainFileHeader.domainIdentifier.zipWithIndex.map {
           case (identifier, index) => new knowledge.FileInputDomain(identifier, index, new FileInputDomainShape(identifier))
         }.toList)
       }
-      case (lo : List[_], up : List[_])       => {
+      case (lo : List[_], up : List[_])     => {
         (lo.head, up.head) match {
-          case (_ : RealIndex2D, _ : RealIndex2D) => {
+          case (_ : ConstVec2D, _ : ConstVec2D) => {
             val rectUnionDomains : List[RectangularDomainShape] =
               (lo.zip(up)).map {
-                case (li : RealIndex2D, ui : RealIndex2D) =>
+                case (li : ConstVec2D, ui : ConstVec2D) =>
                   new RectangularDomainShape(new AABB(li.x, ui.x, li.y, ui.y, 0.0, 0.0))
               }
             new knowledge.ShapedDomain(name, index, new ShapedDomainShape(rectUnionDomains))
           }
         }
       }
-      case (l : RealIndex2D, u : RealIndex2D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, 0, 0)))
-      case (l : RealIndex3D, u : RealIndex3D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, l.z, u.z)))
-      case _                                  => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB()))
+      case (l : ConstVec2D, u : ConstVec2D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, 0, 0)))
+      case (l : ConstVec3D, u : ConstVec3D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, l.z, u.z)))
+      case _                                => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB()))
     }
   }
 }
 
-case class StencilEntry(var offset : ExpressionIndex, var coeff : L4_Expression) extends SpecialStatement {
+case class StencilEntry(var offset : L4_ExpressionIndex, var coeff : L4_Expression) extends SpecialStatement {
   override def prettyprint(out : PpStream) = { out << offset << " => " << coeff }
 
   override def progress : knowledge.StencilEntry = {
@@ -143,9 +143,9 @@ case class LoopOverPointsStatement(
     var region : Option[RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var condition : Option[L4_Expression],
-    var startOffset : Option[ExpressionIndex],
-    var endOffset : Option[ExpressionIndex],
-    var increment : Option[ExpressionIndex],
+    var startOffset : Option[L4_ExpressionIndex],
+    var endOffset : Option[L4_ExpressionIndex],
+    var increment : Option[L4_ExpressionIndex],
     var statements : List[L4_Statement],
     var reduction : Option[ReductionStatement],
     var preComms : List[CommunicateStatement],
@@ -173,9 +173,9 @@ case class LoopOverPointsStatement(
     }
 
     val numDims = resolvedField.fieldLayout.numDimsGrid
-    val procStartOffset = new ir.MultiIndex(Array.fill(numDims)(0))
-    val procEndOffset = new ir.MultiIndex(Array.fill(numDims)(0))
-    val procIncrement = new ir.MultiIndex(Array.fill(numDims)(1))
+    val procStartOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val procEndOffset = IR_ExpressionIndex(Array.fill(numDims)(0))
+    val procIncrement = IR_ExpressionIndex(Array.fill(numDims)(1))
     if (startOffset.isDefined) {
       val newOffset = startOffset.get.progress
       for (i <- 0 until Math.min(numDims, newOffset.length)) procStartOffset(i) = newOffset(i)
@@ -320,7 +320,7 @@ case class FunctionInstantiationStatement(var templateName : String,
   }
 }
 
-case class ContractionSpecification(var posExt : Index, var negExt : Option[Index]) extends SpecialStatement {
+case class ContractionSpecification(var posExt : L4_ConstIndex, var negExt : Option[L4_ConstIndex]) extends SpecialStatement {
   override def prettyprint(out : PpStream) : Unit = {
     out << posExt
     if (negExt.isDefined)
@@ -328,7 +328,7 @@ case class ContractionSpecification(var posExt : Index, var negExt : Option[Inde
   }
 
   override def progress : ir.ContractionSpecification = {
-    return new ir.ContractionSpecification(posExt.extractArray, negExt.getOrElse(posExt).extractArray)
+    return new ir.ContractionSpecification(posExt.progress, negExt.getOrElse(posExt).progress)
   }
 }
 
@@ -387,11 +387,11 @@ case class ReductionStatement(var op : String, var target : String) extends Spec
   }
 }
 
-case class RegionSpecification(var region : String, var dir : Index, var onlyOnBoundary : Boolean) extends SpecialStatement {
+case class RegionSpecification(var region : String, var dir : L4_ConstIndex, var onlyOnBoundary : Boolean) extends SpecialStatement {
   override def prettyprint(out : PpStream) = out << region << ' ' << dir
 
   override def progress : ir.RegionSpecification = {
-    ir.RegionSpecification(region, dir.extractArray ++ Array.fill(3 - dir.extractArray.length)(0), onlyOnBoundary)
+    ir.RegionSpecification(region, L4_ConstIndex(dir.indices ++ Array.fill(3 - dir.indices.length)(0)).progress, onlyOnBoundary)
   }
 }
 

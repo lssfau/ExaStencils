@@ -637,14 +637,14 @@ class Extractor extends Collector {
     val dims : Int = loop.numDimensions
 
     val hasOmpLoop : Boolean = loop.explParLoop
-    val (begin : MultiIndex, end : MultiIndex) =
+    val (begin : IR_ExpressionIndex, end : IR_ExpressionIndex) =
       if (hasOmpLoop)
         (loop.ompIndices.begin, loop.ompIndices.end)
       else
         (loop.indices.begin, loop.indices.end)
     if (hasOmpLoop && !loop.areOmpIndicesAffine)
       paramExprs += begin.last += end.last
-    val loopVarExps : MultiIndex = LoopOverDimensions.defIt(loop.numDimensions)
+    val loopVarExps : IR_ExpressionIndex = LoopOverDimensions.defIt(loop.numDimensions)
 
     val params = new HashSet[String]()
     val modelLoopVars = new ArrayStack[String]()
@@ -853,14 +853,14 @@ class Extractor extends Collector {
     var ineq : Boolean = false
     val indB : StringBuilder = new StringBuilder()
     index match {
-      case mInd : MultiIndex =>
+      case mInd : IR_ExpressionIndex =>
         for (i <- mInd) {
           ineq |= extractConstraints(i, indB, false, paramExprs)
           indB.append(',')
         }
         if (!mInd.isEmpty)
           indB.deleteCharAt(indB.length - 1)
-      case ind               =>
+      case ind                       =>
         ineq |= extractConstraints(ind, indB, false, paramExprs)
     }
 
@@ -883,7 +883,7 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterFieldAccess(fSel : FieldSelection, index : MultiIndex) : Unit = {
+  private def enterFieldAccess(fSel : FieldSelection, index : IR_ExpressionIndex) : Unit = {
     val name = new StringBuilder("field")
     name.append('_').append(fSel.field.identifier).append(fSel.field.index).append('_').append(fSel.field.level)
     name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex)
@@ -899,7 +899,7 @@ class Extractor extends Collector {
     leaveArrayAccess()
   }
 
-  private def enterTempBufferAccess(buffer : iv.TmpBuffer, index : MultiIndex) : Unit = {
+  private def enterTempBufferAccess(buffer : iv.TmpBuffer, index : IR_ExpressionIndex) : Unit = {
     val name = new StringBuilder("buffer")
     name.append('_').append(buffer.direction)
     name.append('_').append(buffer.field.identifier).append(buffer.field.index).append('_').append(buffer.field.level)
@@ -912,7 +912,7 @@ class Extractor extends Collector {
     leaveArrayAccess()
   }
 
-  private def enterLoopCarriedCSBufferAccess(buffer : iv.LoopCarriedCSBuffer, index : MultiIndex) : Unit = {
+  private def enterLoopCarriedCSBufferAccess(buffer : iv.LoopCarriedCSBuffer, index : IR_ExpressionIndex) : Unit = {
     enterArrayAccess(buffer.resolveName, index, true)
   }
 

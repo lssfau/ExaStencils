@@ -1,6 +1,6 @@
 package exastencils.datastructures.l4
 
-import exastencils.base.ir.IR_IntegerConstant
+import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
@@ -8,88 +8,88 @@ import exastencils.knowledge
 import exastencils.logger._
 import exastencils.prettyprinting._
 
-case class LayoutOption(var name : String, var value : Index, var hasCommunication : Option[Boolean]) extends Node
+case class LayoutOption(var name : String, var value : L4_ConstIndex, var hasCommunication : Option[Boolean]) extends Node
 
 object LayoutDeclarationStatement {
   def default_ghostComm : Boolean = false
   def default_dupComm : Boolean = false
 
-  def default_ghostLayers(discretization : String) : Index = knowledge.Knowledge.dimensionality match {
-    case 2 => Index2D(1, 1)
-    case 3 => Index3D(1, 1, 1)
+  def default_ghostLayers(discretization : String) : L4_ConstIndex = knowledge.Knowledge.dimensionality match {
+    case 2 => L4_ConstIndex(1, 1)
+    case 3 => L4_ConstIndex(1, 1, 1)
   }
 
-  def default_duplicateLayers(discretization : String) : Index = knowledge.Knowledge.dimensionality match {
+  def default_duplicateLayers(discretization : String) : L4_ConstIndex = knowledge.Knowledge.dimensionality match {
     case 2 => discretization match {
-      case "node"      => Index2D(1, 1)
-      case "cell"      => Index2D(0, 0)
-      case "face_x"    => Index2D(1, 0)
-      case "face_y"    => Index2D(0, 1)
-      case "edge_node" => Index2D(1, 0)
-      case "edge_cell" => Index2D(0, 0)
+      case "node"      => L4_ConstIndex(1, 1)
+      case "cell"      => L4_ConstIndex(0, 0)
+      case "face_x"    => L4_ConstIndex(1, 0)
+      case "face_y"    => L4_ConstIndex(0, 1)
+      case "edge_node" => L4_ConstIndex(1, 0)
+      case "edge_cell" => L4_ConstIndex(0, 0)
     }
     case 3 => discretization match {
-      case "node"      => Index3D(1, 1, 1)
-      case "cell"      => Index3D(0, 0, 0)
-      case "face_x"    => Index3D(1, 0, 0)
-      case "face_y"    => Index3D(0, 1, 0)
-      case "face_z"    => Index3D(0, 0, 1)
-      case "edge_node" => Index3D(1, 0, 0)
-      case "edge_cell" => Index3D(0, 0, 0)
+      case "node"      => L4_ConstIndex(1, 1, 1)
+      case "cell"      => L4_ConstIndex(0, 0, 0)
+      case "face_x"    => L4_ConstIndex(1, 0, 0)
+      case "face_y"    => L4_ConstIndex(0, 1, 0)
+      case "face_z"    => L4_ConstIndex(0, 0, 1)
+      case "edge_node" => L4_ConstIndex(1, 0, 0)
+      case "edge_cell" => L4_ConstIndex(0, 0, 0)
     }
   }
 
-  def default_innerPoints(discretization : String, identifier : Identifier, duplicateLayers : Option[Index]) : Index = {
+  def default_innerPoints(discretization : String, identifier : Identifier, duplicateLayers : Option[L4_ConstIndex]) : L4_ConstIndex = {
     val level = identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
-    val L4_duplicateLayers : Index = duplicateLayers.getOrElse(default_duplicateLayers(discretization))
+    val L4_duplicateLayers : L4_ConstIndex = duplicateLayers.getOrElse(default_duplicateLayers(discretization))
 
     knowledge.Knowledge.dimensionality match {
       case 2 => discretization match {
-        case "node"      => new Index2D(
+        case "node"      => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * L4_duplicateLayers(1))
-        case "cell"      => new Index2D(
+        case "cell"      => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1))
-        case "face_x"    => new Index2D(
+        case "face_x"    => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1))
-        case "face_y"    => new Index2D(
+        case "face_y"    => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * L4_duplicateLayers(1))
-        case "edge_node" => new Index2D(
+        case "edge_node" => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
           1)
-        case "edge_cell" => new Index2D(
+        case "edge_cell" => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
           1)
       }
       case 3 => discretization match {
-        case "node"      => new Index3D(
+        case "node"      => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * L4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * L4_duplicateLayers(2))
-        case "cell"      => new Index3D(
+        case "cell"      => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * L4_duplicateLayers(2))
-        case "face_x"    => new Index3D(
+        case "face_x"    => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * L4_duplicateLayers(2))
-        case "face_y"    => new Index3D(
+        case "face_y"    => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 1) - 2 * L4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 0) - 2 * L4_duplicateLayers(2))
-        case "face_z"    => new Index3D(
+        case "face_z"    => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(1) * (1 << level)) + 0) - 2 * L4_duplicateLayers(1),
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(2) * (1 << level)) + 1) - 2 * L4_duplicateLayers(2))
-        case "edge_node" => new Index3D(
+        case "edge_node" => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 1) - 2 * L4_duplicateLayers(0),
           1,
           1)
-        case "edge_cell" => new Index3D(
+        case "edge_cell" => L4_ConstIndex(
           ((knowledge.Knowledge.domain_fragmentLengthAsVec(0) * (1 << level)) + 0) - 2 * L4_duplicateLayers(0),
           1,
           1)
@@ -102,11 +102,11 @@ case class LayoutDeclarationStatement(
     override var identifier : Identifier,
     var datatype : L4_Datatype,
     var discretization : String,
-    var ghostLayers : Option[Index] = None,
+    var ghostLayers : Option[L4_ConstIndex] = None,
     var ghostLayersCommunication : Option[Boolean] = None,
-    var duplicateLayers : Option[Index] = None,
+    var duplicateLayers : Option[L4_ConstIndex] = None,
     var duplicateLayersCommunication : Option[Boolean] = None,
-    var innerPoints : Option[Index] = None) extends SpecialStatement with HasIdentifier {
+    var innerPoints : Option[L4_ConstIndex] = None) extends SpecialStatement with HasIdentifier {
 
   import LayoutDeclarationStatement._
 
@@ -140,10 +140,10 @@ case class LayoutDeclarationStatement(
     val numDimsGrid = knowledge.Knowledge.dimensionality // TODO: adapt for edge data structures
     val numDimsData = numDimsGrid + datatype.dimensionality
 
-    val L4_ghostLayers : Index = ghostLayers.getOrElse(default_ghostLayers(discretization))
-    val L4_duplicateLayers : Index = duplicateLayers.getOrElse(default_duplicateLayers(discretization))
+    val L4_ghostLayers : L4_ConstIndex = ghostLayers.getOrElse(default_ghostLayers(discretization))
+    val L4_duplicateLayers : L4_ConstIndex = duplicateLayers.getOrElse(default_duplicateLayers(discretization))
 
-    val L4_innerPoints : Index = innerPoints.getOrElse(default_innerPoints(discretization, identifier, duplicateLayers))
+    val L4_innerPoints : L4_ConstIndex = innerPoints.getOrElse(default_innerPoints(discretization, identifier, duplicateLayers))
 
     val L4_ghostComm = ghostLayersCommunication.getOrElse(default_ghostComm)
     val L4_dupComm = duplicateLayersCommunication.getOrElse(default_dupComm)
@@ -179,7 +179,7 @@ case class LayoutDeclarationStatement(
 
     // determine reference offset
     // TODO: this should work for now but may be adapted in the future
-    var refOffset = new ir.MultiIndex(Array.fill(numDimsData)(0))
+    var refOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
     for (dim <- 0 until numDimsGrid)
       refOffset(dim) = IR_IntegerConstant(layouts(dim).numPadLayersLeft + layouts(dim).numGhostLayersLeft)
 

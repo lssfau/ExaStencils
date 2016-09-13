@@ -11,7 +11,7 @@ import exastencils.datastructures.ir._
 import exastencils.logger._
 import exastencils.util._
 
-case class StencilEntry(var offset : MultiIndex, var coefficient : IR_Expression) {}
+case class StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Expression) {}
 
 case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
   def getReach(dim : Int) : Int = {
@@ -23,7 +23,7 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
     reach
   }
 
-  def findStencilEntry(offset : MultiIndex) : Option[StencilEntry] = {
+  def findStencilEntry(offset : IR_ExpressionIndex) : Option[StencilEntry] = {
     val index = findStencilEntryIndex(offset)
     if (index.isDefined)
       Some(entries(index.get))
@@ -31,7 +31,7 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
       None
   }
 
-  def findStencilEntryIndex(offset : MultiIndex) : Option[Int] = {
+  def findStencilEntryIndex(offset : IR_ExpressionIndex) : Option[Int] = {
     for (i <- 0 until entries.size) {
       var ret = true
       for (dim <- 0 until Knowledge.dimensionality)
@@ -57,12 +57,12 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
           s += "\t" +
             entries.find(
               e => e.offset match {
-                case index : MultiIndex if index.length >= 3 => (
+                case index : IR_ExpressionIndex if index.length >= 3 => (
                   (index(0) match { case IR_IntegerConstant(xOff) if x == xOff => true; case _ => false })
                     && (index(1) match { case IR_IntegerConstant(yOff) if y == yOff => true; case _ => false })
                     && (index(2) match { case IR_IntegerConstant(zOff) if z == zOff => true; case _ => false }))
-                case _                                       => false
-              }).getOrElse(StencilEntry(new MultiIndex, 0)).coefficient.prettyprint
+                case _                                               => false
+              }).getOrElse(StencilEntry(IR_ExpressionIndex(), 0)).coefficient.prettyprint
         s += "\n"
       }
       s += "\n\n"

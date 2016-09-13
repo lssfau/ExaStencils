@@ -245,9 +245,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
           // FIXME: fix datatypes
           val decl : VariableDeclarationStatement = commonExp.declaration
-          val tmpBuf = new iv.LoopCarriedCSBuffer(bufferCounter, decl.datatype, MultiIndex(Duplicate(tmpBufLen)))
+          val tmpBuf = new iv.LoopCarriedCSBuffer(bufferCounter, decl.datatype, IR_ExpressionIndex(Duplicate(tmpBufLen)))
           bufferCounter += 1
-          val tmpBufAcc = new LoopCarriedCSBufferAccess(tmpBuf, new MultiIndex(Duplicate(tmpBufInd)))
+          val tmpBufAcc = new LoopCarriedCSBufferAccess(tmpBuf, IR_ExpressionIndex(Duplicate(tmpBufInd)))
           decl.expression = Some(tmpBufAcc)
           decls += decl
 

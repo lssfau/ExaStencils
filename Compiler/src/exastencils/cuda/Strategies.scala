@@ -180,11 +180,11 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
           val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
           bodyWithoutComments match {
             case ListBuffer(loop : LoopOverDimensions) => loop
-            case _                                     => LoopOverDimensions(0, IndexRange(new MultiIndex(), new MultiIndex()), ListBuffer[IR_Statement]())
+            case _                                     => LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
           }
         case Some(loop : LoopOverDimensions)                                                   =>
           loop
-        case None                                                                              => LoopOverDimensions(0, IndexRange(new MultiIndex(), new MultiIndex()), ListBuffer[IR_Statement]())
+        case None                                                                              => LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
       }
 
       // every LoopOverDimensions statement is potentially worse to transform in CUDA code
@@ -538,13 +538,13 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
     case kernel : Kernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
-      val index = MultiIndex((0 until kernel.parallelDims).map(dim =>
+      val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
         VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype)) : IR_Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_SubtractionExpression(x, y) : IR_Expression)
 
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
-      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, MultiIndex(stride))
+      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
       ReplaceReductionAssignements.applyStandalone(IR_Scope(kernel.body))
       kernel
   })

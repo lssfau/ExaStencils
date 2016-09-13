@@ -122,7 +122,7 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
   }
 }
 
-case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : IR_Datatype, val dimSizes : MultiIndex)
+case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : IR_Datatype, val dimSizes : IR_ExpressionIndex)
   extends AbstractLoopCarriedCSBuffer(identifier, "", baseDatatype, !Knowledge.data_alignFieldPointers) {
 
   lazy val basePtr = new LoopCarriedCSBufferBasePtr(identifier, baseDatatype)

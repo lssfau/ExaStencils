@@ -13,7 +13,7 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
-case class IndexRange(var begin : MultiIndex, var end : MultiIndex) extends Node {
+case class IndexRange(var begin : IR_ExpressionIndex, var end : IR_ExpressionIndex) extends Node {
   def size = math.min(begin.size, end.size)
 
   def getTotalSize : IR_Expression = {
@@ -28,7 +28,7 @@ case class IndexRange(var begin : MultiIndex, var end : MultiIndex) extends Node
 }
 
 object Mapping {
-  def resolveMultiIdx(layout : FieldLayout, index : MultiIndex) : IR_Expression = {
+  def resolveMultiIdx(layout : FieldLayout, index : IR_ExpressionIndex) : IR_Expression = {
     if (layout.numDimsData != index.length)
       Logger.warn(s"Index with dimensionality ${ index.length } does not match layout with dimensionality ${ layout.numDimsData }")
 
@@ -40,8 +40,8 @@ object Mapping {
     SimplifyExpression.simplifyIntegralExpr(ret)
   }
 
-  def resolveMultiIdx(index : MultiIndex, aabb : IndexRange) : IR_Expression = resolveMultiIdx(index, new MultiIndex(aabb.end, aabb.begin, _ - _))
-  def resolveMultiIdx(index : MultiIndex, strides : MultiIndex) : IR_Expression = {
+  def resolveMultiIdx(index : IR_ExpressionIndex, aabb : IndexRange) : IR_Expression = resolveMultiIdx(index, IR_ExpressionIndex(aabb.end, aabb.begin, _ - _))
+  def resolveMultiIdx(index : IR_ExpressionIndex, strides : IR_ExpressionIndex) : IR_Expression = {
     if (strides.length != index.length) Logger.warn(s"Index with dimensionality ${ index.length } does not match strides with dimensionality ${ strides.length }")
 
     val ret = (0 until math.min(strides.length, index.length)).map(dim => {
@@ -68,7 +68,7 @@ object dimToString extends (Int => String) {
   }
 }
 
-case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : MultiIndex = new MultiIndex(0, 0, 0) /* was float index before */) extends IR_Statement with Expandable {
+case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0, 0) /* was float index before */) extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeomCoords\n"
 
   override def expand : Output[StatementList] = {
@@ -137,7 +137,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
 }
 
 object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
-  var replacement : MultiIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
+  var replacement : IR_ExpressionIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
   def doUntilDone(node : Option[Node] = None) = {
     do { apply(node) }

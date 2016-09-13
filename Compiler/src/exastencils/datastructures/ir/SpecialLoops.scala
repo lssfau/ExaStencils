@@ -21,9 +21,9 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 import exastencils.util._
 
-case class RegionSpecification(var region : String, var dir : Array[Int], var onlyOnBoundary : Boolean) {}
+case class RegionSpecification(var region : String, var dir : IR_ConstIndex, var onlyOnBoundary : Boolean) {}
 
-case class ContractionSpecification(var posExt : Array[Int], var negExt : Array[Int])
+case class ContractionSpecification(var posExt : IR_ConstIndex, var negExt : IR_ConstIndex)
 
 case class ContractingLoop(var number : Int, var iterator : Option[IR_Expression], var statements : ListBuffer[IR_Statement],
     var spec : ContractionSpecification) extends IR_Statement {
@@ -160,9 +160,9 @@ case class ContractingLoop(var number : Int, var iterator : Option[IR_Expression
 case class LoopOverPoints(var field : Field,
     var region : Option[RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
-    var startOffset : MultiIndex,
-    var endOffset : MultiIndex,
-    var increment : MultiIndex,
+    var startOffset : IR_ExpressionIndex,
+    var endOffset : IR_ExpressionIndex,
+    var increment : IR_ExpressionIndex,
     var body : ListBuffer[IR_Statement],
     var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
     var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
@@ -200,9 +200,9 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     var field : Field,
     var region : Option[RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
-    var startOffset : MultiIndex,
-    var endOffset : MultiIndex,
-    var increment : MultiIndex,
+    var startOffset : IR_ExpressionIndex,
+    var endOffset : IR_ExpressionIndex,
+    var increment : IR_ExpressionIndex,
     var body : ListBuffer[IR_Statement],
     var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
     var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
@@ -213,19 +213,19 @@ case class LoopOverPointsInOneFragment(var domain : Int,
   def numDims = field.fieldLayout.numDimsGrid
 
   def expandSpecial : Output[StatementList] = {
-    var start = new MultiIndex(Array.fill(numDims)(0))
-    var stop = new MultiIndex(Array.fill(numDims)(0))
+    var start = IR_ExpressionIndex(Array.fill(numDims)(0))
+    var stop = IR_ExpressionIndex(Array.fill(numDims)(0))
     if (region.isDefined) {
       // case where a special region is to be traversed
       val regionCode = region.get.region.toUpperCase().charAt(0)
 
-      start = new MultiIndex((0 until numDims).view.map({
+      start = IR_ExpressionIndex((0 until numDims).view.map({
         case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
         case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LB", dim) - field.referenceOffset(dim) + startOffset(dim)
         case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RB", dim) - field.referenceOffset(dim) + startOffset(dim)
       }).toArray[IR_Expression])
 
-      stop = new MultiIndex((0 until numDims).view.map({
+      stop = IR_ExpressionIndex((0 until numDims).view.map({
         case dim if region.get.dir(dim) == 0 => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
         case dim if region.get.dir(dim) < 0  => field.fieldLayout.idxById(regionCode + "LE", dim) - field.referenceOffset(dim) - endOffset(dim)
         case dim if region.get.dir(dim) > 0  => field.fieldLayout.idxById(regionCode + "RE", dim) - field.referenceOffset(dim) - endOffset(dim)
@@ -456,7 +456,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
     if (region.isDefined) {
       if (region.get.onlyOnBoundary) {
-        val neighIndex = Fragment.getNeigh(region.get.dir).index
+        val neighIndex = Fragment.getNeigh(region.get.dir.indices).index
         stmts = ListBuffer[IR_Statement](new ConditionStatement(IR_NegationExpression(iv.NeighborIsValid(domain, neighIndex)), stmts))
       }
     }
@@ -471,7 +471,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
 
 object LoopOverDimensions {
   def defIt(numDims : Int) = {
-    new MultiIndex((0 until numDims).map(dim => defItForDim(dim) : IR_Expression).toArray)
+    IR_ExpressionIndex((0 until numDims).map(dim => defItForDim(dim) : IR_Expression).toArray)
   }
   def defItForDim(dim : Int) = {
     new VariableAccess(dimToString(dim), Some(IR_IntegerDatatype))
@@ -495,7 +495,7 @@ object LoopOverDimensions {
   //   return SimplifyExpression.evalIntegral(wrappedIndex.expression)
   // }
 
-  def evalMinIndex(startIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
+  def evalMinIndex(startIndex : IR_ExpressionIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
     (0 until numDimensions).map(dim =>
       try {
         SimplifyExpression.evalIntegralExtrema(startIndex(dim))._1
@@ -512,7 +512,7 @@ object LoopOverDimensions {
   //   return SimplifyExpression.evalIntegral(wrappedIndex.expression)
   // }
 
-  def evalMaxIndex(endIndex : MultiIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
+  def evalMaxIndex(endIndex : IR_ExpressionIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
     (0 until numDimensions).map(dim =>
       try {
         SimplifyExpression.evalIntegralExtrema(endIndex(dim))._2
@@ -527,13 +527,13 @@ object LoopOverDimensions {
 case class LoopOverDimensions(var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[IR_Statement],
-    var stepSize : MultiIndex = null, // acutal default set in constructor
+    var stepSize : IR_ExpressionIndex = null, // acutal default set in constructor
     var reduction : Option[Reduction] = None,
     var condition : Option[IR_Expression] = None,
     var genOMPThreadLoop : Boolean = false) extends IR_Statement {
-  def this(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : MultiIndex, reduction : Option[Reduction], condition : Option[IR_Expression]) = this(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction, condition)
-  def this(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : MultiIndex, reduction : Option[Reduction]) = this(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction)
-  def this(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : MultiIndex) = this(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize)
+  def this(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[Reduction], condition : Option[IR_Expression]) = this(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction, condition)
+  def this(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[Reduction]) = this(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction)
+  def this(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex) = this(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize)
   def this(numDimensions : Int, indices : IndexRange, body : IR_Statement) = this(numDimensions, indices, ListBuffer[IR_Statement](body))
 
   import LoopOverDimensions._
@@ -545,7 +545,7 @@ case class LoopOverDimensions(var numDimensions : Int,
   var lcCSEApplied : Boolean = false
 
   if (stepSize == null)
-    stepSize = new MultiIndex(Array.fill(numDimensions)(1))
+    stepSize = IR_ExpressionIndex(Array.fill(numDimensions)(1))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
 
@@ -556,12 +556,12 @@ case class LoopOverDimensions(var numDimensions : Int,
     indices match {
       case indexRange : IndexRange =>
         indexRange.begin match {
-          case startIndex : MultiIndex => start = evalMinIndex(startIndex, numDimensions, false)
-          case _                       => Logger.warn("Loop index range begin is not a MultiIndex")
+          case startIndex : IR_ExpressionIndex => start = evalMinIndex(startIndex, numDimensions, false)
+          case _                               => Logger.warn("Loop index range begin is not a MultiIndex")
         }
         indexRange.end match {
-          case endIndex : MultiIndex => end = evalMaxIndex(endIndex, numDimensions, false)
-          case _                     => Logger.warn("Loop index range end is not a MultiIndex")
+          case endIndex : IR_ExpressionIndex => end = evalMaxIndex(endIndex, numDimensions, false)
+          case _                             => Logger.warn("Loop index range end is not a MultiIndex")
         }
       case _                       => Logger.warn("Loop indices are not of type IndexRange")
     }

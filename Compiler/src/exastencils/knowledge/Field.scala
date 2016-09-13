@@ -16,7 +16,7 @@ case class FieldLayout(
     var layoutsPerDim : Array[FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
     var numDimsGrid : Int, // dimensionality of the associated grid; usually lesser than or equal to 3
     var numDimsData : Int, // dimensionality of the stored data; numDimsGrid for scalar fields, numDimsGrid + 1 for vector fields, numDimsGrid + 2 for matrix fields, etc.
-    var referenceOffset : MultiIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
+    var referenceOffset : IR_ExpressionIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
 ) {
