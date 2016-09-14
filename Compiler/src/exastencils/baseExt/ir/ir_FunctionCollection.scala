@@ -20,12 +20,18 @@ class IR_FunctionCollection(var baseName : String,
 
     val externC = Knowledge.generateFortranInterface || Knowledge.generateCInterface
 
+    // header only functions
+    for (func <- functions)
+      if (func.isHeaderOnly)
+        writer <<< func.prettyprint
+
     if (externC)
       writer <<< "extern \"C\" {"
 
+    // functions with separate definition
     for (func <- functions)
       if (!func.isHeaderOnly && !func.hasAnnotation("deviceOnly"))
-        writer << func.asInstanceOf[IR_Function].prettyprint_decl
+        writer << func.prettyprint_decl
 
     if (externC)
       writer <<< "}"
