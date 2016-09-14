@@ -41,7 +41,7 @@ object MainJeremias {
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
-        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }
@@ -119,10 +119,10 @@ object MainJeremias {
 
     if (false) // re-print the merged L4 state
     {
-      val l4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
+      val L4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(l4_printed)))
+      outFile.write((Indenter.addIndentations(L4_printed)))
       outFile.close
 
       // re-parse the file to check for errors
@@ -137,7 +137,7 @@ object MainJeremias {
     // go to IR
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
-    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progress.asInstanceOf[Node]
 
     if (!Knowledge.domain_rect_generate) {
       if (Knowledge.domain_readFromFile) {

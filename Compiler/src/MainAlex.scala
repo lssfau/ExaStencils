@@ -46,7 +46,7 @@ object MainAlex {
     ValidationL4.apply
     UnfoldLevelSpecifications.apply()
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progress.asInstanceOf[Node]
 
     // Setup tree
     StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(

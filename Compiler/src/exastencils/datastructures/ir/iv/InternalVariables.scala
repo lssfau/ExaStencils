@@ -2,13 +2,15 @@ package exastencils.datastructures.ir.iv
 
 import scala.collection.mutable.HashMap
 
-import exastencils.datastructures.ir._
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
-abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends Expression {
-  override def datatype = UnitDatatype
+abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends IR_Expression {
+  override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << resolveName
 
   def usesFragmentArrays : Boolean = true
@@ -18,27 +20,27 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def usesNeighborArrays : Boolean = true
 
   def resolveName : String
-  def resolveDataType : Datatype
-  def resolveDefValue : Option[Expression] = None
+  def resolveDatatype : IR_Datatype
+  def resolveDefValue : Option[IR_Expression] = None
 
   def getDeclaration() : VariableDeclarationStatement = {
-    var dt : Datatype = resolveDataType
+    var datatype : IR_Datatype = resolveDatatype
 
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
-      dt = ArrayDatatype(dt, Knowledge.domain_numFragmentsPerBlock)
+      datatype = IR_ArrayDatatype(datatype, Knowledge.domain_numFragmentsPerBlock)
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
-      dt = ArrayDatatype(dt, DomainCollection.domains.size)
+      datatype = IR_ArrayDatatype(datatype, DomainCollection.domains.size)
     if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
-      dt = ArrayDatatype(dt, FieldCollection.fields.size)
+      datatype = IR_ArrayDatatype(datatype, FieldCollection.fields.size)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
-      dt = ArrayDatatype(dt, Knowledge.numLevels)
+      datatype = IR_ArrayDatatype(datatype, Knowledge.numLevels)
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      dt = ArrayDatatype(dt, Fragment.neighbors.size)
+      datatype = IR_ArrayDatatype(datatype, Fragment.neighbors.size)
 
-    new VariableDeclarationStatement(dt, resolveName)
+    new VariableDeclarationStatement(datatype, resolveName)
   }
 
-  def wrapInLoops(body : Statement) : Statement = {
+  def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = body
 
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
@@ -55,14 +57,14 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     wrappedBody
   }
 
-  def getCtor() : Option[Statement] = {
+  def getCtor() : Option[IR_Statement] = {
     if (resolveDefValue.isDefined)
       Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
     else
       None
   }
 
-  def getDtor() : Option[Statement] = None
+  def getDtor() : Option[IR_Statement] = None
 
   def resolvePostfix(fragment : String, domain : String, field : String, level : String, neigh : String) : String = {
     var postfix : String = ""
@@ -81,17 +83,17 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     postfix
   }
 
-  def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
+  def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = baseAccess
 
     // reverse compared to datatype wrapping, since we need to unwrap it "from outer to inner"
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
       access = new ArrayAccess(access, neigh)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1) {
-      val simplifiedLevel : Expression =
+      val simplifiedLevel : IR_Expression =
         level match {
-          case IntegerConstant(v) => v - Knowledge.minLevel
-          case _                  => level - Knowledge.minLevel
+          case IR_IntegerConstant(v) => v - Knowledge.minLevel
+          case _                     => level - Knowledge.minLevel
         }
       access = new ArrayAccess(access, simplifiedLevel)
     }
@@ -105,7 +107,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     access
   }
 
-  def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+  def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     declarations += (resolveName -> getDeclaration)
     for (ctor <- getCtor())
       ctors += (resolveName -> ctor)

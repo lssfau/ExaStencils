@@ -94,6 +94,8 @@ object Settings {
   var makefile_makeLibs : Boolean = false
   var makefile_additionalCFlags : String = ""
   var makefile_additionalLDFlags : String = ""
+  // Additional flags for CUDA compiler
+  var makefile_additionalCudaFlags : String = ""
 
   // performance estimates (experimental)
   var performanceEstimateOutputFile : String = "Compiler/performanceEstimate.csv"

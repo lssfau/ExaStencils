@@ -2,10 +2,8 @@ package exastencils.workaround
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Node
-import exastencils.datastructures.NodeList
-import exastencils.datastructures.Transformation
+import exastencils.base.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.Platform
 
@@ -23,8 +21,8 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
           return func.functionQualifiers.isEmpty &&
             func.parameters.isEmpty &&
             func.body.forall {
-              s => s == NullStatement ||
-                s.isInstanceOf[Scope] ||
+              s => s == IR_NullStatement ||
+                s.isInstanceOf[IR_Scope] ||
                 s.isInstanceOf[CommentStatement] ||
                 s.isInstanceOf[SwitchStatement] ||
                 s.isInstanceOf[ConditionStatement] ||
@@ -40,7 +38,7 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
 
         val func = node.asInstanceOf[FunctionStatement]
         var remaining = func.body
-        func.body = new ListBuffer[Statement]()
+        func.body = new ListBuffer[IR_Statement]()
         func.allowInlining = true
 
         val funcs = new ListBuffer[FunctionStatement]()
@@ -51,7 +49,7 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
           val newFuncName = func.name + i
           val (pref, rest) = remaining.splitAt(threshold)
           funcs += new FunctionStatement(func.returntype, newFuncName, new ListBuffer[FunctionArgument](), pref)
-          func.body += new ExpressionStatement(new FunctionCallExpression(newFuncName))
+          func.body += new IR_ExpressionStatement(new FunctionCallExpression(newFuncName))
           remaining = rest
         } while (!remaining.isEmpty)
         return funcs

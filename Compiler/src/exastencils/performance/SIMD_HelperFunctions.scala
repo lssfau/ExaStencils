@@ -1,13 +1,13 @@
 package exastencils.performance
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable._
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.core.StateManager
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.knowledge.Knowledge
-import exastencils.knowledge.Platform
+import exastencils.datastructures.ir._
+import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.multiGrid.MultiGridFunctions
 import exastencils.prettyprinting.PpStream
@@ -41,7 +41,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
 
       case "vecmathlib" =>
         val func = "vecmathlib::" + libmName
-        val conv = "vecmathlib::realvec<" + RealDatatype.prettyprint() + ", " + Platform.simd_vectorSize + ">"
+        val conv = "vecmathlib::realvec<" + IR_RealDatatype.prettyprint() + ", " + Platform.simd_vectorSize + ">"
         defineMacro(out, func, conv)
 
       case "vectorclass" =>
@@ -71,10 +71,10 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
   override def prettyprint_decl() : String = "NOT VALID ; no prototype for " + name + "\n"
 
   private def scalarFunc(out : PpStream) : Unit = {
-    val arrDt = ArrayDatatype(ArrayDatatype(RealDatatype, Platform.simd_vectorSize), nrArgs)
+    val arrDt = IR_ArrayDatatype(IR_ArrayDatatype(IR_RealDatatype, Platform.simd_vectorSize), nrArgs)
     val aDecls = new VariableDeclarationStatement(arrDt, "a")
     aDecls.alignment = Platform.simd_vectorSize
-    def aVAcc(argi : Int) = new ArrayAccess(new VariableAccess(aDecls.name, arrDt), argi)
+    def aVAcc(argi : Int) = new ArrayAccess(IR_VariableAccess(aDecls.name, arrDt), argi)
     def aSAcc(argi : Int, i : Int) = new ArrayAccess(aVAcc(argi), i)
     val args = (0 until nrArgs).map("v" + _)
 
@@ -85,9 +85,9 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
     out << ") {\n"
     out << aDecls << '\n'
     for ((arg, i) <- args.view.zipWithIndex)
-      out << new SIMD_StoreStatement(aVAcc(i), new VariableAccess(arg, SIMD_RealDatatype), true) << '\n'
+      out << new SIMD_StoreStatement(aVAcc(i), IR_VariableAccess(arg, SIMD_RealDatatype), true) << '\n'
     for (i <- 0 until Platform.simd_vectorSize)
-      out << new AssignmentStatement(aSAcc(0, i), new FunctionCallExpression(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : Expression).to[ListBuffer])) << '\n'
+      out << new AssignmentStatement(aSAcc(0, i), new FunctionCallExpression(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
     out << new ReturnStatement(SIMD_LoadExpression(aVAcc(0), true)) << '\n'
     out << '}'
   }
@@ -101,7 +101,8 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
 
 case object NEONDivision extends AbstractFunctionStatement(true) {
   override def prettyprint(out : PpStream) : Unit = {
-    out << s"""static inline float32x4_t ${name}(const float32x4_t &a, const float32x4_t &b) {
+    out <<
+      s"""static inline float32x4_t ${ name }(const float32x4_t &a, const float32x4_t &b) {
   // get an initial estimate of 1/b.
   float32x4_t reciprocal = vrecpeq_f32(b);
 

@@ -1,13 +1,11 @@
 package exastencils.strategies
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Queue
+import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Queue }
 
+import exastencils.base.ir._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -26,7 +24,7 @@ object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace some
   var replacement : Node = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
   this += new Transformation("SearchAndReplace", {
-    case StringLiteral(s) if s == toReplace => Duplicate(replacement)
+    case IR_StringLiteral(s) if s == toReplace => Duplicate(replacement)
   }, false)
 }
 
@@ -108,140 +106,140 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
   this += new Transformation("Improving the quality of some horrid code...", {
 
-    case add : AdditionExpression =>
+    case add : IR_AdditionExpression =>
       val nju = simplifyAdd(add.summands)
       if (nju == add)
         negMatches += 1
       nju
 
-    case sub : SubtractionExpression =>
+    case sub : IR_SubtractionExpression =>
       val nju = simplifyAdd(List(sub))
       if (nju == sub)
         negMatches += 1
       nju
 
-    case mult : MultiplicationExpression =>
+    case mult : IR_MultiplicationExpression =>
       val nju = simplifyMult(mult.factors)
       if (nju == mult)
         negMatches += 1
       nju
 
-    case old @ NegativeExpression(MultiplicationExpression(facs)) =>
-      val nju = simplifyMult(facs.clone() += IntegerConstant(-1L))
+    case old @ IR_NegativeExpression(IR_MultiplicationExpression(facs)) =>
+      val nju = simplifyMult(facs.clone() += IR_IntegerConstant(-1L))
       if (nju == old)
         negMatches += 1
       nju
 
     // deal with constants
-    case NegativeExpression(IntegerConstant(value))                        => IntegerConstant(-value)
-    case NegativeExpression(FloatConstant(value))                          => FloatConstant(-value)
+    case IR_NegativeExpression(IR_IntegerConstant(value))                           => IR_IntegerConstant(-value)
+    case IR_NegativeExpression(IR_RealConstant(value))                              => IR_RealConstant(-value)
 
-    case DivisionExpression(IntegerConstant(left), IntegerConstant(right)) => IntegerConstant(left / right)
-    case DivisionExpression(IntegerConstant(left), FloatConstant(right))   => FloatConstant(left / right)
-    case DivisionExpression(FloatConstant(left), IntegerConstant(right))   => FloatConstant(left / right)
-    case DivisionExpression(FloatConstant(left), FloatConstant(right))     => FloatConstant(left / right)
+    case IR_DivisionExpression(IR_IntegerConstant(left), IR_IntegerConstant(right)) => IR_IntegerConstant(left / right)
+    case IR_DivisionExpression(IR_IntegerConstant(left), IR_RealConstant(right))    => IR_RealConstant(left / right)
+    case IR_DivisionExpression(IR_RealConstant(left), IR_IntegerConstant(right))    => IR_RealConstant(left / right)
+    case IR_DivisionExpression(IR_RealConstant(left), IR_RealConstant(right))       => IR_RealConstant(left / right)
 
-    case DivisionExpression(left : Expression, IntegerConstant(1))         => left
-    case DivisionExpression(left : Expression, FloatConstant(f))           => new MultiplicationExpression(left, FloatConstant(1.0 / f))
-    case DivisionExpression(FloatConstant(0.0), right : Expression)        => FloatConstant(0.0)
-    case DivisionExpression(IntegerConstant(0), right : Expression)        => IntegerConstant(0)
+    case IR_DivisionExpression(left : IR_Expression, IR_IntegerConstant(1))         => left
+    case IR_DivisionExpression(left : IR_Expression, IR_RealConstant(f))            => IR_MultiplicationExpression(left, IR_RealConstant(1.0 / f))
+    case IR_DivisionExpression(IR_RealConstant(0.0), right : IR_Expression)         => IR_RealConstant(0.0)
+    case IR_DivisionExpression(IR_IntegerConstant(0), right : IR_Expression)        => IR_IntegerConstant(0)
 
-    case ModuloExpression(IntegerConstant(left), IntegerConstant(right))   => IntegerConstant(left % right)
+    case IR_ModuloExpression(IR_IntegerConstant(left), IR_IntegerConstant(right))   => IR_IntegerConstant(left % right)
 
-    case PowerExpression(IntegerConstant(base), IntegerConstant(exp))      => IntegerConstant(pow(base, exp))
-    case PowerExpression(FloatConstant(base), IntegerConstant(exp))        => FloatConstant(pow(base, exp))
-    case PowerExpression(IntegerConstant(base), FloatConstant(exp))        => FloatConstant(math.pow(base, exp))
-    case PowerExpression(FloatConstant(base), FloatConstant(exp))          => FloatConstant(math.pow(base, exp))
+    case IR_PowerExpression(IR_IntegerConstant(base), IR_IntegerConstant(exp))      => IR_IntegerConstant(pow(base, exp))
+    case IR_PowerExpression(IR_RealConstant(base), IR_IntegerConstant(exp))         => IR_RealConstant(pow(base, exp))
+    case IR_PowerExpression(IR_IntegerConstant(base), IR_RealConstant(exp))         => IR_RealConstant(math.pow(base, exp))
+    case IR_PowerExpression(IR_RealConstant(base), IR_RealConstant(exp))            => IR_RealConstant(math.pow(base, exp))
 
-    case PowerExpression(base, IntegerConstant(0))                         => IntegerConstant(1)
-    case PowerExpression(base, IntegerConstant(1))                         => base
-    case PowerExpression(base, IntegerConstant(e)) if (e >= 2 && e <= 6)   => MultiplicationExpression(ListBuffer.fill(e.toInt)(Duplicate(base)))
-    case PowerExpression(b, FloatConstant(e)) if (e.toLong.toDouble == e)  => PowerExpression(b, IntegerConstant(e.toLong))
+    case IR_PowerExpression(base, IR_IntegerConstant(0))                            => IR_IntegerConstant(1)
+    case IR_PowerExpression(base, IR_IntegerConstant(1))                            => base
+    case IR_PowerExpression(base, IR_IntegerConstant(e)) if (e >= 2 && e <= 6)      => IR_MultiplicationExpression(ListBuffer.fill(e.toInt)(Duplicate(base)))
+    case IR_PowerExpression(b, IR_RealConstant(e)) if (e.toLong.toDouble == e)      => IR_PowerExpression(b, IR_IntegerConstant(e.toLong))
 
     // deal with negatives
-    case NegativeExpression(NegativeExpression(expr))                      => expr
-    case NegativeExpression(AdditionExpression(sums))                      => AdditionExpression(sums.transform { s => NegativeExpression(s) })
-    case NegativeExpression(SubtractionExpression(left, right))            => SubtractionExpression(right, left)
+    case IR_NegativeExpression(IR_NegativeExpression(expr))                         => expr
+    case IR_NegativeExpression(IR_AdditionExpression(sums))                         => IR_AdditionExpression(sums.transform { s => IR_NegativeExpression(s) })
+    case IR_NegativeExpression(IR_SubtractionExpression(left, right))               => IR_SubtractionExpression(right, left)
 
-    case DivisionExpression(NegativeExpression(l), NegativeExpression(r))  => DivisionExpression(l, r)
-    case DivisionExpression(l, NegativeExpression(r))                      => NegativeExpression(DivisionExpression(l, r))
-    case DivisionExpression(NegativeExpression(l), r)                      => NegativeExpression(DivisionExpression(l, r))
+    case IR_DivisionExpression(IR_NegativeExpression(l), IR_NegativeExpression(r))  => IR_DivisionExpression(l, r)
+    case IR_DivisionExpression(l, IR_NegativeExpression(r))                         => IR_NegativeExpression(IR_DivisionExpression(l, r))
+    case IR_DivisionExpression(IR_NegativeExpression(l), r)                         => IR_NegativeExpression(IR_DivisionExpression(l, r))
 
-    case NegativeExpression(MaximumExpression(exps))                       => MinimumExpression(exps.transform { s => NegativeExpression(s) })
-    case NegativeExpression(MinimumExpression(exps))                       => MaximumExpression(exps.transform { s => NegativeExpression(s) })
+    case IR_NegativeExpression(IR_MaximumExpression(exps))                          => IR_MinimumExpression(exps.transform { s => IR_NegativeExpression(s) })
+    case IR_NegativeExpression(IR_MinimumExpression(exps))                          => IR_MaximumExpression(exps.transform { s => IR_NegativeExpression(s) })
 
     // Simplify vectors
-    case NegativeExpression(v : VectorExpression) =>
+    case IR_NegativeExpression(v : VectorExpression) =>
       VectorExpression(v.innerDatatype, v.expressions.map { x => NegativeExpression(x) }, v.rowVector)
 
     // Simplify matrices
-    case NegativeExpression(m : MatrixExpression) =>
-      MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => NegativeExpression(y) : Expression } })
+    case IR_NegativeExpression(m : MatrixExpression) =>
+      MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => IR_NegativeExpression(y) : Expression } })
 
-    case Scope(ListBuffer(Scope(body)))                                   => Scope(body)
+    case IR_Scope(ListBuffer(IR_Scope(body)))                                => IR_Scope(body)
 
-    case ConditionStatement(cond, ListBuffer(Scope(trueBody)), falseBody) => ConditionStatement(cond, trueBody, falseBody)
-    case ConditionStatement(cond, trueBody, ListBuffer(Scope(falseBody))) => ConditionStatement(cond, trueBody, falseBody)
-    case l @ ForLoopStatement(beg, end, inc, ListBuffer(Scope(body)), red) =>
+    case ConditionStatement(cond, ListBuffer(IR_Scope(trueBody)), falseBody) => ConditionStatement(cond, trueBody, falseBody)
+    case ConditionStatement(cond, trueBody, ListBuffer(IR_Scope(falseBody))) => ConditionStatement(cond, trueBody, falseBody)
+    case l @ ForLoopStatement(beg, end, inc, ListBuffer(IR_Scope(body)), red) =>
       l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
 
-    case EqEqExpression(IntegerConstant(left), IntegerConstant(right))         => BooleanConstant(left == right)
-    case NeqExpression(IntegerConstant(left), IntegerConstant(right))          => BooleanConstant(left != right)
-    case LowerExpression(IntegerConstant(left), IntegerConstant(right))        => BooleanConstant(left < right)
-    case LowerEqualExpression(IntegerConstant(left), IntegerConstant(right))   => BooleanConstant(left <= right)
-    case GreaterExpression(IntegerConstant(left), IntegerConstant(right))      => BooleanConstant(left > right)
-    case GreaterEqualExpression(IntegerConstant(left), IntegerConstant(right)) => BooleanConstant(left >= right)
+    case IR_EqEqExpression(IR_IntegerConstant(left), IR_IntegerConstant(right))         => IR_BooleanConstant(left == right)
+    case IR_NeqExpression(IR_IntegerConstant(left), IR_IntegerConstant(right))          => IR_BooleanConstant(left != right)
+    case IR_LowerExpression(IR_IntegerConstant(left), IR_IntegerConstant(right))        => IR_BooleanConstant(left < right)
+    case IR_LowerEqualExpression(IR_IntegerConstant(left), IR_IntegerConstant(right))   => IR_BooleanConstant(left <= right)
+    case IR_GreaterExpression(IR_IntegerConstant(left), IR_IntegerConstant(right))      => IR_BooleanConstant(left > right)
+    case IR_GreaterEqualExpression(IR_IntegerConstant(left), IR_IntegerConstant(right)) => IR_BooleanConstant(left >= right)
 
-    case NegationExpression(BooleanConstant(b))                                => BooleanConstant(!b)
+    case IR_NegationExpression(IR_BooleanConstant(b))                                   => IR_BooleanConstant(!b)
 
-    case NegationExpression(EqEqExpression(left, right))                       => NeqExpression(left, right)
-    case NegationExpression(NeqExpression(left, right))                        => EqEqExpression(left, right)
+    case IR_NegationExpression(IR_EqEqExpression(left, right))                          => IR_NeqExpression(left, right)
+    case IR_NegationExpression(IR_NeqExpression(left, right))                           => IR_EqEqExpression(left, right)
 
-    case NegationExpression(LowerExpression(left, right))                      => GreaterEqualExpression(left, right)
-    case NegationExpression(GreaterEqualExpression(left, right))               => LowerExpression(left, right)
-    case NegationExpression(LowerEqualExpression(left, right))                 => GreaterExpression(left, right)
-    case NegationExpression(GreaterExpression(left, right))                    => LowerEqualExpression(left, right)
+    case IR_NegationExpression(IR_LowerExpression(left, right))                         => IR_GreaterEqualExpression(left, right)
+    case IR_NegationExpression(IR_GreaterEqualExpression(left, right))                  => IR_LowerExpression(left, right)
+    case IR_NegationExpression(IR_LowerEqualExpression(left, right))                    => IR_GreaterExpression(left, right)
+    case IR_NegationExpression(IR_GreaterExpression(left, right))                       => IR_LowerEqualExpression(left, right)
 
-    case NegationExpression(AndAndExpression(left, right))                     => OrOrExpression(NegationExpression(left), NegationExpression(right))
-    case NegationExpression(OrOrExpression(left, right))                       => AndAndExpression(NegationExpression(left), NegationExpression(right))
+    case IR_NegationExpression(IR_AndAndExpression(left, right))                        => IR_OrOrExpression(IR_NegationExpression(left), IR_NegationExpression(right))
+    case IR_NegationExpression(IR_OrOrExpression(left, right))                          => IR_AndAndExpression(IR_NegationExpression(left), IR_NegationExpression(right))
 
-    case AndAndExpression(BooleanConstant(true), expr : Expression)            => expr
-    case AndAndExpression(expr : Expression, BooleanConstant(true))            => expr
-    case AndAndExpression(BooleanConstant(false), expr : Expression)           => BooleanConstant(false)
-    case AndAndExpression(expr : Expression, BooleanConstant(false))           => BooleanConstant(false)
+    case IR_AndAndExpression(IR_BooleanConstant(true), expr : IR_Expression)            => expr
+    case IR_AndAndExpression(expr : IR_Expression, IR_BooleanConstant(true))            => expr
+    case IR_AndAndExpression(IR_BooleanConstant(false), expr : IR_Expression)           => IR_BooleanConstant(false)
+    case IR_AndAndExpression(expr : IR_Expression, IR_BooleanConstant(false))           => IR_BooleanConstant(false)
 
-    case OrOrExpression(BooleanConstant(true), expr : Expression)              => BooleanConstant(true)
-    case OrOrExpression(expr : Expression, BooleanConstant(true))              => BooleanConstant(true)
-    case OrOrExpression(BooleanConstant(false), expr : Expression)             => expr
-    case OrOrExpression(expr : Expression, BooleanConstant(false))             => expr
+    case IR_OrOrExpression(IR_BooleanConstant(true), expr : IR_Expression)              => IR_BooleanConstant(true)
+    case IR_OrOrExpression(expr : IR_Expression, IR_BooleanConstant(true))              => IR_BooleanConstant(true)
+    case IR_OrOrExpression(IR_BooleanConstant(false), expr : IR_Expression)             => expr
+    case IR_OrOrExpression(expr : IR_Expression, IR_BooleanConstant(false))             => expr
 
-    case ConditionStatement(BooleanConstant(cond), tBranch, fBranch) => {
+    case ConditionStatement(IR_BooleanConstant(cond), tBranch, fBranch) => {
       if (cond) {
-        if (tBranch.isEmpty) NullStatement else tBranch
+        if (tBranch.isEmpty) IR_NullStatement else tBranch
       } else {
-        if (fBranch.isEmpty) NullStatement else fBranch
+        if (fBranch.isEmpty) IR_NullStatement else fBranch
       }
     }
   })
 
-  private def simplifyAdd(sum : Seq[Expression]) : Expression = {
+  private def simplifyAdd(sum : Seq[IR_Expression]) : IR_Expression = {
     var intCst : Long = 0L
     var floatCst : Double = 0d
     var vecExpr : VectorExpression = null
     var vecPos : Boolean = true
-    val workQ = new Queue[(Expression, Boolean)]()
-    val posSums = new ListBuffer[Expression]()
-    val negSums = new ListBuffer[Expression]()
+    val workQ = new Queue[(IR_Expression, Boolean)]()
+    val posSums = new ListBuffer[IR_Expression]()
+    val negSums = new ListBuffer[IR_Expression]()
     for (s <- sum) {
       workQ.enqueue((s, true)) // for nested AdditionExpressions; this allows in-order processing
       do {
         val (expr, pos) = workQ.dequeue()
         expr match {
-          case IntegerConstant(i)       => if (pos) intCst += i else intCst -= i
-          case FloatConstant(f)         => if (pos) floatCst += f else floatCst -= f
-          case AdditionExpression(sums) => workQ.enqueue(sums.view.map { x => (x, pos) } : _*)
-          case NegativeExpression(e)    => workQ.enqueue((e, !pos))
-          case SubtractionExpression(left, right) =>
+          case IR_IntegerConstant(i)       => if (pos) intCst += i else intCst -= i
+          case IR_RealConstant(f)          => if (pos) floatCst += f else floatCst -= f
+          case IR_AdditionExpression(sums) => workQ.enqueue(sums.view.map { x => (x, pos) } : _*)
+          case IR_NegativeExpression(e)    => workQ.enqueue((e, !pos))
+          case IR_SubtractionExpression(left, right) =>
             workQ.enqueue((left, pos))
             workQ.enqueue((right, !pos))
           // if some more simplifications with vectors or matrices are required, a similar approach than for a
@@ -255,14 +253,14 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
                 Logger.error("Vector types must match for addition")
               if (vecExpr.length != v.length)
                 Logger.error("Vector sizes must match for addition")
-              val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => NegationExpression(x) }
-              val vExprs = if (pos) v.expressions else v.expressions.view.map { x => NegationExpression(x) }
+              val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => IR_NegationExpression(x) }
+              val vExprs = if (pos) v.expressions else v.expressions.view.map { x => IR_NegationExpression(x) }
               vecExpr =
                 VectorExpression(Some(GetResultingDatatype2(vecExpr.datatype, v.innerDatatype.getOrElse(RealDatatype))),
-                  vecExprsView.zip(vExprs).map { x => x._1 + x._2 : Expression }.to[ListBuffer],
+                  vecExprsView.zip(vExprs).map { x => x._1 + x._2 : IR_Expression }.to[ListBuffer],
                   if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
             }
-          case e : Expression =>
+          case e : IR_Expression =>
             if (pos)
               posSums += e
             else
@@ -278,17 +276,17 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       //   which would lead to a non-terminating recursion
       // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
       if (cst > 0.0 || compactAST || posSums.isEmpty)
-        posSums += FloatConstant(cst)
+        posSums += IR_RealConstant(cst)
       else
-        negSums += FloatConstant(-cst)
+        negSums += IR_RealConstant(-cst)
     } else if (intCst != 0L)
       // if compactAST is set, no SubtractionExpression is created, so prevent creating a Neg(Const),
       //   which would lead to a non-terminating recursion
       // if posSums is empty we do not want to add the constant to the negSums, which would also result in a Neg(Const) -> non-terminating
       if (intCst > 0 || compactAST || posSums.isEmpty)
-        posSums += IntegerConstant(intCst)
+        posSums += IR_IntegerConstant(intCst)
       else
-        negSums += IntegerConstant(-intCst)
+        negSums += IR_IntegerConstant(-intCst)
 
     if (vecExpr != null) {
       if (posSums.isEmpty && negSums.isEmpty)
@@ -297,39 +295,39 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         Logger.error("Unable to add VectorExpression with other Expression types")
 
     } else if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
-      return (posSums ++= negSums.transform(x => NegativeExpression(x)) += IntegerConstant(0L)).head
+      return (posSums ++= negSums.transform(x => IR_NegativeExpression(x)) += IR_IntegerConstant(0L)).head
 
     } else if (posSums.length * negSums.length == 0 || compactAST) { // if compactAST is set do not create any SubtractionExpression
-      return AdditionExpression(posSums ++= negSums.transform(x => NegativeExpression(x)))
+      return IR_AdditionExpression(posSums ++= negSums.transform(x => IR_NegativeExpression(x)))
 
     } else {
-      val posExpr = if (posSums.length == 1) posSums.head else new AdditionExpression(posSums)
-      val negExpr = if (negSums.length == 1) negSums.head else new AdditionExpression(negSums)
-      return SubtractionExpression(posExpr, negExpr)
+      val posExpr = if (posSums.length == 1) posSums.head else new IR_AdditionExpression(posSums)
+      val negExpr = if (negSums.length == 1) negSums.head else new IR_AdditionExpression(negSums)
+      return IR_SubtractionExpression(posExpr, negExpr)
     }
   }
 
-  private def simplifyMult(facs : Seq[Expression]) : Expression = {
+  private def simplifyMult(facs : Seq[IR_Expression]) : IR_Expression = {
     var intCst : Long = 1L
     var floatCst : Double = 1d
-    val workQ = new Queue[Expression]()
-    val remA = new ArrayBuffer[Expression]() // use ArrayBuffer here for a more efficient access to the last element
-    var div : DivisionExpression = null
+    val workQ = new Queue[IR_Expression]()
+    val remA = new ArrayBuffer[IR_Expression]() // use ArrayBuffer here for a more efficient access to the last element
+    var div : IR_DivisionExpression = null
     for (f <- facs) {
       workQ.enqueue(f) // for nested MultiplicationExpression; this allows in-order processing
       do {
         val expr = workQ.dequeue()
         expr match {
-          case IntegerConstant(iv) => intCst *= iv
-          case FloatConstant(fv)   => floatCst *= fv
-          case NegativeExpression(e) =>
+          case IR_IntegerConstant(iv) => intCst *= iv
+          case IR_RealConstant(fv)    => floatCst *= fv
+          case IR_NegativeExpression(e) =>
             workQ.enqueue(e)
             intCst = -intCst
-          case MultiplicationExpression(iFacs) =>
+          case IR_MultiplicationExpression(iFacs) =>
             workQ.enqueue(iFacs : _*)
-          case d @ DivisionExpression(FloatConstant(fv), _) =>
+          case d @ IR_DivisionExpression(IR_RealConstant(fv), _) =>
             floatCst *= fv
-            d.left = FloatConstant(1.0)
+            d.left = IR_RealConstant(1.0)
             if (div == null)
               div = d
             remA += d
@@ -339,32 +337,32 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
             else
               // merging with one previous only is sufficient, if simplifyMult only matches first arg with vect/mat types
               remA ++= simplifyBinMult(remA.last, expr)
-          case r : Expression =>
+          case r : IR_Expression =>
             remA += r
         }
       } while (!workQ.isEmpty)
     }
     val rem = remA.to[ListBuffer]
-    var cstDt : Option[Datatype] = None
+    var cstDt : Option[IR_Datatype] = None
     val negative : Boolean = floatCst * intCst < 0d
     floatCst = math.abs(floatCst)
     intCst = math.abs(intCst)
     if (floatCst * intCst == 0d) {
       rem.clear()
-      rem += new IntegerConstant(0L) // TODO: fix type
+      rem += new IR_IntegerConstant(0L) // TODO: fix type
     } else if (div != null) {
-      div.left = FloatConstant(floatCst * intCst)
+      div.left = IR_RealConstant(floatCst * intCst)
     } else if (floatCst != 1d) {
-      FloatConstant(floatCst * intCst) +=: rem // add constant at first position (it is expected as rem.head later)
-      cstDt = Some(RealDatatype)
+      IR_RealConstant(floatCst * intCst) +=: rem // add constant at first position (it is expected as rem.head later)
+      cstDt = Some(IR_RealDatatype)
     } else if (intCst != 1L) {
-      IntegerConstant(intCst) +=: rem // add constant at first position (it is expected as rem.head later)
-      cstDt = Some(IntegerDatatype)
+      IR_IntegerConstant(intCst) +=: rem // add constant at first position (it is expected as rem.head later)
+      cstDt = Some(IR_IntegerDatatype)
     }
 
-    var result : Expression = null
+    var result : IR_Expression = null
     if (rem.isEmpty) {
-      result = IntegerConstant(1L) // TODO: fix type
+      result = IR_IntegerConstant(1L) // TODO: fix type
 
     } else if (rem.length == 1 || floatCst * intCst == 0d) {
       result = rem.head
@@ -372,33 +370,34 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     } else {
       if (cstDt.isDefined) {
         var found : Boolean = false
-        val coeff : Expression = rem.head // this must be the constant factor (as added a few lines above)
+        val coeff : IR_Expression = rem.head // this must be the constant factor (as added a few lines above)
         rem.transform {
           case v : VectorExpression if (!found) =>
             found = true
             VectorExpression(GetResultingDatatype(cstDt, v.innerDatatype), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
           case m : MatrixExpression if (!found) =>
             found = true
-            MatrixExpression(GetResultingDatatype(cstDt, m.innerDatatype), m.expressions.map(_.map(Duplicate(coeff) * _ : Expression)))
-          case x => x
+            MatrixExpression(GetResultingDatatype(cstDt, m.innerDatatype), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
+          case x =>
+            x
         }
         if (found)
           rem.remove(0)
       }
-      result = MultiplicationExpression(rem)
+      result = IR_MultiplicationExpression(rem)
     }
 
     if (negative)
-      result = NegativeExpression(result)
+      result = IR_NegativeExpression(result)
     return result
   }
 
-  private def simplifyBinMult(le : Expression, ri : Expression) : Seq[Expression] = {
+  private def simplifyBinMult(le : IR_Expression, ri : IR_Expression) : Seq[IR_Expression] = {
     (le, ri) match { // matching for constants is not required here (this is already handled by the caller)
       case (left : VectorExpression, right : VectorExpression) =>
         if (left.length != right.length) Logger.error("Vector sizes must match for multiplication")
         if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for multiplication")
-        List(AdditionExpression(left.expressions.view.zip(right.expressions).map { x => x._1 * x._2 : Expression }.to[ListBuffer]))
+        List(IR_AdditionExpression(left.expressions.view.zip(right.expressions).map { x => x._1 * x._2 : IR_Expression }.to[ListBuffer]))
       case (left, right) =>
         List(left, right)
     }
@@ -454,11 +453,11 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   })
 
   this += new Transformation("Removing obsolete references", {
-    case FunctionCallExpression(fName, _) if emptyFunctions.contains(fName) => NullExpression
+    case FunctionCallExpression(fName, _) if emptyFunctions.contains(fName) => IR_NullExpression
   })
 
   this += new Transformation("Removing empty scopes", {
-    case Scope(ListBuffer()) => None
+    case IR_Scope(ListBuffer()) => None
   })
 
   //  this += new Transformation("Removing null-statements", {
@@ -480,20 +479,20 @@ object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) 
 
     vectors.foreach(vector => {
       if (vector.isConstant) {
-        val reals = vector.expressions.count(_.isInstanceOf[FloatConstant])
-        val ints = vector.expressions.count(_.isInstanceOf[IntegerConstant])
+        val reals = vector.expressions.count(_.isInstanceOf[IR_RealConstant])
+        val ints = vector.expressions.count(_.isInstanceOf[IR_IntegerConstant])
         if (ints > 0 && reals > 0) {
-          vector.expressions = vector.expressions.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v))
+          vector.expressions = vector.expressions.map(e => if (e.isInstanceOf[IR_RealConstant]) e; else IR_RealConstant(e.asInstanceOf[IR_IntegerConstant].v))
         }
       }
     })
 
     matrices.foreach(matrix => {
       if (matrix.isConstant) {
-        val reals = matrix.expressions.flatten[Expression].count(_.isInstanceOf[FloatConstant])
-        val ints = matrix.expressions.flatten[Expression].count(_.isInstanceOf[IntegerConstant])
+        val reals = matrix.expressions.flatten[IR_Expression].count(_.isInstanceOf[IR_RealConstant])
+        val ints = matrix.expressions.flatten[IR_Expression].count(_.isInstanceOf[IR_IntegerConstant])
         if (ints > 0 && reals > 0) {
-          matrix.expressions = matrix.expressions.map(_.map(e => if (e.isInstanceOf[FloatConstant]) e; else FloatConstant(e.asInstanceOf[IntegerConstant].v)))
+          matrix.expressions = matrix.expressions.map(_.map(e => if (e.isInstanceOf[IR_RealConstant]) e; else IR_RealConstant(e.asInstanceOf[IR_IntegerConstant].v)))
         }
       }
     })
@@ -501,9 +500,9 @@ object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) 
 }
 
 object GatherFieldAccessOffsets extends QuietDefaultStrategy("Gathering field access offsets honoring reference offsets") {
-  var accesses = HashMap[String, ListBuffer[MultiIndex]]()
+  var accesses = HashMap[String, ListBuffer[IR_ExpressionIndex]]()
 
-  def addAccess(key : String, index : MultiIndex) = {
+  def addAccess(key : String, index : IR_ExpressionIndex) = {
     if (!accesses.contains(key)) accesses.put(key, ListBuffer())
     accesses(key) += index
   }

@@ -1,10 +1,8 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.TreeSet
+import scala.collection.mutable._
 
+import exastencils.base.ir._
 import exastencils.datastructures.ir._
 import isl.Conversions._
 
@@ -19,7 +17,7 @@ class Scop(val root : LoopOverDimensions with PolyhedronAccessible, var localCon
   def getContext() : isl.Set = localContext.intersect(globalContext)
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
-  val stmts = new HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])]()
+  val stmts = new HashMap[String, (ListBuffer[IR_Statement], ArrayBuffer[String])]()
   val decls = new ListBuffer[VariableDeclarationStatement]()
 
   final val loopVarTempl : String = "_i%d"
@@ -110,22 +108,22 @@ class Scop(val root : LoopOverDimensions with PolyhedronAccessible, var localCon
 object ScopNameMapping {
 
   private var count : Int = 0
-  private final val id2expr = new HashMap[String, Expression]()
-  private final val expr2id = new HashMap[Expression, String]()
+  private final val id2expr = new HashMap[String, IR_Expression]()
+  private final val expr2id = new HashMap[IR_Expression, String]()
 
-  def id2expr(id : String) : Option[Expression] = {
+  def id2expr(id : String) : Option[IR_Expression] = {
     return id2expr.get(id)
   }
 
-  def expr2id(expr : Expression, alias : Expression = null) : String = {
+  def expr2id(expr : IR_Expression, alias : IR_Expression = null) : String = {
     return expr2id.getOrElseUpdate(expr, {
       val id : String =
         if (alias != null && expr2id.contains(alias))
           expr2id(alias)
         else expr match {
-          case VariableAccess(str, _) if (str.length() < 5) =>
+          case IR_VariableAccess(str, _) if (str.length() < 5) =>
             str
-          case _ =>
+          case _                                               =>
             count += 1
             "p" + count
         }

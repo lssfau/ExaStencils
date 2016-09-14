@@ -2,20 +2,20 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.communication._
 import exastencils.core._
-import exastencils.core.collectors.IRLevelCollector
-import exastencils.core.collectors.StackCollector
+import exastencils.core.collectors._
 import exastencils.cuda._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
-import exastencils.util._
 import exastencils.strategies.ReplaceStringConstantsStrategy
+import exastencils.util._
 
 object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
   val collector = new IRLevelCollector
@@ -86,7 +86,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression("diag", args) => args(0) match {
       case access : StencilAccess =>
-        val centralOffset = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
+        val centralOffset = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(0))
         access.stencil.findStencilEntry(centralOffset).get.coefficient
       case access : StencilFieldAccess => {
         var index = Duplicate(access.index)
@@ -118,22 +118,22 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     // functions
 
     // HACK to implement min/max functions
-    case FunctionCallExpression("min", args) => MinimumExpression(args)
-    case FunctionCallExpression("max", args) => MaximumExpression(args)
+    case FunctionCallExpression("min", args) => IR_MinimumExpression(args)
+    case FunctionCallExpression("max", args) => IR_MaximumExpression(args)
 
     // FIXME: UGLY HACK to realize native code functionality
     case FunctionCallExpression("native", args) =>
-      StringLiteral(args(0).asInstanceOf[StringConstant].value)
+      IR_StringLiteral(args(0).asInstanceOf[IR_StringConstant].value)
 
     case FunctionCallExpression("concat", args) =>
-      new ConcatenationExpression(args.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value) else a))
+      new ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
-    case ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
-      ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
+    case IR_ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
+      IR_ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
 
-    case ExpressionStatement(FunctionCallExpression("stopTimer", args)) =>
-      ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
+    case IR_ExpressionStatement(FunctionCallExpression("stopTimer", args)) =>
+      IR_ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
 
     case FunctionCallExpression("getMeanFromTimer", args) =>
       FunctionCallExpression("getMeanTime", ListBuffer(iv.Timer(args(0))))
@@ -155,7 +155,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       if (!x.isConstant || !y.isConstant) {
         f // do nothing for vectors containing variable expressions
       } else {
-        val r = ListBuffer[Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
+        val r = ListBuffer[IR_Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
         VectorExpression(x.innerDatatype, r, x.rowVector)
       }
     }
@@ -205,9 +205,9 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     }
 
     // HACK for print functionality
-    case ExpressionStatement(FunctionCallExpression("print", args)) =>
+    case IR_ExpressionStatement(FunctionCallExpression("print", args)) =>
       new PrintStatement(args)
-    case ExpressionStatement(FunctionCallExpression("printField", args)) => {
+    case IR_ExpressionStatement(FunctionCallExpression("printField", args)) => {
       args.length match {
         case 1 => // option 1: only field -> deduce name
           new PrintFieldStatement("\"" + args(0).asInstanceOf[FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[FieldAccess].fieldSelection)
@@ -218,14 +218,14 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       }
     }
 
-    case ExpressionStatement(FunctionCallExpression("buildString", args)) =>
+    case IR_ExpressionStatement(FunctionCallExpression("buildString", args)) =>
       new BuildStringStatement(args(0), args.slice(1, args.size))
 
     // FIXME: HACK to realize application functionality
     case func : FunctionStatement if ("Application" == func.name) => {
-      func.returntype = IntegerDatatype
+      func.returntype = IR_IntegerDatatype
       func.name = "main"
-      func.parameters = ListBuffer(FunctionArgument("argc", IntegerDatatype), FunctionArgument("argv", SpecialDatatype("char**"))) ++ func.parameters
+      func.parameters = ListBuffer(FunctionArgument("argc", IR_IntegerDatatype), FunctionArgument("argv", IR_SpecialDatatype("char**"))) ++ func.parameters
       func.allowFortranInterface = false
       //if (true) {
       //func.body.append(new ConditionStatement(new MPI_IsRootProc,
@@ -244,7 +244,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         func.body.prepend(new MPI_Init)
         func.body.append(new MPI_Finalize)
       }
-      func.body.append(new ReturnStatement(Some(new IntegerConstant(0))))
+      func.body.append(new ReturnStatement(Some(new IR_IntegerConstant(0))))
       func
     }
 
@@ -278,11 +278,11 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
-    case ElementwiseAdditionExpression(left, right)       => FunctionCallExpression("elementwiseAdd", ListBuffer(left, right))
-    case ElementwiseSubtractionExpression(left, right)    => FunctionCallExpression("elementwiseSub", ListBuffer(left, right))
-    case ElementwiseMultiplicationExpression(left, right) => FunctionCallExpression("elementwiseMul", ListBuffer(left, right))
-    case ElementwiseDivisionExpression(left, right)       => FunctionCallExpression("elementwiseDiv", ListBuffer(left, right))
-    case ElementwiseModuloExpression(left, right)         => FunctionCallExpression("elementwiseMod", ListBuffer(left, right))
-    case FunctionCallExpression("dot", args)              => FunctionCallExpression("dotProduct", args)
+    case IR_ElementwiseAdditionExpression(left, right)       => FunctionCallExpression("elementwiseAdd", ListBuffer(left, right))
+    case IR_ElementwiseSubtractionExpression(left, right)    => FunctionCallExpression("elementwiseSub", ListBuffer(left, right))
+    case IR_ElementwiseMultiplicationExpression(left, right) => FunctionCallExpression("elementwiseMul", ListBuffer(left, right))
+    case IR_ElementwiseDivisionExpression(left, right)       => FunctionCallExpression("elementwiseDiv", ListBuffer(left, right))
+    case IR_ElementwiseModuloExpression(left, right)         => FunctionCallExpression("elementwiseMod", ListBuffer(left, right))
+    case FunctionCallExpression("dot", args)                 => FunctionCallExpression("dotProduct", args)
   })
 }

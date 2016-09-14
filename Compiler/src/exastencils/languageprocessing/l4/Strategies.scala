@@ -1,12 +1,12 @@
 package exastencils.languageprocessing.l4
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Node => _, _ }
 
+import exastencils.base.l4._
 import exastencils.core._
 import exastencils.core.collectors._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.knowledge
 import exastencils.logger._
@@ -58,13 +58,13 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     "vf_cellCenterToFace_x", "vf_cellCenterToFace_y", "vf_cellCenterToFace_z").map(_.toLowerCase())
 
-  def resolveParameterToConstant(obj : AnyRef, ident : String) : Expression = {
+  def resolveParameterToConstant(obj : AnyRef, ident : String) : L4_Expression = {
     val ret = obj.getClass.getMethod(ident).invoke(obj)
 
-    if (ret.isInstanceOf[Int]) IntegerConstant(ret.asInstanceOf[Int])
-    else if (ret.isInstanceOf[Float]) FloatConstant(ret.asInstanceOf[Float])
-    else if (ret.isInstanceOf[Boolean]) BooleanConstant(ret.asInstanceOf[Boolean])
-    else if (ret.isInstanceOf[String]) StringConstant(ret.asInstanceOf[String])
+    if (ret.isInstanceOf[Int]) L4_IntegerConstant(ret.asInstanceOf[Int])
+    else if (ret.isInstanceOf[Float]) L4_RealConstant(ret.asInstanceOf[Float])
+    else if (ret.isInstanceOf[Boolean]) L4_BooleanConstant(ret.asInstanceOf[Boolean])
+    else if (ret.isInstanceOf[String]) L4_StringConstant(ret.asInstanceOf[String])
     else Logger.error(s"Trying to access parameter $ident from L4 with unsupported type")
   }
 
@@ -94,7 +94,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     this.unregister(valueCollector)
 
     // resolve globals (lower precendence than local values!)
-    val globalVals = collection.mutable.HashMap[String, Expression]()
+    val globalVals = collection.mutable.HashMap[String, L4_Expression]()
     StateManager.root_.asInstanceOf[l4.Root].globals.foreach(g => g.values.foreach(x => x.identifier match {
       case v : LeveledIdentifier => globalVals += ((v.name + "@@" + v.level, x.expression))
       case _                     => globalVals += ((x.identifier.name, x.expression))
@@ -120,7 +120,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     // resolve accesses
     this.execute(new Transformation("Resolve AccessSpecifications", {
-      case access : UnresolvedAccess =>
+      case access : L4_UnresolvedAccess =>
         if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
           access.resolveToFieldAccess
         else if (virtualFields.contains(access.name.toLowerCase()))
@@ -134,31 +134,31 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     this.execute(new Transformation("special functions and constants", {
       // get knowledge/settings/platform
-      case FunctionCallExpression(BasicAccess("getKnowledge"), List(StringConstant(ident))) =>
+      case FunctionCallExpression(BasicAccess("getKnowledge"), List(L4_StringConstant(ident))) =>
         resolveParameterToConstant(knowledge.Knowledge, ident)
-      case FunctionCallExpression(BasicAccess("getSetting"), List(StringConstant(ident))) =>
+      case FunctionCallExpression(BasicAccess("getSetting"), List(L4_StringConstant(ident))) =>
         resolveParameterToConstant(Settings, ident)
-      case FunctionCallExpression(BasicAccess("getPlatform"), List(StringConstant(ident))) =>
+      case FunctionCallExpression(BasicAccess("getPlatform"), List(L4_StringConstant(ident))) =>
         resolveParameterToConstant(knowledge.Platform, ident)
 
       // levelIndex
-      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List())      => IntegerConstant(level)
-      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List())  => IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level)), List()) => StringConstant(level.toString())
+      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List())      => L4_IntegerConstant(level)
+      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List())  => L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
+      case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level)), List()) => L4_StringConstant(level.toString())
 
       // constants
-      case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi")                                   => FloatConstant(math.Pi)
+      case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi")                                   => L4_RealConstant(math.Pi)
     }))
 
     this.execute(new Transformation("Resolving string constants to literals", {
       case f : FunctionCallExpression =>
         f.identifier.name match {
-          case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "getMeanFromTimer"  => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "getMeanTime"       => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "getTotalFromTimer" => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
-          case "getTotalTime"      => f.arguments = f.arguments.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value); else a)
+          case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "getMeanFromTimer"  => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "getMeanTime"       => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "getTotalFromTimer" => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
+          case "getTotalTime"      => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
           case _                   =>
         }
         f
@@ -186,7 +186,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 }
 
 object ReplaceExpressions extends DefaultStrategy("Replace something with something else") {
-  var replacements : Map[String, Expression] = Map()
+  var replacements : Map[String, L4_Expression] = Map()
 
   override def applyStandalone(node : Node) = {
     val oldLvl = Logger.getLevel
@@ -196,11 +196,11 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
   }
 
   this += new Transformation("SearchAndReplace", {
-    case origAccess : UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
+    case origAccess : L4_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
       // includes accesses used as identifiers in function calls
       var newAccess = Duplicate(replacements.get(origAccess.name).get)
       newAccess match {
-        case newAccess : UnresolvedAccess => {
+        case newAccess : L4_UnresolvedAccess => {
           if (origAccess.slot.isDefined) {
             if (newAccess.slot.isDefined) Logger.warn("Overriding slot on access in function instantiation")
             newAccess.slot = origAccess.slot
@@ -236,7 +236,7 @@ object ResolveFunctionTemplates extends DefaultStrategy("Resolving function temp
       if (template.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${functionInst.templateName}")
       var instantiated = Duplicate(FunctionStatement(functionInst.targetFct, template.get.returntype, template.get.functionArgs, template.get.statements))
 
-      ReplaceExpressions.replacements = (template.get.templateArgs zip functionInst.args).toMap[String, Expression]
+      ReplaceExpressions.replacements = Map() ++ (template.get.templateArgs zip functionInst.args).toMap[String, L4_Expression]
       ReplaceExpressions.applyStandalone(instantiated)
       StateManager.root.asInstanceOf[Root].functions += instantiated
       None
@@ -251,12 +251,14 @@ object ResolveFunctionTemplates extends DefaultStrategy("Resolving function temp
 }
 
 object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundaryHandlingFunctions") {
+
   case class CombinedIdentifier(var name : String, var level : Int) {}
+
   def fromIdentifier(ident : Identifier) : CombinedIdentifier = {
     val level = ident.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
     CombinedIdentifier(ident.name, level)
   }
-  def fromLeveledAccess(access : Access) : CombinedIdentifier = {
+  def fromLeveledAccess(access : L4_Access) : CombinedIdentifier = {
     val level = access.asInstanceOf[LeveledAccess].level.asInstanceOf[SingleLevelSpecification].level
     CombinedIdentifier(access.asInstanceOf[LeveledAccess].name, level)
   }
@@ -288,7 +290,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
                 && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
               case _ => false
             }).get.asInstanceOf[FunctionStatement]
-          if (fctDecl.returntype eq UnitDatatype) {
+          if (fctDecl.returntype eq L4_UnitDatatype) {
             bcs(fromIdentifier(field.identifier)) = fctCall
           }
         }

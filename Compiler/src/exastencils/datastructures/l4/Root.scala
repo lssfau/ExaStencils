@@ -2,6 +2,7 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.l4.L4_Statement
 import exastencils.datastructures._
 import exastencils.globals._
 import exastencils.knowledge._
@@ -19,7 +20,7 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
   var globals : ListBuffer[GlobalDeclarationStatement] = new ListBuffer()
   var functionTemplates : ListBuffer[FunctionTemplateStatement] = new ListBuffer()
   var functions : ListBuffer[FunctionStatement] = new ListBuffer()
-  var statements : ListBuffer[Statement] = new ListBuffer()
+  var statements : ListBuffer[L4_Statement] = new ListBuffer()
 
   nodes.foreach(n => n match {
     case p : DomainDeclarationStatement        => domains.+=(p)
@@ -31,7 +32,7 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
     case p : GlobalDeclarationStatement        => globals.+=(p)
     case p : FunctionTemplateStatement         => functionTemplates.+=(p)
     case p : FunctionStatement                 => functions.+=(p)
-    case p : Statement                         => statements.+=(p)
+    case p : L4_Statement                      => statements.+=(p)
   })
 
   // set domain indices -> just number consecutively
@@ -70,48 +71,48 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
       out <<< (statements, "\n") << '\n'
   }
 
-  override def progressToIr : Node = {
+  override def progress : Node = {
     var newRoot = new ir.Root
 
     // Domains
     DomainCollection.domains.clear
     for (domain <- domains)
-      DomainCollection.domains += domain.progressToIr
+      DomainCollection.domains += domain.progress
 
     // FieldLayouts
     FieldLayoutCollection.fieldLayouts.clear
     if (!Knowledge.ir_genSepLayoutsPerField) {
       for (fieldLayout <- fieldLayouts)
-        FieldLayoutCollection.fieldLayouts += fieldLayout.progressToIr("")
+        FieldLayoutCollection.fieldLayouts += fieldLayout.progress("")
     }
 
     // Fields => requires Domains and FieldLayouts
     FieldCollection.fields.clear
     for (field <- fields)
-      FieldCollection.fields += field.progressToIr
+      FieldCollection.fields += field.progress
 
     // Stencils
     StencilCollection.stencils.clear
     for (stencil <- stencils)
-      StencilCollection.stencils += stencil.progressToIr
+      StencilCollection.stencils += stencil.progress
 
     // StencilFields => requires Fields and Stencils
     StencilFieldCollection.stencilFields.clear
     for (stencilField <- stencilFields)
-      StencilFieldCollection.stencilFields += stencilField.progressToIr
+      StencilFieldCollection.stencilFields += stencilField.progress
 
     // ExternalFields => requires Fields
     ExternalFieldCollection.fields.clear
     for (extField <- externalFields)
-      ExternalFieldCollection.fields += extField.progressToIr
+      ExternalFieldCollection.fields += extField.progress
 
     // Globals
     var progGlobals = new Globals(new ListBuffer)
-    globals.foreach(f => progGlobals.variables ++= f.progressToIr)
+    globals.foreach(f => progGlobals.variables ++= f.progress)
     newRoot += progGlobals
 
     var multiGrid = new MultiGridFunctions // FIXME: think about how to manage (MG/other) functions
-    functions.foreach(multiGrid.functions += _.progressToIr)
+    functions.foreach(multiGrid.functions += _.progress)
     newRoot += multiGrid
 
     newRoot

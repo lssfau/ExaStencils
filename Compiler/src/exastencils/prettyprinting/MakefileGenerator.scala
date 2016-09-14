@@ -3,6 +3,8 @@ package exastencils.prettyprinting
 import exastencils.core._
 import exastencils.knowledge._
 
+import scala.collection.mutable.ListBuffer
+
 object MakefileGenerator extends BuildfileGenerator {
   override def write : Unit = {
     val printer = PrettyprintingManager.getPrinter("Makefile")
@@ -10,100 +12,136 @@ object MakefileGenerator extends BuildfileGenerator {
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
     val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
     val cuFileNames = filesToConsider.filter(file => file.endsWith(".cu")).toList.sorted
+    val cppObjectFiles = cppFileNames.map(fn => fn.replace(".cpp", ".o"))
+    val cuObjectFiles = cuFileNames.map(fn => fn.replace(".cu", ".o"))
+    val allObjectFiles =
+      if (Knowledge.cuda_enabled) cppObjectFiles ++ cuObjectFiles
+      else cppObjectFiles
+
 
     printer <<< "CXX = " + Platform.resolveCompiler
     if (Knowledge.cuda_enabled)
-      printer <<< "CUDAXX = " + Platform.resolveCudaCompiler
+      printer <<< "NVCC = " + Platform.resolveCudaCompiler
     printer <<< ""
 
-    printer <<< "CFLAGS = " + Platform.resolveCFlags + " " +
-      Settings.makefile_additionalCFlags + " " +
-      Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " +
-      Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
+    printer <<< mkStringTrimFlat(
+      "CXXFLAGS =",
+      Platform.resolveCFlags,
+      Settings.makefile_additionalCFlags,
+      Settings.pathsInc.map(path => s"-I$path"),
+      Settings.additionalDefines.map(path => s"-D$path"),
+      "-I."
+    )
     if (Knowledge.cuda_enabled)
-      printer <<< "CUDAFLAGS = " + Platform.resolveCudaFlags + " " +
-        Settings.pathsInc.map(path => s"-I$path").mkString(" ") + " " // TODO: TPDL
-    printer <<< "LFLAGS = " + Platform.resolveLdFlags + " " +
-      Settings.makefile_additionalLDFlags + " " +
-      Settings.pathsLib.map(path => s"-L$path").mkString(" ") + " " +
-      Settings.additionalDefines.map(path => s"-D$path").mkString(" ")
+      printer <<< mkStringTrimFlat(  // TODO: TPDL
+        "CUDAFLAGS =",
+        Platform.resolveCudaFlags,
+        Settings.makefile_additionalCudaFlags,
+        Settings.pathsInc.map(path => s"-I$path"),
+        "-I."
+      )
+    printer <<<  mkStringTrimFlat(
+      "LDFLAGS =",
+      Platform.resolveLdFlags,
+      Settings.makefile_additionalLDFlags,
+      Settings.pathsLib.map(path => s"-L$path"),
+      Settings.additionalDefines.map(path => s"-D$path")
+    )
+    printer <<< ""
+
+    printer <<< mkStringTrimFlat("ALL_OBJ =", allObjectFiles)
     printer <<< ""
 
     printer <<< "BINARY = " + Settings.binary
     printer <<< ""
 
+    if (Knowledge.cuda_enabled) {
+      printer <<< "# define implicit rule for CUDA targets"
+      printer <<< "%.o : %.cu"
+      printer <<< "\t${NVCC} ${CUDAFLAGS} -c -o $@ $<"
+      printer <<< ""
+    }
+
     printer <<< ".PHONY: all"
-    printer << "all: ${BINARY}"
+    val allTarget = ListBuffer("all:", "${BINARY}")
     if (Settings.makefile_makeLibs)
-      printer << " ${BINARY}.a"
-    printer <<< ""
+      allTarget += "${BINARY}.a"
+    printer <<< mkStringTrimFlat(allTarget)
     printer <<< ""
 
     printer <<< ".PHONY: clean"
     printer <<< "clean:"
-    printer << "\trm -f "
-    cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
-    if (Knowledge.cuda_enabled)
-      cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
-    printer <<< "${BINARY}"
+    val cleanTargetCmd = ListBuffer("rm -f", "${BINARY}", "${ALL_OBJ}")
+    if (Settings.makefile_makeLibs)
+      cleanTargetCmd += "${BINARY}.a"
+    printer <<< "\t" + mkStringTrimFlat(cleanTargetCmd)
     printer <<< ""
 
-    printer << "${BINARY}: "
-    cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
-    if (Knowledge.cuda_enabled)
-      cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
-    printer <<< ""
-    printer << "\t${CXX}"
-    printer << " -o ${BINARY} -I. "
-    cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
-    if (Knowledge.cuda_enabled)
-      cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
-    Settings.additionalLibs.foreach(lib => { printer << s"-l$lib " })
-    printer <<< " ${LFLAGS}"
+    printer <<< mkStringTrimFlat("${BINARY}:", "${ALL_OBJ}")
+    printer <<< "\t" + mkStringTrimFlat(
+      "${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}",  Settings.additionalLibs.map(lib => s"-l$lib")
+    )
     printer <<< ""
 
     if (Settings.makefile_makeLibs) {
-      printer << "${BINARY}.a: "
-      cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
-      if (Knowledge.cuda_enabled)
-        cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
-      printer <<< ""
-      printer << "\tar -cvr ${BINARY}.a "
-      cppFileNames.foreach(file => { printer << s"${file.replace(".cpp", ".o")} " })
-      if (Knowledge.cuda_enabled)
-        cuFileNames.foreach(file => { printer << s"${file.replace(".cu", ".o")} " })
-      Settings.additionalLibs.foreach(lib => { printer << s"-l$lib " })
-      printer <<< " ${LFLAGS}"
+      printer <<< mkStringTrimFlat("${BINARY}.a:", "${ALL_OBJ}")
+      printer <<< "\t" + mkStringTrimFlat("ar -cvr ${BINARY}.a", "${ALL_OBJ}")
       printer <<< ""
     }
-
     printer <<< ""
 
-    PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cpp")).toList.sortBy(f => f.filename).foreach(pp => {
-      printer << s"${pp.filename.replace(".cpp", ".o")}: ${pp.filename} "
-      PrettyprintingManager.Prettyprinter.gatherDependencies(pp).foreach(dep => printer << s"$dep ")
-      printer <<< " "
-      printer <<< "\t${CXX} ${CFLAGS} -c -o " + pp.filename.replace(".cpp", ".o") + " -I. " + pp.filename
+    printer <<< "# begin: C++ targets"
+    val cppPrettyPrinters = PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cpp"))
+      .toList.sortBy(f => f.filename)
+    cppPrettyPrinters.foreach(pp => {
+      printer <<< mkStringTrimFlat(
+        pp.filename.replace(".cpp", ".o"), ":", pp.filename,
+        PrettyprintingManager.Prettyprinter.gatherDependencies(pp)
+      )
     })
+    printer <<< "# end: C++ targets"
+    printer <<< ""
 
+    printer <<< "# begin: additionalFiles targets"
     // no information about dependecies => just compiling is the best we can do
     Settings.additionalFiles.filter(file => file.endsWith(".cpp")).toList.sorted.foreach(file => {
-      printer <<< s"${file.replace(".cpp", ".o")}: ${file} "
-      printer <<< "\t${CXX} ${CFLAGS} -c -o " + file.replace(".cpp", ".o") + " -I. " + file
+      printer <<< mkStringTrimFlat(file.replace(".cpp", ".o"), ":", file)
     })
+    printer <<< "# end: additionalFiles targets"
+    printer <<< ""
+
 
     if (Knowledge.cuda_enabled) {
-      PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cu")).toList.sortBy(f => f.filename).foreach(pp => {
-        printer << s"${pp.filename.replace(".cu", ".o")}: ${pp.filename} "
-        PrettyprintingManager.Prettyprinter.gatherDependencies(pp).foreach(dep => printer << s"$dep ")
-        printer <<< " "
-        printer <<< "\t${CUDAXX} ${CUDAFLAGS} -c -o " + pp.filename.replace(".cu", ".o") + " -I. " + pp.filename
+      printer <<< "# begin: CUDA targets"
+      val cudaPrettyPrinters = PrettyprintingManager.getPrettyprinters.filter(pp => pp.filename.endsWith(".cu"))
+        .toList.sortBy(f => f.filename)
+      cudaPrettyPrinters.foreach(pp => {
+        printer <<< mkStringTrimFlat(
+          pp.filename.replace(".cu", ".o"), ":", pp.filename,
+          PrettyprintingManager.Prettyprinter.gatherDependencies(pp)
+        )
       })
+      printer <<< "# end: CUDA targets"
+      printer <<< ""
     }
 
-    printer <<< ""
-    printer <<< ""
-
     printer.finish
+  }
+
+  /** Concatenates a variable number of Strings or Seq[String] to a single String, separated by " ".
+    *
+    * String arguments are trimmed, Seq[String] arguments are mkString(" ")'ed.
+    * White-space only strings are dropped.
+    *
+    * @param args  variable number of String or Seq[String]
+    */
+  private def mkStringTrimFlat(args : Any*): String = {
+  args.map( e =>
+    e match {
+      case s : String => s.trim
+      case c : Iterable[Any] => c.mkString(" ")
+      case x => throw new Exception("unexpected object " + x.getClass.getCanonicalName)
+
+    }).filter(s => !s.isEmpty).mkString(" ")
   }
 }

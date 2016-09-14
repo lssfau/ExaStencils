@@ -2,10 +2,11 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.prettyprinting._
@@ -17,19 +18,20 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
   def insideFragLoop : Boolean
 
   def compileName : String
-  def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement]
+  def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[IR_Statement]
 
-  def resolveIndex(indexId : String, dim : Int) : Expression = {
+  def resolveIndex(indexId : String, dim : Int) : IR_Expression = {
     if (Knowledge.experimental_useLevelIndepFcts) {
       // FIXME
-      ??? //ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
+      ??? //ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
+
     } else {
       fieldSelection.field.fieldLayout.idxById(indexId, dim)
     }
   }
 
   override def expand : Output[FunctionStatement] = {
-    var body = new ListBuffer[Statement]
+    var body = new ListBuffer[IR_Statement]
 
     val updatedFieldSelection = if (Knowledge.experimental_useLevelIndepFcts) {
       val updatedFieldSelection = Duplicate(fieldSelection)
@@ -42,13 +44,13 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
     }
 
     var fctArgs : ListBuffer[FunctionArgument] = ListBuffer()
-    fctArgs += FunctionArgument("slot", SpecialDatatype("unsigned int"))
+    fctArgs += FunctionArgument("slot", IR_SpecialDatatype("unsigned int"))
     if (Knowledge.experimental_useLevelIndepFcts)
-      FunctionArgument("level", SpecialDatatype("unsigned int"))
+      FunctionArgument("level", IR_SpecialDatatype("unsigned int"))
     if (insideFragLoop)
-      fctArgs += FunctionArgument(LoopOverFragments.defIt, IntegerDatatype)
+      fctArgs += FunctionArgument(LoopOverFragments.defIt, IR_IntegerDatatype)
 
-    FunctionStatement(UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
+    FunctionStatement(IR_UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
   }
 }
 
@@ -61,7 +63,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
 
   def genIndicesBoundaryHandling(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i =>
           fieldSelection.fieldLayout.discretization match {
             case d if "node" == d
@@ -81,7 +83,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
               case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) - 1
             }
           })),
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i =>
           fieldSelection.fieldLayout.discretization match {
             case d if "node" == d
@@ -104,8 +106,8 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
   }
 
   override def compileName : String = name
-  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement] = {
-    var body = new ListBuffer[Statement]
+  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[IR_Statement] = {
+    var body = new ListBuffer[IR_Statement]
 
     val boundaryNeighs = neighbors.filter(neigh => (1 == neigh.dir.map(i => if (0 != i) 1 else 0).reduce(_ + _))) // exactly one non-zero entry
     body += new HandleBoundaries(updatedFieldSelection, genIndicesBoundaryHandling(boundaryNeighs))
@@ -116,10 +118,10 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
 
 case class ExchangeDataFunction(var name : String, override var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
     var begin : Boolean, var finish : Boolean,
-    var dupLayerExch : Boolean, var dupLayerBegin : MultiIndex, var dupLayerEnd : MultiIndex,
-    var ghostLayerExch : Boolean, var ghostLayerBegin : MultiIndex, var ghostLayerEnd : MultiIndex,
+    var dupLayerExch : Boolean, var dupLayerBegin : IR_ExpressionIndex, var dupLayerEnd : IR_ExpressionIndex,
+    var ghostLayerExch : Boolean, var ghostLayerBegin : IR_ExpressionIndex, var ghostLayerEnd : IR_ExpressionIndex,
     var insideFragLoop : Boolean,
-    var condition : Option[Expression]) extends FieldBoundaryFunction {
+    var condition : Option[IR_Expression]) extends FieldBoundaryFunction {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
   override def prettyprint_decl = prettyprint
 
@@ -128,28 +130,28 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
 
   def genIndicesDuplicateRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     var indices = curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DLB", i)
             case 26 => resolveIndex("IB", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
         })),
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DRE", i)
             case 26 => resolveIndex("DRE", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
         })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
 
     indices
   }
@@ -157,49 +159,47 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
   def genIndicesDuplicateLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
     var indices = curNeighbors.map(neigh => (neigh,
       new IndexRange(
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           })),
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           }))),
       new IndexRange(
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           })),
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1,
-        { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 },
-        { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -207,105 +207,103 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
   def genIndicesDuplicateLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
     var indices = curNeighbors.map(neigh => (neigh,
       new IndexRange(
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           })),
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           }))),
       new IndexRange(
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DLB", i)
               case 26 => resolveIndex("IB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
           })),
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("DRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
           })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1,
-        { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 },
-        { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
 
   def genIndicesDuplicateRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     var indices = curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DLB", i)
             case 26 => resolveIndex("IB", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerBegin(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerEnd(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerBegin(i)
         })),
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("DRE", i)
             case 26 => resolveIndex("DRE", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("DLE", i) - dupLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("DRB", i) + dupLayerEnd(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) - dupLayerBegin(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) + dupLayerEnd(i)
         })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
 
     indices
   }
 
   def genIndicesGhostRemoteSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     var indices = curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("GLB", i)
             case 26 => resolveIndex("DLB", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
         })),
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("GRE", i)
             case 26 => resolveIndex("DRE", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
         })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
 
     indices
   }
@@ -313,49 +311,47 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
   def genIndicesGhostLocalSend(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
     var indices = curNeighbors.map(neigh => (neigh,
       new IndexRange(
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
           })),
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
           }))),
       new IndexRange(
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
           })),
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
           })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1,
-        { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 },
-        { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
@@ -363,84 +359,82 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
   def genIndicesGhostLocalRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange, IndexRange)] = {
     var indices = curNeighbors.map(neigh => (neigh,
       new IndexRange(
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
           })),
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
-            case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
+            case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
+            case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
           }))),
       new IndexRange(
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GLB", i)
               case 26 => resolveIndex("DLB", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerBegin(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerEnd(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerBegin(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerEnd(i)
           })),
-        new MultiIndex(
+        IR_ExpressionIndex(
           (0 until numDimsGrid).toArray.map(i => i match {
             case i if -neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
               case 6  => resolveIndex("GRE", i)
               case 26 => resolveIndex("DRE", i)
             }
-            case i if -neigh.dir(i) < 0 => resolveIndex("IB", i) + ghostLayerEnd(i)
-            case i if -neigh.dir(i) > 0 => resolveIndex("IE", i) - ghostLayerBegin(i)
+            case i if -neigh.dir(i) < 0  => resolveIndex("IB", i) + ghostLayerEnd(i)
+            case i if -neigh.dir(i) > 0  => resolveIndex("IE", i) - ghostLayerBegin(i)
           })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1,
-        { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 },
-        { old._3.begin.indices :+= IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }, { old._3.begin.indices :+= IR_IntegerConstant(0); old._3.end.indices :+= resolveIndex("TOT", dim); old._3 }))
 
     indices
   }
 
   def genIndicesGhostRemoteRecv(curNeighbors : ListBuffer[NeighborInfo]) : ListBuffer[(NeighborInfo, IndexRange)] = {
     var indices = curNeighbors.map(neigh => (neigh, new IndexRange(
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("GLB", i)
             case 26 => resolveIndex("DLB", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerEnd(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerBegin(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerEnd(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerBegin(i)
         })),
-      new MultiIndex(
+      IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(i => i match {
           case i if neigh.dir(i) == 0 => Knowledge.comm_strategyFragment match {
             case 6  => resolveIndex("GRE", i)
             case 26 => resolveIndex("DRE", i)
           }
-          case i if neigh.dir(i) < 0 => resolveIndex("GLE", i) - ghostLayerBegin(i)
-          case i if neigh.dir(i) > 0 => resolveIndex("GRB", i) + ghostLayerEnd(i)
+          case i if neigh.dir(i) < 0  => resolveIndex("GLE", i) - ghostLayerBegin(i)
+          case i if neigh.dir(i) > 0  => resolveIndex("GRB", i) + ghostLayerEnd(i)
         })))))
 
     // TODO: honor fieldSelection.arrayIndex
     for (dim <- numDimsGrid until numDimsData)
-      indices.transform(old => (old._1, { old._2.begin.indices :+= IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
+      indices.transform(old => (old._1, { old._2.begin.indices :+= IR_IntegerConstant(0); old._2.end.indices :+= resolveIndex("TOT", dim); old._2 }))
 
     indices
   }
 
   override def compileName : String = name
-  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[Statement] = {
-    var body = new ListBuffer[Statement]
+  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[IR_Statement] = {
+    var body = new ListBuffer[IR_Statement]
     val field = updatedFieldSelection.field
 
     // sync duplicate values
@@ -448,7 +442,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
       val concurrencyId = (if (begin && finish) 0 else 0)
       if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numDupLayersLeft max l.numDupLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
-          case 6 => {
+          case 6  => {
             for (dim <- 0 until field.fieldLayout.numDimsGrid) {
               var recvNeighbors = ListBuffer(neighbors(2 * dim + 0))
               var sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
@@ -488,7 +482,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
       val concurrencyId = (if (begin && finish) 0 else 1)
       if (field.fieldLayout.layoutsPerDim.foldLeft(0)((old : Int, l) => old max l.numGhostLayersLeft max l.numGhostLayersRight) > 0) {
         Knowledge.comm_strategyFragment match {
-          case 6 => {
+          case 6  => {
             for (dim <- 0 until field.fieldLayout.numDimsGrid) {
               var curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
 

@@ -11,13 +11,14 @@ import exastencils.logger.Logger
   */
 object CMakeGenerator extends BuildfileGenerator {
   override def write : Unit = {
-
     Logger.info("Generating CMakeLists.txt")
     val printer = PrettyprintingManager.getPrinter("CMakeLists.txt")
-
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
     val cppFileNames = filesToConsider.filter(file => file.endsWith(".cpp")).toList.sorted
-
+    printer <<< "cmake_minimum_required(VERSION 2.8)"
+    printer <<< "message(WARNING " +
+      "\"CMake support is not intended for building ExaStencils. " +
+      "Use MakefileGenerator (make) or ProjectfileGenerator (Visual Studio) instead.\")"
     printer <<< "include_directories(.)"
     printer <<< ""
     printer <<< "SET(SOURCES"

@@ -1,25 +1,26 @@
 package exastencils.grid
 
+import exastencils.base.ir._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 
 abstract class GridEvaluator() {
-  def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess, interpolation : String) : Expression = {
+  def invokeEvalResolve(functionName : String, fieldAccess : FieldAccess, interpolation : String) : IR_Expression = {
     val method = this.getClass().getMethods.find(_.getName == functionName)
     if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-    method.get.invoke(this, fieldAccess, interpolation).asInstanceOf[Expression]
+    method.get.invoke(this, fieldAccess, interpolation).asInstanceOf[IR_Expression]
   }
 
-  def invokeIntegrateResolve(functionName : String, exp : Expression) : Expression = {
+  def invokeIntegrateResolve(functionName : String, exp : IR_Expression) : IR_Expression = {
     val method = this.getClass().getMethods.find(_.getName == functionName)
     if (!method.isDefined) Logger.debug(s"Trying to access invalid method $functionName")
-    method.get.invoke(this, exp).asInstanceOf[Expression]
+    method.get.invoke(this, exp).asInstanceOf[IR_Expression]
   }
 }
 
@@ -65,17 +66,17 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
   def evalAtLFace(fieldAccess : FieldAccess, faceDim : Int, stagDim : Option[Int], interpolation : String = "default") =
     EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, faceDim), faceDim, stagDim, interpolation)
 
-  case class EvalAtRFace(var fieldAccess : FieldAccess, var faceDim : Int, var stagDim : Option[Int], var interpolation : String = "default") extends Expression {
-    override def datatype = UnitDatatype
+  case class EvalAtRFace(var fieldAccess : FieldAccess, var faceDim : Int, var stagDim : Option[Int], var interpolation : String = "default") extends IR_Expression {
+    override def datatype = IR_UnitDatatype
     override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EvalAtRFace\n"
 
-    def expandSpecial : Output[Expression] = {
+    def expandSpecial : Output[IR_Expression] = {
       val field = fieldAccess.fieldSelection.field
       val baseIndex = fieldAccess.index
       val level = field.level
 
-      var a0 : (() => Expression) = (() => { NullExpression })
-      var a1 : (() => Expression) = (() => { NullExpression })
+      var a0 : (() => IR_Expression) = (() => { IR_NullExpression })
+      var a1 : (() => IR_Expression) = (() => { IR_NullExpression })
       var x0 = (() => { Duplicate(fieldAccess) })
       var x1 = (() => { GridUtil.offsetAccess(fieldAccess, 1, faceDim) })
 
@@ -116,46 +117,46 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
   }
 
   // integrations
-  def integrateOverEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0, None)
-  def integrateOverWestFace(exp : Expression) : Expression = integrateOverLFace(exp, 0, None)
-  def integrateOverNorthFace(exp : Expression) : Expression = integrateOverRFace(exp, 1, None)
-  def integrateOverSouthFace(exp : Expression) : Expression = integrateOverLFace(exp, 1, None)
-  def integrateOverTopFace(exp : Expression) : Expression = integrateOverRFace(exp, 2, None)
-  def integrateOverBottomFace(exp : Expression) : Expression = integrateOverLFace(exp, 2, None)
+  def integrateOverEastFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 0, None)
+  def integrateOverWestFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 0, None)
+  def integrateOverNorthFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 1, None)
+  def integrateOverSouthFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 1, None)
+  def integrateOverTopFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 2, None)
+  def integrateOverBottomFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 2, None)
 
-  def integrateOverXStaggeredEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0, Some(0))
-  def integrateOverXStaggeredWestFace(exp : Expression) : Expression = integrateOverLFace(exp, 0, Some(0))
-  def integrateOverXStaggeredNorthFace(exp : Expression) : Expression = integrateOverRFace(exp, 1, Some(0))
-  def integrateOverXStaggeredSouthFace(exp : Expression) : Expression = integrateOverLFace(exp, 1, Some(0))
-  def integrateOverXStaggeredTopFace(exp : Expression) : Expression = integrateOverRFace(exp, 2, Some(0))
-  def integrateOverXStaggeredBottomFace(exp : Expression) : Expression = integrateOverLFace(exp, 2, Some(0))
+  def integrateOverXStaggeredEastFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 0, Some(0))
+  def integrateOverXStaggeredWestFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 0, Some(0))
+  def integrateOverXStaggeredNorthFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 1, Some(0))
+  def integrateOverXStaggeredSouthFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 1, Some(0))
+  def integrateOverXStaggeredTopFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 2, Some(0))
+  def integrateOverXStaggeredBottomFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 2, Some(0))
 
-  def integrateOverYStaggeredEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0, Some(1))
-  def integrateOverYStaggeredWestFace(exp : Expression) : Expression = integrateOverLFace(exp, 0, Some(1))
-  def integrateOverYStaggeredNorthFace(exp : Expression) : Expression = integrateOverRFace(exp, 1, Some(1))
-  def integrateOverYStaggeredSouthFace(exp : Expression) : Expression = integrateOverLFace(exp, 1, Some(1))
-  def integrateOverYStaggeredTopFace(exp : Expression) : Expression = integrateOverRFace(exp, 2, Some(1))
-  def integrateOverYStaggeredBottomFace(exp : Expression) : Expression = integrateOverLFace(exp, 2, Some(1))
+  def integrateOverYStaggeredEastFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 0, Some(1))
+  def integrateOverYStaggeredWestFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 0, Some(1))
+  def integrateOverYStaggeredNorthFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 1, Some(1))
+  def integrateOverYStaggeredSouthFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 1, Some(1))
+  def integrateOverYStaggeredTopFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 2, Some(1))
+  def integrateOverYStaggeredBottomFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 2, Some(1))
 
-  def integrateOverZStaggeredEastFace(exp : Expression) : Expression = integrateOverRFace(exp, 0, Some(2))
-  def integrateOverZStaggeredWestFace(exp : Expression) : Expression = integrateOverLFace(exp, 0, Some(2))
-  def integrateOverZStaggeredNorthFace(exp : Expression) : Expression = integrateOverRFace(exp, 1, Some(2))
-  def integrateOverZStaggeredSouthFace(exp : Expression) : Expression = integrateOverLFace(exp, 1, Some(2))
-  def integrateOverZStaggeredTopFace(exp : Expression) : Expression = integrateOverRFace(exp, 2, Some(2))
-  def integrateOverZStaggeredBottomFace(exp : Expression) : Expression = integrateOverLFace(exp, 2, Some(2))
+  def integrateOverZStaggeredEastFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 0, Some(2))
+  def integrateOverZStaggeredWestFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 0, Some(2))
+  def integrateOverZStaggeredNorthFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 1, Some(2))
+  def integrateOverZStaggeredSouthFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 1, Some(2))
+  def integrateOverZStaggeredTopFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 2, Some(2))
+  def integrateOverZStaggeredBottomFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 2, Some(2))
 
-  def integrateOverLFace(exp : Expression, faceDim : Int, stagDim : Option[Int]) : Expression = {
+  def integrateOverLFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
     ShiftFieldAccessIndices.offset = -1
     ShiftFieldAccessIndices.dim = faceDim
-    ShiftFieldAccessIndices.applyStandalone(ExpressionStatement(exp))
+    ShiftFieldAccessIndices.applyStandalone(IR_ExpressionStatement(exp))
 
     integrateOverRFace(exp, faceDim, stagDim)
   }
 
   // integration over faces of staggered CVs is done by defining stagDim - the dimension in which the grid is staggered
-  def integrateOverRFace(exp : Expression, faceDim : Int, stagDim : Option[Int]) : Expression = {
+  def integrateOverRFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
     // check if there are any field accesses in the current (sub-)expression
-    CollectFieldAccesses.applyStandalone(new Scope(exp))
+    CollectFieldAccesses.applyStandalone(IR_Scope(exp))
 
     // TODO: find a way to handle constants
     if (0 == CollectFieldAccesses.fieldAccesses.size) {
@@ -181,7 +182,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
     // step 1: wrap field accesses with eval functions if necessary
     object WrappingFieldAccesses extends QuietDefaultStrategy("Wrapping field accesses") {
       val pIntAnnot = "PIECEWISE_INTEGRATION"
-      def addPIntAnnot(exp : Expression) = { exp.annotate(pIntAnnot); exp }
+      def addPIntAnnot(exp : IR_Expression) = { exp.annotate(pIntAnnot); exp }
 
       this += new Transformation("Wrapping", {
         case fieldAccess : FieldAccess => {
@@ -259,14 +260,14 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         }
       }, false) // not recursive -> don't look inside eval functions
     }
-    WrappingFieldAccesses.applyStandalone(new Scope(exp))
+    WrappingFieldAccesses.applyStandalone(IR_Scope(exp))
 
     // step 2: check if integration by parts is required
-    var piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, new Scope(exp)).isDefined
+    var piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, IR_Scope(exp)).isDefined
 
     // step 3: apply chosen integration
     object ShiftFieldAccessIndices_ extends QuietDefaultStrategy("Shifting indices of field accesses") {
-      var offset : Expression = 0
+      var offset : IR_Expression = 0
       var dim : Int = 0
       var requiredAnnot : Option[String] = None
 
@@ -299,7 +300,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         ShiftFieldAccessIndices_.offset = 1
         ShiftFieldAccessIndices_.dim = curStagDim
         ShiftFieldAccessIndices_.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
-        ShiftFieldAccessIndices_.applyStandalone(ExpressionStatement(offsetExp))
+        ShiftFieldAccessIndices_.applyStandalone(IR_ExpressionStatement(offsetExp))
 
         (VirtualFieldAccess(s"vf_cellWidth_${dimToString(compDim)}", level, index) *
           (VirtualFieldAccess(s"vf_cellCenterToFace_${dimToString(curStagDim)}", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp

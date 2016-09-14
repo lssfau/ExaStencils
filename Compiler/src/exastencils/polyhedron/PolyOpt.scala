@@ -1,10 +1,10 @@
 package exastencils.polyhedron
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ ArrayBuffer, ListBuffer }
 import scala.util.control._
 
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -15,7 +15,8 @@ import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
 
 trait PolyhedronAccessible {
-  var optLevel : Int = 3 // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
+  var optLevel : Int = 3
+  // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
   var tileSizes : Array[Int] = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
 }
 
@@ -27,6 +28,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   var timeSingleSteps : Boolean = false
 
   import scala.language.implicitConversions
+
   implicit def convertIntToVal(i : Int) : isl.Val = isl.Val.intFromSi(Isl.ctx, i)
 
   /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
@@ -58,10 +60,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Isl.ctx.optionsSetTileShiftPointLoops(0)
 
     Knowledge.poly_scheduleAlgorithm match {
-      case "isl" => Isl.ctx.optionsSetScheduleAlgorithm(0)
-      case "feautrier" => Isl.ctx.optionsSetScheduleAlgorithm(1)
+      case "isl"         => Isl.ctx.optionsSetScheduleAlgorithm(0)
+      case "feautrier"   => Isl.ctx.optionsSetScheduleAlgorithm(1)
       case "exploration" => // TODO
-      case unknown => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+      case unknown       => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
     }
 
     Isl.ctx.optionsSetScheduleSeparateComponents(if (Knowledge.poly_separateComponents) 1 else 0)
@@ -137,10 +139,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var toFind : String = null
     var found : Boolean = false
     val search = new Transformation("search...", {
-      case va : VariableAccess if va.name == toFind =>
+      case va : IR_VariableAccess if va.name == toFind =>
         found = true
         va
-      case sc : StringLiteral if sc.value == toFind =>
+      case sc : IR_StringLiteral if sc.value == toFind =>
         found = true
         sc
     })
@@ -149,13 +151,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       toFind = name
       var fstStmt : Int = -1
       var lstStmt : Int = -1
-      var stmts : mutable.Buffer[(String, (ListBuffer[Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
+      var stmts : mutable.Buffer[(String, (ListBuffer[IR_Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
       var i : Int = 0
       val oldLvl = Logger.getLevel
       Logger.setLevel(Logger.WARNING)
       for ((lab, (stmt, _)) <- stmts) {
         found = false
-        this.execute(search, Some(Scope(stmt)))
+        this.execute(search, Some(IR_Scope(stmt)))
         if (found) {
           if (fstStmt < 0)
             fstStmt = i
@@ -184,7 +186,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       for (i <- 1 until remDoms.length)
         if (!proto.isEqual(remDoms(i).resetTupleId()))
           Breaks.break() // continue... different domains, cannot merge statements
-      val mergedStmts = new ListBuffer[Statement]()
+      val mergedStmts = new ListBuffer[IR_Statement]()
       var mergedLoopIts : ArrayBuffer[String] = null
       for ((lab, (stmt, loopIts)) <- stmts) {
         mergedStmts ++= stmt
@@ -207,7 +209,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         var nju : isl.UnionMap = null
         umap.foreachMap({
           map : isl.Map =>
-            if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
+            if (map.getTupleName(T_OUT) != name) {
+              // remove all accesses to the scalar
               val oldLabel : String = map.getTupleName(T_IN)
               var toAdd : isl.Map = map
               if (oldLabel != njuLabel)
@@ -281,7 +284,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x
-      case (x, y) => x.union(y)
+      case (x, y)    => x.union(y)
     }
   }
 
@@ -289,7 +292,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x
-      case (x, y) => x.union(y)
+      case (x, y)    => x.union(y)
     }
   }
 
@@ -423,7 +426,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       case "all" => validity
       case "raw" => scop.deps.flow
       case "rar" => scop.deps.input
-      case _ =>
+      case _     =>
         Logger.debug("Don't know how to optimize for " + Knowledge.poly_optimizeDeps + "; falling back to \"all\"")
         validity
     }
@@ -523,13 +526,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def recreateAndInsertAST() : Unit = {
 
-    val replaceCallback = { (repl : mutable.Map[String, Expression], applyAt : Node) =>
+    val replaceCallback = { (repl : mutable.Map[String, IR_Expression], applyAt : Node) =>
       val oldLvl = Logger.getLevel
       Logger.setLevel(Logger.WARNING)
       this.execute(
         new Transformation("update loop iterator", {
-          case VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
-          case StringLiteral(str) if repl.isDefinedAt(str) => Duplicate(repl(str))
+          case IR_VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
+          case IR_StringLiteral(str) if repl.isDefinedAt(str)     => Duplicate(repl(str))
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }

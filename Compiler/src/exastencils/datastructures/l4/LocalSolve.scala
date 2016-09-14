@@ -2,23 +2,24 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.prettyprinting._
 
-case class EquationExpression(var lhs : Expression, var rhs : Expression) extends Expression {
+case class EquationExpression(var lhs : L4_Expression, var rhs : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = ???
 
-  override def progressToIr : ir.EquationExpression = {
-    ir.EquationExpression(lhs.progressToIr, rhs.progressToIr)
+  override def progress : ir.EquationExpression = {
+    ir.EquationExpression(lhs.progress, rhs.progress)
   }
 }
 
-case class SolveLocallyStatement(var unknowns : List[Expression], var equations : List[EquationExpression]) extends Statement {
+case class SolveLocallyStatement(var unknowns : List[L4_Expression], var equations : List[EquationExpression]) extends L4_Statement {
   override def prettyprint(out : PpStream) : Unit = ???
 
-  override def progressToIr : ir.SolveLocallyStatement = {
+  override def progress : ir.SolveLocallyStatement = {
     ir.SolveLocallyStatement(
-      unknowns.map(_.progressToIr.asInstanceOf[ir.FieldAccess]).to[ListBuffer],
-      equations.map(_.progressToIr).to[ListBuffer])
+      unknowns.map(_.progress.asInstanceOf[ir.FieldAccess]).to[ListBuffer],
+      equations.map(_.progress).to[ListBuffer])
   }
 }

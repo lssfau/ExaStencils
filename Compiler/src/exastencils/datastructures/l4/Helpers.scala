@@ -1,93 +1,32 @@
 package exastencils.datastructures.l4
 
-import exastencils.datastructures._
+import exastencils.base.ir._
+import exastencils.base.l4.L4_Expression
 import exastencils.prettyprinting._
 
-trait Index extends Expression {
-  override def progressToIr : ir.MultiIndex = new ir.MultiIndex(extractArray)
-  def apply(i : Int) : Int
-  def extractArray : Array[Int]
+// TODO: integrate with the new type system
+
+trait ConstVec extends L4_Expression {
+  override def progress : IR_ExpressionIndex
 }
 
-case class Index1D(var x : Int) extends Index {
+case class ConstVec1D(var x : Double) extends ConstVec {
   def prettyprint(out : PpStream) = { out << "[ " << x << " ]" }
 
-  def extractArray = Array(x)
-
-  def apply(i : Int) : Int = {
-    i match {
-      case 0 => x
-    }
-  }
+  def progress : IR_ExpressionIndex = ???
 }
 
-case class Index2D(var x : Int, var y : Int) extends Index {
+case class ConstVec2D(var x : Double, var y : Double) extends ConstVec {
   def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << " ]" }
 
-  def extractArray = Array(x, y)
-
-  def apply(i : Int) : Int = {
-    i match {
-      case 0 => x
-      case 1 => y
-    }
-  }
+  def progress : IR_ExpressionIndex = ???
 }
 
-case class Index3D(var x : Int, var y : Int, var z : Int) extends Index {
+case class ConstVec3D(var x : Double, var y : Double, var z : Double) extends ConstVec {
   def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << ", " << z << " ]" }
 
-  def extractArray = Array(x, y, z)
-
-  def apply(i : Int) : Int = {
-    i match {
-      case 0 => x
-      case 1 => y
-      case 2 => z
-    }
-  }
+  def progress : IR_ExpressionIndex = ???
 }
 
-trait RealIndex extends Expression {
-  override def progressToIr : ir.MultiIndex
-}
 
-case class RealIndex1D(var x : Double) extends RealIndex {
-  def prettyprint(out : PpStream) = { out << "[ " << x << " ]" }
 
-  def progressToIr : ir.MultiIndex = new ir.MultiIndex(ir.FloatConstant(x))
-}
-
-case class RealIndex2D(var x : Double, var y : Double) extends RealIndex {
-  def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << " ]" }
-
-  def progressToIr : ir.MultiIndex = new ir.MultiIndex(ir.FloatConstant(x), ir.FloatConstant(y))
-}
-
-case class RealIndex3D(var x : Double, var y : Double, var z : Double) extends RealIndex {
-  def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << ", " << z << " ]" }
-
-  def progressToIr : ir.MultiIndex = new ir.MultiIndex(ir.FloatConstant(x), ir.FloatConstant(y), ir.FloatConstant(z))
-}
-
-trait ExpressionIndex extends Expression {
-  override def progressToIr : ir.MultiIndex
-}
-
-case class ExpressionIndex1D(var x : Expression) extends ExpressionIndex {
-  def prettyprint(out : PpStream) = { out << "[ " << x << " ]" }
-
-  def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x.progressToIr))
-}
-
-case class ExpressionIndex2D(var x : Expression, var y : Expression) extends ExpressionIndex {
-  def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << " ]" }
-
-  def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x.progressToIr, y.progressToIr))
-}
-
-case class ExpressionIndex3D(var x : Expression, var y : Expression, var z : Expression) extends ExpressionIndex {
-  def prettyprint(out : PpStream) = { out << "[ " << x << ", " << y << ", " << z << " ]" }
-
-  def progressToIr : ir.MultiIndex = new ir.MultiIndex(Array(x.progressToIr, y.progressToIr, z.progressToIr))
-}

@@ -2,9 +2,10 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
@@ -24,7 +25,7 @@ case class CommunicationFunctions() extends FunctionCollection("CommFunctions/Co
   }
 }
 
-case class SetIterationOffset(var location : Expression, var domain : Expression, var fragment : Expression) extends Statement with Expandable {
+case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expression, var fragment : IR_Expression) extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetIterationOffset\n"
 
   override def expand : Output[SwitchStatement] = {
@@ -53,13 +54,13 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
   override def name = "connectLocalElement"
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(UnitDatatype, name,
+    FunctionStatement(IR_UnitDatatype, name,
       ListBuffer(
-        FunctionArgument("localFragId", IntegerDatatype),
-        FunctionArgument("localNeighId", IntegerDatatype),
-        FunctionArgument("location", IntegerDatatype),
-        FunctionArgument("domain", IntegerDatatype)),
-      ListBuffer[Statement](
+        FunctionArgument("localFragId", IR_IntegerDatatype),
+        FunctionArgument("localNeighId", IR_IntegerDatatype),
+        FunctionArgument("location", IR_IntegerDatatype),
+        FunctionArgument("domain", IR_IntegerDatatype)),
+      ListBuffer[IR_Statement](
         AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
         AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), false),
         AssignmentStatement(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),
@@ -73,14 +74,14 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
   override def name = "connectRemoteElement"
 
   override def expand : Output[FunctionStatement] = {
-    FunctionStatement(UnitDatatype, name,
+    FunctionStatement(IR_UnitDatatype, name,
       ListBuffer(
-        FunctionArgument("localFragId", IntegerDatatype),
-        FunctionArgument("localNeighId", IntegerDatatype),
-        FunctionArgument("remoteRank", IntegerDatatype),
-        FunctionArgument("location", IntegerDatatype),
-        FunctionArgument("domain", IntegerDatatype)),
-      ListBuffer[Statement](
+        FunctionArgument("localFragId", IR_IntegerDatatype),
+        FunctionArgument("localNeighId", IR_IntegerDatatype),
+        FunctionArgument("remoteRank", IR_IntegerDatatype),
+        FunctionArgument("location", IR_IntegerDatatype),
+        FunctionArgument("domain", IR_IntegerDatatype)),
+      ListBuffer[IR_Statement](
         AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
         AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), true),
         AssignmentStatement(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),

@@ -40,7 +40,7 @@ object InputReader {
           case m : Map[_, _] => extract(m)
           case _             => Logger.error("Unexpected JSON structure")
         }
-      case None => Logger.error("Could not parse JSON")
+      case None    => Logger.error("Could not parse JSON")
     }
   }
 

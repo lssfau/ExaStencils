@@ -1,26 +1,28 @@
 package exastencils.datastructures.ir.iv
 
+import scala.collection.mutable._
+
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.core._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._
 
-import scala.collection.mutable._
-
 // FIXME: why is name an Expression?
-case class Timer(var name : Expression) extends UnduplicatedVariable with Access {
+case class Timer(var name : IR_Expression) extends UnduplicatedVariable with IR_Access {
   override def resolveName = s"timer_" + stripName
-  override def resolveDataType = "StopWatch"
+  override def resolveDatatype = "StopWatch"
 
   def stripName = name.prettyprint.replaceAll("[^a-zA-Z0-9]", "_")
 
-  override def getCtor() : Option[Statement] = {
+  override def getCtor() : Option[IR_Statement] = {
     // FIXME: datatype for VariableAccess
-    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDataType)), "timerName"), StringConstant(stripName)))
+    Some(AssignmentStatement(MemberAccess(IR_VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), IR_StringConstant(stripName)))
   }
 }
 
@@ -37,10 +39,10 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
     Logger.error("VecShiftIndex out of bounds: " + offset)
 
   override def resolveName = "vShift" + offset
-  override def resolveDataType = SpecialDatatype("__m512i")
+  override def resolveDatatype = IR_SpecialDatatype("__m512i")
 
-  override def getCtor() : Option[Statement] = {
-    val init = new StringLiteral(null : String)
+  override def getCtor() : Option[IR_Statement] = {
+    val init = new IR_StringLiteral(null : String)
     Platform.simd_instructionSet match {
       case "AVX512" =>
         if (Knowledge.useDblPrecision)
@@ -55,7 +57,7 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
       case si => Logger.error("VecShiftIndex cannot be used for instruction set " + si)
     }
 
-    return Some(AssignmentStatement(new VariableAccess(resolveName, resolveDataType), init))
+    return Some(AssignmentStatement(IR_VariableAccess(resolveName, resolveDatatype), init))
   }
 }
 
@@ -64,30 +66,30 @@ object LoopCarriedCSBuffer {
 }
 
 abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private val namePostfix : String,
-    private val baseDatatype : Datatype, private val freeInDtor : Boolean) extends UnduplicatedVariable {
+    private val baseDatatype : IR_Datatype, private val freeInDtor : Boolean) extends UnduplicatedVariable {
 
   override def getDeclaration() : VariableDeclarationStatement = {
     val superDecl = super.getDeclaration()
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
-      superDecl.dataType = ArrayDatatype(superDecl.dataType, Knowledge.omp_numThreads)
+      superDecl.datatype = IR_ArrayDatatype(superDecl.datatype, Knowledge.omp_numThreads)
     return superDecl
   }
 
-  override def wrapInLoops(body : Statement) : Statement = {
+  override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = super.wrapInLoops(body)
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
-      val begin = new VariableDeclarationStatement(IntegerDatatype, LoopOverDimensions.threadIdxName, IntegerConstant(0))
-      val end = new LowerExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IntegerDatatype), IntegerConstant(Knowledge.omp_numThreads))
-      val inc = new PreIncrementExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IntegerDatatype))
+      val begin = new VariableDeclarationStatement(IR_IntegerDatatype, LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
+      val end = new IR_LowerExpression(IR_VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
+      val inc = new IR_PreIncrementExpression(IR_VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
       wrappedBody = new ForLoopStatement(begin, end, inc, wrappedBody) with OMP_PotentiallyParallel
     }
     return wrappedBody
   }
 
-  override def resolveAccess(baseAccess : Expression, fragment : Expression, domain : Expression, field : Expression, level : Expression, neigh : Expression) : Expression = {
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = baseAccess
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
-      access = new ArrayAccess(access, StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
+      access = new ArrayAccess(access, IR_StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
     return super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
 
@@ -99,20 +101,20 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
     return LoopCarriedCSBuffer.commonPrefix + identifier + namePostfix
   }
 
-  override def resolveDataType() : Datatype = {
-    return new PointerDatatype(baseDatatype)
+  override def resolveDatatype() : IR_Datatype = {
+    return new IR_PointerDatatype(baseDatatype)
   }
 
-  override def resolveDefValue() : Option[Expression] = {
+  override def resolveDefValue() : Option[IR_Expression] = {
     return Some(0)
   }
 
-  override def getDtor() : Option[Statement] = {
+  override def getDtor() : Option[IR_Statement] = {
     val ptrExpr = resolveAccess(resolveName, null, null, null, null, null)
     if (freeInDtor)
       return Some(wrapInLoops(
         new ConditionStatement(ptrExpr,
-          ListBuffer[Statement](
+          ListBuffer[IR_Statement](
             FreeStatement(ptrExpr),
             new AssignmentStatement(ptrExpr, 0)))))
     else
@@ -120,17 +122,17 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
   }
 }
 
-case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : Datatype, val dimSizes : MultiIndex)
+case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : IR_Datatype, val dimSizes : IR_ExpressionIndex)
   extends AbstractLoopCarriedCSBuffer(identifier, "", baseDatatype, !Knowledge.data_alignFieldPointers) {
 
   lazy val basePtr = new LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
 
-  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, Statement], dtors : HashMap[String, Statement]) = {
+  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     super.registerIV(declarations, ctors, dtors)
     if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
       basePtr.registerIV(declarations, ctors, dtors)
   }
 }
 
-case class LoopCarriedCSBufferBasePtr(var identifier : Int, val baseDatatype : Datatype)
+case class LoopCarriedCSBufferBasePtr(var identifier : Int, val baseDatatype : IR_Datatype)
   extends AbstractLoopCarriedCSBuffer(identifier, "_base", baseDatatype, true)

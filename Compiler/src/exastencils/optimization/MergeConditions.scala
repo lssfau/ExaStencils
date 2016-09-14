@@ -1,6 +1,6 @@
 package exastencils.optimization
 
-import exastencils.core.StateManager
+import exastencils.base.ir.IR_NullStatement
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -22,7 +22,7 @@ object MergeConditions extends DefaultStrategy("Fuse Conditions") {
             mergeInto = cStmt
           }
           remove
-        case _ =>
+        case _                          =>
           parent = null
           mergeInto = null
           false
@@ -32,7 +32,7 @@ object MergeConditions extends DefaultStrategy("Fuse Conditions") {
       val cond = node.asInstanceOf[ConditionStatement]
       mergeInto.trueBody ++= cond.trueBody
       mergeInto.falseBody ++= cond.falseBody
-      return NullStatement
+      return IR_NullStatement
     }
   })
 }

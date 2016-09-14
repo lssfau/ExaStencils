@@ -2,16 +2,17 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.logger._
 import exastencils.util._
 
-case class StencilEntry(var offset : MultiIndex, var coefficient : Expression) {
-  def datatype : Datatype = coefficient.datatype
+case class StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Expression) {
+  def datatype : IR_Datatype = coefficient.datatype
 }
 
 case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
@@ -29,7 +30,7 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
     reach
   }
 
-  def findStencilEntry(offset : MultiIndex) : Option[StencilEntry] = {
+  def findStencilEntry(offset : IR_ExpressionIndex) : Option[StencilEntry] = {
     val index = findStencilEntryIndex(offset)
     if (index.isDefined)
       Some(entries(index.get))
@@ -37,7 +38,7 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
       None
   }
 
-  def findStencilEntryIndex(offset : MultiIndex) : Option[Int] = {
+  def findStencilEntryIndex(offset : IR_ExpressionIndex) : Option[Int] = {
     for (i <- 0 until entries.size) {
       var ret = true
       for (dim <- 0 until Knowledge.dimensionality)
@@ -63,12 +64,12 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
           s += "\t" +
             entries.find(
               e => e.offset match {
-                case index : MultiIndex if index.length >= 3 => (
-                  (index(0) match { case IntegerConstant(xOff) if x == xOff => true; case _ => false })
-                  && (index(1) match { case IntegerConstant(yOff) if y == yOff => true; case _ => false })
-                  && (index(2) match { case IntegerConstant(zOff) if z == zOff => true; case _ => false }))
+                case index : IR_ExpressionIndex if index.length >= 3 => (
+                  (index(0) match { case IR_IntegerConstant(xOff) if x == xOff => true; case _ => false })
+                  && (index(1) match { case IR_IntegerConstant(yOff) if y == yOff => true; case _ => false })
+                  && (index(2) match { case IR_IntegerConstant(zOff) if z == zOff => true; case _ => false }))
                 case _ => false
-              }).getOrElse(StencilEntry(new MultiIndex, 0)).coefficient.prettyprint
+              }).getOrElse(StencilEntry(IR_ExpressionIndex(), 0)).coefficient.prettyprint
         s += "\n"
       }
       s += "\n\n"
@@ -102,10 +103,10 @@ object StencilFieldCollection {
 
 case class StencilFieldSelection(
     var stencilField : StencilField,
-    var level : Expression,
-    var slot : Expression,
+    var level : IR_Expression,
+    var slot : IR_Expression,
     var arrayIndex : Option[Int],
-    var fragIdx : Expression = LoopOverFragments.defIt) extends Node {
+    var fragIdx : IR_Expression = LoopOverFragments.defIt) extends Node {
 
   def toFieldSelection = {
     new FieldSelection(field, level, slot, arrayIndex, fragIdx)
@@ -124,13 +125,13 @@ case class StencilFieldSelection(
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   var changed : Boolean = false
 
-  def transformMultiplication(exp : MultiplicationExpression) : MultiplicationExpression = {
-    val facts : ListBuffer[Expression] = exp.factors
-    var result = new ListBuffer[Expression]()
-    var prev : Expression = null
+  def transformMultiplication(exp : IR_MultiplicationExpression) : IR_MultiplicationExpression = {
+    val facts : ListBuffer[IR_Expression] = exp.factors
+    var result = new ListBuffer[IR_Expression]()
+    var prev : IR_Expression = null
 
     // check for StencilLike * FieldLike
-    result = ListBuffer[Expression]()
+    result = ListBuffer[IR_Expression]()
     prev = null
     for (f <- facts)
       (prev, f) match {
@@ -148,10 +149,10 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
       result += prev
     changed |= facts.length != result.length
     if (facts.length != result.length)
-      return MultiplicationExpression(result)
+      return IR_MultiplicationExpression(result)
 
     // check for StencilLike * Stencil
-    result = ListBuffer[Expression]()
+    result = ListBuffer[IR_Expression]()
     prev = null
     for (f <- facts)
       (prev, f) match {
@@ -169,10 +170,10 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
       result += prev
     changed |= facts.length != result.length
     if (facts.length != result.length)
-      return MultiplicationExpression(result)
+      return IR_MultiplicationExpression(result)
 
     // check for other convolutions
-    result = ListBuffer[Expression]()
+    result = ListBuffer[IR_Expression]()
     prev = null
     for (f <- facts)
       (prev, f) match {
@@ -188,16 +189,16 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
       result += prev
     changed |= facts.length != result.length
     if (facts.length != result.length)
-      return MultiplicationExpression(result)
+      return IR_MultiplicationExpression(result)
 
     exp
   }
 
   this += new Transformation("SearchAndMark", {
-    case exp : MultiplicationExpression => {
+    case exp : IR_MultiplicationExpression => {
       val newMult = transformMultiplication(exp)
       newMult.factors.size match {
-        case 0 => NullExpression
+        case 0 => IR_NullExpression
         case 1 => newMult.factors(0)
         case _ => newMult
       }
@@ -208,7 +209,7 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
 object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
   this += new Transformation("SearchAndMark", {
     case AssignmentStatement(stencilFieldAccess : StencilFieldAccess, StencilAccess(stencil), op) => {
-      var statements : ListBuffer[Statement] = ListBuffer()
+      var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val stencilRight = stencil
       val stencilLeft = stencilFieldAccess.stencilFieldSelection.stencil
@@ -220,7 +221,7 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
         fieldSelection.arrayIndex = Some(idx)
         var fieldIndex = Duplicate(stencilFieldAccess.index)
         fieldIndex(Knowledge.dimensionality) = idx
-        var coeff : Expression = 0
+        var coeff : IR_Expression = 0
         for (e <- stencilRight.entries) {
           if (flipEntries) {
             if ((0 until Knowledge.dimensionality).map(dim =>

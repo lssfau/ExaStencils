@@ -1,10 +1,11 @@
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 import exastencils.strategies._
@@ -28,20 +29,20 @@ object Testbed {
   }
 
   object ResolveCoordinates0 extends DefaultStrategy("ResolveCoordinates0") {
-    var replacement : MultiIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
+    var replacement : IR_ExpressionIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
     Knowledge.dimensionality match {
       case 1 => this += new Transformation("SearchAndReplace", {
-        case StringLiteral("x0") => replacement(0)
+        case IR_StringLiteral("x0") => replacement(0)
       })
       case 2 => this += new Transformation("SearchAndReplace", {
-        case StringLiteral("x0") => replacement(0)
-        case StringLiteral("y0") => replacement(1)
+        case IR_StringLiteral("x0") => replacement(0)
+        case IR_StringLiteral("y0") => replacement(1)
       })
       case 3 => this += new Transformation("SearchAndReplace", {
-        case StringLiteral("x0") => replacement(0)
-        case StringLiteral("y0") => replacement(1)
-        case StringLiteral("z0") => replacement(2)
+        case IR_StringLiteral("x0") => replacement(0)
+        case IR_StringLiteral("y0") => replacement(1)
+        case IR_StringLiteral("z0") => replacement(2)
       })
     }
   }
@@ -138,47 +139,47 @@ object Testbed {
     var A : Stencil = new Stencil("A", 5,
       if (false) {
         ListBuffer(
-          new StencilEntry(new MultiIndex(0, 0, 0), 3.0),
-          new StencilEntry(new MultiIndex(-1, 0, 0), -0.5),
-          new StencilEntry(new MultiIndex(1, 0, 0), -0.5),
-          new StencilEntry(new MultiIndex(0, -1, 0), -0.5),
-          new StencilEntry(new MultiIndex(0, 1, 0), -0.5),
-          new StencilEntry(new MultiIndex(-1, -1, 0), -0.25),
-          new StencilEntry(new MultiIndex(-1, 1, 0), -0.25),
-          new StencilEntry(new MultiIndex(1, -1, 0), -0.25),
-          new StencilEntry(new MultiIndex(1, 1, 0), -0.25))
+          new StencilEntry(IR_ExpressionIndex(0, 0, 0), 3.0),
+          new StencilEntry(IR_ExpressionIndex(-1, 0, 0), -0.5),
+          new StencilEntry(IR_ExpressionIndex(1, 0, 0), -0.5),
+          new StencilEntry(IR_ExpressionIndex(0, -1, 0), -0.5),
+          new StencilEntry(IR_ExpressionIndex(0, 1, 0), -0.5),
+          new StencilEntry(IR_ExpressionIndex(-1, -1, 0), -0.25),
+          new StencilEntry(IR_ExpressionIndex(-1, 1, 0), -0.25),
+          new StencilEntry(IR_ExpressionIndex(1, -1, 0), -0.25),
+          new StencilEntry(IR_ExpressionIndex(1, 1, 0), -0.25))
       } else if (true) {
         ListBuffer(
-          new StencilEntry(new MultiIndex(0, 0, 0), 4.0),
-          new StencilEntry(new MultiIndex(-1, 0, 0), -1.0),
-          new StencilEntry(new MultiIndex(1, 0, 0), -1.0),
-          new StencilEntry(new MultiIndex(0, -1, 0), -1.0),
-          new StencilEntry(new MultiIndex(0, 1, 0), -1.0))
+          new StencilEntry(IR_ExpressionIndex(0, 0, 0), 4.0),
+          new StencilEntry(IR_ExpressionIndex(-1, 0, 0), -1.0),
+          new StencilEntry(IR_ExpressionIndex(1, 0, 0), -1.0),
+          new StencilEntry(IR_ExpressionIndex(0, -1, 0), -1.0),
+          new StencilEntry(IR_ExpressionIndex(0, 1, 0), -1.0))
       } else {
         ListBuffer(
-          new StencilEntry(new MultiIndex(0, 0, 0), "C"),
-          new StencilEntry(new MultiIndex(-1, 0, 0), "W"),
-          new StencilEntry(new MultiIndex(1, 0, 0), "E"),
-          new StencilEntry(new MultiIndex(0, -1, 0), "S"),
-          new StencilEntry(new MultiIndex(0, 1, 0), "N"))
+          new StencilEntry(IR_ExpressionIndex(0, 0, 0), "C"),
+          new StencilEntry(IR_ExpressionIndex(-1, 0, 0), "W"),
+          new StencilEntry(IR_ExpressionIndex(1, 0, 0), "E"),
+          new StencilEntry(IR_ExpressionIndex(0, -1, 0), "S"),
+          new StencilEntry(IR_ExpressionIndex(0, 1, 0), "N"))
       })
 
     var R : Stencil = new Stencil("R", 4, ListBuffer(
-      new StencilEntry(new MultiIndex(0, 0, 0), 1.0),
-      new StencilEntry(new MultiIndex(-1, 0, 0), 0.5),
-      new StencilEntry(new MultiIndex(1, 0, 0), 0.5),
-      new StencilEntry(new MultiIndex(0, -1, 0), 0.5),
-      new StencilEntry(new MultiIndex(0, 1, 0), 0.5),
-      new StencilEntry(new MultiIndex(-1, -1, 0), 0.25),
-      new StencilEntry(new MultiIndex(-1, 1, 0), 0.25),
-      new StencilEntry(new MultiIndex(1, -1, 0), 0.25),
-      new StencilEntry(new MultiIndex(1, 1, 0), 0.25)))
+      new StencilEntry(IR_ExpressionIndex(0, 0, 0), 1.0),
+      new StencilEntry(IR_ExpressionIndex(-1, 0, 0), 0.5),
+      new StencilEntry(IR_ExpressionIndex(1, 0, 0), 0.5),
+      new StencilEntry(IR_ExpressionIndex(0, -1, 0), 0.5),
+      new StencilEntry(IR_ExpressionIndex(0, 1, 0), 0.5),
+      new StencilEntry(IR_ExpressionIndex(-1, -1, 0), 0.25),
+      new StencilEntry(IR_ExpressionIndex(-1, 1, 0), 0.25),
+      new StencilEntry(IR_ExpressionIndex(1, -1, 0), 0.25),
+      new StencilEntry(IR_ExpressionIndex(1, 1, 0), 0.25)))
 
     var P : Stencil = new Stencil("P", 4, ListBuffer(
-      new StencilEntry(new MultiIndex(0, 0, 0), 0.25),
-      new StencilEntry(new MultiIndex("x" Mod 2, 0, 0), 0.25),
-      new StencilEntry(new MultiIndex(0, "y" Mod 2, 0), 0.25),
-      new StencilEntry(new MultiIndex("x" Mod 2, "y" Mod 2, 0), 0.25)))
+      new StencilEntry(IR_ExpressionIndex(0, 0, 0), 0.25),
+      new StencilEntry(IR_ExpressionIndex("x" Mod 2, 0, 0), 0.25),
+      new StencilEntry(IR_ExpressionIndex(0, "y" Mod 2, 0), 0.25),
+      new StencilEntry(IR_ExpressionIndex("x" Mod 2, "y" Mod 2, 0), 0.25)))
 
     println(R.printStencilToStr)
     println(A.printStencilToStr)
@@ -213,7 +214,7 @@ object Testbed {
   println(node.prettyprint)
 */
 
-    var statements = new ListBuffer[Statement]
+    var statements = new ListBuffer[IR_Statement]
 
     statements +=
       """void tet_gs_coeff_1c(double* u, double* f, double *koe, double* stiff, int *p_tsize) {
@@ -266,15 +267,15 @@ object Testbed {
             k_bnw_bn  = koe[bp_tr + i - 1] + koe[bp_tr + i];
             k_bn_be   = koe[bp_tr + i]     + koe[bp_mr + i + 1];
             // 196-15 = 181 Flops
-    """
+      """
 
-    var aabb = IndexRange(new MultiIndex(0, 0, 0), new MultiIndex(4, 4, 4))
-    var k : Expression = "k_el"
+    var aabb = IndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(4, 4, 4))
+    var k : IR_Expression = "k_el"
     for (group <- 0 to 5) {
       for (position <- 0 to 3) {
         statements += AssignmentStatement(k, "k_tc_mn + k_mc_me")
         for (i <- 0 to 4) {
-          statements += AssignmentStatement(ArrayAccess("stencil", "tet_mc"), k * ArrayAccess("c", Mapping.resolveMultiIdx(new MultiIndex(i, position, group), aabb)), "+=")
+          statements += AssignmentStatement(ArrayAccess("stencil", "tet_mc"), k * ArrayAccess("c", Mapping.resolveMultiIdx(IR_ExpressionIndex(i, position, group), aabb)), "+=")
         }
       }
     }
@@ -479,9 +480,9 @@ object Testbed {
    delete[] c;
    c=0;
 }  // tet_gs_coeff
-"""
+      """
 
-    var root = Scope(statements)
+    var root = IR_Scope(statements)
 
     StateManager.root_ = root
 
