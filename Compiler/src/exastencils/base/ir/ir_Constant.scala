@@ -12,22 +12,26 @@ trait IR_Number extends IR_ConstantExpression {
 /// strings
 
 case class IR_StringLiteral(var value : String) extends IR_Expression {
+  override def datatype = IR_StringDatatype
   override def prettyprint(out : PpStream) : Unit = out << value
   override def toString : String = value
 }
 
 case class IR_StringConstant(var value : String) extends IR_Expression {
+  override def datatype = IR_StringDatatype
   override def prettyprint(out : PpStream) : Unit = out << '"' << value << '"'
 }
 
 /// numbers
 
 case class IR_IntegerConstant(var v : Long) extends IR_Number {
+  override def datatype = IR_IntegerDatatype
   override def prettyprint(out : PpStream) : Unit = out << v
   override def value = v
 }
 
 case class IR_RealConstant(var v : Double) extends IR_Number {
+  override def datatype = IR_RealDatatype
   override def prettyprint(out : PpStream) : Unit = {
     // FIXME: set single/double locally
     if (Knowledge.useDblPrecision)
@@ -39,11 +43,13 @@ case class IR_RealConstant(var v : Double) extends IR_Number {
 }
 
 case class IR_FloatConstant(var v : Double) extends IR_Number {
+  override def datatype = IR_FloatDatatype
   override def prettyprint(out : PpStream) : Unit = out << value << "f"
   override def value = v
 }
 
 case class IR_DoubleConstant(var v : Double) extends IR_Number {
+  override def datatype = IR_DoubleDatatype
   override def prettyprint(out : PpStream) : Unit = out << value
   override def value = v
 }
@@ -51,5 +57,6 @@ case class IR_DoubleConstant(var v : Double) extends IR_Number {
 /// other
 
 case class IR_BooleanConstant(var value : Boolean) extends IR_Expression {
+  override def datatype = IR_BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << value
 }

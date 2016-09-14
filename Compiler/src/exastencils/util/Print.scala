@@ -126,7 +126,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
                     access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
                   List(access, separator)
                 }).to[ListBuffer] += PrintExpression.endl))))),
-      new MemberFunctionCallExpression(new IR_VariableAccess(streamName, streamType), "close"))
+      new MemberFunctionCallExpression(new IR_VariableAccess(streamName, Some(streamType)), "close"))
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 

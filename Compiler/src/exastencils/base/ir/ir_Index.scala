@@ -36,6 +36,7 @@ case class IR_ExpressionIndex(var indices : Array[IR_Expression]) extends IR_Ind
     })
   }
 
+  override def datatype = IR_UnitDatatype // FIXME
   override def prettyprint(out : PpStream) : Unit = {
     out << '[' <<< (this, ", ") << ']'
   }
@@ -76,6 +77,7 @@ object IR_ConstIndex {
 }
 
 case class IR_ConstIndex(var indices : Array[Int]) extends IR_Index with IR_ArrayBasedIndex[Int] {
+  override def datatype = IR_UnitDatatype // FIXME
   override def prettyprint(out : PpStream) : Unit = {
     out << '[' << indices.mkString(", ") << ']'
   }

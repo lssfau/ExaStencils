@@ -23,7 +23,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   private[optimization] def endVarAcc = IR_VariableAccess(endVar, IR_IntegerDatatype)
 
   private[optimization] def getBoundsDeclAndPostLoop(itVar : String, start : IR_Expression, endExcl : IR_Expression, oldIncr : Long,
-      body : ListBuffer[IR_Statement], reduction : Option[Reduction]) : (ListBuffer[IR_Statement], IR_Statement) = {
+    body : ListBuffer[IR_Statement], reduction : Option[Reduction]) : (ListBuffer[IR_Statement], IR_Statement) = {
 
     def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
 
@@ -49,12 +49,12 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   }
 
   private[optimization] def addBounds(itVar : String, begin : IR_Statement, end : IR_Expression, incr : IR_Expression,
-      writeDecls : Boolean, stmts : ListBuffer[IR_Statement]) : Boolean = {
+    writeDecls : Boolean, stmts : ListBuffer[IR_Statement]) : Boolean = {
 
     val (lower, isDecl) : (IR_Expression, Boolean) =
       begin match {
         case AssignmentStatement(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), init, "=") if (itVar == itVar2) => (init, false)
-        case VariableDeclarationStatement(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2)                => (init, true)
+        case VariableDeclarationStatement(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2) => (init, true)
 
         case _ => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
@@ -77,7 +77,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   }
 
   private[optimization] def addBounds(lower : IR_Expression, upperExcl : IR_Expression, incr : IR_Expression,
-      writeDecls : Boolean, stmts : ListBuffer[IR_Statement]) : Unit = {
+    writeDecls : Boolean, stmts : ListBuffer[IR_Statement]) : Unit = {
 
     val intermExpr = new IR_MaximumExpression(endVarAcc - ((endVarAcc - startVarAcc) Mod incr), startVarAcc)
 
@@ -103,7 +103,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     return node match {
       case loop : IR_ForLoop with OptimizationHint =>
         loop.isInnermost && !loop.removeAnnotation(SKIP_ANNOT).isDefined
-      case _                                       =>
+      case _ =>
         false
     }
   }
@@ -176,13 +176,13 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       case AssignmentStatement(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr), "+=") => (itVar, incr)
 
       case AssignmentStatement(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)),
-      IR_AdditionExpression(ListBuffer(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr))),
-      "=") if (itVar == itVar2) =>
+        IR_AdditionExpression(ListBuffer(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr))),
+        "=") if (itVar == itVar2) =>
         (itVar, incr)
 
       case AssignmentStatement(IR_VariableAccess(itVar, Some(exastencils.base.ir.IR_IntegerDatatype)),
-      IR_AdditionExpression(ListBuffer(IR_IntegerConstant(incr), IR_VariableAccess(itVar2, Some(exastencils.base.ir.IR_IntegerDatatype)))),
-      "=") if (itVar == itVar2) =>
+        IR_AdditionExpression(ListBuffer(IR_IntegerConstant(incr), IR_VariableAccess(itVar2, Some(exastencils.base.ir.IR_IntegerDatatype)))),
+        "=") if (itVar == itVar2) =>
         (itVar, incr)
 
       case _ => throw new UnrollException("cannot determine stride or it is negative:  " + inc.prettyprint())
@@ -193,21 +193,21 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     val lower : IR_Expression =
       begin match {
         case VariableDeclarationStatement(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2) => init
-        case _                                                                                         => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
+        case _ => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
 
     val upperExcl : IR_Expression =
       end match {
-        case IR_LowerExpression(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2)      => bound
+        case IR_LowerExpression(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) => bound
         case IR_LowerEqualExpression(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) => IR_AdditionExpression(bound, IR_IntegerConstant(1))
-        case _                                                                                                        => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
+        case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
       }
 
     return (itVar, lower, upperExcl, stride)
   }
 
   private def duplicateStmts(body : ListBuffer[IR_Statement], unrollFactor : Int,
-      itVar : String, oldInc : Long, interleave : Boolean) : ListBuffer[IR_Statement] = {
+    itVar : String, oldInc : Long, interleave : Boolean) : ListBuffer[IR_Statement] = {
 
     var njuBody : ListBuffer[IR_Statement] = null
     val replaceStrat = new UpdateLoopVarAndNames(itVar)
@@ -239,7 +239,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
   }
 
   private[optimization] class UpdateLoopVarAndNames(itVar : String)
-    extends QuietDefaultStrategy("Add loop var offset, rename declarations, and/or add annotation") {
+      extends QuietDefaultStrategy("Add loop var offset, rename declarations, and/or add annotation") {
 
     private final val SKIP_ANNOT = "UpLVSkip"
     private val rename = new HashSet[String]()
@@ -250,7 +250,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       case vAcc @ IR_VariableAccess(v, _) if (v == itVar) =>
         if (offset != 0 && !vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
           vAcc.annotate(SKIP_ANNOT) // already done
-          vAcc.datatype = Some(IR_IntegerDatatype) // fix type, if required
+          vAcc.innerDatatype = Some(IR_IntegerDatatype) // fix type, if required
           IR_AdditionExpression(vAcc, IR_IntegerConstant(offset))
         } else
           vAcc

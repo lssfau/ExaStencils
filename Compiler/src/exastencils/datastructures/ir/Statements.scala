@@ -12,8 +12,8 @@ import exastencils.util._
 case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : String, var expression : Option[IR_Expression] = None) extends IR_Statement {
   var alignment : Int = 1
   def this(dT : IR_Datatype, n : String, e : IR_Expression) = this(dT, n, Option(e))
-  def this(va : IR_VariableAccess) = this(va.datatype.get, va.name, None)
-  def this(va : IR_VariableAccess, e : IR_Expression) = this(va.datatype.get, va.name, Option(e))
+  def this(va : IR_VariableAccess) = this(va.innerDatatype.get, va.name, None)
+  def this(va : IR_VariableAccess, e : IR_Expression) = this(va.innerDatatype.get, va.name, Option(e))
 
   override def prettyprint(out : PpStream) : Unit = {
     datatype match {
@@ -33,7 +33,7 @@ case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : S
           out << ")"
         }
       }
-      case _                     => {
+      case _ => {
         if (alignment > 1 && "MSVC" == Platform.targetCompiler)
           out << "__declspec(align(" << alignment * 8 << ")) "
         out << datatype.resolveDeclType << ' ' << name << datatype.resolveDeclPostscript
@@ -157,7 +157,7 @@ case class FunctionStatement(
     var allowInlining : Boolean = true,
     var allowFortranInterface : Boolean = true,
     var functionQualifiers : String = "" // e.g. "__global__" etc
-) extends AbstractFunctionStatement {
+    ) extends AbstractFunctionStatement {
   def this(returntype : IR_Datatype, name : String, parameters : ListBuffer[FunctionArgument], body : IR_Statement) = this(returntype, name, parameters, ListBuffer[IR_Statement](body))
   def this(returntype : IR_Datatype, name : String, parameters : FunctionArgument, body : ListBuffer[IR_Statement]) = this(returntype, name, ListBuffer[FunctionArgument](parameters), body)
 
@@ -177,7 +177,7 @@ case class FunctionStatement(
   override def prettyprint_decl() : String = {
     var decl = ""
     if (!functionQualifiers.isEmpty) decl += functionQualifiers + ' '
-    decl += s"${ returntype.prettyprint } $name (" + parameters.map(param => s"${ param.prettyprintDeclaration }").mkString(", ") + ");\n"
+    decl += s"${returntype.prettyprint} $name (" + parameters.map(param => s"${param.prettyprintDeclaration}").mkString(", ") + ");\n"
     decl
   }
 }
@@ -187,7 +187,7 @@ case class FunctionArgument(var name : String, var datatype : IR_Datatype) exten
   override def prettyprint(out : PpStream) = {
     out << name
   }
-  def prettyprintDeclaration = s"${ datatype.prettyprint } ${ name }"
+  def prettyprintDeclaration = s"${datatype.prettyprint} ${name}"
 }
 
 //////////////////////////// SIMD Statements \\\\\\\\\\\\\\\\\\\\\\\\\\\\

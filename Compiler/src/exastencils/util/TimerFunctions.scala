@@ -37,7 +37,7 @@ case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement w
 }
 
 case class TimerDetail_Zero() extends IR_Expression {
-  override def datatype = UnitDatatype
+  override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {
     out << (Knowledge.timer_type match {
       case "Chrono"       => "std::chrono::nanoseconds::zero()"

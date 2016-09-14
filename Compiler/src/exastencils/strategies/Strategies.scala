@@ -170,11 +170,11 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
     // Simplify vectors
     case IR_NegativeExpression(v : VectorExpression) =>
-      VectorExpression(v.innerDatatype, v.expressions.map { x => NegativeExpression(x) }, v.rowVector)
+      VectorExpression(v.innerDatatype, v.expressions.map { x => IR_NegativeExpression(x) }, v.rowVector)
 
     // Simplify matrices
     case IR_NegativeExpression(m : MatrixExpression) =>
-      MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => IR_NegativeExpression(y) : Expression } })
+      MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => IR_NegativeExpression(y) : IR_Expression } })
 
     case IR_Scope(ListBuffer(IR_Scope(body)))                            => IR_Scope(body)
 
@@ -256,7 +256,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
               val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => IR_NegationExpression(x) }
               val vExprs = if (pos) v.expressions else v.expressions.view.map { x => IR_NegationExpression(x) }
               vecExpr =
-                VectorExpression(Some(GetResultingDatatype2(vecExpr.datatype, v.innerDatatype.getOrElse(RealDatatype))),
+                VectorExpression(Some(GetResultingDatatype2(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
                   vecExprsView.zip(vExprs).map { x => x._1 + x._2 : IR_Expression }.to[ListBuffer],
                   if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
             }

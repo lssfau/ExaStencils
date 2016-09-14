@@ -14,5 +14,6 @@ object IR_VariableAccess {
 }
 
 case class IR_VariableAccess(var name : String, var innerDatatype : Option[IR_Datatype]) extends IR_Access {
+  override def datatype = innerDatatype.getOrElse(IR_RealDatatype) // FIXME
   override def prettyprint(out : PpStream) : Unit = out << name
 }

@@ -70,15 +70,15 @@ object CudaStrategiesUtils {
       loopVariables += loopDeclaration.name
       lowerBounds += loopDeclaration.expression.get
       upperBounds += (loop.end match {
-        case l : IR_LowerExpression      =>
+        case l : IR_LowerExpression =>
           l.right
         case e : IR_LowerEqualExpression =>
           IR_AdditionExpression(e.right, IR_IntegerConstant(1))
-        case o                           => o
+        case o => o
       })
       stepSize += (loop.inc match {
         case AssignmentStatement(_, src : IR_Expression, "=") => src
-        case _                                                => IR_IntegerConstant(1)
+        case _ => IR_IntegerConstant(1)
       })
     }
 
@@ -166,7 +166,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
   }
 
   this += new Transformation("Processing ContractingLoop and LoopOverDimensions nodes", {
-    case cl : ContractingLoop      =>
+    case cl : ContractingLoop =>
       var hostStmts = new ListBuffer[IR_Statement]()
       var deviceStmts = new ListBuffer[IR_Statement]()
       val fieldOffset = new mutable.HashMap[(String, Int), Int]()
@@ -182,9 +182,9 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
             case ListBuffer(loop : LoopOverDimensions) => loop
             case _                                     => LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
           }
-        case Some(loop : LoopOverDimensions)                                               =>
+        case Some(loop : LoopOverDimensions) =>
           loop
-        case None                                                                          => LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
+        case None => LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
       }
 
       // every LoopOverDimensions statement is potentially worse to transform in CUDA code
@@ -229,9 +229,9 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
                     njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
                     deviceCondStmt.trueBody += njuCuda
                   }
-                case _                                  =>
+                case _ =>
               }
-            case l : LoopOverDimensions                                                          =>
+            case l : LoopOverDimensions =>
               val loop = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
               hostStmts += loop
 
@@ -301,7 +301,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
       case x : IR_ForLoop =>
         x.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_INNER)
         annotateInnerCudaLoops(x)
-      case _              =>
+      case _ =>
     }
   }
 
@@ -338,15 +338,15 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           }
         } catch {
           case e : EvaluationException =>
-            Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${ e.msg }'""")
+            Logger.warning(s"""Error annotating the inner loops! Failed to calculate bounds extrema: '${e.msg}'""")
             innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_INNER)
             annotateInnerCudaLoops(innerLoop)
         }
-      case _                                                                                                              =>
+      case _ =>
         loop.body.foreach {
           case x : IR_ForLoop =>
             annotateInnerCudaLoops(x)
-          case _              =>
+          case _ =>
         }
     }
   }
@@ -382,7 +382,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
         }
       } catch {
         case e : EvaluationException =>
-          Logger.warning(s"""Error while searching for band start! Failed to calculate bounds extrema: '${ e.msg }'""")
+          Logger.warning(s"""Error while searching for band start! Failed to calculate bounds extrema: '${e.msg}'""")
       }
     }
   }
@@ -402,7 +402,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
         case ListBuffer(c : CommentStatement, loop : IR_ForLoop) =>
           updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop, varDeclarations)
           IR_Scope(c, loop)
-        case _                                                   =>
+        case _ =>
           scope
       }
   }, false)
@@ -428,7 +428,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
     innerLoopCandidate match {
       case innerLoop : IR_ForLoop if condition.apply(innerLoop) =>
         collectLoopsInKernel(innerLoop, condition) ++ loops
-      case _                                                    => loops
+      case _ => loops
     }
   }
 
@@ -492,7 +492,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       val kernel = Kernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         Duplicate(parallelInnerLoops.length),
-        variableAccesses.map(s => FunctionArgument(s.name, s.datatype.get)),
+        variableAccesses.map(s => FunctionArgument(s.name, s.innerDatatype.get)),
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
         Duplicate(upperBounds),
@@ -581,7 +581,7 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
       access.fieldSelection.slot match {
         case SlotAccess(_, offset)    => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case _                        => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
       }
     }
 
@@ -597,7 +597,7 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
         GatherLocalFieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       GatherLocalFieldAccess.applyStandalone(IR_ExpressionStatement(assign.src))
       assign
-    case access : FieldAccessLike     =>
+    case access : FieldAccessLike =>
       mapFieldAccess(access)
       access
   }, false)
@@ -609,11 +609,11 @@ object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local
 
   def clear() = {
     accesses = mutable.HashMap[String, IR_VariableAccess]()
-    ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */).map(dim => dimToString(dim)).to[mutable.SortedSet]
+    ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */ ).map(dim => dimToString(dim)).to[mutable.SortedSet]
   }
 
   this += new Transformation("Searching", {
-    case decl : VariableDeclarationStatement                                  =>
+    case decl : VariableDeclarationStatement =>
       ignoredAccesses += decl.name
       decl
     case access : IR_VariableAccess if !ignoredAccesses.contains(access.name) =>

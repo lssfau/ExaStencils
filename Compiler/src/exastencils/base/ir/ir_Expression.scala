@@ -41,6 +41,6 @@ trait IR_Expression extends IR_Node with PrettyPrintable {
 
 case object IR_NullExpression extends IR_Expression {
   exastencils.core.Duplicate.registerConstant(this)
-
+  override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {}
 }

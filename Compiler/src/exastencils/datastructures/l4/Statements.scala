@@ -130,7 +130,7 @@ case class ValueDeclarationStatement(override var identifier : Identifier, var d
   override def progress : IR_Statement = IR_NullStatement
 }
 
-case class AssignmentStatement(var dest : L4_Access, var src : L4_Expression, var op : String) extends L4_Statement {
+case class AssignmentStatement(var dest : Access, var src : L4_Expression, var op : String) extends L4_Statement {
   override def prettyprint(out : PpStream) = { out << dest << ' ' << op << ' ' << src << '\n' }
 
   override def progress : ir.AssignmentStatement = {
@@ -139,7 +139,7 @@ case class AssignmentStatement(var dest : L4_Access, var src : L4_Expression, va
 }
 
 case class LoopOverPointsStatement(
-    var field : L4_Access,
+    var field : Access,
     var region : Option[RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var condition : Option[L4_Expression],
@@ -270,7 +270,7 @@ case class FunctionStatement(override var identifier : Identifier,
 }
 
 case class FunctionArgument(override var identifier : Identifier,
-    var datatype : L4_Datatype) extends L4_Access with HasIdentifier with ProgressableToIr {
+    var datatype : L4_Datatype) extends Access with HasIdentifier with ProgressableToIr {
   override def name = identifier.name
   override def prettyprint(out : PpStream) {
     out << identifier.name << " : " << datatype.prettyprint
@@ -333,7 +333,7 @@ case class ContractionSpecification(var posExt : L4_ConstIndex, var negExt : Opt
 }
 
 case class RepeatTimesStatement(var number : Int,
-    var iterator : Option[L4_Access],
+    var iterator : Option[Access],
     var contraction : Option[ContractionSpecification],
     var statements : List[L4_Statement]) extends L4_Statement {
 
@@ -417,7 +417,7 @@ case class BreakStatement() extends L4_Statement {
   }
 }
 
-case class AdvanceStatement(var field : L4_Access) extends L4_Statement {
+case class AdvanceStatement(var field : Access) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "advance "
     field.prettyprint(out)

@@ -63,12 +63,63 @@ case class MatrixExpression(var datatype : Option[L4_Datatype], var expressions 
   def isConstant = expressions.filter(_.isConstant).length == expressions.length
 }
 
-case class BasicAccess(var name : String) extends L4_Access {
+abstract class Access() extends L4_Expression {
+  def name : String
+}
+
+case class UnresolvedAccess(var name : String,
+    var slot : Option[SlotModifier],
+    var level : Option[AccessLevelSpecification],
+    var offset : Option[L4_ExpressionIndex],
+    var arrayIndex : Option[Int],
+    var dirAccess : Option[L4_ExpressionIndex]) extends Access {
+  def prettyprint(out : PpStream) = {
+    out << name
+    if (slot.isDefined) out << '[' << slot.get << ']'
+    if (level.isDefined) out << '@' << level.get
+    if (offset.isDefined) out << '@' << offset.get
+    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+    if (dirAccess.isDefined) out << ':' << dirAccess
+  }
+
+  def progress : IR_StringLiteral = IR_StringLiteral("ERROR - Unresolved Access")
+
+  def resolveToBasicOrLeveledAccess = {
+    if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
+    if (offset.isDefined) Logger.warn("Discarding meaningless offset access on basic or leveled access")
+    if (arrayIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
+    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on basic or leveled access")
+    if (level.isDefined) LeveledAccess(name, level.get) else BasicAccess(name)
+  }
+  def resolveToFieldAccess = {
+    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
+    try {
+      FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active), arrayIndex, offset)
+    } catch {
+      case e : Exception => Logger.warn(s"""Could not resolve field "${name}""""); throw e
+    }
+  }
+  def resolveToVirtualFieldAccess = {
+    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on special field - was an offset access (@) intended?")
+    if (slot.isDefined) Logger.warn("Discarding meaningless slot access on special field")
+    VirtualFieldAccess(name, level.get, arrayIndex, offset)
+  }
+  def resolveToStencilAccess = {
+    if (slot.isDefined) Logger.warn("Discarding meaningless slot access on stencil")
+    if (offset.isDefined) Logger.warn("Discarding meaningless offset access on stencil - was a direction access (:) intended?")
+    StencilAccess(name, level.get, arrayIndex, dirAccess)
+  }
+  def resolveToStencilFieldAccess = {
+    StencilFieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active), arrayIndex, offset, dirAccess)
+  }
+}
+
+case class BasicAccess(var name : String) extends Access {
   def prettyprint(out : PpStream) = { out << name }
   def progress : IR_StringLiteral = { Logger.warn("New ir.StringLiteral: " + name); IR_StringLiteral(name) }
 }
 
-case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends L4_Access {
+case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
   def progress : IR_Expression = {
@@ -76,7 +127,7 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends L4_Access {
+case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
@@ -110,7 +161,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
   }
 }
 
-case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends L4_Access {
+case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
@@ -146,7 +197,7 @@ object FieldAccess {
   }
 }
 
-case class StencilAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var dirAccess : Option[L4_ExpressionIndex] = None) extends L4_Access {
+case class StencilAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var dirAccess : Option[L4_ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (dirAccess.isDefined) out << ":" << dirAccess
@@ -179,7 +230,7 @@ case class StencilFieldAccess(var name : String,
     var slot : SlotModifier,
     var arrayIndex : Option[Int] = None,
     var offset : Option[L4_ExpressionIndex] = None,
-    var dirAccess : Option[L4_ExpressionIndex] = None) extends L4_Access {
+    var dirAccess : Option[L4_ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
@@ -266,7 +317,7 @@ case class LeveledIdentifier(var name : String, var level : LevelSpecification) 
   def fullName = name + "_" + level.prettyprint
 }
 
-case class VariableExpression(var access : L4_Access, var datatype : L4_Datatype) extends L4_Expression {
+case class VariableExpression(var access : Access, var datatype : L4_Datatype) extends L4_Expression {
   def prettyprint(out : PpStream) = access.prettyprint(out)
 
   def progress = IR_VariableAccess(access.name, Some(datatype.progress))
@@ -280,7 +331,7 @@ case class UnaryExpression(var operator : String, var exp : L4_Expression) exten
   }
 }
 
-case class FunctionCallExpression(var identifier : L4_Access, var arguments : List[L4_Expression]) extends L4_Expression {
+case class FunctionCallExpression(var identifier : Access, var arguments : List[L4_Expression]) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
   def progress : ir.FunctionCallExpression = {

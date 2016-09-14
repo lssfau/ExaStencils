@@ -120,7 +120,7 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     // resolve accesses
     this.execute(new Transformation("Resolve AccessSpecifications", {
-      case access : L4_UnresolvedAccess =>
+      case access : UnresolvedAccess =>
         if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
           access.resolveToFieldAccess
         else if (virtualFields.contains(access.name.toLowerCase()))
@@ -196,11 +196,11 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
   }
 
   this += new Transformation("SearchAndReplace", {
-    case origAccess : L4_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
+    case origAccess : UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
       // includes accesses used as identifiers in function calls
       var newAccess = Duplicate(replacements.get(origAccess.name).get)
       newAccess match {
-        case newAccess : L4_UnresolvedAccess => {
+        case newAccess : UnresolvedAccess => {
           if (origAccess.slot.isDefined) {
             if (newAccess.slot.isDefined) Logger.warn("Overriding slot on access in function instantiation")
             newAccess.slot = origAccess.slot
@@ -258,7 +258,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
     val level = ident.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
     CombinedIdentifier(ident.name, level)
   }
-  def fromLeveledAccess(access : L4_Access) : CombinedIdentifier = {
+  def fromLeveledAccess(access : Access) : CombinedIdentifier = {
     val level = access.asInstanceOf[LeveledAccess].level.asInstanceOf[SingleLevelSpecification].level
     CombinedIdentifier(access.asInstanceOf[LeveledAccess].name, level)
   }

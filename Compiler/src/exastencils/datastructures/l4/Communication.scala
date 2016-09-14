@@ -22,7 +22,7 @@ case class CommunicateTarget(var target : String, var begin : Option[L4_ConstInd
   }
 }
 
-case class ApplyBCsStatement(var field : L4_Access) extends L4_Statement {
+case class ApplyBCsStatement(var field : Access) extends L4_Statement {
   override def prettyprint(out : PpStream) = { out << "apply bc to " << field << '\n' }
 
   override def progress : communication.ApplyBCsStatement = {
@@ -37,7 +37,7 @@ case class ApplyBCsStatement(var field : L4_Access) extends L4_Statement {
   }
 }
 
-case class CommunicateStatement(var field : L4_Access, var op : String, var targets : List[CommunicateTarget], var condition : Option[L4_Expression]) extends L4_Statement {
+case class CommunicateStatement(var field : Access, var op : String, var targets : List[CommunicateTarget], var condition : Option[L4_Expression]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     if ("both" != op) out << op + ' '
     out << "communicate " <<< (targets, " ") << (if (targets.isEmpty) "" else " of ") << field

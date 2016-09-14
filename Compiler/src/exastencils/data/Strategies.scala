@@ -40,15 +40,15 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
   this += new Transformation("Linearizing", {
     case access if access.hasAnnotation(NO_LINEARIZATION) =>
       access
-    case access : DirectFieldAccess                       =>
+    case access : DirectFieldAccess =>
       access.linearize
-    case access : ExternalFieldAccess                     =>
+    case access : ExternalFieldAccess =>
       access.linearize
-    case access : TempBufferAccess                        =>
+    case access : TempBufferAccess =>
       access.linearize
-    case access : ReductionDeviceDataAccess               =>
+    case access : ReductionDeviceDataAccess =>
       access.linearize
-    case access : LoopCarriedCSBufferAccess               =>
+    case access : LoopCarriedCSBufferAccess =>
       access.linearize
   })
 }
@@ -94,9 +94,9 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
     case advanceSlot : AdvanceSlotStatement =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
-        case _ : LoopOverFragments                                                                             => true
+        case _ : LoopOverFragments => true
         case IR_ForLoop(VariableDeclarationStatement(_, it, _), _, _, _, _) if (LoopOverFragments.defIt == it) => true
-        case _                                                                                                 => false
+        case _ => false
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial
       else
@@ -160,10 +160,10 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
         case AssignmentStatement(_ : iv.LocalCommReady, _, _) => IR_NullStatement
         case _ : iv.LocalCommReady                            => IR_BooleanConstant(true)
 
-        case AssignmentStatement(_ : iv.LocalCommDone, _, _) => IR_NullStatement
-        case _ : iv.LocalCommDone                            => IR_BooleanConstant(true)
+        case AssignmentStatement(_ : iv.LocalCommDone, _, _)  => IR_NullStatement
+        case _ : iv.LocalCommDone                             => IR_BooleanConstant(true)
 
-        case FunctionCallExpression("waitForFlag", _) => IR_NullExpression
+        case FunctionCallExpression("waitForFlag", _)         => IR_NullExpression
       }))
     }
 
@@ -186,7 +186,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
 
   this += new Transformation("Collecting", {
     case idx : iv.IndexFromField =>
-      layoutMap += (s"${ idx.layoutIdentifier }_${ idx.level.prettyprint }" -> (idx.layoutIdentifier, idx.level))
+      layoutMap += (s"${idx.layoutIdentifier}_${idx.level.prettyprint}" -> (idx.layoutIdentifier, idx.level))
       idx
   })
 
@@ -194,15 +194,15 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
     case multiGrid : MultiGridFunctions =>
       for (layout <- layoutMap) {
         var body = ListBuffer[IR_Statement]()
-        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
-        def idxShift(dim : Integer) = IR_VariableAccess(s"idxShift_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${dimToString(dim)}", Some(IR_IntegerDatatype))
+        def idxShift(dim : Integer) = IR_VariableAccess(s"idxShift_${dimToString(dim)}", Some(IR_IntegerDatatype))
 
         // compile body for all dimensions - TODO: adapt to field layout dimensionality if required
         for (dim <- 0 until Knowledge.dimensionality) {
           // calculate index shift
           body += new VariableDeclarationStatement(idxShift(dim), (newInnerSize(dim) - (
             iv.IndexFromField(layout._2._1, layout._2._2, "IE", dim) -
-              iv.IndexFromField(layout._2._1, layout._2._2, "IB", dim))))
+            iv.IndexFromField(layout._2._1, layout._2._2, "IB", dim))))
 
           // adapt indices
           for (idxIdent <- List("IE", "DRB", "DRE", "GRB", "GRE", "PRB", "PRE", "TOT")) {
@@ -218,8 +218,8 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
         // set up function
         multiGrid.functions += new FunctionStatement(
           IR_UnitDatatype,
-          s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
-          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); FunctionArgument(a.name, a.datatype.get) }).to[ListBuffer],
+          s"resizeInner_${layout._2._1}_${layout._2._2.prettyprint}",
+          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); FunctionArgument(a.name, a.innerDatatype.get) }).to[ListBuffer],
           body,
           false) // no inlining
       }
@@ -227,19 +227,19 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
       // generate a special resize functions for all fields on a given level
       for (level <- Knowledge.maxLevel to Knowledge.minLevel by -1) {
         var body = ListBuffer[IR_Statement]()
-        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${dimToString(dim)}", Some(IR_IntegerDatatype))
 
         // generate function calls with adapted sizes
         for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {
-          body += FunctionCallExpression(s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
+          body += FunctionCallExpression(s"resizeInner_${layout._2._1}_${layout._2._2.prettyprint}",
             (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim) : IR_Expression).to[ListBuffer])
         }
 
         // set up function
         multiGrid.functions += new FunctionStatement(
           IR_UnitDatatype,
-          s"resizeAllInner_${ level.prettyprint() }",
-          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); FunctionArgument(a.name, a.datatype.get) }).to[ListBuffer],
+          s"resizeAllInner_${level.prettyprint()}",
+          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); FunctionArgument(a.name, a.innerDatatype.get) }).to[ListBuffer],
           body,
           false) // no inlining
       }
@@ -420,7 +420,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> new LoopOverFragments(CUDA_AllocateStatement(buf, size, IR_RealDatatype /*FIXME*/)) with OMP_PotentiallyParallel)
+      deviceBufferAllocs += (id -> new LoopOverFragments(CUDA_AllocateStatement(buf, size, IR_RealDatatype /*FIXME*/ )) with OMP_PotentiallyParallel)
 
       buf
 
@@ -474,10 +474,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   })
 
   this += new Transformation("Adding to globals", {
-    case globals : Globals                                           =>
+    case globals : Globals =>
       globals.variables ++= declarationMap.toSeq.sortBy(_._1).map(_._2)
       globals
-    case func : FunctionStatement if ("initGlobals" == func.name)    =>
+    case func : FunctionStatement if ("initGlobals" == func.name) =>
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         func.body ++= ctorMap.toSeq.sortBy(_._1).map(s => IR_Scope(s._2))
       else

@@ -18,7 +18,7 @@ trait MPI_Statement extends IR_Statement
 // TODO: replace pp with expand where suitable
 
 case class MPI_IsRootProc() extends IR_Expression {
-  override def datatype = BooleanDatatype
+  override def datatype = IR_BooleanDatatype
   override def prettyprint(out : PpStream) : Unit = out << "0 == mpiRank"
 }
 
@@ -212,7 +212,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
     def len = IR_VariableAccess("len", Some(IR_IntegerDatatype))
 
     if (Knowledge.mpi_useBusyWait) {
-      FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(request.name, request.datatype.get)),
+      FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(request.name, request.innerDatatype.get)),
         ListBuffer[IR_Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
@@ -229,7 +229,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     } else {
-      FunctionStatement(IR_UnitDatatype, s"waitForMPIReq", ListBuffer(FunctionArgument(request.name, request.datatype.get)),
+      FunctionStatement(IR_UnitDatatype, s"waitForMPIReq", ListBuffer(FunctionArgument(request.name, request.innerDatatype.get)),
         ListBuffer[IR_Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),

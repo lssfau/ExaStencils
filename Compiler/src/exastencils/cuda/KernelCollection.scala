@@ -667,7 +667,7 @@ case class Kernel(var identifier : String,
     if (reduction.isDefined) {
       def bufSize = requiredThreadsPerDim.product
       def bufAccess = iv.ReductionDeviceData(bufSize)
-      body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.datatype.get)
+      body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.innerDatatype.get)
       body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
       body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${IR_BinaryOperators.opAsIdent(reduction.get.op)}_wrapper",
         ListBuffer[IR_Expression](bufAccess, bufSize))))
@@ -678,7 +678,7 @@ case class Kernel(var identifier : String,
     }
 
     FunctionStatement(
-      if (reduction.isDefined) reduction.get.target.datatype.get else IR_UnitDatatype,
+      if (reduction.isDefined) reduction.get.target.innerDatatype.get else IR_UnitDatatype,
       getWrapperFctName,
       Duplicate(passThroughArgs),
       body,
@@ -722,8 +722,8 @@ case class Kernel(var identifier : String,
 
       datatype match {
         case IR_SpecialDatatype("Vec3") =>
-          access.datatype = Some(IR_SpecialDatatype("double3"))
-          fctParams += FunctionArgument(access.name, access.datatype.get)
+          access.innerDatatype = Some(IR_SpecialDatatype("double3"))
+          fctParams += FunctionArgument(access.name, access.innerDatatype.get)
         case IR_SpecialDatatype("Vec3i") =>
           fctParams ++= (0 until 3).map(dim => FunctionArgument(ivAccess._1 + '_' + dim, IR_SpecialDatatype("int"))).to[ListBuffer]
         case _ => fctParams += FunctionArgument(ivAccess._1, datatype)
