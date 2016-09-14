@@ -88,7 +88,7 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
         MemberAccess(IR_VariableAccess("blockIdx", None), it.name) *
           MemberAccess(IR_VariableAccess("blockDim", None), it.name) +
           MemberAccess(IR_VariableAccess("threadIdx", None), it.name))
-      fctBody += AssignmentStatement(it, 2 * stride, "*=")
+      fctBody += IR_Assignment(it, 2 * stride, "*=")
 
       // add index bounds conditions
       fctBody += IR_IfCondition(
@@ -98,7 +98,7 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
       // add values with stride
       fctBody += IR_IfCondition(
         IR_LowerExpression(it + stride, numElements),
-        AssignmentStatement(ArrayAccess(data, it), IR_BinaryOperators.createExpression(op, ArrayAccess(data, it), ArrayAccess(data, it + stride))))
+        IR_Assignment(ArrayAccess(data, it), IR_BinaryOperators.createExpression(op, ArrayAccess(data, it), ArrayAccess(data, it + stride))))
 
       // compile final kernel function
       var fct = FunctionStatement(
@@ -126,14 +126,14 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
       def blocks = IR_VariableAccess("blocks", Some(IR_SpecialDatatype("size_t")))
       var loopBody = ListBuffer[IR_Statement]()
       loopBody += new VariableDeclarationStatement(blocks, (numElements + (blockSize * stride - 1)) / (blockSize * stride))
-      loopBody += IR_IfCondition(IR_EqEqExpression(0, blocks), AssignmentStatement(blocks, 1))
+      loopBody += IR_IfCondition(IR_EqEqExpression(0, blocks), IR_Assignment(blocks, 1))
       loopBody += CUDA_FunctionCallExpression(kernelName, ListBuffer[IR_Expression](data, numElements, stride),
         Array[IR_Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */), Array[IR_Expression](blockSize))
 
       fctBody += IR_ForLoop(
         new VariableDeclarationStatement(stride, 1),
         IR_LowerExpression(stride, numElements),
-        AssignmentStatement(stride, 2, "*="),
+        IR_Assignment(stride, 2, "*="),
         loopBody)
 
       fctBody += new VariableDeclarationStatement(ret)
@@ -505,21 +505,21 @@ case class Kernel(var identifier : String,
           // 5. Add statements for loop body in kernel (z-Dim)
           // 5.1 advance the slice (move the thread front)
           (leftDeviation(field) to 2L by -1).foreach(x => {
-            sharedMemoryStatements += AssignmentStatement(IR_VariableAccess("behind" + x), IR_VariableAccess("behind" + (x - 1)))
+            sharedMemoryStatements += IR_Assignment(IR_VariableAccess("behind" + x), IR_VariableAccess("behind" + (x - 1)))
           })
-          sharedMemoryStatements += AssignmentStatement(IR_VariableAccess("behind1"), current)
-          sharedMemoryStatements += AssignmentStatement(current, IR_VariableAccess("infront1"))
+          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("behind1"), current)
+          sharedMemoryStatements += IR_Assignment(current, IR_VariableAccess("infront1"))
           (2L to rightDeviation(field)).foreach(x => {
-            sharedMemoryStatements += AssignmentStatement(IR_VariableAccess("infront" + x), IR_VariableAccess("infront" + (x + 1)))
+            sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + x), IR_VariableAccess("infront" + (x + 1)))
           })
 
-          sharedMemoryStatements += AssignmentStatement(IR_VariableAccess("infront" + rightDeviation(field)), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
+          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field)), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
 
           // 5.2 load from global memory into shared memory
-          sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.take(executionDim).reverse, sharedArrayStrides), current)
+          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.take(executionDim).reverse, sharedArrayStrides), current)
         } else {
           // 6. Load from global memory into shared memory
-          sharedMemoryStatements += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldForSharedMemory(field).index).linearize)
+          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldForSharedMemory(field).index).linearize)
         }
 
         // 7. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
@@ -549,7 +549,7 @@ case class Kernel(var identifier : String,
             val globalLeftIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalLeftIndex(dim) = IR_SubtractionExpression(globalLeftIndex(dim), x)
 
-            conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalLeftIndex).linearize)
+            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalLeftIndex).linearize)
           })
           (0L until rightDeviations(field)(dim)).foreach(x => {
             val localRightIndex = Duplicate(localThreadId)
@@ -557,7 +557,7 @@ case class Kernel(var identifier : String,
             val globalRightIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalRightIndex(dim) = IR_AdditionExpression(IR_AdditionExpression(globalRightIndex(dim), localFieldOffset), x)
 
-            conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalRightIndex).linearize)
+            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalRightIndex).linearize)
           })
 
           IR_IfCondition(condition, conditionBody)
@@ -570,7 +570,7 @@ case class Kernel(var identifier : String,
           zDimLoopBody += IR_IfCondition(conditionAccess, body)
           zDimLoopBody += CUDA_SyncThreads()
 
-          statements += IR_ForLoop(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_LowerExpression(IR_VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), AssignmentStatement(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
+          statements += IR_ForLoop(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_LowerExpression(IR_VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), IR_Assignment(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
 
           // 9. Remove the used loop variable to avoid later complications in loop variable substitution
           loopVariables.remove(executionDim)
@@ -818,7 +818,7 @@ object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gat
   }
 
   this += new Transformation("Searching", {
-    case stmt @ AssignmentStatement(access @ LinearizedFieldAccess(fieldSelection : FieldSelection, index : IR_Expression), _, _) =>
+    case stmt @ IR_Assignment(access @ LinearizedFieldAccess(fieldSelection : FieldSelection, index : IR_Expression), _, _) =>
       mapFieldAccess(access)
       stmt
   })
@@ -847,7 +847,7 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
   }
 
   this += new Transformation("Searching", {
-    case stmt @ AssignmentStatement(access : FieldAccessLike, _, _)                                   =>
+    case stmt @ IR_Assignment(access : FieldAccessLike, _, _)                                         =>
       writtenFields += extractFieldIdentifier(access)
       stmt
     case access : FieldAccessLike if access.fieldSelection.fieldLayout.numDimsData <= maximalFieldDim =>

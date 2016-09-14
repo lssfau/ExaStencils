@@ -35,7 +35,7 @@ case class BuildStringStatement(var stringName : IR_Expression, var toPrint : Li
     val statements = ListBuffer[IR_Statement](
       VariableDeclarationStatement(streamType, streamName),
       PrintExpression(IR_VariableAccess(streamName, streamType), toPrint),
-      AssignmentStatement(stringName, MemberFunctionCallExpression(IR_VariableAccess(streamName, Some(IR_SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
+      IR_Assignment(stringName, MemberFunctionCallExpression(IR_VariableAccess(streamName, Some(IR_SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
     return statements
   }
 }
@@ -75,10 +75,10 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
 
   def getPos(field : FieldSelection, dim : Int) : IR_Expression = {
     field.field.discretization match {
-      case "node" => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
-      case "cell" => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "cell"                                   => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
       case discr @ ("face_x" | "face_y" | "face_z") => {
-        if (s"face_${dimToString(dim)}" == discr)
+        if (s"face_${ dimToString(dim) }" == discr)
           GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
         else
           GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)

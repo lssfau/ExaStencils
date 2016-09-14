@@ -199,7 +199,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           val it : IR_VariableAccess = IR_VariableAccess(itStr, IR_IntegerDatatype)
           val init : IR_Statement = new VariableDeclarationStatement(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
           val cond : IR_Expression = processIslExpr(node.forGetCond())
-          val incr : IR_Statement = new AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
+          val incr : IR_Statement = new IR_Assignment(it, processIslExpr(node.forGetInc()), "+=")
 
           val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level

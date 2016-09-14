@@ -152,10 +152,10 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         }
         val d = new HashMap[String, ArrayBases]()
         l.inc match { // TODO: remove StringLiteral
-          case AssignmentStatement(IR_VariableAccess(name, _), _, _)                          =>
+          case IR_Assignment(IR_VariableAccess(name, _), _, _)                                =>
             decls = d
             inVars = Set(name)
-          case AssignmentStatement(IR_StringLiteral(name), _, _)                              =>
+          case IR_Assignment(IR_StringLiteral(name), _, _)                                    =>
             decls = d
             inVars = Set(name)
           case IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(name, _)))  =>
@@ -194,7 +194,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         skipSubtree = true
         toAnalyze += acc
 
-      case AssignmentStatement(dst, _, _) if (decls != null && inVars != null) =>
+      case IR_Assignment(dst, _, _) if (decls != null && inVars != null) =>
         dst match {
           case _ : IR_StringLiteral
                | _ : IR_VariableAccess

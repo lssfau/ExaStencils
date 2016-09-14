@@ -76,7 +76,7 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccessLike) extends IR_Sta
           (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
             * SizeOfExpression(field.resolveBaseDatatype),
           "cudaMemcpyDeviceToHost"),
-        AssignmentStatement(iv.DeviceDataUpdated(field, fieldSelection.slot), IR_BooleanConstant(false))))
+        IR_Assignment(iv.DeviceDataUpdated(field, fieldSelection.slot), IR_BooleanConstant(false))))
   }
 }
 
@@ -95,7 +95,7 @@ case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccessLike) extends IR_S
           (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
             * SizeOfExpression(field.resolveBaseDatatype),
           "cudaMemcpyHostToDevice"),
-        AssignmentStatement(iv.HostDataUpdated(field, fieldSelection.slot), IR_BooleanConstant(false))))
+        IR_Assignment(iv.HostDataUpdated(field, fieldSelection.slot), IR_BooleanConstant(false))))
   }
 }
 
@@ -111,7 +111,7 @@ case class CUDA_FunctionCallExpression(
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val numDims = numThreadsPerDim.size
-    if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
+    if (numDims > 3) Logger.warn(s"${ numDims }D kernel found; this is currently unsupported by CUDA") // TODO: check relation to compute capability
 
     val numBlocks = (0 until numDims).map(dim => {
       (numThreadsPerDim(dim) + numBlocksPerDim(dim) - 1) / numBlocksPerDim(dim)
@@ -141,7 +141,7 @@ case class CUDA_FunctionCallExperimentalExpression(
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val numDims = numThreadsPerDim.size
-    if (numDims > 3) Logger.warn(s"${numDims}D kernel found; this is currently unsupported by CUDA")
+    if (numDims > 3) Logger.warn(s"${ numDims }D kernel found; this is currently unsupported by CUDA")
 
     out << name << "<<<"
     if (1 == numDims)
@@ -228,7 +228,8 @@ case class CUDA_MinimumExpression(left : IR_Expression, right : IR_Expression) e
 
 case class CUDA_RestrictVariableAccess(var name : String, var dType : Option[IR_Datatype] = None) extends IR_Access {
   def this(n : String, dT : IR_Datatype) = this(n, Option(dT))
-  override def datatype = dType.get // FIXME
+  override def datatype = dType.get
+  // FIXME
   override def prettyprint(out : PpStream) : Unit = out << name
 
   def printDeclaration() : String = "const " + dType.get.resolveDeclType.prettyprint + " __restrict__ " + name + dType.get.resolveDeclPostscript

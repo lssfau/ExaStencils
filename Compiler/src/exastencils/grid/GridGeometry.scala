@@ -191,9 +191,9 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val leftBoundaryUpdate = IR_IfCondition(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[IR_Statement](
-        AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
+        IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
-        AssignmentStatement(Duplicate(leftGhostAccess),
+        IR_Assignment(Duplicate(leftGhostAccess),
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
     var rightDir = Array(0, 0, 0);
@@ -207,9 +207,9 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val rightBoundaryUpdate = IR_IfCondition(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[IR_Statement](
-        AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
+        IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
-        AssignmentStatement(Duplicate(rightGhostAccess),
+        IR_Assignment(Duplicate(rightGhostAccess),
           2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim))))
 
     // compile final loop
@@ -221,7 +221,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
           IR_ExpressionIndex(1, 1, 1),
           ListBuffer[IR_Statement](
             innerItDecl,
-            AssignmentStatement(Duplicate(baseAccess),
+            IR_Assignment(Duplicate(baseAccess),
               domainBounds.lower(dim) - innerIt * cellWidth))),
         leftBoundaryUpdate,
         rightBoundaryUpdate)))
@@ -286,9 +286,9 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val leftBoundaryUpdate = IR_IfCondition(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[IR_Statement](
-        AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
+        IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
-        AssignmentStatement(Duplicate(leftGhostAccess),
+        IR_Assignment(Duplicate(leftGhostAccess),
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
     var rightDir = Array(0, 0, 0);
@@ -302,9 +302,9 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val rightBoundaryUpdate = IR_IfCondition(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[IR_Statement](
-        AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
+        IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
-        AssignmentStatement(Duplicate(rightGhostAccess),
+        IR_Assignment(Duplicate(rightGhostAccess),
           2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim))))
 
     // compile final loop
@@ -317,12 +317,12 @@ trait GridGeometry_nonUniform extends GridGeometry {
           ListBuffer[IR_Statement](
             innerItDecl,
             IR_IfCondition(IR_LowerEqualExpression(innerIt, xf + 1),
-              AssignmentStatement(Duplicate(baseAccess),
+              IR_Assignment(Duplicate(baseAccess),
                 domainBounds.lower(dim) + 0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
               IR_IfCondition(IR_LowerEqualExpression(innerIt, xs + 1),
-                AssignmentStatement(Duplicate(baseAccess),
+                IR_Assignment(Duplicate(baseAccess),
                   domainBounds.lower(dim) - 0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
-                AssignmentStatement(Duplicate(baseAccess),
+                IR_Assignment(Duplicate(baseAccess),
                   domainBounds.lower(dim) - 0.5 * alpha * innerIt * innerIt
                     + (alpha * xf + alpha * xs + 0.5 * alpha + beta) * innerIt
                     - 0.5 * alpha * (xf * xf + xf + xs * xs + xs)))))),
@@ -464,23 +464,23 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_ExpressionIndex(1, 1, 1),
         ListBuffer[IR_Statement](
           IR_IfCondition(IR_LowerEqualExpression(innerIt, 0),
-            AssignmentStatement(Duplicate(baseAccess), 0.0),
+            IR_Assignment(Duplicate(baseAccess), 0.0),
             IR_IfCondition(IR_LowerEqualExpression(innerIt, 1 * zoneSize),
-              AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
+              IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
                 + zoneLength * FunctionCallExpression("pow", ListBuffer[IR_Expression](step * (LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
               IR_IfCondition(IR_LowerEqualExpression(innerIt, 2 * zoneSize),
-                AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
+                IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
                   + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
                 IR_IfCondition(IR_LowerEqualExpression(innerIt, 3 * zoneSize),
-                  AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
+                  IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
                     + zoneLength * step * (LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
                   IR_IfCondition(IR_LowerEqualExpression(innerIt, 4 * zoneSize),
-                    AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
+                    IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
                       + zoneLength * (1.0 - FunctionCallExpression("pow", ListBuffer[IR_Expression](1.0 - step * (LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
-                    AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))),
-      AssignmentStatement(Duplicate(leftGhostAccess),
+                    IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))),
+      IR_Assignment(Duplicate(leftGhostAccess),
         2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
-      AssignmentStatement(Duplicate(rightGhostAccess),
+      IR_Assignment(Duplicate(rightGhostAccess),
         2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim)))
   }
 
@@ -521,20 +521,20 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_ExpressionIndex(1, 1, 1),
         ListBuffer[IR_Statement](
           IR_IfCondition(IR_LowerEqualExpression(innerIt, 0),
-            AssignmentStatement(Duplicate(baseAccess), 0.0),
+            IR_Assignment(Duplicate(baseAccess), 0.0),
             IR_IfCondition(IR_LowerEqualExpression(innerIt, zoneSize_1),
-              AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt, dim)
+              IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt, dim)
                 + zoneLength_1 * FunctionCallExpression("pow", ListBuffer[IR_Expression](step_1 * (LoopOverDimensions.defItForDim(dim)), expo))),
               IR_IfCondition(IR_LowerEqualExpression(innerIt, (zoneSize_1 + zoneSize_2)),
-                AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + zoneSize_1, dim)
+                IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + zoneSize_1, dim)
                   + zoneLength_2 * step_2 * (LoopOverDimensions.defItForDim(dim) - zoneSize_1)),
                 IR_IfCondition(IR_LowerEqualExpression(innerIt, innerIt + (zoneSize_1 + zoneSize_2 + zoneSize_3)),
-                  AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + (zoneSize_1 + zoneSize_2), dim)
+                  IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + (zoneSize_1 + zoneSize_2), dim)
                     + zoneLength_3 * step_3 * (LoopOverDimensions.defItForDim(dim) - (zoneSize_1 + zoneSize_2))),
-                  AssignmentStatement(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim)))))))),
-      AssignmentStatement(Duplicate(leftGhostAccess),
+                  IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim)))))))),
+      IR_Assignment(Duplicate(leftGhostAccess),
         2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
-      AssignmentStatement(Duplicate(rightGhostAccess),
+      IR_Assignment(Duplicate(rightGhostAccess),
         2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim)))
   }
 
@@ -573,8 +573,8 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val leftBoundaryUpdate = IR_IfCondition(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[IR_Statement](
-        AssignmentStatement(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
-        AssignmentStatement(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
+        IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
+        IR_Assignment(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
 
     var rightDir = Array(0, 0, 0);
     rightDir(dim) = 1
@@ -587,8 +587,8 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val rightBoundaryUpdate = IR_IfCondition(
       IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[IR_Statement](
-        AssignmentStatement(GridUtil.offsetAccess(rightGhostAccess, -1, dim), GridUtil.offsetAccess(rightGhostAccess, -2, dim)),
-        AssignmentStatement(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim))))
+        IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim), GridUtil.offsetAccess(rightGhostAccess, -2, dim)),
+        IR_Assignment(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim))))
 
     // compile final loop
     ListBuffer[IR_Statement](
@@ -600,14 +600,14 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
           ListBuffer[IR_Statement](
             innerItDecl,
             IR_IfCondition(IR_EqEqExpression(0, innerIt),
-              AssignmentStatement(Duplicate(baseAccess),
+              IR_Assignment(Duplicate(baseAccess),
                 0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
                   - Duplicate(npBaseAccess)),
               IR_IfCondition(IR_EqEqExpression(numCellsTotal, innerIt),
-                AssignmentStatement(Duplicate(baseAccess),
+                IR_Assignment(Duplicate(baseAccess),
                   Duplicate(npBaseAccess)
                     - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),
-                AssignmentStatement(Duplicate(baseAccess),
+                IR_Assignment(Duplicate(baseAccess),
                   0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
                     - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))))))),
         leftBoundaryUpdate,

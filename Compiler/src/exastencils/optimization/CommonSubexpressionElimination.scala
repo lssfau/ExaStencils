@@ -84,7 +84,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         accesses(vName) = (decl, new ArrayBuffer[IR_Expression]())
         assignTo = vName
         decl
-      case ass @ AssignmentStatement(IR_VariableAccess(vName, _), _, _)                  =>
+      case ass @ IR_Assignment(IR_VariableAccess(vName, _), _, _)                        =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
@@ -216,7 +216,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
       val decls = new ArrayBuffer[VariableDeclarationStatement]()
       val firstInits = new ListBuffer[IR_Statement]()
-      val nextUpdates = new ArrayBuffer[AssignmentStatement]()
+      val nextUpdates = new ArrayBuffer[IR_Assignment]()
       for (commonExp <- filteredCS.view.map(_._3)) {
         val ids : BitSet = foundIDs.clone()
         val disjunct : Boolean = commonExp.getPositions().forall { x => collectIDs(x.head, ids) }
@@ -251,8 +251,8 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           decl.expression = Some(tmpBufAcc)
           decls += decl
 
-          firstInits += new AssignmentStatement(Duplicate(tmpBufAcc), Duplicate(commonExp.witness), "=")
-          nextUpdates += new AssignmentStatement(Duplicate(tmpBufAcc), csNext, "=")
+          firstInits += new IR_Assignment(Duplicate(tmpBufAcc), Duplicate(commonExp.witness), "=")
+          nextUpdates += new IR_Assignment(Duplicate(tmpBufAcc), csNext, "=")
         }
       }
 
@@ -549,17 +549,17 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
         c.annotate(SKIP_ANNOT)
         skip = true
 
-      case VariableDeclarationStatement(dt, name, _)                              =>
+      case VariableDeclarationStatement(dt, name, _)                        =>
         commonSubs(IR_VariableAccess(name, dt)) = null
-      case AssignmentStatement(vAcc : IR_VariableAccess, _, _)                    =>
+      case IR_Assignment(vAcc : IR_VariableAccess, _, _)                    =>
         commonSubs(vAcc) = null
-      case AssignmentStatement(ArrayAccess(vAcc : IR_VariableAccess, _, _), _, _) =>
+      case IR_Assignment(ArrayAccess(vAcc : IR_VariableAccess, _, _), _, _) =>
         commonSubs(vAcc) = null
-      case AssignmentStatement(ArrayAccess(iv : iv.InternalVariable, _, _), _, _) =>
+      case IR_Assignment(ArrayAccess(iv : iv.InternalVariable, _, _), _, _) =>
         commonSubs(iv) = null
-      case AssignmentStatement(dfa : DirectFieldAccess, _, _)                     =>
+      case IR_Assignment(dfa : DirectFieldAccess, _, _)                     =>
         commonSubs(dfa) = null
-      case AssignmentStatement(tba : TempBufferAccess, _, _)                      =>
+      case IR_Assignment(tba : TempBufferAccess, _, _)                      =>
         commonSubs(tba) = null
 
       case _ : IR_IntegerConstant

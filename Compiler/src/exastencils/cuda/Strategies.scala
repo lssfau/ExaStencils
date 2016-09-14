@@ -38,7 +38,7 @@ object CudaStrategiesUtils {
   def verifyCudaLoopSuitability(loop : IR_ForLoop) : Boolean = {
     loop.begin.isInstanceOf[VariableDeclarationStatement] &&
       (loop.end.isInstanceOf[IR_LowerExpression] || loop.end.isInstanceOf[IR_LowerEqualExpression]) &&
-      loop.inc.isInstanceOf[AssignmentStatement]
+      loop.inc.isInstanceOf[IR_Assignment]
   }
 
   /**
@@ -48,8 +48,8 @@ object CudaStrategiesUtils {
     * @return <code>true</code> if it is a parallel loop; <code>false</code> otherwise
     */
   def verifyCudaLoopParallel(loop : IR_ForLoop) : Boolean = {
-    loop.inc.isInstanceOf[AssignmentStatement] &&
-      loop.inc.asInstanceOf[AssignmentStatement].src.isInstanceOf[IR_IntegerConstant] &&
+    loop.inc.isInstanceOf[IR_Assignment] &&
+      loop.inc.asInstanceOf[IR_Assignment].src.isInstanceOf[IR_IntegerConstant] &&
       loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
   }
 
@@ -77,8 +77,8 @@ object CudaStrategiesUtils {
         case o => o
       })
       stepSize += (loop.inc match {
-        case AssignmentStatement(_, src : IR_Expression, "=") => src
-        case _ => IR_IntegerConstant(1)
+        case IR_Assignment(_, src : IR_Expression, "=") => src
+        case _                                          => IR_IntegerConstant(1)
       })
     }
 
@@ -119,7 +119,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldSelection = access._2.fieldSelection
       if (access._1.startsWith("write"))
-        afterHost += AssignmentStatement(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+        afterHost += IR_Assignment(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
     }
 
     // device sync stmts
@@ -143,7 +143,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       for (access <- GatherLocalFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
         val fieldSelection = access._2.fieldSelection
         if (access._1.startsWith("write"))
-          afterDevice += AssignmentStatement(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+          afterDevice += IR_Assignment(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
       }
     }
 
@@ -249,7 +249,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
       for ((fKey, offset) <- fieldOffset) {
         val field = fields(fKey)
-        res += AssignmentStatement(iv.CurrentSlot(field), (iv.CurrentSlot(field) + offset) Mod field.numSlots)
+        res += IR_Assignment(iv.CurrentSlot(field), (iv.CurrentSlot(field) + offset) Mod field.numSlots)
       }
 
       res
@@ -506,7 +506,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       // process return value of kernel wrapper call if reduction is required
       if (loop.reduction.isDefined) {
         val red = loop.reduction.get
-        deviceStatements += AssignmentStatement(red.target,
+        deviceStatements += IR_Assignment(red.target,
           IR_BinaryOperators.createExpression(red.op, red.target,
             FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))))
       } else {
@@ -525,7 +525,7 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
         kernel.body = ListBuffer[IR_Statement](IR_ForLoop(
           new VariableDeclarationStatement(it, kernel.lowerBounds.last),
           IR_LowerExpression(it, kernel.upperBounds.last),
-          AssignmentStatement(it, kernel.stepSize.last, "+="),
+          IR_Assignment(it, kernel.stepSize.last, "+="),
           kernel.body))
         kernel.parallelDims -= 1
       }
@@ -555,7 +555,7 @@ object ReplaceReductionAssignements extends QuietDefaultStrategy("Replace assign
   var replacement : IR_Expression = IR_NullExpression
 
   this += new Transformation("Searching", {
-    case assignment : AssignmentStatement =>
+    case assignment : IR_Assignment =>
       assignment.dest match {
         case va : IR_VariableAccess if redTarget.equals(va.name) =>
           assignment.dest = Duplicate(replacement)
@@ -589,7 +589,7 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
   }
 
   this += new Transformation("Searching", {
-    case assign : AssignmentStatement =>
+    case assign : IR_Assignment   =>
       inWriteOp = true
       GatherLocalFieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       inWriteOp = false

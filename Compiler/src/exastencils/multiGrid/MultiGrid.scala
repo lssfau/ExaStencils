@@ -30,7 +30,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new AssignmentStatement(
+          new IR_Assignment(
             new DirectFieldAccess(FieldSelection(field, field.level, slot), index),
             0.0) : IR_Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
       loopOverDims.optLevel = 1

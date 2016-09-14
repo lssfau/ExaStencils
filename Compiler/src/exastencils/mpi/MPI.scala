@@ -90,7 +90,7 @@ case class MPI_Reduce(var root : IR_Expression, var sendbuf : IR_Expression, var
         out << "\n} else {\n"
         MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
         out << "\n}"
-      case _ => reallyPrint(out) // otherwise a simple print suffices
+      case _                                => reallyPrint(out) // otherwise a simple print suffices
     }
 
   }
@@ -124,7 +124,7 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange,
   override def typicalByteSize = ???
 
   if (!MPI_DataType.shouldBeUsed(indexRange, condition))
-    Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${indexRange.print}")
+    Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${ indexRange.print }")
 
   // determine data type parameters
   var blockLengthExp : IR_Expression = indexRange.end(0) - indexRange.begin(0)
@@ -145,7 +145,7 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange,
   val blockCount = SimplifyExpression.evalIntegral(blockCountExp)
   val stride = SimplifyExpression.evalIntegral(strideExp)
 
-  def generateName : String = s"mpiDatatype_${blockCount}_${blockLength}_${stride}"
+  def generateName : String = s"mpiDatatype_${ blockCount }_${ blockLength }_${ stride }"
   def mpiTypeNameArg : IR_Expression = IR_AddressofExpression(generateName)
 
   def generateDecl : VariableDeclarationStatement = {
@@ -218,7 +218,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           new VariableDeclarationStatement(result),
           new VariableDeclarationStatement(flag, 0),
           IR_WhileLoop(IR_EqEqExpression(0, flag),
-            new AssignmentStatement(result, FunctionCallExpression("MPI_Test", ListBuffer(
+            new IR_Assignment(result, FunctionCallExpression("MPI_Test", ListBuffer(
               request, IR_AddressofExpression(flag), IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
             IR_IfCondition(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
               new VariableDeclarationStatement(msg),
@@ -226,21 +226,21 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
               new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
                 MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
               new PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
-          new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
+          new IR_Assignment(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     } else {
       FunctionStatement(IR_UnitDatatype, s"waitForMPIReq", ListBuffer(FunctionArgument(request.name, request.innerDatatype.get)),
         ListBuffer[IR_Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
-          new AssignmentStatement(result, FunctionCallExpression("MPI_Wait", ListBuffer(request, IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
+          new IR_Assignment(result, FunctionCallExpression("MPI_Wait", ListBuffer(request, IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
           IR_IfCondition(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
             new VariableDeclarationStatement(msg),
             new VariableDeclarationStatement(len),
             new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
               MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
             new PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
-          new AssignmentStatement(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
+          new IR_Assignment(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     }
   }

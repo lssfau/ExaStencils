@@ -75,7 +75,7 @@ abstract class AbstractTmpBuffer extends CommVariable {
       IR_IfCondition(ptrExpr,
         ListBuffer[IR_Statement](
           IR_ArrayFree(ptrExpr),
-          new AssignmentStatement(ptrExpr, 0)))))
+          new IR_Assignment(ptrExpr, 0)))))
   }
 }
 
@@ -92,7 +92,7 @@ case class TmpBuffer(override var field : Field, override var direction : String
   override def getDtor() : Option[IR_Statement] = {
     if (Knowledge.data_alignTmpBufferPointers) {
       var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
-      Some(wrapInLoops(new AssignmentStatement(access, 0)))
+      Some(wrapInLoops(new IR_Assignment(access, 0)))
     } else {
       super.getDtor()
     }

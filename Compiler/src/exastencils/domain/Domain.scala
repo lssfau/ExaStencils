@@ -206,9 +206,9 @@ case class ConnectFragments() extends IR_Statement with Expandable {
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     for (d <- 0 until domains.size) {
       if (Knowledge.domain_rect_generate) {
-        body += AssignmentStatement(iv.IsValidForSubdomain(d), PointInsideDomain(iv.PrimitivePosition(), domains(d)))
+        body += IR_Assignment(iv.IsValidForSubdomain(d), PointInsideDomain(iv.PrimitivePosition(), domains(d)))
       } else {
-        body += AssignmentStatement(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
+        body += IR_Assignment(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
       }
     }
 
@@ -220,20 +220,20 @@ case class ConnectFragments() extends IR_Statement with Expandable {
       for (neigh <- neighbors) {
         var statements = ListBuffer[IR_Statement]()
 
-        statements += AssignmentStatement(s"Vec3 offsetPos",
+        statements += IR_Assignment(s"Vec3 offsetPos",
           iv.PrimitivePosition() + s"Vec3(${ neigh.dir(0) } * ${ fragWidth_x }, ${ neigh.dir(1) } * ${ fragWidth_y }, ${ neigh.dir(2) } * ${ fragWidth_z })")
 
         if (Knowledge.domain_rect_periodic_x) {
-          statements += IR_IfCondition(IR_GreaterExpression("offsetPos.x", gSize.upper_x), AssignmentStatement("offsetPos.x", gSize.upper_x - gSize.lower_x, "-="))
-          statements += IR_IfCondition(IR_LowerExpression("offsetPos.x", gSize.lower_x), AssignmentStatement("offsetPos.x", gSize.upper_x - gSize.lower_x, "+="))
+          statements += IR_IfCondition(IR_GreaterExpression("offsetPos.x", gSize.upper_x), IR_Assignment("offsetPos.x", gSize.upper_x - gSize.lower_x, "-="))
+          statements += IR_IfCondition(IR_LowerExpression("offsetPos.x", gSize.lower_x), IR_Assignment("offsetPos.x", gSize.upper_x - gSize.lower_x, "+="))
         }
         if (Knowledge.domain_rect_periodic_y) {
-          statements += IR_IfCondition(IR_GreaterExpression("offsetPos.y", gSize.upper_y), AssignmentStatement("offsetPos.y", gSize.upper_y - gSize.lower_y, "-="))
-          statements += IR_IfCondition(IR_LowerExpression("offsetPos.y", gSize.lower_y), AssignmentStatement("offsetPos.y", gSize.upper_y - gSize.lower_y, "+="))
+          statements += IR_IfCondition(IR_GreaterExpression("offsetPos.y", gSize.upper_y), IR_Assignment("offsetPos.y", gSize.upper_y - gSize.lower_y, "-="))
+          statements += IR_IfCondition(IR_LowerExpression("offsetPos.y", gSize.lower_y), IR_Assignment("offsetPos.y", gSize.upper_y - gSize.lower_y, "+="))
         }
         if (Knowledge.domain_rect_periodic_z) {
-          statements += IR_IfCondition(IR_GreaterExpression("offsetPos.z", gSize.upper_z), AssignmentStatement("offsetPos.z", gSize.upper_z - gSize.lower_z, "-="))
-          statements += IR_IfCondition(IR_LowerExpression("offsetPos.z", gSize.lower_z), AssignmentStatement("offsetPos.z", gSize.upper_z - gSize.lower_z, "+="))
+          statements += IR_IfCondition(IR_GreaterExpression("offsetPos.z", gSize.upper_z), IR_Assignment("offsetPos.z", gSize.upper_z - gSize.lower_z, "-="))
+          statements += IR_IfCondition(IR_LowerExpression("offsetPos.z", gSize.lower_z), IR_Assignment("offsetPos.z", gSize.upper_z - gSize.lower_z, "+="))
         }
 
         // FIXME: datatype for VariableAccesses
@@ -293,17 +293,17 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         s"Vec3 rankPos(0, 0, 0)")
 
     body += new LoopOverDimensions(Knowledge.dimensionality, IndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
-      new AssignmentStatement("positions[posWritePos++]", new FunctionCallExpression("Vec3",
+      new IR_Assignment("positions[posWritePos++]", new FunctionCallExpression("Vec3",
         ((("rankPos.x" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x,
         (if (Knowledge.dimensionality > 1) ((("rankPos.y" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0),
         (if (Knowledge.dimensionality > 2) ((("rankPos.z" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0)))) // FIXME: Constructor?
     body += LoopOverFragments(ListBuffer(
-      AssignmentStatement(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
-      AssignmentStatement(iv.PrimitiveIndex(), PointToFragmentIndex(ArrayAccess("positions", LoopOverFragments.defIt))),
-      AssignmentStatement(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
-      AssignmentStatement(iv.PrimitivePosition(), ArrayAccess("positions", LoopOverFragments.defIt)),
-      AssignmentStatement(iv.PrimitivePositionBegin(), ArrayAccess("positions", LoopOverFragments.defIt) - vecDelta),
-      AssignmentStatement(iv.PrimitivePositionEnd(), ArrayAccess("positions", LoopOverFragments.defIt) + vecDelta)))
+      IR_Assignment(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
+      IR_Assignment(iv.PrimitiveIndex(), PointToFragmentIndex(ArrayAccess("positions", LoopOverFragments.defIt))),
+      IR_Assignment(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
+      IR_Assignment(iv.PrimitivePosition(), ArrayAccess("positions", LoopOverFragments.defIt)),
+      IR_Assignment(iv.PrimitivePositionBegin(), ArrayAccess("positions", LoopOverFragments.defIt) - vecDelta),
+      IR_Assignment(iv.PrimitivePositionEnd(), ArrayAccess("positions", LoopOverFragments.defIt) + vecDelta)))
 
     body += ConnectFragments()
 
@@ -339,8 +339,8 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
                   "file.seekg (0, std::ios::beg)",
                   "file.read (memblock, size)",
                   VariableDeclarationStatement(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
-                  AssignmentStatement("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
-                  AssignmentStatement("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
+                  IR_Assignment("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
+                  IR_Assignment("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
                   (if (Knowledge.mpi_enabled) VariableDeclarationStatement(IR_IntegerDatatype, "fileOffset", Some("bufsize"))
                   else IR_NullStatement),
                   (if (Knowledge.mpi_enabled) {
@@ -350,10 +350,10 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
                       MPI_Send("&n", "1", IR_IntegerDatatype, "i", 0, "mpiRequest_Send_0[i][0]"),
                       MPI_Send("&fileOffset", "1", IR_IntegerDatatype, "i", 1, "mpiRequest_Send_0[i][1]"),
                       MPI_Send("&b", "1", IR_IntegerDatatype, "i", 2, "mpiRequest_Send_0[i][2]"),
-                      AssignmentStatement("fileOffset", IR_AdditionExpression("fileOffset", "b")))
+                      IR_Assignment("fileOffset", IR_AdditionExpression("fileOffset", "b")))
                   } else IR_NullStatement),
                   "file.close()"), ListBuffer[IR_Statement]()),
-              AssignmentStatement("fileOffset", 0)),
+              IR_Assignment("fileOffset", 0)),
             ListBuffer[IR_Statement](
               "MPI_Irecv(&numFragments, 1, MPI_INT, 0, 0, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][0])",
               "MPI_Irecv(&fileOffset, 1, MPI_INT, 0, 1, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][1])",
@@ -380,8 +380,8 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
               "file.seekg (0, std::ios::beg)",
               "file.read (memblock, size)",
               VariableDeclarationStatement(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
-              AssignmentStatement("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
-              AssignmentStatement("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
+              IR_Assignment("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
+              IR_Assignment("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
               "file.close()"), ListBuffer[IR_Statement]()),
           VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), s"""fileFrags("./Domains/fragments.dat", std::ios::binary | std::ios::in)"""),
           VariableDeclarationStatement(IR_CharDatatype, "buf[bufsize]"),
@@ -402,30 +402,30 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
   override def expand : Output[FunctionStatement] = {
     var body = new ListBuffer[IR_Statement]
     for (d <- 0 until DomainCollection.domains.size) {
-      body += AssignmentStatement(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
+      body += IR_Assignment(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
     }
     body += IR_Scope(
-      AssignmentStatement(iv.PrimitiveId(), ReadValueFrom(IR_IntegerDatatype, "data")),
-      AssignmentStatement(iv.CommId(), ReadValueFrom(IR_IntegerDatatype, "data")),
+      IR_Assignment(iv.PrimitiveId(), ReadValueFrom(IR_IntegerDatatype, "data")),
+      IR_Assignment(iv.CommId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_ForLoop(VariableDeclarationStatement(IR_IntegerDatatype, "i", Some(0)),
         IR_LowerExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype)), math.pow(2, Knowledge.dimensionality)),
         IR_PreIncrementExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype))),
         // FIXME: Constructor?
         // s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
         VariableDeclarationStatement(IR_SpecialDatatype("Vec3"), "vertPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
-        (if (Knowledge.dimensionality == 2) AssignmentStatement("vertPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
-        (if (Knowledge.dimensionality == 3) AssignmentStatement("vertPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
+        (if (Knowledge.dimensionality == 2) IR_Assignment("vertPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
+        (if (Knowledge.dimensionality == 3) IR_Assignment("vertPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
         SwitchStatement("i", ListBuffer(
-          CaseStatement("0", ListBuffer(AssignmentStatement(iv.PrimitivePositionBegin(), "vertPos"))),
-          CaseStatement("1", ListBuffer(AssignmentStatement(iv.PrimitivePositionEnd(), "vertPos"))),
-          CaseStatement("3", ListBuffer(AssignmentStatement(iv.PrimitivePositionEnd(), "vertPos"))),
-          CaseStatement("7", ListBuffer(AssignmentStatement(iv.PrimitivePositionEnd(), "vertPos")))))),
+          CaseStatement("0", ListBuffer(IR_Assignment(iv.PrimitivePositionBegin(), "vertPos"))),
+          CaseStatement("1", ListBuffer(IR_Assignment(iv.PrimitivePositionEnd(), "vertPos"))),
+          CaseStatement("3", ListBuffer(IR_Assignment(iv.PrimitivePositionEnd(), "vertPos"))),
+          CaseStatement("7", ListBuffer(IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")))))),
       // FIXME: Constructor?
       // s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
       VariableDeclarationStatement(IR_SpecialDatatype("Vec3"), "fragPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
-      (if (Knowledge.dimensionality == 2) AssignmentStatement("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
-      (if (Knowledge.dimensionality == 3) AssignmentStatement("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
-      AssignmentStatement(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
+      (if (Knowledge.dimensionality == 2) IR_Assignment("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
+      (if (Knowledge.dimensionality == 3) IR_Assignment("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
+      IR_Assignment(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
     )
     for (d <- 0 until DomainCollection.domains.size) {
       body += IR_ForLoop("int location = 0", s" location < ${ FragmentCollection.getNumberOfNeighbors() } ", "++location",
@@ -444,8 +444,8 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
       ListBuffer[IR_Statement](
         "Mat4 trafoTmp = Mat4()",
         IR_ForLoop("int i = 0", " i < 12 ", "++i",
-          AssignmentStatement("trafoTmp[i]", ReadValueFrom(IR_RealDatatype, "data"))),
-        AssignmentStatement(iv.PrimitiveTransformation(), "trafoTmp")))
+          IR_Assignment("trafoTmp[i]", ReadValueFrom(IR_RealDatatype, "data"))),
+        IR_Assignment(iv.PrimitiveTransformation(), "trafoTmp")))
     FunctionStatement(IR_UnitDatatype, name,
       ListBuffer[FunctionArgument](FunctionArgument("data", IR_SpecialDatatype("char*")), FunctionArgument("numFragments", IR_IntegerDatatype)),
       //      ListBuffer((LoopOverFragments(body))))

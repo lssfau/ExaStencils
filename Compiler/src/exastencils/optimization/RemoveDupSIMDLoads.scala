@@ -103,7 +103,7 @@ private[optimization] final class Analyze extends StackCollector {
     node match {
       case IR_ForLoop(VariableDeclarationStatement(IR_IntegerDatatype, lVar, Some(start)),
       IR_LowerExpression(IR_VariableAccess(lVar3, _), end),
-      AssignmentStatement(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
+      IR_Assignment(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
       _, _) if (lVar == lVar2 && lVar2 == lVar3) //
       =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
@@ -139,9 +139,9 @@ private[optimization] final class Analyze extends StackCollector {
               preLoopDecls += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
                 SIMD_LoadExpression(IR_AddressofExpression(
                   ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
-              decl.annotate(REPL_ANNOT, AssignmentStatement(IR_VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
+              decl.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
               if (nextIt.get._1.hasAnnotation(REPL_ANNOT))
-                nextIt.get._1.annotate(REPL_ANNOT, AssignmentStatement(IR_VariableAccess(nextIt.get._1.name, SIMD_RealDatatype),
+                nextIt.get._1.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(nextIt.get._1.name, SIMD_RealDatatype),
                   IR_VariableAccess(vecTmp, SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
               else
                 nextIt.get._1.annotate(REPL_ANNOT, new VariableDeclarationStatement(SIMD_RealDatatype, nextIt.get._1.name,

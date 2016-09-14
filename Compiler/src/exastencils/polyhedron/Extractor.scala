@@ -478,7 +478,7 @@ class Extractor extends Collector {
             c.condition.annotate(SKIP_ANNOT)
             enterCondition(c)
 
-          case a : AssignmentStatement =>
+          case a : IR_Assignment =>
             enterAssign(a)
 
           case IR_StringLiteral(varName) =>
@@ -599,15 +599,15 @@ class Extractor extends Collector {
 
     if (curScop.exists())
       node match {
-        case l : LoopOverDimensions        => leaveLoop(l)
-        case c : IR_IfCondition            => leaveCondition(c)
-        case _ : AssignmentStatement       => leaveAssign()
-        case _ : IR_StringLiteral          => leaveScalarAccess()
-        case _ : IR_VariableAccess         => leaveScalarAccess()
-        case _ : ArrayAccess               => leaveArrayAccess()
-        case _ : DirectFieldAccess         => leaveFieldAccess()
-        case _ : TempBufferAccess          => leaveTempBufferAccess()
-        case _ : LoopCarriedCSBufferAccess => leaveLoopCarriedCSBufferAccess()
+        case l : LoopOverDimensions           => leaveLoop(l)
+        case c : IR_IfCondition               => leaveCondition(c)
+        case _ : IR_Assignment                => leaveAssign()
+        case _ : IR_StringLiteral             => leaveScalarAccess()
+        case _ : IR_VariableAccess            => leaveScalarAccess()
+        case _ : ArrayAccess                  => leaveArrayAccess()
+        case _ : DirectFieldAccess            => leaveFieldAccess()
+        case _ : TempBufferAccess             => leaveTempBufferAccess()
+        case _ : LoopCarriedCSBufferAccess    => leaveLoopCarriedCSBufferAccess()
         case _ : VariableDeclarationStatement => leaveDecl()
         case _                                =>
       }
@@ -780,7 +780,7 @@ class Extractor extends Collector {
     curScop.curStmt.leave()
   }
 
-  private def enterAssign(assign : AssignmentStatement) : Unit = {
+  private def enterAssign(assign : IR_Assignment) : Unit = {
 
     enterStmt(assign) // as an assignment is also a statement
 
@@ -925,7 +925,7 @@ class Extractor extends Collector {
       throw new ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 
     if (decl.expression.isDefined) {
-      val stmt = new AssignmentStatement(
+      val stmt = new IR_Assignment(
         IR_VariableAccess(decl.name, decl.datatype), decl.expression.get, "=")
       enterStmt(stmt) // as a declaration is also a statement
       decl.expression.get.annotate(Access.ANNOT, Access.READ)

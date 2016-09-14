@@ -35,12 +35,12 @@ case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expr
     for (neigh <- Fragment.neighbors) {
       // neighbor directions are always 3D vectors; invalid directions are not part of the given collection
       neigh.dir match {
-        case Array(-1, 0, 0) => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0))
-        case Array(1, 0, 0)  => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0))
-        case Array(0, -1, 0) => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0))
-        case Array(0, 1, 0)  => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0))
-        case Array(0, 0, -1) => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0))
-        case Array(0, 0, 1)  => cases += new CaseStatement(neigh.index, AssignmentStatement(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))
+        case Array(-1, 0, 0) => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0))
+        case Array(1, 0, 0)  => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0))
+        case Array(0, -1, 0) => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0))
+        case Array(0, 1, 0)  => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0))
+        case Array(0, 0, -1) => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0))
+        case Array(0, 0, 1)  => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))
         case _               =>
       }
     }
@@ -62,9 +62,9 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
         FunctionArgument("location", IR_IntegerDatatype),
         FunctionArgument("domain", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
-        AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
-        AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), false),
-        AssignmentStatement(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),
+        IR_Assignment(iv.NeighborIsValid("domain", "location", "localFragId"), true),
+        IR_Assignment(iv.NeighborIsRemote("domain", "location", "localFragId"), false),
+        IR_Assignment(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),
         SetIterationOffset("location", "domain", "localFragId")))
   }
 }
@@ -83,10 +83,10 @@ case class ConnectRemoteElement() extends AbstractFunctionStatement with Expanda
         FunctionArgument("location", IR_IntegerDatatype),
         FunctionArgument("domain", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
-        AssignmentStatement(iv.NeighborIsValid("domain", "location", "localFragId"), true),
-        AssignmentStatement(iv.NeighborIsRemote("domain", "location", "localFragId"), true),
-        AssignmentStatement(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),
-        AssignmentStatement(iv.NeighborRemoteRank("domain", "location", "localFragId"), "remoteRank"),
+        IR_Assignment(iv.NeighborIsValid("domain", "location", "localFragId"), true),
+        IR_Assignment(iv.NeighborIsRemote("domain", "location", "localFragId"), true),
+        IR_Assignment(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),
+        IR_Assignment(iv.NeighborRemoteRank("domain", "location", "localFragId"), "remoteRank"),
         SetIterationOffset("location", "domain", "localFragId")))
   }
 }

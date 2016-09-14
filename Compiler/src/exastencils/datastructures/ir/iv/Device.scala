@@ -43,7 +43,7 @@ abstract class FieldFlag extends InternalVariable(true, false, true, true, false
   override def getCtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
+    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
     slot = origSlot
     ret
   }
@@ -82,7 +82,7 @@ case class FieldDeviceData(override var field : Field, override var level : IR_E
       IR_IfCondition(access,
         ListBuffer[IR_Statement](
           CUDA_FreeStatement(access),
-          new AssignmentStatement(access, 0)))))
+          new IR_Assignment(access, 0)))))
     slot = origSlot
     ret
   }
@@ -98,6 +98,6 @@ case class ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Ex
     Some(IR_IfCondition(access,
       ListBuffer[IR_Statement](
         CUDA_FreeStatement(access),
-        new AssignmentStatement(access, 0))))
+        new IR_Assignment(access, 0))))
   }
 }

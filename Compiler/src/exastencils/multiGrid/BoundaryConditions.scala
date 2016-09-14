@@ -70,29 +70,29 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
         || ("face_z" == d && 0 != neigh.dir(2)) =>
         if (IR_StringLiteral("Neumann") == bc)
           Knowledge.experimental_NeumannOrder match {
-            case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index), new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
-            case 2 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index),
+            case 1 => statements += new IR_Assignment(new FieldAccess(fieldSel, index), new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+            case 2 => statements += new IR_Assignment(new FieldAccess(fieldSel, index),
               ((4.0 / 3.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
                 + ((-1.0 / 3.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i))))
             case 3 => // TODO: do we want this? what do we do on the coarser levels?
-              statements += new AssignmentStatement(new FieldAccess(fieldSel, index),
+              statements += new IR_Assignment(new FieldAccess(fieldSel, index),
                 (((3.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -1 * i)))
                   + ((-3.0 / 2.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i)))
                   + ((1.0 / 3.0 * 6.0 / 11.0) * new FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -3 * i)))))
           }
         else
-          statements += new AssignmentStatement(new FieldAccess(fieldSel, index), bc)
+          statements += new IR_Assignment(new FieldAccess(fieldSel, index), bc)
       case d if "cell" == d
         || ("face_x" == d && 0 == neigh.dir(0))
         || ("face_y" == d && 0 == neigh.dir(1))
         || ("face_z" == d && 0 == neigh.dir(2)) =>
         if (IR_StringLiteral("Neumann") == bc)
           Knowledge.experimental_NeumannOrder match {
-            case 1 => statements += new AssignmentStatement(new FieldAccess(fieldSel, index + offsetIndex),
+            case 1 => statements += new IR_Assignment(new FieldAccess(fieldSel, index + offsetIndex),
               new FieldAccess(fieldSel, index))
           }
         else
-          statements += new AssignmentStatement(new FieldAccess(fieldSel, index + offsetIndex),
+          statements += new IR_Assignment(new FieldAccess(fieldSel, index + offsetIndex),
             (2.0 * bc) - new FieldAccess(fieldSel, index))
     }
 

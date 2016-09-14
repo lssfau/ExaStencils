@@ -50,7 +50,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
   def processExpression(pos : Int, ex : IR_Expression, switchSign : Boolean) : Unit = {
     ex match {
-      case const : Number             => fVals(pos).summands += (if (switchSign) const else IR_NegativeExpression(const))
+      case const : Number => fVals(pos).summands += (if (switchSign) const else IR_NegativeExpression(const))
 
       case IR_NegativeExpression(exp) => processExpression(pos, exp, !switchSign)
 
@@ -68,17 +68,17 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
         var localUnknowns = ListBuffer[FieldAccess]()
         for (ex <- factors) {
           ex match {
-            case access : FieldAccess =>
+            case access : FieldAccess            =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
               else localUnknowns += access
             case e : IR_MultiplicationExpression =>
               Logger.warn(s"Nested multiplication expressions are currently unsupported: $e")
               localFactors += e
-            case e : IR_AdditionExpression =>
+            case e : IR_AdditionExpression       =>
               Logger.warn(s"Nested addition expressions are currently unsupported: $e")
               localFactors += e
-            case e : IR_Expression => localFactors += e
+            case e : IR_Expression               => localFactors += e
           }
         }
         if (localUnknowns.size > 1)
@@ -93,7 +93,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
               IR_MultiplicationExpression(localFactors))
       }
 
-      case _ => Logger.warn(s"Found unsupported node type ${ex.getClass.getName}: $ex")
+      case _ => Logger.warn(s"Found unsupported node type ${ ex.getClass.getName }: $ex")
     }
   }
 
@@ -111,7 +111,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     // scan lhs for constants
     for (eqNumber <- 0 until zeroEqs.size) {
       zeroEqs(eqNumber) match {
-        case IR_AdditionExpression(adds) => processEqSummands(eqNumber, adds)
+        case IR_AdditionExpression(adds)        => processEqSummands(eqNumber, adds)
         case IR_SubtractionExpression(pos, neg) =>
           pos match {
             case IR_AdditionExpression(adds) => processEqSummands(eqNumber, adds)
@@ -121,7 +121,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
             case IR_AdditionExpression(adds) => processEqSummands(eqNumber, adds, true)
             case e : IR_Expression           => processEqSummands(eqNumber, ListBuffer(e), true)
           }
-        case _ => Logger.warn(s"Equation doesn't hold enough information (${zeroEqs(eqNumber).getClass.getName})")
+        case _                                  => Logger.warn(s"Equation doesn't hold enough information (${ zeroEqs(eqNumber).getClass.getName })")
       }
     }
 
@@ -157,13 +157,13 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
       var innerStmts = ListBuffer[IR_Statement]()
       var boundaryStmts = ListBuffer[IR_Statement]()
 
-      innerStmts += AssignmentStatement(hackVecComponentAccess(f, i), fVals(i))
+      innerStmts += IR_Assignment(hackVecComponentAccess(f, i), fVals(i))
       for (j <- 0 until unknowns.length)
-        innerStmts += AssignmentStatement(hackMatComponentAccess(A, i, j), AVals(i)(j))
+        innerStmts += IR_Assignment(hackMatComponentAccess(A, i, j), AVals(i)(j))
 
-      boundaryStmts += AssignmentStatement(hackVecComponentAccess(f, i), unknowns(i))
+      boundaryStmts += IR_Assignment(hackVecComponentAccess(f, i), unknowns(i))
       for (j <- 0 until unknowns.length)
-        boundaryStmts += AssignmentStatement(hackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
+        boundaryStmts += IR_Assignment(hackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
 
       // check if current unknown is on/ beyond boundary
       stmts += IR_IfCondition(
@@ -173,13 +173,13 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     }
 
     // solve local system - TODO: replace inverse function call with internal function
-    stmts += AssignmentStatement(u, IR_MultiplicationExpression(MemberFunctionCallExpression(A, "inverse", ListBuffer()), f))
+    stmts += IR_Assignment(u, IR_MultiplicationExpression(MemberFunctionCallExpression(A, "inverse", ListBuffer()), f))
 
     // write back results
     for (i <- 0 until unknowns.length)
-      stmts += IR_IfCondition( // don't write back result on boundaries
+      stmts += IR_IfCondition(// don't write back result on boundaries
         IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
-        AssignmentStatement(unknowns(i), hackVecComponentAccess(u, i)))
+        IR_Assignment(unknowns(i), hackVecComponentAccess(u, i)))
 
     IR_Scope(stmts)
   }

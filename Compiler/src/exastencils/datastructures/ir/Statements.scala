@@ -75,24 +75,6 @@ case class CommentStatement(var comment : String) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "/* " << comment << " */"
 }
 
-case class AssignmentStatement(var dest : IR_Expression, var src : IR_Expression, var op : String = "=") extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = {
-    src match {
-      //      case x : VectorExpression => {
-      //        out << dest << ' ' << op << ' '
-      //        x.prettyprintInner(out)
-      //        out << ';'
-      //      }
-      //      case x : MatrixExpression => {
-      //        out << dest << ' ' << op << ' '
-      //        x.prettyprintInner(out)
-      //        out << ';'
-      //      }
-      case _ => out << dest << ' ' << op << ' ' << src << ';'
-    }
-  }
-}
-
 case class CaseStatement(var toMatch : IR_Expression, var body : ListBuffer[IR_Statement]) extends IR_Statement {
   def this(toMatch : IR_Expression, body : IR_Statement*) = this(toMatch, body.to[ListBuffer])
 

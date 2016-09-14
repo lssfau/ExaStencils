@@ -33,7 +33,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
 
     val postBegin = new VariableDeclarationStatement(IR_IntegerDatatype, itVar, intermVarAcc)
     val postEnd = new IR_LowerExpression(itVarAcc, endVarAcc)
-    val postIncr = new AssignmentStatement(itVarAcc, IR_IntegerConstant(oldIncr), "+=")
+    val postIncr = new IR_Assignment(itVarAcc, IR_IntegerConstant(oldIncr), "+=")
 
     val postLoop = new IR_ForLoop(postBegin, postEnd, postIncr, body, reduction)
 
@@ -53,8 +53,8 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
 
     val (lower, isDecl) : (IR_Expression, Boolean) =
       begin match {
-        case AssignmentStatement(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), init, "=") if (itVar == itVar2) => (init, false)
-        case VariableDeclarationStatement(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2) => (init, true)
+        case IR_Assignment(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), init, "=") if (itVar == itVar2) => (init, false)
+        case VariableDeclarationStatement(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2)          => (init, true)
 
         case _ => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
@@ -86,7 +86,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
       stmts += new VariableDeclarationStatement(IR_IntegerDatatype, endVar, upperExcl)
       stmts += new VariableDeclarationStatement(IR_IntegerDatatype, intermVar, intermExpr)
     } else
-      stmts += new AssignmentStatement(intermVarAcc, intermExpr, "=")
+      stmts += new IR_Assignment(intermVarAcc, intermExpr, "=")
   }
 
   this += new Transformation("optimize", UnrollInnermost)
@@ -135,7 +135,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     val oldBody = Duplicate(loop.body) // duplicate for later use in post loop
     loop.begin = new VariableDeclarationStatement(IR_IntegerDatatype, itVar, Unrolling.startVarAcc)
     loop.end = new IR_LowerExpression(itVarAcc, Unrolling.intermVarAcc)
-    loop.inc = new AssignmentStatement(itVarAcc, IR_IntegerConstant(newStride), "+=")
+    loop.inc = new IR_Assignment(itVarAcc, IR_IntegerConstant(newStride), "+=")
     // duplicate private vars would also be possible...
     val interleave : Boolean = Knowledge.opt_unroll_interleave && loop.isParallel && loop.privateVars.isEmpty
     loop.body = duplicateStmts(loop.body, Knowledge.opt_unroll, itVar, oldStride, interleave)
@@ -171,16 +171,16 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
   private[optimization] def extractBoundsAndIncrement(begin : IR_Statement, end : IR_Expression, inc : IR_Statement) : (String, IR_Expression, IR_Expression, Long) = {
 
     val (itVar, stride) = inc match {
-      case IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(itVar, Some(IR_IntegerDatatype))))   => (itVar, 1L)
-      case IR_ExpressionStatement(IR_PostIncrementExpression(IR_VariableAccess(itVar, Some(IR_IntegerDatatype))))  => (itVar, 1L)
-      case AssignmentStatement(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr), "+=") => (itVar, incr)
+      case IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(itVar, Some(IR_IntegerDatatype))))  => (itVar, 1L)
+      case IR_ExpressionStatement(IR_PostIncrementExpression(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)))) => (itVar, 1L)
+      case IR_Assignment(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr), "+=")      => (itVar, incr)
 
-      case AssignmentStatement(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)),
+      case IR_Assignment(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)),
         IR_AdditionExpression(ListBuffer(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr))),
         "=") if (itVar == itVar2) =>
         (itVar, incr)
 
-      case AssignmentStatement(IR_VariableAccess(itVar, Some(exastencils.base.ir.IR_IntegerDatatype)),
+      case IR_Assignment(IR_VariableAccess(itVar, Some(exastencils.base.ir.IR_IntegerDatatype)),
         IR_AdditionExpression(ListBuffer(IR_IntegerConstant(incr), IR_VariableAccess(itVar2, Some(exastencils.base.ir.IR_IntegerDatatype)))),
         "=") if (itVar == itVar2) =>
         (itVar, incr)

@@ -127,28 +127,28 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
 
     if (DomainCollection.domains.size <= 1)
       this.execute(new Transformation("Resolving IsValidForSubdomain", {
-        case AssignmentStatement(_ : iv.IsValidForSubdomain, _, _) => IR_NullStatement
-        case _ : iv.IsValidForSubdomain                            => IR_BooleanConstant(true)
+        case IR_Assignment(_ : iv.IsValidForSubdomain, _, _) => IR_NullStatement
+        case _ : iv.IsValidForSubdomain                      => IR_BooleanConstant(true)
       }))
 
     if (!Knowledge.mpi_enabled || Knowledge.mpi_numThreads <= 1)
       this.execute(new Transformation("Resolving NeighborIsRemote and NeighborRemoteRank", {
-        case AssignmentStatement(_ : iv.NeighborIsRemote, _, _)   => IR_NullStatement
-        case _ : iv.NeighborIsRemote                              => IR_BooleanConstant(false)
-        case AssignmentStatement(_ : iv.NeighborRemoteRank, _, _) => IR_NullStatement
-        case _ : iv.NeighborRemoteRank                            => IR_IntegerConstant(-1)
+        case IR_Assignment(_ : iv.NeighborIsRemote, _, _)   => IR_NullStatement
+        case _ : iv.NeighborIsRemote                        => IR_BooleanConstant(false)
+        case IR_Assignment(_ : iv.NeighborRemoteRank, _, _) => IR_NullStatement
+        case _ : iv.NeighborRemoteRank                      => IR_IntegerConstant(-1)
       }))
 
     if (Knowledge.domain_numFragmentsTotal <= 1 && !Knowledge.domain_rect_hasPeriodicity) {
       this.execute(new Transformation("Resolving NeighborIsValid", {
-        case AssignmentStatement(_ : iv.NeighborIsValid, _, _) => IR_NullStatement
-        case _ : iv.NeighborIsValid                            => IR_BooleanConstant(false)
+        case IR_Assignment(_ : iv.NeighborIsValid, _, _) => IR_NullStatement
+        case _ : iv.NeighborIsValid                      => IR_BooleanConstant(false)
       }))
     } else if (Knowledge.domain_rect_generate) {
       for (dim <- 0 until Knowledge.dimensionality)
         if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1 && !Knowledge.domain_rect_periodicAsVec(dim))
           this.execute(new Transformation(s"Resolving NeighborIsValid in dimension $dim", {
-            case AssignmentStatement(niv : iv.NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
+            case IR_Assignment(niv : iv.NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
               && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_NullStatement
             case niv : iv.NeighborIsValid if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
               && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_BooleanConstant(false)
@@ -157,11 +157,11 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
 
     if (Knowledge.domain_numFragmentsPerBlock <= 1 || Knowledge.comm_disableLocalCommSync) {
       this.execute(new Transformation("Resolving local synchronization", {
-        case AssignmentStatement(_ : iv.LocalCommReady, _, _) => IR_NullStatement
-        case _ : iv.LocalCommReady                            => IR_BooleanConstant(true)
+        case IR_Assignment(_ : iv.LocalCommReady, _, _) => IR_NullStatement
+        case _ : iv.LocalCommReady                      => IR_BooleanConstant(true)
 
-        case AssignmentStatement(_ : iv.LocalCommDone, _, _) => IR_NullStatement
-        case _ : iv.LocalCommDone                            => IR_BooleanConstant(true)
+        case IR_Assignment(_ : iv.LocalCommDone, _, _) => IR_NullStatement
+        case _ : iv.LocalCommDone                      => IR_BooleanConstant(true)
 
         case FunctionCallExpression("waitForFlag", _) => IR_NullExpression
       }))
@@ -206,7 +206,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
 
           // adapt indices
           for (idxIdent <- List("IE", "DRB", "DRE", "GRB", "GRE", "PRB", "PRE", "TOT")) {
-            body += AssignmentStatement(
+            body += IR_Assignment(
               iv.IndexFromField(layout._2._1, layout._2._2, idxIdent, dim),
               idxShift(dim), "+=")
           }
@@ -317,7 +317,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
             IR_ArrayAllocation(newFieldData.basePtr, field.field.resolveDeclType, numDataPoints + Platform.simd_vectorSize - 1),
             VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
               Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(IR_RealDatatype))),
-            AssignmentStatement(newFieldData, newFieldData.basePtr + s"offset_$counter"))
+            IR_Assignment(newFieldData, newFieldData.basePtr + s"offset_$counter"))
         } else {
           ListBuffer(IR_ArrayAllocation(newFieldData, field.field.resolveDeclType, numDataPoints))
         }
@@ -409,7 +409,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
             Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(IR_RealDatatype))),
-          AssignmentStatement(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
+          IR_Assignment(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
       } else {
         bufferAllocs += (id -> new LoopOverFragments(IR_ArrayAllocation(buf, IR_RealDatatype, size)) with OMP_PotentiallyParallel)
       }
@@ -439,7 +439,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
             Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(IR_RealDatatype))),
-          AssignmentStatement(buf, buf.basePtr + s"offset_$counter")))))
+          IR_Assignment(buf, buf.basePtr + s"offset_$counter")))))
       else
         bufferAllocs += (id -> buf.wrapInLoops(IR_ArrayAllocation(buf, buf.baseDatatype, size)))
       buf

@@ -17,21 +17,21 @@ case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement w
 
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
-      case "Chrono"       => AssignmentStatement(lhs, new FunctionCallExpression("std::chrono::high_resolution_clock::now"))
+      case "Chrono"       => IR_Assignment(lhs, new FunctionCallExpression("std::chrono::high_resolution_clock::now"))
       case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("LARGE_INTEGER"), "now"),
         FunctionCallExpression("QueryPerformanceCounter", ListBuffer(IR_AddressofExpression("now"))),
-        AssignmentStatement(lhs, MemberAccess(IR_VariableAccess("now"), "QuadPart"))))
-      case "WIN_TIME"     => AssignmentStatement(lhs, CastExpression(IR_DoubleDatatype, FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
+        IR_Assignment(lhs, MemberAccess(IR_VariableAccess("now"), "QuadPart"))))
+      case "WIN_TIME"     => IR_Assignment(lhs, CastExpression(IR_DoubleDatatype, FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
       case "UNIX_TIME"    => IR_Scope(ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("timeval"), "timePoint"),
         FunctionCallExpression("gettimeofday", ListBuffer(IR_AddressofExpression("timePoint"), "NULL")),
-        AssignmentStatement(lhs,
+        IR_Assignment(lhs,
           CastExpression(IR_DoubleDatatype, MemberAccess(IR_VariableAccess("timePoint"), "tv_sec") * 1e3
             + CastExpression(IR_DoubleDatatype, MemberAccess(IR_VariableAccess("timePoint"), "tv_usec") * 1e-3)))))
-      case "MPI_TIME"     => AssignmentStatement(lhs, FunctionCallExpression("MPI_Wtime", ListBuffer()))
-      case "WINDOWS_RDSC" => AssignmentStatement(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
-      case "RDSC"         => AssignmentStatement(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
+      case "MPI_TIME"     => IR_Assignment(lhs, FunctionCallExpression("MPI_Wtime", ListBuffer()))
+      case "WINDOWS_RDSC" => IR_Assignment(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
+      case "RDSC"         => IR_Assignment(lhs, FunctionCallExpression("__rdtsc", ListBuffer()))
     }
   }
 }
@@ -108,7 +108,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
     var statements = ListBuffer[IR_Statement](
       IR_IfCondition(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[IR_Statement](
         TimerDetail_AssignNow(accessMember("timerStarted")),
-        AssignmentStatement(accessMember("lastTimeMeasured"), TimerDetail_Zero()))),
+        IR_Assignment(accessMember("lastTimeMeasured"), TimerDetail_Zero()))),
       if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
       IR_PreIncrementExpression(accessMember("numEntries")))
 
@@ -129,12 +129,12 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
       IR_PreDecrementExpression(accessMember("numEntries")),
       IR_IfCondition(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[IR_Statement](
         TimerDetail_AssignNow(accessMember("timerEnded")),
-        AssignmentStatement(accessMember("lastTimeMeasured"),
+        IR_Assignment(accessMember("lastTimeMeasured"),
           if ("Chrono" == Knowledge.timer_type)
             FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", ListBuffer(accessMember("timerEnded") - accessMember("timerStarted")))
           else
             accessMember("timerEnded") - accessMember("timerStarted")),
-        AssignmentStatement(accessMember("totalTimeMeasured"), accessMember("lastTimeMeasured"), "+="),
+        IR_Assignment(accessMember("totalTimeMeasured"), accessMember("lastTimeMeasured"), "+="),
         if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
         IR_PreIncrementExpression(accessMember("numMeasurements")))))
 
@@ -207,7 +207,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
 
     if (Knowledge.mpi_enabled) {
       statements += new MPI_Allreduce("&timerValue", IR_DoubleDatatype, 1, "+")
-      statements += AssignmentStatement("timerValue", "mpiSize", "/=")
+      statements += IR_Assignment("timerValue", "mpiSize", "/=")
     }
 
     statements += PrintStatement(ListBuffer("\"Mean mean total time for Timer " + timer.name.prettyprint() + ":\"", "timerValue"))
@@ -240,9 +240,9 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
 
     var it = 0
     for (timer <- timers.toList.sortBy(_._1)) {
-      statements += AssignmentStatement(ArrayAccess("timesToPrint", it), FunctionCallExpression("getTotalTime", ListBuffer(timer._2.resolveName)))
+      statements += IR_Assignment(ArrayAccess("timesToPrint", it), FunctionCallExpression("getTotalTime", ListBuffer(timer._2.resolveName)))
       it += 1
-      statements += AssignmentStatement(ArrayAccess("timesToPrint", it), FunctionCallExpression("getMeanTime", ListBuffer(timer._2.resolveName)))
+      statements += IR_Assignment(ArrayAccess("timesToPrint", it), FunctionCallExpression("getMeanTime", ListBuffer(timer._2.resolveName)))
       it += 1
     }
 
@@ -305,7 +305,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
         statements += new MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
         def timerId = IR_VariableAccess("timerId", Some(IR_IntegerDatatype))
         statements += IR_ForLoop(new VariableDeclarationStatement(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
-          AssignmentStatement(ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
+          IR_Assignment(ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
         statements += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))
       }
     }

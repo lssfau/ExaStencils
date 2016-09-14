@@ -41,12 +41,12 @@ case class DomainDeclarationStatement(var name : String, var lower : Any, var up
   }
   override def progress : knowledge.Domain = {
     (lower, upper) match {
-      case (null, null) => {
+      case (null, null)                     => {
         new knowledge.FileInputGlobalDomain("global", index, DomainFileHeader.domainIdentifier.zipWithIndex.map {
           case (identifier, index) => new knowledge.FileInputDomain(identifier, index, new FileInputDomainShape(identifier))
         }.toList)
       }
-      case (lo : List[_], up : List[_]) => {
+      case (lo : List[_], up : List[_])     => {
         (lo.head, up.head) match {
           case (_ : ConstVec2D, _ : ConstVec2D) => {
             val rectUnionDomains : List[RectangularDomainShape] =
@@ -133,8 +133,8 @@ case class ValueDeclarationStatement(override var identifier : Identifier, var d
 case class AssignmentStatement(var dest : Access, var src : L4_Expression, var op : String) extends L4_Statement {
   override def prettyprint(out : PpStream) = { out << dest << ' ' << op << ' ' << src << '\n' }
 
-  override def progress : ir.AssignmentStatement = {
-    ir.AssignmentStatement(dest.progress, src.progress, op)
+  override def progress : IR_Assignment = {
+    IR_Assignment(dest.progress, src.progress, op)
   }
 }
 
@@ -346,13 +346,13 @@ case class RepeatTimesStatement(var number : Int,
 
   override def progress : IR_Statement = {
     if (contraction.isDefined)
-      // FIXME: to[ListBuffer]
+    // FIXME: to[ListBuffer]
       return new ir.ContractingLoop(number, iterator.map(i => i.progress), statements.map(s => s.progress).to[ListBuffer], contraction.get.progress)
 
     val (loopVar, begin) =
       if (iterator.isDefined) {
         val lv = iterator.get.progress
-        (lv, ir.AssignmentStatement(lv, IR_IntegerConstant(0)))
+        (lv, IR_Assignment(lv, IR_IntegerConstant(0)))
       } else {
         val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
         (IR_StringLiteral(lv), ir.VariableDeclarationStatement(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
@@ -361,7 +361,7 @@ case class RepeatTimesStatement(var number : Int,
     val ret = IR_ForLoop(
       begin,
       loopVar < IR_IntegerConstant(number),
-      ir.AssignmentStatement(loopVar, IR_IntegerConstant(1), "+="),
+      IR_Assignment(loopVar, IR_IntegerConstant(1), "+="),
       statements.map(s => s.progress).to[ListBuffer], // FIXME: to[ListBuffer]
       None)
 

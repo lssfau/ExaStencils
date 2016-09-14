@@ -268,13 +268,13 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
   }
 
   this += new Transformation("Searching", {
-    case assign : AssignmentStatement =>
+    case assign : IR_Assignment   =>
       inWriteOp = true
       EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       inWriteOp = false
       EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.src))
       assign
-    case access : FieldAccessLike     =>
+    case access : FieldAccessLike =>
       mapFieldAccess(access)
       access
   }, false)

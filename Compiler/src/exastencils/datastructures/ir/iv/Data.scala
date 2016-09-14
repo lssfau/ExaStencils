@@ -37,13 +37,13 @@ case class IndexFromField(var layoutIdentifier : String, var level : IR_Expressi
       level = l
       val field = FieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
       if (field.isDefined) {
-        statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
+        statements += IR_Assignment(resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
           field.get.fieldLayout.defIdxById(indexId, dim))
       } else {
         // no field found -> try external fields
         val extField = ExternalFieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
         if (extField.isDefined) {
-          statements += AssignmentStatement(resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
+          statements += IR_Assignment(resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
             extField.get.fieldLayout.defIdxById(indexId, dim))
         } else {
           // doesn't exist on this level
@@ -90,7 +90,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   override def getCtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
+    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
     slot = origSlot
     ret
   }
@@ -104,7 +104,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
       IR_IfCondition(access,
         ListBuffer[IR_Statement](
           IR_ArrayFree(access),
-          new AssignmentStatement(access, 0)))))
+          new IR_Assignment(access, 0)))))
     slot = origSlot
     ret
   }
@@ -134,7 +134,7 @@ case class FieldData(override var field : Field, override var level : IR_Express
       val origSlot = slot
       slot = "slot"
       val access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
-      val ret = Some(wrapInLoops(new AssignmentStatement(access, 0)))
+      val ret = Some(wrapInLoops(new IR_Assignment(access, 0)))
       slot = origSlot
       ret
     } else {

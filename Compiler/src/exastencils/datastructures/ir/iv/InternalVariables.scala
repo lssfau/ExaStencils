@@ -59,7 +59,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
   def getCtor() : Option[IR_Statement] = {
     if (resolveDefValue.isDefined)
-      Some(wrapInLoops(AssignmentStatement(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
+      Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
     else
       None
   }

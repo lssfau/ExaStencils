@@ -69,7 +69,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
         new LoopOverDimensions(loopDim, new IndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
-          new AssignmentStatement(ExternalFieldAccess("dest", dest, multiIndex + offsetForExtField),
+          new IR_Assignment(ExternalFieldAccess("dest", dest, multiIndex + offsetForExtField),
             DirectFieldAccess(FieldSelection(src, src.level, "slot"), multiIndex))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }
@@ -118,7 +118,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
         new LoopOverDimensions(loopDim, new IndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
-          new AssignmentStatement(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), multiIndex),
+          new IR_Assignment(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), multiIndex),
             ExternalFieldAccess("src", src, multiIndex + offsetForExtField))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }
@@ -142,6 +142,6 @@ case class AdvanceSlotStatement(var slot : iv.CurrentSlot) extends IR_Statement 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
 
   def expandSpecial : IR_Statement = {
-    AssignmentStatement(slot, (slot + 1) Mod slot.field.numSlots) // slot never contains negative values (currently)
+    IR_Assignment(slot, (slot + 1) Mod slot.field.numSlots) // slot never contains negative values (currently)
   }
 }

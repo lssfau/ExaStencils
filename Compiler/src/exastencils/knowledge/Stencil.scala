@@ -47,8 +47,8 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
       if (ret) return Some(i)
     }
 
-    Logger.warn(s"Trying to find stencil entry for invalid offset ${offset.prettyprint()} in stencil:\n" +
-      entries.map(e => s"\t${e.offset.prettyprint : String} -> ${e.coefficient.prettyprint : String}").mkString("\n"))
+    Logger.warn(s"Trying to find stencil entry for invalid offset ${ offset.prettyprint() } in stencil:\n" +
+      entries.map(e => s"\t${ e.offset.prettyprint : String } -> ${ e.coefficient.prettyprint : String }").mkString("\n"))
 
     None
   }
@@ -66,9 +66,9 @@ case class Stencil(var identifier : String, var level : Int, var entries : ListB
               e => e.offset match {
                 case index : IR_ExpressionIndex if index.length >= 3 => (
                   (index(0) match { case IR_IntegerConstant(xOff) if x == xOff => true; case _ => false })
-                  && (index(1) match { case IR_IntegerConstant(yOff) if y == yOff => true; case _ => false })
-                  && (index(2) match { case IR_IntegerConstant(zOff) if z == zOff => true; case _ => false }))
-                case _ => false
+                    && (index(1) match { case IR_IntegerConstant(yOff) if y == yOff => true; case _ => false })
+                    && (index(2) match { case IR_IntegerConstant(zOff) if z == zOff => true; case _ => false }))
+                case _                                               => false
               }).getOrElse(StencilEntry(IR_ExpressionIndex(), 0)).coefficient.prettyprint
         s += "\n"
       }
@@ -135,13 +135,13 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (StencilAccess(stencil), fieldAccess : FieldAccess) =>
+        case (StencilAccess(stencil), fieldAccess : FieldAccess)                  =>
           result += StencilConvolution(stencil, fieldAccess)
           prev = null
         case (stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
           result += StencilFieldConvolution(stencilFieldAccess, fieldAccess)
           prev = null
-        case _ =>
+        case _                                                                    =>
           if (prev != null) result += prev
           prev = f
       }
@@ -156,13 +156,13 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (StencilAccess(stencilLeft), StencilAccess(stencilRight)) =>
+        case (StencilAccess(stencilLeft), StencilAccess(stencilRight))       =>
           result += StencilStencilConvolution(stencilLeft, stencilRight)
           prev = null
         case (stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
           result += StencilFieldStencilConvolution(stencilLeft, stencilRight)
           prev = null
-        case _ =>
+        case _                                                               =>
           if (prev != null) result += prev
           prev = f
       }
@@ -177,11 +177,11 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (StencilAccess(stencilLeft), stencilRight : StencilFieldAccess) =>
+        case (StencilAccess(stencilLeft), stencilRight : StencilFieldAccess)       =>
           ??? // TODO
         case (stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) =>
           ??? // TODO
-        case _ =>
+        case _                                                                     =>
           if (prev != null) result += prev
           prev = f
       }
@@ -208,7 +208,7 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
 
 object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
   this += new Transformation("SearchAndMark", {
-    case AssignmentStatement(stencilFieldAccess : StencilFieldAccess, StencilAccess(stencil), op) => {
+    case IR_Assignment(stencilFieldAccess : StencilFieldAccess, StencilAccess(stencil), op) => {
       var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val stencilRight = stencil
@@ -238,7 +238,7 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
           for (dim <- 0 until Knowledge.dimensionality)
             fieldIndex(dim) -= stencilLeft.entries(idx).offset(dim)
 
-        statements += new AssignmentStatement(new FieldAccess(fieldSelection, fieldIndex), coeff, op)
+        statements += new IR_Assignment(new FieldAccess(fieldSelection, fieldIndex), coeff, op)
       }
 
       statements

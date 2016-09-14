@@ -150,7 +150,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[IR_Expression
 
     for ((fKey, offset) <- fieldOffset) {
       val field = fields(fKey)
-      res += AssignmentStatement(iv.CurrentSlot(field), (iv.CurrentSlot(field) + offset) Mod field.numSlots)
+      res += IR_Assignment(iv.CurrentSlot(field), (iv.CurrentSlot(field) + offset) Mod field.numSlots)
     }
 
     return res
@@ -660,7 +660,7 @@ case class LoopOverDimensions(var numDimensions : Int,
       def it = IR_VariableAccess(dimToString(d), Some(IR_IntegerDatatype))
       val decl = VariableDeclarationStatement(IR_IntegerDatatype, dimToString(d), Some(inds.begin(d)))
       val cond = IR_LowerExpression(it, inds.end(d))
-      val incr = AssignmentStatement(it, stepSize(d), "+=")
+      val incr = IR_Assignment(it, stepSize(d), "+=")
       val compiledLoop : IR_ForLoop with OptimizationHint =
         if (parallelize(d) && d == outerPar) {
           anyPar = true
@@ -699,9 +699,9 @@ case class LoopOverDimensions(var numDimensions : Int,
 
       // FIXME: this assumes real data types -> data type should be determined according to redExp
       val decl = VariableDeclarationStatement(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
-      val init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
+      val init = (0 until Knowledge.omp_numThreads).map(fragIdx => IR_Assignment(ArrayAccess(redExpLocal, fragIdx), redExp))
       val redOperands = ListBuffer[IR_Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
-      val red = AssignmentStatement(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
+      val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
       ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
@@ -778,9 +778,9 @@ case class LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction 
 
         // FIXME: this assumes real data types -> data type should be determined according to redExp
         val decl = VariableDeclarationStatement(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
-        val init = (0 until Knowledge.omp_numThreads).map(fragIdx => AssignmentStatement(ArrayAccess(redExpLocal, fragIdx), redExp))
+        val init = (0 until Knowledge.omp_numThreads).map(fragIdx => IR_Assignment(ArrayAccess(redExpLocal, fragIdx), redExp))
         val redOperands = ListBuffer[IR_Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
-        val red = AssignmentStatement(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
+        val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
 
         ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
         ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))

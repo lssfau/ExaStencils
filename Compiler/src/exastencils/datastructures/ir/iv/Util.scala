@@ -22,7 +22,7 @@ case class Timer(var name : IR_Expression) extends UnduplicatedVariable with IR_
 
   override def getCtor() : Option[IR_Statement] = {
     // FIXME: datatype for VariableAccess
-    Some(AssignmentStatement(MemberAccess(IR_VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), IR_StringConstant(stripName)))
+    Some(IR_Assignment(MemberAccess(IR_VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), IR_StringConstant(stripName)))
   }
 }
 
@@ -57,7 +57,7 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
       case si => Logger.error("VecShiftIndex cannot be used for instruction set " + si)
     }
 
-    return Some(AssignmentStatement(IR_VariableAccess(resolveName, resolveDatatype), init))
+    return Some(IR_Assignment(IR_VariableAccess(resolveName, resolveDatatype), init))
   }
 }
 
@@ -116,9 +116,9 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
         IR_IfCondition(ptrExpr,
           ListBuffer[IR_Statement](
             IR_ArrayFree(ptrExpr),
-            new AssignmentStatement(ptrExpr, 0)))))
+            new IR_Assignment(ptrExpr, 0)))))
     else
-      return Some(wrapInLoops(new AssignmentStatement(ptrExpr, 0)))
+      return Some(wrapInLoops(new IR_Assignment(ptrExpr, 0)))
   }
 }
 
