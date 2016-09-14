@@ -406,7 +406,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       case (_, cs) => (-cs.prio, -cs.getPositions().size, cs.ppString)
     }
     val commSubOpt = commSubSorted.find {
-      case (_, cs) => !cs.getPositions().forall { pos => pos.exists { parent => parent.isInstanceOf[ConditionStatement] } }
+      case (_, cs) => !cs.getPositions().forall { pos => pos.exists { parent => parent.isInstanceOf[IR_IfCondition] } }
     }
     if (commSubOpt.isEmpty)
       return false
@@ -545,7 +545,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
         commonSubs.clear()
         Logger.warn(s"cannot perform CSE, because ${ node.getClass } is too difficult to analyze")
 
-      case c : ConditionStatement =>
+      case c : IR_IfCondition =>
         c.annotate(SKIP_ANNOT)
         skip = true
 

@@ -94,9 +94,9 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
     case advanceSlot : AdvanceSlotStatement =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
-        case _ : LoopOverFragments                                                                                   => true
-        case ForLoopStatement(VariableDeclarationStatement(_, it, _), _, _, _, _) if (LoopOverFragments.defIt == it) => true
-        case _                                                                                                       => false
+        case _ : LoopOverFragments                                                                             => true
+        case IR_ForLoop(VariableDeclarationStatement(_, it, _), _, _, _, _) if (LoopOverFragments.defIt == it) => true
+        case _                                                                                                 => false
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial
       else
@@ -323,7 +323,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         }
 
       if (field.field.numSlots > 1)
-        statements += new ForLoopStatement(
+        statements += new IR_ForLoop(
           VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
           IR_LowerExpression("slot", field.field.numSlots),
           IR_PreIncrementExpression("slot"),
@@ -332,7 +332,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         statements ++= innerStmts
 
       fieldAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
-        new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
+        IR_IfCondition(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
 
       field
     }
@@ -352,7 +352,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         CUDA_AllocateStatement(newFieldData, numDataPoints, field.field.resolveBaseDatatype))
 
       if (field.field.numSlots > 1)
-        statements += new ForLoopStatement(
+        statements += new IR_ForLoop(
           VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
           IR_LowerExpression("slot", field.field.numSlots),
           IR_PreIncrementExpression("slot"),
@@ -361,7 +361,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         statements ++= innerStmts
 
       deviceFieldAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
-        new ConditionStatement(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
+        IR_IfCondition(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
 
       field
     }

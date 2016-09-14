@@ -58,7 +58,7 @@ case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : 
     } else {
       val printStmt : IR_Statement = new PrintExpression(IR_VariableAccess(stream), toPrint.view.flatMap { e => List(e, IR_StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
       if (Knowledge.mpi_enabled) // filter by mpi rank if required
-        return new ConditionStatement(MPI_IsRootProc(), printStmt)
+        return IR_IfCondition(MPI_IsRootProc(), printStmt)
       else
         return printStmt
     }
@@ -102,7 +102,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
       if (Knowledge.experimental_generateParaviewFiles) {
         ret = (streamName + " << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
         if (Knowledge.mpi_enabled)
-          ret = new ConditionStatement(MPI_IsRootProc(), ret)
+          ret = IR_IfCondition(MPI_IsRootProc(), ret)
       }
       ret
     }
@@ -111,11 +111,11 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
       new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
       fileHeader,
       new LoopOverFragments(
-        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+        IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
           new LoopOverDimensions(numDimsData, new IndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : IR_Expression))),
-            new ConditionStatement(condition,
+            IR_IfCondition(condition,
               new PrintExpression(IR_VariableAccess(streamName, streamType),
                 ((0 until numDimsGrid).view.flatMap { dim =>
                   List(getPos(field, dim), separator)
@@ -131,7 +131,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     if (Knowledge.mpi_enabled) {
-      statements += new ConditionStatement(MPI_IsRootProc(),
+      statements += IR_IfCondition(MPI_IsRootProc(),
         ListBuffer[IR_Statement](
           new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc")),
           new MemberFunctionCallExpression(IR_VariableAccess(streamName, streamType), "close")))

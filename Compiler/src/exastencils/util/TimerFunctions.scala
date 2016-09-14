@@ -105,7 +105,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
 
   override def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[IR_Statement](
-      new ConditionStatement(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[IR_Statement](
+      IR_IfCondition(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[IR_Statement](
         TimerDetail_AssignNow(accessMember("timerStarted")),
         AssignmentStatement(accessMember("lastTimeMeasured"), TimerDetail_Zero()))),
       if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
@@ -126,7 +126,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
   override def expand() : Output[FunctionStatement] = {
     var statements = ListBuffer[IR_Statement](
       IR_PreDecrementExpression(accessMember("numEntries")),
-      new ConditionStatement(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[IR_Statement](
+      IR_IfCondition(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[IR_Statement](
         TimerDetail_AssignNow(accessMember("timerEnded")),
         AssignmentStatement(accessMember("lastTimeMeasured"),
           if ("Chrono" == Knowledge.timer_type)
@@ -269,7 +269,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     // wrap in loop over each rank if required
     if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) {
       statements = ListBuffer[IR_Statement](
-        ForLoopStatement(
+        IR_ForLoop(
           VariableDeclarationStatement(IR_IntegerDatatype, stride.prettyprint, Some(0)),
           IR_LowerExpression(stride, Knowledge.mpi_numThreads),
           IR_PreIncrementExpression(stride),
@@ -291,7 +291,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
 
     if (!timers.isEmpty) {
       if (Knowledge.l3tmp_printTimersToFileForEachRank) {
-        statements += ConditionStatement(MPI_IsRootProc(),
+        statements += IR_IfCondition(MPI_IsRootProc(),
           ListBuffer[IR_Statement](
             VariableDeclarationStatement(IR_ArrayDatatype(IR_DoubleDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
             ++ genDataCollect(timers)
@@ -305,9 +305,9 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
         statements ++= genDataCollect(timers)
         statements += new MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
         def timerId = IR_VariableAccess("timerId", Some(IR_IntegerDatatype))
-        statements += new ForLoopStatement(new VariableDeclarationStatement(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
+        statements += IR_ForLoop(new VariableDeclarationStatement(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
           AssignmentStatement(ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
-        statements += new ConditionStatement(MPI_IsRootProc(), genPrint(timers))
+        statements += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))
       }
     }
 

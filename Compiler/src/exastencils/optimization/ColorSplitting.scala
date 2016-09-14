@@ -87,7 +87,7 @@ object ColorCondCollector extends Collector {
     node match {
       case loop : LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEqExpression]) =>
         cond = loop.condition.get
-      case ConditionStatement(c : IR_EqEqExpression, _, fB) if (fB.isEmpty)                                              =>
+      case IR_IfCondition(c : IR_EqEqExpression, _, fB) if (fB.isEmpty)                                                  =>
         cond = c
       case _                                                                                                             =>
         val annot : Option[Any] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
@@ -98,9 +98,9 @@ object ColorCondCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case loop : LoopOverDimensions                    => cond = null
-      case ConditionStatement(c, _, fB) if (fB.isEmpty) => cond = null
-      case _                                            =>
+      case loop : LoopOverDimensions                => cond = null
+      case IR_IfCondition(c, _, fB) if (fB.isEmpty) => cond = null
+      case _                                        =>
         if (node.hasAnnotation(PolyOpt.IMPL_CONDITION_ANNOT))
           cond = null
     }

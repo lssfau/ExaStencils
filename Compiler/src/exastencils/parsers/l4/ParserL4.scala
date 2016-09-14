@@ -1,6 +1,7 @@
 package exastencils.parsers.l4
 
 import scala.collection.immutable.PagedSeq
+import scala.collection.mutable.ListBuffer
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input.PagedSeqReader
 
@@ -141,6 +142,7 @@ class ParserL4 extends ExaParser with PackratParsers {
       ||| valueDeclaration
       ||| repeatNTimes
       ||| repeatUntil
+      ||| repeatWhile
       ||| loopOver
       ||| loopOverFragments
       ||| assignment
@@ -166,7 +168,8 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ contractionClause.? ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^ { case n ~ i ~ c ~ s => RepeatTimesStatement(n.toInt, i, c, s) })
   lazy val contractionClause = locationize("with" ~ "contraction" ~> index ~ ("," ~> index).? ^^ { case l ~ r => new ContractionSpecification(l, r) })
 
-  lazy val repeatUntil = locationize((("repeat" ~ "until") ~> booleanexpression) ~ (("{" ~> statementInsideRepeat.+) <~ "}") ^^ { case c ~ s => RepeatUntilStatement(c, s) })
+  lazy val repeatUntil = locationize((("repeat" ~ "until") ~> booleanexpression) ~ (("{" ~> statementInsideRepeat.+) <~ "}") ^^ { case c ~ s => L4_UntilLoop(c, s.to[ListBuffer]) })
+  lazy val repeatWhile = locationize((("repeat" ~ "while") ~> booleanexpression) ~ (("{" ~> statementInsideRepeat.+) <~ "}") ^^ { case c ~ s => L4_WhileLoop(c, s.to[ListBuffer]) })
 
   lazy val breakStatement = locationize("break" ^^ { case _ => BreakStatement() })
 
@@ -192,11 +195,11 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
     ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
 
-  lazy val conditional : PackratParser[ConditionalStatement] = (
+  lazy val conditional : PackratParser[L4_IfCondition] = (
     locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ~ (("else" ~ "{") ~> statement.+ <~ "}").?
-      ^^ { case exp ~ stmts ~ elsestmts => ConditionalStatement(exp, stmts, elsestmts.getOrElse(List())) })
+      ^^ { case exp ~ stmts ~ elsestmts => L4_IfCondition(exp, stmts.to[ListBuffer], elsestmts.getOrElse(List()).to[ListBuffer]) })
       ||| locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ~ ("else" ~> conditional)
-      ^^ { case exp ~ stmts ~ elsecond => ConditionalStatement(exp, stmts, List[L4_Statement](elsecond)) }))
+      ^^ { case exp ~ stmts ~ elsecond => L4_IfCondition(exp, stmts.to[ListBuffer], ListBuffer[L4_Statement](elsecond)) }))
 
   lazy val applyBCsStatement = locationize(("apply" ~ "bc" ~ "to") ~> genericAccess //fieldAccess
     ^^ { case field => ApplyBCsStatement(field) })

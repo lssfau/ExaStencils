@@ -142,7 +142,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
       nodeWithAnnotation.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]))
   }
 
-  def addLoopTimeToStack(loop : ForLoopStatement) : Unit = {
+  def addLoopTimeToStack(loop : IR_ForLoop) : Unit = {
     //    Knowledge.experimental_cuda_preferredExecution match {
     //      case "Host"   => addTimeToStack(loop.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double])
     //      case "Device" => addTimeToStack(loop.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double])
@@ -219,7 +219,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
       }
     }
 
-    case loop : ForLoopStatement => {
+    case loop : IR_ForLoop => {
       if (loop.hasAnnotation("perf_timeEstimate_host") || loop.hasAnnotation("perf_timeEstimate_device")) {
         addLoopTimeToStack(loop)
       } else {

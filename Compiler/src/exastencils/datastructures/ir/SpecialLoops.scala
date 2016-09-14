@@ -121,7 +121,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[IR_Expression
     val res = new ListBuffer[IR_Statement]()
     val fieldOffset = new HashMap[FieldKey, Int]()
     val fields = new HashMap[FieldKey, Field]()
-    var condStmt : ConditionStatement = null
+    var condStmt : IR_IfCondition = null
     for (i <- 1 to number)
       for (stmt <- statements)
         stmt match {
@@ -130,7 +130,7 @@ case class ContractingLoop(var number : Int, var iterator : Option[IR_Expression
             fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
             fields(fKey) = field
 
-          case cStmt @ ConditionStatement(cond, trueBody : ListBuffer[IR_Statement], ListBuffer()) =>
+          case cStmt @ IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer()) =>
             val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
             bodyWithoutComments match {
               case ListBuffer(l : LoopOverDimensions) =>
@@ -457,12 +457,12 @@ case class LoopOverPointsInOneFragment(var domain : Int,
     if (region.isDefined) {
       if (region.get.onlyOnBoundary) {
         val neighIndex = Fragment.getNeigh(region.get.dir.indices).index
-        stmts = ListBuffer[IR_Statement](new ConditionStatement(IR_NegationExpression(iv.NeighborIsValid(domain, neighIndex)), stmts))
+        stmts = ListBuffer[IR_Statement](IR_IfCondition(IR_NegationExpression(iv.NeighborIsValid(domain, neighIndex)), stmts))
       }
     }
 
     if (domain >= 0) {
-      stmts = ListBuffer[IR_Statement](new ConditionStatement(iv.IsValidForSubdomain(domain), stmts))
+      stmts = ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(domain), stmts))
     }
 
     stmts
@@ -595,7 +595,7 @@ case class LoopOverDimensions(var numDimensions : Int,
       val begin = new VariableDeclarationStatement(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
       val end = new IR_LowerExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = new IR_ExpressionStatement(new IR_PreIncrementExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype)))
-      return ListBuffer(new ForLoopStatement(begin, end, inc, body) with OMP_PotentiallyParallel)
+      return ListBuffer(new IR_ForLoop(begin, end, inc, body) with OMP_PotentiallyParallel)
 
     } else
       return body
@@ -608,7 +608,7 @@ case class LoopOverDimensions(var numDimensions : Int,
     // add conditions for first iteration
     for (d <- 0 until numDimensions)
       if (!at1stIt(d)._1.isEmpty) {
-        val cond = new ConditionStatement(new IR_EqEqExpression(IR_VariableAccess(dimToString(d), IR_IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
+        val cond = IR_IfCondition(new IR_EqEqExpression(IR_VariableAccess(dimToString(d), IR_IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
         for ((annotId, value) <- at1stIt(d)._2)
           cond.annotate(annotId, value)
         conds += cond
@@ -650,7 +650,7 @@ case class LoopOverDimensions(var numDimensions : Int,
 
     // add internal condition (e.g. RB)
     if (condition.isDefined)
-      wrappedBody = ListBuffer[IR_Statement](new ConditionStatement(condition.get, wrappedBody))
+      wrappedBody = ListBuffer[IR_Statement](IR_IfCondition(condition.get, wrappedBody))
 
     var anyPar : Boolean = false
     val outerPar = if (parDims.isEmpty) -1 else parDims.max
@@ -661,14 +661,14 @@ case class LoopOverDimensions(var numDimensions : Int,
       val decl = VariableDeclarationStatement(IR_IntegerDatatype, dimToString(d), Some(inds.begin(d)))
       val cond = IR_LowerExpression(it, inds.end(d))
       val incr = AssignmentStatement(it, stepSize(d), "+=")
-      val compiledLoop : ForLoopStatement with OptimizationHint =
+      val compiledLoop : IR_ForLoop with OptimizationHint =
         if (parallelize(d) && d == outerPar) {
           anyPar = true
-          val omp = new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
+          val omp = new IR_ForLoop(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
           omp.collapse = numDimensions
           omp
         } else
-          new ForLoopStatement(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
+          new IR_ForLoop(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
       wrappedBody = ListBuffer[IR_Statement](compiledLoop)
       // set optimization hints
       compiledLoop.isInnermost = d == 0
@@ -728,14 +728,14 @@ case class LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction 
 
   def generateBasicLoop(parallelize : Boolean) = {
     val loop = if (parallelize)
-      new ForLoopStatement(
+      new IR_ForLoop(
         VariableDeclarationStatement(IR_IntegerDatatype, defIt, Some(0)),
         IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         IR_PreIncrementExpression(defIt),
         body,
         reduction) with OMP_PotentiallyParallel
     else
-      new ForLoopStatement(
+      new IR_ForLoop(
         VariableDeclarationStatement(IR_IntegerDatatype, defIt, Some(0)),
         IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         IR_PreIncrementExpression(defIt),
@@ -811,8 +811,8 @@ case class LoopOverDomains(var body : ListBuffer[IR_Statement]) extends IR_State
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDomains\n"
 
-  override def expand() : Output[ForLoopStatement] = {
-    new ForLoopStatement(
+  override def expand() : Output[IR_ForLoop] = {
+    new IR_ForLoop(
       VariableDeclarationStatement(IR_IntegerDatatype, defIt, Some(0)),
       IR_LowerExpression(defIt, DomainCollection.domains.size),
       IR_PreIncrementExpression(defIt),
@@ -830,8 +830,8 @@ case class LoopOverFields(var body : ListBuffer[IR_Statement]) extends IR_Statem
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFields\n"
 
-  override def expand() : Output[ForLoopStatement] = {
-    new ForLoopStatement(
+  override def expand() : Output[IR_ForLoop] = {
+    new IR_ForLoop(
       VariableDeclarationStatement(IR_IntegerDatatype, defIt, Some(0)),
       IR_LowerExpression(defIt, FieldCollection.fields.size),
       IR_PreIncrementExpression(defIt),
@@ -849,8 +849,8 @@ case class LoopOverLevels(var body : ListBuffer[IR_Statement]) extends IR_Statem
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverLevels\n"
 
-  override def expand() : Output[ForLoopStatement] = {
-    new ForLoopStatement(
+  override def expand() : Output[IR_ForLoop] = {
+    new IR_ForLoop(
       VariableDeclarationStatement(IR_IntegerDatatype, defIt, Some(Knowledge.minLevel)),
       IR_LowerExpression(defIt, Knowledge.maxLevel + 1),
       IR_PreIncrementExpression(defIt),
@@ -868,8 +868,8 @@ case class LoopOverNeighbors(var body : ListBuffer[IR_Statement]) extends IR_Sta
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverNeighbors\n"
 
-  override def expand() : Output[ForLoopStatement] = {
-    new ForLoopStatement(
+  override def expand() : Output[IR_ForLoop] = {
+    new IR_ForLoop(
       VariableDeclarationStatement(IR_IntegerDatatype, defIt, Some(0)),
       IR_LowerExpression(defIt, Fragment.neighbors.size),
       IR_PreIncrementExpression(defIt),

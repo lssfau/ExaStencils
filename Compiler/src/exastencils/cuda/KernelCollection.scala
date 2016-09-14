@@ -90,12 +90,12 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       fctBody += AssignmentStatement(it, 2 * stride, "*=")
 
       // add index bounds conditions
-      fctBody += new ConditionStatement(
+      fctBody += IR_IfCondition(
         IR_OrOrExpression(IR_LowerExpression(it, 0), IR_GreaterEqualExpression(it, numElements)),
         ReturnStatement())
 
       // add values with stride
-      fctBody += new ConditionStatement(
+      fctBody += IR_IfCondition(
         IR_LowerExpression(it + stride, numElements),
         AssignmentStatement(ArrayAccess(data, it), IR_BinaryOperators.createExpression(op, ArrayAccess(data, it), ArrayAccess(data, it + stride))))
 
@@ -125,11 +125,11 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       def blocks = IR_VariableAccess("blocks", Some(IR_SpecialDatatype("size_t")))
       var loopBody = ListBuffer[IR_Statement]()
       loopBody += new VariableDeclarationStatement(blocks, (numElements + (blockSize * stride - 1)) / (blockSize * stride))
-      loopBody += new ConditionStatement(IR_EqEqExpression(0, blocks), AssignmentStatement(blocks, 1))
+      loopBody += IR_IfCondition(IR_EqEqExpression(0, blocks), AssignmentStatement(blocks, 1))
       loopBody += CUDA_FunctionCallExpression(kernelName, ListBuffer[IR_Expression](data, numElements, stride),
         Array[IR_Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */), Array[IR_Expression](blockSize))
 
-      fctBody += ForLoopStatement(
+      fctBody += IR_ForLoop(
         new VariableDeclarationStatement(stride, 1),
         IR_LowerExpression(stride, numElements),
         AssignmentStatement(stride, 2, "*="),
@@ -559,31 +559,31 @@ case class Kernel(var identifier : String,
             conditionBody += AssignmentStatement(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalRightIndex).linearize)
           })
 
-          new ConditionStatement(condition, conditionBody)
+          IR_IfCondition(condition, conditionBody)
         })
 
         if (spatialBlockingCanBeApplied) {
           // 8. Complete loop body for spatial blocking
-          zDimLoopBody += new ConditionStatement(conditionAccess, sharedMemoryStatements)
+          zDimLoopBody += IR_IfCondition(conditionAccess, sharedMemoryStatements)
           zDimLoopBody += CUDA_SyncThreads()
-          zDimLoopBody += new ConditionStatement(conditionAccess, body)
+          zDimLoopBody += IR_IfCondition(conditionAccess, body)
           zDimLoopBody += CUDA_SyncThreads()
 
-          statements += ForLoopStatement(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_LowerExpression(IR_VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), AssignmentStatement(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
+          statements += IR_ForLoop(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_LowerExpression(IR_VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), AssignmentStatement(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
 
           // 9. Remove the used loop variable to avoid later complications in loop variable substitution
           loopVariables.remove(executionDim)
         } else {
           // 10. Add whole shared memory initialization wrapped in a ConditionStatement to the body
-          statements += new ConditionStatement(conditionAccess, sharedMemoryStatements)
+          statements += IR_IfCondition(conditionAccess, sharedMemoryStatements)
 
           // This may not be part of the ConditionStatement to avoid dead locks if some thread do not fulfill the condition
           statements += CUDA_SyncThreads()
-          statements += new ConditionStatement(conditionAccess, body)
+          statements += IR_IfCondition(conditionAccess, body)
         }
       })
     } else {
-      statements += new ConditionStatement(conditionAccess, body)
+      statements += IR_IfCondition(conditionAccess, body)
     }
 
     body = statements

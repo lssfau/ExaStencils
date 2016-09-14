@@ -203,11 +203,11 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
 
           val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
-          val loop : ForLoopStatement with OptimizationHint =
+          val loop : IR_ForLoop with OptimizationHint =
           if (parOMP)
-            new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
+            new IR_ForLoop(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
           else
-            new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
+            new IR_ForLoop(init, cond, incr, body, reduction) with OptimizationHint
           loop.isParallel = parDims != null && parDims.contains(itStr)
           loop.isVectorizable = vecDims != null && vecDims.contains(itStr)
           loop.privateVars ++= privateVars
@@ -220,9 +220,9 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
         val thenBranch : ListBuffer[IR_Statement] = processIslNode(node.ifGetThen())
         if (node.ifHasElse()) {
           val els : ListBuffer[IR_Statement] = processIslNode(node.ifGetElse())
-          ListBuffer[IR_Statement](new ConditionStatement(cond, thenBranch, els))
+          ListBuffer[IR_Statement](IR_IfCondition(cond, thenBranch, els))
         } else
-          ListBuffer[IR_Statement](new ConditionStatement(cond, thenBranch))
+          ListBuffer[IR_Statement](IR_IfCondition(cond, thenBranch))
 
       case isl.AstNodeType.NodeBlock =>
         val stmts = new ListBuffer[IR_Statement]

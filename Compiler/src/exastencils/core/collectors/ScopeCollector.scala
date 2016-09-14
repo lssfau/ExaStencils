@@ -2,7 +2,7 @@ package exastencils.core.collectors
 
 import scala.collection.mutable.ArrayStack
 
-import exastencils.base.ir.IR_Scope
+import exastencils.base.ir._
 import exastencils.datastructures.Node
 import exastencils.datastructures.ir._
 
@@ -23,7 +23,7 @@ abstract class ScopeCollector[T](init : T) extends Collector {
     }
 
     node match {
-      case ConditionStatement(_, trueBody, falseBody) =>
+      case IR_IfCondition(_, trueBody, falseBody) =>
         enterScope()
         if (!trueBody.isEmpty) // HACK: add "switch-info"
           trueBody(0).annotate(START_COND_BLOCK_ANNOT)
@@ -31,8 +31,8 @@ abstract class ScopeCollector[T](init : T) extends Collector {
           falseBody(0).annotate(START_COND_BLOCK_ANNOT)
 
       case _ : IR_Scope
-           | _ : ForLoopStatement
-           | _ : WhileLoopStatement
+           | _ : IR_ForLoop
+           | _ : IR_WhileLoop
            | _ : FunctionStatement
            | _ : SwitchStatement
            | _ : CaseStatement =>
@@ -44,10 +44,10 @@ abstract class ScopeCollector[T](init : T) extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case _ : ConditionStatement
+      case _ : IR_IfCondition
            | _ : IR_Scope
-           | _ : ForLoopStatement
-           | _ : WhileLoopStatement
+           | _ : IR_ForLoop
+           | _ : IR_WhileLoop
            | _ : FunctionStatement
            | _ : SwitchStatement
            | _ : CaseStatement =>

@@ -79,7 +79,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = body
     if (field.numSlots > 1)
-      wrappedBody = new ForLoopStatement(
+      wrappedBody = IR_ForLoop(
         VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
         IR_LowerExpression("slot", field.numSlots),
         IR_PreIncrementExpression("slot"),
@@ -101,7 +101,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
     val access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
 
     val ret = Some(wrapInLoops(
-      new ConditionStatement(access,
+      IR_IfCondition(access,
         ListBuffer[IR_Statement](
           FreeStatement(access),
           new AssignmentStatement(access, 0)))))

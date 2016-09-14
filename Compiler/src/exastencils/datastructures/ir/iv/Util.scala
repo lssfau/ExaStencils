@@ -81,7 +81,7 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
       val begin = new VariableDeclarationStatement(IR_IntegerDatatype, LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
       val end = new IR_LowerExpression(IR_VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = new IR_PreIncrementExpression(IR_VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
-      wrappedBody = new ForLoopStatement(begin, end, inc, wrappedBody) with OMP_PotentiallyParallel
+      wrappedBody = new IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody)) with OMP_PotentiallyParallel
     }
     return wrappedBody
   }
@@ -113,7 +113,7 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
     val ptrExpr = resolveAccess(resolveName, null, null, null, null, null)
     if (freeInDtor)
       return Some(wrapInLoops(
-        new ConditionStatement(ptrExpr,
+        IR_IfCondition(ptrExpr,
           ListBuffer[IR_Statement](
             FreeStatement(ptrExpr),
             new AssignmentStatement(ptrExpr, 0)))))

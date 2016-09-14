@@ -144,7 +144,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       return
 
     node match {
-      case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
+      case l : IR_ForLoop with OptimizationHint if (l.isInnermost) =>
         if (decls != null) {
           Logger.dbg("ups, nested \"innermost\" loops... something is wrong here")
           decls = null
@@ -216,7 +216,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       skipSubtree = false
 
     node match {
-      case l : ForLoopStatement with OptimizationHint if (l.isInnermost) =>
+      case l : IR_ForLoop with OptimizationHint if (l.isInnermost) =>
         // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
         for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {

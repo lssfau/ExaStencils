@@ -33,7 +33,7 @@ case class CUDA_CheckError(var exp : IR_Expression) extends IR_Statement with Ex
     // TODO: replace with define?
     IR_Scope(ListBuffer[IR_Statement](
       VariableDeclarationStatement(IR_SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
-      new ConditionStatement(IR_NeqExpression("cudaStatus", "cudaSuccess"),
+      IR_IfCondition(IR_NeqExpression("cudaStatus", "cudaSuccess"),
         PrintStatement(ListBuffer("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", "cudaStatus",
           "\" -> \"", new FunctionCallExpression("cudaGetErrorString", "cudaStatus"), "std::endl")))))
   }
@@ -64,10 +64,10 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccessLike) extends IR_Sta
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateHostData\n"
 
-  override def expand() : Output[ConditionStatement] = {
+  override def expand() : Output[IR_IfCondition] = {
     val fieldSelection = fieldAccess.fieldSelection
     val field = fieldSelection.field
-    new ConditionStatement(
+    IR_IfCondition(
       iv.DeviceDataUpdated(field, fieldSelection.slot),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(
@@ -83,10 +83,10 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccessLike) extends IR_Sta
 case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccessLike) extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateDeviceData\n"
 
-  override def expand() : Output[ConditionStatement] = {
+  override def expand() : Output[IR_IfCondition] = {
     val fieldSelection = fieldAccess.fieldSelection
     val field = fieldSelection.field
-    new ConditionStatement(
+    IR_IfCondition(
       iv.HostDataUpdated(field, fieldSelection.slot),
       ListBuffer[IR_Statement](
         CUDA_Memcpy(

@@ -35,7 +35,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
     val postEnd = new IR_LowerExpression(itVarAcc, endVarAcc)
     val postIncr = new AssignmentStatement(itVarAcc, IR_IntegerConstant(oldIncr), "+=")
 
-    val postLoop = new ForLoopStatement(postBegin, postEnd, postIncr, body, reduction)
+    val postLoop = new IR_ForLoop(postBegin, postEnd, postIncr, body, reduction)
 
     return (boundsDecls, postLoop)
   }
@@ -101,16 +101,16 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
   def isDefinedAt(node : Node) : Boolean = {
     return node match {
-      case loop : ForLoopStatement with OptimizationHint =>
+      case loop : IR_ForLoop with OptimizationHint =>
         loop.isInnermost && !loop.removeAnnotation(SKIP_ANNOT).isDefined
-      case _                                             =>
+      case _                                       =>
         false
     }
   }
 
   def apply(node : Node) : Transformation.OutputType = {
 
-    val loop = node.asInstanceOf[ForLoopStatement with OptimizationHint]
+    val loop = node.asInstanceOf[IR_ForLoop with OptimizationHint]
 
     var itVar : String = null
     def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
@@ -255,7 +255,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         } else
           vAcc
 
-      case loop @ ForLoopStatement(decl : VariableDeclarationStatement, _, _, _, _) if (offset > 0) => // HACK: declaration must be handled first
+      case loop @ IR_ForLoop(decl : VariableDeclarationStatement, _, _, _, _) if (offset > 0) => // HACK: declaration must be handled first
         rename.add(decl.name)
         loop
 
