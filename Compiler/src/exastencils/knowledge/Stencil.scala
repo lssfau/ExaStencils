@@ -18,7 +18,7 @@ case class StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Ex
 case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
   def datatype = {
     var ret = entries(0).datatype
-    entries.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    entries.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
     ret
   }
   def getReach(dim : Int) : Int = {

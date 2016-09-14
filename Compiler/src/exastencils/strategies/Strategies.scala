@@ -256,7 +256,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
               val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => IR_NegationExpression(x) }
               val vExprs = if (pos) v.expressions else v.expressions.view.map { x => IR_NegationExpression(x) }
               vecExpr =
-                VectorExpression(Some(GetResultingDatatype2(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
+                VectorExpression(Some(GetResultingDatatype(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
                   vecExprsView.zip(vExprs).map { x => x._1 + x._2 : IR_Expression }.to[ListBuffer],
                   if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
             }
@@ -374,10 +374,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         rem.transform {
           case v : VectorExpression if (!found) =>
             found = true
-            VectorExpression(GetResultingDatatype(cstDt, v.innerDatatype), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
+            VectorExpression(Some(GetResultingDatatype(cstDt.get, v.innerDatatype.getOrElse(IR_RealDatatype))), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
           case m : MatrixExpression if (!found) =>
             found = true
-            MatrixExpression(GetResultingDatatype(cstDt, m.innerDatatype), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
+            MatrixExpression(Some(GetResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
           case x                                =>
             x
         }
