@@ -96,7 +96,7 @@ case class UnresolvedAccess(var name : String,
     try {
       FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active), arrayIndex, offset)
     } catch {
-      case e : Exception => Logger.warn(s"""Could not resolve field "${name}""""); throw e
+      case e : Exception => Logger.warn(s"""Could not resolve field "${ name }""""); throw e
     }
   }
   def resolveToVirtualFieldAccess = {
@@ -205,14 +205,14 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
 
   def getBasicStencilAccess : ir.StencilAccess = {
     if (arrayIndex.isDefined || dirAccess.isDefined)
-      Logger.warn(s"Discarding modifiers of access to stencil $name on level ${level.asInstanceOf[SingleLevelSpecification].level}")
+      Logger.warn(s"Discarding modifiers of access to stencil $name on level ${ level.asInstanceOf[SingleLevelSpecification].level }")
 
     ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 
   def progress : IR_Expression = {
     if (arrayIndex.isDefined && dirAccess.isDefined)
-      Logger.warn(s"Access to stencil $name on level ${level.asInstanceOf[SingleLevelSpecification].level} has dirAccess and array subscript modifiers; array index will be given precendence, dirAccess will be ignored")
+      Logger.warn(s"Access to stencil $name on level ${ level.asInstanceOf[SingleLevelSpecification].level } has dirAccess and array subscript modifiers; array index will be given precendence, dirAccess will be ignored")
 
     val stencil = knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
@@ -245,7 +245,7 @@ case class StencilFieldAccess(var name : String,
 
   def getBasicStencilFieldAccess : ir.StencilFieldAccess = {
     if (arrayIndex.isDefined || dirAccess.isDefined)
-      Logger.warn(s"Discarding modifiers of access to stencilfield $name on level ${level.asInstanceOf[SingleLevelSpecification].level}")
+      Logger.warn(s"Discarding modifiers of access to stencilfield $name on level ${ level.asInstanceOf[SingleLevelSpecification].level }")
 
     val stencilField = knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 
@@ -265,7 +265,7 @@ case class StencilFieldAccess(var name : String,
 
   def progress : IR_Expression = {
     if (arrayIndex.isDefined && dirAccess.isDefined)
-      Logger.warn(s"Access to stencilfield $name on level ${level.asInstanceOf[SingleLevelSpecification].level} has direction access and array subscript modifiers; array index will be given precendence, offset will be ignored")
+      Logger.warn(s"Access to stencilfield $name on level ${ level.asInstanceOf[SingleLevelSpecification].level } has direction access and array subscript modifiers; array index will be given precendence, offset will be ignored")
 
     val stencilField = knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
 

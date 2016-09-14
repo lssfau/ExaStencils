@@ -1,5 +1,6 @@
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Root
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -181,7 +182,7 @@ object MainChristian {
     SetupDataStructures.apply()
 
     // add remaining nodes
-    StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
+    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
       // FunctionCollections
       DomainFunctions(),
       CommunicationFunctions(),
@@ -195,7 +196,7 @@ object MainChristian {
     )
 
     if (Knowledge.cuda_enabled)
-      StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
+      StateManager.root_.asInstanceOf[IR_Root].nodes += KernelFunctions()
 
     if (Knowledge.experimental_mergeCommIntoLoops)
       MergeCommunicatesAndLoops.apply()

@@ -37,7 +37,6 @@ object L4_BinaryOperators extends Enumeration {
   val LowerEqual = Value("<=")
   val Greater = Value(">")
   val GreaterEqual = Value(">=")
-  val BitwiseAnd = Value("&")
 
   //  Conversions for Enumeration:
   // BinaryOperators -> String:  op.toString()
@@ -69,7 +68,6 @@ object L4_BinaryOperators extends Enumeration {
     case LowerEqual             => L4_LowerEqualExpression(left, right)
     case Greater                => L4_GreaterExpression(left, right)
     case GreaterEqual           => L4_GreaterEqualExpression(left, right)
-    case BitwiseAnd             => L4_BitwiseAndExpression(left, right)
   }
 }
 
@@ -189,11 +187,4 @@ case class L4_AndAndExpression(var left : L4_Expression, var right : L4_Expressi
 case class L4_OrOrExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
   override def progress = IR_OrOrExpression(left.progress, right.progress)
-}
-
-/// other operations
-
-case class L4_BitwiseAndExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '&' << right << ')'
-  override def progress = IR_BitwiseAndExpression(left.progress, right.progress)
 }

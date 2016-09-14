@@ -1,5 +1,6 @@
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Root
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -63,7 +64,7 @@ object Main {
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
-        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }
@@ -181,7 +182,7 @@ object Main {
     SetupDataStructures.apply()
 
     // add remaining nodes
-    StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
+    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
       // FunctionCollections
       DomainFunctions(),
       CommunicationFunctions(),
@@ -192,10 +193,10 @@ object Main {
       Vector(),
       Matrix(), // TODO: only if required
       CImg() // TODO: only if required
-      )
+    )
 
     if (Knowledge.cuda_enabled)
-      StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
+      StateManager.root_.asInstanceOf[IR_Root].nodes += KernelFunctions()
 
     if (Knowledge.experimental_mergeCommIntoLoops)
       MergeCommunicatesAndLoops.apply()

@@ -220,7 +220,7 @@ case class ConnectFragments() extends IR_Statement with Expandable {
         var statements = ListBuffer[IR_Statement]()
 
         statements += AssignmentStatement(s"Vec3 offsetPos",
-          iv.PrimitivePosition() + s"Vec3(${neigh.dir(0)} * ${fragWidth_x}, ${neigh.dir(1)} * ${fragWidth_y}, ${neigh.dir(2)} * ${fragWidth_z})")
+          iv.PrimitivePosition() + s"Vec3(${ neigh.dir(0) } * ${ fragWidth_x }, ${ neigh.dir(1) } * ${ fragWidth_y }, ${ neigh.dir(2) } * ${ fragWidth_z })")
 
         if (Knowledge.domain_rect_periodic_x) {
           statements += IR_IfCondition(IR_GreaterExpression("offsetPos.x", gSize.upper_x), AssignmentStatement("offsetPos.x", gSize.upper_x - gSize.lower_x, "-="))
@@ -284,10 +284,10 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
         new FunctionCallExpression("exit", 1))
 
     body ++= ListBuffer(
-      s"Vec3 positions[${Knowledge.domain_numFragmentsPerBlock}]",
+      s"Vec3 positions[${ Knowledge.domain_numFragmentsPerBlock }]",
       s"unsigned int posWritePos = 0",
       if (Knowledge.mpi_enabled)
-        s"Vec3 rankPos(mpiRank % ${Knowledge.domain_rect_numBlocks_x}, (mpiRank / ${Knowledge.domain_rect_numBlocks_x}) % ${Knowledge.domain_rect_numBlocks_y}, mpiRank / ${Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y})"
+        s"Vec3 rankPos(mpiRank % ${ Knowledge.domain_rect_numBlocks_x }, (mpiRank / ${ Knowledge.domain_rect_numBlocks_x }) % ${ Knowledge.domain_rect_numBlocks_y }, mpiRank / ${ Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y })"
       else
         s"Vec3 rankPos(0, 0, 0)")
 
@@ -425,19 +425,19 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
       (if (Knowledge.dimensionality == 2) AssignmentStatement("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       (if (Knowledge.dimensionality == 3) AssignmentStatement("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       AssignmentStatement(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
-      )
+    )
     for (d <- 0 until DomainCollection.domains.size) {
-      body += IR_ForLoop("int location = 0", s" location < ${FragmentCollection.getNumberOfNeighbors()} ", "++location",
+      body += IR_ForLoop("int location = 0", s" location < ${ FragmentCollection.getNumberOfNeighbors() } ", "++location",
         IR_IfCondition(ReadValueFrom(IR_BooleanDatatype, "data"),
-          ListBuffer[IR_Statement]( //neighbor is valid
+          ListBuffer[IR_Statement](//neighbor is valid
             IR_IfCondition(ReadValueFrom(IR_BooleanDatatype, "data"),
-              ListBuffer[IR_Statement]( //neighbor is remote
+              ListBuffer[IR_Statement](//neighbor is remote
                 VariableDeclarationStatement(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
                 VariableDeclarationStatement(IR_IntegerDatatype, "neighRank", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
-                (if (Knowledge.mpi_enabled) s"connectRemoteElement (${iv.CommId().prettyprint()}, neighIdx, neighRank, location, $d)" else IR_NullStatement)),
-              ListBuffer[IR_Statement]( //neighbor is local
+                (if (Knowledge.mpi_enabled) s"connectRemoteElement (${ iv.CommId().prettyprint() }, neighIdx, neighRank, location, $d)" else IR_NullStatement)),
+              ListBuffer[IR_Statement](//neighbor is local
                 VariableDeclarationStatement(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
-                if (FragmentCollection.fragments.length > 1) s"connectLocalElement(${iv.CommId().prettyprint()},neighIdx,location,$d)" else IR_NullStatement)))))
+                if (FragmentCollection.fragments.length > 1) s"connectLocalElement(${ iv.CommId().prettyprint() },neighIdx,location,$d)" else IR_NullStatement)))))
     }
     body += IR_IfCondition(ReadValueFrom(IR_BooleanDatatype, "data"),
       ListBuffer[IR_Statement](
@@ -479,7 +479,7 @@ case class DomainFunctions() extends FunctionCollection(
         IR_ForLoop("int j = 0", " j < size ", "++j", "bytes[size-1-j] = memblock[j]"),
         "memblock+=size",
         ReturnStatement(Some("*(T *)&bytes"))))
-    rvTemplateFunc.annotate("isTemplate")
+    rvTemplateFunc.isHeaderOnly = true // annotate("isTemplate")
     functions += rvTemplateFunc
     functions += new SetValues
     functions += new InitDomainFromFragmentFile

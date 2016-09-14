@@ -227,7 +227,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         acc
     })
     // ensure node itself is found, too
-    search.applyStandalone(Root(ListBuffer(node)))
+    search.applyStandalone(IR_Root(ListBuffer(node)))
     return found
   }
 

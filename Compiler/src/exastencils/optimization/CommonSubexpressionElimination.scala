@@ -313,7 +313,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         for (id <- n.getAnnotation(ID_ANNOT))
           disjunct &= bs.add(id.asInstanceOf[Int])
         n
-    }), Some(Root(ListBuffer(node)))) // wrap to ensure node itself is also accessed by the trafo
+    }), Some(IR_Root(ListBuffer(node)))) // wrap to ensure node itself is also accessed by the trafo
     return disjunct
   }
 

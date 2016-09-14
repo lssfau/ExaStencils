@@ -2,6 +2,7 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Root
 import exastencils.base.l4.L4_Statement
 import exastencils.datastructures._
 import exastencils.globals._
@@ -72,7 +73,7 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
   }
 
   override def progress : Node = {
-    var newRoot = new ir.Root
+    var newRoot = IR_Root()
 
     // Domains
     DomainCollection.domains.clear
