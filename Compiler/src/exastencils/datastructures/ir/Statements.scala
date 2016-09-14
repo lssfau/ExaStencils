@@ -95,16 +95,6 @@ case class SwitchStatement(var what : IR_Expression, var body : ListBuffer[CaseS
   }
 }
 
-case class ReturnStatement(var expr : Option[IR_Expression] = None) extends IR_Statement {
-  def this(expr : IR_Expression) = this(Option(expr))
-
-  override def prettyprint(out : PpStream) = {
-    out << "return"
-    if (expr.isDefined) out << ' ' << expr.get.prettyprint()
-    out << ';'
-  }
-}
-
 case class BreakStatement() extends IR_Statement {
   override def prettyprint(out : PpStream) = {
     out << "break;"
@@ -118,52 +108,6 @@ case class AssertStatement(var check : IR_Expression, var msg : ListBuffer[IR_Ex
     IR_IfCondition(IR_NegationExpression(check),
       ListBuffer[IR_Statement](new PrintStatement(msg), abort))
   }
-}
-
-abstract class AbstractFunctionStatement(var isHeaderOnly : Boolean = false) extends IR_Statement {
-  def name : String
-  def prettyprint_decl() : String
-}
-
-case class FunctionStatement(
-    var returntype : IR_Datatype,
-    var name : String,
-    var parameters : ListBuffer[FunctionArgument],
-    var body : ListBuffer[IR_Statement],
-    var allowInlining : Boolean = true,
-    var allowFortranInterface : Boolean = true,
-    var functionQualifiers : String = "" // e.g. "__global__" etc
-) extends AbstractFunctionStatement {
-  def this(returntype : IR_Datatype, name : String, parameters : ListBuffer[FunctionArgument], body : IR_Statement) = this(returntype, name, parameters, ListBuffer[IR_Statement](body))
-  def this(returntype : IR_Datatype, name : String, parameters : FunctionArgument, body : ListBuffer[IR_Statement]) = this(returntype, name, ListBuffer[FunctionArgument](parameters), body)
-
-  override def prettyprint(out : PpStream) : Unit = { // FIXME: add specialized node for parameter specification with own PP
-    if (!functionQualifiers.isEmpty) out << functionQualifiers << ' '
-    out << returntype << ' ' << name << ' ' << '('
-    if (!parameters.isEmpty) {
-      for (param <- parameters)
-        out << param.prettyprintDeclaration << ", "
-      out.removeLast(2)
-    }
-    out << ") {\n"
-    out <<< (body, "\n") << '\n'
-    out << '}'
-  }
-
-  override def prettyprint_decl() : String = {
-    var decl = ""
-    if (!functionQualifiers.isEmpty) decl += functionQualifiers + ' '
-    decl += s"${ returntype.prettyprint } $name (" + parameters.map(param => s"${ param.prettyprintDeclaration }").mkString(", ") + ");\n"
-    decl
-  }
-}
-
-case class FunctionArgument(var name : String, var datatype : IR_Datatype) extends IR_Expression {
-  // FIXME: really Expression?
-  override def prettyprint(out : PpStream) = {
-    out << name
-  }
-  def prettyprintDeclaration = s"${ datatype.prettyprint } ${ name }"
 }
 
 //////////////////////////// SIMD Statements \\\\\\\\\\\\\\\\\\\\\\\\\\\\

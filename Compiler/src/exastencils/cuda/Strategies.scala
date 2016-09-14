@@ -492,7 +492,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       val kernel = Kernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         Duplicate(parallelInnerLoops.length),
-        variableAccesses.map(s => FunctionArgument(s.name, s.innerDatatype.get)),
+        variableAccesses.map(s => IR_FunctionArgument(s.name, s.innerDatatype.get)),
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
         Duplicate(upperBounds),

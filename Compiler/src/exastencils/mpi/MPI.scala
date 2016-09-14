@@ -197,12 +197,12 @@ case class MPI_Sequential(var body : ListBuffer[IR_Statement]) extends IR_Statem
   }
 }
 
-case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandable {
+case class MPI_WaitForRequest() extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = WaitForMPIReq\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "waitForMPIReq"
 
-  override def expand : Output[FunctionStatement] = {
+  override def expand : Output[IR_Function] = {
     def request = IR_VariableAccess("request", Some(IR_PointerDatatype(IR_SpecialDatatype("MPI_Request"))))
     def stat = IR_VariableAccess("stat", Some(IR_SpecialDatatype("MPI_Status")))
     def flag = IR_VariableAccess("flag", Some(IR_IntegerDatatype))
@@ -212,7 +212,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
     def len = IR_VariableAccess("len", Some(IR_IntegerDatatype))
 
     if (Knowledge.mpi_useBusyWait) {
-      FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(request.name, request.innerDatatype.get)),
+      IR_Function(IR_UnitDatatype, name, ListBuffer(IR_FunctionArgument(request.name, request.innerDatatype.get)),
         ListBuffer[IR_Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
@@ -229,7 +229,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           new IR_Assignment(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     } else {
-      FunctionStatement(IR_UnitDatatype, s"waitForMPIReq", ListBuffer(FunctionArgument(request.name, request.innerDatatype.get)),
+      IR_Function(IR_UnitDatatype, s"waitForMPIReq", ListBuffer(IR_FunctionArgument(request.name, request.innerDatatype.get)),
         ListBuffer[IR_Statement](
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),

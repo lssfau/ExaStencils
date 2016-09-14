@@ -259,8 +259,8 @@ case class FunctionStatement(override var identifier : Identifier,
     out << "}\n"
   }
 
-  override def progress : ir.AbstractFunctionStatement = {
-    ir.FunctionStatement(
+  override def progress : IR_AbstractFunction = {
+    IR_Function(
       returntype.progress,
       identifier.fullName,
       arguments.map(s => s.progress).to[ListBuffer], // FIXME: .to[ListBuffer]
@@ -270,13 +270,13 @@ case class FunctionStatement(override var identifier : Identifier,
 }
 
 case class FunctionArgument(override var identifier : Identifier,
-    var datatype : L4_Datatype) extends Access with HasIdentifier with ProgressableToIr {
-  override def name = identifier.name
+    var datatype : L4_Datatype) extends L4_Node with PrettyPrintable with HasIdentifier with ProgressableToIr {
+  def name = identifier.name
   override def prettyprint(out : PpStream) {
     out << identifier.name << " : " << datatype.prettyprint
   }
 
-  override def progress = ir.FunctionArgument(identifier.fullName, datatype.progress)
+  override def progress = IR_FunctionArgument(identifier.fullName, datatype.progress)
 }
 
 case class FunctionTemplateStatement(var name : String,
@@ -402,8 +402,8 @@ case class ReturnStatement(var expr : Option[L4_Expression]) extends L4_Statemen
     out << '\n'
   }
 
-  override def progress : ir.ReturnStatement = {
-    ir.ReturnStatement(expr.map(_.progress))
+  override def progress : IR_Return = {
+    IR_Return(expr.map(_.progress))
   }
 }
 

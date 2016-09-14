@@ -2,10 +2,9 @@ package exastencils.mpi
 
 import scala.collection.mutable.HashMap
 
-import exastencils.base.ir.IR_BooleanConstant
+import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.globals._
 
 object RemoveMPIReferences extends DefaultStrategy("RemoveMPIReferences") {
@@ -33,15 +32,15 @@ object AddMPIDatatypes extends DefaultStrategy("AddMPIDatatypes") {
   })
 
   this += new Transformation("Adding declaration and init code", {
-    case globals : Globals                                           =>
+    case globals : Globals                                     =>
       for (dt <- datatypes)
         globals.variables += dt._2.generateDecl
       globals
-    case func : FunctionStatement if ("initGlobals" == func.name)    =>
+    case func : IR_Function if ("initGlobals" == func.name)    =>
       for (dt <- datatypes)
         func.body ++= dt._2.generateCtor
       func
-    case func : FunctionStatement if ("destroyGlobals" == func.name) =>
+    case func : IR_Function if ("destroyGlobals" == func.name) =>
       for (dt <- datatypes)
         func.body ++= dt._2.generateDtor
       func

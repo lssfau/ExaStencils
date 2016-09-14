@@ -39,7 +39,7 @@ object CollectFunctionStatements extends DefaultStrategy("Collecting internal fu
   }
 
   this += new Transformation("Collecting", {
-    case fct : FunctionStatement => {
+    case fct : IR_Function => {
       internalFunctions += fct.name
       fct
     }
@@ -95,7 +95,7 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
   }
 
   this += new Transformation("Processing function statements", {
-    case fct : FunctionStatement if (
+    case fct : IR_Function if (
       !completeFunctions.contains(fct.name) &&
         CollectFunctionStatements.internalFunctions.contains(fct.name)) => {
       // process function body

@@ -63,9 +63,9 @@ object Inlining extends CustomStrategy("Function inlining") {
       if (heuristics_prepareCSE) {
         var singleRet : Boolean = false
         for (stmt <- stmts) stmt match {
-          case _ : VariableDeclarationStatement    =>
-          case _ : ReturnStatement if (!singleRet) => singleRet = true
-          case _                                   => inline = false // any other statement (or a second ReturnStatement) found...
+          case _ : VariableDeclarationStatement =>
+          case _ : IR_Return if (!singleRet)    => singleRet = true
+          case _                                => inline = false // any other statement (or a second ReturnStatement) found...
         }
         inline &= singleRet
       }
@@ -83,22 +83,22 @@ object Inlining extends CustomStrategy("Function inlining") {
     // then, inline all functions with count == 0 (and update other counts accordingly)
     val oldLvl = Logger.getLevel
     Logger.setLevel(Logger.WARNING) // a HUGE number of transformations are executed here, so shut them up
-    val toRemove = new IdentityHashMap[FunctionStatement, Unit]() // used as a set; there's no need to compare thousands of nodes, reference equality is enough
+    val toRemove = new IdentityHashMap[IR_Function, Unit]() // used as a set; there's no need to compare thousands of nodes, reference equality is enough
     var continue : Boolean = false
     do {
       continue = false
       for ((func, i) <- toInline if (i == 0)) {
         toInline -= func // clear() removes current value while handling an iterator, too...
         continue = true // something changed, maybe we can inline even more, so go on...
-        val funcStmt : FunctionStatement = analyzer.functions(func)
+        val funcStmt : IR_Function = analyzer.functions(func)
         val potConflicts : Set[String] = analyzer.potConflicts(func)
         var remove = true
         for ((callExpr, callStmt, callScope, inFunc) <- analyzer.calls(func)) {
           if (toInline.contains(inFunc))
             toInline(inFunc) -= 1
           val potConflToUpdate : Set[String] =
-            if (callScope.isInstanceOf[FunctionStatement])
-              analyzer.potConflicts(callScope.asInstanceOf[FunctionStatement].name)
+            if (callScope.isInstanceOf[IR_Function])
+              analyzer.potConflicts(callScope.asInstanceOf[IR_Function].name)
             else
               null
           remove &= inline(callScope, callStmt, callExpr, funcStmt, potConflicts, potConflToUpdate)
@@ -110,7 +110,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     Logger.setLevel(oldLvl)
 
     this.execute(new Transformation("remove inlined functions", {
-      case func : FunctionStatement if (toRemove.containsKey(func) && func.name != "main") => List()
+      case func : IR_Function if (toRemove.containsKey(func) && func.name != "main") => List()
     }))
 
     if (Settings.timeStrategies)
@@ -119,7 +119,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     this.commit()
   }
 
-  private def inline(callScope : Node, callStmt : IR_Statement, callExpr : FunctionCallExpression, funcStmt : FunctionStatement,
+  private def inline(callScope : Node, callStmt : IR_Statement, callExpr : FunctionCallExpression, funcStmt : IR_Function,
       potConflicts : Set[String], potConflToUpdate : Set[String]) : Boolean = {
 
     // each function parameter must be given in call
@@ -145,12 +145,12 @@ object Inlining extends CustomStrategy("Function inlining") {
     val bodyWrapper = IR_Scope(Duplicate(funcStmt.body)) // wrap in Scope to allow removing statements
     val rename = new Renamer(reserved, potConflicts)
     var exit = false
-    var retStmt : ReturnStatement = null
+    var retStmt : IR_Return = null
     this.execute(new Transformation("rename conflicts", {
       case VariableDeclarationStatement(t, name, i) if (potConflicts.contains(name)) => VariableDeclarationStatement(t, rename(name), i)
       case IR_VariableAccess(name, t) if (potConflicts.contains(name))               => IR_VariableAccess(rename(name), t)
       case IR_StringLiteral(name) if (potConflicts.contains(name))                   => IR_StringLiteral(rename(name))
-      case ret : ReturnStatement                                                     =>
+      case ret : IR_Return                                                           =>
         if (ret.expr.isEmpty != (funcStmt.returntype == IR_UnitDatatype))
           exit = true
         retStmt = ret
@@ -160,7 +160,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     if (exit)
       return false
     this.execute(new Transformation("remove old return", {
-      case r : ReturnStatement if (r eq retStmt) =>
+      case r : IR_Return if (r eq retStmt) =>
         List()
     }), Some(bodyWrapper))
     val body : ListBuffer[IR_Statement] = bodyWrapper.body
@@ -206,7 +206,7 @@ object Inlining extends CustomStrategy("Function inlining") {
 
   private final class Analyzer extends StackCollector {
 
-    private[Inlining] final val functions = Map[String, FunctionStatement]()
+    private[Inlining] final val functions = Map[String, IR_Function]()
     private[Inlining] final val flatFunctionBody = Map[String, Buffer[IR_Statement]]((null, ArrayBuffer()))
     // value of calls: (call itself, statement containing it, statement's parent, function containing statement)
     private[Inlining] final val calls = Map[String, ListBuffer[(FunctionCallExpression, IR_Statement, Node, String)]]()
@@ -218,7 +218,7 @@ object Inlining extends CustomStrategy("Function inlining") {
 
     override def enter(node : Node) : Unit = {
       node match {
-        case func : FunctionStatement =>
+        case func : IR_Function =>
           curFunc = func.name
           inlinable = true
           flatFunctionBody(curFunc) = ArrayBuffer()
@@ -230,7 +230,7 @@ object Inlining extends CustomStrategy("Function inlining") {
           allowedReturn = null
           if (!func.body.isEmpty) {
             val lastStmt = func.body.last
-            if (lastStmt.isInstanceOf[ReturnStatement])
+            if (lastStmt.isInstanceOf[IR_Return])
               allowedReturn = lastStmt
           }
 
@@ -245,11 +245,11 @@ object Inlining extends CustomStrategy("Function inlining") {
             }
           }
 
-        case decl : VariableDeclarationStatement if (stack.top.isInstanceOf[FunctionStatement]) =>
+        case decl : VariableDeclarationStatement if (stack.top.isInstanceOf[IR_Function]) =>
           flatFunctionBody(curFunc) += decl
-          potConflicts(stack.top.asInstanceOf[FunctionStatement].name) += decl.name
+          potConflicts(stack.top.asInstanceOf[IR_Function].name) += decl.name
 
-        case ret : ReturnStatement if (ret ne allowedReturn) =>
+        case ret : IR_Return if (ret ne allowedReturn) =>
           flatFunctionBody(curFunc) += ret
           inlinable = false
 
@@ -266,7 +266,7 @@ object Inlining extends CustomStrategy("Function inlining") {
 
     override def leave(node : Node) : Unit = {
       node match {
-        case func : FunctionStatement =>
+        case func : IR_Function =>
           curFunc = null
           if (inlinable)
             functions(func.name) = func

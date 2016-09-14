@@ -13,7 +13,7 @@ import exastencils.prettyprinting._
 
 // FIXME: Think about moving all of this index information to some other source. Maybe some kind of ... DSL ... or even Layer4
 
-abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Expandable {
+abstract class FieldBoundaryFunction() extends IR_AbstractFunction with Expandable {
   var fieldSelection : FieldSelection
   def insideFragLoop : Boolean
 
@@ -30,7 +30,7 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
     }
   }
 
-  override def expand : Output[FunctionStatement] = {
+  override def expand : Output[IR_Function] = {
     var body = new ListBuffer[IR_Statement]
 
     val updatedFieldSelection = if (Knowledge.experimental_useLevelIndepFcts) {
@@ -43,14 +43,14 @@ abstract class FieldBoundaryFunction() extends AbstractFunctionStatement with Ex
       fieldSelection
     }
 
-    var fctArgs : ListBuffer[FunctionArgument] = ListBuffer()
-    fctArgs += FunctionArgument("slot", IR_SpecialDatatype("unsigned int"))
+    var fctArgs : ListBuffer[IR_FunctionArgument] = ListBuffer()
+    fctArgs += IR_FunctionArgument("slot", IR_SpecialDatatype("unsigned int"))
     if (Knowledge.experimental_useLevelIndepFcts)
-      FunctionArgument("level", IR_SpecialDatatype("unsigned int"))
+      IR_FunctionArgument("level", IR_SpecialDatatype("unsigned int"))
     if (insideFragLoop)
-      fctArgs += FunctionArgument(LoopOverFragments.defIt, IR_IntegerDatatype)
+      fctArgs += IR_FunctionArgument(LoopOverFragments.defIt, IR_IntegerDatatype)
 
-    FunctionStatement(IR_UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
+    IR_Function(IR_UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
   }
 }
 

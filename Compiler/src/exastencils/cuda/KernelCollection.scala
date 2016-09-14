@@ -58,7 +58,7 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
 
   override def printSources = {
     for (f <- functions) {
-      var fileName = f.asInstanceOf[FunctionStatement].name
+      var fileName = f.asInstanceOf[IR_Function].name
       if (fileName.endsWith(Kernel.wrapperPostfix)) fileName = fileName.dropRight(Kernel.wrapperPostfix.length)
       val writer = PrettyprintingManager.getPrinter(s"${ baseName }_$fileName.cu")
       writer.addInternalDependency(s"$baseName.h")
@@ -75,9 +75,9 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
 
     // kernel function
     {
-      def data = FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
-      def numElements = FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)
-      def stride = FunctionArgument("stride", IR_IntegerDatatype /*FIXME: size_t*/)
+      def data = IR_FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
+      def numElements = IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)
+      def stride = IR_FunctionArgument("stride", IR_IntegerDatatype /*FIXME: size_t*/)
       def it = Duplicate(LoopOverDimensions.defItForDim(0))
 
       var fctBody = ListBuffer[IR_Statement]()
@@ -88,20 +88,20 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
         MemberAccess(IR_VariableAccess("blockIdx", None), it.name) *
           MemberAccess(IR_VariableAccess("blockDim", None), it.name) +
           MemberAccess(IR_VariableAccess("threadIdx", None), it.name))
-      fctBody += IR_Assignment(it, 2 * stride, "*=")
+      fctBody += IR_Assignment(it, 2 * stride.access, "*=")
 
       // add index bounds conditions
       fctBody += IR_IfCondition(
-        IR_OrOrExpression(IR_LowerExpression(it, 0), IR_GreaterEqualExpression(it, numElements)),
-        ReturnStatement())
+        IR_OrOrExpression(IR_LowerExpression(it, 0), IR_GreaterEqualExpression(it, numElements.access)),
+        IR_Return())
 
       // add values with stride
       fctBody += IR_IfCondition(
-        IR_LowerExpression(it + stride, numElements),
-        IR_Assignment(ArrayAccess(data, it), IR_BinaryOperators.createExpression(op, ArrayAccess(data, it), ArrayAccess(data, it + stride))))
+        IR_LowerExpression(it + stride.access, numElements.access),
+        IR_Assignment(ArrayAccess(data.access, it), IR_BinaryOperators.createExpression(op, ArrayAccess(data.access, it), ArrayAccess(data.access, it + stride.access))))
 
       // compile final kernel function
-      var fct = FunctionStatement(
+      var fct = IR_Function(
         IR_UnitDatatype,
         kernelName,
         ListBuffer(data, numElements, stride),
@@ -113,9 +113,9 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
 
     // wrapper function
     {
-      def numElements = IR_VariableAccess("numElements", Some(IR_SpecialDatatype("size_t") /*FIXME*/))
+      def numElements = IR_FunctionArgument("numElements", IR_SpecialDatatype("size_t") /*FIXME*/)
       def stride = IR_VariableAccess("stride", Some(IR_SpecialDatatype("size_t") /*FIXME*/))
-      def data = FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
+      def data = IR_FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
       def ret = IR_VariableAccess("ret", Some(IR_RealDatatype))
 
       def blockSize = Knowledge.cuda_reductionBlockSize
@@ -125,27 +125,27 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
       // compile loop body
       def blocks = IR_VariableAccess("blocks", Some(IR_SpecialDatatype("size_t")))
       var loopBody = ListBuffer[IR_Statement]()
-      loopBody += new VariableDeclarationStatement(blocks, (numElements + (blockSize * stride - 1)) / (blockSize * stride))
+      loopBody += new VariableDeclarationStatement(blocks, (numElements.access + (blockSize * stride - 1)) / (blockSize * stride))
       loopBody += IR_IfCondition(IR_EqEqExpression(0, blocks), IR_Assignment(blocks, 1))
-      loopBody += CUDA_FunctionCallExpression(kernelName, ListBuffer[IR_Expression](data, numElements, stride),
+      loopBody += CUDA_FunctionCallExpression(kernelName, ListBuffer[IR_Expression](data.access, numElements.access, stride),
         Array[IR_Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */), Array[IR_Expression](blockSize))
 
       fctBody += IR_ForLoop(
         new VariableDeclarationStatement(stride, 1),
-        IR_LowerExpression(stride, numElements),
+        IR_LowerExpression(stride, numElements.access),
         IR_Assignment(stride, 2, "*="),
         loopBody)
 
       fctBody += new VariableDeclarationStatement(ret)
-      fctBody += CUDA_Memcpy(IR_AddressofExpression(ret), data, SizeOfExpression(IR_RealDatatype), "cudaMemcpyDeviceToHost")
+      fctBody += CUDA_Memcpy(IR_AddressofExpression(ret), data.access, SizeOfExpression(IR_RealDatatype), "cudaMemcpyDeviceToHost")
 
-      fctBody += ReturnStatement(Some(ret))
+      fctBody += IR_Return(Some(ret))
 
       // compile final wrapper function
-      functions += FunctionStatement(
+      functions += IR_Function(
         IR_RealDatatype, // TODO: support other types
         wrapperName,
-        ListBuffer(data, FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)),
+        ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)),
         fctBody,
         allowInlining = false, allowFortranInterface = false,
         "extern \"C\"")
@@ -164,7 +164,7 @@ object Kernel {
 
 case class Kernel(var identifier : String,
     var parallelDims : Int,
-    var passThroughArgs : ListBuffer[FunctionArgument],
+    var passThroughArgs : ListBuffer[IR_FunctionArgument],
     var loopVariables : ListBuffer[String],
     var lowerBounds : ListBuffer[IR_Expression],
     var upperBounds : ListBuffer[IR_Expression],
@@ -613,7 +613,7 @@ case class Kernel(var identifier : String,
     body
   }
 
-  def compileWrapperFunction : FunctionStatement = {
+  def compileWrapperFunction : IR_Function = {
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
     evalAccesses() // ensure that field accesses have been mapped
     evalExecutionConfiguration() // ensure that execution configuration is already calculated
@@ -660,7 +660,7 @@ case class Kernel(var identifier : String,
     }
 
     for (variableAccess <- passThroughArgs) {
-      callArgs += Duplicate(variableAccess)
+      callArgs += variableAccess.access
     }
 
     var body = ListBuffer[IR_Statement]()
@@ -670,7 +670,7 @@ case class Kernel(var identifier : String,
       def bufAccess = iv.ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.innerDatatype.get)
       body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
-      body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
+      body += IR_Return(Some(FunctionCallExpression(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
         ListBuffer[IR_Expression](bufAccess, bufSize))))
 
       StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
@@ -678,7 +678,7 @@ case class Kernel(var identifier : String,
       body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
     }
 
-    FunctionStatement(
+    IR_Function(
       if (reduction.isDefined) reduction.get.target.innerDatatype.get else IR_UnitDatatype,
       getWrapperFctName,
       Duplicate(passThroughArgs),
@@ -687,17 +687,17 @@ case class Kernel(var identifier : String,
       "extern \"C\"")
   }
 
-  def compileKernelFunction : FunctionStatement = {
+  def compileKernelFunction : IR_Function = {
     evalIndexBounds() // ensure that minimal and maximal indices are set correctly
     evalAccesses() // ensure that field accesses have been mapped
     evalExecutionConfiguration() // ensure that execution configuration is already calculated
 
     // compile parameters for device function
-    var fctParams = ListBuffer[FunctionArgument]()
+    var fctParams = ListBuffer[IR_FunctionArgument]()
 
     for (dim <- 0 until parallelDims) {
-      fctParams += FunctionArgument(s"${ KernelVariablePrefix }begin_$dim", IR_IntegerDatatype)
-      fctParams += FunctionArgument(s"${ KernelVariablePrefix }end_$dim", IR_IntegerDatatype)
+      fctParams += IR_FunctionArgument(s"${ KernelVariablePrefix }begin_$dim", IR_IntegerDatatype)
+      fctParams += IR_FunctionArgument(s"${ KernelVariablePrefix }end_$dim", IR_IntegerDatatype)
     }
 
     for (fieldAccess <- linearizedFieldAccesses) {
@@ -705,15 +705,15 @@ case class Kernel(var identifier : String,
 
       // add required parameter specifiers to take advantage of the read-only cache
       if (Knowledge.cuda_spatialBlockingWithROC && !writtenFieldAccesses.contains(fieldAccess._1)) {
-        fctParams += FunctionArgument(fieldAccess._1, IR_CUDAConstPointerDatatype(fieldSelection.field.resolveDeclType))
+        fctParams += IR_FunctionArgument(fieldAccess._1, IR_CUDAConstPointerDatatype(fieldSelection.field.resolveDeclType))
       } else {
-        fctParams += FunctionArgument(fieldAccess._1, IR_PointerDatatype(fieldSelection.field.resolveDeclType))
+        fctParams += IR_FunctionArgument(fieldAccess._1, IR_PointerDatatype(fieldSelection.field.resolveDeclType))
       }
     }
 
     if (fieldForSharedMemory.nonEmpty) {
       fieldNames.foreach(field => {
-        fctParams += FunctionArgument(field, IR_PointerDatatype(fieldForSharedMemory(field).fieldSelection.field.resolveDeclType))
+        fctParams += IR_FunctionArgument(field, IR_PointerDatatype(fieldForSharedMemory(field).fieldSelection.field.resolveDeclType))
       })
     }
 
@@ -724,18 +724,18 @@ case class Kernel(var identifier : String,
       datatype match {
         case IR_SpecialDatatype("Vec3")  =>
           access.innerDatatype = Some(IR_SpecialDatatype("double3"))
-          fctParams += FunctionArgument(access.name, access.innerDatatype.get)
+          fctParams += IR_FunctionArgument(access.name, access.innerDatatype.get)
         case IR_SpecialDatatype("Vec3i") =>
-          fctParams ++= (0 until 3).map(dim => FunctionArgument(ivAccess._1 + '_' + dim, IR_SpecialDatatype("int"))).to[ListBuffer]
-        case _                           => fctParams += FunctionArgument(ivAccess._1, datatype)
+          fctParams ++= (0 until 3).map(dim => IR_FunctionArgument(ivAccess._1 + '_' + dim, IR_SpecialDatatype("int"))).to[ListBuffer]
+        case _                           => fctParams += IR_FunctionArgument(ivAccess._1, datatype)
       }
     }
 
     for (variableAccess <- passThroughArgs) {
-      fctParams += FunctionArgument(variableAccess.name, variableAccess.datatype)
+      fctParams += IR_FunctionArgument(variableAccess.name, variableAccess.datatype)
     }
 
-    val fct = FunctionStatement(
+    val fct = IR_Function(
       IR_UnitDatatype, getKernelFctName, fctParams,
       compileKernelBody,
       allowInlining = false, allowFortranInterface = false, "__global__")

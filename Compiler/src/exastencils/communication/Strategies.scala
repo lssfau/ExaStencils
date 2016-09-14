@@ -217,7 +217,7 @@ object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate st
   }
 
   this += new Transformation("Resolving", {
-    case fct : FunctionStatement => {
+    case fct : IR_Function => {
       fct.body = processFctBody(fct.body)
       fct
     }

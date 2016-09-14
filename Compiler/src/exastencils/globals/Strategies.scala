@@ -25,7 +25,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
       globals
     }
 
-    case func : FunctionStatement if ("initGlobals" == func.name) => {
+    case func : IR_Function if ("initGlobals" == func.name) => {
       if (Knowledge.cuda_enabled) {
         // init device
         func.body ++= ListBuffer[IR_Statement](

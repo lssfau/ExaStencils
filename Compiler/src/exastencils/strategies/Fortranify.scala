@@ -74,7 +74,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
   this += new Transformation("Process function declarations", {
     case functions : IR_FunctionCollection =>
       for (abstrFct <- functions.functions) {
-        val fct = abstrFct.asInstanceOf[FunctionStatement] // assume resolved function declarations
+        val fct = abstrFct.asInstanceOf[IR_Function] // assume resolved function declarations
         if (fct.allowFortranInterface && isTreatableFunction(fct.name)) {
           // remember for later usage
           functionsToBeProcessed += (fct.name -> ListBuffer())
@@ -109,7 +109,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
   })
 
   this += new Transformation("Prepending underscores to function calls", {
-    case s : IR_Statement if !s.isInstanceOf[FunctionStatement] =>
+    case s : IR_Statement if !s.isInstanceOf[IR_Function] =>
       FortranifyFunctionsInsideStatement.functionsToBeProcessed = functionsToBeProcessed
       FortranifyFunctionsInsideStatement.applyStandalone(s)
 

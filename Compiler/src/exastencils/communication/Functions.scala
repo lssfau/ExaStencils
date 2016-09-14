@@ -49,18 +49,18 @@ case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expr
   }
 }
 
-case class ConnectLocalElement() extends AbstractFunctionStatement with Expandable {
+case class ConnectLocalElement() extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectLocalElement\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "connectLocalElement"
 
-  override def expand : Output[FunctionStatement] = {
-    FunctionStatement(IR_UnitDatatype, name,
+  override def expand : Output[IR_Function] = {
+    IR_Function(IR_UnitDatatype, name,
       ListBuffer(
-        FunctionArgument("localFragId", IR_IntegerDatatype),
-        FunctionArgument("localNeighId", IR_IntegerDatatype),
-        FunctionArgument("location", IR_IntegerDatatype),
-        FunctionArgument("domain", IR_IntegerDatatype)),
+        IR_FunctionArgument("localFragId", IR_IntegerDatatype),
+        IR_FunctionArgument("localNeighId", IR_IntegerDatatype),
+        IR_FunctionArgument("location", IR_IntegerDatatype),
+        IR_FunctionArgument("domain", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
         IR_Assignment(iv.NeighborIsValid("domain", "location", "localFragId"), true),
         IR_Assignment(iv.NeighborIsRemote("domain", "location", "localFragId"), false),
@@ -69,19 +69,19 @@ case class ConnectLocalElement() extends AbstractFunctionStatement with Expandab
   }
 }
 
-case class ConnectRemoteElement() extends AbstractFunctionStatement with Expandable {
+case class ConnectRemoteElement() extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectRemoteElement\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "connectRemoteElement"
 
-  override def expand : Output[FunctionStatement] = {
-    FunctionStatement(IR_UnitDatatype, name,
+  override def expand : Output[IR_Function] = {
+    IR_Function(IR_UnitDatatype, name,
       ListBuffer(
-        FunctionArgument("localFragId", IR_IntegerDatatype),
-        FunctionArgument("localNeighId", IR_IntegerDatatype),
-        FunctionArgument("remoteRank", IR_IntegerDatatype),
-        FunctionArgument("location", IR_IntegerDatatype),
-        FunctionArgument("domain", IR_IntegerDatatype)),
+        IR_FunctionArgument("localFragId", IR_IntegerDatatype),
+        IR_FunctionArgument("localNeighId", IR_IntegerDatatype),
+        IR_FunctionArgument("remoteRank", IR_IntegerDatatype),
+        IR_FunctionArgument("location", IR_IntegerDatatype),
+        IR_FunctionArgument("domain", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
         IR_Assignment(iv.NeighborIsValid("domain", "location", "localFragId"), true),
         IR_Assignment(iv.NeighborIsRemote("domain", "location", "localFragId"), true),

@@ -2,15 +2,14 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Node
-import exastencils.datastructures.ir._
+import exastencils.base.ir._
 import exastencils.knowledge.Knowledge
 import exastencils.prettyprinting._
 
 class IR_FunctionCollection(var baseName : String,
     var externalDependencies : ListBuffer[String],
     var internalDependencies : ListBuffer[String],
-    var functions : ListBuffer[AbstractFunctionStatement] = ListBuffer()) extends IR_Node with FilePrettyPrintable {
+    var functions : ListBuffer[IR_AbstractFunction] = ListBuffer()) extends IR_Node with FilePrettyPrintable {
 
   def printHeader() = {
     val writer = PrettyprintingManager.getPrinter(s"$baseName.h")
@@ -26,7 +25,7 @@ class IR_FunctionCollection(var baseName : String,
 
     for (func <- functions)
       if (!func.isHeaderOnly && !func.hasAnnotation("deviceOnly"))
-        writer << func.asInstanceOf[FunctionStatement].prettyprint_decl
+        writer << func.asInstanceOf[IR_Function].prettyprint_decl
 
     if (externC)
       writer <<< "}"
@@ -45,8 +44,8 @@ class IR_FunctionCollection(var baseName : String,
 
   override def printToFile() = {
     functions = functions.sortBy({
-      case fs : FunctionStatement => fs.name
-      case _                      => ""
+      case fs : IR_Function => fs.name
+      case _                => ""
     })
 
     printHeader()

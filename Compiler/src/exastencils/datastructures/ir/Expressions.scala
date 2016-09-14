@@ -259,7 +259,7 @@ case class FunctionCallExpression(var name : String, var arguments : ListBuffer[
       case "inv" | "inverse"                    => arguments(0).datatype
       case "Vec3"                               => IR_UnitDatatype
       case _                                    => {
-        var fct = StateManager.findAll[FunctionStatement]((t : FunctionStatement) => { t.name == this.name })
+        var fct = StateManager.findAll[IR_Function]((t : IR_Function) => { t.name == this.name })
         if (fct.length <= 0) {
           Logger.warn(s"""Did not find function '${ name }'""")
           IR_UnitDatatype

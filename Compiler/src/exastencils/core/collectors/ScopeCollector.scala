@@ -33,7 +33,7 @@ abstract class ScopeCollector[T](init : T) extends Collector {
       case _ : IR_Scope
            | _ : IR_ForLoop
            | _ : IR_WhileLoop
-           | _ : FunctionStatement
+           | _ : IR_Function
            | _ : SwitchStatement
            | _ : CaseStatement =>
         enterScope()
@@ -48,7 +48,7 @@ abstract class ScopeCollector[T](init : T) extends Collector {
            | _ : IR_Scope
            | _ : IR_ForLoop
            | _ : IR_WhileLoop
-           | _ : FunctionStatement
+           | _ : IR_Function
            | _ : SwitchStatement
            | _ : CaseStatement =>
         leaveScope()

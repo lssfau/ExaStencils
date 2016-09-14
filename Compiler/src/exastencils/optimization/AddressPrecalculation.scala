@@ -96,7 +96,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     }
     Search.res = false
     Search.allowed = allowed
-    Search.applyStandalone(new ReturnStatement(expr)) // wrap to ensure ALL nodes of expr are visited
+    Search.applyStandalone(IR_Return(expr)) // wrap to ensure ALL nodes of expr are visited
     return Search.res
   }
 
@@ -237,7 +237,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         decls = null
         inVars = null
         toAnalyze.clear()
-      case _                                                             => // ignore
+      case _                                                       => // ignore
     }
   }
 

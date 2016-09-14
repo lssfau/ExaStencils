@@ -24,14 +24,14 @@ object SIMD_MathFunctions {
   def addUsage(func : String) : String = {
     val nrArgs = MathFunctions.signatures(func)._1.length // expected fail if !isAllowed(func)
     return functionNameMapping.getOrElseUpdate(func, {
-      val funcStmt : AbstractFunctionStatement = new SIMD_MathFunc(func, nrArgs)
+      val funcStmt : IR_AbstractFunction = new SIMD_MathFunc(func, nrArgs)
       multigridCollection.functions += funcStmt
       funcStmt.name
     })
   }
 }
 
-case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFunctionStatement(true) {
+case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFunction(true) {
   override val name : String = "_simd_" + libmName
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -88,7 +88,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
       out << new SIMD_StoreStatement(aVAcc(i), IR_VariableAccess(arg, SIMD_RealDatatype), true) << '\n'
     for (i <- 0 until Platform.simd_vectorSize)
       out << new IR_Assignment(aSAcc(0, i), new FunctionCallExpression(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
-    out << new ReturnStatement(SIMD_LoadExpression(aVAcc(0), true)) << '\n'
+    out << IR_Return(SIMD_LoadExpression(aVAcc(0), true)) << '\n'
     out << '}'
   }
 
@@ -99,7 +99,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
   }
 }
 
-case object NEONDivision extends AbstractFunctionStatement(true) {
+case object NEONDivision extends IR_AbstractFunction(true) {
   override def prettyprint(out : PpStream) : Unit = {
     out <<
       s"""static inline float32x4_t ${ name }(const float32x4_t &a, const float32x4_t &b) {

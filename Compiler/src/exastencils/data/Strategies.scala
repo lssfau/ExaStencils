@@ -216,10 +216,10 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
         body = ListBuffer[IR_Statement](LoopOverFragments(body))
 
         // set up function
-        multiGrid.functions += new FunctionStatement(
+        multiGrid.functions += new IR_Function(
           IR_UnitDatatype,
           s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
-          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); FunctionArgument(a.name, a.innerDatatype.get) }).to[ListBuffer],
+          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); IR_FunctionArgument(a.name, a.innerDatatype.get) }).to[ListBuffer],
           body,
           false) // no inlining
       }
@@ -236,10 +236,10 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
         }
 
         // set up function
-        multiGrid.functions += new FunctionStatement(
+        multiGrid.functions += new IR_Function(
           IR_UnitDatatype,
           s"resizeAllInner_${ level.prettyprint() }",
-          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); FunctionArgument(a.name, a.innerDatatype.get) }).to[ListBuffer],
+          (0 until Knowledge.dimensionality).map(dim => { var a = newInnerSize(dim); IR_FunctionArgument(a.name, a.innerDatatype.get) }).to[ListBuffer],
           body,
           false) // no inlining
       }
@@ -446,7 +446,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   })
 
   this += new Transformation("Extending SetupBuffers function", {
-    case func @ FunctionStatement(_, "setupBuffers", _, _, _, _, _) => {
+    case func @ IR_Function(_, "setupBuffers", _, _, _, _, _) => {
       if (Knowledge.experimental_useLevelIndepFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {
@@ -474,16 +474,16 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   })
 
   this += new Transformation("Adding to globals", {
-    case globals : Globals                                           =>
+    case globals : Globals                                     =>
       globals.variables ++= declarationMap.toSeq.sortBy(_._1).map(_._2)
       globals
-    case func : FunctionStatement if ("initGlobals" == func.name)    =>
+    case func : IR_Function if ("initGlobals" == func.name)    =>
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         func.body ++= ctorMap.toSeq.sortBy(_._1).map(s => IR_Scope(s._2))
       else
         func.body ++= ctorMap.toSeq.sortBy(_._1).map(_._2)
       func
-    case func : FunctionStatement if ("destroyGlobals" == func.name) =>
+    case func : IR_Function if ("destroyGlobals" == func.name) =>
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         func.body ++= dtorMap.toSeq.sortBy(_._1).map(s => IR_Scope(s._2))
       else

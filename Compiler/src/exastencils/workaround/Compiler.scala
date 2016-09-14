@@ -17,7 +17,7 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
     val threshold : Int = 100
     this += new Transformation("icc 16 internal error (method too large)", new PartialFunction[Node, Transformation.Output[NodeList]] {
       override def isDefinedAt(node : Node) : Boolean = node match {
-        case func : FunctionStatement =>
+        case func : IR_Function =>
           return func.functionQualifiers.isEmpty &&
             func.parameters.isEmpty &&
             func.body.forall {
@@ -30,25 +30,25 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
                 s.isInstanceOf[IR_ForLoop]
             } &&
             func.body.length >= threshold
-        case _                        =>
+        case _                  =>
           return false
       }
 
       override def apply(node : Node) : Transformation.Output[NodeList] = {
 
-        val func = node.asInstanceOf[FunctionStatement]
+        val func = node.asInstanceOf[IR_Function]
         var remaining = func.body
         func.body = new ListBuffer[IR_Statement]()
         func.allowInlining = true
 
-        val funcs = new ListBuffer[FunctionStatement]()
+        val funcs = new ListBuffer[IR_Function]()
         funcs += func
         var i : Int = 0
         do {
           i += 1
           val newFuncName = func.name + i
           val (pref, rest) = remaining.splitAt(threshold)
-          funcs += new FunctionStatement(func.returntype, newFuncName, new ListBuffer[FunctionArgument](), pref)
+          funcs += new IR_Function(func.returntype, newFuncName, new ListBuffer[IR_FunctionArgument](), pref)
           func.body += new IR_ExpressionStatement(new FunctionCallExpression(newFuncName))
           remaining = rest
         } while (!remaining.isEmpty)

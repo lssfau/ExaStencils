@@ -262,12 +262,12 @@ case class ConnectFragments() extends IR_Statement with Expandable {
   }
 }
 
-case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandable {
+case class InitGeneratedDomain() extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
   override def name = "initDomain"
 
-  override def expand : Output[FunctionStatement] = {
+  override def expand : Output[IR_Function] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
@@ -309,17 +309,17 @@ case class InitGeneratedDomain() extends AbstractFunctionStatement with Expandab
 
     body += new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
 
-    FunctionStatement(IR_UnitDatatype, name, ListBuffer(), body)
+    IR_Function(IR_UnitDatatype, name, body)
   }
 }
 
-case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with Expandable {
+case class InitDomainFromFragmentFile() extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
   override def name = "initDomain"
 
-  override def expand : Output[FunctionStatement] = {
-    FunctionStatement(IR_UnitDatatype, name, ListBuffer(),
+  override def expand : Output[IR_Function] = {
+    IR_Function(IR_UnitDatatype, name,
       if (Knowledge.mpi_enabled) {
         ListBuffer(
           VariableDeclarationStatement(IR_IntegerDatatype, "numFragments", Some("0")),
@@ -394,12 +394,12 @@ case class InitDomainFromFragmentFile() extends AbstractFunctionStatement with E
   }
 }
 
-case class SetValues() extends AbstractFunctionStatement with Expandable {
+case class SetValues() extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetValues\n"
   override def prettyprint_decl = prettyprint
   override def name = "setValues"
 
-  override def expand : Output[FunctionStatement] = {
+  override def expand : Output[IR_Function] = {
     var body = new ListBuffer[IR_Statement]
     for (d <- 0 until DomainCollection.domains.size) {
       body += IR_Assignment(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
@@ -446,10 +446,10 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
         IR_ForLoop("int i = 0", " i < 12 ", "++i",
           IR_Assignment("trafoTmp[i]", ReadValueFrom(IR_RealDatatype, "data"))),
         IR_Assignment(iv.PrimitiveTransformation(), "trafoTmp")))
-    FunctionStatement(IR_UnitDatatype, name,
-      ListBuffer[FunctionArgument](FunctionArgument("data", IR_SpecialDatatype("char*")), FunctionArgument("numFragments", IR_IntegerDatatype)),
+    IR_Function(IR_UnitDatatype, name,
+      ListBuffer[IR_FunctionArgument](IR_FunctionArgument("data", IR_SpecialDatatype("char*")), IR_FunctionArgument("numFragments", IR_IntegerDatatype)),
       //      ListBuffer((LoopOverFragments(body))))
-      ListBuffer(IR_ForLoop(" int fragmentIdx = 0 ", " fragmentIdx < numFragments ", " ++fragmentIdx ", body)))
+      IR_ForLoop(" int fragmentIdx = 0 ", " fragmentIdx < numFragments ", " ++fragmentIdx ", body))
   }
 }
 
@@ -465,21 +465,21 @@ case class DomainFunctions() extends IR_FunctionCollection(
 
   if (Knowledge.domain_rect_generate) {
     functions += new InitGeneratedDomain
-    functions += FunctionStatement(IR_UnitDatatype, s"initGeometry", ListBuffer(), GridGeometry.getGeometry.generateInitCode)
+    functions += IR_Function(IR_UnitDatatype, "initGeometry", GridGeometry.getGeometry.generateInitCode())
   } else {
     externalDependencies += ("iostream", "fstream")
-    val rvTemplateFunc = FunctionStatement(
+    val rvTemplateFunc = IR_Function(
       new IR_SpecialDatatype("template <class T> T"),
       s"readValue",
-      ListBuffer[FunctionArgument](
-        FunctionArgument("memblock", IR_SpecialDatatype("char*&")),
-        FunctionArgument("title = \"\"", IR_SpecialDatatype("std::string"))),
+      ListBuffer[IR_FunctionArgument](
+        IR_FunctionArgument("memblock", IR_SpecialDatatype("char*&")),
+        IR_FunctionArgument("title = \"\"", IR_SpecialDatatype("std::string"))),
       ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("sizeof(T)")),
         VariableDeclarationStatement(IR_CharDatatype, "bytes[size]"),
         IR_ForLoop("int j = 0", " j < size ", "++j", "bytes[size-1-j] = memblock[j]"),
         "memblock+=size",
-        ReturnStatement(Some("*(T *)&bytes"))))
+        IR_Return("*(T *)&bytes")))
     rvTemplateFunc.isHeaderOnly = true // annotate("isTemplate")
     functions += rvTemplateFunc
     functions += new SetValues

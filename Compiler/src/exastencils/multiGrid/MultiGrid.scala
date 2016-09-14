@@ -13,12 +13,12 @@ import exastencils.performance._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 
-case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandable {
+case class InitFieldsWithZero() extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "initFieldsWithZero"
 
-  override def expand() : Output[FunctionStatement] = {
+  override def expand() : Output[IR_Function] = {
     val fields = FieldCollection.getSortedFields
     var statements : ListBuffer[IR_Statement] = new ListBuffer
 
@@ -44,7 +44,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
         statements += wrapped
     }
 
-    new FunctionStatement(IR_UnitDatatype, name, ListBuffer[FunctionArgument](), statements)
+    new IR_Function(IR_UnitDatatype, name, ListBuffer[IR_FunctionArgument](), statements)
   }
 }
 

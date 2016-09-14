@@ -12,21 +12,21 @@ import exastencils.omp._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 
-case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends AbstractFunctionStatement with Expandable {
+case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetupBuffers\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "setupBuffers"
 
-  override def expand : Output[FunctionStatement] = {
+  override def expand : Output[IR_Function] = {
     var body = ListBuffer[IR_Statement]()
 
     // add static allocations here
 
-    return FunctionStatement(IR_UnitDatatype, name, ListBuffer(), body)
+    IR_Function(IR_UnitDatatype, name, body)
   }
 }
 
-case class GetFromExternalField(var src : Field, var dest : ExternalField) extends AbstractFunctionStatement with Expandable {
+case class GetFromExternalField(var src : Field, var dest : ExternalField) extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "get" + dest.identifier
@@ -38,7 +38,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     dt
   }
 
-  override def expand : Output[FunctionStatement] = {
+  override def expand : Output[IR_Function] = {
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
@@ -63,8 +63,8 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     def offsetForExtField = IR_ExpressionIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim) : IR_Expression).toArray)
 
     // compile final function
-    new FunctionStatement(IR_UnitDatatype, name,
-      ListBuffer(new FunctionArgument("dest", externalDT), new FunctionArgument("slot", IR_IntegerDatatype)),
+    new IR_Function(IR_UnitDatatype, name,
+      ListBuffer(new IR_FunctionArgument("dest", externalDT), new IR_FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
@@ -75,7 +75,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
   }
 }
 
-case class SetFromExternalField(var dest : Field, var src : ExternalField) extends AbstractFunctionStatement with Expandable {
+case class SetFromExternalField(var dest : Field, var src : ExternalField) extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "set" + src.identifier
@@ -87,7 +87,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     dt
   }
 
-  override def expand : Output[FunctionStatement] = {
+  override def expand : Output[IR_Function] = {
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
@@ -112,8 +112,8 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     def offsetForExtField = IR_ExpressionIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim) : IR_Expression).toArray)
 
     // compile final function
-    new FunctionStatement(IR_UnitDatatype, name,
-      ListBuffer(new FunctionArgument("src", externalDT), new FunctionArgument("slot", IR_IntegerDatatype)),
+    new IR_Function(IR_UnitDatatype, name,
+      ListBuffer(new IR_FunctionArgument("src", externalDT), new IR_FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
         new LoopOverDimensions(loopDim, new IndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),

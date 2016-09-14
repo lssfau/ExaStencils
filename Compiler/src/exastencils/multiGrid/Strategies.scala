@@ -49,14 +49,14 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
     }
 
     case access : FieldAccess if collector.inLevelScope &&
-      SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel => {
+      SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel        => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = fieldAccess.index(i) / 2
       fieldAccess
     }
     case access : FieldAccess if collector.inLevelScope &&
-      SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel => {
+      SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel        => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = 2 * fieldAccess.index(i)
@@ -76,7 +76,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
         stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
       stencilFieldAccess
     }
-  }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */ )
+  }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */)
 }
 
 object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
@@ -85,7 +85,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
 
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression("diag", args) => args(0) match {
-      case access : StencilAccess =>
+      case access : StencilAccess      =>
         val centralOffset = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(0))
         access.stencil.findStencilEntry(centralOffset).get.coefficient
       case access : StencilFieldAccess => {
@@ -93,7 +93,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
         new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
       }
-      case _ => {
+      case _                           => {
         Logger.warn("diag with unknown arg " + args(0))
         FunctionCallExpression("diag", args)
       }
@@ -205,7 +205,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     }
 
     // HACK for print functionality
-    case IR_ExpressionStatement(FunctionCallExpression("print", args)) =>
+    case IR_ExpressionStatement(FunctionCallExpression("print", args))      =>
       new PrintStatement(args)
     case IR_ExpressionStatement(FunctionCallExpression("printField", args)) => {
       args.length match {
@@ -222,10 +222,10 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       new BuildStringStatement(args(0), args.slice(1, args.size))
 
     // FIXME: HACK to realize application functionality
-    case func : FunctionStatement if ("Application" == func.name) => {
+    case func : IR_Function if ("Application" == func.name) => {
       func.returntype = IR_IntegerDatatype
       func.name = "main"
-      func.parameters = ListBuffer(FunctionArgument("argc", IR_IntegerDatatype), FunctionArgument("argv", IR_SpecialDatatype("char**"))) ++ func.parameters
+      func.parameters = ListBuffer(IR_FunctionArgument("argc", IR_IntegerDatatype), IR_FunctionArgument("argv", IR_SpecialDatatype("char**"))) ++ func.parameters
       func.allowFortranInterface = false
       //if (true) {
       //func.body.append(new ConditionStatement(new MPI_IsRootProc,
@@ -244,7 +244,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         func.body.prepend(new MPI_Init)
         func.body.append(new MPI_Finalize)
       }
-      func.body.append(new ReturnStatement(Some(new IR_IntegerConstant(0))))
+      func.body.append(new IR_Return(Some(new IR_IntegerConstant(0))))
       func
     }
 
@@ -253,23 +253,23 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
-    case FunctionCallExpression("isOnEastBoundaryOf", args) => {
+    case FunctionCallExpression("isOnEastBoundaryOf", args)   => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(1, 0, 0)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnWestBoundaryOf", args) => {
+    case FunctionCallExpression("isOnWestBoundaryOf", args)   => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(-1, 0, 0)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnNorthBoundaryOf", args) => {
+    case FunctionCallExpression("isOnNorthBoundaryOf", args)  => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 1, 0)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnSouthBoundaryOf", args) => {
+    case FunctionCallExpression("isOnSouthBoundaryOf", args)  => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, -1, 0)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnTopBoundaryOf", args) => {
+    case FunctionCallExpression("isOnTopBoundaryOf", args)    => {
       IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, 1)),
         LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }

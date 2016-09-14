@@ -33,7 +33,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     val scopes = new ArrayBuffer[(String, LoopOverDimensions, Array[(String, IR_Expression, IR_Expression, Long)], () => ListBuffer[IR_Statement])]()
     var curFunc : String = null
     this.execute(new Transformation("find and extract relevant scopes", {
-      case f : FunctionStatement  =>
+      case f : IR_Function        =>
         curFunc = f.name
         f
       case l : LoopOverDimensions =>

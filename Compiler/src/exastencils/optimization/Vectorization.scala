@@ -37,7 +37,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     node match {
       case n if (n.hasAnnotation(cuAnn)) => skipSubTree = true
       case _ : cuda.Kernel               => skipSubTree = true
-      case _ : AbstractFunctionStatement => skipSubTree = false
+      case _ : IR_AbstractFunction       => skipSubTree = false
       case _                             => // no change in skipSubTree
     }
     if (skipSubTree)

@@ -56,16 +56,16 @@ case class TimerDetail_ReturnConvertToMS(var time : IR_Expression) extends IR_St
 
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
-      case "Chrono"       => ReturnStatement(Some(new MemberFunctionCallExpression(new FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
+      case "Chrono"       => IR_Return(Some(new MemberFunctionCallExpression(new FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
       case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
         VariableDeclarationStatement(IR_SpecialDatatype("static BOOL"), "s_use_qpc", Some(FunctionCallExpression("QueryPerformanceFrequency", ListBuffer(IR_AddressofExpression("s_frequency"))))),
-        ReturnStatement(Some(time / ("s_frequency.QuadPart" / 1000.0)))))
-      case "WIN_TIME"     => ReturnStatement(Some(time * 1e3))
-      case "UNIX_TIME"    => ReturnStatement(Some(time))
-      case "MPI_TIME"     => ReturnStatement(Some(time * 1e3))
-      case "WINDOWS_RDSC" => ReturnStatement(Some(time / (2300000000l / 1000.0))) // FIXME: check if 2300000000l has to be processor specific
-      case "RDSC"         => ReturnStatement(Some(time / (2300000000l / 1000.0))) // FIXME: check if 2300000000l has to be processor specific
+        IR_Return(Some(time / ("s_frequency.QuadPart" / 1000.0)))))
+      case "WIN_TIME"     => IR_Return(Some(time * 1e3))
+      case "UNIX_TIME"    => IR_Return(Some(time))
+      case "MPI_TIME"     => IR_Return(Some(time * 1e3))
+      case "WINDOWS_RDSC" => IR_Return(Some(time / (2300000000l / 1000.0))) // FIXME: check if 2300000000l has to be processor specific
+      case "RDSC"         => IR_Return(Some(time / (2300000000l / 1000.0))) // FIXME: check if 2300000000l has to be processor specific
     }
   }
 }
@@ -88,7 +88,7 @@ case class TimerFunctions() extends IR_FunctionCollection("Util/TimerFunctions",
   }
 }
 
-abstract class AbstractTimerFunction extends AbstractFunctionStatement
+abstract class AbstractTimerFunction extends IR_AbstractFunction
 
 object AbstractTimerFunction {
   def accessMember(member : String) = {
@@ -104,7 +104,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
   override def prettyprint_decl : String = prettyprint
   override def name = "startTimer"
 
-  override def expand() : Output[FunctionStatement] = {
+  override def expand() : Output[IR_Function] = {
     var statements = ListBuffer[IR_Statement](
       IR_IfCondition(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[IR_Statement](
         TimerDetail_AssignNow(accessMember("timerStarted")),
@@ -112,7 +112,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
       if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StartTimer(&stopWatch)" else "",
       IR_PreIncrementExpression(accessMember("numEntries")))
 
-    FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
+    IR_Function(IR_UnitDatatype, name, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -124,7 +124,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
   override def prettyprint_decl : String = prettyprint
   override def name = "stopTimer"
 
-  override def expand() : Output[FunctionStatement] = {
+  override def expand() : Output[IR_Function] = {
     var statements = ListBuffer[IR_Statement](
       IR_PreDecrementExpression(accessMember("numEntries")),
       IR_IfCondition(IR_EqEqExpression(0, accessMember("numEntries")), ListBuffer[IR_Statement](
@@ -138,7 +138,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
         if (Knowledge.experimental_timerEnableCallStacks) "CallTracker::StopTimer(&stopWatch)" else "",
         IR_PreIncrementExpression(accessMember("numMeasurements")))))
 
-    FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
+    IR_Function(IR_UnitDatatype, name, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -150,11 +150,11 @@ case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractTimerF
   override def prettyprint_decl : String = prettyprint
   override def name = "getTotalTime"
 
-  override def expand() : Output[FunctionStatement] = {
+  override def expand() : Output[IR_Function] = {
     var statements = ListBuffer[IR_Statement](
       TimerDetail_ReturnConvertToMS(accessMember("totalTimeMeasured")))
 
-    FunctionStatement(IR_DoubleDatatype, name, ListBuffer(FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
+    IR_Function(IR_DoubleDatatype, name, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -166,14 +166,14 @@ case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFu
   override def prettyprint_decl : String = prettyprint
   override def name = "getMeanTime"
 
-  override def expand() : Output[FunctionStatement] = {
+  override def expand() : Output[IR_Function] = {
     var statements = ListBuffer[IR_Statement](
-      ReturnStatement(Some(new TernaryConditionExpression(
+      IR_Return(Some(new TernaryConditionExpression(
         IR_GreaterExpression(accessMember("numMeasurements"), 0),
         FunctionCallExpression("getTotalTime", ListBuffer("stopWatch")) / accessMember("numMeasurements"),
         0.0))))
 
-    FunctionStatement(IR_DoubleDatatype, name, ListBuffer(FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
+    IR_Function(IR_DoubleDatatype, name, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -185,11 +185,11 @@ case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFu
   override def prettyprint_decl : String = prettyprint
   override def name = "getLastTime"
 
-  override def expand() : Output[FunctionStatement] = {
+  override def expand() : Output[IR_Function] = {
     var statements = ListBuffer[IR_Statement](
       TimerDetail_ReturnConvertToMS(accessMember("lastTimeMeasured")))
 
-    FunctionStatement(IR_DoubleDatatype, name, ListBuffer(FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
+    IR_Function(IR_DoubleDatatype, name, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), statements, true, false)
   }
 }
 
@@ -215,7 +215,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
     IR_Scope(statements)
   }
 
-  override def expand() : Output[FunctionStatement] = {
+  override def expand() : Output[IR_Function] = {
     CollectTimers.applyStandalone(StateManager.root)
     val timers = CollectTimers.timers
 
@@ -225,7 +225,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
       else
         timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2)).to[ListBuffer]
 
-    FunctionStatement(IR_UnitDatatype, name, ListBuffer(), statements, true, false)
+    IR_Function(IR_UnitDatatype, name, ListBuffer(), statements, true, false)
   }
 }
 
@@ -282,7 +282,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
     statements
   }
 
-  override def expand() : Output[FunctionStatement] = {
+  override def expand() : Output[IR_Function] = {
     CollectTimers.applyStandalone(StateManager.root)
     val timers = CollectTimers.timers
 
@@ -310,6 +310,6 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Ex
       }
     }
 
-    FunctionStatement(IR_UnitDatatype, name, ListBuffer(), statements, true, false)
+    IR_Function(IR_UnitDatatype, name, ListBuffer(), statements, true, false)
   }
 }
