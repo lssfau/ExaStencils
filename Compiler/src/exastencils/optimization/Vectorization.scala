@@ -11,6 +11,7 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.performance.SIMD_MathFunctions
+import exastencils.simd._
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util.SimplifyExpression
 
@@ -174,7 +175,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     def getIncrVector() : IR_VariableAccess = {
       val name : String = "_veci"
       if (!incrVectDeclared) {
-        SIMD_IncrementVectorDeclaration(name, incr) +=: preLoopStmts
+        IR_SIMD_IncrementVectorDeclaration(name, incr) +=: preLoopStmts
         incrVectDeclared = true
       }
       return IR_VariableAccess(name, SIMD_RealDatatype)
@@ -254,10 +255,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       val vecTmpAcc = IR_VariableAccess(vecTmp, SIMD_RealDatatype)
       postLoopStmt =
         operator match {
-          case "+"   => SIMD_HorizontalAddStatement(Duplicate(target), vecTmpAcc)
-          case "*"   => SIMD_HorizontalMulStatement(Duplicate(target), vecTmpAcc)
-          case "min" => SIMD_HorizontalMinStatement(Duplicate(target), vecTmpAcc)
-          case "max" => SIMD_HorizontalMaxStatement(Duplicate(target), vecTmpAcc)
+          case "+"   => IR_SIMD_HorizontalAdd(Duplicate(target), vecTmpAcc)
+          case "*"   => IR_SIMD_HorizontalMul(Duplicate(target), vecTmpAcc)
+          case "min" => IR_SIMD_HorizontalMin(Duplicate(target), vecTmpAcc)
+          case "max" => IR_SIMD_HorizontalMax(Duplicate(target), vecTmpAcc)
         }
     }
 
@@ -548,7 +549,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
               throw new VectorizationException("cannot vectorize store: array is not aligned, but unaligned accesses should be avoided")
             if (ctx.storesTmp != null)
               Logger.debug("[vect] Error? More than one store in a single statement?!")
-            ctx.storesTmp = new SIMD_StoreStatement(IR_AddressofExpression(expr),
+            ctx.storesTmp = new IR_SIMD_Store(IR_AddressofExpression(expr),
               IR_VariableAccess(vecTmp, SIMD_RealDatatype), aligned)
           }
         }

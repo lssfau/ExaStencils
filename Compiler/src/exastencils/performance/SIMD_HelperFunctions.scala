@@ -11,6 +11,7 @@ import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.multiGrid.MultiGridFunctions
 import exastencils.prettyprinting.PpStream
+import exastencils.simd.IR_SIMD_Store
 
 object SIMD_MathFunctions {
 
@@ -85,7 +86,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
     out << ") {\n"
     out << aDecls << '\n'
     for ((arg, i) <- args.view.zipWithIndex)
-      out << new SIMD_StoreStatement(aVAcc(i), IR_VariableAccess(arg, SIMD_RealDatatype), true) << '\n'
+      out << new IR_SIMD_Store(aVAcc(i), IR_VariableAccess(arg, SIMD_RealDatatype), true) << '\n'
     for (i <- 0 until Platform.simd_vectorSize)
       out << new IR_Assignment(aSAcc(0, i), new FunctionCallExpression(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
     out << IR_Return(SIMD_LoadExpression(aVAcc(0), true)) << '\n'
