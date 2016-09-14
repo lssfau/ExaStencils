@@ -11,8 +11,6 @@ import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 
-trait Access extends IR_Expression
-
 trait Number extends IR_Expression {
   def value : AnyVal
 }
@@ -79,16 +77,7 @@ case class CastExpression(var datatype : IR_Datatype, var toCast : IR_Expression
   override def prettyprint(out : PpStream) : Unit = out << "((" << datatype << ")" << toCast << ")"
 }
 
-case class VariableAccess(var name : String, var datatype : Option[IR_Datatype] = None) extends Access {
-  def this(n : String, dT : IR_Datatype) = this(n, Option(dT))
-  def this(decl : VariableDeclarationStatement) = this(decl.name, decl.datatype)
-
-  override def prettyprint(out : PpStream) : Unit = out << name
-
-  def printDeclaration() : String = datatype.get.resolveDeclType.prettyprint + " " + name + datatype.get.resolveDeclPostscript
-}
-
-case class ArrayAccess(var base : IR_Expression, var index : IR_Expression, var alignedAccessPossible : Boolean = false) extends Access {
+case class ArrayAccess(var base : IR_Expression, var index : IR_Expression, var alignedAccessPossible : Boolean = false) extends IR_Access {
   override def prettyprint(out : PpStream) : Unit = {
     index match {
       case ind : IR_ExpressionIndex => out << base << ind
@@ -172,10 +161,10 @@ case class VirtualFieldAccess(var fieldName : String,
 case class ExternalFieldAccess(var name : IR_Expression, var field : ExternalField, var index : IR_ExpressionIndex) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
 
-  def x = new VariableAccess("x", IR_IntegerDatatype)
-  def y = new VariableAccess("y", IR_IntegerDatatype)
-  def z = new VariableAccess("z", IR_IntegerDatatype)
-  def w = new VariableAccess("w", IR_IntegerDatatype)
+  def x = IR_VariableAccess("x", IR_IntegerDatatype)
+  def y = IR_VariableAccess("y", IR_IntegerDatatype)
+  def z = IR_VariableAccess("z", IR_IntegerDatatype)
+  def w = IR_VariableAccess("w", IR_IntegerDatatype)
 
   def linearize : ArrayAccess = {
     if (Knowledge.generateFortranInterface) {
@@ -218,11 +207,11 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
   }
 }
 
-case class MemberAccess(var base : Access, var member : String) extends Access {
+case class MemberAccess(var base : IR_Access, var member : String) extends IR_Access {
   override def prettyprint(out : PpStream) : Unit = out << base << '.' << member
 }
 
-case class DerefAccess(var base : Access) extends Access {
+case class DerefAccess(var base : IR_Access) extends IR_Access {
   override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
 }
 
@@ -248,7 +237,7 @@ case class TernaryConditionExpression(var condition : IR_Expression, var trueBod
   override def prettyprint(out : PpStream) : Unit = out << '(' << condition << " ? " << trueBody << " : " << falseBody << ')'
 }
 
-case class Reduction(var op : String, var target : VariableAccess) extends IR_Expression {
+case class Reduction(var op : String, var target : IR_VariableAccess) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
 }
 
@@ -404,7 +393,7 @@ case class SIMD_ExtractScalarExpression(var expr : IR_Expression, var index : In
   }
 }
 
-case class SIMD_ConcShift(var left : VariableAccess, var right : VariableAccess, val offset : Int) extends IR_Expression {
+case class SIMD_ConcShift(var left : IR_VariableAccess, var right : IR_VariableAccess, val offset : Int) extends IR_Expression {
   private var shiftIV : iv.VecShiftIndex = null
 
   Platform.simd_instructionSet match {

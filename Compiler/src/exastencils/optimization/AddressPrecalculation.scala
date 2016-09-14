@@ -80,15 +80,15 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       var res : Boolean = false
       var allowed : String = null
       this += new Transformation("contains loop var", {
-        case strC : IR_StringLiteral =>
+        case strC : IR_StringLiteral  =>
           val name = strC.value
           res |= (allowed != name) && inVars.contains(name)
           strC
-        case varA : VariableAccess   =>
+        case varA : IR_VariableAccess =>
           val name = varA.name
           res |= (allowed != name) && inVars.contains(name)
           varA
-        case i : iv.InternalVariable =>
+        case i : iv.InternalVariable  =>
           val name = i.resolveName
           res |= (allowed != name) && inVars.contains(name)
           i
@@ -152,37 +152,37 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         }
         val d = new HashMap[String, ArrayBases]()
         l.inc match { // TODO: remove StringLiteral
-          case AssignmentStatement(VariableAccess(name, _), _, _)                          =>
+          case AssignmentStatement(IR_VariableAccess(name, _), _, _)                          =>
             decls = d
             inVars = Set(name)
-          case AssignmentStatement(IR_StringLiteral(name), _, _)                           =>
+          case AssignmentStatement(IR_StringLiteral(name), _, _)                              =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreIncrementExpression(VariableAccess(name, _)))  =>
+          case IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreIncrementExpression(IR_StringLiteral(name)))   =>
+          case IR_ExpressionStatement(IR_PreIncrementExpression(IR_StringLiteral(name)))      =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostIncrementExpression(VariableAccess(name, _))) =>
+          case IR_ExpressionStatement(IR_PostIncrementExpression(IR_VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostIncrementExpression(IR_StringLiteral(name)))  =>
+          case IR_ExpressionStatement(IR_PostIncrementExpression(IR_StringLiteral(name)))     =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreDecrementExpression(VariableAccess(name, _)))  =>
+          case IR_ExpressionStatement(IR_PreDecrementExpression(IR_VariableAccess(name, _)))  =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreDecrementExpression(IR_StringLiteral(name)))   =>
+          case IR_ExpressionStatement(IR_PreDecrementExpression(IR_StringLiteral(name)))      =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostDecrementExpression(VariableAccess(name, _))) =>
+          case IR_ExpressionStatement(IR_PostDecrementExpression(IR_VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostDecrementExpression(IR_StringLiteral(name)))  =>
+          case IR_ExpressionStatement(IR_PostDecrementExpression(IR_StringLiteral(name)))     =>
             decls = d
             inVars = Set(name)
-          case _                                                                           =>
+          case _                                                                              =>
             Logger.dbg("[addr precalc]  cannot determine loop variable name, inc of ForLoopStatement is not recognized:  " + l.inc)
             decls = d
         }
@@ -197,7 +197,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       case AssignmentStatement(dst, _, _) if (decls != null && inVars != null) =>
         dst match {
           case _ : IR_StringLiteral
-               | _ : VariableAccess
+               | _ : IR_VariableAccess
                | _ : ArrayAccess
                | _ : iv.InternalVariable => inVars += resolveName(dst)
           case _                         => // nothing; expand match here, if more vars should stay inside the loop
@@ -229,7 +229,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             case fd : FieldData => Some(IR_ConstPointerDatatype(fd.field.resolveDeclType))
             case _              => None
           }
-          val newAcc = new ArrayAccess(new VariableAccess(name, datatype), in, al)
+          val newAcc = new ArrayAccess(IR_VariableAccess(name, datatype), in, al)
           newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
           acc.annotate(REPL_ANNOT, newAcc)
           // }
@@ -250,10 +250,10 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
   private def resolveName(expr : IR_Expression) : String = {
     expr match {
-      case ArrayAccess(base, _, _) => resolveName(base)
-      case VariableAccess(name, _) => name
-      case IR_StringLiteral(str)   => str
-      case i : iv.InternalVariable => i.resolveName
+      case ArrayAccess(base, _, _)    => resolveName(base)
+      case IR_VariableAccess(name, _) => name
+      case IR_StringLiteral(str)      => str
+      case i : iv.InternalVariable    => i.resolveName
     }
   }
 }

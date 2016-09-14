@@ -54,7 +54,7 @@ object Extractor {
           vars.add(islStr)
         constraints.append(islStr)
 
-      case _ : VariableAccess | _ : ArrayAccess =>
+      case _ : IR_VariableAccess | _ : ArrayAccess =>
         val islStr : String = ScopNameMapping.expr2id(expr)
         if (vars != null)
           vars.add(islStr)
@@ -79,7 +79,7 @@ object Extractor {
         gParConstr.append(" and ")
         constraints.append('(').append(islStr).append("=1)")
 
-      case bExpr @ BoundedExpression(min, max, _ : VariableAccess | _ : ArrayAccess) =>
+      case bExpr @ BoundedExpression(min, max, _ : IR_VariableAccess | _ : ArrayAccess) =>
         val islStr : String = ScopNameMapping.expr2id(bExpr, bExpr.expr)
         if (vars != null)
           vars.add(islStr)
@@ -484,7 +484,7 @@ class Extractor extends Collector {
           case IR_StringLiteral(varName) =>
             enterScalarAccess(varName)
 
-          case VariableAccess(varName, ty) =>
+          case IR_VariableAccess(varName, ty) =>
             if (ty.isDefined)
               ty.get.annotate(SKIP_ANNOT)
             enterScalarAccess(varName)
@@ -494,7 +494,7 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case ArrayAccess(array @ VariableAccess(varName, ty), index, _) =>
+          case ArrayAccess(array @ IR_VariableAccess(varName, ty), index, _) =>
             if (ty.isDefined)
               ty.get.annotate(SKIP_ANNOT)
             array.annotate(SKIP_ANNOT)
@@ -603,7 +603,7 @@ class Extractor extends Collector {
         case c : ConditionStatement           => leaveCondition(c)
         case _ : AssignmentStatement          => leaveAssign()
         case _ : IR_StringLiteral             => leaveScalarAccess()
-        case _ : VariableAccess               => leaveScalarAccess()
+        case _ : IR_VariableAccess            => leaveScalarAccess()
         case _ : ArrayAccess                  => leaveArrayAccess()
         case _ : DirectFieldAccess            => leaveFieldAccess()
         case _ : TempBufferAccess             => leaveTempBufferAccess()
@@ -659,13 +659,13 @@ class Extractor extends Collector {
     do {
       bool |= extractConstraints(begin(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append("<=")
-      constrs.append(ScopNameMapping.expr2id(new VariableAccess(dimToString(i), IR_IntegerDatatype)))
+      constrs.append(ScopNameMapping.expr2id(IR_VariableAccess(dimToString(i), IR_IntegerDatatype)))
       constrs.append('<')
       bool |= extractConstraints(end(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append(" and ")
       val lVar : IR_Expression = loopVarExps(i)
       modelLoopVars.push(ScopNameMapping.expr2id(lVar))
-      origLoopVars += lVar.asInstanceOf[VariableAccess].name
+      origLoopVars += lVar.asInstanceOf[IR_VariableAccess].name
       i += 1
     } while (i < dims)
 
@@ -926,7 +926,7 @@ class Extractor extends Collector {
 
     if (decl.expression.isDefined) {
       val stmt = new AssignmentStatement(
-        new VariableAccess(decl.name, decl.datatype), decl.expression.get, "=")
+        IR_VariableAccess(decl.name, decl.datatype), decl.expression.get, "=")
       enterStmt(stmt) // as a declaration is also a statement
       decl.expression.get.annotate(Access.ANNOT, Access.READ)
       isWrite = true

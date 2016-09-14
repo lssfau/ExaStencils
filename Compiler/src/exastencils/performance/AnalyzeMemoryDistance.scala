@@ -205,7 +205,7 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
       case IR_SubtractionExpression(left, right) => addTerm(left, true) + addTerm(right, false)
 
       case IR_MultiplicationExpression(factors) => InfiniteIndexOffset()
-      case va : VariableAccess                  => addTerm(va, true)
+      case va : IR_VariableAccess               => addTerm(va, true)
 
     }
   }
@@ -221,7 +221,7 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
     */
   def addTerm(t : IR_Expression, sign : Boolean) : IndexOffset = {
     t match {
-      case VariableAccess(id, _)                              =>
+      case IR_VariableAccess(id, _)                              =>
         val loopVarDimOpt = loopIndexVarDim(id)
         loopVarDimOpt match {
           case Some(loopVarDim) =>
@@ -234,9 +234,9 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
             // Non-loop index variable.
             InfiniteIndexOffset()
         }
-      case IR_NegativeExpression(VariableAccess(name, dType)) => addTerm(VariableAccess(name, dType), !sign)
-      case IR_IntegerConstant(x)                              => signedConstantIndexOffset(x, sign)
-      case IR_NegativeExpression(IR_IntegerConstant(x))       => signedConstantIndexOffset(x, !sign)
+      case IR_NegativeExpression(IR_VariableAccess(name, dType)) => addTerm(IR_VariableAccess(name, dType), !sign)
+      case IR_IntegerConstant(x)                                 => signedConstantIndexOffset(x, sign)
+      case IR_NegativeExpression(IR_IntegerConstant(x))          => signedConstantIndexOffset(x, !sign)
 
       // nested expressions -> not simplfied to (a * x + b) -> non-constant offset
       case IR_AdditionExpression(_)       => InfiniteIndexOffset()

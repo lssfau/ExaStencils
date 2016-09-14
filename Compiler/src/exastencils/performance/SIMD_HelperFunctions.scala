@@ -74,7 +74,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
     val arrDt = IR_ArrayDatatype(IR_ArrayDatatype(IR_RealDatatype, Platform.simd_vectorSize), nrArgs)
     val aDecls = new VariableDeclarationStatement(arrDt, "a")
     aDecls.alignment = Platform.simd_vectorSize
-    def aVAcc(argi : Int) = new ArrayAccess(new VariableAccess(aDecls.name, arrDt), argi)
+    def aVAcc(argi : Int) = new ArrayAccess(IR_VariableAccess(aDecls.name, arrDt), argi)
     def aSAcc(argi : Int, i : Int) = new ArrayAccess(aVAcc(argi), i)
     val args = (0 until nrArgs).map("v" + _)
 
@@ -85,7 +85,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends AbstractFuncti
     out << ") {\n"
     out << aDecls << '\n'
     for ((arg, i) <- args.view.zipWithIndex)
-      out << new SIMD_StoreStatement(aVAcc(i), new VariableAccess(arg, SIMD_RealDatatype), true) << '\n'
+      out << new SIMD_StoreStatement(aVAcc(i), IR_VariableAccess(arg, SIMD_RealDatatype), true) << '\n'
     for (i <- 0 until Platform.simd_vectorSize)
       out << new AssignmentStatement(aSAcc(0, i), new FunctionCallExpression(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
     out << new ReturnStatement(SIMD_LoadExpression(aVAcc(0), true)) << '\n'

@@ -14,7 +14,7 @@ import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._
 
 // FIXME: why is name an Expression?
-case class Timer(var name : IR_Expression) extends UnduplicatedVariable with Access {
+case class Timer(var name : IR_Expression) extends UnduplicatedVariable with IR_Access {
   override def resolveName = s"timer_" + stripName
   override def resolveDatatype = "StopWatch"
 
@@ -22,7 +22,7 @@ case class Timer(var name : IR_Expression) extends UnduplicatedVariable with Acc
 
   override def getCtor() : Option[IR_Statement] = {
     // FIXME: datatype for VariableAccess
-    Some(AssignmentStatement(MemberAccess(VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), IR_StringConstant(stripName)))
+    Some(AssignmentStatement(MemberAccess(IR_VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), IR_StringConstant(stripName)))
   }
 }
 
@@ -57,7 +57,7 @@ case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
       case si => Logger.error("VecShiftIndex cannot be used for instruction set " + si)
     }
 
-    return Some(AssignmentStatement(new VariableAccess(resolveName, resolveDatatype), init))
+    return Some(AssignmentStatement(IR_VariableAccess(resolveName, resolveDatatype), init))
   }
 }
 
@@ -79,8 +79,8 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
     var wrappedBody = super.wrapInLoops(body)
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
       val begin = new VariableDeclarationStatement(IR_IntegerDatatype, LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
-      val end = new IR_LowerExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
-      val inc = new IR_PreIncrementExpression(new VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
+      val end = new IR_LowerExpression(IR_VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
+      val inc = new IR_PreIncrementExpression(IR_VariableAccess(LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
       wrappedBody = new ForLoopStatement(begin, end, inc, wrappedBody) with OMP_PotentiallyParallel
     }
     return wrappedBody

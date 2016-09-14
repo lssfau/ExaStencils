@@ -13,12 +13,12 @@ import exastencils.prettyprinting._
 import exastencils.strategies._
 
 // FIXME: update with actual accessors
-case class hackVecComponentAccess(var vec : VariableAccess, var i : IR_Expression) extends IR_Expression {
+case class hackVecComponentAccess(var vec : IR_VariableAccess, var i : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << vec << "(" << i << ", " << 0 << ")"
 }
 
 // FIXME: update with actual accessors
-case class hackMatComponentAccess(var mat : VariableAccess, var i : IR_Expression, var j : IR_Expression) extends IR_Expression {
+case class hackMatComponentAccess(var mat : IR_VariableAccess, var i : IR_Expression, var j : IR_Expression) extends IR_Expression {
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
@@ -135,9 +135,9 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
     var stmts = ListBuffer[IR_Statement]()
 
-    def u = VariableAccess("_local_unknowns", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
-    def f = VariableAccess("_local_rhs", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
-    def A = VariableAccess("_local_matrix", Some(IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length)))
+    def u = IR_VariableAccess("_local_unknowns", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
+    def f = IR_VariableAccess("_local_rhs", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
+    def A = IR_VariableAccess("_local_matrix", Some(IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length)))
 
     // declare local variables -> to be merged later
     stmts += new VariableDeclarationStatement(u)

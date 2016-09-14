@@ -13,7 +13,7 @@ import exastencils.mpi._
 import exastencils.prettyprinting._
 
 object PrintExpression {
-  val endl : IR_Expression = new VariableAccess("std::endl", IR_StringDatatype)
+  val endl : IR_Expression = IR_VariableAccess("std::endl", IR_StringDatatype)
 }
 
 case class PrintExpression(var stream : IR_Expression, toPrint : ListBuffer[IR_Expression]) extends IR_Expression {
@@ -33,8 +33,8 @@ case class BuildStringStatement(var stringName : IR_Expression, var toPrint : Li
     def streamType = IR_SpecialDatatype("std::ostringstream")
     val statements = ListBuffer[IR_Statement](
       VariableDeclarationStatement(streamType, streamName),
-      PrintExpression(new VariableAccess(streamName, streamType), toPrint),
-      AssignmentStatement(stringName, MemberFunctionCallExpression(VariableAccess(streamName, Some(IR_SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
+      PrintExpression(IR_VariableAccess(streamName, streamType), toPrint),
+      AssignmentStatement(stringName, MemberFunctionCallExpression(IR_VariableAccess(streamName, Some(IR_SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
     return statements
   }
 }
@@ -56,7 +56,7 @@ case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : 
     if (toPrint.isEmpty) {
       return IR_NullStatement
     } else {
-      val printStmt : IR_Statement = new PrintExpression(VariableAccess(stream), toPrint.view.flatMap { e => List(e, IR_StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
+      val printStmt : IR_Statement = new PrintExpression(IR_VariableAccess(stream), toPrint.view.flatMap { e => List(e, IR_StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
       if (Knowledge.mpi_enabled) // filter by mpi rank if required
         return new ConditionStatement(MPI_IsRootProc(), printStmt)
       else
@@ -108,7 +108,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
     }
 
     var innerLoop = ListBuffer[IR_Statement](
-      new ObjectInstantiation(streamType, streamName, filename, VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
+      new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
       fileHeader,
       new LoopOverFragments(
         new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
@@ -116,7 +116,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : IR_Expression))),
             new ConditionStatement(condition,
-              new PrintExpression(new VariableAccess(streamName, streamType),
+              new PrintExpression(IR_VariableAccess(streamName, streamType),
                 ((0 until numDimsGrid).view.flatMap { dim =>
                   List(getPos(field, dim), separator)
                 } ++ arrayIndexRange.view.flatMap { index =>
@@ -126,15 +126,15 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
                   List(access, separator)
                 }).to[ListBuffer] += PrintExpression.endl)
             )))),
-      new MemberFunctionCallExpression(new VariableAccess(streamName, streamType), "close"))
+      new MemberFunctionCallExpression(IR_VariableAccess(streamName, streamType), "close"))
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     if (Knowledge.mpi_enabled) {
       statements += new ConditionStatement(MPI_IsRootProc(),
         ListBuffer[IR_Statement](
-          new ObjectInstantiation(streamType, streamName, filename, VariableAccess("std::ios::trunc")),
-          new MemberFunctionCallExpression(new VariableAccess(streamName, streamType), "close")))
+          new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc")),
+          new MemberFunctionCallExpression(IR_VariableAccess(streamName, streamType), "close")))
 
       statements += new MPI_Sequential(innerLoop)
     } else {

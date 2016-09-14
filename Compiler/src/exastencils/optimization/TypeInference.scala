@@ -74,14 +74,14 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
 
-      case node @ VariableAccess(name, None) =>
+      case node @ IR_VariableAccess(name, None) =>
         val ty : IR_Datatype = findType(name)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
         else if (warnMissingDeclarations)
           Logger.warn("[Type inference]  declaration to " + name + " missing?")
 
-      case VariableAccess(name, Some(ty)) =>
+      case IR_VariableAccess(name, Some(ty)) =>
         val inferred = findType(name)
         if (inferred == null) {
           if (warnMissingDeclarations)
@@ -107,7 +107,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
   import TypeInference._
 
   override def isDefinedAt(node : Node) : Boolean = {
-    return (node.isInstanceOf[IR_StringLiteral] || node.isInstanceOf[VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
+    return (node.isInstanceOf[IR_StringLiteral] || node.isInstanceOf[IR_VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
@@ -116,9 +116,9 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
     val typee : IR_Datatype = node.getAnnotation(TYPE_ANNOT).get.asInstanceOf[IR_Datatype]
     val varr : String =
       node match {
-        case IR_StringLiteral(name)  => name
-        case VariableAccess(name, _) => name
+        case IR_StringLiteral(name)     => name
+        case IR_VariableAccess(name, _) => name
       }
-    return new VariableAccess(varr, typee)
+    return IR_VariableAccess(varr, typee)
   }
 }

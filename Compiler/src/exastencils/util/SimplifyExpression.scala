@@ -53,7 +53,7 @@ object SimplifyExpression {
     case IR_StringLiteral(value) if extremaLookup.contains(value) =>
       extremaLookup(value)
 
-    case VariableAccess(name, dType) if extremaLookup.contains(name) =>
+    case IR_VariableAccess(name, dType) if extremaLookup.contains(name) =>
       extremaLookup(name)
 
     case IR_AdditionExpression(sums : ListBuffer[IR_Expression]) =>
@@ -206,9 +206,9 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Long]()
         res(constName) = i
 
-      case VariableAccess(varName, _) =>
+      case IR_VariableAccess(varName, _) =>
         res = new HashMap[IR_Expression, Long]()
-        res(VariableAccess(varName, Some(IR_IntegerDatatype))) = 1L
+        res(IR_VariableAccess(varName, Some(IR_IntegerDatatype))) = 1L
 
       case m : MemberAccess =>
         res = new mutable.HashMap[IR_Expression, Long]()
@@ -216,7 +216,7 @@ object SimplifyExpression {
 
       case IR_StringLiteral(varName) =>
         res = new HashMap[IR_Expression, Long]()
-        res(VariableAccess(varName, Some(IR_IntegerDatatype))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
+        res(IR_VariableAccess(varName, Some(IR_IntegerDatatype))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
 
       case acc : ArrayAccess =>
         res = new HashMap[IR_Expression, Long]()
@@ -386,10 +386,10 @@ object SimplifyExpression {
     val const : Long = sumMap.getOrElse(constName, 0L)
 
     val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0L).toSeq.sortWith({
-      case ((VariableAccess(v1, _), _), (VariableAccess(v2, _), _)) => v1 < v2
-      case ((v1 : VariableAccess, _), _)                            => true
-      case (_, (v2 : VariableAccess, _))                            => false
-      case ((e1, _), (e2, _))                                       => e1.prettyprint() < e2.prettyprint()
+      case ((IR_VariableAccess(v1, _), _), (IR_VariableAccess(v2, _), _)) => v1 < v2
+      case ((v1 : IR_VariableAccess, _), _)                               => true
+      case (_, (v2 : IR_VariableAccess, _))                               => false
+      case ((e1, _), (e2, _))                                             => e1.prettyprint() < e2.prettyprint()
     })
 
     if (sumSeq.isEmpty)
@@ -501,15 +501,15 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(constName) = d
 
-      case VariableAccess(varName, dt) =>
+      case IR_VariableAccess(varName, dt) =>
         res = new HashMap[IR_Expression, Double]()
-        res(VariableAccess(varName, dt.orElse(Some(IR_RealDatatype)))) = 1d // preserve datatype if some
+        res(IR_VariableAccess(varName, dt.orElse(Some(IR_RealDatatype)))) = 1d // preserve datatype if some
 
       case IR_StringLiteral(varName) =>
         if (varName.contains("std::rand")) // HACK
           throw new EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[IR_Expression, Double]()
-        res(VariableAccess(varName, Some(IR_RealDatatype))) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
+        res(IR_VariableAccess(varName, Some(IR_RealDatatype))) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
 
       case aAcc : ArrayAccess =>
         res = new HashMap[IR_Expression, Double]()
@@ -709,10 +709,10 @@ object SimplifyExpression {
     val const : Double = sumMap.getOrElse(constName, 0d)
 
     val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0d).toSeq.sortWith({
-      case ((VariableAccess(v1, _), _), (VariableAccess(v2, _), _)) => v1 < v2
-      case ((v1 : VariableAccess, _), _)                            => true
-      case (_, (v2 : VariableAccess, _))                            => false
-      case ((e1, _), (e2, _))                                       => e1.prettyprint() < e2.prettyprint()
+      case ((IR_VariableAccess(v1, _), _), (IR_VariableAccess(v2, _), _)) => v1 < v2
+      case ((v1 : IR_VariableAccess, _), _)                               => true
+      case (_, (v2 : IR_VariableAccess, _))                               => false
+      case ((e1, _), (e2, _))                                             => e1.prettyprint() < e2.prettyprint()
     })
 
     if (sumSeq.isEmpty)

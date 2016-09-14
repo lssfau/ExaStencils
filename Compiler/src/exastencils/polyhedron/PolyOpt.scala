@@ -139,7 +139,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var toFind : String = null
     var found : Boolean = false
     val search = new Transformation("search...", {
-      case va : VariableAccess if va.name == toFind    =>
+      case va : IR_VariableAccess if va.name == toFind =>
         found = true
         va
       case sc : IR_StringLiteral if sc.value == toFind =>
@@ -531,8 +531,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       Logger.setLevel(Logger.WARNING)
       this.execute(
         new Transformation("update loop iterator", {
-          case VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
-          case IR_StringLiteral(str) if repl.isDefinedAt(str)  => Duplicate(repl(str))
+          case IR_VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
+          case IR_StringLiteral(str) if repl.isDefinedAt(str)     => Duplicate(repl(str))
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }

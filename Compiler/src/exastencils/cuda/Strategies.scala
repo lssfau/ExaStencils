@@ -521,7 +521,7 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
   this += new Transformation("Process kernel nodes", {
     case kernel : Kernel =>
       while (kernel.parallelDims > Platform.hw_cuda_maxNumDimsBlock) {
-        def it = VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), Some(IR_IntegerDatatype))
+        def it = IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), Some(IR_IntegerDatatype))
         kernel.body = ListBuffer[IR_Statement](ForLoopStatement(
           new VariableDeclarationStatement(it, kernel.lowerBounds.last),
           IR_LowerExpression(it, kernel.upperBounds.last),
@@ -539,7 +539,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
-        VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype)) : IR_Expression).toArray)
+        IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype)) : IR_Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_SubtractionExpression(x, y) : IR_Expression)
 
@@ -557,7 +557,7 @@ object ReplaceReductionAssignements extends QuietDefaultStrategy("Replace assign
   this += new Transformation("Searching", {
     case assignment : AssignmentStatement =>
       assignment.dest match {
-        case va : VariableAccess if redTarget.equals(va.name) =>
+        case va : IR_VariableAccess if redTarget.equals(va.name) =>
           assignment.dest = Duplicate(replacement)
         // assignment.op = "=" // don't modify assignments - there could be inlined loops
         case _ =>
@@ -604,19 +604,19 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
 }
 
 object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local VariableAccess nodes") {
-  var accesses = mutable.HashMap[String, VariableAccess]()
+  var accesses = mutable.HashMap[String, IR_VariableAccess]()
   var ignoredAccesses = mutable.SortedSet[String]()
 
   def clear() = {
-    accesses = mutable.HashMap[String, VariableAccess]()
+    accesses = mutable.HashMap[String, IR_VariableAccess]()
     ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */).map(dim => dimToString(dim)).to[mutable.SortedSet]
   }
 
   this += new Transformation("Searching", {
-    case decl : VariableDeclarationStatement                               =>
+    case decl : VariableDeclarationStatement                                  =>
       ignoredAccesses += decl.name
       decl
-    case access : VariableAccess if !ignoredAccesses.contains(access.name) =>
+    case access : IR_VariableAccess if !ignoredAccesses.contains(access.name) =>
       accesses.put(access.name, access)
       access
   }, false)
@@ -627,7 +627,7 @@ object FindSurroundingLoopIteratorUsages extends QuietDefaultStrategy("Search fo
   var usedLoopIterators = ListBuffer[String]()
 
   this += new Transformation("Searching", {
-    case access @ VariableAccess(name : String, _) if loopIterators.contains(name) =>
+    case access @ IR_VariableAccess(name : String, _) if loopIterators.contains(name) =>
       usedLoopIterators += name
       access
   }, false)

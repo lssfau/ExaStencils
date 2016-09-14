@@ -199,7 +199,7 @@ case class CUDA_UnsizedExternSharedArray(name : String, arrayType : IR_ScalarDat
   }
 }
 
-case class CUDA_SharedArrayAccess(base : IR_Expression, indices : ListBuffer[IR_Expression], strides : IR_ExpressionIndex) extends Access {
+case class CUDA_SharedArrayAccess(base : IR_Expression, indices : ListBuffer[IR_Expression], strides : IR_ExpressionIndex) extends IR_Access {
   def this(base : IR_Expression, indices : Array[IR_Expression], strides : IR_ExpressionIndex) = this(base, indices.to[ListBuffer], strides)
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -222,7 +222,7 @@ case class CUDA_MinimumExpression(left : IR_Expression, right : IR_Expression) e
   }
 }
 
-case class CUDA_RestrictVariableAccess(var name : String, var datatype : Option[IR_Datatype] = None) extends Access {
+case class CUDA_RestrictVariableAccess(var name : String, var datatype : Option[IR_Datatype] = None) extends IR_Access {
   def this(n : String, dT : IR_Datatype) = this(n, Option(dT))
   override def prettyprint(out : PpStream) : Unit = out << name
 

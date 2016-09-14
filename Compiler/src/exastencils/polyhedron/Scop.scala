@@ -121,9 +121,9 @@ object ScopNameMapping {
         if (alias != null && expr2id.contains(alias))
           expr2id(alias)
         else expr match {
-          case VariableAccess(str, _) if (str.length() < 5) =>
+          case IR_VariableAccess(str, _) if (str.length() < 5) =>
             str
-          case _                                            =>
+          case _                                               =>
             count += 1
             "p" + count
         }

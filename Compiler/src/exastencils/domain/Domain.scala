@@ -14,7 +14,7 @@ import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-case class PointOutsideDomain(var pos : Access, var domain : Domain) extends IR_Expression with Expandable {
+case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
 
   override def expand : Output[IR_Expression] = {
@@ -37,7 +37,7 @@ case class PointOutsideDomain(var pos : Access, var domain : Domain) extends IR_
   }
 }
 
-case class PointInsideDomain(var pos : Access, var domain : Domain) extends IR_Expression with Expandable {
+case class PointInsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
 
   override def expand : Output[IR_Expression] = {
@@ -60,7 +60,7 @@ case class PointInsideDomain(var pos : Access, var domain : Domain) extends IR_E
   }
 }
 
-case class PointToFragmentId(var pos : Access) extends IR_Expression with Expandable {
+case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Output[IR_Expression] = {
@@ -88,7 +88,7 @@ case class PointToFragmentId(var pos : Access) extends IR_Expression with Expand
   }
 }
 
-case class PointToFragmentIndex(var pos : Access) extends IR_Expression with Expandable {
+case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentIndex\n"
 
   override def expand : Output[IR_Expression] = {
@@ -125,7 +125,7 @@ case class PointToFragmentIndex(var pos : Access) extends IR_Expression with Exp
   }
 }
 
-case class PointToLocalFragmentId(var pos : Access) extends IR_Expression with Expandable {
+case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
   override def expand : Output[IR_Expression] = {
@@ -153,7 +153,7 @@ case class PointToLocalFragmentId(var pos : Access) extends IR_Expression with E
   }
 }
 
-case class PointToOwningRank(var pos : Access, var domain : Domain) extends IR_Expression with Expandable {
+case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends IR_Expression with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
 
   override def expand : Output[IR_Expression] = {
@@ -231,20 +231,20 @@ case class ConnectFragments() extends IR_Statement with Expandable {
 
         // FIXME: datatype for VariableAccesses
         statements ++= (0 until domains.size).toArray[Int].map(d =>
-          new ConditionStatement(iv.IsValidForSubdomain(d) AndAnd PointInsideDomain(VariableAccess("offsetPos", None), domains(d)),
+          new ConditionStatement(iv.IsValidForSubdomain(d) AndAnd PointInsideDomain(IR_VariableAccess("offsetPos", None), domains(d)),
             (if (Knowledge.domain_canHaveRemoteNeighs) {
               if (Knowledge.domain_canHaveLocalNeighs)
-                new ConditionStatement(IR_EqEqExpression("mpiRank", PointToOwningRank(VariableAccess("offsetPos", None), domains(d))),
+                new ConditionStatement(IR_EqEqExpression("mpiRank", PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d))),
                   FunctionCallExpression("connectLocalElement", ListBuffer[IR_Expression](
-                    LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), neigh.index, d)),
+                    LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d)),
                   FunctionCallExpression("connectRemoteElement", ListBuffer[IR_Expression](
-                    LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), PointToOwningRank(VariableAccess("offsetPos", None), domains(d)), neigh.index, d))) // FIXME: datatype for VariableAccess
+                    LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d))) // FIXME: datatype for VariableAccess
               else
                 FunctionCallExpression("connectRemoteElement", ListBuffer[IR_Expression](
-                  LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), PointToOwningRank(VariableAccess("offsetPos", None), domains(d)), neigh.index, d)) // FIXME: datatype for VariableAccess
+                  LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d)) // FIXME: datatype for VariableAccess
             } else {
               FunctionCallExpression("connectLocalElement", ListBuffer[IR_Expression](
-                LoopOverFragments.defIt, PointToLocalFragmentId(VariableAccess("offsetPos", None)), neigh.index, d))
+                LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d))
             }) : IR_Statement))
 
         body += IR_Scope(statements)
@@ -400,7 +400,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
     body += IR_Scope(
       AssignmentStatement(iv.PrimitiveId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       AssignmentStatement(iv.CommId(), ReadValueFrom(IR_IntegerDatatype, "data")),
-      ForLoopStatement(VariableDeclarationStatement(IR_IntegerDatatype, "i", Some(0)), IR_LowerExpression(VariableAccess("i", Some(IR_IntegerDatatype)), math.pow(2, Knowledge.dimensionality)), IR_PreIncrementExpression(VariableAccess("i", Some(IR_IntegerDatatype))), ListBuffer(
+      ForLoopStatement(VariableDeclarationStatement(IR_IntegerDatatype, "i", Some(0)), IR_LowerExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype)), math.pow(2, Knowledge.dimensionality)), IR_PreIncrementExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype))), ListBuffer(
         // FIXME: Constructor?
         // s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
         VariableDeclarationStatement(IR_SpecialDatatype("Vec3"), "vertPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),

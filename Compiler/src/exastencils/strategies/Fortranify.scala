@@ -36,14 +36,14 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
       for ((paramIdx, datatype) <- functionsToBeProcessed.get(fct.name).get) {
         fct.arguments(paramIdx) match {
           // variable accesses are simple
-          case va : VariableAccess =>
+          case va : IR_VariableAccess =>
             fct.arguments(paramIdx) = IR_AddressofExpression(fct.arguments(paramIdx))
           // otherwise temp variables have to be created
           case _ =>
             var newName = s"callByValReplacement_${ fct.name }_${ paramIdx.toString() }"
             while (callByValReplacements.contains(newName)) newName += "0"
             callByValReplacements += (newName -> VariableDeclarationStatement(Duplicate(datatype), newName, Some(fct.arguments(paramIdx))))
-            fct.arguments(paramIdx) = IR_AddressofExpression(VariableAccess(newName, Some(Duplicate(datatype))))
+            fct.arguments(paramIdx) = IR_AddressofExpression(IR_VariableAccess(newName, Some(Duplicate(datatype))))
         }
       }
 
@@ -93,7 +93,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
                 fct.body.prepend(
                   VariableDeclarationStatement(
                     IR_ReferenceDatatype(Duplicate(datatype)), param.name,
-                    Some(DerefAccess(VariableAccess(param.name + "_ptr", Some(IR_PointerDatatype(datatype)))))))
+                    Some(DerefAccess(IR_VariableAccess(param.name + "_ptr", Some(IR_PointerDatatype(datatype)))))))
                 param.name += "_ptr"
                 param.datatype = IR_PointerDatatype(Duplicate(datatype))
               }

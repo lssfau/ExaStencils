@@ -194,8 +194,8 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
     case multiGrid : MultiGridFunctions =>
       for (layout <- layoutMap) {
         var body = ListBuffer[IR_Statement]()
-        def newInnerSize(dim : Integer) = VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
-        def idxShift(dim : Integer) = VariableAccess(s"idxShift_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+        def idxShift(dim : Integer) = IR_VariableAccess(s"idxShift_${ dimToString(dim) }", Some(IR_IntegerDatatype))
 
         // compile body for all dimensions - TODO: adapt to field layout dimensionality if required
         for (dim <- 0 until Knowledge.dimensionality) {
@@ -227,7 +227,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
       // generate a special resize functions for all fields on a given level
       for (level <- Knowledge.maxLevel to Knowledge.minLevel by -1) {
         var body = ListBuffer[IR_Statement]()
-        def newInnerSize(dim : Integer) = VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
 
         // generate function calls with adapted sizes
         for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {
@@ -450,8 +450,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (Knowledge.experimental_useLevelIndepFcts) {
         val s = new DefaultStrategy("Replacing level specifications")
         s += new Transformation("Search and replace", {
-          case IR_StringLiteral("level")  => Knowledge.maxLevel : IR_Expression
-          case VariableAccess("level", _) => Knowledge.maxLevel : IR_Expression
+          case IR_StringLiteral("level")     => Knowledge.maxLevel : IR_Expression
+          case IR_VariableAccess("level", _) => Knowledge.maxLevel : IR_Expression
         })
         for (buf <- bufferSizes)
           s.applyStandalone(buf._2)

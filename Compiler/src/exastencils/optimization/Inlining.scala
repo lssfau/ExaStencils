@@ -133,7 +133,7 @@ object Inlining extends CustomStrategy("Function inlining") {
       case v @ VariableDeclarationStatement(_, name, _) =>
         reserved += name
         v
-      case a @ VariableAccess(name, _)                  =>
+      case a @ IR_VariableAccess(name, _)               =>
         reserved += name
         a
       case s @ IR_StringLiteral(name)                   =>
@@ -148,7 +148,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     var retStmt : ReturnStatement = null
     this.execute(new Transformation("rename conflicts", {
       case VariableDeclarationStatement(t, name, i) if (potConflicts.contains(name)) => VariableDeclarationStatement(t, rename(name), i)
-      case VariableAccess(name, t) if (potConflicts.contains(name))                  => VariableAccess(rename(name), t)
+      case IR_VariableAccess(name, t) if (potConflicts.contains(name))               => IR_VariableAccess(rename(name), t)
       case IR_StringLiteral(name) if (potConflicts.contains(name))                   => IR_StringLiteral(rename(name))
       case ret : ReturnStatement                                                     =>
         if (ret.expr.isEmpty != (funcStmt.returntype == IR_UnitDatatype))

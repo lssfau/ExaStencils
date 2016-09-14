@@ -287,7 +287,7 @@ case class LoopOverPointsInOneFragment(var domain : Int,
         || ("face_x" == field.fieldLayout.discretization && 0 == dim)
         || ("face_y" == field.fieldLayout.discretization && 1 == dim)
         || ("face_z" == field.fieldLayout.discretization && 2 == dim))*/
-          condition = Some(IR_AndAndExpression(condition.get, IR_GreaterEqualExpression(VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
+          condition = Some(IR_AndAndExpression(condition.get, IR_GreaterEqualExpression(IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
     }
 
     var loop : LoopOverDimensions = (
@@ -474,7 +474,7 @@ object LoopOverDimensions {
     IR_ExpressionIndex((0 until numDims).map(dim => defItForDim(dim) : IR_Expression).toArray)
   }
   def defItForDim(dim : Int) = {
-    new VariableAccess(dimToString(dim), Some(IR_IntegerDatatype))
+    IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype))
   }
   val threadIdxName : String = "threadIdx"
 
@@ -593,8 +593,8 @@ case class LoopOverDimensions(var numDimensions : Int,
   def createOMPThreadsWrapper(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     if (explParLoop) {
       val begin = new VariableDeclarationStatement(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
-      val end = new IR_LowerExpression(new VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
-      val inc = new IR_ExpressionStatement(new IR_PreIncrementExpression(new VariableAccess(threadIdxName, IR_IntegerDatatype)))
+      val end = new IR_LowerExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
+      val inc = new IR_ExpressionStatement(new IR_PreIncrementExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype)))
       return ListBuffer(new ForLoopStatement(begin, end, inc, body) with OMP_PotentiallyParallel)
 
     } else
@@ -608,7 +608,7 @@ case class LoopOverDimensions(var numDimensions : Int,
     // add conditions for first iteration
     for (d <- 0 until numDimensions)
       if (!at1stIt(d)._1.isEmpty) {
-        val cond = new ConditionStatement(new IR_EqEqExpression(new VariableAccess(dimToString(d), IR_IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
+        val cond = new ConditionStatement(new IR_EqEqExpression(IR_VariableAccess(dimToString(d), IR_IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
         for ((annotId, value) <- at1stIt(d)._2)
           cond.annotate(annotId, value)
         conds += cond
@@ -632,7 +632,7 @@ case class LoopOverDimensions(var numDimensions : Int,
     def oldBegin = Duplicate(indices.begin(outer))
     def oldEnd = Duplicate(indices.end(outer))
     def inc = Duplicate(stepSize(outer))
-    def thrId = new VariableAccess(threadIdxName, IR_IntegerDatatype)
+    def thrId = IR_VariableAccess(threadIdxName, IR_IntegerDatatype)
     val njuBegin = oldBegin + (((oldEnd - oldBegin + inc - 1) * thrId) / Knowledge.omp_numThreads) * inc
     val njuEnd = oldBegin + (((oldEnd - oldBegin + inc - 1) * (thrId + 1)) / Knowledge.omp_numThreads) * inc
     nju.begin(outer) = SimplifyExpression.simplifyIntegralExpr(njuBegin)
@@ -657,7 +657,7 @@ case class LoopOverDimensions(var numDimensions : Int,
     val inds = if (explParLoop) ompIndices else indices
     // compile loop(s)
     for (d <- 0 until numDimensions) {
-      def it = VariableAccess(dimToString(d), Some(IR_IntegerDatatype))
+      def it = IR_VariableAccess(dimToString(d), Some(IR_IntegerDatatype))
       val decl = VariableDeclarationStatement(IR_IntegerDatatype, dimToString(d), Some(inds.begin(d)))
       val cond = IR_LowerExpression(it, inds.end(d))
       val incr = AssignmentStatement(it, stepSize(d), "+=")
@@ -693,9 +693,9 @@ case class LoopOverDimensions(var numDimensions : Int,
       // resolve max reductions
       val redOp = reduction.get.op
       val redExpName = reduction.get.target.name
-      def redExp = VariableAccess(redExpName, None)
+      def redExp = IR_VariableAccess(redExpName, None)
       val redExpLocalName = redExpName + "_red"
-      def redExpLocal = VariableAccess(redExpLocalName, None)
+      def redExpLocal = IR_VariableAccess(redExpLocalName, None)
 
       // FIXME: this assumes real data types -> data type should be determined according to redExp
       val decl = VariableDeclarationStatement(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
@@ -704,7 +704,7 @@ case class LoopOverDimensions(var numDimensions : Int,
       val red = AssignmentStatement(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
+      ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
       ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(VariableDeclarationStatement(IR_IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
@@ -772,9 +772,9 @@ case class LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction 
         // resolve max reductions
         val redOp = reduction.get.op
         val redExpName = reduction.get.target.name
-        def redExp = VariableAccess(redExpName, None)
+        def redExp = IR_VariableAccess(redExpName, None)
         val redExpLocalName = redExpName + "_red"
-        def redExpLocal = VariableAccess(redExpLocalName, None)
+        def redExpLocal = IR_VariableAccess(redExpLocalName, None)
 
         // FIXME: this assumes real data types -> data type should be determined according to redExp
         val decl = VariableDeclarationStatement(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
@@ -783,7 +783,7 @@ case class LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction 
         val red = AssignmentStatement(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
 
         ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-        ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
+        ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
         ReplaceStringConstantsStrategy.applyStandalone(body)
         body.prepend(VariableDeclarationStatement(IR_IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 

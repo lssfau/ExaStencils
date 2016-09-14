@@ -84,42 +84,42 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         accesses(vName) = (decl, new ArrayBuffer[IR_Expression]())
         assignTo = vName
         decl
-      case ass @ AssignmentStatement(VariableAccess(vName, _), _, _)                     =>
+      case ass @ AssignmentStatement(IR_VariableAccess(vName, _), _, _)                  =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         ass
-      case inc @ IR_PreDecrementExpression(VariableAccess(vName, _))                     =>
+      case inc @ IR_PreDecrementExpression(IR_VariableAccess(vName, _))                  =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PreIncrementExpression(VariableAccess(vName, _))                     =>
+      case inc @ IR_PreIncrementExpression(IR_VariableAccess(vName, _))                  =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostIncrementExpression(VariableAccess(vName, _))                    =>
+      case inc @ IR_PostIncrementExpression(IR_VariableAccess(vName, _))                 =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostDecrementExpression(VariableAccess(vName, _))                    =>
+      case inc @ IR_PostDecrementExpression(IR_VariableAccess(vName, _))                 =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case acc @ VariableAccess(vName, _)                                                =>
+      case acc @ IR_VariableAccess(vName, _)                                             =>
         for ((_, uses) <- accesses.get(vName))
           uses += acc
         usageIn(vName) += assignTo
@@ -177,7 +177,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     for (((loopItVar, loopBegin, loopEnd, loopIncr), dim) <- loopIt.zipWithIndex) {
       val prevItBody = IR_Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
       this.execute(new Transformation("create previous iteration body", {
-        case varAcc : VariableAccess if (varAcc.name == loopItVar)    =>
+        case varAcc : IR_VariableAccess if (varAcc.name == loopItVar) =>
           IR_SubtractionExpression(varAcc, IR_IntegerConstant(loopIncr))
         case strLit : IR_StringLiteral if (strLit.value == loopItVar) =>
           IR_SubtractionExpression(strLit, IR_IntegerConstant(loopIncr))
@@ -233,7 +233,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
           var csNext : IR_Expression = Duplicate(commonExp.witness)
           this.execute(new Transformation("create subsequent iteration body", {
-            case varAcc : VariableAccess if (varAcc.name == loopItVar)    =>
+            case varAcc : IR_VariableAccess if (varAcc.name == loopItVar) =>
               IR_AdditionExpression(varAcc, IR_IntegerConstant(loopIncr))
             case strLit : IR_StringLiteral if (strLit.value == loopItVar) =>
               IR_AdditionExpression(strLit, IR_IntegerConstant(loopIncr))
@@ -288,7 +288,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
       var len = tmpBufInd.length
       tmpBufInd = java.util.Arrays.copyOf(tmpBufInd, len + 1)
-      tmpBufInd(len) = new VariableAccess(loopItVar, IR_IntegerDatatype) - Duplicate(loopBeginOpt)
+      tmpBufInd(len) = IR_VariableAccess(loopItVar, IR_IntegerDatatype) - Duplicate(loopBeginOpt)
 
       len = tmpBufLen.length
       tmpBufLen = java.util.Arrays.copyOf(tmpBufLen, len + 1)
@@ -550,10 +550,10 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
         skip = true
 
       case VariableDeclarationStatement(dt, name, _)                              =>
-        commonSubs(new VariableAccess(name, dt)) = null
-      case AssignmentStatement(vAcc : VariableAccess, _, _)                       =>
+        commonSubs(IR_VariableAccess(name, dt)) = null
+      case AssignmentStatement(vAcc : IR_VariableAccess, _, _)                    =>
         commonSubs(vAcc) = null
-      case AssignmentStatement(ArrayAccess(vAcc : VariableAccess, _, _), _, _)    =>
+      case AssignmentStatement(ArrayAccess(vAcc : IR_VariableAccess, _, _), _, _) =>
         commonSubs(vAcc) = null
       case AssignmentStatement(ArrayAccess(iv : iv.InternalVariable, _, _), _, _) =>
         commonSubs(iv) = null
@@ -565,7 +565,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
       case _ : IR_IntegerConstant
            | _ : IR_RealConstant
            | _ : IR_BooleanConstant
-           | _ : VariableAccess
+           | _ : IR_VariableAccess
            | _ : IR_StringLiteral
            | _ : ArrayAccess
            | _ : DirectFieldAccess
@@ -632,7 +632,7 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
 
   def getReplOrModify(old : IR_Expression with Product) : IR_Expression = {
     if (witness == old) { // we can completely replace the subtree
-      return VariableAccess(tmpVarName, Some(tmpVarDatatype))
+      return IR_VariableAccess(tmpVarName, Some(tmpVarDatatype))
     } else {
       // only a part of the n-ary expression can be extracted...
       // according to the matching above (in findCommSubs), this expression must have a single Buffer child
@@ -640,7 +640,7 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
       val commSubsChildren = witness.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
       // according to the generation of witnesses children above, both buffers have the same ordering
       allChildren --= commSubsChildren
-      allChildren += VariableAccess(tmpVarName, Some(tmpVarDatatype))
+      allChildren += IR_VariableAccess(tmpVarName, Some(tmpVarDatatype))
       return null // no need to replace node, since its children were already modified
     }
   }

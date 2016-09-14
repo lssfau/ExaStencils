@@ -172,12 +172,12 @@ trait GridGeometry_nonUniform extends GridGeometry {
     if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
       LoopOverDimensions.defItForDim(dim)
     else
-      VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+      IR_VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        new VariableDeclarationStatement(innerIt.asInstanceOf[IR_VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);
@@ -267,12 +267,12 @@ trait GridGeometry_nonUniform extends GridGeometry {
     if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
       LoopOverDimensions.defItForDim(dim)
     else
-      VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+      IR_VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        new VariableDeclarationStatement(innerIt.asInstanceOf[IR_VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);
@@ -554,12 +554,12 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
       LoopOverDimensions.defItForDim(dim)
     else
-      VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+      IR_VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        new VariableDeclarationStatement(innerIt.asInstanceOf[IR_VariableAccess], LoopOverDimensions.defItForDim(dim) + ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);

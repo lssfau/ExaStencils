@@ -17,23 +17,23 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       d.expression = Some(simplify(expr))
       d
 
-    case a @ AssignmentStatement(VariableAccess(_, Some(IR_RealDatatype)), src, op) =>
+    case a @ AssignmentStatement(IR_VariableAccess(_, Some(IR_RealDatatype)), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(IR_PointerDatatype(IR_RealDatatype))), _, _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(IR_VariableAccess(_, Some(IR_PointerDatatype(IR_RealDatatype))), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(IR_CUDAConstPointerDatatype(IR_RealDatatype))), _, _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(IR_VariableAccess(_, Some(IR_CUDAConstPointerDatatype(IR_RealDatatype))), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(IR_ConstPointerDatatype(IR_RealDatatype))), _, _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(IR_VariableAccess(_, Some(IR_ConstPointerDatatype(IR_RealDatatype))), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ AssignmentStatement(ArrayAccess(VariableAccess(_, Some(IR_ArrayDatatype(IR_RealDatatype, _))), _, _), src, op) =>
+    case a @ AssignmentStatement(ArrayAccess(IR_VariableAccess(_, Some(IR_ArrayDatatype(IR_RealDatatype, _))), _, _), src, op) =>
       a.src = simplify(src)
       a
 

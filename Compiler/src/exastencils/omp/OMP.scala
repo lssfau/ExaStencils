@@ -82,7 +82,7 @@ case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
   override def name = "waitForFlag"
 
   override def expand : Output[FunctionStatement] = {
-    def flag = VariableAccess("flag", Some(IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype))))
+    def flag = IR_VariableAccess("flag", Some(IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype))))
 
     FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(flag.name, flag.datatype.get)),
       ListBuffer[IR_Statement](
@@ -94,17 +94,17 @@ case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
 
 abstract class OMP_Clause extends Node with PrettyPrintable
 
-case class OMP_Reduction(var op : String, var target : VariableAccess) extends OMP_Clause {
+case class OMP_Reduction(var op : String, var target : IR_VariableAccess) extends OMP_Clause {
   def this(red : Reduction) = this(red.op, red.target)
   override def prettyprint(out : PpStream) : Unit = out << "reduction(" << op << " : " << target << ')'
 }
 
-case class OMP_Lastprivate(var vars : ListBuffer[VariableAccess]) extends OMP_Clause {
-  def this(v : VariableAccess) = this(ListBuffer(v))
+case class OMP_Lastprivate(var vars : ListBuffer[IR_VariableAccess]) extends OMP_Clause {
+  def this(v : IR_VariableAccess) = this(ListBuffer(v))
   override def prettyprint(out : PpStream) : Unit = out << "lastprivate(" <<< (vars, ", ") << ')'
 }
 
-case class OMP_Private(var vars : ListBuffer[VariableAccess]) extends OMP_Clause {
-  def this(v : VariableAccess) = this(ListBuffer(v))
+case class OMP_Private(var vars : ListBuffer[IR_VariableAccess]) extends OMP_Clause {
+  def this(v : IR_VariableAccess) = this(ListBuffer(v))
   override def prettyprint(out : PpStream) : Unit = out << "private(" <<< (vars, ", ") << ')'
 }

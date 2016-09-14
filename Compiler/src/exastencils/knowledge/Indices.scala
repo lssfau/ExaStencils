@@ -172,9 +172,9 @@ object CreateGeomCoordinates extends DefaultStrategy("Add geometric coordinate c
   this += new Transformation("Search and extend", {
     case loop : LoopOverPointsInOneFragment =>
       if (StateManager.findFirst[AnyRef]((node : Any) => node match {
-        case IR_StringLiteral("xPos") | IR_StringLiteral("yPos") | IR_StringLiteral("zPos")    => true
-        case VariableAccess("xPos", _) | VariableAccess("yPos", _) | VariableAccess("zPos", _) => true
-        case _                                                                                 => false
+        case IR_StringLiteral("xPos") | IR_StringLiteral("yPos") | IR_StringLiteral("zPos")             => true
+        case IR_VariableAccess("xPos", _) | IR_VariableAccess("yPos", _) | IR_VariableAccess("zPos", _) => true
+        case _                                                                                          => false
       }, loop).isDefined) {
         loop.body.prepend(new InitGeomCoords(loop.field, false))
       }

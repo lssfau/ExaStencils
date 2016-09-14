@@ -28,7 +28,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
   private var vecDims : Set[String] = null
   private var parallelize_omp : Boolean = false
   private var reduction : Option[Reduction] = None
-  private var privateVars : ListBuffer[VariableAccess] = null
+  private var privateVars : ListBuffer[IR_VariableAccess] = null
   private var condition : IR_Expression = null
 
   private def invalidateScop(scop : Scop) : Unit = {
@@ -107,9 +107,9 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     })
 
     // mark all additionally declared variables as private
-    privateVars = new ListBuffer[VariableAccess]()
+    privateVars = new ListBuffer[IR_VariableAccess]()
     for (VariableDeclarationStatement(dt, name, _) <- scop.decls)
-      privateVars += VariableAccess(name, Some(dt))
+      privateVars += IR_VariableAccess(name, Some(dt))
 
     // build AST generation options
     val options = new StringBuilder()
@@ -196,7 +196,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           val itStr : String = islIt.getId().getName()
           val parOMP : Boolean = parallelize_omp && parDims.contains(itStr)
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
-          val it : VariableAccess = new VariableAccess(itStr, IR_IntegerDatatype)
+          val it : IR_VariableAccess = IR_VariableAccess(itStr, IR_IntegerDatatype)
           val init : IR_Statement = new VariableDeclarationStatement(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
           val cond : IR_Expression = processIslExpr(node.forGetCond())
           val incr : IR_Statement = new AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")

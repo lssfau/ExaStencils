@@ -12,8 +12,8 @@ import exastencils.util._
 case class VariableDeclarationStatement(var datatype : IR_Datatype, var name : String, var expression : Option[IR_Expression] = None) extends IR_Statement {
   var alignment : Int = 1
   def this(dT : IR_Datatype, n : String, e : IR_Expression) = this(dT, n, Option(e))
-  def this(va : VariableAccess) = this(va.datatype.get, va.name, None)
-  def this(va : VariableAccess, e : IR_Expression) = this(va.datatype.get, va.name, Option(e))
+  def this(va : IR_VariableAccess) = this(va.datatype.get, va.name, None)
+  def this(va : IR_VariableAccess, e : IR_Expression) = this(va.datatype.get, va.name, Option(e))
 
   override def prettyprint(out : PpStream) : Unit = {
     datatype match {

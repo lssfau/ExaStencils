@@ -26,20 +26,20 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
 
   object ShiftIndexAccesses extends QuietDefaultStrategy("Shifting index accesses") {
     this += new Transformation("SearchAndReplace", {
-      case s : IR_StringLiteral => {
+      case s : IR_StringLiteral   => {
         var ret : IR_Expression = s
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (dimToString(dim) == s.value)
-            ret = VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
+            ret = IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
         ret
       }
-      case va : VariableAccess  => {
+      case va : IR_VariableAccess => {
         var ret : IR_Expression = va
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (dimToString(dim) == va.name)
-            ret = VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
+            ret = IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
         ret
       }
     }, false)

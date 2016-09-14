@@ -322,7 +322,7 @@ case class LeveledIdentifier(var name : String, var level : LevelSpecification) 
 case class VariableExpression(var access : Access, var datatype : L4_Datatype) extends L4_Expression {
   def prettyprint(out : PpStream) = access.prettyprint(out)
 
-  def progress = ir.VariableAccess(access.name, Some(datatype.progress))
+  def progress = IR_VariableAccess(access.name, Some(datatype.progress))
 }
 
 case class UnaryExpression(var operator : String, var exp : L4_Expression) extends L4_Expression {

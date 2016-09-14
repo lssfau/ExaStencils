@@ -102,8 +102,8 @@ private[optimization] final class Analyze extends StackCollector {
     super.enter(node)
     node match {
       case ForLoopStatement(VariableDeclarationStatement(IR_IntegerDatatype, lVar, Some(start)),
-      IR_LowerExpression(VariableAccess(lVar3, _), end),
-      AssignmentStatement(VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
+      IR_LowerExpression(IR_VariableAccess(lVar3, _), end),
+      AssignmentStatement(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
       _, _) if (lVar == lVar2 && lVar2 == lVar3) //
       =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
@@ -139,13 +139,13 @@ private[optimization] final class Analyze extends StackCollector {
               preLoopDecls += new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp,
                 SIMD_LoadExpression(IR_AddressofExpression(
                   ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
-              decl.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
+              decl.annotate(REPL_ANNOT, AssignmentStatement(IR_VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
               if (nextIt.get._1.hasAnnotation(REPL_ANNOT))
-                nextIt.get._1.annotate(REPL_ANNOT, AssignmentStatement(new VariableAccess(nextIt.get._1.name, SIMD_RealDatatype),
-                  new VariableAccess(vecTmp, SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
+                nextIt.get._1.annotate(REPL_ANNOT, AssignmentStatement(IR_VariableAccess(nextIt.get._1.name, SIMD_RealDatatype),
+                  IR_VariableAccess(vecTmp, SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
               else
                 nextIt.get._1.annotate(REPL_ANNOT, new VariableDeclarationStatement(SIMD_RealDatatype, nextIt.get._1.name,
-                  new VariableAccess(vecTmp, SIMD_RealDatatype)))
+                  IR_VariableAccess(vecTmp, SIMD_RealDatatype)))
             }
           }
         }
@@ -159,7 +159,7 @@ private[optimization] final class Analyze extends StackCollector {
         } else
           load1s(load) = (decl, ArrayBuffer(stack.elems)) // super.stack
 
-      case vAcc @ VariableAccess(vecTmp, Some(SIMD_RealDatatype)) if (replaceAcc != null) =>
+      case vAcc @ IR_VariableAccess(vecTmp, Some(SIMD_RealDatatype)) if (replaceAcc != null) =>
         val nju = replaceAcc.get(vecTmp)
         if (nju.isDefined)
           vAcc.name = nju.get
@@ -237,7 +237,7 @@ private[optimization] final class Analyze extends StackCollector {
     private var replace : Boolean = false
 
     this += new Transformation("apply", {
-      case vAcc @ VariableAccess(v, Some(IR_IntegerDatatype)) if (v == itName) =>
+      case vAcc @ IR_VariableAccess(v, Some(IR_IntegerDatatype)) if (v == itName) =>
         if (replace)
           IR_SubtractionExpression(Duplicate(nju), IR_IntegerConstant(offset))
         else if (!vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {

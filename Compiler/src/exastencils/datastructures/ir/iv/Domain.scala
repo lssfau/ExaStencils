@@ -58,7 +58,7 @@ case class PrimitiveIndex(var fragmentIdx : IR_Expression = LoopOverFragments.de
   override def resolveDefValue = Some("Vec3i(0, 0, 0)")
 }
 
-case class PrimitivePosition(var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) with Access {
+case class PrimitivePosition(var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) with IR_Access {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   override def resolveName = s"pos" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
@@ -66,7 +66,7 @@ case class PrimitivePosition(var fragmentIdx : IR_Expression = LoopOverFragments
   override def resolveDefValue = Some("Vec3(0, 0, 0)")
 }
 
-case class PrimitivePositionBegin(var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) with Access {
+case class PrimitivePositionBegin(var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) with IR_Access {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   override def resolveName = s"posBegin" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
@@ -74,7 +74,7 @@ case class PrimitivePositionBegin(var fragmentIdx : IR_Expression = LoopOverFrag
   override def resolveDefValue = Some("Vec3(0, 0, 0)")
 }
 
-case class PrimitivePositionEnd(var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) with Access {
+case class PrimitivePositionEnd(var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) with IR_Access {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   override def resolveName = s"posEnd" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
