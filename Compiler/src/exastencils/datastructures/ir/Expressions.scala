@@ -166,28 +166,6 @@ case class VirtualFieldAccess(var fieldName : String,
 
 }
 
-case class ExternalFieldAccess(var name : IR_Expression, var field : ExternalField, var index : IR_ExpressionIndex) extends IR_Expression {
-  override def datatype = field.fieldLayout.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
-
-  def x = IR_VariableAccess("x", IR_IntegerDatatype)
-  def y = IR_VariableAccess("y", IR_IntegerDatatype)
-  def z = IR_VariableAccess("z", IR_IntegerDatatype)
-  def w = IR_VariableAccess("w", IR_IntegerDatatype)
-
-  def linearize : ArrayAccess = {
-    if (Knowledge.generateFortranInterface) {
-      // Fortran requires multi-index access to multidimensional arrays
-      val it = LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
-      var ret = name
-      for (dim <- field.fieldLayout.numDimsData - 1 to 0)
-        ret = new ArrayAccess(ret, it(dim), false)
-      ret.asInstanceOf[ArrayAccess]
-    } else
-      new ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index), false)
-  }
-}
-
 case class StencilAccess(var stencil : Stencil) extends IR_Expression {
   override def datatype = stencil.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilAccess\n"

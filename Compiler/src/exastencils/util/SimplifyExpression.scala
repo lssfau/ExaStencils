@@ -9,6 +9,7 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.interfacing.IR_ExternalFieldAccess
 import exastencils.logger._
 import exastencils.strategies._
 
@@ -465,7 +466,7 @@ object SimplifyExpression {
             f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))
         f
 
-      case f : ExternalFieldAccess =>
+      case f : IR_ExternalFieldAccess =>
         for (i <- 0 until 4)
           if (f.index(i) != IR_NullExpression)
             f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))

@@ -12,6 +12,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.globals._
+import exastencils.interfacing.IR_ExternalFieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.multiGrid._
@@ -43,7 +44,7 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
       access
     case access : IR_DirectFieldAccess                    =>
       access.linearize
-    case access : ExternalFieldAccess                     =>
+    case access : IR_ExternalFieldAccess                  =>
       access.linearize
     case access : TempBufferAccess                        =>
       access.linearize
