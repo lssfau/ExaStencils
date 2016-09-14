@@ -94,7 +94,7 @@ case class Allocation(var innerDatatype : IR_Datatype, var size : IR_Expression)
 
 case class SizeOfExpression(var innerDatatype : IR_Datatype) extends IR_Expression {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "sizeof" << "(" << datatype << ")"
+  override def prettyprint(out : PpStream) : Unit = out << "sizeof" << "(" << innerDatatype << ")"
 }
 
 case class CastExpression(var innerDatatype : IR_Datatype, var toCast : IR_Expression) extends IR_Expression {
