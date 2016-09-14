@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.knowledge.Platform
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
-import exastencils.datastructures.ir.GetResultingDatatype2
+import exastencils.datastructures.ir.GetResultingDatatype
 
 /// supported operators
 
@@ -124,14 +124,14 @@ object IR_AdditionExpression {
 case class IR_AdditionExpression(var summands : ListBuffer[IR_Expression]) extends IR_Expression {
   override def datatype = {
     var ret = summands(0).datatype
-    summands.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    summands.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
     ret
   }
   override def prettyprint(out : PpStream) : Unit = out << '(' <<< (summands, "+") << ')'
 }
 
 case class IR_SubtractionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '-' << right << ')'
 }
 
@@ -142,57 +142,57 @@ object IR_MultiplicationExpression {
 case class IR_MultiplicationExpression(var factors : ListBuffer[IR_Expression]) extends IR_Expression {
   override def datatype = {
     var ret = factors(0).datatype
-    factors.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    factors.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
     ret
   }
   override def prettyprint(out : PpStream) : Unit = out << '(' <<< (factors, "*") << ')'
 }
 
 case class IR_DivisionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '/' << right << ')'
 }
 
 case class IR_ModuloExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
   // assumes "left >= 0"   if not, generate something like "(left%right + right) % right"
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '%' << right << ')'
 }
 
 case class IR_PowerExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "pow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
 }
 
 /// element-wise arithmetic operations
 
 case class IR_ElementwiseAdditionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
 }
 
 case class IR_ElementwiseSubtractionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
 }
 
 case class IR_ElementwiseMultiplicationExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '*' << right << ')'
 }
 
 case class IR_ElementwiseDivisionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '/' << right << ')'
 }
 
 case class IR_ElementwiseModuloExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '%' << right << ')'
 }
 
 case class IR_ElementwisePowerExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "dotpow(" << left << ", " << right << ')' // FIXME: check for integer constant => use pown
 }
 
@@ -272,7 +272,7 @@ case class IR_MinimumExpression(var args : ListBuffer[IR_Expression]) extends IR
 
   override def datatype = {
     var ret = args(0).datatype
-    args.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    args.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
     ret
   }
 
@@ -292,7 +292,7 @@ case class IR_MaximumExpression(var args : ListBuffer[IR_Expression]) extends IR
 
   override def datatype = {
     var ret = args(0).datatype
-    args.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+    args.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
     ret
   }
 
@@ -306,7 +306,7 @@ case class IR_MaximumExpression(var args : ListBuffer[IR_Expression]) extends IR
 /// other operations
 
 case class IR_BitwiseAndExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '&' << right << ')'
 }
 

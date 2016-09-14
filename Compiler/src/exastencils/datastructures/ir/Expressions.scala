@@ -33,17 +33,20 @@ case class VectorExpression(var innerDatatype : Option[IR_Datatype], var express
   override def datatype = {
     if (innerDatatype.isEmpty) {
       var ret = expressions(0).datatype
-      expressions.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+      expressions.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
       innerDatatype = Some(ret)
     }
     new IR_VectorDatatype(innerDatatype.getOrElse(IR_RealDatatype), expressions.length, rowVector)
   }
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
-    out << innerDatatype << "[]){" <<< (expressions, ",") << "})"
+    innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
+    out << "[]){" <<< (expressions, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
-    out << "Matrix<" << innerDatatype.getOrElse(IR_RealDatatype) << ", "
+    out << "Matrix<"
+    innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
+    out << ", "
     if (rowVector.getOrElse(true)) {
       out << "1, " << length << "> (" // row vector
     } else {
@@ -55,13 +58,11 @@ case class VectorExpression(var innerDatatype : Option[IR_Datatype], var express
 }
 
 case class MatrixExpression(var innerDatatype : Option[IR_Datatype], var expressions : ListBuffer[ListBuffer[IR_Expression]]) extends IR_Expression {
-  Logger.warn("new MatrixExp: " + innerDatatype + " -> " + this.datatype + ": " + this)
-
   override def datatype = {
     if (innerDatatype.isEmpty) {
       var l = expressions.flatten
       var ret = l(0).datatype
-      l.foreach(s => ret = GetResultingDatatype2(ret, s.datatype))
+      l.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
       innerDatatype = Some(ret)
     }
     new IR_MatrixDatatype(innerDatatype.getOrElse(IR_RealDatatype), this.rows, this.columns)
@@ -69,7 +70,8 @@ case class MatrixExpression(var innerDatatype : Option[IR_Datatype], var express
 
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
-    out << innerDatatype.getOrElse(IR_RealDatatype) << "[]){" <<< (expressions.flatten, ",") << "})"
+    innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
+    out << "[]){" <<< (expressions.flatten, ",") << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
@@ -292,7 +294,7 @@ case class MemberFunctionCallExpression(var objectName : IR_Expression, var name
 }
 
 case class TernaryConditionExpression(var condition : IR_Expression, var trueBody : IR_Expression, var falseBody : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(trueBody.datatype, falseBody.datatype)
+  override def datatype = GetResultingDatatype(trueBody.datatype, falseBody.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << condition << " ? " << trueBody << " : " << falseBody << ')'
 }
 
@@ -302,7 +304,7 @@ case class Reduction(var op : String, var target : IR_VariableAccess) extends IR
 }
 
 case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAccess) extends IR_Expression with Expandable {
-  override def datatype = GetResultingDatatype2(stencil.datatype, fieldAccess.datatype)
+  override def datatype = GetResultingDatatype(stencil.datatype, fieldAccess.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : IR_Expression = {
@@ -319,7 +321,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
 // TODO: update convolutions with new dimensionality logic
 
 case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends IR_Expression with Expandable {
-  override def datatype = GetResultingDatatype2(stencilFieldAccess.datatype, fieldAccess.datatype)
+  override def datatype = GetResultingDatatype(stencilFieldAccess.datatype, fieldAccess.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : IR_Expression = {
@@ -338,7 +340,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
 }
 
 case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends IR_Expression with Expandable {
-  override def datatype = GetResultingDatatype2(stencilLeft.datatype, stencilRight.datatype)
+  override def datatype = GetResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
 
   override def expand() : Output[StencilAccess] = {
@@ -378,7 +380,7 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
 }
 
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends IR_Expression with Expandable {
-  override def datatype = GetResultingDatatype2(stencilLeft.datatype, stencilRight.datatype)
+  override def datatype = GetResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
 
   override def expand() : Output[StencilAccess] = {
@@ -552,7 +554,7 @@ case class SIMD_NegateExpression(var vect : IR_Expression) extends IR_Expression
 }
 
 case class SIMD_AdditionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -567,7 +569,7 @@ case class SIMD_AdditionExpression(var left : IR_Expression, var right : IR_Expr
 }
 
 case class SIMD_SubtractionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -582,7 +584,7 @@ case class SIMD_SubtractionExpression(var left : IR_Expression, var right : IR_E
 }
 
 case class SIMD_MultiplicationExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -600,7 +602,7 @@ case class SIMD_MultiplyAddExpression(
     var factor1 : IR_Expression,
     var factor2 : IR_Expression,
     var summand : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(factor1.datatype, factor2.datatype, summand.datatype)
+  override def datatype = GetResultingDatatype(factor1.datatype, factor2.datatype, summand.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     FusedPrinterHelper.prettyprint(out, factor1, factor2, summand, "add")
   }
@@ -610,7 +612,7 @@ case class SIMD_MultiplySubExpression(
     var factor1 : IR_Expression,
     var factor2 : IR_Expression,
     var summand : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(factor1.datatype, factor2.datatype, summand.datatype)
+  override def datatype = GetResultingDatatype(factor1.datatype, factor2.datatype, summand.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     FusedPrinterHelper.prettyprint(out, factor1, factor2, summand, "sub")
   }
@@ -635,7 +637,7 @@ private object FusedPrinterHelper {
 }
 
 case class SIMD_DivisionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype) // FIXME
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype) // FIXME
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -651,7 +653,7 @@ case class SIMD_DivisionExpression(var left : IR_Expression, var right : IR_Expr
 }
 
 case class SIMD_MinimumExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX") // TODO: export function
       out << "vec_sel(" << right << ", " << left << ", vec_cmplt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...
@@ -670,7 +672,7 @@ case class SIMD_MinimumExpression(var left : IR_Expression, var right : IR_Expre
 }
 
 case class SIMD_MaximumExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX") // TODO: export function
       out << "vec_sel(" << right << ", " << left << ", vec_cmpgt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...

@@ -220,7 +220,7 @@ case class CUDA_SharedArrayAccess(base : IR_Expression, indices : ListBuffer[IR_
 }
 
 case class CUDA_MinimumExpression(left : IR_Expression, right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     out << "min(" << left << "," << right << ")"
   }
