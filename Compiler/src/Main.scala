@@ -63,7 +63,7 @@ object Main {
 
     if (Settings.cancelIfOutFolderExists) {
       if ((new java.io.File(Settings.getOutputPath)).exists) {
-        Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
+        Logger.error(s"Output path ${Settings.getOutputPath} already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
     }
@@ -192,7 +192,7 @@ object Main {
       Vector(),
       Matrix(), // TODO: only if required
       CImg() // TODO: only if required
-    )
+      )
 
     if (Knowledge.cuda_enabled)
       StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
@@ -220,7 +220,6 @@ object Main {
     } while (convChanged)
 
     ResolveDiagFunction.apply()
-    ResolveSystems.apply()
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
