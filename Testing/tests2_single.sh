@@ -45,14 +45,14 @@ mkdir -p "${TEST_DIR}"
 SETTINGS="${TEST_DIR}/settings.txt"
 
 
-RESULT=$(mktemp --tmpdir=/run/shm || mktemp --tmpdir=/tmp) || {
+RESULT=$(mktemp --tmpdir=/dev/shm || mktemp --tmpdir=/tmp) || {
     echo "ERROR: Failed to create temporary file."
     touch ${ERROR_MARKER}
     echo "${LINK}" >> "${LOG_ALL}"
     exit 0
   }
-if [[ ! ${RESULT} =~ ^/run/shm/* ]]; then
-  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+if [[ ! ${RESULT} =~ ^/dev/shm/* ]]; then
+  echo "Problems with /dev/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /dev/shm" "kronast@fim.uni-passau.de"
 fi
 
 function killed {
