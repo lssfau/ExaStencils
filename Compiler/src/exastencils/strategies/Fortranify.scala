@@ -3,7 +3,7 @@ package exastencils.strategies
 import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.core.collectors.StatementCollector
 import exastencils.datastructures.Transformation._
@@ -72,7 +72,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
   }
 
   this += new Transformation("Process function declarations", {
-    case functions : FunctionCollection =>
+    case functions : IR_FunctionCollection =>
       for (abstrFct <- functions.functions) {
         val fct = abstrFct.asInstanceOf[FunctionStatement] // assume resolved function declarations
         if (fct.allowFortranInterface && isTreatableFunction(fct.name)) {

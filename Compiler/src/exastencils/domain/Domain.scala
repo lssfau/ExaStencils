@@ -3,6 +3,7 @@ package exastencils.domain
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -452,7 +453,7 @@ case class SetValues() extends AbstractFunctionStatement with Expandable {
   }
 }
 
-case class DomainFunctions() extends FunctionCollection(
+case class DomainFunctions() extends IR_FunctionCollection(
   "Domains/DomainGenerated",
   ListBuffer(),
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "CommFunctions/CommFunctions.h")) {

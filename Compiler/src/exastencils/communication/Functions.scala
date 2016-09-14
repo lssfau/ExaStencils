@@ -3,13 +3,14 @@ package exastencils.communication
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
-case class CommunicationFunctions() extends FunctionCollection("CommFunctions/CommFunctions",
+case class CommunicationFunctions() extends IR_FunctionCollection("CommFunctions/CommFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "Util/Matrix.h", "MultiGrid/MultiGrid.h")) {
 

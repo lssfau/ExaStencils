@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import scala.language.postfixOps
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
@@ -16,7 +17,7 @@ import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelFunctions",
+case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
   ListBuffer("Globals/Globals.h")) {
 
@@ -36,7 +37,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
   def getIdentifier(fctName : String) : String = {
     val cnt = counterMap.getOrElse(fctName, -1) + 1
     counterMap.update(fctName, cnt)
-    s"${fctName}_k${String.format("%03d", cnt : java.lang.Integer)}"
+    s"${ fctName }_k${ String.format("%03d", cnt : java.lang.Integer) }"
   }
 
   def addKernel(kernel : Kernel) = {
@@ -59,7 +60,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     for (f <- functions) {
       var fileName = f.asInstanceOf[FunctionStatement].name
       if (fileName.endsWith(Kernel.wrapperPostfix)) fileName = fileName.dropRight(Kernel.wrapperPostfix.length)
-      val writer = PrettyprintingManager.getPrinter(s"${baseName}_$fileName.cu")
+      val writer = PrettyprintingManager.getPrinter(s"${ baseName }_$fileName.cu")
       writer.addInternalDependency(s"$baseName.h")
 
       writer <<< f.prettyprint(PrintEnvironment.CUDA)
@@ -75,8 +76,8 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
     // kernel function
     {
       def data = FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
-      def numElements = FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/ )
-      def stride = FunctionArgument("stride", IR_IntegerDatatype /*FIXME: size_t*/ )
+      def numElements = FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)
+      def stride = FunctionArgument("stride", IR_IntegerDatatype /*FIXME: size_t*/)
       def it = Duplicate(LoopOverDimensions.defItForDim(0))
 
       var fctBody = ListBuffer[IR_Statement]()
@@ -112,8 +113,8 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
 
     // wrapper function
     {
-      def numElements = IR_VariableAccess("numElements", Some(IR_SpecialDatatype("size_t") /*FIXME*/ ))
-      def stride = IR_VariableAccess("stride", Some(IR_SpecialDatatype("size_t") /*FIXME*/ ))
+      def numElements = IR_VariableAccess("numElements", Some(IR_SpecialDatatype("size_t") /*FIXME*/))
+      def stride = IR_VariableAccess("stride", Some(IR_SpecialDatatype("size_t") /*FIXME*/))
       def data = FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
       def ret = IR_VariableAccess("ret", Some(IR_RealDatatype))
 
@@ -127,7 +128,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       loopBody += new VariableDeclarationStatement(blocks, (numElements + (blockSize * stride - 1)) / (blockSize * stride))
       loopBody += IR_IfCondition(IR_EqEqExpression(0, blocks), AssignmentStatement(blocks, 1))
       loopBody += CUDA_FunctionCallExpression(kernelName, ListBuffer[IR_Expression](data, numElements, stride),
-        Array[IR_Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */ ), Array[IR_Expression](blockSize))
+        Array[IR_Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */), Array[IR_Expression](blockSize))
 
       fctBody += IR_ForLoop(
         new VariableDeclarationStatement(stride, 1),
@@ -144,7 +145,7 @@ case class KernelFunctions() extends FunctionCollection("KernelFunctions/KernelF
       functions += FunctionStatement(
         IR_RealDatatype, // TODO: support other types
         wrapperName,
-        ListBuffer(data, FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/ )),
+        ListBuffer(data, FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)),
         fctBody,
         allowInlining = false, allowFortranInterface = false,
         "extern \"C\"")
@@ -390,16 +391,16 @@ case class Kernel(var identifier : String,
       minIndices = (loopVariables.size - 1 to 0 by -1).map(dim =>
         loopVariableExtrema.get(loopVariables(dim)) match {
           case Some((min : Long, max : Long)) => min
-          case _ =>
-            Logger.warn(s"Start index for dimension $dim (${lowerBounds(dim)}) could not be evaluated")
+          case _                              =>
+            Logger.warn(s"Start index for dimension $dim (${ lowerBounds(dim) }) could not be evaluated")
             0
         }).toArray.reverse
 
       maxIndices = (loopVariables.size - 1 to 0 by -1).map(dim =>
         loopVariableExtrema.get(loopVariables(dim)) match {
           case Some((min : Long, max : Long)) => max
-          case _ =>
-            Logger.warn(s"Start index for dimension $dim (${upperBounds(dim)}) could not be evaluated")
+          case _                              =>
+            Logger.warn(s"Start index for dimension $dim (${ upperBounds(dim) }) could not be evaluated")
             0
         }).toArray.reverse
 
@@ -455,7 +456,7 @@ case class Kernel(var identifier : String,
     val conditionParts = (0 until executionDim).map(dim => {
       val variableAccess = IR_VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype))
       IR_AndAndExpression(
-        IR_GreaterEqualExpression(variableAccess, s"${KernelVariablePrefix}begin_$dim"), IR_LowerExpression(variableAccess, s"${KernelVariablePrefix}end_$dim"))
+        IR_GreaterEqualExpression(variableAccess, s"${ KernelVariablePrefix }begin_$dim"), IR_LowerExpression(variableAccess, s"${ KernelVariablePrefix }end_$dim"))
     })
 
     val condition = VariableDeclarationStatement(IR_BooleanDatatype, KernelVariablePrefix + "condition",
@@ -527,7 +528,7 @@ case class Kernel(var identifier : String,
           val it = dimToString(dim)
 
           // 7.1 Check if current thread resides on the left border in any dimension
-          val condition = IR_OrOrExpression(IR_LowerExpression(MemberAccess(IR_VariableAccess("threadIdx", Some(IR_SpecialDatatype("dim3"))), it), leftDeviations(field)(dim)), IR_EqEqExpression(globalThreadId(dim), s"${KernelVariablePrefix}begin_$dim"))
+          val condition = IR_OrOrExpression(IR_LowerExpression(MemberAccess(IR_VariableAccess("threadIdx", Some(IR_SpecialDatatype("dim3"))), it), leftDeviations(field)(dim)), IR_EqEqExpression(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
           val conditionBody = ListBuffer[IR_Statement]()
 
           // 7.2 Calculate the offset from the left to the right border of the actual field
@@ -536,7 +537,7 @@ case class Kernel(var identifier : String,
             CUDA_MinimumExpression(
               IR_SubtractionExpression(MemberAccess(IR_VariableAccess("blockDim", Some(IR_SpecialDatatype("dim3"))), it),
                 MemberAccess(IR_VariableAccess("threadIdx", Some(IR_SpecialDatatype("dim3"))), it)),
-              IR_SubtractionExpression(s"${KernelVariablePrefix}end_$dim", globalThreadId(dim)))))
+              IR_SubtractionExpression(s"${ KernelVariablePrefix }end_$dim", globalThreadId(dim)))))
           val localFieldOffset = IR_VariableAccess(localFieldOffsetName, Some(IR_IntegerDatatype))
 
           // 7.3 Calculate the indices for writing into the shared memory and loading from the global memory
@@ -569,7 +570,7 @@ case class Kernel(var identifier : String,
           zDimLoopBody += IR_IfCondition(conditionAccess, body)
           zDimLoopBody += CUDA_SyncThreads()
 
-          statements += IR_ForLoop(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${KernelVariablePrefix}begin_$executionDim"), IR_LowerExpression(IR_VariableAccess(loopVariables(executionDim)), s"${KernelVariablePrefix}end_$executionDim"), AssignmentStatement(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
+          statements += IR_ForLoop(new VariableDeclarationStatement(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_LowerExpression(IR_VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), AssignmentStatement(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
 
           // 9. Remove the used loop variable to avoid later complications in loop variable substitution
           loopVariables.remove(executionDim)
@@ -669,7 +670,7 @@ case class Kernel(var identifier : String,
       def bufAccess = iv.ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.innerDatatype.get)
       body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
-      body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${IR_BinaryOperators.opAsIdent(reduction.get.op)}_wrapper",
+      body += ReturnStatement(Some(FunctionCallExpression(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
         ListBuffer[IR_Expression](bufAccess, bufSize))))
 
       StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
@@ -695,8 +696,8 @@ case class Kernel(var identifier : String,
     var fctParams = ListBuffer[FunctionArgument]()
 
     for (dim <- 0 until parallelDims) {
-      fctParams += FunctionArgument(s"${KernelVariablePrefix}begin_$dim", IR_IntegerDatatype)
-      fctParams += FunctionArgument(s"${KernelVariablePrefix}end_$dim", IR_IntegerDatatype)
+      fctParams += FunctionArgument(s"${ KernelVariablePrefix }begin_$dim", IR_IntegerDatatype)
+      fctParams += FunctionArgument(s"${ KernelVariablePrefix }end_$dim", IR_IntegerDatatype)
     }
 
     for (fieldAccess <- linearizedFieldAccesses) {
@@ -721,12 +722,12 @@ case class Kernel(var identifier : String,
       val datatype = ivAccess._2.resolveDatatype
 
       datatype match {
-        case IR_SpecialDatatype("Vec3") =>
+        case IR_SpecialDatatype("Vec3")  =>
           access.innerDatatype = Some(IR_SpecialDatatype("double3"))
           fctParams += FunctionArgument(access.name, access.innerDatatype.get)
         case IR_SpecialDatatype("Vec3i") =>
           fctParams ++= (0 until 3).map(dim => FunctionArgument(ivAccess._1 + '_' + dim, IR_SpecialDatatype("int"))).to[ListBuffer]
-        case _ => fctParams += FunctionArgument(ivAccess._1, datatype)
+        case _                           => fctParams += FunctionArgument(ivAccess._1, datatype)
       }
     }
 
@@ -757,7 +758,7 @@ object GatherLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering 
       access.fieldSelection.slot match {
         case SlotAccess(_, offset)    => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -783,7 +784,7 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
       access.fieldSelection.slot match {
         case SlotAccess(_, offset)    => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -809,7 +810,7 @@ object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gat
       access.fieldSelection.slot match {
         case SlotAccess(_, offset)    => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -838,7 +839,7 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
       access.fieldSelection.slot match {
         case SlotAccess(_, offset)    => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -846,7 +847,7 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
   }
 
   this += new Transformation("Searching", {
-    case stmt @ AssignmentStatement(access : FieldAccessLike, _, _) =>
+    case stmt @ AssignmentStatement(access : FieldAccessLike, _, _)                                   =>
       writtenFields += extractFieldIdentifier(access)
       stmt
     case access : FieldAccessLike if access.fieldSelection.fieldLayout.numDimsData <= maximalFieldDim =>
@@ -863,11 +864,11 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
           case IR_AdditionExpression(ListBuffer(va @ IR_VariableAccess(name : String, _), IR_IntegerConstant(v : Long))) =>
             suitableForSharedMemory &= loopVariables.contains(name)
             indexConstantPart(i) = v
-          case va @ IR_VariableAccess(name : String, _) =>
+          case va @ IR_VariableAccess(name : String, _)                                                                  =>
             suitableForSharedMemory &= loopVariables.contains(name)
-          case IR_IntegerConstant(v : Long) =>
+          case IR_IntegerConstant(v : Long)                                                                              =>
             indexConstantPart(i) = v
-          case _ =>
+          case _                                                                                                         =>
             suitableForSharedMemory = false
         }
       })
@@ -899,7 +900,7 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
       access.fieldSelection.slot match {
         case SlotAccess(_, offset)    => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -913,8 +914,8 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
 
       if (applySpatialBlocking && deviation.take(executionDim).forall(x => SimplifyExpression.evalIntegral(x) == 0)) {
         SimplifyExpression.evalIntegral(deviation(executionDim)) match {
-          case 0 => IR_VariableAccess("current")
-          case x if 0L to offsetForSharedMemoryAccess contains x => IR_VariableAccess("infront" + x)
+          case 0                                                        => IR_VariableAccess("current")
+          case x if 0L to offsetForSharedMemoryAccess contains x        => IR_VariableAccess("infront" + x)
           case y if 0L to -offsetForSharedMemoryAccess by -1 contains y => IR_VariableAccess("behind" + math.abs(y))
         }
       } else {
@@ -950,7 +951,7 @@ object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local Arra
     (ivArray.base, ivArray.index) match {
       case (ivAccess : IR_VariableAccess, i : IR_IntegerConstant) =>
         result = ivAccess.innerDatatype.contains(IR_SpecialDatatype("Vec3i"))
-      case _ =>
+      case _                                                      =>
     }
 
     result
@@ -976,7 +977,7 @@ object ReplacingLoopVariables extends QuietDefaultStrategy("Replacing loop varia
       }
 
       IR_VariableAccess(newName, Some(IR_IntegerDatatype))
-    case s @ IR_StringLiteral(v @ value) if loopVariables.contains(v) =>
+    case s @ IR_StringLiteral(v @ value) if loopVariables.contains(v)                       =>
       var newName = Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(loopVariables.indexOf(v))
 
       if (s.hasAnnotation(Kernel.CUDASharedMemoryAccess)) {
@@ -995,7 +996,7 @@ object AnnotatingLoopVariablesForSharedMemoryAccess extends QuietDefaultStrategy
     case v @ IR_VariableAccess(name @ n, maybeDatatype @ d) if loopVariables.contains(name) =>
       v.annotate(Kernel.CUDASharedMemoryAccess, accessName)
       v
-    case s @ IR_StringLiteral(v @ value) if loopVariables.contains(v) =>
+    case s @ IR_StringLiteral(v @ value) if loopVariables.contains(v)                       =>
       s.annotate(Kernel.CUDASharedMemoryAccess, accessName)
       s
   })

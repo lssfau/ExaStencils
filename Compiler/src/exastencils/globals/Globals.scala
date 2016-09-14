@@ -3,12 +3,13 @@ package exastencils.globals
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.core._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
-case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer) extends FunctionCollection("Globals/Globals",
+case class Globals(var variables : ListBuffer[VariableDeclarationStatement] = new ListBuffer) extends IR_FunctionCollection("Globals/Globals",
   ListBuffer("algorithm"), // provides commonly used functions like min/max
   ListBuffer("Util/Vector.h", "Util/Matrix.h") /*
     ++ Settings.additionalIncludes*/ ,

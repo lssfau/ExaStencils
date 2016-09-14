@@ -3,6 +3,7 @@ package exastencils.multiGrid
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -47,7 +48,7 @@ case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandabl
   }
 }
 
-case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid",
+case class MultiGridFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "Util/Matrix.h", "Util/TimerFunctions.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
 

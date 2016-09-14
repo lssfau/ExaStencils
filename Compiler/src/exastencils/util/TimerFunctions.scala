@@ -3,7 +3,7 @@ package exastencils.util
 import scala.collection.mutable._
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -17,13 +17,13 @@ case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement w
 
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
-      case "Chrono" => AssignmentStatement(lhs, new FunctionCallExpression("std::chrono::high_resolution_clock::now"))
-      case "QPC" => IR_Scope(ListBuffer[IR_Statement](
+      case "Chrono"       => AssignmentStatement(lhs, new FunctionCallExpression("std::chrono::high_resolution_clock::now"))
+      case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("LARGE_INTEGER"), "now"),
         FunctionCallExpression("QueryPerformanceCounter", ListBuffer(IR_AddressofExpression("now"))),
         AssignmentStatement(lhs, MemberAccess(IR_VariableAccess("now"), "QuadPart"))))
-      case "WIN_TIME" => AssignmentStatement(lhs, CastExpression(IR_DoubleDatatype, FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
-      case "UNIX_TIME" => IR_Scope(ListBuffer[IR_Statement](
+      case "WIN_TIME"     => AssignmentStatement(lhs, CastExpression(IR_DoubleDatatype, FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
+      case "UNIX_TIME"    => IR_Scope(ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("timeval"), "timePoint"),
         FunctionCallExpression("gettimeofday", ListBuffer(IR_AddressofExpression("timePoint"), "NULL")),
         AssignmentStatement(lhs,
@@ -56,8 +56,8 @@ case class TimerDetail_ReturnConvertToMS(var time : IR_Expression) extends IR_St
 
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
-      case "Chrono" => ReturnStatement(Some(new MemberFunctionCallExpression(new FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
-      case "QPC" => IR_Scope(ListBuffer[IR_Statement](
+      case "Chrono"       => ReturnStatement(Some(new MemberFunctionCallExpression(new FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
+      case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         VariableDeclarationStatement(IR_SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
         VariableDeclarationStatement(IR_SpecialDatatype("static BOOL"), "s_use_qpc", Some(FunctionCallExpression("QueryPerformanceFrequency", ListBuffer(IR_AddressofExpression("s_frequency"))))),
         ReturnStatement(Some(time / ("s_frequency.QuadPart" / 1000.0)))))
@@ -70,7 +70,7 @@ case class TimerDetail_ReturnConvertToMS(var time : IR_Expression) extends IR_St
   }
 }
 
-case class TimerFunctions() extends FunctionCollection("Util/TimerFunctions",
+case class TimerFunctions() extends IR_FunctionCollection("Util/TimerFunctions",
   ListBuffer("fstream"),
   ListBuffer("Globals/Globals.h", "Util/Stopwatch.h")) {
 
