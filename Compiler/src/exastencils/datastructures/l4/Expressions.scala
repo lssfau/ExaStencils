@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils._
 import exastencils.base.ir._
 import exastencils.base.l4._
+import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.prettyprinting._
@@ -143,7 +144,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
   }
 
-  def progress : ir.FieldAccess = {
+  def progress : IR_FieldAccess = {
     // TODO: extract common index stuff from here and VirtualFieldAccess, StencilFieldAccess, etc
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
@@ -157,7 +158,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     }
 
     val field = knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
-    ir.FieldAccess(knowledge.FieldSelection(field, IR_IntegerConstant(field.level), FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
+    IR_FieldAccess(knowledge.FieldSelection(field, IR_IntegerConstant(field.level), FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
   }
 }
 
@@ -295,7 +296,7 @@ case class StencilFieldAccess(var name : String,
       ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None),
         multiIndex)
     else
-      ir.FieldAccess(knowledge.FieldSelection(stencilField.field, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
+      IR_FieldAccess(knowledge.FieldSelection(stencilField.field, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
         multiIndex)
   }
 }

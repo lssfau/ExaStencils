@@ -29,7 +29,7 @@ case class EquationExpression(var lhs : IR_Expression, var rhs : IR_Expression) 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EquationExpression\n"
 }
 
-case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equations : ListBuffer[EquationExpression]) extends IR_Statement {
+case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[EquationExpression]) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SolveLocallyStatement\n"
 
   var fVals = ListBuffer[IR_AdditionExpression]()
@@ -39,7 +39,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
     // TODO
   }
 
-  def matchUnknowns(other : FieldAccess) : Int = {
+  def matchUnknowns(other : IR_FieldAccess) : Int = {
     for (i <- 0 until unknowns.size) {
       if (other.fieldSelection.field.codeName == unknowns(i).fieldSelection.field.codeName
         && other.index == unknowns(i).index)
@@ -54,7 +54,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
       case IR_NegativeExpression(exp) => processExpression(pos, exp, !switchSign)
 
-      case access : FieldAccess => {
+      case access : IR_FieldAccess => {
         val uPos = matchUnknowns(access)
         if (uPos < 0)
           fVals(pos).summands += (if (switchSign) access else IR_NegativeExpression(access)) // no match -> rhs
@@ -65,10 +65,10 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
       case multEx @ IR_MultiplicationExpression(factors) => {
         // split into known and unknown
         var localFactors = ListBuffer[IR_Expression]()
-        var localUnknowns = ListBuffer[FieldAccess]()
+        var localUnknowns = ListBuffer[IR_FieldAccess]()
         for (ex <- factors) {
           ex match {
-            case access : FieldAccess            =>
+            case access : IR_FieldAccess         =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
               else localUnknowns += access

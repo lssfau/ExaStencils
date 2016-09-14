@@ -3,7 +3,7 @@ package exastencils.data
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype_VS
+import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -70,7 +70,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
           new IR_Assignment(ExternalFieldAccess("dest", dest, multiIndex + offsetForExtField),
-            DirectFieldAccess(FieldSelection(src, src.level, "slot"), multiIndex))) with OMP_PotentiallyParallel with PolyhedronAccessible),
+            IR_DirectFieldAccess(FieldSelection(src, src.level, "slot"), multiIndex))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }
 }
@@ -118,7 +118,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
         new LoopOverDimensions(loopDim, new IndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
-          new IR_Assignment(DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), multiIndex),
+          new IR_Assignment(IR_DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), multiIndex),
             ExternalFieldAccess("src", src, multiIndex + offsetForExtField))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }

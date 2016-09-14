@@ -3,6 +3,7 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
+import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.datastructures._
 import exastencils.prettyprinting._
 
@@ -19,7 +20,7 @@ case class SolveLocallyStatement(var unknowns : List[L4_Expression], var equatio
 
   override def progress : ir.SolveLocallyStatement = {
     ir.SolveLocallyStatement(
-      unknowns.map(_.progress.asInstanceOf[ir.FieldAccess]).to[ListBuffer],
+      unknowns.map(_.progress.asInstanceOf[IR_FieldAccess]).to[ListBuffer],
       equations.map(_.progress).to[ListBuffer])
   }
 }

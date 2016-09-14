@@ -3,6 +3,7 @@ package exastencils.data
 import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.cuda._
@@ -40,7 +41,7 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
   this += new Transformation("Linearizing", {
     case access if access.hasAnnotation(NO_LINEARIZATION) =>
       access
-    case access : DirectFieldAccess                       =>
+    case access : IR_DirectFieldAccess                    =>
       access.linearize
     case access : ExternalFieldAccess                     =>
       access.linearize
@@ -114,7 +115,7 @@ object ResolveContractingLoop extends DefaultStrategy("Resolving ContractingLoop
 
 object ResolveFieldAccess extends DefaultStrategy("Resolving FieldAccess nodes") {
   this += new Transformation("Resolving", {
-    case loop : FieldAccess =>
+    case loop : IR_FieldAccess =>
       loop.expandSpecial
   })
 }

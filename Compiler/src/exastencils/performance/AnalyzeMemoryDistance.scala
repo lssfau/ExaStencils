@@ -3,6 +3,7 @@ package exastencils.performance
 import scala.collection.mutable.HashMap
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MultiDimFieldAccess
 import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
@@ -122,7 +123,7 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
   }
 
   this += new Transformation("Offsets", {
-    case fa : FieldAccessLike =>
+    case fa : IR_MultiDimFieldAccess =>
 
       if (null != curLoop) {
         println(fa.index)

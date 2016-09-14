@@ -3,6 +3,7 @@ package exastencils.cuda
 import scala.collection.mutable._
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MultiDimFieldAccess
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -59,7 +60,7 @@ case class CUDA_FreeStatement(var pointer : IR_Expression) extends IR_Statement 
   }
 }
 
-case class CUDA_UpdateHostData(var fieldAccess : FieldAccessLike) extends IR_Statement with Expandable {
+case class CUDA_UpdateHostData(var fieldAccess : IR_MultiDimFieldAccess) extends IR_Statement with Expandable {
   // TODO: allow targeting of specific index ranges
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateHostData\n"
@@ -80,7 +81,7 @@ case class CUDA_UpdateHostData(var fieldAccess : FieldAccessLike) extends IR_Sta
   }
 }
 
-case class CUDA_UpdateDeviceData(var fieldAccess : FieldAccessLike) extends IR_Statement with Expandable {
+case class CUDA_UpdateDeviceData(var fieldAccess : IR_MultiDimFieldAccess) extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateDeviceData\n"
 
   override def expand() : Output[IR_IfCondition] = {

@@ -1,8 +1,8 @@
 package exastencils.grid
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.core._
-import exastencils.datastructures.ir._
 
 object GridUtil {
   // helper functions of shifting indices and accesses
@@ -12,7 +12,7 @@ object GridUtil {
     modIndex
   }
 
-  def offsetAccess(fieldAccess : FieldAccess, offset : IR_Expression, dim : Int) : FieldAccess = {
+  def offsetAccess(fieldAccess : IR_FieldAccess, offset : IR_Expression, dim : Int) : IR_FieldAccess = {
     var modAccess = Duplicate(fieldAccess)
     modAccess.index(dim) += offset
     modAccess

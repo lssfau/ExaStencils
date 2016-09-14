@@ -155,29 +155,6 @@ case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var in
   }
 }
 
-abstract class FieldAccessLike extends IR_Expression {
-  def fieldSelection : FieldSelection
-  def index : IR_ExpressionIndex
-}
-
-case class DirectFieldAccess(var fieldSelection : FieldSelection, var index : IR_ExpressionIndex) extends FieldAccessLike {
-  override def datatype = fieldSelection.fieldLayout.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = DirectFieldAccess\n"
-
-  def linearize : LinearizedFieldAccess = {
-    new LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.fieldLayout, index))
-  }
-}
-
-case class FieldAccess(var fieldSelection : FieldSelection, var index : IR_ExpressionIndex) extends FieldAccessLike {
-  override def datatype = fieldSelection.fieldLayout.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
-
-  def expandSpecial() : DirectFieldAccess = {
-    DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
-  }
-}
-
 case class VirtualFieldAccess(var fieldName : String,
     var level : IR_Expression,
     var index : IR_ExpressionIndex,
@@ -211,15 +188,6 @@ case class ExternalFieldAccess(var name : IR_Expression, var field : ExternalFie
   }
 }
 
-case class LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : IR_Expression) extends IR_Expression with Expandable {
-  override def datatype = fieldSelection.fieldLayout.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
-
-  override def expand() : Output[IR_Expression] = {
-    new ArrayAccess(new iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx), index, Knowledge.data_alignFieldPointers)
-  }
-}
-
 case class StencilAccess(var stencil : Stencil) extends IR_Expression {
   override def datatype = stencil.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilAccess\n"
@@ -236,7 +204,7 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
       stencilFieldIdx(stencilFieldSelection.stencilField.field.fieldLayout.numDimsData - 1) = e // TODO: assumes last index is vector dimension
       val fieldSel = stencilFieldSelection.toFieldSelection
       fieldSel.arrayIndex = Some(e)
-      entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new FieldAccess(fieldSel, stencilFieldIdx))
+      entries += new StencilEntry(stencilFieldSelection.stencil.entries(e).offset, new IR_FieldAccess(fieldSel, stencilFieldIdx))
     }
     new Stencil("GENERATED_PLACEHOLDER_STENCIL", stencilFieldSelection.stencil.level, entries)
   }
@@ -299,12 +267,12 @@ case class Reduction(var op : String, var target : IR_VariableAccess) extends IR
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
 }
 
-case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAccess) extends IR_Expression with Expandable {
+case class StencilConvolution(var stencil : Stencil, var fieldAccess : IR_FieldAccess) extends IR_Expression with Expandable {
   override def datatype = GetResultingDatatype(stencil.datatype, fieldAccess.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
   def resolveEntry(idx : Int) : IR_Expression = {
-    stencil.entries(idx).coefficient * new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
+    stencil.entries(idx).coefficient * new IR_FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
   }
 
   override def expand() : Output[IR_Expression] = {
@@ -316,7 +284,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : FieldAcce
 
 // TODO: update convolutions with new dimensionality logic
 
-case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends IR_Expression with Expandable {
+case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : IR_FieldAccess) extends IR_Expression with Expandable {
   override def datatype = GetResultingDatatype(stencilFieldAccess.datatype, fieldAccess.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
@@ -324,8 +292,8 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
     val stencilFieldIdx = Duplicate(stencilFieldAccess.index)
     stencilFieldIdx(Knowledge.dimensionality) = idx
 
-    FieldAccess(stencilFieldAccess.stencilFieldSelection.toFieldSelection, stencilFieldIdx) *
-      new FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
+    IR_FieldAccess(stencilFieldAccess.stencilFieldSelection.toFieldSelection, stencilFieldIdx) *
+      new IR_FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
   }
 
   override def expand() : Output[IR_Expression] = {
@@ -406,7 +374,7 @@ case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, 
         ResolveCoordinates.replacement = rightOffset
         ResolveCoordinates.doUntilDoneStandalone(combOff)
 
-        var combCoeff : IR_Expression = (re.coefficient * new FieldAccess(fieldSel, stencilFieldIdx))
+        var combCoeff : IR_Expression = (re.coefficient * new IR_FieldAccess(fieldSel, stencilFieldIdx))
         SimplifyStrategy.doUntilDoneStandalone(combOff)
         SimplifyStrategy.doUntilDoneStandalone(combCoeff)
         val addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
@@ -633,7 +601,8 @@ private object FusedPrinterHelper {
 }
 
 case class SIMD_DivisionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype(left.datatype, right.datatype) // FIXME
+  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
+  // FIXME
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {

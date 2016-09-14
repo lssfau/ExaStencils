@@ -6,6 +6,7 @@ import scala.reflect.ClassTag
 import scala.util.Sorting
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_DirectFieldAccess
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
@@ -557,7 +558,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
         commonSubs(vAcc) = null
       case IR_Assignment(ArrayAccess(iv : iv.InternalVariable, _, _), _, _) =>
         commonSubs(iv) = null
-      case IR_Assignment(dfa : DirectFieldAccess, _, _)                     =>
+      case IR_Assignment(dfa : IR_DirectFieldAccess, _, _)                  =>
         commonSubs(dfa) = null
       case IR_Assignment(tba : TempBufferAccess, _, _)                      =>
         commonSubs(tba) = null
@@ -568,7 +569,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
            | _ : IR_VariableAccess
            | _ : IR_StringLiteral
            | _ : ArrayAccess
-           | _ : DirectFieldAccess
+           | _ : IR_DirectFieldAccess
            | _ : TempBufferAccess
            | _ : LoopCarriedCSBufferAccess
            | _ : iv.InternalVariable //

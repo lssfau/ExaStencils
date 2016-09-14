@@ -1,7 +1,7 @@
 package exastencils.optimization
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -42,7 +42,7 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(fa : FieldAccessLike, src, op) =>
+    case a @ IR_Assignment(fa : IR_MultiDimFieldAccess, src, op) =>
       a.src = simplify(src)
       a
   })

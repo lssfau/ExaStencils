@@ -3,6 +3,7 @@ package exastencils.communication
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_DirectFieldAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -166,9 +167,9 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
 
   override def expand : Output[IR_Statement] = {
     var innerStmt : IR_Statement = new IR_Assignment(
-      new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), IR_ExpressionIndex(
+      new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), IR_ExpressionIndex(
         IR_ExpressionIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)),
-      new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)))
+      new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)))
 
     if (condition.isDefined)
       innerStmt = IR_IfCondition(condition.get, innerStmt)
@@ -191,8 +192,8 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
 
   override def expand : Output[IR_Statement] = {
     var innerStmt : IR_Statement = IR_Assignment(
-      DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)),
-      DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
+      IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims)),
+      IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
         IR_ExpressionIndex(IR_ExpressionIndex(LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
 
     if (condition.isDefined)
@@ -255,9 +256,9 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
       else
         maxCnt)
       if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == SimplifyExpression.evalIntegral(cnt))) {
-        RemoteSend(field, neighbor, IR_AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
+        RemoteSend(field, neighbor, IR_AddressofExpression(new IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
-        RemoteSend(field, neighbor, IR_AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
+        RemoteSend(field, neighbor, IR_AddressofExpression(new IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
         RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
@@ -319,9 +320,9 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
       val maxCnt = indices.getTotalSize
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
       if (!Knowledge.data_genVariableFieldSizes && 1 == SimplifyExpression.evalIntegral(cnt)) {
-        RemoteRecv(field, neighbor, IR_AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
+        RemoteRecv(field, neighbor, IR_AddressofExpression(new IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
-        RemoteRecv(field, neighbor, IR_AddressofExpression(new DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
+        RemoteRecv(field, neighbor, IR_AddressofExpression(new IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
         RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
@@ -380,7 +381,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
 
       val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
-      val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
+      val fieldAccess = new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
       ret += IR_Assignment(it, 0)
       ret += new LoopOverDimensions(numDims, indices, IR_IfCondition(
@@ -391,7 +392,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
       val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
-      val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
+      val fieldAccess = new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
       ret += new LoopOverDimensions(numDims, indices, IR_Assignment(tmpBufAccess, fieldAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
     }
 
@@ -414,7 +415,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
 
       val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
-      val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
+      val fieldAccess = new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
       ret += IR_Assignment(it, 0)
       ret += new LoopOverDimensions(numDims, indices, IR_IfCondition(
@@ -425,7 +426,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
       val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
-      val fieldAccess = new DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
+      val fieldAccess = new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), LoopOverDimensions.defIt(numDims))
 
       ret += new LoopOverDimensions(numDims, indices, IR_Assignment(fieldAccess, tmpBufAccess)) with OMP_PotentiallyParallel with PolyhedronAccessible
     }

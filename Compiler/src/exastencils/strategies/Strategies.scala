@@ -3,6 +3,7 @@ package exastencils.strategies
 import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Queue }
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -508,10 +509,10 @@ object GatherFieldAccessOffsets extends QuietDefaultStrategy("Gathering field ac
   }
 
   this += new Transformation("TODO", {
-    case fa : FieldAccess        =>
+    case fa : IR_FieldAccess        =>
       addAccess(fa.fieldSelection.field.codeName, fa.index - LoopOverDimensions.defIt(fa.index.length))
       fa
-    case dfa : DirectFieldAccess =>
+    case dfa : IR_DirectFieldAccess =>
       addAccess(dfa.fieldSelection.field.codeName, dfa.index - dfa.fieldSelection.field.referenceOffset - LoopOverDimensions.defIt(dfa.index.length))
       dfa
   })

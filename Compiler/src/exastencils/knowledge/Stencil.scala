@@ -3,6 +3,7 @@ package exastencils.knowledge
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -135,13 +136,13 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (StencilAccess(stencil), fieldAccess : FieldAccess)                  =>
+        case (StencilAccess(stencil), fieldAccess : IR_FieldAccess)                  =>
           result += StencilConvolution(stencil, fieldAccess)
           prev = null
-        case (stencilFieldAccess : StencilFieldAccess, fieldAccess : FieldAccess) =>
+        case (stencilFieldAccess : StencilFieldAccess, fieldAccess : IR_FieldAccess) =>
           result += StencilFieldConvolution(stencilFieldAccess, fieldAccess)
           prev = null
-        case _                                                                    =>
+        case _                                                                       =>
           if (prev != null) result += prev
           prev = f
       }
@@ -238,7 +239,7 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
           for (dim <- 0 until Knowledge.dimensionality)
             fieldIndex(dim) -= stencilLeft.entries(idx).offset(dim)
 
-        statements += new IR_Assignment(new FieldAccess(fieldSelection, fieldIndex), coeff, op)
+        statements += new IR_Assignment(new IR_FieldAccess(fieldSelection, fieldIndex), coeff, op)
       }
 
       statements

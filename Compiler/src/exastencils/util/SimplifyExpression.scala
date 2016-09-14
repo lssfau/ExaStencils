@@ -4,6 +4,7 @@ import scala.collection._
 import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -452,13 +453,13 @@ object SimplifyExpression {
         a.index = SimplifyExpression.simplifyIntegralExpr(a.index)
         a
 
-      case d : DirectFieldAccess =>
+      case d : IR_DirectFieldAccess =>
         for (i <- 0 until 4)
           if (d.index(i) != IR_NullExpression)
             d.index(i) = SimplifyExpression.simplifyIntegralExpr(d.index(i))
         d
 
-      case f : FieldAccess =>
+      case f : IR_FieldAccess =>
         for (i <- 0 until 4)
           if (f.index(i) != IR_NullExpression)
             f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))
@@ -519,7 +520,7 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(mAcc) = 1d
 
-      case fAcc : FieldAccessLike =>
+      case fAcc : IR_MultiDimFieldAccess =>
         res = new HashMap[IR_Expression, Double]()
         res(fAcc) = 1d
 

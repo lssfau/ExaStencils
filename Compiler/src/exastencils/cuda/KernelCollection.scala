@@ -5,7 +5,7 @@ import scala.collection.mutable._
 import scala.language.postfixOps
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_FunctionCollection
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
@@ -184,9 +184,9 @@ case class Kernel(var identifier : String,
   // properties required for shared memory analysis and shared memory allocation
   var fieldNames = ListBuffer[String]()
   var fieldBaseIndex = mutable.HashMap[String, IR_ExpressionIndex]()
-  var fieldForSharedMemory = mutable.HashMap[String, DirectFieldAccess]()
+  var fieldForSharedMemory = mutable.HashMap[String, IR_DirectFieldAccess]()
   var fieldOffset = mutable.HashMap[String, IR_ExpressionIndex]()
-  var fieldAccessesForSharedMemory = mutable.HashMap[String, List[FieldAccessLike]]()
+  var fieldAccessesForSharedMemory = mutable.HashMap[String, List[IR_MultiDimFieldAccess]]()
   var leftDeviations = mutable.HashMap[String, Array[Long]]()
   var leftDeviation = mutable.HashMap[String, Long]()
   var rightDeviations = mutable.HashMap[String, Array[Long]]()
@@ -195,8 +195,8 @@ case class Kernel(var identifier : String,
   var fieldDatatype = mutable.HashMap[String, IR_Datatype]()
 
   var evaluatedAccesses = false
-  var linearizedFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
-  var writtenFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
+  var linearizedFieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
+  var writtenFieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
   var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
 
   var evaluatedIndexBounds = false
@@ -306,7 +306,7 @@ case class Kernel(var identifier : String,
 
       // 2.4 consider this field for shared memory if all conditions are met
       if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
-        val access = DirectFieldAccess(fieldAccesses.head.fieldSelection, IR_ExpressionIndex(baseIndex))
+        val access = IR_DirectFieldAccess(fieldAccesses.head.fieldSelection, IR_ExpressionIndex(baseIndex))
         access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
         fieldNames += name
         fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
@@ -498,9 +498,9 @@ case class Kernel(var identifier : String,
             statements += new VariableDeclarationStatement(fieldDatatype(field), "behind" + x, 0)
           })
           (1L to rightDeviation(field)).foreach(x => {
-            statements += new VariableDeclarationStatement(fieldDatatype(field), "infront" + x, DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, spatialBaseIndex + IR_ExpressionIndex(Array[Long](0, 0, x))).linearize)
+            statements += new VariableDeclarationStatement(fieldDatatype(field), "infront" + x, IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, spatialBaseIndex + IR_ExpressionIndex(Array[Long](0, 0, x))).linearize)
           })
-          statements += new VariableDeclarationStatement(fieldDatatype(field), "current", DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, spatialBaseIndex).linearize)
+          statements += new VariableDeclarationStatement(fieldDatatype(field), "current", IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, spatialBaseIndex).linearize)
 
           // 5. Add statements for loop body in kernel (z-Dim)
           // 5.1 advance the slice (move the thread front)
@@ -513,13 +513,13 @@ case class Kernel(var identifier : String,
             sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + x), IR_VariableAccess("infront" + (x + 1)))
           })
 
-          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field)), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
+          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field)), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
 
           // 5.2 load from global memory into shared memory
           sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.take(executionDim).reverse, sharedArrayStrides), current)
         } else {
           // 6. Load from global memory into shared memory
-          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldForSharedMemory(field).index).linearize)
+          sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldForSharedMemory(field).index).linearize)
         }
 
         // 7. Add load operations as ConditionStatement to avoid index out of bounds exceptions in global memory
@@ -549,7 +549,7 @@ case class Kernel(var identifier : String,
             val globalLeftIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalLeftIndex(dim) = IR_SubtractionExpression(globalLeftIndex(dim), x)
 
-            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalLeftIndex).linearize)
+            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalLeftIndex).linearize)
           })
           (0L until rightDeviations(field)(dim)).foreach(x => {
             val localRightIndex = Duplicate(localThreadId)
@@ -557,7 +557,7 @@ case class Kernel(var identifier : String,
             val globalRightIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
             globalRightIndex(dim) = IR_AdditionExpression(IR_AdditionExpression(globalRightIndex(dim), localFieldOffset), x)
 
-            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalRightIndex).linearize)
+            conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalRightIndex).linearize)
           })
 
           IR_IfCondition(condition, conditionBody)
@@ -747,9 +747,9 @@ case class Kernel(var identifier : String,
 }
 
 object GatherLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering local LinearizedFieldAccess nodes") {
-  var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
+  var fieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
 
-  def mapFieldAccess(access : LinearizedFieldAccess) = {
+  def mapFieldAccess(access : IR_LinearizedFieldAccess) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -766,16 +766,16 @@ object GatherLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering 
   }
 
   this += new Transformation("Searching", {
-    case access : LinearizedFieldAccess =>
+    case access : IR_LinearizedFieldAccess =>
       mapFieldAccess(access)
       access
   }, false)
 }
 
 object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replacing local LinearizedFieldAccess nodes") {
-  var fieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
+  var fieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
 
-  def extractIdentifier(access : LinearizedFieldAccess) = {
+  def extractIdentifier(access : IR_LinearizedFieldAccess) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -792,16 +792,16 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
   }
 
   this += new Transformation("Searching", {
-    case access : LinearizedFieldAccess =>
+    case access : IR_LinearizedFieldAccess =>
       val identifier = extractIdentifier(access)
       ArrayAccess(identifier, access.index)
   })
 }
 
 object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering local written LinearizedFieldAccess nodes for read-only cache usage") {
-  var writtenFieldAccesses = mutable.HashMap[String, LinearizedFieldAccess]()
+  var writtenFieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
 
-  def mapFieldAccess(access : LinearizedFieldAccess) = {
+  def mapFieldAccess(access : IR_LinearizedFieldAccess) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -818,7 +818,7 @@ object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gat
   }
 
   this += new Transformation("Searching", {
-    case stmt @ IR_Assignment(access @ LinearizedFieldAccess(fieldSelection : FieldSelection, index : IR_Expression), _, _) =>
+    case stmt @ IR_Assignment(access @ IR_LinearizedFieldAccess(fieldSelection : FieldSelection, index : IR_Expression), _, _) =>
       mapFieldAccess(access)
       stmt
   })
@@ -826,12 +826,12 @@ object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gat
 
 object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("Gathering local FieldAccessLike nodes for shared memory") {
   var loopVariables = ListBuffer[String]()
-  var fieldAccesses = new mutable.HashMap[String, List[FieldAccessLike]].withDefaultValue(Nil)
+  var fieldAccesses = new mutable.HashMap[String, List[IR_MultiDimFieldAccess]].withDefaultValue(Nil)
   var fieldIndicesConstantPart = new mutable.HashMap[String, List[Array[Long]]].withDefaultValue(Nil)
   var maximalFieldDim = Platform.hw_cuda_maxNumDimsBlock
   var writtenFields = ListBuffer[String]()
 
-  def extractFieldIdentifier(access : FieldAccessLike) = {
+  def extractFieldIdentifier(access : IR_MultiDimFieldAccess) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -847,10 +847,10 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
   }
 
   this += new Transformation("Searching", {
-    case stmt @ IR_Assignment(access : FieldAccessLike, _, _)                                         =>
+    case stmt @ IR_Assignment(access : IR_MultiDimFieldAccess, _, _)                                         =>
       writtenFields += extractFieldIdentifier(access)
       stmt
-    case access : FieldAccessLike if access.fieldSelection.fieldLayout.numDimsData <= maximalFieldDim =>
+    case access : IR_MultiDimFieldAccess if access.fieldSelection.fieldLayout.numDimsData <= maximalFieldDim =>
       val field = access.fieldSelection.field
       val identifier = extractFieldIdentifier(access)
 
@@ -891,7 +891,7 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
   var baseIndex = IR_ExpressionIndex()
   var applySpatialBlocking = false
 
-  def extractIdentifier(access : FieldAccessLike) = {
+  def extractIdentifier(access : IR_MultiDimFieldAccess) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -908,7 +908,7 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
   }
 
   this += new Transformation("Searching", {
-    case access : FieldAccessLike =>
+    case access : IR_MultiDimFieldAccess =>
       val identifier = extractIdentifier(access)
       val deviation = (IR_ExpressionIndex(access.getAnnotation(Kernel.ConstantIndexPart).get.asInstanceOf[Array[Long]]) - fieldToOffset).indices
 

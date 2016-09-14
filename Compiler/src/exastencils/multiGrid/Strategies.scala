@@ -3,6 +3,7 @@ package exastencils.multiGrid
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.communication._
 import exastencils.core._
 import exastencils.core.collectors._
@@ -27,7 +28,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
   this += new Transformation("ModifyIndices", {
     case fct : FunctionCallExpression if "changeLvlAndIndices" == fct.name => {
       // extract information from special function call
-      val fieldAccess = fct.arguments(0).asInstanceOf[FieldAccess]
+      val fieldAccess = fct.arguments(0).asInstanceOf[IR_FieldAccess]
       Logger.warn("Performing index adaptation for " + fieldAccess.fieldSelection.field.codeName)
       val newLevel = fct.arguments(1)
 
@@ -48,14 +49,14 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
       fieldAccess
     }
 
-    case access : FieldAccess if collector.inLevelScope &&
+    case access : IR_FieldAccess if collector.inLevelScope &&
       SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel        => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = fieldAccess.index(i) / 2
       fieldAccess
     }
-    case access : FieldAccess if collector.inLevelScope &&
+    case access : IR_FieldAccess if collector.inLevelScope &&
       SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel        => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
@@ -91,7 +92,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
       case access : StencilFieldAccess => {
         var index = Duplicate(access.index)
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
-        new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
+        new IR_FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
       }
       case _                           => {
         Logger.warn("diag with unknown arg " + args(0))
@@ -210,11 +211,11 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     case IR_ExpressionStatement(FunctionCallExpression("printField", args)) => {
       args.length match {
         case 1 => // option 1: only field -> deduce name
-          new PrintFieldStatement("\"" + args(0).asInstanceOf[FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[FieldAccess].fieldSelection)
+          new PrintFieldStatement("\"" + args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[IR_FieldAccess].fieldSelection)
         case 2 => // option 2: filename and field
-          new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
+          new PrintFieldStatement(args(0), args(1).asInstanceOf[IR_FieldAccess].fieldSelection)
         case 3 => //option 3: filename, file and condition
-          new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection, args(2))
+          new PrintFieldStatement(args(0), args(1).asInstanceOf[IR_FieldAccess].fieldSelection, args(2))
       }
     }
 
@@ -249,33 +250,33 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     }
 
     case FunctionCallExpression("isOnBoundaryOf", args) => {
-      IsOnBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection,
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IsOnBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
     case FunctionCallExpression("isOnEastBoundaryOf", args)   => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(1, 0, 0)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(1, 0, 0)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
     case FunctionCallExpression("isOnWestBoundaryOf", args)   => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(-1, 0, 0)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(-1, 0, 0)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
     case FunctionCallExpression("isOnNorthBoundaryOf", args)  => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 1, 0)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 1, 0)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
     case FunctionCallExpression("isOnSouthBoundaryOf", args)  => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, -1, 0)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, -1, 0)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
     case FunctionCallExpression("isOnTopBoundaryOf", args)    => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, 1)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, 1)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
     case FunctionCallExpression("isOnBottomBoundaryOf", args) => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, -1)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, -1)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
     case IR_ElementwiseAdditionExpression(left, right)       => FunctionCallExpression("elementwiseAdd", ListBuffer(left, right))

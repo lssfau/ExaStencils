@@ -5,6 +5,7 @@ import scala.collection.mutable.{ Node => _, _ }
 import java.io.PrintWriter
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MultiDimFieldAccess
 import exastencils.core.Settings
 import exastencils.data._
 import exastencils.datastructures.Transformation._
@@ -250,7 +251,7 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
   var fieldAccesses = HashMap[String, IR_Datatype]()
   var inWriteOp = false
 
-  def mapFieldAccess(access : FieldAccessLike) = {
+  def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -268,13 +269,13 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
   }
 
   this += new Transformation("Searching", {
-    case assign : IR_Assignment   =>
+    case assign : IR_Assignment          =>
       inWriteOp = true
       EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       inWriteOp = false
       EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.src))
       assign
-    case access : FieldAccessLike =>
+    case access : IR_MultiDimFieldAccess =>
       mapFieldAccess(access)
       access
   }, false)

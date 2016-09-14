@@ -3,7 +3,7 @@ package exastencils.multiGrid
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_FunctionCollection
+import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -31,7 +31,7 @@ case class InitFieldsWithZero() extends IR_AbstractFunction with Expandable {
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           new IR_Assignment(
-            new DirectFieldAccess(FieldSelection(field, field.level, slot), index),
+            new IR_DirectFieldAccess(FieldSelection(field, field.level, slot), index),
             0.0) : IR_Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
       loopOverDims.optLevel = 1
 

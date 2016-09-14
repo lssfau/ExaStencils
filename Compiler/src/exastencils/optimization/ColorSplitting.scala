@@ -3,6 +3,7 @@ package exastencils.optimization
 import java.util.IdentityHashMap
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_DirectFieldAccess
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
@@ -22,7 +23,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
     val updatedFields = new IdentityHashMap[Field, Integer]()
 
     override def isDefinedAt(node : Node) : Boolean = {
-      return node.isInstanceOf[DirectFieldAccess]
+      return node.isInstanceOf[IR_DirectFieldAccess]
     }
 
     private def addColorOffset(index : IR_ExpressionIndex, dim : Int, colorOffset : Int) : Boolean = {
@@ -53,7 +54,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
     override def apply(node : Node) : Transformation.OutputType = {
 
-      val dfa = node.asInstanceOf[DirectFieldAccess]
+      val dfa = node.asInstanceOf[IR_DirectFieldAccess]
       val field : Field = dfa.fieldSelection.field
       val layout : FieldLayout = field.fieldLayout
       val innerD = 0

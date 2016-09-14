@@ -3,6 +3,7 @@ package exastencils.util
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -121,7 +122,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
                 ((0 until numDimsGrid).view.flatMap { dim =>
                   List(getPos(field, dim), separator)
                 } ++ arrayIndexRange.view.flatMap { index =>
-                  val access = new FieldAccess(field, LoopOverDimensions.defIt(numDimsData))
+                  val access = new IR_FieldAccess(field, LoopOverDimensions.defIt(numDimsData))
                   if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
                     access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
                   List(access, separator)

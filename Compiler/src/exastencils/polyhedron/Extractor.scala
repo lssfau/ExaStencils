@@ -3,6 +3,7 @@ package exastencils.polyhedron
 import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder }
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_DirectFieldAccess
 import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures._
@@ -506,7 +507,7 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(tmp.prettyprint(), index)
 
-          case DirectFieldAccess(fieldSelection, index) =>
+          case IR_DirectFieldAccess(fieldSelection, index) =>
             fieldSelection.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterFieldAccess(fieldSelection, index)
@@ -605,7 +606,7 @@ class Extractor extends Collector {
         case _ : IR_StringLiteral             => leaveScalarAccess()
         case _ : IR_VariableAccess            => leaveScalarAccess()
         case _ : ArrayAccess                  => leaveArrayAccess()
-        case _ : DirectFieldAccess            => leaveFieldAccess()
+        case _ : IR_DirectFieldAccess         => leaveFieldAccess()
         case _ : TempBufferAccess             => leaveTempBufferAccess()
         case _ : LoopCarriedCSBufferAccess    => leaveLoopCarriedCSBufferAccess()
         case _ : VariableDeclarationStatement => leaveDecl()
