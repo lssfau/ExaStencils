@@ -1,6 +1,5 @@
 package exastencils.datastructures.ir
 
-import scala.reflect.runtime.universe._
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
@@ -85,11 +84,6 @@ case class MatrixExpression(var innerDatatype : Option[IR_Datatype], var express
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.flatten.forall(e => e.isInstanceOf[Number])
   def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IR_IntegerConstant])
-}
-
-case class Allocation(var innerDatatype : IR_Datatype, var size : IR_Expression) extends IR_Expression {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "new" << ' ' << innerDatatype << "[" << size << "]"
 }
 
 case class SizeOfExpression(var innerDatatype : IR_Datatype) extends IR_Expression {
@@ -187,7 +181,8 @@ case class VirtualFieldAccess(var fieldName : String,
     var index : IR_ExpressionIndex,
     var arrayIndex : Option[Int] = None,
     var fragIdx : IR_Expression = LoopOverFragments.defIt) extends IR_Expression {
-  override def datatype = IR_RealDatatype // FIXME
+  override def datatype = IR_RealDatatype
+  // FIXME
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
 
 }
@@ -263,10 +258,10 @@ case class FunctionCallExpression(var name : String, var arguments : ListBuffer[
       case "diag" | "diag_inv" | "diag_inverse" => arguments(0).datatype
       case "inv" | "inverse"                    => arguments(0).datatype
       case "Vec3"                               => IR_UnitDatatype
-      case _ => {
+      case _                                    => {
         var fct = StateManager.findAll[FunctionStatement]((t : FunctionStatement) => { t.name == this.name })
         if (fct.length <= 0) {
-          Logger.warn(s"""Did not find function '${name}'""")
+          Logger.warn(s"""Did not find function '${ name }'""")
           IR_UnitDatatype
         } else {
           fct(0).returntype
@@ -287,7 +282,8 @@ case class InitializerList(var arguments : ListBuffer[IR_Expression]) extends IR
 case class MemberFunctionCallExpression(var objectName : IR_Expression, var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
   def this(objectName : IR_Expression, name : String, args : IR_Expression*) = this(objectName, name, args.to[ListBuffer])
 
-  override def datatype = IR_UnitDatatype // FIXME
+  override def datatype = IR_UnitDatatype
+  // FIXME
   override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
 }
 
@@ -625,7 +621,7 @@ private object FusedPrinterHelper {
       case "AVX2"            => out << "_mm256_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
       case "AVX512" | "IMCI" => out << "_mm512_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
       case "QPX"             => out << "vec_m" << addSub << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
-      case "NEON" =>
+      case "NEON"            =>
         if (addSub == "add")
           out << "vmlaq_f32(" << summand << ", " << factor1 << ", " << factor2 << ')' // use unfused for compatibility with gcc 4.7 and older
         else // vmlsq_f32(a,b,c) is a-b*c and not a*b-c; thanks ARM  -.-
@@ -635,7 +631,8 @@ private object FusedPrinterHelper {
 }
 
 case class SIMD_DivisionExpression(var left : IR_Expression, var right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype2(left.datatype, right.datatype) // FIXME
+  override def datatype = GetResultingDatatype2(left.datatype, right.datatype)
+  // FIXME
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {

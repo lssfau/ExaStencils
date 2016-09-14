@@ -74,7 +74,7 @@ abstract class AbstractTmpBuffer extends CommVariable {
     Some(wrapInLoops(
       IR_IfCondition(ptrExpr,
         ListBuffer[IR_Statement](
-          FreeStatement(ptrExpr),
+          IR_ArrayFree(ptrExpr),
           new AssignmentStatement(ptrExpr, 0)))))
   }
 }

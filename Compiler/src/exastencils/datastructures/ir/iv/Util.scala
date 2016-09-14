@@ -115,7 +115,7 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
       return Some(wrapInLoops(
         IR_IfCondition(ptrExpr,
           ListBuffer[IR_Statement](
-            FreeStatement(ptrExpr),
+            IR_ArrayFree(ptrExpr),
             new AssignmentStatement(ptrExpr, 0)))))
     else
       return Some(wrapInLoops(new AssignmentStatement(ptrExpr, 0)))

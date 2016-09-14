@@ -103,7 +103,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
     val ret = Some(wrapInLoops(
       IR_IfCondition(access,
         ListBuffer[IR_Statement](
-          FreeStatement(access),
+          IR_ArrayFree(access),
           new AssignmentStatement(access, 0)))))
     slot = origSlot
     ret

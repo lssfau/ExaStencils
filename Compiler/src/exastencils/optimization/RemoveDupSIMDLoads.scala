@@ -248,14 +248,14 @@ private[optimization] final class Analyze extends StackCollector {
     })
 
     def updateDup(expr : IR_Expression) : IR_Expression = {
-      val expr2 = FreeStatement(Duplicate(expr)) // just a temporary wrapper...
+      val expr2 = IR_ArrayFree(Duplicate(expr)) // just a temporary wrapper...
       replace = false
       applyStandalone(expr2)
       return expr2.pointer
     }
 
     def replaceDup(expr : IR_Expression) : IR_Expression = {
-      val expr2 = FreeStatement(Duplicate(expr)) // just a temporary wrapper...
+      val expr2 = IR_ArrayFree(Duplicate(expr)) // just a temporary wrapper...
       replace = true
       applyStandalone(expr2)
       return expr2.pointer
