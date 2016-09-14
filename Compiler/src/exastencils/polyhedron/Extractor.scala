@@ -474,7 +474,7 @@ class Extractor extends Collector {
         node match {
 
           // process
-          case c : ConditionStatement =>
+          case c : IR_IfCondition =>
             c.condition.annotate(SKIP_ANNOT)
             enterCondition(c)
 
@@ -599,15 +599,15 @@ class Extractor extends Collector {
 
     if (curScop.exists())
       node match {
-        case l : LoopOverDimensions           => leaveLoop(l)
-        case c : ConditionStatement           => leaveCondition(c)
-        case _ : AssignmentStatement          => leaveAssign()
-        case _ : IR_StringLiteral             => leaveScalarAccess()
-        case _ : IR_VariableAccess            => leaveScalarAccess()
-        case _ : ArrayAccess                  => leaveArrayAccess()
-        case _ : DirectFieldAccess            => leaveFieldAccess()
-        case _ : TempBufferAccess             => leaveTempBufferAccess()
-        case _ : LoopCarriedCSBufferAccess    => leaveLoopCarriedCSBufferAccess()
+        case l : LoopOverDimensions        => leaveLoop(l)
+        case c : IR_IfCondition            => leaveCondition(c)
+        case _ : AssignmentStatement       => leaveAssign()
+        case _ : IR_StringLiteral          => leaveScalarAccess()
+        case _ : IR_VariableAccess         => leaveScalarAccess()
+        case _ : ArrayAccess               => leaveArrayAccess()
+        case _ : DirectFieldAccess         => leaveFieldAccess()
+        case _ : TempBufferAccess          => leaveTempBufferAccess()
+        case _ : LoopCarriedCSBufferAccess => leaveLoopCarriedCSBufferAccess()
         case _ : VariableDeclarationStatement => leaveDecl()
         case _                                =>
       }
@@ -749,7 +749,7 @@ class Extractor extends Collector {
     }
   }
 
-  private def enterCondition(cond : ConditionStatement) : Unit = {
+  private def enterCondition(cond : IR_IfCondition) : Unit = {
     if (cond.falseBody.isEmpty) {
       val sb = new StringBuilder(" and ")
       extractConstraints(cond.condition, sb, false, paramExprs)
@@ -758,7 +758,7 @@ class Extractor extends Collector {
       throw new ExtractionException("cannot deal with a non-empty falseBody in a ConditionStatement: " + cond.prettyprint())
   }
 
-  private def leaveCondition(cond : ConditionStatement) : Unit = {
+  private def leaveCondition(cond : IR_IfCondition) : Unit = {
     if (cond.falseBody.isEmpty)
       conditions.pop()
   }

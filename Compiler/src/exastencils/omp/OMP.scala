@@ -42,7 +42,7 @@ case object OMP_Critical {
   var counter = 0
 }
 
-case class OMP_ParallelFor(var body : ForLoopStatement, var additionalOMPClauses : ListBuffer[OMP_Clause], var collapse : Int = 1) extends IR_Statement {
+case class OMP_ParallelFor(var body : IR_ForLoop, var additionalOMPClauses : ListBuffer[OMP_Clause], var collapse : Int = 1) extends IR_Statement {
 
   /**
     * Computes the actual omp collapse level,
@@ -57,9 +57,9 @@ case class OMP_ParallelFor(var body : ForLoopStatement, var additionalOMPClauses
         return res // no more than one statement allowed: not perfectly nested anymore, return last valid collapse level
       stmts =
         filtered(0) match {
-          case s : IR_Scope         => s.body
-          case l : ForLoopStatement => { res += 1; l.body }
-          case _                    => return res // any other statement: not perfectly nested anymore, return last valid collapse level
+          case s : IR_Scope   => s.body
+          case l : IR_ForLoop => { res += 1; l.body }
+          case _              => return res // any other statement: not perfectly nested anymore, return last valid collapse level
         }
     }
 
@@ -86,7 +86,7 @@ case class OMP_WaitForFlag() extends AbstractFunctionStatement with Expandable {
 
     FunctionStatement(IR_UnitDatatype, name, ListBuffer(FunctionArgument(flag.name, flag.datatype.get)),
       ListBuffer[IR_Statement](
-        new WhileLoopStatement(IR_NegationExpression(DerefAccess(flag)), ListBuffer[IR_Statement]()),
+        new IR_WhileLoop(IR_NegationExpression(DerefAccess(flag)), ListBuffer[IR_Statement]()),
         new AssignmentStatement(DerefAccess(flag), IR_BooleanConstant(false))),
       false)
   }

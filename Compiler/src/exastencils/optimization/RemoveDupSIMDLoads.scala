@@ -41,7 +41,7 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
   }
 
   private val SortLoads : PartialFunction[Node, Transformation.OutputType] = {
-    case l : ForLoopStatement if (l.hasAnnotation(Vectorization.VECT_ANNOT)) =>
+    case l : IR_ForLoop if (l.hasAnnotation(Vectorization.VECT_ANNOT)) =>
       val newBody = new ListBuffer[IR_Statement]()
       val toSort = new ArrayBuffer[(IR_Statement, IR_Expression, IR_Expression)]()
       for (s <- l.body) {
@@ -101,7 +101,7 @@ private[optimization] final class Analyze extends StackCollector {
   override def enter(node : Node) : Unit = {
     super.enter(node)
     node match {
-      case ForLoopStatement(VariableDeclarationStatement(IR_IntegerDatatype, lVar, Some(start)),
+      case IR_ForLoop(VariableDeclarationStatement(IR_IntegerDatatype, lVar, Some(start)),
       IR_LowerExpression(IR_VariableAccess(lVar3, _), end),
       AssignmentStatement(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
       _, _) if (lVar == lVar2 && lVar2 == lVar3) //
@@ -198,7 +198,7 @@ private[optimization] final class Analyze extends StackCollector {
                 rAs = rAs.tail
                 if (lAParent eq rAs.head)
                   break
-              } while (!rAs.head.isInstanceOf[ForLoopStatement])
+              } while (!rAs.head.isInstanceOf[IR_ForLoop])
               loadAncs = loadAncs.tail
             } while (true)
           }

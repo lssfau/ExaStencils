@@ -176,11 +176,11 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case IR_NegativeExpression(m : MatrixExpression) =>
       MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => IR_NegativeExpression(y) : Expression } })
 
-    case IR_Scope(ListBuffer(IR_Scope(body)))                                => IR_Scope(body)
+    case IR_Scope(ListBuffer(IR_Scope(body)))                            => IR_Scope(body)
 
-    case ConditionStatement(cond, ListBuffer(IR_Scope(trueBody)), falseBody) => ConditionStatement(cond, trueBody, falseBody)
-    case ConditionStatement(cond, trueBody, ListBuffer(IR_Scope(falseBody))) => ConditionStatement(cond, trueBody, falseBody)
-    case l @ ForLoopStatement(beg, end, inc, ListBuffer(IR_Scope(body)), red) =>
+    case IR_IfCondition(cond, ListBuffer(IR_Scope(trueBody)), falseBody) => IR_IfCondition(cond, trueBody, falseBody)
+    case IR_IfCondition(cond, trueBody, ListBuffer(IR_Scope(falseBody))) => IR_IfCondition(cond, trueBody, falseBody)
+    case l @ IR_ForLoop(beg, end, inc, ListBuffer(IR_Scope(body)), red) =>
       l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
 
     case IR_EqEqExpression(IR_IntegerConstant(left), IR_IntegerConstant(right))         => IR_BooleanConstant(left == right)
@@ -213,7 +213,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case IR_OrOrExpression(IR_BooleanConstant(false), expr : IR_Expression)             => expr
     case IR_OrOrExpression(expr : IR_Expression, IR_BooleanConstant(false))             => expr
 
-    case ConditionStatement(IR_BooleanConstant(cond), tBranch, fBranch) => {
+    case IR_IfCondition(IR_BooleanConstant(cond), tBranch, fBranch) => {
       if (cond) {
         if (tBranch.isEmpty) IR_NullStatement else tBranch
       } else {

@@ -45,16 +45,16 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
     node.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
     return node match {
-      case loop : ForLoopStatement with OptimizationHint =>
+      case loop : IR_ForLoop with OptimizationHint =>
         loop.isInnermost && (loop.isParallel || loop.isVectorizable) && !loop.hasAnnotation(Vectorization.VECT_ANNOT)
-      case _                                             =>
+      case _                                       =>
         false
     }
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
     return try {
-      vectorizeLoop(node.asInstanceOf[ForLoopStatement])
+      vectorizeLoop(node.asInstanceOf[IR_ForLoop])
     } catch {
       case ex : VectorizationException =>
         if (DEBUG)
@@ -63,11 +63,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     }
   }
 
-  private def vectorizeLoop(loop : ForLoopStatement) : IR_Statement = {
+  private def vectorizeLoop(loop : IR_ForLoop) : IR_Statement = {
 
     // excessive testing if loop header allows vectorization
     return loop match {
-      case ForLoopStatement(VariableDeclarationStatement(IR_IntegerDatatype, itName, Some(lBound)), condExpr, incrExpr, body, reduction) =>
+      case IR_ForLoop(VariableDeclarationStatement(IR_IntegerDatatype, itName, Some(lBound)), condExpr, incrExpr, body, reduction) =>
 
         val uBoundExcl : IR_Expression =
           condExpr match {
@@ -231,7 +231,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     return found
   }
 
-  private def vectorizeLoop(oldLoop : ForLoopStatement, itVar : String, begin : IR_Expression, endExcl : IR_Expression,
+  private def vectorizeLoop(oldLoop : IR_ForLoop, itVar : String, begin : IR_Expression, endExcl : IR_Expression,
       incr : Long, body : ListBuffer[IR_Statement], reduction : Option[Reduction]) : IR_Statement = {
 
     val ctx = new LoopCtx(itVar, incr)
@@ -369,7 +369,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         Unrolling.startVarAcc + ((IR_IntegerConstant(vs) - (wrappedAlignExpr.expression Mod IR_IntegerConstant(vs))) Mod IR_IntegerConstant(vs)))
       res += new VariableDeclarationStatement(IR_IntegerDatatype, preEndVar, preEndExpr)
 
-      res += new ForLoopStatement(new VariableDeclarationStatement(IR_IntegerDatatype, itVar, Unrolling.startVarAcc),
+      res += new IR_ForLoop(new VariableDeclarationStatement(IR_IntegerDatatype, itVar, Unrolling.startVarAcc),
         new IR_LowerExpression(itVarAcc, preEndVarAcc),
         new AssignmentStatement(itVarAcc, IR_IntegerConstant(incr), "+="),
         Duplicate(body))
@@ -385,7 +385,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       res += intermDecl
     }
 
-    val emptyLoopGuard = new ConditionStatement(IR_LowerExpression(Unrolling.startVarAcc, Unrolling.intermVarAcc), new ListBuffer[IR_Statement]())
+    val emptyLoopGuard = IR_IfCondition(IR_LowerExpression(Unrolling.startVarAcc, Unrolling.intermVarAcc), new ListBuffer[IR_Statement]())
     emptyLoopGuard.trueBody ++= ctx.getPreLoopStmts()
     emptyLoopGuard.trueBody += oldLoop
     emptyLoopGuard.trueBody ++= ctx.getPostLoopStmts()
@@ -448,7 +448,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, Some(dataType)))
         ctx.addStmt(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, Some(initVec)))
 
-      case ConditionStatement(cond, trueBody, falseBody) if (stmt.hasAnnotation(Vectorization.COND_VECTABLE)) =>
+      case IR_IfCondition(cond, trueBody, falseBody) if (stmt.hasAnnotation(Vectorization.COND_VECTABLE)) =>
         if (stmt.hasAnnotation(Vectorization.COND_IGN_INCR))
           ctx.ignIncr = true
         ctx.pushScope()
@@ -460,7 +460,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           vectorizeStmt(s, ctx)
         val falseBodyVec = ctx.popScope()
         ctx.ignIncr = false
-        val njuCond = new ConditionStatement(Duplicate(cond), trueBodyVec, falseBodyVec)
+        val njuCond = IR_IfCondition(Duplicate(cond), trueBodyVec, falseBodyVec)
         ctx.addStmt(njuCond)
 
       case _ => throw new VectorizationException("cannot deal with " + stmt.getClass() + "; " + stmt.prettyprint())

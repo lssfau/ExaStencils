@@ -1,9 +1,8 @@
 package exastencils.core.collectors
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Node => _, _ }
 
-import exastencils.base.l4.L4_Datatype
+import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
@@ -13,19 +12,19 @@ class L4VariableCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case x : FunctionStatement          => values.+=((new HashMap[String, L4_Datatype]()))
-      case x : LoopOverFragmentsStatement => values.+=((new HashMap[String, L4_Datatype]()))
-      case x : LoopOverPointsStatement    => values.+=((new HashMap[String, L4_Datatype]()))
-      case x : RepeatTimesStatement       => values.+=((new HashMap[String, L4_Datatype]()))
-      case x : RepeatUntilStatement       => values.+=((new HashMap[String, L4_Datatype]()))
-      case x : ConditionalStatement       => values.+=((new HashMap[String, L4_Datatype]()))
+      case x : FunctionStatement            => values.+=((new HashMap[String, L4_Datatype]()))
+      case x : LoopOverFragmentsStatement   => values.+=((new HashMap[String, L4_Datatype]()))
+      case x : LoopOverPointsStatement      => values.+=((new HashMap[String, L4_Datatype]()))
+      case x : RepeatTimesStatement         => values.+=((new HashMap[String, L4_Datatype]()))
+      case x : L4_UntilLoop                 => values.+=((new HashMap[String, L4_Datatype]()))
+      case x : L4_IfCondition               => values.+=((new HashMap[String, L4_Datatype]()))
       case x : VariableDeclarationStatement => {
         x.identifier match { // ignore Values in Globals
           case v : LeveledIdentifier => values.last += ((v.name + "@@" + v.level, x.datatype))
           case _                     => values.last += ((x.identifier.name, x.datatype))
         }
       }
-      case _ =>
+      case _                                =>
     }
   }
 
@@ -35,8 +34,8 @@ class L4VariableCollector extends Collector {
       case x : LoopOverFragmentsStatement => values.trimEnd(1)
       case x : LoopOverPointsStatement    => values.trimEnd(1)
       case x : RepeatTimesStatement       => values.trimEnd(1)
-      case x : RepeatUntilStatement       => values.trimEnd(1)
-      case x : ConditionalStatement       => values.trimEnd(1)
+      case x : L4_UntilLoop               => values.trimEnd(1)
+      case x : L4_IfCondition             => values.trimEnd(1)
       case _                              =>
     }
   }

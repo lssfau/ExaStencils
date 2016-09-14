@@ -166,7 +166,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
         boundaryStmts += AssignmentStatement(hackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
 
       // check if current unknown is on/ beyond boundary
-      stmts += ConditionStatement(
+      stmts += IR_IfCondition(
         IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
         innerStmts,
         boundaryStmts)
@@ -177,7 +177,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[FieldAccess], var equ
 
     // write back results
     for (i <- 0 until unknowns.length)
-      stmts += new ConditionStatement( // don't write back result on boundaries
+      stmts += IR_IfCondition( // don't write back result on boundaries
         IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
         AssignmentStatement(unknowns(i), hackVecComponentAccess(u, i)))
 

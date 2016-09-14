@@ -186,14 +186,14 @@ case class MPI_Sequential(var body : ListBuffer[IR_Statement]) extends IR_Statem
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = MPI_Sequential\n"
 
-  override def expand : Output[ForLoopStatement] = {
-    ForLoopStatement(
+  override def expand : Output[IR_ForLoop] = {
+    IR_ForLoop(
       VariableDeclarationStatement(IR_IntegerDatatype, "curRank", Some(0)),
       IR_LowerExpression("curRank", Knowledge.mpi_numThreads),
       IR_PreIncrementExpression("curRank"),
       ListBuffer[IR_Statement](
         MPI_Barrier(),
-        new ConditionStatement(IR_EqEqExpression("mpiRank", "curRank"), body)))
+        IR_IfCondition(IR_EqEqExpression("mpiRank", "curRank"), body)))
   }
 }
 
@@ -217,10 +217,10 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
           new VariableDeclarationStatement(flag, 0),
-          new WhileLoopStatement(IR_EqEqExpression(0, flag),
+          IR_WhileLoop(IR_EqEqExpression(0, flag),
             new AssignmentStatement(result, FunctionCallExpression("MPI_Test", ListBuffer(
               request, IR_AddressofExpression(flag), IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
-            new ConditionStatement(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
+            IR_IfCondition(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
               new VariableDeclarationStatement(msg),
               new VariableDeclarationStatement(len),
               new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
@@ -234,7 +234,7 @@ case class MPI_WaitForRequest() extends AbstractFunctionStatement with Expandabl
           new VariableDeclarationStatement(stat),
           new VariableDeclarationStatement(result),
           new AssignmentStatement(result, FunctionCallExpression("MPI_Wait", ListBuffer(request, IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
-          new ConditionStatement(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
+          IR_IfCondition(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
             new VariableDeclarationStatement(msg),
             new VariableDeclarationStatement(len),
             new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](

@@ -2,7 +2,7 @@ package exastencils.core.collectors
 
 import scala.collection.mutable.{ Node => _, _ }
 
-import exastencils.base.l4.L4_Expression
+import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
@@ -17,8 +17,8 @@ class L4ValueCollector extends Collector {
       case x : LoopOverFragmentsStatement => values.+=((new HashMap[String, L4_Expression]()))
       case x : LoopOverPointsStatement    => values.+=((new HashMap[String, L4_Expression]()))
       case x : RepeatTimesStatement       => values.+=((new HashMap[String, L4_Expression]()))
-      case x : RepeatUntilStatement       => values.+=((new HashMap[String, L4_Expression]()))
-      case x : ConditionalStatement       => values.+=((new HashMap[String, L4_Expression]()))
+      case x : L4_UntilLoop               => values.+=((new HashMap[String, L4_Expression]()))
+      case x : L4_IfCondition             => values.+=((new HashMap[String, L4_Expression]()))
       case x : ValueDeclarationStatement  => {
         x.identifier match { // ignore Values in Globals
           case v : LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.expression))
@@ -36,8 +36,8 @@ class L4ValueCollector extends Collector {
       case x : LoopOverFragmentsStatement => values.trimEnd(1)
       case x : LoopOverPointsStatement    => values.trimEnd(1)
       case x : RepeatTimesStatement       => values.trimEnd(1)
-      case x : RepeatUntilStatement       => values.trimEnd(1)
-      case x : ConditionalStatement       => values.trimEnd(1)
+      case x : L4_UntilLoop               => values.trimEnd(1)
+      case x : L4_IfCondition             => values.trimEnd(1)
       case _                              =>
     }
   }

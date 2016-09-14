@@ -99,66 +99,6 @@ case class AssignmentStatement(var dest : IR_Expression, var src : IR_Expression
   }
 }
 
-case class WhileLoopStatement(var comparison : IR_Expression, var body : ListBuffer[IR_Statement]) extends IR_Statement {
-  def this(comparison : IR_Expression, body : IR_Statement*) = this(comparison, body.to[ListBuffer])
-
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "while (" << comparison << ") {\n"
-    out <<< (body, "\n") << '\n'
-    out << '}'
-  }
-}
-
-case class ForLoopStatement(var begin : IR_Statement, var end : IR_Expression, var inc : IR_Statement, var body : ListBuffer[IR_Statement], var reduction : Option[Reduction] = None) extends IR_Statement {
-  def this(begin : IR_Statement, end : IR_Expression, inc : IR_Statement, reduction : Reduction, body : IR_Statement*) = this(begin, end, inc, body.to[ListBuffer], Option(reduction))
-  def this(begin : IR_Statement, end : IR_Expression, inc : IR_Statement, body : IR_Statement*) = this(begin, end, inc, body.to[ListBuffer])
-
-  def maxIterationCount() = {
-    if (hasAnnotation("numLoopIterations"))
-      getAnnotation("numLoopIterations").get.asInstanceOf[Int]
-    else
-      0 // TODO: warning?
-  }
-
-  override def prettyprint(out : PpStream) : Unit = {
-    // BEGIN AMAZING HACK as workaround for IBM XL compiler
-    var realEnd = end.prettyprint(out.env)
-    if (realEnd.size > 2 && realEnd(0) == '(')
-      realEnd = realEnd.substring(1, realEnd.size - 1)
-    var realInc = inc.prettyprint(out.env)
-    if (realInc.size > 2 && realInc(0) == '(')
-      realInc = realInc.substring(1, realInc.size - 1)
-    out << "for (" << begin << ' ' << realEnd << "; " << realInc
-    // END HACK
-    //out << "for (" << begin << ' ' << end << "; " << inc
-    val last = out.last
-    if (last == ';' || last == ')') // ')' in case of upper hack removed the ';' instead of the closing bracket
-      out.removeLast()
-    out << ") {\n"
-    out <<< (body, "\n") << '\n'
-    out << '}'
-  }
-}
-
-case class ConditionStatement(var condition : IR_Expression, var trueBody : ListBuffer[IR_Statement], var falseBody : ListBuffer[IR_Statement]) extends IR_Statement {
-  def this(condition : IR_Expression, trueBody : ListBuffer[IR_Statement]) = this(condition, trueBody, ListBuffer[IR_Statement]())
-  def this(condition : IR_Expression, trueBranch : IR_Statement) = this(condition, ListBuffer(trueBranch))
-
-  def this(condition : IR_Expression, trueBranch : IR_Statement, falseBranch : IR_Statement) = this(condition, ListBuffer(trueBranch), ListBuffer(falseBranch))
-  def this(condition : IR_Expression, trueBody : ListBuffer[IR_Statement], falseBranch : IR_Statement) = this(condition, trueBody, ListBuffer(falseBranch))
-  def this(condition : IR_Expression, trueBranch : IR_Statement, falseBody : ListBuffer[IR_Statement]) = this(condition, ListBuffer(trueBranch), falseBody)
-
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "if (" << condition << ") {\n"
-    out <<< (trueBody, "\n") << '\n'
-    if (!falseBody.isEmpty) {
-      out << "} else {\n"
-      out <<< (falseBody, "\n") << '\n'
-    }
-    out << '}'
-  }
-}
-
 case class CaseStatement(var toMatch : IR_Expression, var body : ListBuffer[IR_Statement]) extends IR_Statement {
   def this(toMatch : IR_Expression, body : IR_Statement*) = this(toMatch, body.to[ListBuffer])
 
@@ -198,8 +138,8 @@ case class BreakStatement() extends IR_Statement {
 case class AssertStatement(var check : IR_Expression, var msg : ListBuffer[IR_Expression], var abort : IR_Statement) extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
 
-  override def expand : Output[ConditionStatement] = {
-    new ConditionStatement(IR_NegationExpression(check),
+  override def expand : Output[IR_IfCondition] = {
+    IR_IfCondition(IR_NegationExpression(check),
       ListBuffer[IR_Statement](new PrintStatement(msg), abort))
   }
 }

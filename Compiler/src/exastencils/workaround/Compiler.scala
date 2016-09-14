@@ -25,9 +25,9 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
                 s.isInstanceOf[IR_Scope] ||
                 s.isInstanceOf[CommentStatement] ||
                 s.isInstanceOf[SwitchStatement] ||
-                s.isInstanceOf[ConditionStatement] ||
-                s.isInstanceOf[WhileLoopStatement] ||
-                s.isInstanceOf[ForLoopStatement]
+                s.isInstanceOf[IR_IfCondition] ||
+                s.isInstanceOf[IR_WhileLoop] ||
+                s.isInstanceOf[IR_ForLoop]
             } &&
             func.body.length >= threshold
         case _                        =>

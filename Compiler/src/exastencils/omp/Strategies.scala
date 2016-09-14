@@ -22,7 +22,7 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
     }
 
     this.execute(new Transformation("Adding OMP parallel for pragmas", {
-      case target : ForLoopStatement with OMP_PotentiallyParallel if !target.hasAnnotation(CudaStrategiesUtils
+      case target : IR_ForLoop with OMP_PotentiallyParallel if !target.hasAnnotation(CudaStrategiesUtils
         .CUDA_LOOP_ANNOTATION) =>
         if (target.reduction.isDefined)
           if (!(Platform.omp_version < 3.1 && ("min" == target.reduction.get.op || "max" == target.reduction.get.op)))
@@ -33,7 +33,7 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
               target.additionalOMPClauses += new OMP_Private(l.privateVars.clone())
           case _                    =>
         }
-        new OMP_ParallelFor(new ForLoopStatement(target.begin, target.end, target.inc, target.body, target.reduction),
+        new OMP_ParallelFor(new IR_ForLoop(target.begin, target.end, target.inc, target.body, target.reduction),
           target.additionalOMPClauses, target.collapse)
     }))
 

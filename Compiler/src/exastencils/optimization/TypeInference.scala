@@ -94,7 +94,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
           declare(param.name, param.datatype)
 
       // HACK: ensure the iterator declaration is visited before the body...
-      case ForLoopStatement(begin, _, _, _, _) =>
+      case IR_ForLoop(begin, _, _, _, _) =>
         this.enter(begin)
 
       case _ =>

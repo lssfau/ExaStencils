@@ -72,7 +72,7 @@ abstract class AbstractTmpBuffer extends CommVariable {
   override def getDtor() : Option[IR_Statement] = {
     val ptrExpr = resolveAccess(resolveName, fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
     Some(wrapInLoops(
-      new ConditionStatement(ptrExpr,
+      IR_IfCondition(ptrExpr,
         ListBuffer[IR_Statement](
           FreeStatement(ptrExpr),
           new AssignmentStatement(ptrExpr, 0)))))

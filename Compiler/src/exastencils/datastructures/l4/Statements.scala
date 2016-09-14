@@ -358,7 +358,7 @@ case class RepeatTimesStatement(var number : Int,
         (IR_StringLiteral(lv), ir.VariableDeclarationStatement(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
       }
 
-    val ret = ir.ForLoopStatement(
+    val ret = IR_ForLoop(
       begin,
       loopVar < IR_IntegerConstant(number),
       ir.AssignmentStatement(loopVar, IR_IntegerConstant(1), "+="),
@@ -368,14 +368,6 @@ case class RepeatTimesStatement(var number : Int,
     ret.annotate("numLoopIterations", number)
 
     ret
-  }
-}
-
-case class RepeatUntilStatement(var comparison : L4_Expression, var statements : List[L4_Statement]) extends L4_Statement {
-  override def prettyprint(out : PpStream) = { out << "repeat until " << comparison << "{\n" <<< statements << "}\n" }
-
-  override def progress : ir.WhileLoopStatement = {
-    ir.WhileLoopStatement(IR_NegationExpression(comparison.progress), statements.map(s => s.progress).to[ListBuffer])
   }
 }
 
@@ -422,18 +414,6 @@ case class BreakStatement() extends L4_Statement {
 
   override def progress : ir.BreakStatement = {
     ir.BreakStatement()
-  }
-}
-
-case class ConditionalStatement(var expression : L4_Expression, var statements : List[L4_Statement], var elsestatements : List[L4_Statement]) extends L4_Statement {
-  override def prettyprint(out : PpStream) = {
-    out << "if ( " << expression << " )" << " {\n" <<< statements << '}'
-    if (!elsestatements.isEmpty) out << " else {\n" <<< elsestatements << '}'
-    out << '\n'
-  }
-
-  override def progress : ir.ConditionStatement = {
-    new ir.ConditionStatement(expression.progress, statements.map(s => s.progress).to[ListBuffer], elsestatements.map(s => s.progress).to[ListBuffer])
   }
 }
 

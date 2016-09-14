@@ -71,12 +71,12 @@ trap killed SIGTERM
 
 STARTTIME=$(date +%s)
 
-RAM_TMP_DIR=$(mktemp --tmpdir=/run/shm -d || mktemp --tmpdir=/tmp -d) || {
+RAM_TMP_DIR=$(mktemp --tmpdir=/dev/shm -d || mktemp --tmpdir=/tmp -d) || {
     echo "ERROR: Failed to create temporary directory."
     error
   }
-if [[ ! ${RAM_TMP_DIR} =~ ^/run/shm/* ]]; then
-  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+if [[ ! ${RAM_TMP_DIR} =~ ^/dev/shm/* ]]; then
+  echo "Problems with /dev/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /dev/shm" "kronast@fim.uni-passau.de"
 fi
 
 function cleanup {

@@ -103,7 +103,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     val layout = field.field.fieldLayout
     if (field.field.boundaryConditions.isDefined) {
       new LoopOverFragments(
-        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+        IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
           neighbors.map({ neigh =>
             var adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
             // TODO: assumes equal bc's for all components
@@ -114,7 +114,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
               adaptedIndexRange,
               setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
             loopOverDims.optLevel = 1
-            new ConditionStatement(IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
+            IR_IfCondition(IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
           }))) with OMP_PotentiallyParallel
     } else {
       IR_NullStatement

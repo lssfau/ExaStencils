@@ -32,7 +32,7 @@ abstract class FieldFlag extends InternalVariable(true, false, true, true, false
   override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = super.wrapInLoops(body)
     if (field.numSlots > 1)
-      wrappedBody = new ForLoopStatement(
+      wrappedBody = IR_ForLoop(
         VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
         IR_LowerExpression("slot", field.numSlots),
         IR_PreIncrementExpression("slot"),
@@ -79,7 +79,7 @@ case class FieldDeviceData(override var field : Field, override var level : IR_E
     var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
 
     val ret = Some(wrapInLoops(
-      new ConditionStatement(access,
+      IR_IfCondition(access,
         ListBuffer[IR_Statement](
           CUDA_FreeStatement(access),
           new AssignmentStatement(access, 0)))))
@@ -95,7 +95,7 @@ case class ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Ex
 
   override def getDtor() : Option[IR_Statement] = {
     var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
-    Some(new ConditionStatement(access,
+    Some(IR_IfCondition(access,
       ListBuffer[IR_Statement](
         CUDA_FreeStatement(access),
         new AssignmentStatement(access, 0))))
