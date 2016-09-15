@@ -76,26 +76,17 @@
     </scalac>
   </target>
 
-  <target name="compileScheduleOpt" depends="compileMacros">
+  <target name="compileScala" depends="compileMacros">
     <scalac
       destdir="${build-classes.dir}"
       classpathref="compiler.classpath"
       target="jvm-1.5">
       <include name="**/*.scala"/>
       <src>
+        <pathelement location="${src.dir}"/>
         <pathelement location="${schedule-opt-src.dir}"/>
         <pathelement location="${chernikova-src.dir}"/>
       </src>
-    </scalac>
-  </target>
-
-  <target name="compileScala" depends="compileScheduleOpt">
-    <scalac
-      destdir="${build-classes.dir}"
-      classpathref="compiler.classpath"
-      target="jvm-1.5">
-      <include name="**/*.scala"/>
-      <src><pathelement location="${src.dir}"/></src>
     </scalac>
   </target>
 
