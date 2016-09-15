@@ -21,14 +21,14 @@ case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement w
       case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         IR_VariableDeclaration(IR_SpecialDatatype("LARGE_INTEGER"), "now"),
         IR_FunctionCall("QueryPerformanceCounter", IR_AddressofExpression("now")),
-        IR_Assignment(lhs, MemberAccess(IR_VariableAccess("now"), "QuadPart"))))
+        IR_Assignment(lhs, IR_MemberAccess(IR_VariableAccess("now"), "QuadPart"))))
       case "WIN_TIME"     => IR_Assignment(lhs, IR_Cast(IR_DoubleDatatype, IR_FunctionCall("clock")) / "CLOCKS_PER_SEC")
       case "UNIX_TIME"    => IR_Scope(ListBuffer[IR_Statement](
         IR_VariableDeclaration(IR_SpecialDatatype("timeval"), "timePoint"),
         IR_FunctionCall("gettimeofday", IR_AddressofExpression("timePoint"), "NULL"),
         IR_Assignment(lhs,
-          IR_Cast(IR_DoubleDatatype, MemberAccess(IR_VariableAccess("timePoint"), "tv_sec") * 1e3
-            + IR_Cast(IR_DoubleDatatype, MemberAccess(IR_VariableAccess("timePoint"), "tv_usec") * 1e-3)))))
+          IR_Cast(IR_DoubleDatatype, IR_MemberAccess(IR_VariableAccess("timePoint"), "tv_sec") * 1e3
+            + IR_Cast(IR_DoubleDatatype, IR_MemberAccess(IR_VariableAccess("timePoint"), "tv_usec") * 1e-3)))))
       case "MPI_TIME"     => IR_Assignment(lhs, IR_FunctionCall("MPI_Wtime"))
       case "WINDOWS_RDSC" => IR_Assignment(lhs, IR_FunctionCall("__rdtsc"))
       case "RDSC"         => IR_Assignment(lhs, IR_FunctionCall("__rdtsc"))
@@ -92,7 +92,7 @@ abstract class AbstractTimerFunction extends IR_AbstractFunction
 
 object AbstractTimerFunction {
   def accessMember(member : String) = {
-    MemberAccess(IR_VariableAccess("stopWatch", IR_SpecialDatatype("StopWatch&")), member)
+    IR_MemberAccess(IR_VariableAccess("stopWatch", IR_SpecialDatatype("StopWatch&")), member)
   }
 }
 

@@ -540,11 +540,11 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
-          case MemberAccess(ppVec : iv.PrimitivePositionBegin, _) =>
+          case IR_MemberAccess(ppVec : iv.PrimitivePositionBegin, _) =>
             ppVec.annotate(SKIP_ANNOT)
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
-          case MemberAccess(ppVec : iv.PrimitivePositionEnd, _) =>
+          case IR_MemberAccess(ppVec : iv.PrimitivePositionEnd, _) =>
             ppVec.annotate(SKIP_ANNOT)
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 

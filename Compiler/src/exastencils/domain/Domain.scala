@@ -24,17 +24,17 @@ case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends 
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) ~ ")"
-      case 1 => (MemberAccess(posD, "x") < size.lower_x) Or (MemberAccess(posD, "x") > size.upper_x)
+      case 1 => (IR_MemberAccess(posD, "x") < size.lower_x) Or (IR_MemberAccess(posD, "x") > size.upper_x)
       // case 2 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
       //   ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) ~ ")"
-      case 2 => (MemberAccess(posD, "x") < size.lower_x) Or (MemberAccess(posD, "x") > size.upper_x) Or
-        (MemberAccess(posD, "y") < size.lower_y) Or (MemberAccess(posD, "y") > size.upper_y)
+      case 2 => (IR_MemberAccess(posD, "x") < size.lower_x) Or (IR_MemberAccess(posD, "x") > size.upper_x) Or
+        (IR_MemberAccess(posD, "y") < size.lower_y) Or (IR_MemberAccess(posD, "y") > size.upper_y)
       // case 3 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
       //   ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) Or
       //   ((pos ~ ".z") < size.lower_z) Or ((pos ~ ".z") > size.upper_z) ~ ")"
-      case 3 => (MemberAccess(posD, "x") < size.lower_x) Or (MemberAccess(posD, "x") > size.upper_x) Or
-        (MemberAccess(posD, "y") < size.lower_y) Or (MemberAccess(posD, "y") > size.upper_y) Or
-        (MemberAccess(posD, "z") < size.lower_z) Or (MemberAccess(posD, "z") > size.upper_z)
+      case 3 => (IR_MemberAccess(posD, "x") < size.lower_x) Or (IR_MemberAccess(posD, "x") > size.upper_x) Or
+        (IR_MemberAccess(posD, "y") < size.lower_y) Or (IR_MemberAccess(posD, "y") > size.upper_y) Or
+        (IR_MemberAccess(posD, "z") < size.lower_z) Or (IR_MemberAccess(posD, "z") > size.upper_z)
     }
   }
 }
@@ -48,17 +48,17 @@ case class PointInsideDomain(var pos : IR_Access, var domain : Domain) extends I
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) ~ ")"
-      case 1 => (MemberAccess(posD, "x") >= size.lower_x) And (MemberAccess(posD, "x") <= size.upper_x)
+      case 1 => (IR_MemberAccess(posD, "x") >= size.lower_x) And (IR_MemberAccess(posD, "x") <= size.upper_x)
       // case 2 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
       //   ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) ~ ")"
-      case 2 => (MemberAccess(posD, "x") >= size.lower_x) And (MemberAccess(posD, "x") <= size.upper_x) And
-        (MemberAccess(posD, "y") >= size.lower_y) And (MemberAccess(posD, "y") <= size.upper_y)
+      case 2 => (IR_MemberAccess(posD, "x") >= size.lower_x) And (IR_MemberAccess(posD, "x") <= size.upper_x) And
+        (IR_MemberAccess(posD, "y") >= size.lower_y) And (IR_MemberAccess(posD, "y") <= size.upper_y)
       // case 3 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
       //   ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) And
       //   ((pos ~ ".z") >= size.lower_z) And ((pos ~ ".z") <= size.upper_z) ~ ")"
-      case 3 => (MemberAccess(posD, "x") >= size.lower_x) And (MemberAccess(posD, "x") <= size.upper_x) And
-        (MemberAccess(posD, "y") >= size.lower_y) And (MemberAccess(posD, "y") <= size.upper_y) And
-        (MemberAccess(posD, "z") >= size.lower_z) And (MemberAccess(posD, "z") <= size.upper_z)
+      case 3 => (IR_MemberAccess(posD, "x") >= size.lower_x) And (IR_MemberAccess(posD, "x") <= size.upper_x) And
+        (IR_MemberAccess(posD, "y") >= size.lower_y) And (IR_MemberAccess(posD, "y") <= size.upper_y) And
+        (IR_MemberAccess(posD, "z") >= size.lower_z) And (IR_MemberAccess(posD, "z") <= size.upper_z)
     }
   }
 }
@@ -77,17 +77,17 @@ case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with IR_
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 1 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      case 1 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
       // case 2 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
       //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 2 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      case 2 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
       // case 3 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
       //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
       //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 3 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      case 3 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
     }
   }
 }
@@ -107,22 +107,22 @@ case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with 
     val entries = Knowledge.dimensionality match {
       case 1 => ListBuffer[IR_Expression](
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         0,
         0)
       case 2 => ListBuffer[IR_Expression](
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
         0)
       case 3 => ListBuffer[IR_Expression](
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z))
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)))
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)))
     }
 
     // "Vec3i(" ~ entries.reduceLeft((l, r) => l ~ ", " ~ r) ~ ")"
@@ -144,17 +144,17 @@ case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression wit
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 1 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 1 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
       // case 2 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
       //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 2 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 2 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
       // case 3 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z)) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
       //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
       //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 3 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z))) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 3 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z))) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
     }
   }
 }
@@ -175,21 +175,21 @@ case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends I
       case 1 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
         // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
       case 2 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
         // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
         //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
-          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
+          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
       case 3 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
         // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x
         //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
         //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x +
-          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
-          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x +
+          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
+          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
     }
   }
 }

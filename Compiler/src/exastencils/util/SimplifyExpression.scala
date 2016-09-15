@@ -213,7 +213,7 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Long]()
         res(IR_VariableAccess(varName, IR_IntegerDatatype)) = 1L
 
-      case m : MemberAccess =>
+      case m : IR_MemberAccess =>
         res = new mutable.HashMap[IR_Expression, Long]()
         res(m) = 1L
 
@@ -518,7 +518,7 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(aAcc) = 1d
 
-      case mAcc : MemberAccess =>
+      case mAcc : IR_MemberAccess =>
         res = new HashMap[IR_Expression, Double]()
         res(mAcc) = 1d
 

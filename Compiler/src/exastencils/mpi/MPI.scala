@@ -224,7 +224,7 @@ case class MPI_WaitForRequest() extends IR_AbstractFunction with IR_Expandable {
               IR_VariableDeclaration(msg),
               IR_VariableDeclaration(len),
               IR_FunctionCall("MPI_Error_string", ListBuffer(
-                MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
+                IR_MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
               PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
           IR_Assignment(DerefAccess(request), IR_FunctionCall("MPI_Request"))),
         false)
@@ -238,7 +238,7 @@ case class MPI_WaitForRequest() extends IR_AbstractFunction with IR_Expandable {
             IR_VariableDeclaration(msg),
             IR_VariableDeclaration(len),
             IR_FunctionCall("MPI_Error_string", ListBuffer(
-              MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
+              IR_MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
             PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
           IR_Assignment(DerefAccess(request), IR_FunctionCall("MPI_Request"))),
         false)

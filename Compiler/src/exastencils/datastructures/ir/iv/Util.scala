@@ -6,7 +6,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
-import exastencils.datastructures.ir._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -22,7 +21,7 @@ case class Timer(var name : IR_Expression) extends UnduplicatedVariable with IR_
 
   override def getCtor() : Option[IR_Statement] = {
     // FIXME: datatype for VariableAccess
-    Some(IR_Assignment(MemberAccess(IR_VariableAccess(resolveName, resolveDatatype), "timerName"), IR_StringConstant(stripName)))
+    Some(IR_Assignment(IR_MemberAccess(IR_VariableAccess(resolveName, resolveDatatype), "timerName"), IR_StringConstant(stripName)))
   }
 }
 

@@ -98,7 +98,7 @@ trait GridGeometry_uniform extends GridGeometry {
 
   override def nodePosition(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
     //index(dim) * cellWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
-    index(dim) * cellWidth(level, index, arrayIndex, dim) + MemberAccess(iv.PrimitivePositionBegin(), dimToString(dim)) // FIXME: HACK
+    index(dim) * cellWidth(level, index, arrayIndex, dim) + IR_MemberAccess(iv.PrimitivePositionBegin(), dimToString(dim)) // FIXME: HACK
   }
 
   override def cellCenter(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {

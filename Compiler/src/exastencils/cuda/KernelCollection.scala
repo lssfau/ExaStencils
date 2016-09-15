@@ -85,9 +85,9 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
       // add index calculation
       // FIXME: datatype for VariableAccess
       fctBody += IR_VariableDeclaration(it,
-        MemberAccess(IR_VariableAccess("blockIdx", IR_IntegerDatatype), it.name) *
-          MemberAccess(IR_VariableAccess("blockDim", IR_IntegerDatatype), it.name) +
-          MemberAccess(IR_VariableAccess("threadIdx", IR_IntegerDatatype), it.name))
+        IR_MemberAccess(IR_VariableAccess("blockIdx", IR_IntegerDatatype), it.name) *
+          IR_MemberAccess(IR_VariableAccess("blockDim", IR_IntegerDatatype), it.name) +
+          IR_MemberAccess(IR_VariableAccess("threadIdx", IR_IntegerDatatype), it.name))
       fctBody += IR_Assignment(it, 2 * stride.access, "*=")
 
       // add index bounds conditions
@@ -445,9 +445,9 @@ case class Kernel(var identifier : String,
       val it = dimToString(dim)
       val variableName = KernelVariablePrefix + KernelGlobalIndexPrefix + it
       IR_VariableDeclaration(IR_IntegerDatatype, variableName,
-        Some(stepSize(dim) * (MemberAccess(IR_VariableAccess("blockIdx", IR_SpecialDatatype("dim3")), it) *
-          MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it) +
-          MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it) +
+        Some(stepSize(dim) * (IR_MemberAccess(IR_VariableAccess("blockIdx", IR_SpecialDatatype("dim3")), it) *
+          IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it) +
+          IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it) +
           minIndices(dim))))
     })
 
@@ -484,7 +484,7 @@ case class Kernel(var identifier : String,
           val it = dimToString(dim)
           val variableName = localPrefix + it
           IR_VariableDeclaration(IR_IntegerDatatype, variableName,
-            Some(MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it) +
+            Some(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it) +
               leftDeviations(field)(dim)))
         })
 
@@ -528,15 +528,15 @@ case class Kernel(var identifier : String,
           val it = dimToString(dim)
 
           // 7.1 Check if current thread resides on the left border in any dimension
-          val condition = IR_OrOrExpression(IR_LowerExpression(MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it), leftDeviations(field)(dim)), IR_EqEqExpression(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
+          val condition = IR_OrOrExpression(IR_LowerExpression(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it), leftDeviations(field)(dim)), IR_EqEqExpression(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
           val conditionBody = ListBuffer[IR_Statement]()
 
           // 7.2 Calculate the offset from the left to the right border of the actual field
           val localFieldOffsetName : String = "localFieldOffset"
           conditionBody += IR_VariableDeclaration(IR_IntegerDatatype, localFieldOffsetName, Some(
             CUDA_MinimumExpression(
-              IR_SubtractionExpression(MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it),
-                MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)),
+              IR_SubtractionExpression(IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it),
+                IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)),
               IR_SubtractionExpression(s"${ KernelVariablePrefix }end_$dim", globalThreadId(dim)))))
           val localFieldOffset = IR_VariableAccess(localFieldOffsetName, IR_IntegerDatatype)
 

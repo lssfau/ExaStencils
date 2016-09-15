@@ -68,11 +68,6 @@ case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection,
   }
 }
 
-case class MemberAccess(var base : IR_Access, var member : String) extends IR_Access {
-  override def datatype = base.datatype
-  override def prettyprint(out : PpStream) : Unit = out << base << '.' << member
-}
-
 case class DerefAccess(var base : IR_Access) extends IR_Access {
   override def datatype = base.datatype
   override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'

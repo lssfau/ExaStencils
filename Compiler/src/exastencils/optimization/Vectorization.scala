@@ -659,7 +659,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_PowerExpression(base, exp) if (SIMD_MathFunctions.isAllowed("pow")) =>
         IR_FunctionCall(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))
 
-      case mAcc : MemberAccess =>
+      case mAcc : IR_MemberAccess =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
           ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, IR_SIMD_Scalar2Vector(mAcc)), expr)

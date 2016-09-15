@@ -20,6 +20,14 @@ case class IR_ObjectInstantiation(var datatype : IR_Datatype, var name : String,
   }
 }
 
+/// IR_MemberAccess
+
+case class IR_MemberAccess(var base : IR_Access, var member : String) extends IR_Access {
+  // FIXME: datatype
+  override def datatype = base.datatype
+  override def prettyprint(out : PpStream) : Unit = out << base << '.' << member
+}
+
 /// IR_MemberFunctionCall
 
 object IR_MemberFunctionCall {
