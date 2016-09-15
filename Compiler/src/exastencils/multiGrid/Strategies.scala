@@ -102,12 +102,6 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
   })
 }
 
-object ResolveLocalSolves extends DefaultStrategy("ResolveLocalSolves") {
-  this += new Transformation("SearchAndReplace", {
-    case solve : SolveLocallyStatement => solve.expandSpecial
-  })
-}
-
 object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpecialFunctionsAndConstants") {
   var collector = new StackCollector
   this.register(collector)
