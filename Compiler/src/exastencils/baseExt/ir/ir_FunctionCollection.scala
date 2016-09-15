@@ -6,7 +6,7 @@ import exastencils.base.ir._
 import exastencils.knowledge.Knowledge
 import exastencils.prettyprinting._
 
-class IR_FunctionCollection(var baseName : String,
+abstract class IR_FunctionCollection(var baseName : String,
     var externalDependencies : ListBuffer[String],
     var internalDependencies : ListBuffer[String],
     var functions : ListBuffer[IR_AbstractFunction] = ListBuffer()) extends IR_Node with FilePrettyPrintable {
