@@ -178,7 +178,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         IR_SIMD_IncrementVectorDeclaration(name, incr) +=: preLoopStmts
         incrVectDeclared = true
       }
-      return IR_VariableAccess(name, SIMD_RealDatatype)
+      return IR_VariableAccess(name, IR_SIMD_RealDatatype)
     }
 
     def setLoad() : this.type = {
@@ -250,9 +250,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           case "max" => SIMD_Scalar2VectorExpression(IR_RealConstant(Double.MinValue))
           case _     => throw new VectorizationException("unknown reduction operator:  " + operator)
         }
-      ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, identityElem), target)
+      ctx.addStmtPreLoop(new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp, identityElem), target)
 
-      val vecTmpAcc = IR_VariableAccess(vecTmp, SIMD_RealDatatype)
+      val vecTmpAcc = IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
       postLoopStmt =
         operator match {
           case "+"   => IR_SIMD_HorizontalAdd(Duplicate(target), vecTmpAcc)
@@ -447,7 +447,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         SimplifyStrategy.doUntilDoneStandalone(initWrap)
         val initVec = vectorizeExpr(initWrap.expression, ctx.setLoad())
         val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, Some(dataType)))
-        ctx.addStmt(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, Some(initVec)))
+        ctx.addStmt(new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp, Some(initVec)))
 
       case IR_IfCondition(cond, trueBody, falseBody) if (stmt.hasAnnotation(Vectorization.COND_VECTABLE)) =>
         if (stmt.hasAnnotation(Vectorization.COND_IGN_INCR))
@@ -525,14 +525,14 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           base match {
             // ---- special handling of loop-carried cse variables ----
             case _ : iv.LoopCarriedCSBuffer if (access1) => //if(access1 && ctx.isStore() && !ctx.isLoad()) =>
-              ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_Scalar2VectorExpression(expr)), expr)
-              ctx.addStmtPostLoop(new IR_Assignment(expr, new SIMD_ExtractScalarExpression(IR_VariableAccess(vecTmp, SIMD_RealDatatype), vs - 1)))
+              ctx.addStmtPreLoop(new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp, SIMD_Scalar2VectorExpression(expr)), expr)
+              ctx.addStmtPostLoop(new IR_Assignment(expr, new SIMD_ExtractScalarExpression(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), vs - 1)))
             // ------------------------------------------------------
             case _ if (ctx.isLoad() && !ctx.isStore()) =>
               val init = Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, alignedBase, ctx))
-              ctx.addStmt(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, init))
+              ctx.addStmt(new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp, init))
             case _ if (!ctx.isLoad() && ctx.isStore()) =>
-              ctx.addStmt(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, None))
+              ctx.addStmt(new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp, None))
             case _                                     =>
               Logger.error("Only expected 'load XOR store', when vectorizing an ArrayAccess")
           }
@@ -550,24 +550,24 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             if (ctx.storesTmp != null)
               Logger.debug("[vect] Error? More than one store in a single statement?!")
             ctx.storesTmp = new IR_SIMD_Store(IR_AddressofExpression(expr),
-              IR_VariableAccess(vecTmp, SIMD_RealDatatype), aligned)
+              IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), aligned)
           }
         }
         // ---- special handling of loop-carried cse variables ----
         base match {
           case _ : iv.LoopCarriedCSBuffer if (access1 && ctx.isLoad() && !ctx.isStore() && !ctx.toFinish_LCSE.contains(vecTmp)) =>
-            val init = new SIMD_ConcShift(IR_VariableAccess(vecTmp, SIMD_RealDatatype), null, Platform.simd_vectorSize - 1)
+            val init = new SIMD_ConcShift(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), null, Platform.simd_vectorSize - 1)
             ctx.toFinish_LCSE(vecTmp) = init
-            ctx.addStmt(new IR_Assignment(IR_VariableAccess(vecTmp, SIMD_RealDatatype), init, "="))
+            ctx.addStmt(new IR_Assignment(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), init, "="))
           case _                                                                                                                => // nothing to do
         }
         // --------------------------------------------------------
-        IR_VariableAccess(vecTmp, SIMD_RealDatatype)
+        IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
 
       case IR_VariableAccess(name, dType) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
-          val decl = new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp)
+          val decl = new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp)
           if (ctx.isLoad())
             decl.expression = Some(new SIMD_Scalar2VectorExpression(IR_VariableAccess(name, dType)))
           if (name == ctx.itName) {
@@ -578,27 +578,27 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           } else
             ctx.addStmtPreLoop(decl, expr)
         }
-        IR_VariableAccess(vecTmp, SIMD_RealDatatype)
+        IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
 
       case IR_StringLiteral("omp_get_thread_num()") =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
-          val decl = new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(expr))
+          val decl = new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(expr))
           ctx.addStmtPreLoop(decl, expr)
         }
-        IR_VariableAccess(vecTmp, SIMD_RealDatatype)
+        IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
 
       case IR_RealConstant(value) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(IR_RealConstant(value))), expr)
-        IR_VariableAccess(vecTmp, SIMD_RealDatatype)
+          ctx.addStmtPreLoop(new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(IR_RealConstant(value))), expr)
+        IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
 
       case IR_IntegerConstant(value) => // TODO: ensure type safety
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(IR_RealConstant(value))), expr)
-        IR_VariableAccess(vecTmp, SIMD_RealDatatype)
+          ctx.addStmtPreLoop(new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(IR_RealConstant(value))), expr)
+        IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
 
       case IR_NegativeExpression(nExpr) =>
         SIMD_NegateExpression(vectorizeExpr(nExpr, ctx))
@@ -662,8 +662,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case mAcc : MemberAccess =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.addStmtPreLoop(new VariableDeclarationStatement(SIMD_RealDatatype, vecTmp, SIMD_Scalar2VectorExpression(mAcc)), expr)
-        IR_VariableAccess(vecTmp, SIMD_RealDatatype)
+          ctx.addStmtPreLoop(new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp, SIMD_Scalar2VectorExpression(mAcc)), expr)
+        IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
 
       case _ =>
         throw new VectorizationException("cannot deal with " + expr.getClass() + "; " + expr.prettyprint())

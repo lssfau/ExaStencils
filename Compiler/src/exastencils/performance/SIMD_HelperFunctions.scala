@@ -11,7 +11,7 @@ import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.multiGrid.MultiGridFunctions
 import exastencils.prettyprinting.PpStream
-import exastencils.simd.IR_SIMD_Store
+import exastencils.simd._
 
 object SIMD_MathFunctions {
 
@@ -79,14 +79,14 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
     def aSAcc(argi : Int, i : Int) = new ArrayAccess(aVAcc(argi), i)
     val args = (0 until nrArgs).map("v" + _)
 
-    out << "static inline " << SIMD_RealDatatype << " " << name << '('
+    out << "static inline " << IR_SIMD_RealDatatype << " " << name << '('
     for (arg <- args)
-      out << SIMD_RealDatatype << ' ' << arg << ", "
+      out << IR_SIMD_RealDatatype << ' ' << arg << ", "
     out.removeLast(2) // last comma and space
     out << ") {\n"
     out << aDecls << '\n'
     for ((arg, i) <- args.view.zipWithIndex)
-      out << new IR_SIMD_Store(aVAcc(i), IR_VariableAccess(arg, SIMD_RealDatatype), true) << '\n'
+      out << new IR_SIMD_Store(aVAcc(i), IR_VariableAccess(arg, IR_SIMD_RealDatatype), true) << '\n'
     for (i <- 0 until Platform.simd_vectorSize)
       out << new IR_Assignment(aSAcc(0, i), new FunctionCallExpression(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
     out << IR_Return(SIMD_LoadExpression(aVAcc(0), true)) << '\n'
