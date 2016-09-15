@@ -18,6 +18,7 @@
     <property name="src.dir" location="${basedir}/src"/>
     <property name="macros-src.dir" location="../CompilerMacros/CompilerMacros/src"/> <!-- source for macros -->
     <property name="schedule-opt-src.dir" location="../../schedule-optimization/src"/>
+    <property name="chernikova-src.dir" location="${schedule-opt-src.dir}/../chernikova/src"/>
     <property name="resources.dir" location="${basedir}/resources"/>
     <property name="lib.dir" location="${basedir}/lib"/>
     <property name="build.dir" location="${basedir}/build"/>
@@ -75,17 +76,20 @@
     </scalac>
   </target>
 
- <!-- <target name="compileScheduleOpt" depends="compileMacros">
+  <target name="compileScheduleOpt" depends="compileMacros">
     <scalac
       destdir="${build-classes.dir}"
       classpathref="compiler.classpath"
       target="jvm-1.5">
       <include name="**/*.scala"/>
-      <src><pathelement location="${schedule-opt-src.dir}"/></src>
+      <src>
+        <pathelement location="${schedule-opt-src.dir}"/>
+        <pathelement location="${chernikova-src.dir}"/>
+      </src>
     </scalac>
-  </target> -->
+  </target>
 
-  <target name="compileScala" depends="compileMacros">
+  <target name="compileScala" depends="compileScheduleOpt">
     <scalac
       destdir="${build-classes.dir}"
       classpathref="compiler.classpath"
