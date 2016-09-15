@@ -2,7 +2,8 @@ package exastencils.base.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.core.Duplicate
+import exastencils.core._
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 abstract class IR_AbstractFunction(var isHeaderOnly : Boolean = false) extends IR_Statement {
@@ -65,6 +66,34 @@ case class IR_Function(
   }
 }
 
+/// IR_FunctionCall
+
+object IR_FunctionCall {
+  def apply(name : String, args : IR_Expression*) = new IR_FunctionCall(name, args.to[ListBuffer])
+}
+
+case class IR_FunctionCall(var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+  override def datatype = {
+    // TODO: special nodes for special functions
+    name match {
+      case "diag" | "diag_inv" | "diag_inverse" => arguments(0).datatype
+      case "inv" | "inverse"                    => arguments(0).datatype
+      case "Vec3"                               => IR_UnitDatatype
+      case _                                    => {
+        val fct = StateManager.findAll[IR_Function]((t : IR_Function) => { t.name == this.name })
+        if (fct.length <= 0) {
+          Logger.warn(s"""Did not find function '${ name }'""")
+          IR_UnitDatatype
+        } else {
+          fct(0).returntype
+        }
+      }
+    }
+  }
+
+  override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
+}
+
 /// IR_Return
 
 object IR_Return {
@@ -79,3 +108,4 @@ case class IR_Return(var expr : Option[IR_Expression] = None) extends IR_Stateme
     out << ';'
   }
 }
+

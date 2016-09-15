@@ -148,9 +148,9 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var 
     stmts += IR_VariableDeclaration(A)
 
     // initialize with zero - TODO: adapt to new matrix types
-    stmts += MemberFunctionCallExpression(u, "set", ListBuffer[IR_Expression](0))
-    stmts += MemberFunctionCallExpression(f, "set", ListBuffer[IR_Expression](0))
-    stmts += MemberFunctionCallExpression(A, "set", ListBuffer[IR_Expression](0))
+    stmts += IR_MemberFunctionCall(u, "set", ListBuffer[IR_Expression](0))
+    stmts += IR_MemberFunctionCall(f, "set", ListBuffer[IR_Expression](0))
+    stmts += IR_MemberFunctionCall(A, "set", ListBuffer[IR_Expression](0))
 
     // construct rhs and matrix
     for (i <- 0 until unknowns.length) {
@@ -173,7 +173,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var 
     }
 
     // solve local system - TODO: replace inverse function call with internal function
-    stmts += IR_Assignment(u, IR_MultiplicationExpression(MemberFunctionCallExpression(A, "inverse", ListBuffer()), f))
+    stmts += IR_Assignment(u, IR_MultiplicationExpression(IR_MemberFunctionCall(A, "inverse"), f))
 
     // write back results
     for (i <- 0 until unknowns.length)

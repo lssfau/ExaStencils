@@ -454,7 +454,7 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
   })
 
   this += new Transformation("Removing obsolete references", {
-    case FunctionCallExpression(fName, _) if emptyFunctions.contains(fName) => IR_NullExpression
+    case IR_FunctionCall(fName, _) if emptyFunctions.contains(fName) => IR_NullExpression
   })
 
   this += new Transformation("Removing empty scopes", {

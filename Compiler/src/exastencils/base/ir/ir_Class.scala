@@ -19,3 +19,17 @@ case class IR_ObjectInstantiation(var datatype : IR_Datatype, var name : String,
     out << ';'
   }
 }
+
+/// IR_MemberFunctionCall
+
+object IR_MemberFunctionCall {
+  def apply(objectName : IR_Expression, name : String, args : IR_Expression*) =
+    new IR_MemberFunctionCall(objectName, name, args.to[ListBuffer])
+}
+
+case class IR_MemberFunctionCall(var objectName : IR_Expression, var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+
+  // FIXME: datatype
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
+}

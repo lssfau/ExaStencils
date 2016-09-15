@@ -237,3 +237,9 @@ case class IR_ReferenceDatatype(override val datatype : IR_Datatype) extends IR_
 }
 
 // add const ref, etc here if required
+
+/// IR_Cast
+
+case class IR_Cast(var datatype : IR_Datatype, var toCast : IR_Expression) extends IR_Expression {
+  override def prettyprint(out : PpStream) : Unit = out << "((" << datatype << ")" << toCast << ")"
+}

@@ -36,7 +36,7 @@ case class CUDA_CheckError(var exp : IR_Expression) extends IR_Statement with IR
       IR_VariableDeclaration(IR_SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
       IR_IfCondition(IR_NeqExpression("cudaStatus", "cudaSuccess"),
         PrintStatement(ListBuffer("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", "cudaStatus",
-          "\" -> \"", new FunctionCallExpression("cudaGetErrorString", "cudaStatus"), "std::endl")))))
+          "\" -> \"", IR_FunctionCall("cudaGetErrorString", "cudaStatus"), "std::endl")))))
   }
 }
 
@@ -45,9 +45,9 @@ case class CUDA_AllocateStatement(var pointer : IR_Expression, var numElements :
 
   override def expand() : Output[IR_Statement] = {
     CUDA_CheckError(
-      FunctionCallExpression("cudaMalloc",
+      IR_FunctionCall("cudaMalloc",
         ListBuffer[IR_Expression](
-          CastExpression(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), IR_AddressofExpression(pointer)),
+          IR_Cast(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), IR_AddressofExpression(pointer)),
           numElements * IR_SizeOf(datatype))))
   }
 }
@@ -56,7 +56,7 @@ case class CUDA_FreeStatement(var pointer : IR_Expression) extends IR_Statement 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_FreeStatement\n"
 
   override def expand() : Output[IR_Statement] = {
-    IR_ExpressionStatement(new FunctionCallExpression("cudaFree", pointer))
+    IR_ExpressionStatement(IR_FunctionCall("cudaFree", pointer))
   }
 }
 
@@ -158,7 +158,7 @@ case class CUDA_DeviceSynchronize() extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_DeviceSynchronize\n"
 
   override def expand() : Output[IR_Statement] = {
-    CUDA_CheckError(FunctionCallExpression("cudaDeviceSynchronize", ListBuffer()))
+    CUDA_CheckError(IR_FunctionCall("cudaDeviceSynchronize"))
   }
 }
 
@@ -167,7 +167,7 @@ case class CUDA_Memcpy(var dest : IR_Expression, var src : IR_Expression, var si
 
   override def expand() : Output[IR_Statement] = {
     CUDA_CheckError(
-      FunctionCallExpression("cudaMemcpy",
+      IR_FunctionCall("cudaMemcpy",
         ListBuffer[IR_Expression](dest, src, sizeInBytes, direction)))
   }
 }
@@ -176,7 +176,7 @@ case class CUDA_Memset(var data : IR_Expression, var value : IR_Expression, var 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_Memset\n"
 
   override def expand() : Output[IR_Statement] = {
-    CUDA_CheckError(FunctionCallExpression("cudaMemset", ListBuffer(data, value, numElements * IR_SizeOf(datatype))))
+    CUDA_CheckError(IR_FunctionCall("cudaMemset", ListBuffer(data, value, numElements * IR_SizeOf(datatype))))
   }
 }
 

@@ -31,7 +31,7 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
   }
 
   this += new Transformation("", {
-    case fct : FunctionCallExpression if (collector.insideStatement <= 1 && functionsToBeProcessed.contains(fct.name)) =>
+    case fct : IR_FunctionCall if (collector.insideStatement <= 1 && functionsToBeProcessed.contains(fct.name)) =>
       // adapt call arguments
       for ((paramIdx, datatype) <- functionsToBeProcessed.get(fct.name).get) {
         fct.arguments(paramIdx) match {

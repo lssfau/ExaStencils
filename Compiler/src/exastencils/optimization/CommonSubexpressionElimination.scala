@@ -359,7 +359,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       // only process this node if it is a CS and not already processed (based on ref eq)
         if (commonSubs.contains(c) && !processedChildren.containsKey(c) && par.isInstanceOf[IR_Expression])
           par.asInstanceOf[IR_Expression] match {
-            case func : FunctionCallExpression =>
+            case func : IR_FunctionCall =>
               if (!func.name.contains("std::rand")) {
                 // HACK to prevent inlining call to std::rand
                 val childCSes = func.arguments.view.map { e => commonSubs.get(e) }

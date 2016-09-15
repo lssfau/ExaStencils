@@ -31,3 +31,14 @@ case class IR_Assert(var check : IR_Expression, var msg : ListBuffer[IR_Expressi
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
   override def expand = IR_IfCondition(IR_NegationExpression(check), ListBuffer(PrintStatement(msg), abort))
 }
+
+/// IR_InitializerList
+
+object IR_InitializerList {
+  def apply(args : IR_Expression*) = new IR_InitializerList(args.to[ListBuffer])
+}
+
+case class IR_InitializerList(var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << "{ " <<< (arguments, ", ") << " }"
+}

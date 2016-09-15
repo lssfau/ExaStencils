@@ -13,13 +13,13 @@ import exastencils.prettyprinting.PpStream
 import exastencils.strategies.ReplaceStringConstantsStrategy
 
 object IR_LoopOverFragments {
-  def apply(body : IR_Statement, reduction : Option[Reduction]) = new IR_LoopOverFragments(ListBuffer(body), reduction)
+  def apply(body : IR_Statement, reduction : Option[IR_Reduction]) = new IR_LoopOverFragments(ListBuffer(body), reduction)
   def apply(body : IR_Statement*) = new IR_LoopOverFragments(body.to[ListBuffer])
 
   def defIt = "fragmentIdx"
 }
 
-case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction : Option[Reduction] = None) extends IR_Statement with IR_Expandable {
+case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction : Option[IR_Reduction] = None) extends IR_Statement with IR_Expandable {
 
   import IR_LoopOverFragments._
 

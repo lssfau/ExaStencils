@@ -5,7 +5,6 @@ import scala.collection.mutable.{ Node => _, _ }
 import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
 import exastencils.logger.Logger
 import exastencils.util.SimplifyExpression
@@ -23,7 +22,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   private[optimization] def endVarAcc = IR_VariableAccess(endVar, IR_IntegerDatatype)
 
   private[optimization] def getBoundsDeclAndPostLoop(itVar : String, start : IR_Expression, endExcl : IR_Expression, oldIncr : Long,
-      body : ListBuffer[IR_Statement], reduction : Option[Reduction]) : (ListBuffer[IR_Statement], IR_Statement) = {
+      body : ListBuffer[IR_Statement], reduction : Option[IR_Reduction]) : (ListBuffer[IR_Statement], IR_Statement) = {
 
     def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
 

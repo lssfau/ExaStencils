@@ -164,7 +164,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
   this += new Transformation("Progressing key statements", {
     // function calls
-    case fct : FunctionCallExpression => {
+    case fct : IR_FunctionCall => {
       if (!CollectFunctionStatements.internalFunctions.contains(fct.name))
         () // external functions -> no estimate
       else if (EvaluatePerformanceEstimates.completeFunctions.contains(fct.name))

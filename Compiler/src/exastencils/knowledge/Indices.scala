@@ -79,11 +79,11 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
         IR_VariableDeclaration(IR_RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
           case "node" | "face_x"            =>
             Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : IR_Expression)) + offset(0))
-              / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 1)
+              / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 1)
               * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 0) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 0)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 0))
           case "cell" | "face_y" | "face_z" =>
             Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : IR_Expression)) + 0.5 + offset(0))
-              / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 0)
+              / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 0)
               * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 0) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 0)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 0))
         }),
         IR_VariableDeclaration(IR_RealDatatype, "yPosTMP",
@@ -91,11 +91,11 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
             field.fieldLayout.discretization match {
               case "node" | "face_y"            =>
                 (((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + offset(1))
-                  / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 1)
+                  / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 1)
                   * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 1) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 1)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 1))
               case "cell" | "face_x" | "face_z" =>
                 (((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + 0.5 + offset(1))
-                  / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 0)
+                  / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 0)
                   * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 1) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 1)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 1))
             }
           } else IR_IntegerConstant(1)),
@@ -104,11 +104,11 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
             field.fieldLayout.discretization match {
               case "node" | "face_z"            =>
                 (((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + offset(2))
-                  / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 1)
+                  / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 1)
                   * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 2) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 2)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 2))
               case "cell" | "face_x" | "face_y" =>
                 (((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + 0.5 + offset(2))
-                  / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 0)
+                  / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 0)
                   * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 2) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 2)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 2))
             }
           } else IR_IntegerConstant(1)),

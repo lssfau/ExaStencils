@@ -13,7 +13,7 @@ trait OMP_PotentiallyCritical
 
 @deprecated("to be integrated with loop annotations/ loop member holding optimization and parallelization information", "15.09.2016")
 trait OMP_PotentiallyParallel {
-  var reduction : Option[Reduction];
+  var reduction : Option[IR_Reduction];
   var additionalOMPClauses = new ListBuffer[OMP_Clause];
   var collapse = 1
 }
@@ -96,7 +96,7 @@ case class OMP_WaitForFlag() extends IR_AbstractFunction with IR_Expandable {
 abstract class OMP_Clause extends Node with PrettyPrintable
 
 case class OMP_Reduction(var op : String, var target : IR_VariableAccess) extends OMP_Clause {
-  def this(red : Reduction) = this(red.op, red.target)
+  def this(red : IR_Reduction) = this(red.op, red.target)
   override def prettyprint(out : PpStream) : Unit = out << "reduction(" << op << " : " << target << ')'
 }
 

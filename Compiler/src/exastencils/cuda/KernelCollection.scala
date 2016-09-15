@@ -170,7 +170,7 @@ case class Kernel(var identifier : String,
     var upperBounds : ListBuffer[IR_Expression],
     var stepSize : ListBuffer[IR_Expression],
     var body : ListBuffer[IR_Statement],
-    var reduction : Option[Reduction] = None,
+    var reduction : Option[IR_Reduction] = None,
     var loopVariableExtrema : mutable.Map[String, (Long, Long)] = mutable.Map[String, (Long, Long)]()) extends Node {
 
   import Kernel._
@@ -653,7 +653,7 @@ case class Kernel(var identifier : String,
       val access = Duplicate(ivAccess._2)
       // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
       access.resolveDatatype match {
-        case IR_SpecialDatatype("Vec3")  => callArgs += FunctionCallExpression("make_double3", (0 until 3).map(dim => IR_ArrayAccess(ivAccess._2, dim) : IR_Expression).to[ListBuffer])
+        case IR_SpecialDatatype("Vec3")  => callArgs += IR_FunctionCall("make_double3", (0 until 3).map(dim => IR_ArrayAccess(ivAccess._2, dim) : IR_Expression).to[ListBuffer])
         case IR_SpecialDatatype("Vec3i") => callArgs ++= (0 until 3).map(dim => IR_ArrayAccess(ivAccess._2, dim) : IR_Expression).to[ListBuffer]
         case _                           => callArgs += ivAccess._2
       }
@@ -670,7 +670,7 @@ case class Kernel(var identifier : String,
       def bufAccess = iv.ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.innerDatatype.get)
       body += new CUDA_FunctionCallExperimentalExpression(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
-      body += IR_Return(Some(FunctionCallExpression(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
+      body += IR_Return(Some(IR_FunctionCall(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
         ListBuffer[IR_Expression](bufAccess, bufSize))))
 
       StateManager.findFirst[KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper

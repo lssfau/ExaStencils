@@ -28,7 +28,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
   private var parDims : Set[String] = null
   private var vecDims : Set[String] = null
   private var parallelize_omp : Boolean = false
-  private var reduction : Option[Reduction] = None
+  private var reduction : Option[IR_Reduction] = None
   private var privateVars : ListBuffer[IR_VariableAccess] = null
   private var condition : IR_Expression = null
 
@@ -289,11 +289,11 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
       case isl.AstOpType.OpSub if n == 2     => IR_SubtractionExpression(args(0), args(1))
       case isl.AstOpType.OpMul if n == 2     => IR_MultiplicationExpression(args(0), args(1))
       case isl.AstOpType.OpDiv if n == 2     => IR_DivisionExpression(args(0), args(1))
-      case isl.AstOpType.OpFdivQ if n == 2   => new FunctionCallExpression("floord", args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.OpFdivQ if n == 2   => IR_FunctionCall("floord", args(0), args(1)) // TODO: ensure integer division
       case isl.AstOpType.OpPdivQ if n == 2   => IR_DivisionExpression(args(0), args(1)) // TODO: ensure integer division
       case isl.AstOpType.OpPdivR if n == 2   => IR_ModuloExpression(args(0), args(1))
       case isl.AstOpType.OpZdivR if n == 2   => IR_ModuloExpression(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
-      case isl.AstOpType.OpCond if n == 3    => new TernaryConditionExpression(args(0), args(1), args(2))
+      case isl.AstOpType.OpCond if n == 3    => IR_TernaryCondition(args(0), args(1), args(2))
       case isl.AstOpType.OpEq if n == 2      => IR_EqEqExpression(args(0), args(1))
       case isl.AstOpType.OpLe if n == 2      => IR_LowerEqualExpression(args(0), args(1))
       case isl.AstOpType.OpLt if n == 2      => IR_LowerExpression(args(0), args(1))
@@ -301,12 +301,12 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
       case isl.AstOpType.OpGt if n == 2      => IR_GreaterExpression(args(0), args(1))
       case isl.AstOpType.OpMax if n >= 2     => IR_MaximumExpression(args : _*)
       case isl.AstOpType.OpMin if n >= 2     => IR_MinimumExpression(args : _*)
-      case isl.AstOpType.OpSelect if n == 3  => new TernaryConditionExpression(args(0), args(1), args(2))
+      case isl.AstOpType.OpSelect if n == 3  => IR_TernaryCondition(args(0), args(1), args(2))
 
       case isl.AstOpType.OpCall if n >= 1 =>
         val fArgs = ListBuffer[IR_Expression](args : _*)
         fArgs.remove(0)
-        FunctionCallExpression(args(0).asInstanceOf[IR_StringLiteral].value, fArgs)
+        IR_FunctionCall(args(0).asInstanceOf[IR_StringLiteral].value, fArgs)
 
       case err =>
         throw new PolyASTBuilderException("expression not (yet) available:  " + err + "  with " + args.length + " arguments:  " + expr)

@@ -167,7 +167,7 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
         case IR_Assignment(_ : iv.LocalCommDone, _, _) => IR_NullStatement
         case _ : iv.LocalCommDone                      => IR_BooleanConstant(true)
 
-        case FunctionCallExpression("waitForFlag", _) => IR_NullExpression
+        case IR_FunctionCall("waitForFlag", _) => IR_NullExpression
       }))
     }
 
@@ -235,7 +235,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
 
         // generate function calls with adapted sizes
         for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {
-          body += FunctionCallExpression(s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
+          body += IR_FunctionCall(s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
             (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim) : IR_Expression).to[ListBuffer])
         }
 
@@ -320,7 +320,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
               Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
             IR_ArrayAllocation(newFieldData.basePtr, field.field.resolveDeclType, numDataPoints + Platform.simd_vectorSize - 1),
             IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-              Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
+              Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
             IR_Assignment(newFieldData, newFieldData.basePtr + s"offset_$counter"))
         } else {
           ListBuffer(IR_ArrayAllocation(newFieldData, field.field.resolveDeclType, numDataPoints))
@@ -412,7 +412,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
             Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
           IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-            Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
+            Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
       } else {
         bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](IR_ArrayAllocation(buf, IR_RealDatatype, size))) with OMP_PotentiallyParallel)
@@ -442,7 +442,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
             Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
           IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-            Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
+            Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter")))))
       else
         bufferAllocs += (id -> buf.wrapInLoops(IR_ArrayAllocation(buf, buf.baseDatatype, size)))

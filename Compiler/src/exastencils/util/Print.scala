@@ -36,7 +36,7 @@ case class BuildStringStatement(var stringName : IR_Expression, var toPrint : Li
     val statements = ListBuffer[IR_Statement](
       IR_VariableDeclaration(streamType, streamName),
       PrintExpression(IR_VariableAccess(streamName, streamType), toPrint),
-      IR_Assignment(stringName, MemberFunctionCallExpression(IR_VariableAccess(streamName, IR_SpecialDatatype("std::ostringstream")), "str", ListBuffer())))
+      IR_Assignment(stringName, IR_MemberFunctionCall(IR_VariableAccess(streamName, IR_SpecialDatatype("std::ostringstream")), "str")))
     statements
   }
 }
@@ -127,7 +127,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
                     access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
                   List(access, separator)
                 }).to[ListBuffer] += PrintExpression.endl))))),
-      new MemberFunctionCallExpression(IR_VariableAccess(streamName, streamType), "close"))
+      IR_MemberFunctionCall(IR_VariableAccess(streamName, streamType), "close"))
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -135,7 +135,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
       statements += IR_IfCondition(MPI_IsRootProc(),
         ListBuffer[IR_Statement](
           IR_ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc")),
-          new MemberFunctionCallExpression(IR_VariableAccess(streamName, streamType), "close")))
+          IR_MemberFunctionCall(IR_VariableAccess(streamName, streamType), "close")))
 
       statements += MPI_Sequential(innerLoop)
     } else {

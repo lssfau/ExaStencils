@@ -77,17 +77,17 @@ case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with IR_
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 1 => CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      case 1 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
       // case 2 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
       //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 2 => CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      case 2 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
       // case 3 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
       //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
       //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 3 => CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      case 3 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
     }
   }
 }
@@ -107,26 +107,26 @@ case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with 
     val entries = Knowledge.dimensionality match {
       case 1 => ListBuffer[IR_Expression](
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         0,
         0)
       case 2 => ListBuffer[IR_Expression](
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
         0)
       case 3 => ListBuffer[IR_Expression](
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z))
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)))
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)))
     }
 
     // "Vec3i(" ~ entries.reduceLeft((l, r) => l ~ ", " ~ r) ~ ")"
-    FunctionCallExpression("Vec3i", entries) // FIXME: Constructor?
+    IR_FunctionCall("Vec3i", entries) // FIXME: Constructor?
   }
 }
 
@@ -144,17 +144,17 @@ case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression wit
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 1 => ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 1 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
       // case 2 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
       //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 2 => ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 2 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
       // case 3 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z)) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
       //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
       //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 3 => ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z))) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 3 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z))) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
     }
   }
 }
@@ -172,24 +172,24 @@ case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends I
 
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
-      case 1 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
+      case 1 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
         // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-      case 2 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+      case 2 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
         // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
         //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
-          CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-      case 3 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
+          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+      case 3 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
         // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x
         //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
         //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x +
-          CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
-          CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x +
+          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
+          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
     }
   }
 }
@@ -242,15 +242,15 @@ case class ConnectFragments() extends IR_Statement with IR_Expandable {
             (if (Knowledge.domain_canHaveRemoteNeighs) {
               if (Knowledge.domain_canHaveLocalNeighs)
                 IR_IfCondition(IR_EqEqExpression("mpiRank", PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d))),
-                  FunctionCallExpression("connectLocalElement", ListBuffer[IR_Expression](
+                  IR_FunctionCall("connectLocalElement", ListBuffer[IR_Expression](
                     IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d)),
-                  FunctionCallExpression("connectRemoteElement", ListBuffer[IR_Expression](
+                  IR_FunctionCall("connectRemoteElement", ListBuffer[IR_Expression](
                     IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d))) // FIXME: datatype for VariableAccess
               else
-                FunctionCallExpression("connectRemoteElement", ListBuffer[IR_Expression](
+                IR_FunctionCall("connectRemoteElement", ListBuffer[IR_Expression](
                   IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d)) // FIXME: datatype for VariableAccess
             } else {
-              FunctionCallExpression("connectLocalElement", ListBuffer[IR_Expression](
+              IR_FunctionCall("connectLocalElement", ListBuffer[IR_Expression](
                 IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d))
             }) : IR_Statement))
 
@@ -275,14 +275,14 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
     val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
     // val vecDelta = "Vec3(" ~ (0.5 * fragWidth_x) ~ "," ~ (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0) ~ "," ~ (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0) ~ ")"
     // FIXME: Constructor?
-    val vecDelta = new FunctionCallExpression("Vec3", (0.5 * fragWidth_x), (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0), (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0))
+    val vecDelta = IR_FunctionCall("Vec3", (0.5 * fragWidth_x), (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0), (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0))
 
     var body = ListBuffer[IR_Statement]()
 
     if (Knowledge.mpi_enabled)
       body += IR_Assert(IR_EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
         ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
-        new FunctionCallExpression("exit", 1))
+        IR_FunctionCall("exit", 1))
 
     body ++= ListBuffer(
       s"Vec3 positions[${ Knowledge.domain_numFragmentsPerBlock }]",
@@ -293,7 +293,7 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
         s"Vec3 rankPos(0, 0, 0)")
 
     body += IR_LoopOverDimensions(Knowledge.dimensionality, IndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
-      new IR_Assignment("positions[posWritePos++]", new FunctionCallExpression("Vec3",
+      IR_Assignment("positions[posWritePos++]", IR_FunctionCall("Vec3",
         ((("rankPos.x" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x,
         (if (Knowledge.dimensionality > 1) ((("rankPos.y" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0),
         (if (Knowledge.dimensionality > 2) ((("rankPos.z" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0)))) // FIXME: Constructor?
@@ -307,7 +307,7 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
 
     body += ConnectFragments()
 
-    body += new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
+    body += IR_FunctionCall("setupBuffers") // FIXME: move to app
 
     IR_Function(IR_UnitDatatype, name, body)
   }
@@ -365,7 +365,7 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
           "MPI_Barrier(MPI_COMM_WORLD)",
           "MPI_File_close(&fh)",
           "setValues(buf,numFragments)",
-          new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")))
+          IR_FunctionCall("setupBuffers"))
       } else {
         ListBuffer(
           IR_VariableDeclaration(IR_IntegerDatatype, "numFragments", 0),
@@ -388,7 +388,7 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
           "fileFrags.read (buf, bufsize)",
           "fileFrags.close()",
           "setValues(buf,numFragments)",
-          new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")))
+          IR_FunctionCall("setupBuffers"))
       })
 
   }
@@ -412,7 +412,7 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
         IR_PreIncrementExpression(IR_VariableAccess("i", IR_IntegerDatatype)),
         // FIXME: Constructor?
         // s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
-        IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "vertPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
+        IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "vertPos", IR_FunctionCall("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0)),
         (if (Knowledge.dimensionality == 2) IR_Assignment("vertPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
         (if (Knowledge.dimensionality == 3) IR_Assignment("vertPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
         IR_Switch("i",
@@ -422,7 +422,7 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
           IR_Case("7", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")))),
       // FIXME: Constructor?
       // s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
-      IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "fragPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
+      IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "fragPos", IR_FunctionCall("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0)),
       (if (Knowledge.dimensionality == 2) IR_Assignment("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       (if (Knowledge.dimensionality == 3) IR_Assignment("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       IR_Assignment(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),

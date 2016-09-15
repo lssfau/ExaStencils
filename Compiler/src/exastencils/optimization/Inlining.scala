@@ -119,7 +119,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     this.commit()
   }
 
-  private def inline(callScope : Node, callStmt : IR_Statement, callExpr : FunctionCallExpression, funcStmt : IR_Function,
+  private def inline(callScope : Node, callStmt : IR_Statement, callExpr : IR_FunctionCall, funcStmt : IR_Function,
       potConflicts : Set[String], potConflToUpdate : Set[String]) : Boolean = {
 
     // each function parameter must be given in call
@@ -190,11 +190,11 @@ object Inlining extends CustomStrategy("Function inlining") {
 
     // perform actual inlining
     this.execute(new Transformation("inline", {
-      case IR_ExpressionStatement(call : FunctionCallExpression) if (call eq callExpr) =>
+      case IR_ExpressionStatement(call : IR_FunctionCall) if (call eq callExpr) =>
         body // return value is not available/used
-      case stmt : IR_Statement if (stmt eq callStmt)                                   =>
+      case stmt : IR_Statement if (stmt eq callStmt)                            =>
         body += stmt
-      case call : IR_Expression if (call eq callExpr)                                  =>
+      case call : IR_Expression if (call eq callExpr)                           =>
         if (retStmt == null || retStmt.expr.isEmpty)
           Logger.error("[inline]  Return type is Unit, but call is not inside an ExpressionStatement node")
         else
@@ -209,7 +209,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     private[Inlining] final val functions = Map[String, IR_Function]()
     private[Inlining] final val flatFunctionBody = Map[String, Buffer[IR_Statement]]((null, ArrayBuffer()))
     // value of calls: (call itself, statement containing it, statement's parent, function containing statement)
-    private[Inlining] final val calls = Map[String, ListBuffer[(FunctionCallExpression, IR_Statement, Node, String)]]()
+    private[Inlining] final val calls = Map[String, ListBuffer[(IR_FunctionCall, IR_Statement, Node, String)]]()
     private[Inlining] final val potConflicts = Map[String, Set[String]]()
 
     private var curFunc : String = null
@@ -234,7 +234,7 @@ object Inlining extends CustomStrategy("Function inlining") {
               allowedReturn = lastStmt
           }
 
-        case call : FunctionCallExpression =>
+        case call : IR_FunctionCall =>
           val callSites = calls.getOrElseUpdate(call.name, new ListBuffer())
           var it = stack.iterator
           while (it != null && it.hasNext) {

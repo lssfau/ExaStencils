@@ -5,7 +5,6 @@ import scala.collection.mutable._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
@@ -16,9 +15,9 @@ import exastencils.util._
 
 // FIXME: refactor
 object IR_LoopOverDimensions {
-  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[Reduction], condition : Option[IR_Expression]) =
+  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction], condition : Option[IR_Expression]) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction, condition)
-  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[Reduction]) =
+  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction]) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction)
   def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize)
@@ -80,7 +79,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[IR_Statement],
     var stepSize : IR_ExpressionIndex = null, // actual default set in constructor
-    var reduction : Option[Reduction] = None,
+    var reduction : Option[IR_Reduction] = None,
     var condition : Option[IR_Expression] = None,
     var genOMPThreadLoop : Boolean = false) extends IR_Statement {
 

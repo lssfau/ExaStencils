@@ -509,9 +509,9 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         val red = loop.reduction.get
         deviceStatements += IR_Assignment(red.target,
           IR_BinaryOperators.createExpression(red.op, red.target,
-            FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))))
+            IR_FunctionCall(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))))
       } else {
-        deviceStatements += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))
+        deviceStatements += IR_FunctionCall(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))
       }
 
       deviceStatements

@@ -144,7 +144,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
-      FunctionCallExpression(functionName, fctArgs) : IR_Statement
+      IR_FunctionCall(functionName, fctArgs) : IR_Statement
     }
 
     case applyBCsStatement : ApplyBCsStatement => {
@@ -179,7 +179,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
-      FunctionCallExpression(functionName, fctArgs) : IR_Statement
+      IR_FunctionCall(functionName, fctArgs) : IR_Statement
     }
   }, false)
 }

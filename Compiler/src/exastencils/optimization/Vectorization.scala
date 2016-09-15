@@ -233,7 +233,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
   }
 
   private def vectorizeLoop(oldLoop : IR_ForLoop, itVar : String, begin : IR_Expression, endExcl : IR_Expression,
-      incr : Long, body : ListBuffer[IR_Statement], reduction : Option[Reduction]) : IR_Statement = {
+      incr : Long, body : ListBuffer[IR_Statement], reduction : Option[IR_Reduction]) : IR_Statement = {
 
     val ctx = new LoopCtx(itVar, incr)
     var postLoopStmt : IR_Statement = null
@@ -653,11 +653,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           exprs.enqueue(SIMD_MaximumExpression(exprs.dequeue(), exprs.dequeue()))
         exprs.dequeue()
 
-      case FunctionCallExpression(func, args) if (SIMD_MathFunctions.isAllowed(func)) =>
-        FunctionCallExpression(SIMD_MathFunctions.addUsage(func), args.map { arg => vectorizeExpr(arg, ctx) })
+      case IR_FunctionCall(func, args) if (SIMD_MathFunctions.isAllowed(func)) =>
+        IR_FunctionCall(SIMD_MathFunctions.addUsage(func), args.map { arg => vectorizeExpr(arg, ctx) })
 
       case IR_PowerExpression(base, exp) if (SIMD_MathFunctions.isAllowed("pow")) =>
-        FunctionCallExpression(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))
+        IR_FunctionCall(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))
 
       case mAcc : MemberAccess =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)

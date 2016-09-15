@@ -220,7 +220,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           Logger.warn(s"Virtual field accesses ($fieldAccess) are currently unsupported within evaluation and intergration functions")
           fieldAccess
         }
-        case eval : EvalAtRFace                                                                                                   => {
+        case eval : EvalAtRFace                                                                                            => {
           if (eval.faceDim != faceDim) Logger.error(s"Found unaligned eval for faceDim ${ eval.faceDim } in integration for faceDim $faceDim in eval for ${ eval.fieldAccess }")
           if (eval.stagDim != stagDim) Logger.error(s"Found unaligned eval for stagDim ${ eval.stagDim } in integration for stagDim $stagDim in eval for ${ eval.fieldAccess }")
 
@@ -256,7 +256,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
             }
           }
         }
-        case fctCall @ FunctionCallExpression(functionName, args) if ResolveIntegrationFunctions.functions.contains(functionName) => {
+        case fctCall @ IR_FunctionCall(functionName, args) if ResolveIntegrationFunctions.functions.contains(functionName) => {
           Logger.error("Integration functions called inside other integration functions are currently not supported")
         }
       }, false) // not recursive -> don't look inside eval functions

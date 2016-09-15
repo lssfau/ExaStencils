@@ -84,11 +84,6 @@ case class MatrixExpression(var innerDatatype : Option[IR_Datatype], var express
   def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IR_IntegerConstant])
 }
 
-case class CastExpression(var innerDatatype : IR_Datatype, var toCast : IR_Expression) extends IR_Expression {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "((" << innerDatatype << ")" << toCast << ")"
-}
-
 //TODO specific expression for reading from fragment data file
 case class ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expression) extends IR_Expression {
   override def datatype = IR_UnitDatatype
@@ -148,53 +143,6 @@ case class MemberAccess(var base : IR_Access, var member : String) extends IR_Ac
 case class DerefAccess(var base : IR_Access) extends IR_Access {
   override def datatype = base.datatype
   override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
-}
-
-case class FunctionCallExpression(var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
-  def this(name : String, args : IR_Expression*) = this(name, args.to[ListBuffer])
-
-  override def datatype = {
-    name match {
-      case "diag" | "diag_inv" | "diag_inverse" => arguments(0).datatype
-      case "inv" | "inverse"                    => arguments(0).datatype
-      case "Vec3"                               => IR_UnitDatatype
-      case _                                    => {
-        var fct = StateManager.findAll[IR_Function]((t : IR_Function) => { t.name == this.name })
-        if (fct.length <= 0) {
-          Logger.warn(s"""Did not find function '${ name }'""")
-          IR_UnitDatatype
-        } else {
-          fct(0).returntype
-        }
-      }
-    }
-  }
-  override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
-}
-
-case class InitializerList(var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
-  def this(args : IR_Expression*) = this(args.to[ListBuffer])
-
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "{ " <<< (arguments, ", ") << " }"
-}
-
-case class MemberFunctionCallExpression(var objectName : IR_Expression, var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
-  def this(objectName : IR_Expression, name : String, args : IR_Expression*) = this(objectName, name, args.to[ListBuffer])
-
-  override def datatype = IR_UnitDatatype
-  // FIXME
-  override def prettyprint(out : PpStream) : Unit = out << objectName << '.' << name << '(' <<< (arguments, ", ") << ')'
-}
-
-case class TernaryConditionExpression(var condition : IR_Expression, var trueBody : IR_Expression, var falseBody : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype(trueBody.datatype, falseBody.datatype)
-  override def prettyprint(out : PpStream) : Unit = out << '(' << condition << " ? " << trueBody << " : " << falseBody << ')'
-}
-
-case class Reduction(var op : String, var target : IR_VariableAccess) extends IR_Expression {
-  override def datatype = target.innerDatatype.getOrElse(IR_RealDatatype)
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
 }
 
 case class StencilConvolution(var stencil : Stencil, var fieldAccess : IR_FieldAccess) extends IR_Expression with IR_Expandable {

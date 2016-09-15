@@ -113,7 +113,7 @@ object SimplifyExpression {
     case IR_BoundedScalar(min, max, _) =>
       (min, max)
 
-    case FunctionCallExpression("floord", ListBuffer(l : IR_Expression, r : IR_Expression)) =>
+    case IR_FunctionCall("floord", ListBuffer(l : IR_Expression, r : IR_Expression)) =>
       evalIntegralExtrema(IR_DivisionExpression(l, r), extremaLookup)
 
     case _ =>
@@ -181,19 +181,19 @@ object SimplifyExpression {
     }
     val dividend = recreateExprFromIntSum(tmp)
     val (name, update) : (IR_Expression, Long) = dividend match {
-      case IR_IntegerConstant(x)                                                                                                                    => (constName, x / divs)
-      case IR_DivisionExpression(x, IR_IntegerConstant(divs2))                                                                                      => (IR_DivisionExpression(x, IR_IntegerConstant(divs * divs2)), 1L)
-      case IR_AdditionExpression(ListBuffer(IR_DivisionExpression(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const)))                        =>
+      case IR_IntegerConstant(x)                                                                                                             => (constName, x / divs)
+      case IR_DivisionExpression(x, IR_IntegerConstant(divs2))                                                                               => (IR_DivisionExpression(x, IR_IntegerConstant(divs * divs2)), 1L)
+      case IR_AdditionExpression(ListBuffer(IR_DivisionExpression(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const)))                 =>
         (simplifyIntegralExpr(IR_DivisionExpression(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_AdditionExpression(ListBuffer(IR_IntegerConstant(const), IR_DivisionExpression(x, IR_IntegerConstant(divs2))))                        =>
+      case IR_AdditionExpression(ListBuffer(IR_IntegerConstant(const), IR_DivisionExpression(x, IR_IntegerConstant(divs2))))                 =>
         (simplifyIntegralExpr(IR_DivisionExpression(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case FunctionCallExpression("floord", ListBuffer(x, IR_IntegerConstant(divs2)))                                                               =>
-        (FunctionCallExpression("floord", ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_AdditionExpression(ListBuffer(FunctionCallExpression("floord", ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) =>
-        (simplifyIntegralExpr(FunctionCallExpression("floord", ListBuffer(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2)))), 1L)
-      case IR_AdditionExpression(ListBuffer(IR_IntegerConstant(const), FunctionCallExpression("floord", ListBuffer(x, IR_IntegerConstant(divs2))))) =>
-        (simplifyIntegralExpr(FunctionCallExpression("floord", ListBuffer(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2)))), 1L)
-      case divd                                                                                                                                     => (IR_DivisionExpression(divd, IR_IntegerConstant(divs)), 1L)
+      case IR_FunctionCall("floord", ListBuffer(x, IR_IntegerConstant(divs2)))                                                               =>
+        (IR_FunctionCall("floord", ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
+      case IR_AdditionExpression(ListBuffer(IR_FunctionCall("floord", ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) =>
+        (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+      case IR_AdditionExpression(ListBuffer(IR_IntegerConstant(const), IR_FunctionCall("floord", ListBuffer(x, IR_IntegerConstant(divs2))))) =>
+        (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+      case divd                                                                                                                              => (IR_DivisionExpression(divd, IR_IntegerConstant(divs)), 1L)
     }
     res(name) = res.getOrElse(name, 0L) + update
     return res
@@ -295,7 +295,7 @@ object SimplifyExpression {
       case IR_DivisionExpression(l, r) =>
         res = extractIntegralSumDivision(l, r)
 
-      case FunctionCallExpression("floord", ListBuffer(l, r)) =>
+      case IR_FunctionCall("floord", ListBuffer(l, r)) =>
         res = extractIntegralSumDivision(l, r)
 
       case IR_ModuloExpression(l, r) =>
@@ -530,7 +530,7 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(tAcc) = 1d
 
-      case call : FunctionCallExpression =>
+      case call : IR_FunctionCall =>
         if (call.name.contains("std::rand")) // HACK
           throw new EvaluationException("don't optimize code containing a call to std::rand")
         def simplifyFloatingArgs(pars : Seq[IR_Datatype]) : Unit = {

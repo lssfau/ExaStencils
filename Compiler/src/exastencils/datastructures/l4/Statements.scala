@@ -375,8 +375,8 @@ case class RepeatTimesStatement(var number : Int,
 case class ReductionStatement(var op : String, var target : String) extends SpecialStatement {
   override def prettyprint(out : PpStream) = out << "reduction ( " << op << " : " << target << " )"
 
-  override def progress : ir.Reduction = {
-    ir.Reduction(op, IR_VariableAccess(target, None))
+  override def progress : IR_Reduction = {
+    IR_Reduction(op, IR_VariableAccess(target, None))
   }
 }
 

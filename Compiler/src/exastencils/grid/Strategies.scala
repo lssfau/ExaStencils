@@ -35,7 +35,7 @@ object PrepareShiftedEvaluationFunctions extends DefaultStrategy("PrepareShifted
 
   private object DoShift extends QuietDefaultStrategy("DoShift") {
     this += new Transformation("Resolving functions", {
-      case fct @ FunctionCallExpression(functionName, args) if shiftEvalFunctions.contains(functionName) => {
+      case fct @ IR_FunctionCall(functionName, args) if shiftEvalFunctions.contains(functionName) => {
         fct.name = shiftEvalFunctions.get(functionName).get
         fct
       }
@@ -43,7 +43,7 @@ object PrepareShiftedEvaluationFunctions extends DefaultStrategy("PrepareShifted
   }
 
   this += new Transformation("Resolving functions", {
-    case fct @ FunctionCallExpression(functionName, args) if shiftIntegrateFunctions.contains(functionName) => {
+    case fct @ IR_FunctionCall(functionName, args) if shiftIntegrateFunctions.contains(functionName) => {
       DoShift.applyStandalone(fct)
       fct
     }
@@ -61,7 +61,7 @@ object ResolveEvaluationFunctions extends DefaultStrategy("ResolveEvaluationFunc
     "evalAtZStaggeredWestFace", "evalAtZStaggeredSouthFace", "evalAtZStaggeredBottomFace")
 
   this += new Transformation("Resolving functions", {
-    case FunctionCallExpression(functionName, args) if functions.contains(functionName) => {
+    case IR_FunctionCall(functionName, args) if functions.contains(functionName) => {
       if (0 == args.length) {
         Logger.warn(s"Trying to use build-in function $functionName without arguments")
         IR_NullExpression
@@ -91,7 +91,7 @@ object ResolveIntegrationFunctions extends DefaultStrategy("ResolveIntegrateFunc
     "integrateOverZStaggeredWestFace", "integrateOverZStaggeredSouthFace", "integrateOverZStaggeredBottomFace")
 
   this += new Transformation("Resolving functions", {
-    case FunctionCallExpression(functionName, args) if functions.contains(functionName) => {
+    case IR_FunctionCall(functionName, args) if functions.contains(functionName) => {
       if (0 == args.length) {
         Logger.warn(s"Trying to use build-in function $functionName without arguments")
         IR_NullExpression

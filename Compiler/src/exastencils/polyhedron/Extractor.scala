@@ -549,7 +549,7 @@ class Extractor extends Collector {
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
           // ignore
-          case FunctionCallExpression(name, _) if (allowedFunctions.contains(name)) =>
+          case IR_FunctionCall(name, _) if (allowedFunctions.contains(name)) =>
           // nothing to do...
 
           case _ : IR_IntegerConstant
@@ -573,7 +573,7 @@ class Extractor extends Collector {
           // deny
           case e : IR_ExpressionStatement => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
           case IR_ArrayAccess(a, _, _)    => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
-          case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
+          case f : IR_FunctionCall        => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
           case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
         }
     } catch {

@@ -137,7 +137,7 @@ case class FinishLocalComm(var field : FieldSelection,
         IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
           AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
           ListBuffer[IR_Statement](
-            new FunctionCallExpression("waitForFlag", IR_AddressofExpression(iv.LocalCommDone(
+            IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommDone(
               field.field,
               Fragment.getOpposingNeigh(neighbor._1).index,
               iv.NeighborFragLocalId(field.domainIndex, neighbor._1.index))))))),
@@ -177,7 +177,7 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
     IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
-        new FunctionCallExpression("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
+        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
         new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt)) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         IR_Assignment(iv.LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
@@ -202,7 +202,7 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
     IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be read from is ready for communication
-        new FunctionCallExpression("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
+        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
         new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt)) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         IR_Assignment(iv.LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
@@ -467,7 +467,7 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
     IR_IfCondition(
       iv.RemoteReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[IR_Statement](
-        new FunctionCallExpression("waitForMPIReq", IR_AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index))),
+        IR_FunctionCall("waitForMPIReq", IR_AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index))),
         IR_Assignment(iv.RemoteReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }

@@ -26,7 +26,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
   // TODO: think about if this case (access outside of a loop) should be supported
 
   this += new Transformation("ModifyIndices", {
-    case fct : FunctionCallExpression if "changeLvlAndIndices" == fct.name => {
+    case fct : IR_FunctionCall if "changeLvlAndIndices" == fct.name => {
       // extract information from special function call
       val fieldAccess = fct.arguments(0).asInstanceOf[IR_FieldAccess]
       Logger.warn("Performing index adaptation for " + fieldAccess.fieldSelection.field.codeName)
@@ -85,7 +85,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
   this.register(collector)
 
   this += new Transformation("SearchAndReplace", {
-    case FunctionCallExpression("diag", args) => args(0) match {
+    case IR_FunctionCall("diag", args) => args(0) match {
       case access : StencilAccess      =>
         val centralOffset = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(0))
         access.stencil.findStencilEntry(centralOffset).get.coefficient
@@ -96,7 +96,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
       }
       case _                           => {
         Logger.warn("diag with unknown arg " + args(0))
-        FunctionCallExpression("diag", args)
+        IR_FunctionCall("diag", args)
       }
     }
   })
@@ -119,31 +119,31 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     // functions
 
     // HACK to implement min/max functions
-    case FunctionCallExpression("min", args) => IR_MinimumExpression(args)
-    case FunctionCallExpression("max", args) => IR_MaximumExpression(args)
+    case IR_FunctionCall("min", args) => IR_MinimumExpression(args)
+    case IR_FunctionCall("max", args) => IR_MaximumExpression(args)
 
     // FIXME: UGLY HACK to realize native code functionality
-    case FunctionCallExpression("native", args) =>
+    case IR_FunctionCall("native", args) =>
       IR_StringLiteral(args(0).asInstanceOf[IR_StringConstant].value)
 
-    case FunctionCallExpression("concat", args) =>
+    case IR_FunctionCall("concat", args) =>
       new ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
-    case IR_ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
-      IR_ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
+    case IR_ExpressionStatement(IR_FunctionCall("startTimer", args)) =>
+      IR_ExpressionStatement(IR_FunctionCall("startTimer", iv.Timer(args(0))))
 
-    case IR_ExpressionStatement(FunctionCallExpression("stopTimer", args)) =>
-      IR_ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
+    case IR_ExpressionStatement(IR_FunctionCall("stopTimer", args)) =>
+      IR_ExpressionStatement(IR_FunctionCall("stopTimer", iv.Timer(args(0))))
 
-    case FunctionCallExpression("getMeanFromTimer", args) =>
-      FunctionCallExpression("getMeanTime", ListBuffer(iv.Timer(args(0))))
+    case IR_FunctionCall("getMeanFromTimer", args) =>
+      IR_FunctionCall("getMeanTime", iv.Timer(args(0)))
 
-    case FunctionCallExpression("getTotalFromTimer", args) =>
-      FunctionCallExpression("getTotalTime", ListBuffer(iv.Timer(args(0))))
+    case IR_FunctionCall("getTotalFromTimer", args) =>
+      IR_FunctionCall("getTotalTime", iv.Timer(args(0)))
 
     // Vector functions
-    case f : FunctionCallExpression if (f.name == "cross" || f.name == "crossproduct") => {
+    case f : IR_FunctionCall if (f.name == "cross" || f.name == "crossproduct") => {
       f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[VectorExpression] || f.arguments(0).isInstanceOf[VectorExpression])
         && a.getClass != f.arguments(0).getClass) Logger.error("Must have matching types!"))
       f.arguments.foreach(a => if (a.asInstanceOf[VectorExpression].length != f.arguments(0).asInstanceOf[VectorExpression].length) Logger.error("Vectors must have matching lengths"))
@@ -162,7 +162,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     }
 
     // Matrix functions
-    case x : FunctionCallExpression if x.name == "inverse" => {
+    case x : IR_FunctionCall if x.name == "inverse" => {
       if (x.arguments.size == 1) {
         if (x.arguments(0).isInstanceOf[MatrixExpression]) {
           var m = x.arguments(0).asInstanceOf[MatrixExpression]
@@ -206,9 +206,9 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     }
 
     // HACK for print functionality
-    case IR_ExpressionStatement(FunctionCallExpression("print", args))      =>
+    case IR_ExpressionStatement(IR_FunctionCall("print", args))      =>
       new PrintStatement(args)
-    case IR_ExpressionStatement(FunctionCallExpression("printField", args)) => {
+    case IR_ExpressionStatement(IR_FunctionCall("printField", args)) => {
       args.length match {
         case 1 => // option 1: only field -> deduce name
           new PrintFieldStatement("\"" + args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[IR_FieldAccess].fieldSelection)
@@ -219,7 +219,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       }
     }
 
-    case IR_ExpressionStatement(FunctionCallExpression("buildString", args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall("buildString", args)) =>
       new BuildStringStatement(args(0), args.slice(1, args.size))
 
     // FIXME: HACK to realize application functionality
@@ -249,41 +249,41 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       func
     }
 
-    case FunctionCallExpression("isOnBoundaryOf", args) => {
+    case IR_FunctionCall("isOnBoundaryOf", args) => {
       IsOnBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
-    case FunctionCallExpression("isOnEastBoundaryOf", args)   => {
+    case IR_FunctionCall("isOnEastBoundaryOf", args)   => {
       IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(1, 0, 0)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnWestBoundaryOf", args)   => {
+    case IR_FunctionCall("isOnWestBoundaryOf", args)   => {
       IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(-1, 0, 0)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnNorthBoundaryOf", args)  => {
+    case IR_FunctionCall("isOnNorthBoundaryOf", args)  => {
       IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 1, 0)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnSouthBoundaryOf", args)  => {
+    case IR_FunctionCall("isOnSouthBoundaryOf", args)  => {
       IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, -1, 0)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnTopBoundaryOf", args)    => {
+    case IR_FunctionCall("isOnTopBoundaryOf", args)    => {
       IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, 1)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnBottomBoundaryOf", args) => {
+    case IR_FunctionCall("isOnBottomBoundaryOf", args) => {
       IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, -1)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
-    case IR_ElementwiseAdditionExpression(left, right)       => FunctionCallExpression("elementwiseAdd", ListBuffer(left, right))
-    case IR_ElementwiseSubtractionExpression(left, right)    => FunctionCallExpression("elementwiseSub", ListBuffer(left, right))
-    case IR_ElementwiseMultiplicationExpression(left, right) => FunctionCallExpression("elementwiseMul", ListBuffer(left, right))
-    case IR_ElementwiseDivisionExpression(left, right)       => FunctionCallExpression("elementwiseDiv", ListBuffer(left, right))
-    case IR_ElementwiseModuloExpression(left, right)         => FunctionCallExpression("elementwiseMod", ListBuffer(left, right))
-    case FunctionCallExpression("dot", args)                 => FunctionCallExpression("dotProduct", args)
+    case IR_ElementwiseAdditionExpression(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
+    case IR_ElementwiseSubtractionExpression(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
+    case IR_ElementwiseMultiplicationExpression(left, right) => IR_FunctionCall("elementwiseMul", ListBuffer(left, right))
+    case IR_ElementwiseDivisionExpression(left, right)       => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
+    case IR_ElementwiseModuloExpression(left, right)         => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
+    case IR_FunctionCall("dot", args)                        => IR_FunctionCall("dotProduct", args)
   })
 }

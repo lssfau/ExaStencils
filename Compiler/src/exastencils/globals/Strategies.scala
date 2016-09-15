@@ -6,7 +6,6 @@ import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.util._
 
@@ -33,7 +32,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
           "cuDeviceGetCount(&deviceCount)",
           IR_Assert(IR_LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
             ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", "deviceCount", "\")\""),
-            new FunctionCallExpression("exit", 1)),
+            IR_FunctionCall("exit", 1)),
           s"cuDeviceGet(&cudaDevice, ${ Knowledge.cuda_deviceId })")
 
         // print device info (name)

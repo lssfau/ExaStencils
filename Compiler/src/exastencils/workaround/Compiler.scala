@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
+import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge.Platform
 
 object Compiler extends DefaultStrategy("Compiler workarounds") {
@@ -18,7 +18,7 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
     this += new Transformation("icc 16 internal error (method too large)", new PartialFunction[Node, Transformation.Output[NodeList]] {
       override def isDefinedAt(node : Node) : Boolean = node match {
         case func : IR_Function =>
-          return func.functionQualifiers.isEmpty &&
+          func.functionQualifiers.isEmpty &&
             func.parameters.isEmpty &&
             func.body.forall {
               s => s == IR_NullStatement ||
@@ -31,7 +31,7 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
             } &&
             func.body.length >= threshold
         case _                  =>
-          return false
+          false
       }
 
       override def apply(node : Node) : Transformation.Output[NodeList] = {
@@ -49,10 +49,10 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
           val newFuncName = func.name + i
           val (pref, rest) = remaining.splitAt(threshold)
           funcs += new IR_Function(func.returntype, newFuncName, new ListBuffer[IR_FunctionArgument](), pref)
-          func.body += new IR_ExpressionStatement(new FunctionCallExpression(newFuncName))
+          func.body += IR_FunctionCall(newFuncName)
           remaining = rest
-        } while (!remaining.isEmpty)
-        return funcs
+        } while (remaining.nonEmpty)
+        funcs
       }
     })
   }

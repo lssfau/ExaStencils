@@ -335,8 +335,8 @@ case class UnaryExpression(var operator : String, var exp : L4_Expression) exten
 case class FunctionCallExpression(var identifier : Access, var arguments : List[L4_Expression]) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
-  def progress : ir.FunctionCallExpression = {
-    ir.FunctionCallExpression(identifier.progress.asInstanceOf[IR_StringLiteral].value,
+  def progress : IR_FunctionCall = {
+    IR_FunctionCall(identifier.progress.asInstanceOf[IR_StringLiteral].value,
       arguments.map(s => s.progress).to[ListBuffer])
   }
 }
