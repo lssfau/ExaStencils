@@ -12,10 +12,6 @@ import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.strategies._
 
-trait Number extends IR_Expression {
-  def value : AnyVal
-}
-
 @deprecated("should be removed completely, since it complicates AST analysis for transformations/optimization; please, don't use it in new code", "14.04.2016")
 case class ConcatenationExpression(var expressions : ListBuffer[IR_Expression]) extends IR_Expression {
   def this(exprs : IR_Expression*) = this(exprs.to[ListBuffer])
@@ -27,7 +23,7 @@ case class VectorExpression(var innerDatatype : Option[IR_Datatype], var express
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
-  def isConstant = expressions.forall(e => e.isInstanceOf[Number])
+  def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
 
   override def datatype = {
     if (innerDatatype.isEmpty) {
@@ -84,7 +80,7 @@ case class MatrixExpression(var innerDatatype : Option[IR_Datatype], var express
   def columns = expressions(0).length
 
   def apply(i : Integer) = expressions(i)
-  def isConstant = expressions.flatten.forall(e => e.isInstanceOf[Number])
+  def isConstant = expressions.flatten.forall(e => e.isInstanceOf[IR_Number])
   def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IR_IntegerConstant])
 }
 
