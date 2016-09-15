@@ -84,24 +84,9 @@ case class MatrixExpression(var innerDatatype : Option[IR_Datatype], var express
   def isInteger = expressions.flatten.forall(e => e.isInstanceOf[IR_IntegerConstant])
 }
 
-case class SizeOfExpression(var innerDatatype : IR_Datatype) extends IR_Expression {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "sizeof" << "(" << innerDatatype << ")"
-}
-
 case class CastExpression(var innerDatatype : IR_Datatype, var toCast : IR_Expression) extends IR_Expression {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "((" << innerDatatype << ")" << toCast << ")"
-}
-
-case class ArrayAccess(var base : IR_Expression, var index : IR_Expression, var alignedAccessPossible : Boolean = false) extends IR_Access {
-  override def datatype = base.datatype
-  override def prettyprint(out : PpStream) : Unit = {
-    index match {
-      case ind : IR_ExpressionIndex => out << base << ind
-      case ind : IR_Expression      => out << base << '[' << ind << ']'
-    }
-  }
 }
 
 //TODO specific expression for reading from fragment data file
@@ -110,44 +95,15 @@ case class ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expression) 
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << innerDatatype << '>' << "(" << data << ")"
 }
 
-case class BoundedExpression(var min : Long, var max : Long, var expr : IR_Expression) extends IR_Expression {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BoundedExpression(" << expr << ')'
-
-  def expandSpecial() : IR_Expression = {
-    return expr
-  }
-}
-
-case class TempBufferAccess(var buffer : iv.TmpBuffer, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression {
-  override def datatype = buffer.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TempBufferAccess\n"
-
-  def linearize : ArrayAccess = {
-    new ArrayAccess(buffer,
-      Mapping.resolveMultiIdx(index, strides),
-      false) // Knowledge.data_alignTmpBufferPointers) // change here if aligned vector operations are possible for tmp buffers
-  }
-}
-
-case class ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression {
-  override def datatype = data.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ReductionDeviceDataAccess\n"
-
-  def linearize : ArrayAccess = {
-    new ArrayAccess(data, Mapping.resolveMultiIdx(index, strides), false)
-  }
-}
-
 case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Expression {
   override def datatype = buffer.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopCarriedCSEBufferAccess\n"
 
-  def linearize() : ArrayAccess = {
+  def linearize() : IR_ArrayAccess = {
     if (buffer.dimSizes.isEmpty)
-      return new ArrayAccess(buffer, IR_IntegerConstant(0), Knowledge.data_alignFieldPointers)
+      return new IR_ArrayAccess(buffer, IR_IntegerConstant(0), Knowledge.data_alignFieldPointers)
 
-    return new ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
+    return new IR_ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
   }
 }
 

@@ -545,7 +545,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_SubtractionExpression(x, y) : IR_Expression)
 
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
-      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
+      ReplaceReductionAssignements.replacement = IR_ReductionDeviceDataAccess(iv.ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
       ReplaceReductionAssignements.applyStandalone(IR_Scope(kernel.body))
       kernel
   })

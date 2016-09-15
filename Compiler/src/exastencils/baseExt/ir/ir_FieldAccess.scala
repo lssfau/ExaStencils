@@ -35,7 +35,7 @@ case class IR_LinearizedFieldAccess(var fieldSelection : FieldSelection, var ind
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
 
   override def expand() = {
-    ArrayAccess(
+    IR_ArrayAccess(
       iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx),
       index,
       Knowledge.data_alignFieldPointers)

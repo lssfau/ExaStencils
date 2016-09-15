@@ -379,7 +379,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
       // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
       def it = iv.TmpBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
 
-      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = new IR_TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
       val fieldAccess = new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))
 
@@ -389,7 +389,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
           IR_Assignment(tmpBufAccess, fieldAccess),
           IR_Assignment(it, 1, "+="))))
     } else {
-      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = new IR_TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))
@@ -413,7 +413,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
       // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
       def it = iv.TmpBufferIterator(field.field, s"Recv_${ concurrencyId }", neighbor.index)
 
-      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = new IR_TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
       val fieldAccess = new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))
 
@@ -423,7 +423,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
           IR_Assignment(fieldAccess, tmpBufAccess),
           IR_Assignment(it, 1, "+="))))
     } else {
-      val tmpBufAccess = new TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = new IR_TempBufferAccess(iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))

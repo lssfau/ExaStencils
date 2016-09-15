@@ -276,7 +276,7 @@ object Testbed {
       for (position <- 0 to 3) {
         statements += IR_Assignment(k, "k_tc_mn + k_mc_me")
         for (i <- 0 to 4) {
-          statements += IR_Assignment(ArrayAccess("stencil", "tet_mc"), k * ArrayAccess("c", Mapping.resolveMultiIdx(IR_ExpressionIndex(i, position, group), aabb)), "+=")
+          statements += IR_Assignment(IR_ArrayAccess("stencil", "tet_mc"), k * IR_ArrayAccess("c", Mapping.resolveMultiIdx(IR_ExpressionIndex(i, position, group), aabb)), "+=")
         }
       }
     }

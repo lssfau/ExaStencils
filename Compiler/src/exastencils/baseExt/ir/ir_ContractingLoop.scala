@@ -34,14 +34,14 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
       case IR_IntegerConstant(i) =>
         IR_IntegerConstant(i - extent)
 
-      case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
+      case bOff @ IR_BoundedScalar(_, _, IR_ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
         (bOff * (extent + 1)) - extent
 
       case add : IR_AdditionExpression =>
         add.summands.transform {
-          case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
+          case bOff @ IR_BoundedScalar(_, _, IR_ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
             bOff * (extent + 1)
-          case x                                                                              =>
+          case x                                                                                =>
             x
         }
         add.summands += IR_IntegerConstant(-extent)
@@ -64,14 +64,14 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
       case IR_IntegerConstant(i) =>
         IR_IntegerConstant(i + extent)
 
-      case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
+      case bOff @ IR_BoundedScalar(_, _, IR_ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
         (bOff * (extent + 1)) + extent
 
       case add : IR_AdditionExpression =>
         add.summands.transform {
-          case bOff @ BoundedExpression(_, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
+          case bOff @ IR_BoundedScalar(_, _, IR_ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
             bOff * (extent + 1)
-          case x                                                                            =>
+          case x                                                                              =>
             x
         }
         add.summands += IR_IntegerConstant(extent)

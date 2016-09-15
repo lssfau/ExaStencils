@@ -298,12 +298,12 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
         (if (Knowledge.dimensionality > 1) ((("rankPos.y" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0),
         (if (Knowledge.dimensionality > 2) ((("rankPos.z" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0)))) // FIXME: Constructor?
     body += IR_LoopOverFragments(
-      IR_Assignment(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", IR_LoopOverFragments.defIt))),
-      IR_Assignment(iv.PrimitiveIndex(), PointToFragmentIndex(ArrayAccess("positions", IR_LoopOverFragments.defIt))),
-      IR_Assignment(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", IR_LoopOverFragments.defIt))),
-      IR_Assignment(iv.PrimitivePosition(), ArrayAccess("positions", IR_LoopOverFragments.defIt)),
-      IR_Assignment(iv.PrimitivePositionBegin(), ArrayAccess("positions", IR_LoopOverFragments.defIt) - vecDelta),
-      IR_Assignment(iv.PrimitivePositionEnd(), ArrayAccess("positions", IR_LoopOverFragments.defIt) + vecDelta))
+      IR_Assignment(iv.PrimitiveId(), PointToFragmentId(IR_ArrayAccess("positions", IR_LoopOverFragments.defIt))),
+      IR_Assignment(iv.PrimitiveIndex(), PointToFragmentIndex(IR_ArrayAccess("positions", IR_LoopOverFragments.defIt))),
+      IR_Assignment(iv.CommId(), PointToLocalFragmentId(IR_ArrayAccess("positions", IR_LoopOverFragments.defIt))),
+      IR_Assignment(iv.PrimitivePosition(), IR_ArrayAccess("positions", IR_LoopOverFragments.defIt)),
+      IR_Assignment(iv.PrimitivePositionBegin(), IR_ArrayAccess("positions", IR_LoopOverFragments.defIt) - vecDelta),
+      IR_Assignment(iv.PrimitivePositionEnd(), IR_ArrayAccess("positions", IR_LoopOverFragments.defIt) + vecDelta))
 
     body += ConnectFragments()
 

@@ -48,7 +48,7 @@ case class CUDA_AllocateStatement(var pointer : IR_Expression, var numElements :
       FunctionCallExpression("cudaMalloc",
         ListBuffer[IR_Expression](
           CastExpression(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), IR_AddressofExpression(pointer)),
-          numElements * SizeOfExpression(datatype))))
+          numElements * IR_SizeOf(datatype))))
   }
 }
 
@@ -75,7 +75,7 @@ case class CUDA_UpdateHostData(var fieldAccess : IR_MultiDimFieldAccess) extends
           iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
           iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
           (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-            * SizeOfExpression(field.resolveBaseDatatype),
+            * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyDeviceToHost"),
         IR_Assignment(iv.DeviceDataUpdated(field, fieldSelection.slot), IR_BooleanConstant(false))))
   }
@@ -94,7 +94,7 @@ case class CUDA_UpdateDeviceData(var fieldAccess : IR_MultiDimFieldAccess) exten
           iv.FieldDeviceData(field, fieldSelection.level, fieldSelection.slot),
           iv.FieldData(field, fieldSelection.level, fieldSelection.slot),
           (0 until field.fieldLayout.numDimsData).map(dim => field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
-            * SizeOfExpression(field.resolveBaseDatatype),
+            * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyHostToDevice"),
         IR_Assignment(iv.HostDataUpdated(field, fieldSelection.slot), IR_BooleanConstant(false))))
   }
@@ -176,7 +176,7 @@ case class CUDA_Memset(var data : IR_Expression, var value : IR_Expression, var 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_Memset\n"
 
   override def expand() : Output[IR_Statement] = {
-    CUDA_CheckError(FunctionCallExpression("cudaMemset", ListBuffer(data, value, numElements * SizeOfExpression(datatype))))
+    CUDA_CheckError(FunctionCallExpression("cudaMemset", ListBuffer(data, value, numElements * IR_SizeOf(datatype))))
   }
 }
 

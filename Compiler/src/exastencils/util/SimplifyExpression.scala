@@ -5,6 +5,7 @@ import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -109,7 +110,7 @@ object SimplifyExpression {
       val (min, max) = evalIntegralExtrema(left, extremaLookup)
       (-max, -min)
 
-    case BoundedExpression(min, max, _) =>
+    case IR_BoundedScalar(min, max, _) =>
       (min, max)
 
     case FunctionCallExpression("floord", ListBuffer(l : IR_Expression, r : IR_Expression)) =>
@@ -220,7 +221,7 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Long]()
         res(IR_VariableAccess(varName, Some(IR_IntegerDatatype))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
 
-      case acc : ArrayAccess =>
+      case acc : IR_ArrayAccess =>
         res = new HashMap[IR_Expression, Long]()
         res(acc) = 1L
 
@@ -358,7 +359,7 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Long]()
         res(anyIV) = 1L
 
-      case bExpr : BoundedExpression =>
+      case bExpr : IR_BoundedScalar =>
         res = new HashMap[IR_Expression, Long]()
         res(bExpr) = 1L
 
@@ -450,7 +451,7 @@ object SimplifyExpression {
   object SimplifyIndices extends QuietDefaultStrategy("Simplify indices") {
 
     this += new Transformation("now", {
-      case a : ArrayAccess =>
+      case a : IR_ArrayAccess =>
         a.index = SimplifyExpression.simplifyIntegralExpr(a.index)
         a
 
@@ -513,7 +514,7 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(IR_VariableAccess(varName, Some(IR_RealDatatype))) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
 
-      case aAcc : ArrayAccess =>
+      case aAcc : IR_ArrayAccess =>
         res = new HashMap[IR_Expression, Double]()
         res(aAcc) = 1d
 
@@ -525,13 +526,13 @@ object SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(fAcc) = 1d
 
-      case tAcc : TempBufferAccess =>
+      case tAcc : IR_TempBufferAccess =>
         res = new HashMap[IR_Expression, Double]()
         res(tAcc) = 1d
 
       case call : FunctionCallExpression =>
         if (call.name.contains("std::rand")) // HACK
-          throw new EvaluationException("don't optimze code containing a call to std::rand")
+          throw new EvaluationException("don't optimize code containing a call to std::rand")
         def simplifyFloatingArgs(pars : Seq[IR_Datatype]) : Unit = {
           call.arguments =
             pars.view.zip(call.arguments).map {

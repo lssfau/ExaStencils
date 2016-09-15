@@ -89,7 +89,7 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = baseAccess
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
-      access = new ArrayAccess(access, IR_StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
+      access = new IR_ArrayAccess(access, IR_StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
     return super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
 

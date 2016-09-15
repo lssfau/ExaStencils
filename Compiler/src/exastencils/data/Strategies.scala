@@ -4,6 +4,7 @@ import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.cuda._
@@ -36,6 +37,7 @@ object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
   })
 }
 
+// TODO: separate strategies for separate packages
 object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess nodes") {
   val NO_LINEARIZATION = "NoLinearization"
 
@@ -46,9 +48,9 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
       access.linearize
     case access : IR_ExternalFieldAccess                  =>
       access.linearize
-    case access : TempBufferAccess                        =>
+    case access : IR_TempBufferAccess                     =>
       access.linearize
-    case access : ReductionDeviceDataAccess               =>
+    case access : IR_ReductionDeviceDataAccess            =>
       access.linearize
     case access : LoopCarriedCSBufferAccess               =>
       access.linearize
@@ -57,7 +59,7 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
 
 object ResolveBoundedExpressions extends DefaultStrategy("Resolving BoundedExpression nodes") {
   this += new Transformation("Resolving", {
-    case index : BoundedExpression =>
+    case index : IR_BoundedScalar =>
       index.expandSpecial()
   })
 }
@@ -315,10 +317,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
           counter += 1
           ListBuffer(
             VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
-              Some(Platform.simd_vectorSize * SizeOfExpression(IR_RealDatatype))),
+              Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
             IR_ArrayAllocation(newFieldData.basePtr, field.field.resolveDeclType, numDataPoints + Platform.simd_vectorSize - 1),
             VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-              Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(IR_RealDatatype))),
+              Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
             IR_Assignment(newFieldData, newFieldData.basePtr + s"offset_$counter"))
         } else {
           ListBuffer(IR_ArrayAllocation(newFieldData, field.field.resolveDeclType, numDataPoints))
@@ -407,10 +409,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         counter += 1
         bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
-            Some(Platform.simd_vectorSize * SizeOfExpression(IR_RealDatatype))),
+            Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-            Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(IR_RealDatatype))),
+            Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
       } else {
         bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](IR_ArrayAllocation(buf, IR_RealDatatype, size))) with OMP_PotentiallyParallel)
@@ -437,10 +439,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned
         bufferAllocs += (id -> buf.wrapInLoops(IR_Scope(ListBuffer[IR_Statement](
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
-            Some(Platform.simd_vectorSize * SizeOfExpression(IR_RealDatatype))),
+            Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-            Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(IR_RealDatatype))),
+            Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter")))))
       else
         bufferAllocs += (id -> buf.wrapInLoops(IR_ArrayAllocation(buf, buf.baseDatatype, size)))

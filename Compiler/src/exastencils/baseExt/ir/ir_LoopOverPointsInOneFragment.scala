@@ -7,7 +7,7 @@ import exastencils.communication.CommunicateStatement
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.{ ArrayAccess, BoundedExpression, Reduction, iv, _ }
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
@@ -74,12 +74,12 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
               val numDupRight = field.fieldLayout.layoutsPerDim(dim).numDupLayersRight
 
               if (numDupLeft > 0)
-                start(dim) = IR_AdditionExpression(field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * BoundedExpression(0, 1, ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim)))
+                start(dim) = IR_AdditionExpression(field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * IR_BoundedScalar(0, 1, IR_ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim)))
               // start(dim) = OffsetIndex(0, numDupLeft, field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim), numDupLeft * ArrayAccess(iv.IterationOffsetBegin(field.domain.index), dim))
               else
                 start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
               if (numDupRight > 0)
-                stop(dim) = IR_AdditionExpression(field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * BoundedExpression(-1, 0, ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim)))
+                stop(dim) = IR_AdditionExpression(field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * IR_BoundedScalar(-1, 0, IR_ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim)))
               // stop(dim) = OffsetIndex(-numDupRight, 0, field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim), numDupRight * ArrayAccess(iv.IterationOffsetEnd(field.domain.index), dim))
               else
                 stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)

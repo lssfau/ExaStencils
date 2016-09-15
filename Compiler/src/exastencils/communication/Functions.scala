@@ -35,12 +35,12 @@ case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expr
     for (neigh <- Fragment.neighbors) {
       // neighbor directions are always 3D vectors; invalid directions are not part of the given collection
       neigh.dir match {
-        case Array(-1, 0, 0) => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0))
-        case Array(1, 0, 0)  => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0))
-        case Array(0, -1, 0) => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0))
-        case Array(0, 1, 0)  => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0))
-        case Array(0, 0, -1) => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0))
-        case Array(0, 0, 1)  => cases += new CaseStatement(neigh.index, IR_Assignment(ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))
+        case Array(-1, 0, 0) => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0))
+        case Array(1, 0, 0)  => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0))
+        case Array(0, -1, 0) => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0))
+        case Array(0, 1, 0)  => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0))
+        case Array(0, 0, -1) => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0))
+        case Array(0, 0, 1)  => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))
         case _               =>
       }
     }

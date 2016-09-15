@@ -112,7 +112,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
     var access = super.resolveAccess(baseAccess, fragment, domain, field, level, neigh)
     if (this.field.numSlots > 1)
-      access = new ArrayAccess(access, slot)
+      access = new IR_ArrayAccess(access, slot)
     return access
   }
 }

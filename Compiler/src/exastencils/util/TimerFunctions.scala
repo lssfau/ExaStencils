@@ -240,9 +240,9 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
 
     var it = 0
     for (timer <- timers.toList.sortBy(_._1)) {
-      statements += IR_Assignment(ArrayAccess("timesToPrint", it), FunctionCallExpression("getTotalTime", ListBuffer(timer._2.resolveName)))
+      statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), FunctionCallExpression("getTotalTime", ListBuffer(timer._2.resolveName)))
       it += 1
-      statements += IR_Assignment(ArrayAccess("timesToPrint", it), FunctionCallExpression("getMeanTime", ListBuffer(timer._2.resolveName)))
+      statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), FunctionCallExpression("getMeanTime", ListBuffer(timer._2.resolveName)))
       it += 1
     }
 
@@ -259,8 +259,8 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
     for (timer <- timers.toList.sortBy(_._1)) {
       statements += PrintExpression(IR_VariableAccess("outFile"), ListBuffer[IR_Expression](
         IR_StringConstant(timer._2.name.prettyprint()), sep,
-        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
-        ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
+        IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
+        IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
 
       it += 2
     }
@@ -305,7 +305,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
         statements += new MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
         def timerId = IR_VariableAccess("timerId", Some(IR_IntegerDatatype))
         statements += IR_ForLoop(new VariableDeclarationStatement(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
-          IR_Assignment(ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
+          IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
         statements += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))
       }
     }

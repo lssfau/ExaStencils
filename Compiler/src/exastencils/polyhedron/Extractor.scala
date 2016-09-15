@@ -4,6 +4,7 @@ import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, 
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.IR_TempBufferAccess
 import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures._
@@ -55,7 +56,7 @@ object Extractor {
           vars.add(islStr)
         constraints.append(islStr)
 
-      case _ : IR_VariableAccess | _ : ArrayAccess =>
+      case _ : IR_VariableAccess | _ : IR_ArrayAccess =>
         val islStr : String = ScopNameMapping.expr2id(expr)
         if (vars != null)
           vars.add(islStr)
@@ -80,7 +81,7 @@ object Extractor {
         gParConstr.append(" and ")
         constraints.append('(').append(islStr).append("=1)")
 
-      case bExpr @ BoundedExpression(min, max, _ : IR_VariableAccess | _ : ArrayAccess) =>
+      case bExpr @ IR_BoundedScalar(min, max, _ : IR_VariableAccess | _ : IR_ArrayAccess) =>
         val islStr : String = ScopNameMapping.expr2id(bExpr, bExpr.expr)
         if (vars != null)
           vars.add(islStr)
@@ -490,19 +491,19 @@ class Extractor extends Collector {
               ty.get.annotate(SKIP_ANNOT)
             enterScalarAccess(varName)
 
-          case ArrayAccess(array @ IR_StringLiteral(varName), index, _) =>
+          case IR_ArrayAccess(array @ IR_StringLiteral(varName), index, _) =>
             array.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case ArrayAccess(array @ IR_VariableAccess(varName, ty), index, _) =>
+          case IR_ArrayAccess(array @ IR_VariableAccess(varName, ty), index, _) =>
             if (ty.isDefined)
               ty.get.annotate(SKIP_ANNOT)
             array.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case ArrayAccess(tmp : iv.TmpBuffer, index, _) =>
+          case IR_ArrayAccess(tmp : iv.TmpBuffer, index, _) =>
             tmp.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(tmp.prettyprint(), index)
@@ -512,7 +513,7 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterFieldAccess(fieldSelection, index)
 
-          case TempBufferAccess(buffer, index, extent) =>
+          case IR_TempBufferAccess(buffer, index, extent) =>
             buffer.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             extent.annotate(SKIP_ANNOT)
@@ -529,12 +530,12 @@ class Extractor extends Collector {
 
           // for the following 4 matches: do not distinguish between different elements of
           //    PrimitivePositionBegin and PrimitivePositionEnd (conservative approach)
-          case ArrayAccess(ppVec : iv.PrimitivePositionBegin, index, _) =>
+          case IR_ArrayAccess(ppVec : iv.PrimitivePositionBegin, index, _) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
-          case ArrayAccess(ppVec : iv.PrimitivePositionEnd, index, _) =>
+          case IR_ArrayAccess(ppVec : iv.PrimitivePositionEnd, index, _) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
@@ -571,7 +572,7 @@ class Extractor extends Collector {
 
           // deny
           case e : IR_ExpressionStatement => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
-          case ArrayAccess(a, _, _)       => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
+          case IR_ArrayAccess(a, _, _)    => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
           case f : FunctionCallExpression => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
           case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
         }
@@ -605,9 +606,9 @@ class Extractor extends Collector {
         case _ : IR_Assignment                => leaveAssign()
         case _ : IR_StringLiteral             => leaveScalarAccess()
         case _ : IR_VariableAccess            => leaveScalarAccess()
-        case _ : ArrayAccess                  => leaveArrayAccess()
+        case _ : IR_ArrayAccess               => leaveArrayAccess()
         case _ : IR_DirectFieldAccess         => leaveFieldAccess()
-        case _ : TempBufferAccess             => leaveTempBufferAccess()
+        case _ : IR_TempBufferAccess          => leaveTempBufferAccess()
         case _ : LoopCarriedCSBufferAccess    => leaveLoopCarriedCSBufferAccess()
         case _ : VariableDeclarationStatement => leaveDecl()
         case _                                =>

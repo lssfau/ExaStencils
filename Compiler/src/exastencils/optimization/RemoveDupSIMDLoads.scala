@@ -48,12 +48,12 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
       for (s <- l.body) {
         s match {
           case VariableDeclarationStatement(IR_SIMD_RealDatatype, _,
-          Some(SIMD_LoadExpression(IR_AddressofExpression(ArrayAccess(base, index, _)), _))) //
+          Some(SIMD_LoadExpression(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), _))) //
           =>
             toSort += ((s, base, index))
 
           case VariableDeclarationStatement(IR_SIMD_RealDatatype, _,
-          Some(SIMD_Scalar2VectorExpression(ArrayAccess(base, index, _)))) //
+          Some(SIMD_Scalar2VectorExpression(IR_ArrayAccess(base, index, _)))) //
           =>
             toSort += ((s, base, index))
 
@@ -119,7 +119,7 @@ private[optimization] final class Analyze extends StackCollector {
         }
 
       case decl @ VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp,
-      Some(load @ SIMD_LoadExpression(IR_AddressofExpression(ArrayAccess(base, index, _)), aligned))) =>
+      Some(load @ SIMD_LoadExpression(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), aligned))) =>
 
         val indSum : HashMap[IR_Expression, Long] = SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
@@ -139,7 +139,7 @@ private[optimization] final class Analyze extends StackCollector {
             if (nextIt.isDefined) {
               preLoopDecls += new VariableDeclarationStatement(IR_SIMD_RealDatatype, vecTmp,
                 SIMD_LoadExpression(IR_AddressofExpression(
-                  ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
+                  IR_ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
               decl.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), load, "="))
               if (nextIt.get._1.hasAnnotation(REPL_ANNOT))
                 nextIt.get._1.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(nextIt.get._1.name, IR_SIMD_RealDatatype),

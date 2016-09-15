@@ -88,21 +88,21 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
     // reverse compared to datatype wrapping, since we need to unwrap it "from outer to inner"
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      access = new ArrayAccess(access, neigh)
+      access = new IR_ArrayAccess(access, neigh)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1) {
       val simplifiedLevel : IR_Expression =
         level match {
           case IR_IntegerConstant(v) => v - Knowledge.minLevel
           case _                     => level - Knowledge.minLevel
         }
-      access = new ArrayAccess(access, simplifiedLevel)
+      access = new IR_ArrayAccess(access, simplifiedLevel)
     }
     if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
-      access = new ArrayAccess(access, field)
+      access = new IR_ArrayAccess(access, field)
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
-      access = new ArrayAccess(access, domain)
+      access = new IR_ArrayAccess(access, domain)
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
-      access = new ArrayAccess(access, fragment)
+      access = new IR_ArrayAccess(access, fragment)
 
     access
   }

@@ -75,8 +75,8 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
     val arrDt = IR_ArrayDatatype(IR_ArrayDatatype(IR_RealDatatype, Platform.simd_vectorSize), nrArgs)
     val aDecls = new VariableDeclarationStatement(arrDt, "a")
     aDecls.alignment = Platform.simd_vectorSize
-    def aVAcc(argi : Int) = new ArrayAccess(IR_VariableAccess(aDecls.name, arrDt), argi)
-    def aSAcc(argi : Int, i : Int) = new ArrayAccess(aVAcc(argi), i)
+    def aVAcc(argi : Int) = new IR_ArrayAccess(IR_VariableAccess(aDecls.name, arrDt), argi)
+    def aSAcc(argi : Int, i : Int) = new IR_ArrayAccess(aVAcc(argi), i)
     val args = (0 until nrArgs).map("v" + _)
 
     out << "static inline " << IR_SIMD_RealDatatype << " " << name << '('

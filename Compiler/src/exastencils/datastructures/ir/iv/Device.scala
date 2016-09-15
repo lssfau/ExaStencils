@@ -18,7 +18,7 @@ abstract class FieldFlag extends InternalVariable(true, false, true, true, false
   var fragmentIdx : IR_Expression
 
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
-    val access = (if (this.field.numSlots > 1) new ArrayAccess(baseAccess, slot) else baseAccess)
+    val access = (if (this.field.numSlots > 1) new IR_ArrayAccess(baseAccess, slot) else baseAccess)
     super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
 

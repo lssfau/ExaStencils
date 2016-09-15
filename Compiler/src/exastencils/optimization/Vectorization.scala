@@ -268,20 +268,20 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     if (Knowledge.data_alignFieldPointers) {
       for (stmt <- body)
         stmt match {
-          case IR_Assignment(acc @ ArrayAccess(_, index, true), _, _) =>
+          case IR_Assignment(acc @ IR_ArrayAccess(_, index, true), _, _) =>
             val annot = acc.getAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
             val ind : IR_Expression = if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index
             val const : Long = SimplifyExpression.extractIntegralSum(ind).getOrElse(SimplifyExpression.constName, 0L)
             val residue : Long = (const % vs + vs) % vs
             ctx.setAlignedResidue(residue)
             alignmentExpr = ind
-          case _                                                      =>
+          case _                                                         =>
         }
 
       val indexExprs = new ListBuffer[HashMap[IR_Expression, Long]]()
       val collectIndexExprs = new QuietDefaultStrategy("Collect all array index expressions...")
       collectIndexExprs += new Transformation("seaching...", {
-        case acc @ ArrayAccess(_, index, true) =>
+        case acc @ IR_ArrayAccess(_, index, true) =>
           if (containsVarAcc(index, ctx.itName)) {
             val annot = acc.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
             indexExprs += SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index)
@@ -423,7 +423,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         // ---- special handling of loop-carried cse variables ----
         lhsSca match {
-          case ArrayAccess(_ : iv.LoopCarriedCSBuffer, _, _) =>
+          case IR_ArrayAccess(_ : iv.LoopCarriedCSBuffer, _, _) =>
             val initOpt : Option[SIMD_ConcShift] = ctx.toFinish_LCSE.get(ctx.getName(lhsSca)._1)
             if (initOpt.isDefined) {
               val concShiftRight : IR_VariableAccess =
@@ -471,7 +471,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
   private def vectorizeExpr(expr : IR_Expression, ctx : LoopCtx) : IR_Expression = {
     return expr match {
       // TODO: do not vectorize if base is not aligned?
-      case ArrayAccess(base, index, alignedBase) =>
+      case IR_ArrayAccess(base, index, alignedBase) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
           val ind : HashMap[IR_Expression, Long] = SimplifyExpression.extractIntegralSum(index)
@@ -685,9 +685,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       val vs : Long = Platform.simd_vectorSize
       val lowerConst : Long = indexConst - ((indexConst - ctx.getAlignedResidue()) % vs + vs) % vs
       index(SimplifyExpression.constName) = lowerConst
-      val lowerExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
+      val lowerExpr = vectorizeExpr(IR_ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
       index(SimplifyExpression.constName) = lowerConst + vs
-      val upperExpr = vectorizeExpr(ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
+      val upperExpr = vectorizeExpr(IR_ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
       return SIMD_ConcShift(lowerExpr, upperExpr, (indexConst - lowerConst).toInt)
     }
   }

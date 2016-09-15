@@ -77,12 +77,12 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
 
         // FIXME: this assumes real data types -> data type should be determined according to redExp
         val decl = VariableDeclarationStatement(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
-        val init = (0 until Knowledge.omp_numThreads).map(fragIdx => IR_Assignment(ArrayAccess(redExpLocal, fragIdx), redExp))
-        val redOperands = ListBuffer[IR_Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
+        val init = (0 until Knowledge.omp_numThreads).map(fragIdx => IR_Assignment(IR_ArrayAccess(redExpLocal, fragIdx), redExp))
+        val redOperands = ListBuffer[IR_Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
         val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
 
         ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-        ReplaceStringConstantsStrategy.replacement = ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
+        ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
         ReplaceStringConstantsStrategy.applyStandalone(body)
         body.prepend(VariableDeclarationStatement(IR_IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
 
