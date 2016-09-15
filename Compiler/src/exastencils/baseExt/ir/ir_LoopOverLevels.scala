@@ -15,7 +15,7 @@ object IR_LoopOverLevels {
   def defIt = "levelIdx"
 }
 
-case class IR_LoopOverLevels(var body : ListBuffer[IR_Statement]) extends IR_Statement with Expandable {
+case class IR_LoopOverLevels(var body : ListBuffer[IR_Statement]) extends IR_Statement with IR_Expandable {
 
   import IR_LoopOverLevels._
 

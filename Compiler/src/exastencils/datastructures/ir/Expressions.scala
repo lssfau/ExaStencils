@@ -245,7 +245,7 @@ case class Reduction(var op : String, var target : IR_VariableAccess) extends IR
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = Reduction\n"
 }
 
-case class StencilConvolution(var stencil : Stencil, var fieldAccess : IR_FieldAccess) extends IR_Expression with Expandable {
+case class StencilConvolution(var stencil : Stencil, var fieldAccess : IR_FieldAccess) extends IR_Expression with IR_Expandable {
   override def datatype = GetResultingDatatype(stencil.datatype, fieldAccess.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
@@ -262,7 +262,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : IR_FieldA
 
 // TODO: update convolutions with new dimensionality logic
 
-case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : IR_FieldAccess) extends IR_Expression with Expandable {
+case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : IR_FieldAccess) extends IR_Expression with IR_Expandable {
   override def datatype = GetResultingDatatype(stencilFieldAccess.datatype, fieldAccess.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
 
@@ -281,7 +281,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
   }
 }
 
-case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends IR_Expression with Expandable {
+case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends IR_Expression with IR_Expandable {
   override def datatype = GetResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
 
@@ -321,7 +321,7 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
   }
 }
 
-case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends IR_Expression with Expandable {
+case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends IR_Expression with IR_Expandable {
   override def datatype = GetResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
 

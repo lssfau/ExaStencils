@@ -59,7 +59,7 @@ case class ApplyBCsStatement(var field : FieldSelection) extends IR_Statement {
 
 /// local communication operations
 
-abstract class LocalTransfers extends IR_Statement with Expandable {
+abstract class LocalTransfers extends IR_Statement with IR_Expandable {
   def insideFragLoop : Boolean
 
   def wrapFragLoop(toWrap : IR_Statement, parallel : Boolean) : IR_Statement = {
@@ -160,7 +160,7 @@ case class FinishLocalComm(var field : FieldSelection,
 }
 
 case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, var dest : IndexRange, var src : IndexRange,
-    var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends IR_Statement with Expandable {
+    var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalSend\n"
 
   def numDims = field.field.fieldLayout.numDimsData
@@ -185,7 +185,7 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
 }
 
 case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : IndexRange, var src : IndexRange,
-    var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends IR_Statement with Expandable {
+    var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalRecv\n"
 
   def numDims = field.field.fieldLayout.numDimsData
@@ -211,7 +211,7 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
 
 /// remote communication operations
 
-abstract class RemoteTransfers extends IR_Statement with Expandable {
+abstract class RemoteTransfers extends IR_Statement with IR_Expandable {
   def field : FieldSelection
   def neighbors : ListBuffer[(NeighborInfo, IndexRange)]
 
@@ -367,7 +367,7 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
 }
 
 case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange,
-    var concurrencyId : Int, var condition : Option[IR_Expression]) extends IR_Statement with Expandable {
+    var concurrencyId : Int, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CopyToSendBuffer\n"
 
   def numDims = field.field.fieldLayout.numDimsData
@@ -401,7 +401,7 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
 }
 
 case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange,
-    var concurrencyId : Int, var condition : Option[IR_Expression]) extends IR_Statement with Expandable {
+    var concurrencyId : Int, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
 
   def numDims = field.field.fieldLayout.numDimsData
@@ -435,7 +435,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
   }
 }
 
-case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, var src : IR_Expression, var numDataPoints : IR_Expression, var datatype : IR_Datatype, var concurrencyId : Int) extends IR_Statement with Expandable {
+case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, var src : IR_Expression, var numDataPoints : IR_Expression, var datatype : IR_Datatype, var concurrencyId : Int) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSend\n"
 
   override def expand : Output[StatementList] = {
@@ -447,7 +447,7 @@ case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, v
   }
 }
 
-case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : IR_Expression, var numDataPoints : IR_Expression, var datatype : IR_Datatype, var concurrencyId : Int) extends IR_Statement with Expandable {
+case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : IR_Expression, var numDataPoints : IR_Expression, var datatype : IR_Datatype, var concurrencyId : Int) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecv\n"
 
   override def expand : Output[StatementList] = {
@@ -460,7 +460,7 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
   }
 }
 
-case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborInfo, var direction : String) extends IR_Statement with Expandable {
+case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborInfo, var direction : String) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = WaitForTransfer\n"
 
   override def expand : Output[IR_Statement] = {
@@ -474,7 +474,7 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
 
 /// special boundary functions
 
-case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo, var index : IR_ExpressionIndex) extends IR_Expression with Expandable {
+case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsOnSpecBoundary\n"
 
@@ -494,7 +494,7 @@ case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo
   }
 }
 
-case class IsOnBoundary(var field : FieldSelection, var index : IR_ExpressionIndex) extends IR_Expression with Expandable {
+case class IsOnBoundary(var field : FieldSelection, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsOnBoundary\n"
 
@@ -511,7 +511,7 @@ case class IsOnBoundary(var field : FieldSelection, var index : IR_ExpressionInd
 }
 
 /// checks for IsOnBoundary as well as if outside inner/dup layers on fragment transitions
-case class IsValidPoint(var field : FieldSelection, var index : IR_ExpressionIndex) extends IR_Expression with Expandable {
+case class IsValidPoint(var field : FieldSelection, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsValidPoint\n"
 

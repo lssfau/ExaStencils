@@ -13,7 +13,7 @@ import exastencils.omp._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 
-case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends IR_AbstractFunction with Expandable {
+case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetupBuffers\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "setupBuffers"
@@ -27,7 +27,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
   }
 }
 
-case class GetFromExternalField(var src : Field, var dest : ExternalField) extends IR_AbstractFunction with Expandable {
+case class GetFromExternalField(var src : Field, var dest : ExternalField) extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "get" + dest.identifier
@@ -76,7 +76,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
   }
 }
 
-case class SetFromExternalField(var dest : Field, var src : ExternalField) extends IR_AbstractFunction with Expandable {
+case class SetFromExternalField(var dest : Field, var src : ExternalField) extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "set" + src.identifier

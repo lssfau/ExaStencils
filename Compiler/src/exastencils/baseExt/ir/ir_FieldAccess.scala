@@ -30,7 +30,7 @@ case class IR_FieldAccess(var fieldSelection : FieldSelection, var index : IR_Ex
 
 /// IR_LinearizedFieldAccess
 
-case class IR_LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : IR_Expression) extends IR_Expression with Expandable {
+case class IR_LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : IR_Expression) extends IR_Expression with IR_Expandable {
   override def datatype = fieldSelection.fieldLayout.datatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
 

@@ -41,13 +41,13 @@ object ExpandStrategy extends DefaultStrategy("Expanding") {
   }
 
   this += new Transformation("Hoho, expanding all day...", {
-    case expandable : Expandable => expandable.expand
+    case expandable : IR_Expandable => expandable.expand
   })
 }
 
 object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: this strategy becomes somewhat obsolete as soon as trafos implement the required behavior directly
   this += new Transformation("Hoho, expanding all day...", {
-    case expandable : Expandable => {
+    case expandable : IR_Expandable => {
       var nodes : ListBuffer[Node] = ListBuffer()
       nodes += expandable
       var expandedSth = false
@@ -56,7 +56,7 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
         for (n <- 0 until nodes.length) {
           if (!expandedSth) {
             nodes(n) match {
-              case expandable : Expandable =>
+              case expandable : IR_Expandable =>
                 val output = expandable.expand
                 output.inner match {
                   case single : Node   => nodes.update(n, single)
@@ -67,7 +67,7 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
                   }
                 }
                 expandedSth = true
-              case _                       =>
+              case _                          =>
             }
           }
         }

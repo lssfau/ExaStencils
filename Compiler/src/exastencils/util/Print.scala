@@ -26,7 +26,7 @@ case class PrintExpression(var stream : IR_Expression, toPrint : ListBuffer[IR_E
   }
 }
 
-case class BuildStringStatement(var stringName : IR_Expression, var toPrint : ListBuffer[IR_Expression]) extends IR_Statement with Expandable {
+case class BuildStringStatement(var stringName : IR_Expression, var toPrint : ListBuffer[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BuildStringStatement\n"
 
@@ -49,7 +49,7 @@ private object BuildStringStatement {
   }
 }
 
-case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : String = "std::cout") extends IR_Statement with Expandable {
+case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : String = "std::cout") extends IR_Statement with IR_Expandable {
   def this(toPrint : IR_Expression) = this(ListBuffer(toPrint))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
@@ -67,7 +67,7 @@ case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : 
   }
 }
 
-case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = IR_BooleanConstant(true)) extends IR_Statement with Expandable {
+case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = IR_BooleanConstant(true)) extends IR_Statement with IR_Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 

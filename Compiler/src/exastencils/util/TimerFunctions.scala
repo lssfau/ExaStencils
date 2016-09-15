@@ -12,7 +12,7 @@ import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
 
-case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement with Expandable {
+case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerDetail_AssignNow\n"
 
   override def expand() : Output[IR_Statement] = {
@@ -51,7 +51,7 @@ case class TimerDetail_Zero() extends IR_Expression {
   }
 }
 
-case class TimerDetail_ReturnConvertToMS(var time : IR_Expression) extends IR_Statement with Expandable {
+case class TimerDetail_ReturnConvertToMS(var time : IR_Expression) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerDetail_ReturnConvertToMS\n"
 
   override def expand() : Output[IR_Statement] = {
@@ -96,7 +96,7 @@ object AbstractTimerFunction {
   }
 }
 
-case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
+case class TimerFct_StartTimer() extends AbstractTimerFunction with IR_Expandable {
 
   import AbstractTimerFunction._
 
@@ -116,7 +116,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with Expandable {
   }
 }
 
-case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
+case class TimerFct_StopTimer() extends AbstractTimerFunction with IR_Expandable {
 
   import AbstractTimerFunction._
 
@@ -142,7 +142,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with Expandable {
   }
 }
 
-case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractTimerFunction with Expandable {
+case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractTimerFunction with IR_Expandable {
 
   import AbstractTimerFunction._
 
@@ -158,7 +158,7 @@ case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractTimerF
   }
 }
 
-case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFunction with Expandable {
+case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFunction with IR_Expandable {
 
   import AbstractTimerFunction._
 
@@ -177,7 +177,7 @@ case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFu
   }
 }
 
-case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFunction with Expandable {
+case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFunction with IR_Expandable {
 
   import AbstractTimerFunction._
 
@@ -193,7 +193,7 @@ case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFu
   }
 }
 
-case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandable {
+case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with IR_Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_PrintAllTimers\n"
   override def prettyprint_decl : String = prettyprint
@@ -229,7 +229,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with Expandab
   }
 }
 
-case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with Expandable {
+case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR_Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_PrintAllTimersToFile\n"
   override def prettyprint_decl : String = prettyprint

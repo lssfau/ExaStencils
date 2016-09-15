@@ -15,7 +15,7 @@ import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with Expandable {
+case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
 
@@ -39,7 +39,7 @@ case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends 
   }
 }
 
-case class PointInsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with Expandable {
+case class PointInsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
 
@@ -63,7 +63,7 @@ case class PointInsideDomain(var pos : IR_Access, var domain : Domain) extends I
   }
 }
 
-case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with Expandable {
+case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
@@ -92,7 +92,7 @@ case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with Exp
   }
 }
 
-case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with Expandable {
+case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentIndex\n"
 
@@ -130,7 +130,7 @@ case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with 
   }
 }
 
-case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression with Expandable {
+case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
 
@@ -159,7 +159,7 @@ case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression wit
   }
 }
 
-case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends IR_Expression with Expandable {
+case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
 
@@ -194,7 +194,7 @@ case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends I
   }
 }
 
-case class ConnectFragments() extends IR_Statement with Expandable {
+case class ConnectFragments() extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
 
   override def expand : Output[IR_LoopOverFragments] = {
@@ -262,7 +262,7 @@ case class ConnectFragments() extends IR_Statement with Expandable {
   }
 }
 
-case class InitGeneratedDomain() extends IR_AbstractFunction with Expandable {
+case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
   override def name = "initDomain"
@@ -313,7 +313,7 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with Expandable {
   }
 }
 
-case class InitDomainFromFragmentFile() extends IR_AbstractFunction with Expandable {
+case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
   override def prettyprint_decl = prettyprint
   override def name = "initDomain"
@@ -394,7 +394,7 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with Expanda
   }
 }
 
-case class SetValues() extends IR_AbstractFunction with Expandable {
+case class SetValues() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetValues\n"
   override def prettyprint_decl = prettyprint
   override def name = "setValues"

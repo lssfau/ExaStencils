@@ -77,7 +77,7 @@ case class OMP_ParallelFor(var body : IR_ForLoop, var additionalOMPClauses : Lis
   }
 }
 
-case class OMP_WaitForFlag() extends IR_AbstractFunction with Expandable {
+case class OMP_WaitForFlag() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OMP_WaitForFlag\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "waitForFlag"

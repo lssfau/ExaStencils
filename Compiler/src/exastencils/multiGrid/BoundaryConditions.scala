@@ -16,7 +16,7 @@ import exastencils.omp._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting._
 
-case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends IR_Statement with Expandable {
+case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = HandleBoundaries\n"
 
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {

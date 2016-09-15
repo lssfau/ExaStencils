@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.{ ArrayAccess, Expandable, Reduction, VariableDeclarationStatement, _ }
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.mpi.MPI_Allreduce
 import exastencils.omp.OMP_PotentiallyParallel
@@ -19,7 +19,7 @@ object IR_LoopOverFragments {
   def defIt = "fragmentIdx"
 }
 
-case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction : Option[Reduction] = None) extends IR_Statement with Expandable {
+case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction : Option[Reduction] = None) extends IR_Statement with IR_Expandable {
 
   import IR_LoopOverFragments._
 

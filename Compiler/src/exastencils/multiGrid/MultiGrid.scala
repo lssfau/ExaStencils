@@ -13,7 +13,7 @@ import exastencils.performance._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 
-case class InitFieldsWithZero() extends IR_AbstractFunction with Expandable {
+case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "initFieldsWithZero"

@@ -69,7 +69,7 @@ object dimToString extends (Int => String) {
   }
 }
 
-case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0, 0) /* was float index before */) extends IR_Statement with Expandable {
+case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0, 0) /* was float index before */) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeomCoords\n"
 
   override def expand : Output[StatementList] = {

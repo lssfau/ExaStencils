@@ -14,7 +14,7 @@ import exastencils.prettyprinting._
 
 // FIXME: Think about moving all of this index information to some other source. Maybe some kind of ... DSL ... or even Layer4
 
-abstract class FieldBoundaryFunction() extends IR_AbstractFunction with Expandable {
+abstract class FieldBoundaryFunction() extends IR_AbstractFunction with IR_Expandable {
   var fieldSelection : FieldSelection
   def insideFragLoop : Boolean
 
