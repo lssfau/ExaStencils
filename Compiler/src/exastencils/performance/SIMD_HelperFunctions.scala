@@ -89,7 +89,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
       out << new IR_SIMD_Store(aVAcc(i), IR_VariableAccess(arg, IR_SIMD_RealDatatype), true) << '\n'
     for (i <- 0 until Platform.simd_vectorSize)
       out << new IR_Assignment(aSAcc(0, i), new IR_FunctionCall(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
-    out << IR_Return(SIMD_LoadExpression(aVAcc(0), true)) << '\n'
+    out << IR_Return(IR_SIMD_Load(aVAcc(0), true)) << '\n'
     out << '}'
   }
 

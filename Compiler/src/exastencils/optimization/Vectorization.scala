@@ -110,7 +110,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     private val preLoopStmts = new ListBuffer[IR_Statement]()
     private val postLoopStmts = new ListBuffer[IR_Statement]()
 
-    val toFinish_LCSE = Map[String, SIMD_ConcShift]()
+    val toFinish_LCSE = Map[String, IR_SIMD_ConcShift]()
 
     private val temporaryMappingStack = new ArrayBuffer[Map[IR_Expression, String]]()
     private val temporaryProperties = Map[String, (Boolean, Boolean)]()
@@ -244,10 +244,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       val (vecTmp : String, true) = ctx.getName(target)
       val identityElem : IR_Expression =
         operator match {
-          case "+"   => SIMD_Scalar2VectorExpression(IR_RealConstant(0.0))
-          case "*"   => SIMD_Scalar2VectorExpression(IR_RealConstant(1.0))
-          case "min" => SIMD_Scalar2VectorExpression(IR_RealConstant(Double.MaxValue))
-          case "max" => SIMD_Scalar2VectorExpression(IR_RealConstant(Double.MinValue))
+          case "+"   => IR_SIMD_Scalar2Vector(IR_RealConstant(0.0))
+          case "*"   => IR_SIMD_Scalar2Vector(IR_RealConstant(1.0))
+          case "min" => IR_SIMD_Scalar2Vector(IR_RealConstant(Double.MaxValue))
+          case "max" => IR_SIMD_Scalar2Vector(IR_RealConstant(Double.MinValue))
           case _     => throw new VectorizationException("unknown reduction operator:  " + operator)
         }
       ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, identityElem), target)
@@ -424,7 +424,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         // ---- special handling of loop-carried cse variables ----
         lhsSca match {
           case IR_ArrayAccess(_ : iv.LoopCarriedCSBuffer, _, _) =>
-            val initOpt : Option[SIMD_ConcShift] = ctx.toFinish_LCSE.get(ctx.getName(lhsSca)._1)
+            val initOpt : Option[IR_SIMD_ConcShift] = ctx.toFinish_LCSE.get(ctx.getName(lhsSca)._1)
             if (initOpt.isDefined) {
               val concShiftRight : IR_VariableAccess =
                 rhsVec match {
@@ -525,8 +525,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           base match {
             // ---- special handling of loop-carried cse variables ----
             case _ : iv.LoopCarriedCSBuffer if (access1) => //if(access1 && ctx.isStore() && !ctx.isLoad()) =>
-              ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, SIMD_Scalar2VectorExpression(expr)), expr)
-              ctx.addStmtPostLoop(IR_Assignment(expr, new SIMD_ExtractScalarExpression(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), vs - 1)))
+              ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, IR_SIMD_Scalar2Vector(expr)), expr)
+              ctx.addStmtPostLoop(IR_Assignment(expr, new IR_SIMD_ExtractScalar(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), vs - 1)))
             // ------------------------------------------------------
             case _ if (ctx.isLoad() && !ctx.isStore()) =>
               val init = Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, alignedBase, ctx))
@@ -556,7 +556,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         // ---- special handling of loop-carried cse variables ----
         base match {
           case _ : iv.LoopCarriedCSBuffer if (access1 && ctx.isLoad() && !ctx.isStore() && !ctx.toFinish_LCSE.contains(vecTmp)) =>
-            val init = new SIMD_ConcShift(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), null, Platform.simd_vectorSize - 1)
+            val init = new IR_SIMD_ConcShift(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), null, Platform.simd_vectorSize - 1)
             ctx.toFinish_LCSE(vecTmp) = init
             ctx.addStmt(new IR_Assignment(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), init, "="))
           case _                                                                                                                => // nothing to do
@@ -569,11 +569,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         if (njuTmp) {
           val decl = IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp)
           if (ctx.isLoad())
-            decl.initialValue = Some(new SIMD_Scalar2VectorExpression(IR_VariableAccess(name, dType)))
+            decl.initialValue = Some(new IR_SIMD_Scalar2Vector(IR_VariableAccess(name, dType)))
           if (name == ctx.itName) {
             if (ctx.isStore()) throw new VectorizationException("iteration variable is modified inside the loop body...")
             if (!ctx.ignIncr)
-              decl.initialValue = Some(new SIMD_AdditionExpression(decl.initialValue.get, ctx.getIncrVector()))
+              decl.initialValue = Some(new IR_SIMD_Addition(decl.initialValue.get, ctx.getIncrVector()))
             ctx.addStmt(decl)
           } else
             ctx.addStmtPreLoop(decl, expr)
@@ -583,7 +583,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_StringLiteral("omp_get_thread_num()") =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
-          val decl = IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(expr))
+          val decl = IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, new IR_SIMD_Scalar2Vector(expr))
           ctx.addStmtPreLoop(decl, expr)
         }
         IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
@@ -591,17 +591,17 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_RealConstant(value) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(IR_RealConstant(value))), expr)
+          ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, new IR_SIMD_Scalar2Vector(IR_RealConstant(value))), expr)
         IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
 
       case IR_IntegerConstant(value) => // TODO: ensure type safety
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, new SIMD_Scalar2VectorExpression(IR_RealConstant(value))), expr)
+          ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, new IR_SIMD_Scalar2Vector(IR_RealConstant(value))), expr)
         IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
 
       case IR_NegativeExpression(nExpr) =>
-        SIMD_NegateExpression(vectorizeExpr(nExpr, ctx))
+        IR_SIMD_Negate(vectorizeExpr(nExpr, ctx))
 
       case IR_AdditionExpression(sums) =>
         if (sums.isEmpty)
@@ -613,15 +613,15 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         if (vecSumds.isEmpty)
           vecSumds += vectorizeExpr(mulsIt.next(), ctx)
         while (mulsIt.hasNext) {
-          val simdMul = vectorizeExpr(mulsIt.next(), ctx).asInstanceOf[SIMD_MultiplicationExpression]
-          vecSumds.enqueue(SIMD_MultiplyAddExpression(simdMul.left, simdMul.right, vecSumds.dequeue()))
+          val simdMul = vectorizeExpr(mulsIt.next(), ctx).asInstanceOf[IR_SIMD_Multiplication]
+          vecSumds.enqueue(IR_SIMD_MultiplyAdd(simdMul.left, simdMul.right, vecSumds.dequeue()))
         }
         while (vecSumds.length > 1)
-          vecSumds.enqueue(SIMD_AdditionExpression(vecSumds.dequeue(), vecSumds.dequeue()))
+          vecSumds.enqueue(IR_SIMD_Addition(vecSumds.dequeue(), vecSumds.dequeue()))
         vecSumds.dequeue()
 
       case IR_SubtractionExpression(left, right) =>
-        SIMD_SubtractionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+        IR_SIMD_Subtraction(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
       case IR_MultiplicationExpression(facs) =>
         if (facs.isEmpty)
@@ -629,11 +629,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val exprs = new Queue[IR_Expression]()
         exprs.enqueue(facs.view.map { x => vectorizeExpr(x, ctx) } : _*)
         while (exprs.length > 1)
-          exprs.enqueue(SIMD_MultiplicationExpression(exprs.dequeue(), exprs.dequeue()))
+          exprs.enqueue(IR_SIMD_Multiplication(exprs.dequeue(), exprs.dequeue()))
         exprs.dequeue()
 
       case IR_DivisionExpression(left, right) =>
-        SIMD_DivisionExpression(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
+        IR_SIMD_Division(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
       case IR_MinimumExpression(args) =>
         if (args.isEmpty)
@@ -641,7 +641,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val exprs = new Queue[IR_Expression]()
         exprs.enqueue(args.view.map { x => vectorizeExpr(x, ctx) } : _*)
         while (exprs.length > 1)
-          exprs.enqueue(SIMD_MinimumExpression(exprs.dequeue(), exprs.dequeue()))
+          exprs.enqueue(IR_SIMD_Minimum(exprs.dequeue(), exprs.dequeue()))
         exprs.dequeue()
 
       case IR_MaximumExpression(args) =>
@@ -650,7 +650,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val exprs = new Queue[IR_Expression]()
         exprs.enqueue(args.view.map { x => vectorizeExpr(x, ctx) } : _*)
         while (exprs.length > 1)
-          exprs.enqueue(SIMD_MaximumExpression(exprs.dequeue(), exprs.dequeue()))
+          exprs.enqueue(IR_SIMD_Maximum(exprs.dequeue(), exprs.dequeue()))
         exprs.dequeue()
 
       case IR_FunctionCall(func, args) if (SIMD_MathFunctions.isAllowed(func)) =>
@@ -662,7 +662,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case mAcc : MemberAccess =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, SIMD_Scalar2VectorExpression(mAcc)), expr)
+          ctx.addStmtPreLoop(IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, IR_SIMD_Scalar2Vector(mAcc)), expr)
         IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)
 
       case _ =>
@@ -675,9 +675,9 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       access1 : Boolean, aligned : Boolean, alignedBase : Boolean, ctx : LoopCtx) : IR_Expression = {
 
     if (access1)
-      return SIMD_Scalar2VectorExpression(oldExpr)
+      return IR_SIMD_Scalar2Vector(oldExpr)
     else if (aligned || !Knowledge.simd_avoidUnaligned)
-      return SIMD_LoadExpression(IR_AddressofExpression(oldExpr), aligned)
+      return IR_SIMD_Load(IR_AddressofExpression(oldExpr), aligned)
     else if (!alignedBase)
       throw new VectorizationException("cannot vectorize load: array is not aligned, but unaligned accesses should be avoided")
     else {
@@ -688,7 +688,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       val lowerExpr = vectorizeExpr(IR_ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
       index(SimplifyExpression.constName) = lowerConst + vs
       val upperExpr = vectorizeExpr(IR_ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
-      return SIMD_ConcShift(lowerExpr, upperExpr, (indexConst - lowerConst).toInt)
+      return IR_SIMD_ConcShift(lowerExpr, upperExpr, (indexConst - lowerConst).toInt)
     }
   }
 }

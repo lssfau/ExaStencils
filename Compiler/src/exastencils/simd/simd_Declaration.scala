@@ -1,13 +1,12 @@
 package exastencils.simd
 
-import exastencils.base.ir.IR_Statement
 import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 
 /// IR_SIMD_IncrementVectorDeclaration
 
 /** Special declaration for a SIMD vector, which is initialized with the values 0, 1, ..., Knowledge.simd_vectorSize-1. */
-case class IR_SIMD_IncrementVectorDeclaration(var name : String, var incr : Long) extends IR_Statement {
+case class IR_SIMD_IncrementVectorDeclaration(var name : String, var incr : Long) extends IR_SIMD_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << IR_SIMD_RealDatatype << ' ' << name
     val is = Platform.simd_instructionSet
