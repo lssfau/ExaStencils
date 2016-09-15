@@ -2,9 +2,9 @@ package exastencils.datastructures.ir.iv
 
 import scala.collection.mutable.HashMap
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 

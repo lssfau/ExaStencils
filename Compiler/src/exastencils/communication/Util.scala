@@ -1,9 +1,8 @@
 package exastencils.communication
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir._
 import exastencils.prettyprinting._
 
 case class GeneratedMPITag(var from : IR_Expression, var to : IR_Expression, var dirOfSend : Int, var concurrencyId : Int) extends IR_Expression with IR_Expandable {

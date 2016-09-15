@@ -2,12 +2,12 @@ package exastencils.datastructures.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.strategies._

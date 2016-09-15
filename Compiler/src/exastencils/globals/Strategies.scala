@@ -2,10 +2,10 @@ package exastencils.globals
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.util._
 

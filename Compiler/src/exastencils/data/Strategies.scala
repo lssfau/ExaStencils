@@ -2,6 +2,7 @@ package exastencils.data
 
 import scala.collection.mutable.{ Node => _, _ }
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
@@ -10,7 +11,6 @@ import exastencils.core.collectors.StackCollector
 import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.globals._
 import exastencils.interfacing.IR_ExternalFieldAccess

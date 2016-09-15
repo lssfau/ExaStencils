@@ -2,11 +2,11 @@ package exastencils.domain
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.grid._
 import exastencils.knowledge._

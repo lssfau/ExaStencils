@@ -5,7 +5,7 @@ import exastencils.base.ir._
 class Expressions {
   def testNumbers = {
 
-    import exastencils.datastructures.ir.ImplicitConversions._
+    import exastencils.base.ir.IR_ImplicitConversion._
 
     var x : IR_Expression = IR_RealConstant(40) + IR_IntegerConstant(2)
     x = x + 3

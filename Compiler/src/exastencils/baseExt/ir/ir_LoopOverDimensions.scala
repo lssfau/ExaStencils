@@ -2,9 +2,9 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable._
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
