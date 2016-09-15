@@ -2,39 +2,41 @@ package exastencils.util
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir.StatementList
+import exastencils.datastructures.ir.{ StatementList, _ }
 import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
 
 object PrintExpression {
-  val endl : Expression = new VariableAccess("std::endl", StringDatatype)
+  val endl : IR_Expression = IR_VariableAccess("std::endl", IR_StringDatatype)
 }
 
-case class PrintExpression(var stream : Expression, toPrint : ListBuffer[Expression]) extends Expression {
-  def this(stream : Expression, toPrint : Expression*) = this(stream, toPrint.to[ListBuffer])
+case class PrintExpression(var stream : IR_Expression, toPrint : ListBuffer[IR_Expression]) extends IR_Expression {
+  override def datatype = stream.datatype
+  def this(stream : IR_Expression, toPrint : IR_Expression*) = this(stream, toPrint.to[ListBuffer])
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << stream << " << " <<<(toPrint, " << ")
+    out << stream << " << " <<< (toPrint, " << ")
   }
 }
 
-case class BuildStringStatement(var stringName : Expression, var toPrint : ListBuffer[Expression]) extends Statement with Expandable {
+case class BuildStringStatement(var stringName : IR_Expression, var toPrint : ListBuffer[IR_Expression]) extends IR_Statement with Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BuildStringStatement\n"
 
   override def expand() : Output[StatementList] = {
     val streamName = BuildStringStatement.getNewName()
-    def streamType = SpecialDatatype("std::ostringstream")
-    val statements = ListBuffer[Statement](
+    def streamType = IR_SpecialDatatype("std::ostringstream")
+    val statements = ListBuffer[IR_Statement](
       VariableDeclarationStatement(streamType, streamName),
-      PrintExpression(new VariableAccess(streamName, streamType), toPrint),
-      AssignmentStatement(stringName, MemberFunctionCallExpression(VariableAccess(streamName, Some(SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
+      PrintExpression(IR_VariableAccess(streamName, streamType), toPrint),
+      IR_Assignment(stringName, MemberFunctionCallExpression(IR_VariableAccess(streamName, Some(IR_SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
     return statements
   }
 }
@@ -47,37 +49,37 @@ private object BuildStringStatement {
   }
 }
 
-case class PrintStatement(var toPrint : ListBuffer[Expression], var stream : String = "std::cout") extends Statement with Expandable {
-  def this(toPrint : Expression) = this(ListBuffer(toPrint))
+case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : String = "std::cout") extends IR_Statement with Expandable {
+  def this(toPrint : IR_Expression) = this(ListBuffer(toPrint))
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
 
-  override def expand() : Output[Statement] = {
+  override def expand() : Output[IR_Statement] = {
     if (toPrint.isEmpty) {
-      return NullStatement
+      return IR_NullStatement
     } else {
-      val printStmt : Statement = new PrintExpression(VariableAccess(stream), toPrint.view.flatMap { e => List(e, StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
+      val printStmt : IR_Statement = new PrintExpression(IR_VariableAccess(stream), toPrint.view.flatMap { e => List(e, IR_StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
       if (Knowledge.mpi_enabled) // filter by mpi rank if required
-        return new ConditionStatement(MPI_IsRootProc(), printStmt)
+        return IR_IfCondition(MPI_IsRootProc(), printStmt)
       else
         return printStmt
     }
   }
 }
 
-case class PrintFieldStatement(var filename : Expression, var field : FieldSelection, var condition : Expression = BooleanConstant(true)) extends Statement with Expandable {
+case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = IR_BooleanConstant(true)) extends IR_Statement with Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
 
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
 
-  def getPos(field : FieldSelection, dim : Int) : Expression = {
+  def getPos(field : FieldSelection, dim : Int) : IR_Expression = {
     field.field.discretization match {
-      case "node" => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
-      case "cell" => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "cell"                                   => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
       case discr @ ("face_x" | "face_y" | "face_z") => {
-        if (s"face_${dimToString(dim)}" == discr)
+        if (s"face_${ dimToString(dim) }" == discr)
           GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
         else
           GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
@@ -93,48 +95,47 @@ case class PrintFieldStatement(var filename : Expression, var field : FieldSelec
       if (field.arrayIndex.isEmpty) (0 until field.field.gridDatatype.resolveFlattendSize)
       else (field.arrayIndex.get to field.arrayIndex.get))
 
-    def separator = StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
+    def separator = IR_StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
     val streamName = PrintFieldStatement.getNewName()
-    def streamType = SpecialDatatype("std::ofstream")
+    def streamType = IR_SpecialDatatype("std::ofstream")
 
     val fileHeader = {
-      var ret : Statement = NullStatement
+      var ret : IR_Statement = IR_NullStatement
       if (Knowledge.experimental_generateParaviewFiles) {
         ret = (streamName + " << \"x,y,z," + arrayIndexRange.map(index => s"s$index").mkString(",") + "\" << std::endl")
         if (Knowledge.mpi_enabled)
-          ret = new ConditionStatement(MPI_IsRootProc(), ret)
+          ret = IR_IfCondition(MPI_IsRootProc(), ret)
       }
       ret
     }
 
-    var innerLoop = ListBuffer[Statement](
-      new ObjectInstantiation(streamType, streamName, filename, VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
+    var innerLoop = ListBuffer[IR_Statement](
+      new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
       fileHeader,
       new LoopOverFragments(
-        new ConditionStatement(iv.IsValidForSubdomain(field.domainIndex),
+        IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
           new LoopOverDimensions(numDimsData, new IndexRange(
-            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : Expression)),
-            new MultiIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : Expression))),
-            new ConditionStatement(condition,
-              new PrintExpression(new VariableAccess(streamName, streamType),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : IR_Expression))),
+            IR_IfCondition(condition,
+              new PrintExpression(IR_VariableAccess(streamName, streamType),
                 ((0 until numDimsGrid).view.flatMap { dim =>
                   List(getPos(field, dim), separator)
                 } ++ arrayIndexRange.view.flatMap { index =>
-                  val access = new FieldAccess(field, LoopOverDimensions.defIt(numDimsData))
+                  val access = new IR_FieldAccess(field, LoopOverDimensions.defIt(numDimsData))
                   if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
                     access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
                   List(access, separator)
-                }).to[ListBuffer] += PrintExpression.endl)
-            )))),
-      new MemberFunctionCallExpression(new VariableAccess(streamName, streamType), "close"))
+                }).to[ListBuffer] += PrintExpression.endl))))),
+      new MemberFunctionCallExpression(new IR_VariableAccess(streamName, Some(streamType)), "close"))
 
-    var statements : ListBuffer[Statement] = ListBuffer()
+    var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     if (Knowledge.mpi_enabled) {
-      statements += new ConditionStatement(MPI_IsRootProc(),
-        ListBuffer[Statement](
-          new ObjectInstantiation(streamType, streamName, filename, VariableAccess("std::ios::trunc")),
-          new MemberFunctionCallExpression(new VariableAccess(streamName, streamType), "close")))
+      statements += IR_IfCondition(MPI_IsRootProc(),
+        ListBuffer[IR_Statement](
+          new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc")),
+          new MemberFunctionCallExpression(IR_VariableAccess(streamName, streamType), "close")))
 
       statements += new MPI_Sequential(innerLoop)
     } else {

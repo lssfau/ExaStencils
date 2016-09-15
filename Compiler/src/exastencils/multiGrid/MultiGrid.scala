@@ -2,51 +2,53 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.performance._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 
-case class InitFieldsWithZero() extends AbstractFunctionStatement with Expandable {
+case class InitFieldsWithZero() extends IR_AbstractFunction with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "initFieldsWithZero"
 
-  override def expand() : Output[FunctionStatement] = {
+  override def expand() : Output[IR_Function] = {
     val fields = FieldCollection.getSortedFields
-    var statements : ListBuffer[Statement] = new ListBuffer
+    var statements : ListBuffer[IR_Statement] = new ListBuffer
 
     for (field <- fields) {
       val numDims = field.fieldLayout.numDimsData
       val index = LoopOverDimensions.defIt(numDims)
 
       val loopOverDims = new LoopOverDimensions(numDims, new IndexRange(
-        new MultiIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
-        new MultiIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
+        IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
+        IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new AssignmentStatement(
-            new DirectFieldAccess(FieldSelection(field, field.level, slot), index),
-            0.0) : Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
+          new IR_Assignment(
+            new IR_DirectFieldAccess(FieldSelection(field, field.level, slot), index),
+            0.0) : IR_Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
       loopOverDims.optLevel = 1
 
       val wrapped = new LoopOverFragments(
-        new ConditionStatement(iv.IsValidForSubdomain(field.domain.index), loopOverDims)) with OMP_PotentiallyParallel
+        IR_IfCondition(iv.IsValidForSubdomain(field.domain.index), loopOverDims)) with OMP_PotentiallyParallel
 
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
-        statements += new Scope(wrapped)
+        statements += IR_Scope(wrapped)
       else
         statements += wrapped
     }
 
-    new FunctionStatement(UnitDatatype, name, ListBuffer[FunctionArgument](), statements)
+    new IR_Function(IR_UnitDatatype, name, ListBuffer[IR_FunctionArgument](), statements)
   }
 }
 
-case class MultiGridFunctions() extends FunctionCollection("MultiGrid/MultiGrid",
+case class MultiGridFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
   ListBuffer("Globals/Globals.h", "Util/Vector.h", "Util/Matrix.h", "Util/TimerFunctions.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
 

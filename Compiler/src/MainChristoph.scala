@@ -1,5 +1,6 @@
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Root
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -146,10 +147,10 @@ object MainChristoph {
 
     if (false) // re-print the merged L4 state
     {
-      val l4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
+      val L4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write(Indenter.addIndentations(l4_printed))
+      outFile.write(Indenter.addIndentations(L4_printed))
       outFile.close()
 
       // re-parse the file to check for errors
@@ -173,7 +174,7 @@ object MainChristoph {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progress.asInstanceOf[Node]
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")
@@ -185,7 +186,7 @@ object MainChristoph {
     SetupDataStructures.apply()
 
     // add remaining nodes
-    StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
+    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
       // FunctionCollections
       DomainFunctions(),
       CommunicationFunctions(),
@@ -199,7 +200,7 @@ object MainChristoph {
     )
 
     if (Knowledge.cuda_enabled)
-      StateManager.root_.asInstanceOf[ir.Root].nodes += KernelFunctions()
+      StateManager.root_.asInstanceOf[IR_Root].nodes += KernelFunctions()
 
     if (Knowledge.experimental_mergeCommIntoLoops)
       MergeCommunicatesAndLoops.apply()

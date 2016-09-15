@@ -1,3 +1,4 @@
+import exastencils.base.ir.IR_Root
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
@@ -46,10 +47,10 @@ object MainAlex {
     ValidationL4.apply
     UnfoldLevelSpecifications.apply()
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progressToIr.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progress.asInstanceOf[Node]
 
     // Setup tree
-    StateManager.root_.asInstanceOf[ir.Root].nodes ++= List(
+    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
       // FunctionCollections
       new DomainFunctions,
       new CommunicationFunctions,

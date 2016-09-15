@@ -1,8 +1,13 @@
 package exastencils.polyhedron
 
-import java.io.File
-import java.text._
+import scala.collection.mutable
+import scala.collection.mutable.{ ArrayBuffer, ListBuffer }
+import scala.io.Source
+import scala.util.control._
 
+import java.text.DecimalFormat
+
+import exastencils.base.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -11,15 +16,11 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
-import org.exastencils.schedopt.exploration.{Exploration, PartialSchedule, ScheduleSpace, _}
-
-import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
-import scala.io._
-import scala.util.control._
+import org.exastencils.schedopt.exploration.{ Exploration, PartialSchedule, ScheduleSpace, _ }
 
 trait PolyhedronAccessible {
-  var optLevel : Int = 3 // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
+  var optLevel : Int = 3
+  // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
   var tileSizes : Array[Int] = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
 }
 
@@ -31,6 +32,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   var timeSingleSteps : Boolean = false
 
   import scala.language.implicitConversions
+
   implicit def convertIntToVal(i : Int) : isl.Val = isl.Val.intFromSi(Isl.ctx, i)
 
   /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
@@ -141,10 +143,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var toFind : String = null
     var found : Boolean = false
     val search = new Transformation("search...", {
-      case va : VariableAccess if va.name == toFind =>
+      case va : IR_VariableAccess if va.name == toFind =>
         found = true
         va
-      case sc : StringLiteral if sc.value == toFind =>
+      case sc : IR_StringLiteral if sc.value == toFind =>
         found = true
         sc
     })
@@ -153,13 +155,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       toFind = name
       var fstStmt : Int = -1
       var lstStmt : Int = -1
-      var stmts : mutable.Buffer[(String, (ListBuffer[Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
+      var stmts : mutable.Buffer[(String, (ListBuffer[IR_Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
       var i : Int = 0
       val oldLvl = Logger.getLevel
       Logger.setLevel(Logger.WARNING)
       for ((lab, (stmt, _)) <- stmts) {
         found = false
-        this.execute(search, Some(Scope(stmt)))
+        this.execute(search, Some(IR_Scope(stmt)))
         if (found) {
           if (fstStmt < 0)
             fstStmt = i
@@ -188,7 +190,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       for (i <- 1 until remDoms.length)
         if (!proto.isEqual(remDoms(i).resetTupleId()))
           Breaks.break() // continue... different domains, cannot merge statements
-      val mergedStmts = new ListBuffer[Statement]()
+      val mergedStmts = new ListBuffer[IR_Statement]()
       var mergedLoopIts : ArrayBuffer[String] = null
       for ((lab, (stmt, loopIts)) <- stmts) {
         mergedStmts ++= stmt
@@ -211,7 +213,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         var nju : isl.UnionMap = null
         umap.foreachMap({
           map : isl.Map =>
-            if (map.getTupleName(T_OUT) != name) { // remove all accesses to the scalar
+            if (map.getTupleName(T_OUT) != name) {
+              // remove all accesses to the scalar
               val oldLabel : String = map.getTupleName(T_IN)
               var toAdd : isl.Map = map
               if (oldLabel != njuLabel)
@@ -555,7 +558,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     df.setMinimumIntegerDigits(5)
     df.setGroupingUsed(false)
 
-    val explConfig = new File(Settings.poly_explorationConfig)
+    val explConfig = new java.io.File(Settings.poly_explorationConfig)
     if (!explConfig.exists() || explConfig.length() == 0) {
       Logger.debug("[PolyOpt] Exploration: no configuration file found or file empty, perform exploration and create it, progress:")
       performExploration(scop, explConfig, df)
@@ -567,7 +570,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
   }
 
-  private def performExploration(scop : Scop, explConfig : File, df : DecimalFormat) : Unit = {
+  private def performExploration(scop : Scop, explConfig : java.io.File, df : DecimalFormat) : Unit = {
 
     val domain = scop.domain.intersectParams(scop.getContext())
     var validity = scop.deps.validity()
@@ -618,7 +621,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Logger.debug(s"[PolyOpt] Exploration: found $i configurations")
   }
 
-  private def applyConfig(scop : Scop, explConfig : File, confID : String) : Unit = {
+  private def applyConfig(scop : Scop, explConfig : java.io.File, confID : String) : Unit = {
     var lines : Iterator[String] = Source.fromFile(explConfig).getLines()
     lines = lines.dropWhile(l => !l.startsWith(confID))
 
@@ -697,13 +700,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def recreateAndInsertAST() : Unit = {
 
-    val replaceCallback = { (repl : mutable.Map[String, Expression], applyAt : Node) =>
+    val replaceCallback = { (repl : mutable.Map[String, IR_Expression], applyAt : Node) =>
       val oldLvl = Logger.getLevel
       Logger.setLevel(Logger.WARNING)
       this.execute(
         new Transformation("update loop iterator", {
-          case VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
-          case StringLiteral(str) if repl.isDefinedAt(str) => Duplicate(repl(str))
+          case IR_VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
+          case IR_StringLiteral(str) if repl.isDefinedAt(str)     => Duplicate(repl(str))
         }), Some(applyAt))
       Logger.setLevel(oldLvl)
     }

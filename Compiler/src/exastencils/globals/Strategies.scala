@@ -2,11 +2,11 @@ package exastencils.globals
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures._
+import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.domain._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.util._
 
@@ -19,28 +19,28 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
       }
       if (Knowledge.mpi_enabled) {
         globals.variables += new VariableDeclarationStatement("MPI_Comm", "mpiCommunicator")
-        globals.variables += new VariableDeclarationStatement(IntegerDatatype, "mpiRank")
-        globals.variables += new VariableDeclarationStatement(IntegerDatatype, "mpiSize")
+        globals.variables += new VariableDeclarationStatement(IR_IntegerDatatype, "mpiRank")
+        globals.variables += new VariableDeclarationStatement(IR_IntegerDatatype, "mpiSize")
       }
       globals
     }
 
-    case func : FunctionStatement if ("initGlobals" == func.name) => {
+    case func : IR_Function if ("initGlobals" == func.name) => {
       if (Knowledge.cuda_enabled) {
         // init device
-        func.body ++= ListBuffer[Statement](
-          VariableDeclarationStatement(IntegerDatatype, "deviceCount", Some(0)),
+        func.body ++= ListBuffer[IR_Statement](
+          VariableDeclarationStatement(IR_IntegerDatatype, "deviceCount", Some(0)),
           "cuDeviceGetCount(&deviceCount)",
-          AssertStatement(LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
+          AssertStatement(IR_LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
             ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", "deviceCount", "\")\""),
             new FunctionCallExpression("exit", 1)),
-          s"cuDeviceGet(&cudaDevice, ${Knowledge.cuda_deviceId})")
+          s"cuDeviceGet(&cudaDevice, ${ Knowledge.cuda_deviceId })")
 
         // print device info (name)
         if (!Knowledge.l3tmp_genForAutoTests) {
-          func.body ++= ListBuffer[Statement](
+          func.body ++= ListBuffer[IR_Statement](
             "cudaDeviceProp devProp",
-            s"cudaGetDeviceProperties(&devProp, ${Knowledge.cuda_deviceId})",
+            s"cudaGetDeviceProperties(&devProp, ${ Knowledge.cuda_deviceId })",
             PrintStatement(ListBuffer("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", "devProp.name", "std::endl")))
         }
 

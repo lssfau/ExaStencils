@@ -1,21 +1,20 @@
 package exastencils.strategies
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Node => _, _ }
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.core.collectors.StatementCollector
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.logger._
 
 object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking for function inside statements") {
   val collector = new StatementCollector
 
-  var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, Datatype)]] = HashMap()
-  var callByValReplacements : HashMap[String, Statement] = HashMap()
+  var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, IR_Datatype)]] = HashMap()
+  var callByValReplacements : HashMap[String, IR_Statement] = HashMap()
 
   override def apply(node : Option[Node]) = {
     callByValReplacements.clear
@@ -37,14 +36,14 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
       for ((paramIdx, datatype) <- functionsToBeProcessed.get(fct.name).get) {
         fct.arguments(paramIdx) match {
           // variable accesses are simple
-          case va : VariableAccess =>
-            fct.arguments(paramIdx) = AddressofExpression(fct.arguments(paramIdx))
+          case va : IR_VariableAccess =>
+            fct.arguments(paramIdx) = IR_AddressofExpression(fct.arguments(paramIdx))
           // otherwise temp variables have to be created
           case _ =>
-            var newName = s"callByValReplacement_${fct.name}_${paramIdx.toString()}"
+            var newName = s"callByValReplacement_${ fct.name }_${ paramIdx.toString() }"
             while (callByValReplacements.contains(newName)) newName += "0"
             callByValReplacements += (newName -> VariableDeclarationStatement(Duplicate(datatype), newName, Some(fct.arguments(paramIdx))))
-            fct.arguments(paramIdx) = AddressofExpression(VariableAccess(newName, Some(Duplicate(datatype))))
+            fct.arguments(paramIdx) = IR_AddressofExpression(IR_VariableAccess(newName, Some(Duplicate(datatype))))
         }
       }
 
@@ -58,7 +57,7 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
 
 object Fortranify extends DefaultStrategy("Preparing function for fortran interfacing") {
   // map of function names and list of parameter indices and data types to be wrapped by address operations
-  var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, Datatype)]] = HashMap()
+  var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, IR_Datatype)]] = HashMap()
 
   def isTreatableFunction(name : String) = {
     name match {
@@ -73,9 +72,9 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
   }
 
   this += new Transformation("Process function declarations", {
-    case functions : FunctionCollection =>
+    case functions : IR_FunctionCollection =>
       for (abstrFct <- functions.functions) {
-        val fct = abstrFct.asInstanceOf[FunctionStatement] // assume resolved function declarations
+        val fct = abstrFct.asInstanceOf[IR_Function] // assume resolved function declarations
         if (fct.allowFortranInterface && isTreatableFunction(fct.name)) {
           // remember for later usage
           functionsToBeProcessed += (fct.name -> ListBuffer())
@@ -84,19 +83,19 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
           var paramIdx = 0
           for (param <- fct.parameters) {
             param.datatype match {
-              case PointerDatatype(_)  => // already fortran compliant
-              case ArrayDatatype(_, _) => // should also be fortran compliant
-              case datatype => {
+              case IR_PointerDatatype(_)  => // already fortran compliant
+              case IR_ArrayDatatype(_, _) => // should also be fortran compliant
+              case datatype               => {
                 // remember for later usage
                 functionsToBeProcessed.get(fct.name).get += ((paramIdx, datatype))
 
                 // redirect parameter
                 fct.body.prepend(
                   VariableDeclarationStatement(
-                    ReferenceDatatype(Duplicate(datatype)), param.name,
-                    Some(DerefAccess(VariableAccess(param.name + "_ptr", Some(PointerDatatype(datatype)))))))
+                    IR_ReferenceDatatype(Duplicate(datatype)), param.name,
+                    Some(DerefAccess(IR_VariableAccess(param.name + "_ptr", Some(IR_PointerDatatype(datatype)))))))
                 param.name += "_ptr"
-                param.datatype = PointerDatatype(Duplicate(datatype))
+                param.datatype = IR_PointerDatatype(Duplicate(datatype))
               }
             }
             paramIdx += 1
@@ -110,13 +109,13 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
   })
 
   this += new Transformation("Prepending underscores to function calls", {
-    case s : Statement if !s.isInstanceOf[FunctionStatement] =>
+    case s : IR_Statement if !s.isInstanceOf[IR_Function] =>
       FortranifyFunctionsInsideStatement.functionsToBeProcessed = functionsToBeProcessed
       FortranifyFunctionsInsideStatement.applyStandalone(s)
 
       if (FortranifyFunctionsInsideStatement.callByValReplacements.isEmpty)
         s
       else
-        Scope(FortranifyFunctionsInsideStatement.callByValReplacements.map(_._2).to[ListBuffer] ++ ListBuffer[Statement](s))
+        IR_Scope(FortranifyFunctionsInsideStatement.callByValReplacements.map(_._2).to[ListBuffer] ++ ListBuffer[IR_Statement](s))
   })
 }

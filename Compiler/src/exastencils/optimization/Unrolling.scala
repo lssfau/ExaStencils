@@ -1,16 +1,14 @@
 package exastencils.optimization
 
-import scala.collection.mutable.HashSet
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Node => _, _ }
 
-import exastencils.core._
+import exastencils.base.ir._
+import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.knowledge._
-import exastencils.logger._
-import exastencils.omp._
-import exastencils.util._
+import exastencils.knowledge.Knowledge
+import exastencils.logger.Logger
+import exastencils.util.SimplifyExpression
 
 object Unrolling extends DefaultStrategy("Loop unrolling") {
 
@@ -20,54 +18,54 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   private[optimization] final val intermVar : String = "_intermediate"
   private[optimization] final val endVar : String = "_end"
 
-  private[optimization] def startVarAcc = new VariableAccess(startVar, IntegerDatatype)
-  private[optimization] def intermVarAcc = new VariableAccess(intermVar, IntegerDatatype)
-  private[optimization] def endVarAcc = new VariableAccess(endVar, IntegerDatatype)
+  private[optimization] def startVarAcc = IR_VariableAccess(startVar, IR_IntegerDatatype)
+  private[optimization] def intermVarAcc = IR_VariableAccess(intermVar, IR_IntegerDatatype)
+  private[optimization] def endVarAcc = IR_VariableAccess(endVar, IR_IntegerDatatype)
 
-  private[optimization] def getBoundsDeclAndPostLoop(itVar : String, start : Expression, endExcl : Expression, oldIncr : Long,
-    body : ListBuffer[Statement], reduction : Option[Reduction]) : (ListBuffer[Statement], Statement) = {
+  private[optimization] def getBoundsDeclAndPostLoop(itVar : String, start : IR_Expression, endExcl : IR_Expression, oldIncr : Long,
+    body : ListBuffer[IR_Statement], reduction : Option[Reduction]) : (ListBuffer[IR_Statement], IR_Statement) = {
 
-    def itVarAcc = new VariableAccess(itVar, IntegerDatatype)
+    def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
 
-    val boundsDecls = new ListBuffer[Statement]()
-    boundsDecls += new VariableDeclarationStatement(IntegerDatatype, startVar, start)
-    boundsDecls += new VariableDeclarationStatement(IntegerDatatype, endVar, endExcl)
+    val boundsDecls = new ListBuffer[IR_Statement]()
+    boundsDecls += new VariableDeclarationStatement(IR_IntegerDatatype, startVar, start)
+    boundsDecls += new VariableDeclarationStatement(IR_IntegerDatatype, endVar, endExcl)
 
-    val postBegin = new VariableDeclarationStatement(IntegerDatatype, itVar, intermVarAcc)
-    val postEnd = new LowerExpression(itVarAcc, endVarAcc)
-    val postIncr = new AssignmentStatement(itVarAcc, IntegerConstant(oldIncr), "+=")
+    val postBegin = new VariableDeclarationStatement(IR_IntegerDatatype, itVar, intermVarAcc)
+    val postEnd = new IR_LowerExpression(itVarAcc, endVarAcc)
+    val postIncr = new IR_Assignment(itVarAcc, IR_IntegerConstant(oldIncr), "+=")
 
-    val postLoop = new ForLoopStatement(postBegin, postEnd, postIncr, body, reduction)
+    val postLoop = new IR_ForLoop(postBegin, postEnd, postIncr, body, reduction)
 
     return (boundsDecls, postLoop)
   }
 
   private[optimization] def getIntermDecl(newIncr : Long) : VariableDeclarationStatement = {
-    return new VariableDeclarationStatement(IntegerDatatype, intermVar, getIntermExpr(newIncr))
+    return new VariableDeclarationStatement(IR_IntegerDatatype, intermVar, getIntermExpr(newIncr))
   }
 
-  def getIntermExpr(newIncr : Long) : Expression = {
-    return new MaximumExpression(startVarAcc, endVarAcc - ((endVarAcc - startVarAcc) Mod IntegerConstant(newIncr)))
+  def getIntermExpr(newIncr : Long) : IR_Expression = {
+    return new IR_MaximumExpression(startVarAcc, endVarAcc - ((endVarAcc - startVarAcc) Mod IR_IntegerConstant(newIncr)))
   }
 
-  private[optimization] def addBounds(itVar : String, begin : Statement, end : Expression, incr : Expression,
-    writeDecls : Boolean, stmts : ListBuffer[Statement]) : Boolean = {
+  private[optimization] def addBounds(itVar : String, begin : IR_Statement, end : IR_Expression, incr : IR_Expression,
+    writeDecls : Boolean, stmts : ListBuffer[IR_Statement]) : Boolean = {
 
-    val (lower, isDecl) : (Expression, Boolean) =
+    val (lower, isDecl) : (IR_Expression, Boolean) =
       begin match {
-        case AssignmentStatement(VariableAccess(itVar2, Some(IntegerDatatype)), init, "=") if (itVar == itVar2) => (init, false)
-        case VariableDeclarationStatement(IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2) => (init, true)
+        case IR_Assignment(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), init, "=") if (itVar == itVar2) => (init, false)
+        case VariableDeclarationStatement(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2)          => (init, true)
 
         case _ => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
 
-    val upperExcl : Expression =
+    val upperExcl : IR_Expression =
       if (writeDecls) end match {
-        case LowerExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) =>
+        case IR_LowerExpression(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) =>
           bound
 
-        case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) =>
-          new AdditionExpression(bound, IntegerConstant(1))
+        case IR_LowerEqualExpression(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) =>
+          IR_AdditionExpression(bound, IR_IntegerConstant(1))
 
         case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
       }
@@ -78,17 +76,17 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
     return isDecl
   }
 
-  private[optimization] def addBounds(lower : Expression, upperExcl : Expression, incr : Expression,
-    writeDecls : Boolean, stmts : ListBuffer[Statement]) : Unit = {
+  private[optimization] def addBounds(lower : IR_Expression, upperExcl : IR_Expression, incr : IR_Expression,
+    writeDecls : Boolean, stmts : ListBuffer[IR_Statement]) : Unit = {
 
-    val intermExpr = new MaximumExpression(endVarAcc - ((endVarAcc - startVarAcc) Mod incr), startVarAcc)
+    val intermExpr = new IR_MaximumExpression(endVarAcc - ((endVarAcc - startVarAcc) Mod incr), startVarAcc)
 
     if (writeDecls) {
-      stmts += new VariableDeclarationStatement(IntegerDatatype, startVar, lower)
-      stmts += new VariableDeclarationStatement(IntegerDatatype, endVar, upperExcl)
-      stmts += new VariableDeclarationStatement(IntegerDatatype, intermVar, intermExpr)
+      stmts += new VariableDeclarationStatement(IR_IntegerDatatype, startVar, lower)
+      stmts += new VariableDeclarationStatement(IR_IntegerDatatype, endVar, upperExcl)
+      stmts += new VariableDeclarationStatement(IR_IntegerDatatype, intermVar, intermExpr)
     } else
-      stmts += new AssignmentStatement(intermVarAcc, intermExpr, "=")
+      stmts += new IR_Assignment(intermVarAcc, intermExpr, "=")
   }
 
   this += new Transformation("optimize", UnrollInnermost)
@@ -103,7 +101,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
   def isDefinedAt(node : Node) : Boolean = {
     return node match {
-      case loop : ForLoopStatement with OptimizationHint =>
+      case loop : IR_ForLoop with OptimizationHint =>
         loop.isInnermost && !loop.removeAnnotation(SKIP_ANNOT).isDefined
       case _ =>
         false
@@ -112,12 +110,12 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
   def apply(node : Node) : Transformation.OutputType = {
 
-    val loop = node.asInstanceOf[ForLoopStatement with OptimizationHint]
+    val loop = node.asInstanceOf[IR_ForLoop with OptimizationHint]
 
     var itVar : String = null
-    def itVarAcc = new VariableAccess(itVar, IntegerDatatype)
-    var start : Expression = null
-    var endExcl : Expression = null
+    def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
+    var start : IR_Expression = null
+    var endExcl : IR_Expression = null
     var oldStride : Long = 0
     var newStride : Long = 0
     try {
@@ -135,24 +133,24 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     }
 
     val oldBody = Duplicate(loop.body) // duplicate for later use in post loop
-    loop.begin = new VariableDeclarationStatement(IntegerDatatype, itVar, Unrolling.startVarAcc)
-    loop.end = new LowerExpression(itVarAcc, Unrolling.intermVarAcc)
-    loop.inc = new AssignmentStatement(itVarAcc, IntegerConstant(newStride), "+=")
+    loop.begin = new VariableDeclarationStatement(IR_IntegerDatatype, itVar, Unrolling.startVarAcc)
+    loop.end = new IR_LowerExpression(itVarAcc, Unrolling.intermVarAcc)
+    loop.inc = new IR_Assignment(itVarAcc, IR_IntegerConstant(newStride), "+=")
     // duplicate private vars would also be possible...
     val interleave : Boolean = Knowledge.opt_unroll_interleave && loop.isParallel && loop.privateVars.isEmpty
     loop.body = duplicateStmts(loop.body, Knowledge.opt_unroll, itVar, oldStride, interleave)
 
     val annot = loop.removeAnnotation(Unrolling.UNROLLED_ANNOT)
     val unrolled : Boolean = annot.isDefined
-    var res : ListBuffer[Statement] = null
+    var res : ListBuffer[IR_Statement] = null
     var intermDecl : VariableDeclarationStatement = null
-    var postLoop : Statement = null
+    var postLoop : IR_Statement = null
     if (unrolled) {
-      res = new ListBuffer[Statement]()
+      res = new ListBuffer[IR_Statement]()
       intermDecl = annot.get.asInstanceOf[VariableDeclarationStatement]
       intermDecl.expression = Some(Unrolling.getIntermExpr(newStride))
     } else {
-      val (boundsDecls, postLoop_) : (ListBuffer[Statement], Statement) =
+      val (boundsDecls, postLoop_) : (ListBuffer[IR_Statement], IR_Statement) =
         Unrolling.getBoundsDeclAndPostLoop(itVar, start, endExcl, oldStride, oldBody, Duplicate(loop.reduction))
       postLoop = postLoop_
       intermDecl = Unrolling.getIntermDecl(newStride)
@@ -167,23 +165,23 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     if (unrolled)
       return res
     else
-      return new Scope(res)
+      return IR_Scope(res)
   }
 
-  private[optimization] def extractBoundsAndIncrement(begin : Statement, end : Expression, inc : Statement) : (String, Expression, Expression, Long) = {
+  private[optimization] def extractBoundsAndIncrement(begin : IR_Statement, end : IR_Expression, inc : IR_Statement) : (String, IR_Expression, IR_Expression, Long) = {
 
     val (itVar, stride) = inc match {
-      case ExpressionStatement(PreIncrementExpression(VariableAccess(itVar, Some(IntegerDatatype))))      => (itVar, 1L)
-      case ExpressionStatement(PostIncrementExpression(VariableAccess(itVar, Some(IntegerDatatype))))     => (itVar, 1L)
-      case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)), IntegerConstant(incr), "+=") => (itVar, incr)
+      case IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(itVar, Some(IR_IntegerDatatype))))  => (itVar, 1L)
+      case IR_ExpressionStatement(IR_PostIncrementExpression(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)))) => (itVar, 1L)
+      case IR_Assignment(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr), "+=")      => (itVar, incr)
 
-      case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)),
-        AdditionExpression(ListBuffer(VariableAccess(itVar2, Some(IntegerDatatype)), IntegerConstant(incr))),
+      case IR_Assignment(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)),
+        IR_AdditionExpression(ListBuffer(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr))),
         "=") if (itVar == itVar2) =>
         (itVar, incr)
 
-      case AssignmentStatement(VariableAccess(itVar, Some(IntegerDatatype)),
-        AdditionExpression(ListBuffer(IntegerConstant(incr), VariableAccess(itVar2, Some(IntegerDatatype)))),
+      case IR_Assignment(IR_VariableAccess(itVar, Some(exastencils.base.ir.IR_IntegerDatatype)),
+        IR_AdditionExpression(ListBuffer(IR_IntegerConstant(incr), IR_VariableAccess(itVar2, Some(exastencils.base.ir.IR_IntegerDatatype)))),
         "=") if (itVar == itVar2) =>
         (itVar, incr)
 
@@ -192,28 +190,28 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     if (stride <= 0)
       throw new UnrollException("loop stride must be positive:  " + inc.prettyprint())
 
-    val lower : Expression =
+    val lower : IR_Expression =
       begin match {
-        case VariableDeclarationStatement(IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2) => init
+        case VariableDeclarationStatement(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2) => init
         case _ => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
 
-    val upperExcl : Expression =
+    val upperExcl : IR_Expression =
       end match {
-        case LowerExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => bound
-        case LowerEqualExpression(VariableAccess(itVar2, Some(IntegerDatatype)), bound) if (itVar == itVar2) => new AdditionExpression(bound, IntegerConstant(1))
+        case IR_LowerExpression(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) => bound
+        case IR_LowerEqualExpression(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) => IR_AdditionExpression(bound, IR_IntegerConstant(1))
         case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
       }
 
     return (itVar, lower, upperExcl, stride)
   }
 
-  private def duplicateStmts(body : ListBuffer[Statement], unrollFactor : Int,
-    itVar : String, oldInc : Long, interleave : Boolean) : ListBuffer[Statement] = {
+  private def duplicateStmts(body : ListBuffer[IR_Statement], unrollFactor : Int,
+    itVar : String, oldInc : Long, interleave : Boolean) : ListBuffer[IR_Statement] = {
 
-    var njuBody : ListBuffer[Statement] = null
+    var njuBody : ListBuffer[IR_Statement] = null
     val replaceStrat = new UpdateLoopVarAndNames(itVar)
-    val dups = new ListBuffer[Iterator[Statement]]()
+    val dups = new ListBuffer[Iterator[IR_Statement]]()
 
     for (i <- 1L until unrollFactor) {
       val dup = Duplicate(body)
@@ -224,7 +222,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     }
 
     if (interleave) {
-      njuBody = new ListBuffer[Statement]()
+      njuBody = new ListBuffer[IR_Statement]()
       for (stmt <- body) {
         njuBody += stmt // reuse original statement
         if (!stmt.isInstanceOf[CommentStatement])
@@ -249,19 +247,19 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     var offset : Long = 0
 
     this += new Transformation("apply", {
-      case vAcc @ VariableAccess(v, _) if (v == itVar) =>
+      case vAcc @ IR_VariableAccess(v, _) if (v == itVar) =>
         if (offset != 0 && !vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
           vAcc.annotate(SKIP_ANNOT) // already done
-          vAcc.dType = Some(IntegerDatatype) // fix type, if required
-          new AdditionExpression(vAcc, IntegerConstant(offset))
+          vAcc.innerDatatype = Some(IR_IntegerDatatype) // fix type, if required
+          IR_AdditionExpression(vAcc, IR_IntegerConstant(offset))
         } else
           vAcc
 
-      case loop @ ForLoopStatement(decl : VariableDeclarationStatement, _, _, _, _) if (offset > 0) => // HACK: declaration must be handled first
+      case loop @ IR_ForLoop(decl : VariableDeclarationStatement, _, _, _, _) if (offset > 0) => // HACK: declaration must be handled first
         rename.add(decl.name)
         loop
 
-      case vAcc : VariableAccess if (rename.contains(vAcc.name)) =>
+      case vAcc : IR_VariableAccess if (rename.contains(vAcc.name)) =>
         vAcc.name += "_" + offset
         vAcc
 
@@ -271,4 +269,5 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         decl
     })
   }
+
 }

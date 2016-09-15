@@ -2,10 +2,12 @@ package exastencils.optimization
 
 import java.util.IdentityHashMap
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_DirectFieldAccess
 import exastencils.core._
 import exastencils.core.collectors.Collector
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.polyhedron._
@@ -21,21 +23,21 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
     val updatedFields = new IdentityHashMap[Field, Integer]()
 
     override def isDefinedAt(node : Node) : Boolean = {
-      return node.isInstanceOf[DirectFieldAccess]
+      return node.isInstanceOf[IR_DirectFieldAccess]
     }
 
-    private def addColorOffset(index : MultiIndex, dim : Int, colorOffset : Int) : Boolean = {
-      val cond : Expression = ColorCondCollector.cond
+    private def addColorOffset(index : IR_ExpressionIndex, dim : Int, colorOffset : Int) : Boolean = {
+      val cond : IR_Expression = ColorCondCollector.cond
       if (cond == null)
         return false
-      val (expr, cValue) : (Expression, Long) =
+      val (expr, cValue) : (IR_Expression, Long) =
         cond match {
-          case EqEqExpression(IntegerConstant(c),
-            ModuloExpression(sum, IntegerConstant(nrColors2))) if (nrColors == nrColors2) =>
+          case IR_EqEqExpression(IR_IntegerConstant(c),
+          IR_ModuloExpression(sum, IR_IntegerConstant(nrColors2))) if (nrColors == nrColors2) =>
             (sum, c)
 
-          case EqEqExpression(ModuloExpression(sum, IntegerConstant(nrColors2)),
-            IntegerConstant(c)) if (nrColors == nrColors2) =>
+          case IR_EqEqExpression(IR_ModuloExpression(sum, IR_IntegerConstant(nrColors2)),
+          IR_IntegerConstant(c)) if (nrColors == nrColors2) =>
             (sum, c)
 
           case _ =>
@@ -46,13 +48,13 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       if (accCSum != SimplifyExpression.extractIntegralSum(expr))
         return false
       val color : Long = ((cValue + cOffset) % nrColors + nrColors) % nrColors // mathematical modulo
-      index(dim) += IntegerConstant(color * colorOffset)
+      index(dim) += IR_IntegerConstant(color * colorOffset)
       return true
     }
 
     override def apply(node : Node) : Transformation.OutputType = {
 
-      val dfa = node.asInstanceOf[DirectFieldAccess]
+      val dfa = node.asInstanceOf[IR_DirectFieldAccess]
       val field : Field = dfa.fieldSelection.field
       val layout : FieldLayout = field.fieldLayout
       val innerD = 0
@@ -68,10 +70,10 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
         updatedFields.put(field, colorOffset)
       }
 
-      val index : MultiIndex = dfa.index
+      val index : IR_ExpressionIndex = dfa.index
       if (!addColorOffset(index, outerD, colorOffset))
-        index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IntegerConstant(nrColors)) * IntegerConstant(colorOffset.longValue())
-      index(innerD) = index(innerD) / IntegerConstant(nrColors)
+        index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IR_IntegerConstant(nrColors)) * IR_IntegerConstant(colorOffset.longValue())
+      index(innerD) = index(innerD) / IR_IntegerConstant(nrColors)
 
       return dfa
     }
@@ -80,26 +82,26 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
 object ColorCondCollector extends Collector {
 
-  var cond : Expression = null
+  var cond : IR_Expression = null
 
   override def enter(node : Node) : Unit = {
     node match {
-      case loop : LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[EqEqExpression]) =>
+      case loop : LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEqExpression]) =>
         cond = loop.condition.get
-      case ConditionStatement(c : EqEqExpression, _, fB) if (fB.isEmpty) =>
+      case IR_IfCondition(c : IR_EqEqExpression, _, fB) if (fB.isEmpty)                                                  =>
         cond = c
-      case _ =>
+      case _                                                                                                             =>
         val annot : Option[Any] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
-        if (annot.isDefined && annot.get.isInstanceOf[EqEqExpression])
-          cond = annot.get.asInstanceOf[Expression]
+        if (annot.isDefined && annot.get.isInstanceOf[IR_EqEqExpression])
+          cond = annot.get.asInstanceOf[IR_Expression]
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case loop : LoopOverDimensions                    => cond = null
-      case ConditionStatement(c, _, fB) if (fB.isEmpty) => cond = null
-      case _ =>
+      case loop : LoopOverDimensions                => cond = null
+      case IR_IfCondition(c, _, fB) if (fB.isEmpty) => cond = null
+      case _                                        =>
         if (node.hasAnnotation(PolyOpt.IMPL_CONDITION_ANNOT))
           cond = null
     }

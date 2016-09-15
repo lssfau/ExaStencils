@@ -2,8 +2,8 @@ package exastencils.core.collectors
 
 import scala.collection.mutable.Stack
 
+import exastencils.base.ir.IR_AbstractFunction
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.logger._
 
 class FctNameCollector extends Collector {
@@ -11,15 +11,15 @@ class FctNameCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case fct : AbstractFunctionStatement => nameStack.push(fct.name)
-      case _                               =>
+      case fct : IR_AbstractFunction => nameStack.push(fct.name)
+      case _                         =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case loop : AbstractFunctionStatement => nameStack.pop
-      case _                                =>
+      case loop : IR_AbstractFunction => nameStack.pop
+      case _                          =>
     }
   }
 

@@ -26,12 +26,12 @@ TEMP_DIR="${BASE_DIR}/temp/${BRANCH}"
 THIS_FAILURE_MAIL="kronast@fim.uni-passau.de"
 FAILURE_MAIL_SUBJECT="ExaStencils TestBot Error (cron)"
 
-TMP_OUT_FILE=$(mktemp --tmpdir=/run/shm 2>&1 || mktemp --tmpdir=/tmp 2>&1) || {
+TMP_OUT_FILE=$(mktemp --tmpdir=/dev/shm 2>&1 || mktemp --tmpdir=/tmp 2>&1) || {
     echo -e "ERROR: Failed to create temporary file.\n\n${TMP_OUT_FILE}" | mail -s "${FAILURE_MAIL_SUBJECT}" ${THIS_FAILURE_MAIL}
     exit 0
   }
-if [[ ! ${TMP_OUT_FILE} =~ ^/run/shm/* ]]; then
-  echo "Problems with /run/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /run/shm" "kronast@fim.uni-passau.de"
+if [[ ! ${TMP_OUT_FILE} =~ ^/dev/shm/* ]]; then
+  echo "Problems with /dev/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /dev/shm" "kronast@fim.uni-passau.de"
 fi
 exec > ${TMP_OUT_FILE} 2>&1 # redirect any output using bash; don't use slurms output mechanism, since there is no guarantee all output was writte to the file when it is read at the end of this script
 

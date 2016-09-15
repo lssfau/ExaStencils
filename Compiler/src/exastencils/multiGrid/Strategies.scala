@@ -2,20 +2,21 @@ package exastencils.multiGrid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.communication._
 import exastencils.core._
-import exastencils.core.collectors.IRLevelCollector
-import exastencils.core.collectors.StackCollector
+import exastencils.core.collectors._
 import exastencils.cuda._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
-import exastencils.util._
 import exastencils.strategies.ReplaceStringConstantsStrategy
+import exastencils.util._
 
 object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
   val collector = new IRLevelCollector
@@ -27,7 +28,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
   this += new Transformation("ModifyIndices", {
     case fct : FunctionCallExpression if "changeLvlAndIndices" == fct.name => {
       // extract information from special function call
-      val fieldAccess = fct.arguments(0).asInstanceOf[FieldAccess]
+      val fieldAccess = fct.arguments(0).asInstanceOf[IR_FieldAccess]
       Logger.warn("Performing index adaptation for " + fieldAccess.fieldSelection.field.codeName)
       val newLevel = fct.arguments(1)
 
@@ -48,15 +49,15 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
       fieldAccess
     }
 
-    case access : FieldAccess if collector.inLevelScope &&
-      SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel => {
+    case access : IR_FieldAccess if collector.inLevelScope &&
+      SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel        => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = fieldAccess.index(i) / 2
       fieldAccess
     }
-    case access : FieldAccess if collector.inLevelScope &&
-      SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel => {
+    case access : IR_FieldAccess if collector.inLevelScope &&
+      SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel        => {
       var fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = 2 * fieldAccess.index(i)
@@ -76,7 +77,7 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
         stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
       stencilFieldAccess
     }
-  }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */ )
+  }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */)
 }
 
 object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
@@ -85,15 +86,15 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
 
   this += new Transformation("SearchAndReplace", {
     case FunctionCallExpression("diag", args) => args(0) match {
-      case access : StencilAccess =>
-        val centralOffset = new MultiIndex(Array.fill(Knowledge.dimensionality)(0))
+      case access : StencilAccess      =>
+        val centralOffset = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(0))
         access.stencil.findStencilEntry(centralOffset).get.coefficient
       case access : StencilFieldAccess => {
         var index = Duplicate(access.index)
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
-        new FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
+        new IR_FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
       }
-      case _ => {
+      case _                           => {
         Logger.warn("diag with unknown arg " + args(0))
         FunctionCallExpression("diag", args)
       }
@@ -118,22 +119,22 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     // functions
 
     // HACK to implement min/max functions
-    case FunctionCallExpression("min", args) => MinimumExpression(args)
-    case FunctionCallExpression("max", args) => MaximumExpression(args)
+    case FunctionCallExpression("min", args) => IR_MinimumExpression(args)
+    case FunctionCallExpression("max", args) => IR_MaximumExpression(args)
 
     // FIXME: UGLY HACK to realize native code functionality
     case FunctionCallExpression("native", args) =>
-      StringLiteral(args(0).asInstanceOf[StringConstant].value)
+      IR_StringLiteral(args(0).asInstanceOf[IR_StringConstant].value)
 
     case FunctionCallExpression("concat", args) =>
-      new ConcatenationExpression(args.map(a => if (a.isInstanceOf[StringConstant]) StringLiteral(a.asInstanceOf[StringConstant].value) else a))
+      new ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
-    case ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
-      ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
+    case IR_ExpressionStatement(FunctionCallExpression("startTimer", args)) =>
+      IR_ExpressionStatement(FunctionCallExpression("startTimer", ListBuffer(iv.Timer(args(0)))))
 
-    case ExpressionStatement(FunctionCallExpression("stopTimer", args)) =>
-      ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
+    case IR_ExpressionStatement(FunctionCallExpression("stopTimer", args)) =>
+      IR_ExpressionStatement(FunctionCallExpression("stopTimer", ListBuffer(iv.Timer(args(0)))))
 
     case FunctionCallExpression("getMeanFromTimer", args) =>
       FunctionCallExpression("getMeanTime", ListBuffer(iv.Timer(args(0))))
@@ -155,8 +156,8 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       if (!x.isConstant || !y.isConstant) {
         f // do nothing for vectors containing variable expressions
       } else {
-        val r = ListBuffer[Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
-        VectorExpression(x.datatype, r, x.rowVector)
+        val r = ListBuffer[IR_Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
+        VectorExpression(x.innerDatatype, r, x.rowVector)
       }
     }
 
@@ -171,7 +172,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
             var c = m.expressions(1)(0)
             var d = m.expressions(1)(1)
             var det = 1.0 / (a * d - b * c)
-            MatrixExpression(m.datatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
+            MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
           } else if (m.rows == 3 && m.columns == 3) {
             var a = m.expressions(0)(0)
             var b = m.expressions(0)(1)
@@ -192,7 +193,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
             var H = -1 * (a * f - c * d)
             var I = (a * e - b * d)
             var det = a * A + b * B + c * C
-            MatrixExpression(m.datatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
+            MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
           } else {
             x
           }
@@ -205,27 +206,27 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     }
 
     // HACK for print functionality
-    case ExpressionStatement(FunctionCallExpression("print", args)) =>
+    case IR_ExpressionStatement(FunctionCallExpression("print", args))      =>
       new PrintStatement(args)
-    case ExpressionStatement(FunctionCallExpression("printField", args)) => {
+    case IR_ExpressionStatement(FunctionCallExpression("printField", args)) => {
       args.length match {
         case 1 => // option 1: only field -> deduce name
-          new PrintFieldStatement("\"" + args(0).asInstanceOf[FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[FieldAccess].fieldSelection)
+          new PrintFieldStatement("\"" + args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[IR_FieldAccess].fieldSelection)
         case 2 => // option 2: filename and field
-          new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection)
+          new PrintFieldStatement(args(0), args(1).asInstanceOf[IR_FieldAccess].fieldSelection)
         case 3 => //option 3: filename, file and condition
-          new PrintFieldStatement(args(0), args(1).asInstanceOf[FieldAccess].fieldSelection, args(2))
+          new PrintFieldStatement(args(0), args(1).asInstanceOf[IR_FieldAccess].fieldSelection, args(2))
       }
     }
 
-    case ExpressionStatement(FunctionCallExpression("buildString", args)) =>
+    case IR_ExpressionStatement(FunctionCallExpression("buildString", args)) =>
       new BuildStringStatement(args(0), args.slice(1, args.size))
 
     // FIXME: HACK to realize application functionality
-    case func : FunctionStatement if ("Application" == func.name) => {
-      func.returntype = IntegerDatatype
+    case func : IR_Function if ("Application" == func.name) => {
+      func.returntype = IR_IntegerDatatype
       func.name = "main"
-      func.parameters = ListBuffer(FunctionArgument("argc", IntegerDatatype), FunctionArgument("argv", SpecialDatatype("char**"))) ++ func.parameters
+      func.parameters = ListBuffer(IR_FunctionArgument("argc", IR_IntegerDatatype), IR_FunctionArgument("argv", IR_SpecialDatatype("char**"))) ++ func.parameters
       func.allowFortranInterface = false
       //if (true) {
       //func.body.append(new ConditionStatement(new MPI_IsRootProc,
@@ -244,45 +245,45 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         func.body.prepend(new MPI_Init)
         func.body.append(new MPI_Finalize)
       }
-      func.body.append(new ReturnStatement(Some(new IntegerConstant(0))))
+      func.body.append(new IR_Return(Some(new IR_IntegerConstant(0))))
       func
     }
 
     case FunctionCallExpression("isOnBoundaryOf", args) => {
-      IsOnBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection,
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IsOnBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
-    case FunctionCallExpression("isOnEastBoundaryOf", args) => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(1, 0, 0)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+    case FunctionCallExpression("isOnEastBoundaryOf", args)   => {
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(1, 0, 0)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnWestBoundaryOf", args) => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(-1, 0, 0)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+    case FunctionCallExpression("isOnWestBoundaryOf", args)   => {
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(-1, 0, 0)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnNorthBoundaryOf", args) => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 1, 0)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+    case FunctionCallExpression("isOnNorthBoundaryOf", args)  => {
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 1, 0)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnSouthBoundaryOf", args) => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, -1, 0)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+    case FunctionCallExpression("isOnSouthBoundaryOf", args)  => {
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, -1, 0)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
-    case FunctionCallExpression("isOnTopBoundaryOf", args) => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, 1)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+    case FunctionCallExpression("isOnTopBoundaryOf", args)    => {
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, 1)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
     case FunctionCallExpression("isOnBottomBoundaryOf", args) => {
-      IsOnSpecBoundary(args(0).asInstanceOf[FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, -1)),
-        LoopOverDimensions.defIt(args(0).asInstanceOf[FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, -1)),
+        LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
     }
 
-    case ElementwiseAdditionExpression(left, right)       => FunctionCallExpression("elementwiseAdd", ListBuffer(left, right))
-    case ElementwiseSubtractionExpression(left, right)    => FunctionCallExpression("elementwiseSub", ListBuffer(left, right))
-    case ElementwiseMultiplicationExpression(left, right) => FunctionCallExpression("elementwiseMul", ListBuffer(left, right))
-    case ElementwiseDivisionExpression(left, right)       => FunctionCallExpression("elementwiseDiv", ListBuffer(left, right))
-    case ElementwiseModuloExpression(left, right)         => FunctionCallExpression("elementwiseMod", ListBuffer(left, right))
-    case FunctionCallExpression("dot", args)              => FunctionCallExpression("dotProduct", args)
+    case IR_ElementwiseAdditionExpression(left, right)       => FunctionCallExpression("elementwiseAdd", ListBuffer(left, right))
+    case IR_ElementwiseSubtractionExpression(left, right)    => FunctionCallExpression("elementwiseSub", ListBuffer(left, right))
+    case IR_ElementwiseMultiplicationExpression(left, right) => FunctionCallExpression("elementwiseMul", ListBuffer(left, right))
+    case IR_ElementwiseDivisionExpression(left, right)       => FunctionCallExpression("elementwiseDiv", ListBuffer(left, right))
+    case IR_ElementwiseModuloExpression(left, right)         => FunctionCallExpression("elementwiseMod", ListBuffer(left, right))
+    case FunctionCallExpression("dot", args)                 => FunctionCallExpression("dotProduct", args)
   })
 }

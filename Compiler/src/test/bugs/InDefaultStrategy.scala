@@ -2,10 +2,8 @@ package test.bugs
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.datastructures._
 import exastencils.datastructures.ir.CommentStatement
-import exastencils.datastructures.ir.Statement
-import exastencils.datastructures.DefaultStrategy
-import exastencils.datastructures.Transformation
 
 object InDefaultStrategy {
   def main(args : Array[String]) : Unit = {

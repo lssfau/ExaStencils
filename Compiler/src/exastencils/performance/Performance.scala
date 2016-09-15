@@ -1,18 +1,17 @@
 package exastencils.performance
 
+import scala.collection.mutable.{ Node => _, _ }
+
 import java.io.PrintWriter
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.HashSet
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Stack
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_MultiDimFieldAccess
+import exastencils.core.Settings
 import exastencils.data._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
-import exastencils.core.Settings
-import exastencils.logger.Logger
 
 /// util classes
 
@@ -41,7 +40,7 @@ object CollectFunctionStatements extends DefaultStrategy("Collecting internal fu
   }
 
   this += new Transformation("Collecting", {
-    case fct : FunctionStatement => {
+    case fct : IR_Function => {
       internalFunctions += fct.name
       fct
     }
@@ -62,7 +61,8 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
   }
 
   private def realApplyAndDo(doUntilDone : Boolean, node : Option[Node] = None) : Unit = {
-    if (doUntilDone) { // doUntilDone
+    if (doUntilDone) {
+      // doUntilDone
       var cnt = 0
       unknownFunctionCalls = true
       while (unknownFunctionCalls && cnt < 128) {
@@ -75,7 +75,8 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
       super.apply(node)
     }
 
-    if (true) { // TODO: add flag to control behavior
+    if (true) {
+      // TODO: add flag to control behavior
       var file = new java.io.File(Settings.performanceEstimateOutputFile)
       if (!file.getParentFile().exists()) {
         file.getParentFile().mkdirs()
@@ -95,31 +96,30 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
   }
 
   this += new Transformation("Processing function statements", {
-    case fct : FunctionStatement if (
+    case fct : IR_Function if (
       !completeFunctions.contains(fct.name) &&
-      CollectFunctionStatements.internalFunctions.contains(fct.name)) =>
-      {
-        // process function body
-        EvaluatePerformanceEstimates_SubAST.applyStandalone(fct.body)
+        CollectFunctionStatements.internalFunctions.contains(fct.name)) => {
+      // process function body
+      EvaluatePerformanceEstimates_SubAST.applyStandalone(fct.body)
 
-        if (EvaluatePerformanceEstimates_SubAST.unknownFunctionCalls) {
-          unknownFunctionCalls = true
-        } else {
-          val estimatedTime = EvaluatePerformanceEstimates_SubAST.lastEstimate
+      if (EvaluatePerformanceEstimates_SubAST.unknownFunctionCalls) {
+        unknownFunctionCalls = true
+      } else {
+        val estimatedTime = EvaluatePerformanceEstimates_SubAST.lastEstimate
 
-          fct.annotate("perf_timeEstimate_host", estimatedTime.host)
-          fct.annotate("perf_timeEstimate_device", estimatedTime.device)
+        fct.annotate("perf_timeEstimate_host", estimatedTime.host)
+        fct.annotate("perf_timeEstimate_device", estimatedTime.device)
 
-          val hostTimeMs : Double = estimatedTime.host * 1000.0
+        val hostTimeMs : Double = estimatedTime.host * 1000.0
 
-          completeFunctions.put(fct.name, estimatedTime)
-          fct.body.prepend(
-            CommentStatement(s"Estimated host time for function: ${hostTimeMs} ms"),
-            CommentStatement(s"Estimated device time for function: ${estimatedTime.device * 1000.0} ms"))
+        completeFunctions.put(fct.name, estimatedTime)
+        fct.body.prepend(
+          CommentStatement(s"Estimated host time for function: ${ hostTimeMs } ms"),
+          CommentStatement(s"Estimated device time for function: ${ estimatedTime.device * 1000.0 } ms"))
 
-        }
-        fct
       }
+      fct
+    }
   })
 }
 
@@ -143,7 +143,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
       nodeWithAnnotation.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]))
   }
 
-  def addLoopTimeToStack(loop : ForLoopStatement) : Unit = {
+  def addLoopTimeToStack(loop : IR_ForLoop) : Unit = {
     //    Knowledge.experimental_cuda_preferredExecution match {
     //      case "Host"   => addTimeToStack(loop.getAnnotation("perf_timeEstimate_host").get.value.asInstanceOf[Double])
     //      case "Device" => addTimeToStack(loop.getAnnotation("perf_timeEstimate_device").get.value.asInstanceOf[Double])
@@ -210,17 +210,17 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         ListBuffer(
           CommentStatement(s"Max iterations: $maxIterations"),
           CommentStatement(s"Optimistic memory transfer per iteration: $optimisticDataPerIt byte"),
-          CommentStatement(s"Optimistic host time for memory ops: ${optimisticTimeMem_host * 1000.0} ms"),
-          CommentStatement(s"Optimistic device time for memory ops: ${optimisticTimeMem_device * 1000.0} ms"),
-          CommentStatement(s"Optimistic host time for computational ops: ${estimatedTimeOps_host * 1000.0} ms"),
-          CommentStatement(s"Optimistic device time for computational ops: ${estimatedTimeOps_device * 1000.0} ms"),
-          CommentStatement(s"Assumed kernel call overhead: ${Platform.sw_cuda_kernelCallOverhead * 1000.0} ms"),
-          CommentStatement(s"Found accesses: ${EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._1).mkString(", ")}"),
+          CommentStatement(s"Optimistic host time for memory ops: ${ optimisticTimeMem_host * 1000.0 } ms"),
+          CommentStatement(s"Optimistic device time for memory ops: ${ optimisticTimeMem_device * 1000.0 } ms"),
+          CommentStatement(s"Optimistic host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms"),
+          CommentStatement(s"Optimistic device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms"),
+          CommentStatement(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms"),
+          CommentStatement(s"Found accesses: ${ EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._1).mkString(", ") }"),
           loop)
       }
     }
 
-    case loop : ForLoopStatement => {
+    case loop : IR_ForLoop => {
       if (loop.hasAnnotation("perf_timeEstimate_host") || loop.hasAnnotation("perf_timeEstimate_device")) {
         addLoopTimeToStack(loop)
       } else {
@@ -237,9 +237,9 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
           addLoopTimeToStack(loop)
 
-          loop.body = ListBuffer[Statement](
-            CommentStatement(s"Estimated host time for loop: ${estimatedTime_host * 1000.0} ms"),
-            CommentStatement(s"Estimated device time for loop: ${estimatedTime_device * 1000.0} ms")) ++ loop.body
+          loop.body = ListBuffer[IR_Statement](
+            CommentStatement(s"Estimated host time for loop: ${ estimatedTime_host * 1000.0 } ms"),
+            CommentStatement(s"Estimated device time for loop: ${ estimatedTime_device * 1000.0 } ms")) ++ loop.body
         }
       }
       loop
@@ -248,10 +248,10 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 }
 
 object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Evaluating performance for FieldAccess nodes") {
-  var fieldAccesses = HashMap[String, Datatype]()
+  var fieldAccesses = HashMap[String, IR_Datatype]()
   var inWriteOp = false
 
-  def mapFieldAccess(access : FieldAccessLike) = {
+  def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
 
@@ -259,9 +259,9 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
 
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset) => identifier += s"_o$offset"
-        case IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                     => identifier += s"_s${access.fieldSelection.slot.prettyprint}"
+        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
     }
 
@@ -269,13 +269,13 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
   }
 
   this += new Transformation("Searching", {
-    case assign : AssignmentStatement =>
+    case assign : IR_Assignment          =>
       inWriteOp = true
-      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(ExpressionStatement(assign.dest))
+      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       inWriteOp = false
-      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(ExpressionStatement(assign.src))
+      EvaluatePerformanceEstimates_FieldAccess.applyStandalone(IR_ExpressionStatement(assign.src))
       assign
-    case access : FieldAccessLike =>
+    case access : IR_MultiDimFieldAccess =>
       mapFieldAccess(access)
       access
   }, false)
@@ -294,19 +294,19 @@ object EvaluatePerformanceEstimates_Ops extends QuietDefaultStrategy("Evaluating
   }
 
   this += new Transformation("Searching", {
-    case exp : AdditionExpression =>
+    case exp : IR_AdditionExpression       =>
       numAdd += 1
       exp
-    case exp : SubtractionExpression =>
+    case exp : IR_SubtractionExpression    =>
       numAdd += 1
       exp
-    case exp : MultiplicationExpression =>
+    case exp : IR_MultiplicationExpression =>
       numMul += 1
       exp
-    case exp : DivisionExpression =>
-      if (exp.right.isInstanceOf[IntegerConstant])
+    case exp : IR_DivisionExpression       =>
+      if (exp.right.isInstanceOf[IR_IntegerConstant])
         numMul += 0 // ignore integer divs for now
-      else if (exp.right.isInstanceOf[FloatConstant]) // TODO: replace with eval float exp?
+      else if (exp.right.isInstanceOf[IR_RealConstant]) // TODO: replace with eval float exp?
         numMul += 1
       else
         numDiv += 1
