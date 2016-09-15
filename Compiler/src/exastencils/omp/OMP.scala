@@ -11,6 +11,7 @@ import exastencils.prettyprinting._
 
 trait OMP_PotentiallyCritical
 
+@deprecated("to be integrated with loop annotations/ loop member holding optimization and parallelization information", "15.09.2016")
 trait OMP_PotentiallyParallel {
   var reduction : Option[Reduction];
   var additionalOMPClauses = new ListBuffer[OMP_Clause];
@@ -76,7 +77,7 @@ case class OMP_ParallelFor(var body : IR_ForLoop, var additionalOMPClauses : Lis
   }
 }
 
-case class OMP_WaitForFlag() extends IR_AbstractFunction with Expandable {
+case class OMP_WaitForFlag() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OMP_WaitForFlag\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "waitForFlag"

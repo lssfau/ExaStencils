@@ -3,6 +3,7 @@ package exastencils.knowledge
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -128,7 +129,7 @@ case class FieldSelection(
     var level : IR_Expression,
     var slot : IR_Expression,
     var arrayIndex : Option[Int] = None, // TODO: delete
-    var fragIdx : IR_Expression = LoopOverFragments.defIt) extends Node {
+    var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends Node {
 
   // shortcuts to Field members
   def codeName = field.codeName

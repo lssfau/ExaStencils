@@ -1,6 +1,7 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -29,7 +30,7 @@ object Testbed {
   }
 
   object ResolveCoordinates0 extends DefaultStrategy("ResolveCoordinates0") {
-    var replacement : IR_ExpressionIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
+    var replacement : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
     Knowledge.dimensionality match {
       case 1 => this += new Transformation("SearchAndReplace", {
@@ -275,7 +276,7 @@ object Testbed {
       for (position <- 0 to 3) {
         statements += IR_Assignment(k, "k_tc_mn + k_mc_me")
         for (i <- 0 to 4) {
-          statements += IR_Assignment(ArrayAccess("stencil", "tet_mc"), k * ArrayAccess("c", Mapping.resolveMultiIdx(IR_ExpressionIndex(i, position, group), aabb)), "+=")
+          statements += IR_Assignment(IR_ArrayAccess("stencil", "tet_mc"), k * IR_ArrayAccess("c", Mapping.resolveMultiIdx(IR_ExpressionIndex(i, position, group), aabb)), "+=")
         }
       }
     }

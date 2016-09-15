@@ -3,7 +3,7 @@ package exastencils.knowledge
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_FieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -107,7 +107,7 @@ case class StencilFieldSelection(
     var level : IR_Expression,
     var slot : IR_Expression,
     var arrayIndex : Option[Int],
-    var fragIdx : IR_Expression = LoopOverFragments.defIt) extends Node {
+    var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends Node {
 
   def toFieldSelection = {
     new FieldSelection(field, level, slot, arrayIndex, fragIdx)

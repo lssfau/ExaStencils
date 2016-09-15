@@ -50,7 +50,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var 
 
   def processExpression(pos : Int, ex : IR_Expression, switchSign : Boolean) : Unit = {
     ex match {
-      case const : Number => fVals(pos).summands += (if (switchSign) const else IR_NegativeExpression(const))
+      case const : IR_Number => fVals(pos).summands += (if (switchSign) const else IR_NegativeExpression(const))
 
       case IR_NegativeExpression(exp) => processExpression(pos, exp, !switchSign)
 

@@ -3,6 +3,7 @@ package exastencils.polyhedron
 import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Set }
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -41,14 +42,14 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
   }
 
   override def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : LoopOverDimensions with PolyhedronAccessible =>
+    case loop : IR_LoopOverDimensions with PolyhedronAccessible =>
       loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
-    case _                                                   => false
+    case _                                                      => false
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
 
-    val loop = node.asInstanceOf[LoopOverDimensions]
+    val loop = node.asInstanceOf[IR_LoopOverDimensions]
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
       return IR_NullStatement

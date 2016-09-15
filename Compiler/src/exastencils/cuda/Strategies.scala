@@ -5,7 +5,7 @@ import scala.collection.mutable._
 import scala.collection.{ Set, SortedSet => _, _ }
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MultiDimFieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.data._
@@ -96,7 +96,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
   val collector = new FctNameCollector
   this.register(collector)
 
-  def getHostDeviceSyncStmts(loop : LoopOverDimensions, isParallel : Boolean) = {
+  def getHostDeviceSyncStmts(loop : IR_LoopOverDimensions, isParallel : Boolean) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
@@ -151,7 +151,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
     (beforeHost, afterHost, beforeDevice, afterDevice)
   }
 
-  def addHostDeviceBranching(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement], loop : LoopOverDimensions, earlyExit : Boolean) : ListBuffer[IR_Statement] = {
+  def addHostDeviceBranching(hostStmts : ListBuffer[IR_Statement], deviceStmts : ListBuffer[IR_Statement], loop : IR_LoopOverDimensions, earlyExit : Boolean) : ListBuffer[IR_Statement] = {
     if (earlyExit) {
       hostStmts
     } else {
@@ -167,7 +167,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
   }
 
   this += new Transformation("Processing ContractingLoop and LoopOverDimensions nodes", {
-    case cl : ContractingLoop      =>
+    case cl : IR_ContractingLoop      =>
       var hostStmts = new ListBuffer[IR_Statement]()
       var deviceStmts = new ListBuffer[IR_Statement]()
       val fieldOffset = new mutable.HashMap[(String, Int), Int]()
@@ -176,16 +176,16 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       var deviceCondStmt : IR_IfCondition = null
 
       val containedLoop = cl.statements.find(s =>
-        s.isInstanceOf[IR_IfCondition] || s.isInstanceOf[LoopOverDimensions]) match {
+        s.isInstanceOf[IR_IfCondition] || s.isInstanceOf[IR_LoopOverDimensions]) match {
         case Some(IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer())) =>
           val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
           bodyWithoutComments match {
-            case ListBuffer(loop : LoopOverDimensions) => loop
-            case _                                     => LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
+            case ListBuffer(loop : IR_LoopOverDimensions) => loop
+            case _                                        => IR_LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
           }
-        case Some(loop : LoopOverDimensions)                                               =>
+        case Some(loop : IR_LoopOverDimensions)                                            =>
           loop
-        case None                                                                          => LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
+        case None                                                                          => IR_LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
       }
 
       // every LoopOverDimensions statement is potentially worse to transform in CUDA code
@@ -213,7 +213,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
             case cStmt @ IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer()) =>
               val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
               bodyWithoutComments match {
-                case ListBuffer(l : LoopOverDimensions) =>
+                case ListBuffer(l : IR_LoopOverDimensions) =>
                   val nju = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
 
                   if (hostCondStmt == null || cond != hostCondStmt.condition) {
@@ -230,9 +230,9 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
                     njuCuda.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
                     deviceCondStmt.trueBody += njuCuda
                   }
-                case _                                  =>
+                case _                                     =>
               }
-            case l : LoopOverDimensions                                                          =>
+            case l : IR_LoopOverDimensions                                                       =>
               val loop = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
               hostStmts += loop
 
@@ -254,7 +254,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       }
 
       res
-    case loop : LoopOverDimensions =>
+    case loop : IR_LoopOverDimensions =>
       val hostStmts = ListBuffer[IR_Statement]()
       val deviceStmts = ListBuffer[IR_Statement]()
 
@@ -545,7 +545,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_SubtractionExpression(x, y) : IR_Expression)
 
       ReplaceReductionAssignements.redTarget = kernel.reduction.get.target.name
-      ReplaceReductionAssignements.replacement = ReductionDeviceDataAccess(iv.ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
+      ReplaceReductionAssignements.replacement = IR_ReductionDeviceDataAccess(iv.ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
       ReplaceReductionAssignements.applyStandalone(IR_Scope(kernel.body))
       kernel
   })

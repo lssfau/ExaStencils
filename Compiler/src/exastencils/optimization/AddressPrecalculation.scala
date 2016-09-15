@@ -47,7 +47,7 @@ private final class ArrayBases(val arrayName : String) {
   private var idCount = -1
 
   def getName(initVec : HashMap[IR_Expression, Long], base : IR_Expression, al : Boolean) : String = {
-    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
+    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new IR_ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
   }
 
   def addToDecls(decls : ListBuffer[IR_Statement]) : Unit = {
@@ -136,7 +136,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
   private var decls : HashMap[String, ArrayBases] = null
   private var inVars : Set[String] = null
-  private val toAnalyze = new ListBuffer[ArrayAccess]()
+  private val toAnalyze = new ListBuffer[IR_ArrayAccess]()
 
   override def enter(node : Node) : Unit = {
 
@@ -189,7 +189,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         node.annotate(DECLS_ANNOT, d)
 
       // ArrayAccess with a constant index only cannot be optimized further
-      case acc : ArrayAccess if (decls != null && !acc.index.isInstanceOf[IR_IntegerConstant]) =>
+      case acc : IR_ArrayAccess if (decls != null && !acc.index.isInstanceOf[IR_IntegerConstant]) =>
         acc.annotate(SKIP_SUBTREE_ANNOT) // skip other ArrayAccesses below this one
         skipSubtree = true
         toAnalyze += acc
@@ -198,7 +198,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         dst match {
           case _ : IR_StringLiteral
                | _ : IR_VariableAccess
-               | _ : ArrayAccess
+               | _ : IR_ArrayAccess
                | _ : iv.InternalVariable => inVars += resolveName(dst)
           case _                         => // nothing; expand match here, if more vars should stay inside the loop
         }
@@ -219,7 +219,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       case l : IR_ForLoop with OptimizationHint if (l.isInnermost) =>
         // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
-        for (acc @ ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
+        for (acc @ IR_ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
           val (in : IR_Expression, outMap : HashMap[IR_Expression, Long]) = splitIndex(index)
           // if (!outMap.isEmpty) {
           var name : String = generateName(base)
@@ -229,7 +229,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             case fd : FieldData => Some(IR_ConstPointerDatatype(fd.field.resolveDeclType))
             case _              => None
           }
-          val newAcc = new ArrayAccess(IR_VariableAccess(name, datatype), in, al)
+          val newAcc = new IR_ArrayAccess(IR_VariableAccess(name, datatype), in, al)
           newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
           acc.annotate(REPL_ANNOT, newAcc)
           // }
@@ -250,7 +250,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
   private def resolveName(expr : IR_Expression) : String = {
     expr match {
-      case ArrayAccess(base, _, _)    => resolveName(base)
+      case IR_ArrayAccess(base, _, _) => resolveName(base)
       case IR_VariableAccess(name, _) => name
       case IR_StringLiteral(str)      => str
       case i : iv.InternalVariable    => i.resolveName

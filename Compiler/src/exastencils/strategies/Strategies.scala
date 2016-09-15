@@ -22,7 +22,7 @@ object PrintStrategy extends DefaultStrategy("Pretty-Print") {
 
 object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace something with something else") {
   var toReplace : String = ""
-  var replacement : Node = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
+  var replacement : Node = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
   this += new Transformation("SearchAndReplace", {
     case IR_StringLiteral(s) if s == toReplace => Duplicate(replacement)
@@ -41,13 +41,13 @@ object ExpandStrategy extends DefaultStrategy("Expanding") {
   }
 
   this += new Transformation("Hoho, expanding all day...", {
-    case expandable : Expandable => expandable.expand
+    case expandable : IR_Expandable => expandable.expand
   })
 }
 
 object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: this strategy becomes somewhat obsolete as soon as trafos implement the required behavior directly
   this += new Transformation("Hoho, expanding all day...", {
-    case expandable : Expandable => {
+    case expandable : IR_Expandable => {
       var nodes : ListBuffer[Node] = ListBuffer()
       nodes += expandable
       var expandedSth = false
@@ -56,7 +56,7 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
         for (n <- 0 until nodes.length) {
           if (!expandedSth) {
             nodes(n) match {
-              case expandable : Expandable =>
+              case expandable : IR_Expandable =>
                 val output = expandable.expand
                 output.inner match {
                   case single : Node   => nodes.update(n, single)
@@ -67,7 +67,7 @@ object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: thi
                   }
                 }
                 expandedSth = true
-              case _                       =>
+              case _                          =>
             }
           }
         }
@@ -510,10 +510,10 @@ object GatherFieldAccessOffsets extends QuietDefaultStrategy("Gathering field ac
 
   this += new Transformation("TODO", {
     case fa : IR_FieldAccess        =>
-      addAccess(fa.fieldSelection.field.codeName, fa.index - LoopOverDimensions.defIt(fa.index.length))
+      addAccess(fa.fieldSelection.field.codeName, fa.index - IR_LoopOverDimensions.defIt(fa.index.length))
       fa
     case dfa : IR_DirectFieldAccess =>
-      addAccess(dfa.fieldSelection.field.codeName, dfa.index - dfa.fieldSelection.field.referenceOffset - LoopOverDimensions.defIt(dfa.index.length))
+      addAccess(dfa.fieldSelection.field.codeName, dfa.index - dfa.fieldSelection.field.referenceOffset - IR_LoopOverDimensions.defIt(dfa.index.length))
       dfa
   })
 }

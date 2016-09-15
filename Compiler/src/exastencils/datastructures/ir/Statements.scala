@@ -101,7 +101,7 @@ case class BreakStatement() extends IR_Statement {
   }
 }
 
-case class AssertStatement(var check : IR_Expression, var msg : ListBuffer[IR_Expression], var abort : IR_Statement) extends IR_Statement with Expandable {
+case class AssertStatement(var check : IR_Expression, var msg : ListBuffer[IR_Expression], var abort : IR_Statement) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
 
   override def expand : Output[IR_IfCondition] = {

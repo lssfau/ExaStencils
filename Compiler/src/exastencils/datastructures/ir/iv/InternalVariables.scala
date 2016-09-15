@@ -3,7 +3,7 @@ package exastencils.datastructures.ir.iv
 import scala.collection.mutable.HashMap
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -44,22 +44,22 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     var wrappedBody = body
 
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
-      wrappedBody = new LoopOverFragments(wrappedBody)
+      wrappedBody = IR_LoopOverFragments(wrappedBody)
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
-      wrappedBody = new LoopOverDomains(wrappedBody)
+      wrappedBody = IR_LoopOverDomains(wrappedBody)
     if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
-      wrappedBody = new LoopOverFields(wrappedBody)
+      wrappedBody = IR_LoopOverFields(wrappedBody)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
-      wrappedBody = new LoopOverLevels(wrappedBody)
+      wrappedBody = IR_LoopOverLevels(wrappedBody)
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      wrappedBody = new LoopOverNeighbors(wrappedBody)
+      wrappedBody = IR_LoopOverNeighbors(wrappedBody)
 
     wrappedBody
   }
 
   def getCtor() : Option[IR_Statement] = {
     if (resolveDefValue.isDefined)
-      Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
+      Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue.get)))
     else
       None
   }
@@ -88,21 +88,21 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
     // reverse compared to datatype wrapping, since we need to unwrap it "from outer to inner"
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      access = new ArrayAccess(access, neigh)
+      access = new IR_ArrayAccess(access, neigh)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1) {
       val simplifiedLevel : IR_Expression =
         level match {
           case IR_IntegerConstant(v) => v - Knowledge.minLevel
           case _                     => level - Knowledge.minLevel
         }
-      access = new ArrayAccess(access, simplifiedLevel)
+      access = new IR_ArrayAccess(access, simplifiedLevel)
     }
     if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
-      access = new ArrayAccess(access, field)
+      access = new IR_ArrayAccess(access, field)
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
-      access = new ArrayAccess(access, domain)
+      access = new IR_ArrayAccess(access, domain)
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
-      access = new ArrayAccess(access, fragment)
+      access = new IR_ArrayAccess(access, fragment)
 
     access
   }

@@ -3,6 +3,7 @@ package exastencils.communication
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -13,7 +14,7 @@ import exastencils.prettyprinting._
 
 // FIXME: Think about moving all of this index information to some other source. Maybe some kind of ... DSL ... or even Layer4
 
-abstract class FieldBoundaryFunction() extends IR_AbstractFunction with Expandable {
+abstract class FieldBoundaryFunction() extends IR_AbstractFunction with IR_Expandable {
   var fieldSelection : FieldSelection
   def insideFragLoop : Boolean
 
@@ -48,7 +49,7 @@ abstract class FieldBoundaryFunction() extends IR_AbstractFunction with Expandab
     if (Knowledge.experimental_useLevelIndepFcts)
       IR_FunctionArgument("level", IR_SpecialDatatype("unsigned int"))
     if (insideFragLoop)
-      fctArgs += IR_FunctionArgument(LoopOverFragments.defIt, IR_IntegerDatatype)
+      fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt, IR_IntegerDatatype)
 
     IR_Function(IR_UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
   }

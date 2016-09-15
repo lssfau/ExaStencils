@@ -1,7 +1,7 @@
 package exastencils.grid
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_FieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -286,7 +286,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
     }
 
     if (piecewiseIntegration) {
-      def index = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+      def index = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
 
       if (stagDim.isDefined) {
         val curStagDim = stagDim.get
@@ -310,7 +310,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         Logger.error("piecewise integration on non-staggered cell interfaces is not supported")
       }
     } else {
-      def index = LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+      def index = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
 
       if (stagDim.isDefined) {
         val curStagDim = stagDim.get

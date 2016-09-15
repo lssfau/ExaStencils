@@ -3,6 +3,7 @@ package exastencils.communication
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.data._
@@ -46,7 +47,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
   }
 
   this += new Transformation("Adding and linking communication functions", {
-    case loop : LoopOverPoints if firstCall => // skip communication statements in loops -> to be handled after resolving loops
+    case loop : IR_LoopOverPoints if firstCall => // skip communication statements in loops -> to be handled after resolving loops
       loop
 
     case communicateStatement : CommunicateStatement => {
@@ -61,7 +62,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
       var cond = communicateStatement.condition
 
-      var insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
+      var insideFragLoop = collector.stack.map(node => node match { case loop : IR_LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
       if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
         Logger.warn("Found communication inside fragment loop; this is currently unsupported")
         insideFragLoop = false
@@ -132,8 +133,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       }
 
       communicateStatement.field.slot match {
-        case SlotAccess(slot, _) if IR_StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _                                                                                    =>
+        case SlotAccess(slot, _) if IR_StringLiteral(IR_LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _                                                                                       =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
@@ -141,13 +142,13 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (Knowledge.experimental_useLevelIndepFcts)
         fctArgs += communicateStatement.field.level
       if (insideFragLoop)
-        fctArgs += LoopOverFragments.defIt
+        fctArgs += IR_LoopOverFragments.defIt
 
       FunctionCallExpression(functionName, fctArgs) : IR_Statement
     }
 
     case applyBCsStatement : ApplyBCsStatement => {
-      var insideFragLoop = collector.stack.map(node => node match { case loop : LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
+      var insideFragLoop = collector.stack.map(node => node match { case loop : IR_LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
       if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
         Logger.warn("Found apply BCs inside fragment loop; this is currently unsupported")
         insideFragLoop = false
@@ -167,8 +168,8 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       }
 
       applyBCsStatement.field.slot match {
-        case SlotAccess(slot, _) if IR_StringLiteral(LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _                                                                                    =>
+        case SlotAccess(slot, _) if IR_StringLiteral(IR_LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _                                                                                       =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
@@ -176,7 +177,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (Knowledge.experimental_useLevelIndepFcts)
         fctArgs += applyBCsStatement.field.level
       if (insideFragLoop)
-        fctArgs += LoopOverFragments.defIt
+        fctArgs += IR_LoopOverFragments.defIt
 
       FunctionCallExpression(functionName, fctArgs) : IR_Statement
     }
@@ -191,9 +192,9 @@ object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate st
 
     for (i <- 1 until body.length) { // check for pre communications steps
       (body(i - 1), body(i)) match {
-        case (cs : CommunicateStatement, loop : LoopOverPoints) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+        case (cs : CommunicateStatement, loop : IR_LoopOverPoints) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
           loop.preComms += cs // already merged: newBody += cs
-        case (first, second)                                                                                => newBody += first
+        case (first, second)                                                                                   => newBody += first
       }
     }
     newBody += body.last
@@ -202,9 +203,9 @@ object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate st
       newBody.clear
       for (i <- body.length - 1 until 0 by -1) {
         (body(i - 1), body(i)) match {
-          case (loop : LoopOverPoints, cs : CommunicateStatement) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+          case (loop : IR_LoopOverPoints, cs : CommunicateStatement) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
             loop.postComms += cs // already merged: newBody += cs
-          case (first, second)                                                                                => newBody.prepend(second)
+          case (first, second)                                                                                   => newBody.prepend(second)
         }
       }
       newBody.prepend(body.head)

@@ -3,12 +3,11 @@ package exastencils.optimization
 import java.util.IdentityHashMap
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_DirectFieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.polyhedron._
 import exastencils.util._
@@ -86,11 +85,11 @@ object ColorCondCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case loop : LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEqExpression]) =>
+      case loop : IR_LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEqExpression]) =>
         cond = loop.condition.get
-      case IR_IfCondition(c : IR_EqEqExpression, _, fB) if (fB.isEmpty)                                                  =>
+      case IR_IfCondition(c : IR_EqEqExpression, _, fB) if (fB.isEmpty)                                                     =>
         cond = c
-      case _                                                                                                             =>
+      case _                                                                                                                =>
         val annot : Option[Any] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
         if (annot.isDefined && annot.get.isInstanceOf[IR_EqEqExpression])
           cond = annot.get.asInstanceOf[IR_Expression]
@@ -99,7 +98,7 @@ object ColorCondCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case loop : LoopOverDimensions                => cond = null
+      case loop : IR_LoopOverDimensions             => cond = null
       case IR_IfCondition(c, _, fB) if (fB.isEmpty) => cond = null
       case _                                        =>
         if (node.hasAnnotation(PolyOpt.IMPL_CONDITION_ANNOT))

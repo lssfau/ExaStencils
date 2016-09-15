@@ -6,7 +6,7 @@ import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.prettyprinting._
 
-case class GeneratedMPITag(var from : IR_Expression, var to : IR_Expression, var dirOfSend : Int, var concurrencyId : Int) extends IR_Expression with Expandable {
+case class GeneratedMPITag(var from : IR_Expression, var to : IR_Expression, var dirOfSend : Int, var concurrencyId : Int) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSend\n"
 

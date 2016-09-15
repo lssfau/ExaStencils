@@ -3,7 +3,7 @@ package exastencils.multiGrid
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_FieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -13,10 +13,10 @@ import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.omp._
-import exastencils.polyhedron._
+import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting._
 
-case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends IR_Statement with Expandable {
+case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = HandleBoundaries\n"
 
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
@@ -58,7 +58,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
 
     // FIXME: this works for now, but users may want to specify bc's per vector element
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
-    var index = LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
+    var index = IR_LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
     var fieldSel = new FieldSelection(field.field, field.level, field.slot, None, field.fragIdx) // TODO: check
 
     def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
@@ -103,20 +103,20 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
   override def expand : Output[IR_Statement] = {
     val layout = field.field.fieldLayout
     if (field.field.boundaryConditions.isDefined) {
-      new LoopOverFragments(
-        IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+      new IR_LoopOverFragments(
+        ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
           neighbors.map({ neigh =>
             var adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
             // TODO: assumes equal bc's for all components
             adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : IR_Expression)
             adaptedIndexRange.end.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => layout.idxById("TOT", dim))
-            val loopOverDims = new LoopOverDimensions(
+            val loopOverDims = new IR_LoopOverDimensions(
               field.fieldLayout.numDimsData,
               adaptedIndexRange,
               setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
             loopOverDims.optLevel = 1
             IR_IfCondition(IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
-          }))) with OMP_PotentiallyParallel
+          })))) with OMP_PotentiallyParallel
     } else {
       IR_NullStatement
     }

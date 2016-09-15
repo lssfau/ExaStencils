@@ -13,7 +13,7 @@ import exastencils.performance._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 
-case class InitFieldsWithZero() extends IR_AbstractFunction with Expandable {
+case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitFieldsWithZero\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "initFieldsWithZero"
@@ -24,19 +24,19 @@ case class InitFieldsWithZero() extends IR_AbstractFunction with Expandable {
 
     for (field <- fields) {
       val numDims = field.fieldLayout.numDimsData
-      val index = LoopOverDimensions.defIt(numDims)
+      val index = IR_LoopOverDimensions.defIt(numDims)
 
-      val loopOverDims = new LoopOverDimensions(numDims, new IndexRange(
+      val loopOverDims = new IR_LoopOverDimensions(numDims, new IndexRange(
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
-          new IR_Assignment(
-            new IR_DirectFieldAccess(FieldSelection(field, field.level, slot), index),
+          IR_Assignment(
+            IR_DirectFieldAccess(FieldSelection(field, field.level, slot), index),
             0.0) : IR_Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
       loopOverDims.optLevel = 1
 
-      val wrapped = new LoopOverFragments(
-        IR_IfCondition(iv.IsValidForSubdomain(field.domain.index), loopOverDims)) with OMP_PotentiallyParallel
+      val wrapped = new IR_LoopOverFragments(
+        ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.domain.index), loopOverDims))) with OMP_PotentiallyParallel
 
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         statements += IR_Scope(wrapped)

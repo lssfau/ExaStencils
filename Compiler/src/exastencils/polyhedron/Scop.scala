@@ -3,12 +3,13 @@ package exastencils.polyhedron
 import scala.collection.mutable._
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.datastructures.ir._
 import isl.Conversions._
 
 // since Scop can be cloned by Duplicate make sure NONE of the isl wrapper objects it uses is cloned by it
 //   (register all required classes as not cloneable in IslUtil.scala)
-class Scop(val root : LoopOverDimensions with PolyhedronAccessible, var localContext : isl.Set, var globalContext : isl.Set, var optLevel : Int,
+class Scop(val root : IR_LoopOverDimensions with PolyhedronAccessible, var localContext : isl.Set, var globalContext : isl.Set, var optLevel : Int,
     var parallelize : Boolean, var origIterationCount : Array[Long]) {
 
   var nextMerge : Scop = null
