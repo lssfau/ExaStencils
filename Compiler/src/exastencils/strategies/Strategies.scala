@@ -170,12 +170,12 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case IR_NegativeExpression(IR_MinimumExpression(exps)) => IR_MaximumExpression(exps.transform { s => IR_NegativeExpression(s) })
 
     // Simplify vectors
-    case IR_NegativeExpression(v : VectorExpression) =>
-      VectorExpression(v.innerDatatype, v.expressions.map { x => IR_NegativeExpression(x) }, v.rowVector)
+    case IR_NegativeExpression(v : IR_VectorExpression) =>
+      IR_VectorExpression(v.innerDatatype, v.expressions.map { x => IR_NegativeExpression(x) }, v.rowVector)
 
     // Simplify matrices
-    case IR_NegativeExpression(m : MatrixExpression) =>
-      MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => IR_NegativeExpression(y) : IR_Expression } })
+    case IR_NegativeExpression(m : IR_MatrixExpression) =>
+      IR_MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => IR_NegativeExpression(y) : IR_Expression } })
 
     case IR_Scope(ListBuffer(IR_Scope(body))) => IR_Scope(body)
 
@@ -226,7 +226,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
   private def simplifyAdd(sum : Seq[IR_Expression]) : IR_Expression = {
     var intCst : Long = 0L
     var floatCst : Double = 0d
-    var vecExpr : VectorExpression = null
+    var vecExpr : IR_VectorExpression = null
     var vecPos : Boolean = true
     val workQ = new Queue[(IR_Expression, Boolean)]()
     val posSums = new ListBuffer[IR_Expression]()
@@ -245,7 +245,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
             workQ.enqueue((right, !pos))
           // if some more simplifications with vectors or matrices are required, a similar approach than for a
           //    MultiplicationExpression is possible here
-          case v : VectorExpression =>
+          case v : IR_VectorExpression =>
             if (vecExpr == null) {
               vecPos = pos
               vecExpr = v
@@ -257,11 +257,11 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
               val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => IR_NegationExpression(x) }
               val vExprs = if (pos) v.expressions else v.expressions.view.map { x => IR_NegationExpression(x) }
               vecExpr =
-                VectorExpression(Some(GetResultingDatatype(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
+                IR_VectorExpression(Some(GetResultingDatatype(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
                   vecExprsView.zip(vExprs).map { x => x._1 + x._2 : IR_Expression }.to[ListBuffer],
                   if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
             }
-          case e : IR_Expression    =>
+          case e : IR_Expression       =>
             if (pos)
               posSums += e
             else
@@ -332,7 +332,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
             if (div == null)
               div = d
             remA += d
-          case _ : VectorExpression | _ : MatrixExpression       =>
+          case _ : IR_VectorExpression | _ : IR_MatrixExpression =>
             if (remA.isEmpty)
               remA += expr
             else
@@ -373,13 +373,13 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         var found : Boolean = false
         val coeff : IR_Expression = rem.head // this must be the constant factor (as added a few lines above)
         rem.transform {
-          case v : VectorExpression if (!found) =>
+          case v : IR_VectorExpression if (!found) =>
             found = true
-            VectorExpression(Some(GetResultingDatatype(cstDt.get, v.innerDatatype.getOrElse(IR_RealDatatype))), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
-          case m : MatrixExpression if (!found) =>
+            IR_VectorExpression(Some(GetResultingDatatype(cstDt.get, v.innerDatatype.getOrElse(IR_RealDatatype))), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
+          case m : IR_MatrixExpression if (!found) =>
             found = true
-            MatrixExpression(Some(GetResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
-          case x                                =>
+            IR_MatrixExpression(Some(GetResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
+          case x                                   =>
             x
         }
         if (found)
@@ -395,11 +395,11 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
   private def simplifyBinMult(le : IR_Expression, ri : IR_Expression) : Seq[IR_Expression] = {
     (le, ri) match { // matching for constants is not required here (this is already handled by the caller)
-      case (left : VectorExpression, right : VectorExpression) =>
+      case (left : IR_VectorExpression, right : IR_VectorExpression) =>
         if (left.length != right.length) Logger.error("Vector sizes must match for multiplication")
         if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for multiplication")
         List(IR_AdditionExpression(left.expressions.view.zip(right.expressions).map { x => x._1 * x._2 : IR_Expression }.to[ListBuffer]))
-      case (left, right)                                       =>
+      case (left, right)                                             =>
         List(left, right)
     }
   }
@@ -468,14 +468,14 @@ object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
 }
 
 object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) vectors and matrices") {
-  var vectors = ListBuffer[VectorExpression]()
-  var matrices = ListBuffer[MatrixExpression]()
+  var vectors = ListBuffer[IR_VectorExpression]()
+  var matrices = ListBuffer[IR_MatrixExpression]()
 
   override def apply(applyAtNode : Option[Node]) = {
     this.execute(new Transformation("Find vectors and matrices", {
-      case x : VectorExpression =>
+      case x : IR_VectorExpression =>
         vectors.+=(x); x
-      case x : MatrixExpression => matrices.+=(x); x
+      case x : IR_MatrixExpression => matrices.+=(x); x
     }))
 
     vectors.foreach(vector => {

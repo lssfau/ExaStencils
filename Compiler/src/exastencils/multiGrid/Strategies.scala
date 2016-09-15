@@ -138,35 +138,35 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
 
     // Vector functions
     case f : IR_FunctionCall if (f.name == "cross" || f.name == "crossproduct") => {
-      f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[VectorExpression] || f.arguments(0).isInstanceOf[VectorExpression])
+      f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[IR_VectorExpression] || f.arguments(0).isInstanceOf[IR_VectorExpression])
         && a.getClass != f.arguments(0).getClass) Logger.error("Must have matching types!"))
-      f.arguments.foreach(a => if (a.asInstanceOf[VectorExpression].length != f.arguments(0).asInstanceOf[VectorExpression].length) Logger.error("Vectors must have matching lengths"))
-      if (f.arguments.length + 1 != f.arguments(0).asInstanceOf[VectorExpression].length) Logger.error("Must have matching number of vector arguments!")
+      f.arguments.foreach(a => if (a.asInstanceOf[IR_VectorExpression].length != f.arguments(0).asInstanceOf[IR_VectorExpression].length) Logger.error("Vectors must have matching lengths"))
+      if (f.arguments.length + 1 != f.arguments(0).asInstanceOf[IR_VectorExpression].length) Logger.error("Must have matching number of vector arguments!")
       // For now: Restrict to 3 dimensions
       if (f.arguments.length != 2) Logger.error("Cross product only defined for 2D vectors!")
 
-      val x = f.arguments(0).asInstanceOf[VectorExpression]
-      val y = f.arguments(1).asInstanceOf[VectorExpression]
+      val x = f.arguments(0).asInstanceOf[IR_VectorExpression]
+      val y = f.arguments(1).asInstanceOf[IR_VectorExpression]
       if (!x.isConstant || !y.isConstant) {
         f // do nothing for vectors containing variable expressions
       } else {
         val r = ListBuffer[IR_Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
-        VectorExpression(x.innerDatatype, r, x.rowVector)
+        IR_VectorExpression(x.innerDatatype, r, x.rowVector)
       }
     }
 
     // Matrix functions
     case x : IR_FunctionCall if x.name == "inverse" => {
       if (x.arguments.size == 1) {
-        if (x.arguments(0).isInstanceOf[MatrixExpression]) {
-          var m = x.arguments(0).asInstanceOf[MatrixExpression]
+        if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
+          var m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
           if (m.rows == 2 && m.columns == 2) {
             var a = m.expressions(0)(0)
             var b = m.expressions(0)(1)
             var c = m.expressions(1)(0)
             var d = m.expressions(1)(1)
             var det = 1.0 / (a * d - b * c)
-            MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
+            IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
           } else if (m.rows == 3 && m.columns == 3) {
             var a = m.expressions(0)(0)
             var b = m.expressions(0)(1)
@@ -187,7 +187,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
             var H = -1 * (a * f - c * d)
             var I = (a * e - b * d)
             var det = a * A + b * B + c * C
-            MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
+            IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
           } else {
             x
           }

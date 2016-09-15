@@ -27,7 +27,7 @@ case class VectorExpression(var datatype : Option[L4_Datatype], var expressions 
       out << 'T';
     }
   }
-  def progress = new ir.VectorExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.progress).to[ListBuffer], rowVector)
+  def progress = IR_VectorExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.progress).to[ListBuffer], rowVector)
 }
 
 object VectorExpression {
@@ -57,7 +57,7 @@ case class MatrixExpression(var datatype : Option[L4_Datatype], var expressions 
 
   def prettyprint(out : PpStream) = { out << '{'; expressions.foreach(e => { e.prettyprint(out); out << ",\n" }); out << "} '" }
 
-  def progress = new ir.MatrixExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.expressions.map(_.progress).to[ListBuffer]).to[ListBuffer])
+  def progress = IR_MatrixExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.expressions.map(_.progress).to[ListBuffer]).to[ListBuffer])
 
   def rows = expressions.length
   def columns = expressions(0).length

@@ -9,7 +9,6 @@ import exastencils.communication.IsValidPoint
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.SimplifyStrategy
@@ -157,13 +156,13 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
       var innerStmts = ListBuffer[IR_Statement]()
       var boundaryStmts = ListBuffer[IR_Statement]()
 
-      innerStmts += IR_Assignment(hackVecComponentAccess(f, i), fVals(i))
+      innerStmts += IR_Assignment(IR_HackVecComponentAccess(f, i), fVals(i))
       for (j <- unknowns.indices)
-        innerStmts += IR_Assignment(hackMatComponentAccess(A, i, j), AVals(i)(j))
+        innerStmts += IR_Assignment(IR_HackMatComponentAccess(A, i, j), AVals(i)(j))
 
-      boundaryStmts += IR_Assignment(hackVecComponentAccess(f, i), unknowns(i))
+      boundaryStmts += IR_Assignment(IR_HackVecComponentAccess(f, i), unknowns(i))
       for (j <- unknowns.indices)
-        boundaryStmts += IR_Assignment(hackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
+        boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
 
       // check if current unknown is on/ beyond boundary
       stmts += IR_IfCondition(
@@ -179,7 +178,7 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
     for (i <- unknowns.indices)
       stmts += IR_IfCondition(// don't write back result on boundaries
         IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
-        IR_Assignment(unknowns(i), hackVecComponentAccess(u, i)))
+        IR_Assignment(unknowns(i), IR_HackVecComponentAccess(u, i)))
 
     IR_Scope(stmts)
   }

@@ -367,7 +367,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                   registerCS(func, childCSes.map(_.get.prio).sum + 1, 3, pos, true, List.empty)
               }
 
-            case _ : VectorExpression | _ : MatrixExpression | _ : PrintExpression =>
+            case _ : IR_VectorExpression | _ : IR_MatrixExpression | _ : PrintExpression =>
             // don't do anything, these are never common subexpressions
 
             case parent : Product =>

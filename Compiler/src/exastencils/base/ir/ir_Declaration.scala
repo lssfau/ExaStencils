@@ -1,7 +1,6 @@
 package exastencils.base.ir
 
 import exastencils.baseExt.ir._
-import exastencils.datastructures.ir._
 import exastencils.knowledge.Platform
 import exastencils.prettyprinting.PpStream
 
@@ -24,7 +23,7 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         out << x << ' ' << name
         if (initialValue.isDefined) {
           out << "("
-          initialValue.get.asInstanceOf[VectorExpression].prettyprintInner(out)
+          initialValue.get.asInstanceOf[IR_VectorExpression].prettyprintInner(out)
           out << ")"
         }
       }
@@ -32,7 +31,7 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         out << x << ' ' << name
         if (initialValue.isDefined) {
           out << "("
-          initialValue.get.asInstanceOf[MatrixExpression].prettyprintInner(out)
+          initialValue.get.asInstanceOf[IR_MatrixExpression].prettyprintInner(out)
           out << ")"
         }
       }
