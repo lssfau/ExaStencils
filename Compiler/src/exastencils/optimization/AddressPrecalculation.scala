@@ -52,7 +52,7 @@ private final class ArrayBases(val arrayName : String) {
 
   def addToDecls(decls : ListBuffer[IR_Statement]) : Unit = {
     for ((name : String, init : IR_Expression) <- inits.values.toArray.sortBy(_._1))
-      decls += new VariableDeclarationStatement(IR_ConstPointerDatatype(IR_RealDatatype), name, IR_AddressofExpression(init))
+      decls += IR_VariableDeclaration(IR_ConstPointerDatatype(IR_RealDatatype), name, IR_AddressofExpression(init))
   }
 }
 
@@ -203,7 +203,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           case _                         => // nothing; expand match here, if more vars should stay inside the loop
         }
 
-      case VariableDeclarationStatement(_, name, _) if (decls != null && inVars != null) =>
+      case IR_VariableDeclaration(_, name, _) if (decls != null && inVars != null) =>
         inVars += name
 
       case _ => // ignore

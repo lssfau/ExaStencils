@@ -66,7 +66,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
       return
 
     node match {
-      case VariableDeclarationStatement(ty : IR_Datatype, name : String, _) =>
+      case IR_VariableDeclaration(ty : IR_Datatype, name : String, _) =>
         declare(name, ty)
 
       case node @ IR_StringLiteral(str) =>

@@ -524,7 +524,7 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterLoopCarriedCSBufferAccess(buffer, index)
 
-          case d : VariableDeclarationStatement =>
+          case d : IR_VariableDeclaration =>
             d.datatype.annotate(SKIP_ANNOT)
             enterDecl(d)
 
@@ -567,7 +567,7 @@ class Extractor extends Collector {
                | _ : IR_PowerExpression
                | _ : IR_MinimumExpression
                | _ : IR_MaximumExpression
-               | _ : CommentStatement
+               | _ : IR_Comment
                | IR_NullStatement => // nothing to do for all of them...
 
           // deny
@@ -601,17 +601,17 @@ class Extractor extends Collector {
 
     if (curScop.exists())
       node match {
-        case l : IR_LoopOverDimensions        => leaveLoop(l)
-        case c : IR_IfCondition               => leaveCondition(c)
-        case _ : IR_Assignment                => leaveAssign()
-        case _ : IR_StringLiteral             => leaveScalarAccess()
-        case _ : IR_VariableAccess            => leaveScalarAccess()
-        case _ : IR_ArrayAccess               => leaveArrayAccess()
-        case _ : IR_DirectFieldAccess         => leaveFieldAccess()
-        case _ : IR_TempBufferAccess          => leaveTempBufferAccess()
-        case _ : LoopCarriedCSBufferAccess    => leaveLoopCarriedCSBufferAccess()
-        case _ : VariableDeclarationStatement => leaveDecl()
-        case _                                =>
+        case l : IR_LoopOverDimensions     => leaveLoop(l)
+        case c : IR_IfCondition            => leaveCondition(c)
+        case _ : IR_Assignment             => leaveAssign()
+        case _ : IR_StringLiteral          => leaveScalarAccess()
+        case _ : IR_VariableAccess         => leaveScalarAccess()
+        case _ : IR_ArrayAccess            => leaveArrayAccess()
+        case _ : IR_DirectFieldAccess      => leaveFieldAccess()
+        case _ : IR_TempBufferAccess       => leaveTempBufferAccess()
+        case _ : LoopCarriedCSBufferAccess => leaveLoopCarriedCSBufferAccess()
+        case _ : IR_VariableDeclaration    => leaveDecl()
+        case _                             =>
       }
   }
 
@@ -922,15 +922,15 @@ class Extractor extends Collector {
     leaveArrayAccess()
   }
 
-  private def enterDecl(decl : VariableDeclarationStatement) : Unit = {
+  private def enterDecl(decl : IR_VariableDeclaration) : Unit = {
     if (isRead || isWrite)
       throw new ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 
-    if (decl.expression.isDefined) {
+    if (decl.initialValue.isDefined) {
       val stmt = new IR_Assignment(
-        IR_VariableAccess(decl.name, decl.datatype), decl.expression.get, "=")
+        IR_VariableAccess(decl.name, decl.datatype), decl.initialValue.get, "=")
       enterStmt(stmt) // as a declaration is also a statement
-      decl.expression.get.annotate(Access.ANNOT, Access.READ)
+      decl.initialValue.get.annotate(Access.ANNOT, Access.READ)
       isWrite = true
       enterScalarAccess(decl.name, true)
       isWrite = false

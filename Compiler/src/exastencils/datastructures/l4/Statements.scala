@@ -100,7 +100,7 @@ case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatemen
 
   override def prettyprint(out : PpStream) = { out << "Globals {\n" <<< (values, "\n") <<< (variables, "\n") << "}\n" }
 
-  override def progress : ListBuffer[ir.VariableDeclarationStatement] = {
+  override def progress : ListBuffer[IR_VariableDeclaration] = {
     variables.to[ListBuffer].map(e => e.progress)
   }
 }
@@ -113,8 +113,8 @@ case class VariableDeclarationStatement(override var identifier : Identifier, va
     out << '\n'
   }
 
-  override def progress : ir.VariableDeclarationStatement = {
-    ir.VariableDeclarationStatement(datatype.progress,
+  override def progress : IR_VariableDeclaration = {
+    IR_VariableDeclaration(datatype.progress,
       identifier.fullName,
       if (expression.isDefined) Some(expression.get.progress) else None)
   }
@@ -356,7 +356,7 @@ case class RepeatTimesStatement(var number : Int,
         (lv, IR_Assignment(lv, IR_IntegerConstant(0)))
       } else {
         val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
-        (IR_StringLiteral(lv), ir.VariableDeclarationStatement(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
+        (IR_StringLiteral(lv), IR_VariableDeclaration(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
       }
 
     val ret = IR_ForLoop(
@@ -413,8 +413,8 @@ case class BreakStatement() extends L4_Statement {
     out << "break\n"
   }
 
-  override def progress : ir.BreakStatement = {
-    ir.BreakStatement()
+  override def progress : IR_Break = {
+    IR_Break()
   }
 }
 

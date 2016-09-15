@@ -28,14 +28,14 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
   def generateBasicLoop(parallelize : Boolean) = {
     val loop = if (parallelize)
       new IR_ForLoop(
-        VariableDeclarationStatement(IR_IntegerDatatype, defIt, Some(0)),
+        IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
         IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         IR_PreIncrementExpression(defIt),
         body,
         reduction) with OMP_PotentiallyParallel
     else
       IR_ForLoop(
-        VariableDeclarationStatement(IR_IntegerDatatype, defIt, Some(0)),
+        IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
         IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         IR_PreIncrementExpression(defIt),
         body,
@@ -76,7 +76,7 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
         def redExpLocal = IR_VariableAccess(redExpLocalName, None)
 
         // FIXME: this assumes real data types -> data type should be determined according to redExp
-        val decl = VariableDeclarationStatement(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
+        val decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
         val init = (0 until Knowledge.omp_numThreads).map(fragIdx => IR_Assignment(IR_ArrayAccess(redExpLocal, fragIdx), redExp))
         val redOperands = ListBuffer[IR_Expression](redExp) ++ (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
         val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
@@ -84,7 +84,7 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
         ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
         ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
         ReplaceStringConstantsStrategy.applyStandalone(body)
-        body.prepend(VariableDeclarationStatement(IR_IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
+        body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
 
         statements += IR_Scope(ListBuffer[IR_Statement](decl)
           ++ init

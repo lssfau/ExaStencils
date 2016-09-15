@@ -63,9 +63,9 @@ object Inlining extends CustomStrategy("Function inlining") {
       if (heuristics_prepareCSE) {
         var singleRet : Boolean = false
         for (stmt <- stmts) stmt match {
-          case _ : VariableDeclarationStatement =>
-          case _ : IR_Return if (!singleRet)    => singleRet = true
-          case _                                => inline = false // any other statement (or a second ReturnStatement) found...
+          case _ : IR_VariableDeclaration    =>
+          case _ : IR_Return if (!singleRet) => singleRet = true
+          case _                             => inline = false // any other statement (or a second ReturnStatement) found...
         }
         inline &= singleRet
       }
@@ -130,13 +130,13 @@ object Inlining extends CustomStrategy("Function inlining") {
     // determine which variables must be renamed
     val reserved = Set[String]()
     this.execute(new Transformation("prepare", {
-      case v @ VariableDeclarationStatement(_, name, _) =>
+      case v @ IR_VariableDeclaration(_, name, _) =>
         reserved += name
         v
-      case a @ IR_VariableAccess(name, _)               =>
+      case a @ IR_VariableAccess(name, _)         =>
         reserved += name
         a
-      case s @ IR_StringLiteral(name)                   =>
+      case s @ IR_StringLiteral(name)             =>
         reserved += name
         s
     }), Some(callScope))
@@ -147,10 +147,10 @@ object Inlining extends CustomStrategy("Function inlining") {
     var exit = false
     var retStmt : IR_Return = null
     this.execute(new Transformation("rename conflicts", {
-      case VariableDeclarationStatement(t, name, i) if (potConflicts.contains(name)) => VariableDeclarationStatement(t, rename(name), i)
-      case IR_VariableAccess(name, t) if (potConflicts.contains(name))               => IR_VariableAccess(rename(name), t)
-      case IR_StringLiteral(name) if (potConflicts.contains(name))                   => IR_StringLiteral(rename(name))
-      case ret : IR_Return                                                           =>
+      case IR_VariableDeclaration(t, name, i) if (potConflicts.contains(name)) => IR_VariableDeclaration(t, rename(name), i)
+      case IR_VariableAccess(name, t) if (potConflicts.contains(name))         => IR_VariableAccess(rename(name), t)
+      case IR_StringLiteral(name) if (potConflicts.contains(name))             => IR_StringLiteral(rename(name))
+      case ret : IR_Return                                                     =>
         if (ret.expr.isEmpty != (funcStmt.returntype == IR_UnitDatatype))
           exit = true
         retStmt = ret
@@ -171,22 +171,22 @@ object Inlining extends CustomStrategy("Function inlining") {
         var name : String = vAcc.name
         if (potConflicts.contains(name))
           name = rename(name)
-        new VariableDeclarationStatement(Duplicate(vAcc.datatype), name, init)
+        IR_VariableDeclaration(Duplicate(vAcc.datatype), name, init)
     })
 
     if (potConflToUpdate != null) {
       // update potConflicts of function to inline in for later call to this method
       for (stmt <- body) stmt match {
-        case VariableDeclarationStatement(_, name, _) => potConflToUpdate += name
-        case _                                        => // ignore
+        case IR_VariableDeclaration(_, name, _) => potConflToUpdate += name
+        case _                                  => // ignore
       }
     }
 
-    new CommentStatement("-.-.-.- inlined " + funcStmt.name + " -.-.-.-") +=:
+    new IR_Comment("-.-.-.- inlined " + funcStmt.name + " -.-.-.-") +=:
       body
     if (retStmt == null)
       body +=
-        new CommentStatement("=^=^=^=^= end " + funcStmt.name + " =^=^=^=^=")
+        new IR_Comment("=^=^=^=^= end " + funcStmt.name + " =^=^=^=^=")
 
     // perform actual inlining
     this.execute(new Transformation("inline", {
@@ -245,7 +245,7 @@ object Inlining extends CustomStrategy("Function inlining") {
             }
           }
 
-        case decl : VariableDeclarationStatement if (stack.top.isInstanceOf[IR_Function]) =>
+        case decl : IR_VariableDeclaration if (stack.top.isInstanceOf[IR_Function]) =>
           flatFunctionBody(curFunc) += decl
           potConflicts(stack.top.asInstanceOf[IR_Function].name) += decl.name
 

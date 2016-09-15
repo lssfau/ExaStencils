@@ -19,12 +19,12 @@ case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement w
     Knowledge.timer_type match {
       case "Chrono"       => IR_Assignment(lhs, new FunctionCallExpression("std::chrono::high_resolution_clock::now"))
       case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
-        VariableDeclarationStatement(IR_SpecialDatatype("LARGE_INTEGER"), "now"),
+        IR_VariableDeclaration(IR_SpecialDatatype("LARGE_INTEGER"), "now"),
         FunctionCallExpression("QueryPerformanceCounter", ListBuffer(IR_AddressofExpression("now"))),
         IR_Assignment(lhs, MemberAccess(IR_VariableAccess("now"), "QuadPart"))))
       case "WIN_TIME"     => IR_Assignment(lhs, CastExpression(IR_DoubleDatatype, FunctionCallExpression("clock", ListBuffer())) / "CLOCKS_PER_SEC")
       case "UNIX_TIME"    => IR_Scope(ListBuffer[IR_Statement](
-        VariableDeclarationStatement(IR_SpecialDatatype("timeval"), "timePoint"),
+        IR_VariableDeclaration(IR_SpecialDatatype("timeval"), "timePoint"),
         FunctionCallExpression("gettimeofday", ListBuffer(IR_AddressofExpression("timePoint"), "NULL")),
         IR_Assignment(lhs,
           CastExpression(IR_DoubleDatatype, MemberAccess(IR_VariableAccess("timePoint"), "tv_sec") * 1e3
@@ -58,8 +58,8 @@ case class TimerDetail_ReturnConvertToMS(var time : IR_Expression) extends IR_St
     Knowledge.timer_type match {
       case "Chrono"       => IR_Return(Some(new MemberFunctionCallExpression(new FunctionCallExpression("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
       case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
-        VariableDeclarationStatement(IR_SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
-        VariableDeclarationStatement(IR_SpecialDatatype("static BOOL"), "s_use_qpc", Some(FunctionCallExpression("QueryPerformanceFrequency", ListBuffer(IR_AddressofExpression("s_frequency"))))),
+        IR_VariableDeclaration(IR_SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
+        IR_VariableDeclaration(IR_SpecialDatatype("static BOOL"), "s_use_qpc", Some(FunctionCallExpression("QueryPerformanceFrequency", ListBuffer(IR_AddressofExpression("s_frequency"))))),
         IR_Return(Some(time / ("s_frequency.QuadPart" / 1000.0)))))
       case "WIN_TIME"     => IR_Return(Some(time * 1e3))
       case "UNIX_TIME"    => IR_Return(Some(time))
@@ -203,7 +203,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with IR_Expan
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val timeToPrint = "getTotalTime"
-    statements += VariableDeclarationStatement(IR_DoubleDatatype, "timerValue", Some(FunctionCallExpression(timeToPrint, ListBuffer(timer.resolveName))))
+    statements += IR_VariableDeclaration(IR_DoubleDatatype, "timerValue", Some(FunctionCallExpression(timeToPrint, ListBuffer(timer.resolveName))))
 
     if (Knowledge.mpi_enabled) {
       statements += new MPI_Allreduce("&timerValue", IR_DoubleDatatype, 1, "+")
@@ -269,14 +269,14 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
     if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) {
       statements = ListBuffer[IR_Statement](
         IR_ForLoop(
-          VariableDeclarationStatement(IR_IntegerDatatype, stride.prettyprint, Some(0)),
+          IR_VariableDeclaration(IR_IntegerDatatype, stride.prettyprint, 0),
           IR_LowerExpression(stride, Knowledge.mpi_numThreads),
           IR_PreIncrementExpression(stride),
           statements))
     }
 
     statements.prepend(MemberFunctionCallExpression(IR_VariableAccess("outFile"), "open", ListBuffer(("\"" + Knowledge.l3tmp_timerOuputFile + "\""))))
-    statements.prepend(VariableDeclarationStatement(IR_SpecialDatatype("std::ofstream"), "outFile"))
+    statements.prepend(IR_VariableDeclaration(IR_SpecialDatatype("std::ofstream"), "outFile"))
     statements.append(MemberFunctionCallExpression(IR_VariableAccess("outFile"), "close", ListBuffer()))
 
     statements
@@ -292,19 +292,19 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
       if (Knowledge.l3tmp_printTimersToFileForEachRank) {
         statements += IR_IfCondition(MPI_IsRootProc(),
           ListBuffer[IR_Statement](
-            VariableDeclarationStatement(IR_ArrayDatatype(IR_DoubleDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
+            IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
             ++ genDataCollect(timers)
             ++ ListBuffer[IR_Statement](new MPI_Gather("timesToPrint", IR_DoubleDatatype, 2 * timers.size))
             ++ genPrint(timers),
-          ListBuffer[IR_Statement](VariableDeclarationStatement(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint"))
+          ListBuffer[IR_Statement](IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint"))
             ++ genDataCollect(timers)
             ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint", "timesToPrint", IR_DoubleDatatype, 2 * timers.size)))
       } else {
-        statements += VariableDeclarationStatement(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint")
+        statements += IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint")
         statements ++= genDataCollect(timers)
         statements += new MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
         def timerId = IR_VariableAccess("timerId", Some(IR_IntegerDatatype))
-        statements += IR_ForLoop(new VariableDeclarationStatement(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
+        statements += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
           IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
         statements += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))
       }

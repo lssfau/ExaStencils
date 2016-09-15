@@ -2,19 +2,19 @@ package test.bugs
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_Comment
 import exastencils.datastructures._
-import exastencils.datastructures.ir.CommentStatement
 
 object InDefaultStrategy {
   def main(args : Array[String]) : Unit = {
 
-    val input = new ListBuffer[CommentStatement]()
-    input += new CommentStatement("change me")
+    val input = new ListBuffer[IR_Comment]()
+    input += IR_Comment("change me")
 
     val newComment = "neu"
     val removeComments = new DefaultStrategy("change comments")
     removeComments += new Transformation("now!", {
-      case c : CommentStatement => CommentStatement(newComment)
+      case c : IR_Comment => IR_Comment(newComment)
     })
     removeComments.applyStandalone(input)
 

@@ -34,7 +34,7 @@ case class BuildStringStatement(var stringName : IR_Expression, var toPrint : Li
     val streamName = BuildStringStatement.getNewName()
     def streamType = IR_SpecialDatatype("std::ostringstream")
     val statements = ListBuffer[IR_Statement](
-      VariableDeclarationStatement(streamType, streamName),
+      IR_VariableDeclaration(streamType, streamName),
       PrintExpression(IR_VariableAccess(streamName, streamType), toPrint),
       IR_Assignment(stringName, MemberFunctionCallExpression(IR_VariableAccess(streamName, Some(IR_SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
     return statements
@@ -110,7 +110,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
     }
 
     var innerLoop = ListBuffer[IR_Statement](
-      new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
+      IR_ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
       fileHeader,
       IR_LoopOverFragments(
         IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
@@ -134,7 +134,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
     if (Knowledge.mpi_enabled) {
       statements += IR_IfCondition(MPI_IsRootProc(),
         ListBuffer[IR_Statement](
-          new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc")),
+          IR_ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc")),
           new MemberFunctionCallExpression(IR_VariableAccess(streamName, streamType), "close")))
 
       statements += new MPI_Sequential(innerLoop)

@@ -147,7 +147,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         found = true
         sc
     })
-    for (decl : VariableDeclarationStatement <- scop.decls) Breaks.breakable {
+    for (decl : IR_VariableDeclaration <- scop.decls) Breaks.breakable {
       val name : String = decl.name
       toFind = name
       var fstStmt : Int = -1

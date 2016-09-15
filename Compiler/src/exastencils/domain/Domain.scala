@@ -280,7 +280,7 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
     var body = ListBuffer[IR_Statement]()
 
     if (Knowledge.mpi_enabled)
-      body += AssertStatement(IR_EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
+      body += IR_Assert(IR_EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
         ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
         new FunctionCallExpression("exit", 1))
 
@@ -322,31 +322,31 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
     IR_Function(IR_UnitDatatype, name,
       if (Knowledge.mpi_enabled) {
         ListBuffer(
-          VariableDeclarationStatement(IR_IntegerDatatype, "numFragments", Some("0")),
-          VariableDeclarationStatement(IR_IntegerDatatype, "bufsize", Some("0")),
-          VariableDeclarationStatement(IR_IntegerDatatype, "fileOffset", Some("0")),
-          AssertStatement(IR_EqEqExpression("mpiSize", Knowledge.mpi_numThreads),
+          IR_VariableDeclaration(IR_IntegerDatatype, "numFragments", 0),
+          IR_VariableDeclaration(IR_IntegerDatatype, "bufsize", 0),
+          IR_VariableDeclaration(IR_IntegerDatatype, "fileOffset", 0),
+          IR_Assert(IR_EqEqExpression("mpiSize", Knowledge.mpi_numThreads),
             ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.domain_numBlocks),
             "return"),
           IR_IfCondition("mpiRank == 0",
             ListBuffer[IR_Statement](
-              VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
+              IR_VariableDeclaration(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
               IR_IfCondition(
                 "file.is_open()",
                 ListBuffer[IR_Statement](
-                  VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("file.tellg()")),
-                  VariableDeclarationStatement(IR_PointerDatatype("char"), "memblock", Some("new char[size]")),
+                  IR_VariableDeclaration(IR_IntegerDatatype, "size", "file.tellg()"),
+                  IR_VariableDeclaration(IR_PointerDatatype("char"), "memblock", "new char[size]"),
                   "file.seekg (0, std::ios::beg)",
                   "file.read (memblock, size)",
-                  VariableDeclarationStatement(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
+                  IR_VariableDeclaration(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
                   IR_Assignment("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
                   IR_Assignment("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
-                  (if (Knowledge.mpi_enabled) VariableDeclarationStatement(IR_IntegerDatatype, "fileOffset", Some("bufsize"))
+                  (if (Knowledge.mpi_enabled) IR_VariableDeclaration(IR_IntegerDatatype, "fileOffset", "bufsize")
                   else IR_NullStatement),
                   (if (Knowledge.mpi_enabled) {
                     IR_ForLoop("int i = 1", " i < numRanks ", "++i",
-                      VariableDeclarationStatement(IR_IntegerDatatype, "n", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
-                      VariableDeclarationStatement(IR_IntegerDatatype, "b", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
+                      IR_VariableDeclaration(IR_IntegerDatatype, "n", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
+                      IR_VariableDeclaration(IR_IntegerDatatype, "b", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
                       MPI_Send("&n", "1", IR_IntegerDatatype, "i", 0, "mpiRequest_Send_0[i][0]"),
                       MPI_Send("&fileOffset", "1", IR_IntegerDatatype, "i", 1, "mpiRequest_Send_0[i][1]"),
                       MPI_Send("&b", "1", IR_IntegerDatatype, "i", 2, "mpiRequest_Send_0[i][2]"),
@@ -358,9 +358,9 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
               "MPI_Irecv(&numFragments, 1, MPI_INT, 0, 0, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][0])",
               "MPI_Irecv(&fileOffset, 1, MPI_INT, 0, 1, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][1])",
               "MPI_Irecv(&bufsize, 1, MPI_INT, 0, 2, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][2])")),
-          VariableDeclarationStatement(IR_SpecialDatatype("MPI_File"), "fh"),
+          IR_VariableDeclaration(IR_SpecialDatatype("MPI_File"), "fh"),
           "MPI_File_open(mpiCommunicator, \"./Domains/fragments.dat\", MPI_MODE_RDONLY, MPI_INFO_NULL,&fh)",
-          VariableDeclarationStatement(IR_CharDatatype, "buf[bufsize]"),
+          IR_VariableDeclaration(IR_CharDatatype, "buf[bufsize]"),
           "MPI_File_read_at(fh, fileOffset, buf, bufsize,MPI_BYTE, MPI_STATUSES_IGNORE)",
           "MPI_Barrier(MPI_COMM_WORLD)",
           "MPI_File_close(&fh)",
@@ -368,23 +368,23 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
           new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")))
       } else {
         ListBuffer(
-          VariableDeclarationStatement(IR_IntegerDatatype, "numFragments", Some("0")),
-          VariableDeclarationStatement(IR_IntegerDatatype, "bufsize", Some("0")),
-          VariableDeclarationStatement(IR_IntegerDatatype, "fileOffset", Some("0")),
-          VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
+          IR_VariableDeclaration(IR_IntegerDatatype, "numFragments", 0),
+          IR_VariableDeclaration(IR_IntegerDatatype, "bufsize", 0),
+          IR_VariableDeclaration(IR_IntegerDatatype, "fileOffset", 0),
+          IR_VariableDeclaration(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
           IR_IfCondition(
             "file.is_open()",
             ListBuffer[IR_Statement](
-              VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("file.tellg()")),
-              VariableDeclarationStatement(IR_PointerDatatype("char"), "memblock", Some("new char[size]")),
+              IR_VariableDeclaration(IR_IntegerDatatype, "size", "file.tellg()"),
+              IR_VariableDeclaration(IR_PointerDatatype("char"), "memblock", "new char[size]"),
               "file.seekg (0, std::ios::beg)",
               "file.read (memblock, size)",
-              VariableDeclarationStatement(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
+              IR_VariableDeclaration(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
               IR_Assignment("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
               IR_Assignment("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
               "file.close()"), ListBuffer[IR_Statement]()),
-          VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), s"""fileFrags("./Domains/fragments.dat", std::ios::binary | std::ios::in)"""),
-          VariableDeclarationStatement(IR_CharDatatype, "buf[bufsize]"),
+          IR_VariableDeclaration(IR_SpecialDatatype("std::ifstream"), s"""fileFrags("./Domains/fragments.dat", std::ios::binary | std::ios::in)"""),
+          IR_VariableDeclaration(IR_CharDatatype, "buf[bufsize]"),
           "fileFrags.read (buf, bufsize)",
           "fileFrags.close()",
           "setValues(buf,numFragments)",
@@ -407,22 +407,22 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
     body += IR_Scope(
       IR_Assignment(iv.PrimitiveId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_Assignment(iv.CommId(), ReadValueFrom(IR_IntegerDatatype, "data")),
-      IR_ForLoop(VariableDeclarationStatement(IR_IntegerDatatype, "i", Some(0)),
+      IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, "i", 0),
         IR_LowerExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype)), math.pow(2, Knowledge.dimensionality)),
         IR_PreIncrementExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype))),
         // FIXME: Constructor?
         // s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
-        VariableDeclarationStatement(IR_SpecialDatatype("Vec3"), "vertPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
+        IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "vertPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
         (if (Knowledge.dimensionality == 2) IR_Assignment("vertPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
         (if (Knowledge.dimensionality == 3) IR_Assignment("vertPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
-        SwitchStatement("i", ListBuffer(
-          CaseStatement("0", ListBuffer(IR_Assignment(iv.PrimitivePositionBegin(), "vertPos"))),
-          CaseStatement("1", ListBuffer(IR_Assignment(iv.PrimitivePositionEnd(), "vertPos"))),
-          CaseStatement("3", ListBuffer(IR_Assignment(iv.PrimitivePositionEnd(), "vertPos"))),
-          CaseStatement("7", ListBuffer(IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")))))),
+        IR_Switch("i",
+          IR_Case("0", IR_Assignment(iv.PrimitivePositionBegin(), "vertPos")),
+          IR_Case("1", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")),
+          IR_Case("3", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")),
+          IR_Case("7", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")))),
       // FIXME: Constructor?
       // s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
-      VariableDeclarationStatement(IR_SpecialDatatype("Vec3"), "fragPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
+      IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "fragPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
       (if (Knowledge.dimensionality == 2) IR_Assignment("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       (if (Knowledge.dimensionality == 3) IR_Assignment("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       IR_Assignment(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
@@ -433,11 +433,11 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
           ListBuffer[IR_Statement](//neighbor is valid
             IR_IfCondition(ReadValueFrom(IR_BooleanDatatype, "data"),
               ListBuffer[IR_Statement](//neighbor is remote
-                VariableDeclarationStatement(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
-                VariableDeclarationStatement(IR_IntegerDatatype, "neighRank", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
+                IR_VariableDeclaration(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
+                IR_VariableDeclaration(IR_IntegerDatatype, "neighRank", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
                 (if (Knowledge.mpi_enabled) s"connectRemoteElement (${ iv.CommId().prettyprint() }, neighIdx, neighRank, location, $d)" else IR_NullStatement)),
               ListBuffer[IR_Statement](//neighbor is local
-                VariableDeclarationStatement(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
+                IR_VariableDeclaration(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
                 if (FragmentCollection.fragments.length > 1) s"connectLocalElement(${ iv.CommId().prettyprint() },neighIdx,location,$d)" else IR_NullStatement)))))
     }
     body += IR_IfCondition(ReadValueFrom(IR_BooleanDatatype, "data"),
@@ -475,8 +475,8 @@ case class DomainFunctions() extends IR_FunctionCollection(
         IR_FunctionArgument("memblock", IR_SpecialDatatype("char*&")),
         IR_FunctionArgument("title = \"\"", IR_SpecialDatatype("std::string"))),
       ListBuffer[IR_Statement](
-        VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("sizeof(T)")),
-        VariableDeclarationStatement(IR_CharDatatype, "bytes[size]"),
+        IR_VariableDeclaration(IR_IntegerDatatype, "size", "sizeof(T)"),
+        IR_VariableDeclaration(IR_CharDatatype, "bytes[size]"),
         IR_ForLoop("int j = 0", " j < size ", "++j", "bytes[size-1-j] = memblock[j]"),
         "memblock+=size",
         IR_Return("*(T *)&bytes")))

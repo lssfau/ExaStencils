@@ -4,7 +4,6 @@ import scala.collection.mutable._
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.datastructures.ir._
 import isl.Conversions._
 
 // since Scop can be cloned by Duplicate make sure NONE of the isl wrapper objects it uses is cloned by it
@@ -19,7 +18,7 @@ class Scop(val root : IR_LoopOverDimensions with PolyhedronAccessible, var local
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
   val stmts = new HashMap[String, (ListBuffer[IR_Statement], ArrayBuffer[String])]()
-  val decls = new ListBuffer[VariableDeclarationStatement]()
+  val decls = new ListBuffer[IR_VariableDeclaration]()
 
   final val loopVarTempl : String = "_i%d"
   val njuLoopVars = new ArrayBuffer[String]()

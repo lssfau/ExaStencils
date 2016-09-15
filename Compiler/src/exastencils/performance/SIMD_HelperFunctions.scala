@@ -73,7 +73,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
 
   private def scalarFunc(out : PpStream) : Unit = {
     val arrDt = IR_ArrayDatatype(IR_ArrayDatatype(IR_RealDatatype, Platform.simd_vectorSize), nrArgs)
-    val aDecls = new VariableDeclarationStatement(arrDt, "a")
+    val aDecls = IR_VariableDeclaration(arrDt, "a")
     aDecls.alignment = Platform.simd_vectorSize
     def aVAcc(argi : Int) = new IR_ArrayAccess(IR_VariableAccess(aDecls.name, arrDt), argi)
     def aSAcc(argi : Int, i : Int) = new IR_ArrayAccess(aVAcc(argi), i)

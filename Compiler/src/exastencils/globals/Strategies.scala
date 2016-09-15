@@ -14,13 +14,13 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
   this += new Transformation("Adding default global constants and variables", {
     case globals : Globals => {
       if (Knowledge.cuda_enabled) {
-        globals.variables += new VariableDeclarationStatement("CUcontext", "cudaContext")
-        globals.variables += new VariableDeclarationStatement("CUdevice", "cudaDevice")
+        globals.variables += IR_VariableDeclaration("CUcontext", "cudaContext")
+        globals.variables += IR_VariableDeclaration("CUdevice", "cudaDevice")
       }
       if (Knowledge.mpi_enabled) {
-        globals.variables += new VariableDeclarationStatement("MPI_Comm", "mpiCommunicator")
-        globals.variables += new VariableDeclarationStatement(IR_IntegerDatatype, "mpiRank")
-        globals.variables += new VariableDeclarationStatement(IR_IntegerDatatype, "mpiSize")
+        globals.variables += IR_VariableDeclaration("MPI_Comm", "mpiCommunicator")
+        globals.variables += IR_VariableDeclaration(IR_IntegerDatatype, "mpiRank")
+        globals.variables += IR_VariableDeclaration(IR_IntegerDatatype, "mpiSize")
       }
       globals
     }
@@ -29,9 +29,9 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
       if (Knowledge.cuda_enabled) {
         // init device
         func.body ++= ListBuffer[IR_Statement](
-          VariableDeclarationStatement(IR_IntegerDatatype, "deviceCount", Some(0)),
+          IR_VariableDeclaration(IR_IntegerDatatype, "deviceCount", 0),
           "cuDeviceGetCount(&deviceCount)",
-          AssertStatement(IR_LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
+          IR_Assert(IR_LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
             ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", "deviceCount", "\")\""),
             new FunctionCallExpression("exit", 1)),
           s"cuDeviceGet(&cudaDevice, ${ Knowledge.cuda_deviceId })")

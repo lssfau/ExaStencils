@@ -6,7 +6,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.cuda._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
@@ -33,7 +32,7 @@ abstract class FieldFlag extends InternalVariable(true, false, true, true, false
     var wrappedBody = super.wrapInLoops(body)
     if (field.numSlots > 1)
       wrappedBody = IR_ForLoop(
-        VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
+        IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
         IR_LowerExpression("slot", field.numSlots),
         IR_PreIncrementExpression("slot"),
         wrappedBody)

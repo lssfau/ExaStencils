@@ -33,7 +33,7 @@ case class CUDA_CheckError(var exp : IR_Expression) extends IR_Statement with IR
   override def expand() : Output[IR_Scope] = {
     // TODO: replace with define?
     IR_Scope(ListBuffer[IR_Statement](
-      VariableDeclarationStatement(IR_SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
+      IR_VariableDeclaration(IR_SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
       IR_IfCondition(IR_NeqExpression("cudaStatus", "cudaSuccess"),
         PrintStatement(ListBuffer("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", "cudaStatus",
           "\" -> \"", new FunctionCallExpression("cudaGetErrorString", "cudaStatus"), "std::endl")))))

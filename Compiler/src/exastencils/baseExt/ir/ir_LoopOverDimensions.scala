@@ -140,7 +140,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
 
   def createOMPThreadsWrapper(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     if (explParLoop) {
-      val begin = new VariableDeclarationStatement(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
+      val begin = IR_VariableDeclaration(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
       val end = IR_LowerExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype)))
       ListBuffer(new IR_ForLoop(begin, end, inc, body) with OMP_PotentiallyParallel)
@@ -206,7 +206,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
     // compile loop(s)
     for (d <- 0 until numDimensions) {
       def it = IR_VariableAccess(dimToString(d), Some(IR_IntegerDatatype))
-      val decl = VariableDeclarationStatement(IR_IntegerDatatype, dimToString(d), Some(inds.begin(d)))
+      val decl = IR_VariableDeclaration(IR_IntegerDatatype, dimToString(d), Some(inds.begin(d)))
       val cond = IR_LowerExpression(it, inds.end(d))
       val incr = IR_Assignment(it, stepSize(d), "+=")
       val compiledLoop : IR_ForLoop with OptimizationHint =
@@ -246,7 +246,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
       def redExpLocal = IR_VariableAccess(redExpLocalName, None)
 
       // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = VariableDeclarationStatement(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
+      val decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
       val init = (0 until Knowledge.omp_numThreads).map(fragIdx => IR_Assignment(IR_ArrayAccess(redExpLocal, fragIdx), redExp))
       val redOperands = ListBuffer[IR_Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
       val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
@@ -254,7 +254,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
       ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
       ReplaceStringConstantsStrategy.applyStandalone(body)
-      body.prepend(VariableDeclarationStatement(IR_IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
+      body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
 
       retStmts = ListBuffer(IR_Scope(decl +=: init ++=: wrappedBody += red))
     }

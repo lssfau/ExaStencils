@@ -123,7 +123,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
             fields(fKey) = field
 
           case cStmt @ IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer()) =>
-            val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
+            val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
             bodyWithoutComments match {
               case ListBuffer(l : IR_LoopOverDimensions) =>
                 val nju = processLoopOverDimensions(l, number - i, fieldOffset)

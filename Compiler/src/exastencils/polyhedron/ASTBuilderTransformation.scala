@@ -109,7 +109,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
 
     // mark all additionally declared variables as private
     privateVars = new ListBuffer[IR_VariableAccess]()
-    for (VariableDeclarationStatement(dt, name, _) <- scop.decls)
+    for (IR_VariableDeclaration(dt, name, _) <- scop.decls)
       privateVars += IR_VariableAccess(name, Some(dt))
 
     // build AST generation options
@@ -165,12 +165,12 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     }
 
     // add comment (for debugging) and (eventually) declarations outside loop nest
-    val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
+    val comment = new IR_Comment("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
     comment +=: nju // prepend
     if (!scop.decls.isEmpty) {
       val scopeList = new ListBuffer[IR_Statement]
-      for (decl : VariableDeclarationStatement <- scop.decls) {
-        decl.expression = None
+      for (decl : IR_VariableDeclaration <- scop.decls) {
+        decl.initialValue = None
         if (!scopeList.contains(decl)) // only add if not yet available
           scopeList += decl
       }
@@ -188,7 +188,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
         if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
-          val decl : IR_Statement = new VariableDeclarationStatement(IR_IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
+          val decl : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
           processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
@@ -198,7 +198,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           val parOMP : Boolean = parallelize_omp && parDims.contains(itStr)
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
           val it : IR_VariableAccess = IR_VariableAccess(itStr, IR_IntegerDatatype)
-          val init : IR_Statement = new VariableDeclarationStatement(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
+          val init : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
           val cond : IR_Expression = processIslExpr(node.forGetCond())
           val incr : IR_Statement = new IR_Assignment(it, processIslExpr(node.forGetInc()), "+=")
 

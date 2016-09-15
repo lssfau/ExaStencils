@@ -23,8 +23,8 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
             func.body.forall {
               s => s == IR_NullStatement ||
                 s.isInstanceOf[IR_Scope] ||
-                s.isInstanceOf[CommentStatement] ||
-                s.isInstanceOf[SwitchStatement] ||
+                s.isInstanceOf[IR_Comment] ||
+                s.isInstanceOf[IR_Switch] ||
                 s.isInstanceOf[IR_IfCondition] ||
                 s.isInstanceOf[IR_WhileLoop] ||
                 s.isInstanceOf[IR_ForLoop]

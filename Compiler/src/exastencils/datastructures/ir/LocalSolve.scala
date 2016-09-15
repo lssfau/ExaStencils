@@ -143,9 +143,9 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var 
     def A = IR_VariableAccess("_local_matrix", Some(IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length)))
 
     // declare local variables -> to be merged later
-    stmts += new VariableDeclarationStatement(u)
-    stmts += new VariableDeclarationStatement(f)
-    stmts += new VariableDeclarationStatement(A)
+    stmts += IR_VariableDeclaration(u)
+    stmts += IR_VariableDeclaration(f)
+    stmts += IR_VariableDeclaration(A)
 
     // initialize with zero - TODO: adapt to new matrix types
     stmts += MemberFunctionCallExpression(u, "set", ListBuffer[IR_Expression](0))

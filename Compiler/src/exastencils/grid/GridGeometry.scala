@@ -178,7 +178,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        IR_VariableDeclaration(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);
@@ -273,7 +273,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        IR_VariableDeclaration(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);
@@ -560,7 +560,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        IR_VariableDeclaration(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);

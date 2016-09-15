@@ -5,7 +5,6 @@ import scala.collection.mutable.HashMap
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
@@ -23,7 +22,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   def resolveDatatype : IR_Datatype
   def resolveDefValue : Option[IR_Expression] = None
 
-  def getDeclaration() : VariableDeclarationStatement = {
+  def getDeclaration() : IR_VariableDeclaration = {
     var datatype : IR_Datatype = resolveDatatype
 
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
@@ -37,7 +36,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
       datatype = IR_ArrayDatatype(datatype, Fragment.neighbors.size)
 
-    new VariableDeclarationStatement(datatype, resolveName)
+    new IR_VariableDeclaration(datatype, resolveName)
   }
 
   def wrapInLoops(body : IR_Statement) : IR_Statement = {
@@ -107,7 +106,7 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
     access
   }
 
-  def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
+  def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     declarations += (resolveName -> getDeclaration)
     for (ctor <- getCtor())
       ctors += (resolveName -> ctor)

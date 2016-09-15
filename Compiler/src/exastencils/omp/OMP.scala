@@ -53,7 +53,7 @@ case class OMP_ParallelFor(var body : IR_ForLoop, var additionalOMPClauses : Lis
     var res : Int = 1
     var stmts : ListBuffer[IR_Statement] = body.body
     while (res < collapse) {
-      val filtered = stmts.filterNot(s => s.isInstanceOf[CommentStatement] || s == IR_NullStatement)
+      val filtered = stmts.filterNot(s => s.isInstanceOf[IR_Comment] || s == IR_NullStatement)
       if (filtered.length != 1)
         return res // no more than one statement allowed: not perfectly nested anymore, return last valid collapse level
       stmts =

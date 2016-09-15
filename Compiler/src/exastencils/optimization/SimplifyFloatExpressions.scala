@@ -13,8 +13,8 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
   private final val DEBUG : Boolean = false
 
   this += new Transformation("optimize", {
-    case d @ VariableDeclarationStatement(IR_RealDatatype, _, Some(expr)) =>
-      d.expression = Some(simplify(expr))
+    case d @ IR_VariableDeclaration(IR_RealDatatype, _, Some(expr)) =>
+      d.initialValue = Some(simplify(expr))
       d
 
     case a @ IR_Assignment(IR_VariableAccess(_, Some(IR_RealDatatype)), src, op) =>

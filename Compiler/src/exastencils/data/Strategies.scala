@@ -98,9 +98,9 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
     case advanceSlot : AdvanceSlotStatement =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
-        case _ : IR_LoopOverFragments                                                                             => true
-        case IR_ForLoop(VariableDeclarationStatement(_, it, _), _, _, _, _) if (IR_LoopOverFragments.defIt == it) => true
-        case _                                                                                                    => false
+        case _ : IR_LoopOverFragments                                                                       => true
+        case IR_ForLoop(IR_VariableDeclaration(_, it, _), _, _, _, _) if (IR_LoopOverFragments.defIt == it) => true
+        case _                                                                                              => false
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial
       else
@@ -204,7 +204,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
         // compile body for all dimensions - TODO: adapt to field layout dimensionality if required
         for (dim <- 0 until Knowledge.dimensionality) {
           // calculate index shift
-          body += new VariableDeclarationStatement(idxShift(dim), (newInnerSize(dim) - (
+          body += IR_VariableDeclaration(idxShift(dim), (newInnerSize(dim) - (
             iv.IndexFromField(layout._2._1, layout._2._2, "IE", dim) -
               iv.IndexFromField(layout._2._1, layout._2._2, "IB", dim))))
 
@@ -260,7 +260,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
 }
 
 object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
-  var declarationMap : HashMap[String, VariableDeclarationStatement] = HashMap()
+  var declarationMap : HashMap[String, IR_VariableDeclaration] = HashMap()
   var ctorMap : HashMap[String, IR_Statement] = HashMap()
   var dtorMap : HashMap[String, IR_Statement] = HashMap()
 
@@ -316,10 +316,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         if (Knowledge.data_alignFieldPointers) {
           counter += 1
           ListBuffer(
-            VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+            IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
               Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
             IR_ArrayAllocation(newFieldData.basePtr, field.field.resolveDeclType, numDataPoints + Platform.simd_vectorSize - 1),
-            VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+            IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
               Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
             IR_Assignment(newFieldData, newFieldData.basePtr + s"offset_$counter"))
         } else {
@@ -328,7 +328,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       if (field.field.numSlots > 1)
         statements += new IR_ForLoop(
-          VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
+          IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
           IR_LowerExpression("slot", field.field.numSlots),
           IR_PreIncrementExpression("slot"),
           innerStmts)
@@ -357,7 +357,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       if (field.field.numSlots > 1)
         statements += new IR_ForLoop(
-          VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
+          IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
           IR_LowerExpression("slot", field.field.numSlots),
           IR_PreIncrementExpression("slot"),
           innerStmts)
@@ -408,10 +408,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (Knowledge.data_alignTmpBufferPointers) {
         counter += 1
         bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](
-          VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
-          VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
             Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
       } else {
@@ -438,10 +438,10 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       }
       if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned
         bufferAllocs += (id -> buf.wrapInLoops(IR_Scope(ListBuffer[IR_Statement](
-          VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
-          VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
             Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter")))))
       else

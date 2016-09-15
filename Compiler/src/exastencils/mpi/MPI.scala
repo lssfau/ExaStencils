@@ -148,8 +148,8 @@ case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange,
   def generateName : String = s"mpiDatatype_${ blockCount }_${ blockLength }_${ stride }"
   def mpiTypeNameArg : IR_Expression = IR_AddressofExpression(generateName)
 
-  def generateDecl : VariableDeclarationStatement = {
-    VariableDeclarationStatement("MPI_Datatype", generateName)
+  def generateDecl : IR_VariableDeclaration = {
+    IR_VariableDeclaration("MPI_Datatype", generateName)
   }
 
   def generateCtor : ListBuffer[IR_Statement] = {
@@ -188,7 +188,7 @@ case class MPI_Sequential(var body : ListBuffer[IR_Statement]) extends IR_Statem
 
   override def expand : Output[IR_ForLoop] = {
     IR_ForLoop(
-      VariableDeclarationStatement(IR_IntegerDatatype, "curRank", Some(0)),
+      IR_VariableDeclaration(IR_IntegerDatatype, "curRank", 0),
       IR_LowerExpression("curRank", Knowledge.mpi_numThreads),
       IR_PreIncrementExpression("curRank"),
       ListBuffer[IR_Statement](
@@ -214,33 +214,33 @@ case class MPI_WaitForRequest() extends IR_AbstractFunction with IR_Expandable {
     if (Knowledge.mpi_useBusyWait) {
       IR_Function(IR_UnitDatatype, name, ListBuffer(IR_FunctionArgument(request.name, request.innerDatatype.get)),
         ListBuffer[IR_Statement](
-          new VariableDeclarationStatement(stat),
-          new VariableDeclarationStatement(result),
-          new VariableDeclarationStatement(flag, 0),
+          IR_VariableDeclaration(stat),
+          IR_VariableDeclaration(result),
+          IR_VariableDeclaration(flag, 0),
           IR_WhileLoop(IR_EqEqExpression(0, flag),
             new IR_Assignment(result, FunctionCallExpression("MPI_Test", ListBuffer(
               request, IR_AddressofExpression(flag), IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
             IR_IfCondition(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
-              new VariableDeclarationStatement(msg),
-              new VariableDeclarationStatement(len),
-              new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
+              IR_VariableDeclaration(msg),
+              IR_VariableDeclaration(len),
+              FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
                 MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
-              new PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
-          new IR_Assignment(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
+              PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
+          IR_Assignment(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     } else {
       IR_Function(IR_UnitDatatype, s"waitForMPIReq", ListBuffer(IR_FunctionArgument(request.name, request.innerDatatype.get)),
         ListBuffer[IR_Statement](
-          new VariableDeclarationStatement(stat),
-          new VariableDeclarationStatement(result),
+          IR_VariableDeclaration(stat),
+          IR_VariableDeclaration(result),
           new IR_Assignment(result, FunctionCallExpression("MPI_Wait", ListBuffer(request, IR_AddressofExpression(stat)))) with OMP_PotentiallyCritical,
           IR_IfCondition(IR_EqEqExpression("MPI_ERR_IN_STATUS", result), ListBuffer[IR_Statement](
-            new VariableDeclarationStatement(msg),
-            new VariableDeclarationStatement(len),
-            new FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
+            IR_VariableDeclaration(msg),
+            IR_VariableDeclaration(len),
+            FunctionCallExpression("MPI_Error_string", ListBuffer[IR_Expression](
               MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
-            new PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
-          new IR_Assignment(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
+            PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
+          IR_Assignment(DerefAccess(request), FunctionCallExpression("MPI_Request", ListBuffer()))),
         false)
     }
   }
