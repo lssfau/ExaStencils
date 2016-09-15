@@ -15,6 +15,7 @@ object L4_VariableAccess {
   def apply(name : String, datatype : L4_Datatype) = new L4_VariableAccess(name, Some(datatype))
 }
 
+// FIXME: mandatory datatype
 case class L4_VariableAccess(var name : String, var datatype : Option[L4_Datatype]) extends L4_Access {
   override def prettyprint(out : PpStream) : Unit = out << name
   override def progress = IR_VariableAccess(name, L4_ProgressOption(datatype)(_.progress))

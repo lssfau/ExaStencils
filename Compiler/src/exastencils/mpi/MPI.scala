@@ -203,13 +203,13 @@ case class MPI_WaitForRequest() extends IR_AbstractFunction with IR_Expandable {
   override def name = "waitForMPIReq"
 
   override def expand : Output[IR_Function] = {
-    def request = IR_VariableAccess("request", Some(IR_PointerDatatype(IR_SpecialDatatype("MPI_Request"))))
-    def stat = IR_VariableAccess("stat", Some(IR_SpecialDatatype("MPI_Status")))
-    def flag = IR_VariableAccess("flag", Some(IR_IntegerDatatype))
-    def result = IR_VariableAccess("result", Some(IR_IntegerDatatype))
+    def request = IR_VariableAccess("request", IR_PointerDatatype(IR_SpecialDatatype("MPI_Request")))
+    def stat = IR_VariableAccess("stat", IR_SpecialDatatype("MPI_Status"))
+    def flag = IR_VariableAccess("flag", IR_IntegerDatatype)
+    def result = IR_VariableAccess("result", IR_IntegerDatatype)
 
-    def msg = IR_VariableAccess("msg", Some(IR_ArrayDatatype(IR_SpecialDatatype("char"), 64 * 1024)))
-    def len = IR_VariableAccess("len", Some(IR_IntegerDatatype))
+    def msg = IR_VariableAccess("msg", IR_ArrayDatatype(IR_SpecialDatatype("char"), 64 * 1024))
+    def len = IR_VariableAccess("len", IR_IntegerDatatype)
 
     if (Knowledge.mpi_useBusyWait) {
       IR_Function(IR_UnitDatatype, name, ListBuffer(IR_FunctionArgument(request.name, request.innerDatatype.get)),

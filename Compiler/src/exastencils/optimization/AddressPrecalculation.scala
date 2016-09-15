@@ -229,7 +229,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
             case fd : FieldData => Some(IR_ConstPointerDatatype(fd.field.resolveDeclType))
             case _              => None
           }
-          val newAcc = new IR_ArrayAccess(IR_VariableAccess(name, datatype), in, al)
+          val newAcc = IR_ArrayAccess(IR_VariableAccess(name, datatype), in, al)
           newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
           acc.annotate(REPL_ANNOT, newAcc)
           // }

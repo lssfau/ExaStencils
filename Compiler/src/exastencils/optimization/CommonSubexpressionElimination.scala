@@ -634,7 +634,7 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
 
   def getReplOrModify(old : IR_Expression with Product) : IR_Expression = {
     if (witness == old) { // we can completely replace the subtree
-      return IR_VariableAccess(tmpVarName, Some(tmpVarDatatype))
+      IR_VariableAccess(tmpVarName, tmpVarDatatype)
     } else {
       // only a part of the n-ary expression can be extracted...
       // according to the matching above (in findCommSubs), this expression must have a single Buffer child
@@ -642,8 +642,8 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
       val commSubsChildren = witness.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
       // according to the generation of witnesses children above, both buffers have the same ordering
       allChildren --= commSubsChildren
-      allChildren += IR_VariableAccess(tmpVarName, Some(tmpVarDatatype))
-      return null // no need to replace node, since its children were already modified
+      allChildren += IR_VariableAccess(tmpVarName, tmpVarDatatype)
+      null // no need to replace node, since its children were already modified
     }
   }
 }

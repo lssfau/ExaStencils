@@ -33,7 +33,7 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (dimToString(dim) == s.value)
-            ret = IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
+            ret = IR_VariableAccess(dimToString(dim), IR_IntegerDatatype) - field.field.referenceOffset(dim)
         ret
       }
       case va : IR_VariableAccess => {
@@ -41,7 +41,7 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (dimToString(dim) == va.name)
-            ret = IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
+            ret = IR_VariableAccess(dimToString(dim), IR_IntegerDatatype) - field.field.referenceOffset(dim)
         ret
       }
     }, false)

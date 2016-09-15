@@ -408,8 +408,8 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
       IR_Assignment(iv.PrimitiveId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_Assignment(iv.CommId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, "i", 0),
-        IR_LowerExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype)), math.pow(2, Knowledge.dimensionality)),
-        IR_PreIncrementExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype))),
+        IR_LowerExpression(IR_VariableAccess("i", IR_IntegerDatatype), math.pow(2, Knowledge.dimensionality)),
+        IR_PreIncrementExpression(IR_VariableAccess("i", IR_IntegerDatatype)),
         // FIXME: Constructor?
         // s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
         IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "vertPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),

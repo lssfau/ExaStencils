@@ -83,7 +83,7 @@ case class OMP_WaitForFlag() extends IR_AbstractFunction with IR_Expandable {
   override def name = "waitForFlag"
 
   override def expand : Output[IR_Function] = {
-    def flag = IR_VariableAccess("flag", Some(IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype))))
+    def flag = IR_VariableAccess("flag", IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype)))
 
     IR_Function(IR_UnitDatatype, name, ListBuffer(IR_FunctionArgument(flag.name, flag.innerDatatype.get)),
       ListBuffer[IR_Statement](

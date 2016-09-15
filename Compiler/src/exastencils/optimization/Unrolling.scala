@@ -181,7 +181,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
         (itVar, incr)
 
       case IR_Assignment(IR_VariableAccess(itVar, Some(exastencils.base.ir.IR_IntegerDatatype)),
-      IR_AdditionExpression(ListBuffer(IR_IntegerConstant(incr), IR_VariableAccess(itVar2, Some(exastencils.base.ir.IR_IntegerDatatype)))),
+      IR_AdditionExpression(ListBuffer(IR_IntegerConstant(incr), IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)))),
       "=") if (itVar == itVar2) =>
         (itVar, incr)
 

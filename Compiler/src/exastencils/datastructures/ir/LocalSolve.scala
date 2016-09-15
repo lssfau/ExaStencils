@@ -138,9 +138,9 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var 
 
     var stmts = ListBuffer[IR_Statement]()
 
-    def u = IR_VariableAccess("_local_unknowns", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
-    def f = IR_VariableAccess("_local_rhs", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
-    def A = IR_VariableAccess("_local_matrix", Some(IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length)))
+    def u = IR_VariableAccess("_local_unknowns", IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false)))
+    def f = IR_VariableAccess("_local_rhs", IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false)))
+    def A = IR_VariableAccess("_local_matrix", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length))
 
     // declare local variables -> to be merged later
     stmts += IR_VariableDeclaration(u)

@@ -22,7 +22,7 @@ case class Timer(var name : IR_Expression) extends UnduplicatedVariable with IR_
 
   override def getCtor() : Option[IR_Statement] = {
     // FIXME: datatype for VariableAccess
-    Some(IR_Assignment(MemberAccess(IR_VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), IR_StringConstant(stripName)))
+    Some(IR_Assignment(MemberAccess(IR_VariableAccess(resolveName, resolveDatatype), "timerName"), IR_StringConstant(stripName)))
   }
 }
 

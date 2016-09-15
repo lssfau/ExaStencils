@@ -71,9 +71,10 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
         // resolve max reductions
         val redOp = reduction.get.op
         val redExpName = reduction.get.target.name
-        def redExp = IR_VariableAccess(redExpName, None)
+        val redDatatype = None // FIXME: reduction.get.target.datatype
+        def redExp = IR_VariableAccess(redExpName, redDatatype)
         val redExpLocalName = redExpName + "_red"
-        def redExpLocal = IR_VariableAccess(redExpLocalName, None)
+        def redExpLocal = IR_VariableAccess(redExpLocalName, redDatatype)
 
         // FIXME: this assumes real data types -> data type should be determined according to redExp
         val decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
@@ -82,7 +83,7 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
         val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
 
         ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-        ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
+        ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
         ReplaceStringConstantsStrategy.applyStandalone(body)
         body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
 

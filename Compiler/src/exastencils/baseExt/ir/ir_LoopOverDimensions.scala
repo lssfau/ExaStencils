@@ -26,7 +26,7 @@ object IR_LoopOverDimensions {
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body))
 
   def defIt(numDims : Int) = IR_ExpressionIndex((0 until numDims).map(dim => defItForDim(dim) : IR_Expression).toArray)
-  def defItForDim(dim : Int) = IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype))
+  def defItForDim(dim : Int) = IR_VariableAccess(dimToString(dim), IR_IntegerDatatype)
 
   val threadIdxName : String = "threadIdx"
 
@@ -205,7 +205,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
     val inds = if (explParLoop) ompIndices else indices
     // compile loop(s)
     for (d <- 0 until numDimensions) {
-      def it = IR_VariableAccess(dimToString(d), Some(IR_IntegerDatatype))
+      def it = IR_VariableAccess(dimToString(d), IR_IntegerDatatype)
       val decl = IR_VariableDeclaration(IR_IntegerDatatype, dimToString(d), Some(inds.begin(d)))
       val cond = IR_LowerExpression(it, inds.end(d))
       val incr = IR_Assignment(it, stepSize(d), "+=")
@@ -241,9 +241,10 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
       // resolve max reductions
       val redOp = reduction.get.op
       val redExpName = reduction.get.target.name
-      def redExp = IR_VariableAccess(redExpName, None)
+      val redDatatype = None // FIXME: reduction.get.target.datatype
+      def redExp = IR_VariableAccess(redExpName, redDatatype)
       val redExpLocalName = redExpName + "_red"
-      def redExpLocal = IR_VariableAccess(redExpLocalName, None)
+      def redExpLocal = IR_VariableAccess(redExpLocalName, redDatatype)
 
       // FIXME: this assumes real data types -> data type should be determined according to redExp
       val decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
@@ -252,7 +253,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
       val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
+      ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
       ReplaceStringConstantsStrategy.applyStandalone(body)
       body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
 

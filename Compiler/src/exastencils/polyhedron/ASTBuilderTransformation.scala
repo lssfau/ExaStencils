@@ -110,7 +110,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     // mark all additionally declared variables as private
     privateVars = new ListBuffer[IR_VariableAccess]()
     for (IR_VariableDeclaration(dt, name, _) <- scop.decls)
-      privateVars += IR_VariableAccess(name, Some(dt))
+      privateVars += IR_VariableAccess(name, dt)
 
     // build AST generation options
     val options = new StringBuilder()

@@ -211,7 +211,7 @@ object SimplifyExpression {
 
       case IR_VariableAccess(varName, _) =>
         res = new HashMap[IR_Expression, Long]()
-        res(IR_VariableAccess(varName, Some(IR_IntegerDatatype))) = 1L
+        res(IR_VariableAccess(varName, IR_IntegerDatatype)) = 1L
 
       case m : MemberAccess =>
         res = new mutable.HashMap[IR_Expression, Long]()
@@ -219,7 +219,7 @@ object SimplifyExpression {
 
       case IR_StringLiteral(varName) =>
         res = new HashMap[IR_Expression, Long]()
-        res(IR_VariableAccess(varName, Some(IR_IntegerDatatype))) = 1L // ONLY VariableAccess in res keys, NO StringConstant
+        res(IR_VariableAccess(varName, IR_IntegerDatatype)) = 1L // ONLY VariableAccess in res keys, NO StringConstant
 
       case acc : IR_ArrayAccess =>
         res = new HashMap[IR_Expression, Long]()
@@ -506,13 +506,13 @@ object SimplifyExpression {
 
       case IR_VariableAccess(varName, dt) =>
         res = new HashMap[IR_Expression, Double]()
-        res(IR_VariableAccess(varName, dt.orElse(Some(IR_RealDatatype)))) = 1d // preserve datatype if some
+        res(IR_VariableAccess(varName, dt.getOrElse(IR_RealDatatype))) = 1d // preserve datatype if some
 
       case IR_StringLiteral(varName) =>
         if (varName.contains("std::rand")) // HACK
           throw new EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[IR_Expression, Double]()
-        res(IR_VariableAccess(varName, Some(IR_RealDatatype))) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
+        res(IR_VariableAccess(varName, IR_RealDatatype)) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
 
       case aAcc : IR_ArrayAccess =>
         res = new HashMap[IR_Expression, Double]()

@@ -92,7 +92,7 @@ abstract class AbstractTimerFunction extends IR_AbstractFunction
 
 object AbstractTimerFunction {
   def accessMember(member : String) = {
-    MemberAccess(IR_VariableAccess("stopWatch", Some(IR_SpecialDatatype("StopWatch&"))), member)
+    MemberAccess(IR_VariableAccess("stopWatch", IR_SpecialDatatype("StopWatch&")), member)
   }
 }
 
@@ -303,7 +303,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
         statements += IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint")
         statements ++= genDataCollect(timers)
         statements += new MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
-        def timerId = IR_VariableAccess("timerId", Some(IR_IntegerDatatype))
+        def timerId = IR_VariableAccess("timerId", IR_IntegerDatatype)
         statements += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
           IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
         statements += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))

@@ -9,9 +9,9 @@ object IR_VariableDeclaration {
   def apply(datatype : IR_Datatype, name : String, initialValue : IR_Expression)
   = new IR_VariableDeclaration(datatype, name, Option(initialValue))
   def apply(variable : IR_VariableAccess)
-  = new IR_VariableDeclaration(variable.innerDatatype.get, variable.name, None)
+  = new IR_VariableDeclaration(variable.datatype, variable.name, None)
   def apply(variable : IR_VariableAccess, initialValue : IR_Expression)
-  = new IR_VariableDeclaration(variable.innerDatatype.get, variable.name, Some(initialValue))
+  = new IR_VariableDeclaration(variable.datatype, variable.name, Some(initialValue))
 }
 
 case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String, var initialValue : Option[IR_Expression] = None) extends IR_Statement {

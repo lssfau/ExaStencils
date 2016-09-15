@@ -173,7 +173,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
       IR_LoopOverDimensions.defItForDim(dim)
     else
-      IR_VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+      IR_VariableAccess(s"global_${ dimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
@@ -268,7 +268,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
       IR_LoopOverDimensions.defItForDim(dim)
     else
-      IR_VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+      IR_VariableAccess(s"global_${ dimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
@@ -555,7 +555,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
       IR_LoopOverDimensions.defItForDim(dim)
     else
-      IR_VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+      IR_VariableAccess(s"global_${ dimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
