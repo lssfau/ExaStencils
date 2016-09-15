@@ -78,7 +78,7 @@ case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/Kern
       def data = IR_FunctionArgument("data", IR_PointerDatatype(IR_RealDatatype))
       def numElements = IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)
       def stride = IR_FunctionArgument("stride", IR_IntegerDatatype /*FIXME: size_t*/)
-      def it = Duplicate(LoopOverDimensions.defItForDim(0))
+      def it = Duplicate(IR_LoopOverDimensions.defItForDim(0))
 
       var fctBody = ListBuffer[IR_Statement]()
 

@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils._
 import exastencils.base.ir._
 import exastencils.base.l4._
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.domain._
@@ -165,7 +166,7 @@ case class LoopOverPointsStatement(
     out << "{\n" <<< statements << "}\n"
   }
 
-  override def progress : ir.LoopOverPoints = {
+  override def progress : IR_LoopOverPoints = {
     val resolvedField = field match {
       case access : FieldAccess        => access.resolveField
       case access : StencilFieldAccess => access.resolveField
@@ -189,7 +190,7 @@ case class LoopOverPointsStatement(
       for (i <- 0 until Math.min(numDims, newIncrement.length)) procIncrement(i) = newIncrement(i)
     }
 
-    val loop = ir.LoopOverPoints(resolvedField,
+    val loop = IR_LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progress) else None,
       seq,
       procStartOffset,
@@ -213,8 +214,8 @@ case class LoopOverFragmentsStatement(var statements : List[L4_Statement], var r
     out << "{\n" <<< statements << "}\n"
   }
 
-  override def progress : ir.LoopOverFragments = {
-    new ir.LoopOverFragments(statements.map(s => s.progress).to[ListBuffer],
+  override def progress : IR_LoopOverFragments = {
+    new IR_LoopOverFragments(statements.map(s => s.progress).to[ListBuffer],
       if (reduction.isDefined) Some(reduction.get.progress) else None) with omp.OMP_PotentiallyParallel
   }
 }
@@ -327,8 +328,8 @@ case class ContractionSpecification(var posExt : L4_ConstIndex, var negExt : Opt
       out << ", " << negExt
   }
 
-  override def progress : ir.ContractionSpecification = {
-    return new ir.ContractionSpecification(posExt.progress, negExt.getOrElse(posExt).progress)
+  override def progress : IR_ContractionSpecification = {
+    IR_ContractionSpecification(posExt.progress, negExt.getOrElse(posExt).progress)
   }
 }
 
@@ -347,7 +348,7 @@ case class RepeatTimesStatement(var number : Int,
   override def progress : IR_Statement = {
     if (contraction.isDefined)
     // FIXME: to[ListBuffer]
-      return new ir.ContractingLoop(number, iterator.map(i => i.progress), statements.map(s => s.progress).to[ListBuffer], contraction.get.progress)
+      return IR_ContractingLoop(number, iterator.map(i => i.progress), statements.map(s => s.progress).to[ListBuffer], contraction.get.progress)
 
     val (loopVar, begin) =
       if (iterator.isDefined) {
@@ -382,8 +383,8 @@ case class ReductionStatement(var op : String, var target : String) extends Spec
 case class RegionSpecification(var region : String, var dir : L4_ConstIndex, var onlyOnBoundary : Boolean) extends SpecialStatement {
   override def prettyprint(out : PpStream) = out << region << ' ' << dir
 
-  override def progress : ir.RegionSpecification = {
-    ir.RegionSpecification(region, L4_ConstIndex(dir.indices ++ Array.fill(3 - dir.indices.length)(0)).progress, onlyOnBoundary)
+  override def progress : IR_RegionSpecification = {
+    IR_RegionSpecification(region, L4_ConstIndex(dir.indices ++ Array.fill(3 - dir.indices.length)(0)).progress, onlyOnBoundary)
   }
 }
 
@@ -426,7 +427,7 @@ case class AdvanceStatement(var field : Access) extends L4_Statement {
 
   override def progress = {
     data.AdvanceSlotStatement(ir.iv.CurrentSlot(field.asInstanceOf[FieldAccess].progress.fieldSelection.field,
-      IR_StringLiteral(ir.LoopOverFragments.defIt)))
+      IR_StringLiteral(IR_LoopOverFragments.defIt)))
   }
 }
 

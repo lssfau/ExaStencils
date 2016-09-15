@@ -3,7 +3,7 @@ package exastencils.domain
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_FunctionCollection
+import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -197,7 +197,7 @@ case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends I
 case class ConnectFragments() extends IR_Statement with Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
 
-  override def expand : Output[LoopOverFragments] = {
+  override def expand : Output[IR_LoopOverFragments] = {
     var body = new ListBuffer[IR_Statement]
 
     val neighbors = exastencils.knowledge.Fragment.neighbors
@@ -243,22 +243,22 @@ case class ConnectFragments() extends IR_Statement with Expandable {
               if (Knowledge.domain_canHaveLocalNeighs)
                 IR_IfCondition(IR_EqEqExpression("mpiRank", PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d))),
                   FunctionCallExpression("connectLocalElement", ListBuffer[IR_Expression](
-                    LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d)),
+                    IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d)),
                   FunctionCallExpression("connectRemoteElement", ListBuffer[IR_Expression](
-                    LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d))) // FIXME: datatype for VariableAccess
+                    IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d))) // FIXME: datatype for VariableAccess
               else
                 FunctionCallExpression("connectRemoteElement", ListBuffer[IR_Expression](
-                  LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d)) // FIXME: datatype for VariableAccess
+                  IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d)) // FIXME: datatype for VariableAccess
             } else {
               FunctionCallExpression("connectLocalElement", ListBuffer[IR_Expression](
-                LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d))
+                IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d))
             }) : IR_Statement))
 
         body += IR_Scope(statements)
       }
     }
 
-    new LoopOverFragments(body) with OMP_PotentiallyParallel
+    new IR_LoopOverFragments(body) with OMP_PotentiallyParallel
   }
 }
 
@@ -292,18 +292,18 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with Expandable {
       else
         s"Vec3 rankPos(0, 0, 0)")
 
-    body += new LoopOverDimensions(Knowledge.dimensionality, IndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
+    body += IR_LoopOverDimensions(Knowledge.dimensionality, IndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
       new IR_Assignment("positions[posWritePos++]", new FunctionCallExpression("Vec3",
         ((("rankPos.x" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x,
         (if (Knowledge.dimensionality > 1) ((("rankPos.y" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0),
         (if (Knowledge.dimensionality > 2) ((("rankPos.z" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0)))) // FIXME: Constructor?
-    body += LoopOverFragments(ListBuffer(
-      IR_Assignment(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
-      IR_Assignment(iv.PrimitiveIndex(), PointToFragmentIndex(ArrayAccess("positions", LoopOverFragments.defIt))),
-      IR_Assignment(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", LoopOverFragments.defIt))),
-      IR_Assignment(iv.PrimitivePosition(), ArrayAccess("positions", LoopOverFragments.defIt)),
-      IR_Assignment(iv.PrimitivePositionBegin(), ArrayAccess("positions", LoopOverFragments.defIt) - vecDelta),
-      IR_Assignment(iv.PrimitivePositionEnd(), ArrayAccess("positions", LoopOverFragments.defIt) + vecDelta)))
+    body += IR_LoopOverFragments(
+      IR_Assignment(iv.PrimitiveId(), PointToFragmentId(ArrayAccess("positions", IR_LoopOverFragments.defIt))),
+      IR_Assignment(iv.PrimitiveIndex(), PointToFragmentIndex(ArrayAccess("positions", IR_LoopOverFragments.defIt))),
+      IR_Assignment(iv.CommId(), PointToLocalFragmentId(ArrayAccess("positions", IR_LoopOverFragments.defIt))),
+      IR_Assignment(iv.PrimitivePosition(), ArrayAccess("positions", IR_LoopOverFragments.defIt)),
+      IR_Assignment(iv.PrimitivePositionBegin(), ArrayAccess("positions", IR_LoopOverFragments.defIt) - vecDelta),
+      IR_Assignment(iv.PrimitivePositionEnd(), ArrayAccess("positions", IR_LoopOverFragments.defIt) + vecDelta))
 
     body += ConnectFragments()
 

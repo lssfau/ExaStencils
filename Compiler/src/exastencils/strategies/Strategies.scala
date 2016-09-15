@@ -22,7 +22,7 @@ object PrintStrategy extends DefaultStrategy("Pretty-Print") {
 
 object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace something with something else") {
   var toReplace : String = ""
-  var replacement : Node = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
+  var replacement : Node = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
   this += new Transformation("SearchAndReplace", {
     case IR_StringLiteral(s) if s == toReplace => Duplicate(replacement)
@@ -510,10 +510,10 @@ object GatherFieldAccessOffsets extends QuietDefaultStrategy("Gathering field ac
 
   this += new Transformation("TODO", {
     case fa : IR_FieldAccess        =>
-      addAccess(fa.fieldSelection.field.codeName, fa.index - LoopOverDimensions.defIt(fa.index.length))
+      addAccess(fa.fieldSelection.field.codeName, fa.index - IR_LoopOverDimensions.defIt(fa.index.length))
       fa
     case dfa : IR_DirectFieldAccess =>
-      addAccess(dfa.fieldSelection.field.codeName, dfa.index - dfa.fieldSelection.field.referenceOffset - LoopOverDimensions.defIt(dfa.index.length))
+      addAccess(dfa.fieldSelection.field.codeName, dfa.index - dfa.fieldSelection.field.referenceOffset - IR_LoopOverDimensions.defIt(dfa.index.length))
       dfa
   })
 }

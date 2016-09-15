@@ -6,7 +6,7 @@ import scala.reflect.ClassTag
 import scala.util.Sorting
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_DirectFieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
@@ -31,13 +31,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       StrategyTimer.startTiming(name)
 
     // contains function name, actual loop node, (loop iterator, begin, end, and increment)*, and shortcut to its body buffer
-    val scopes = new ArrayBuffer[(String, LoopOverDimensions, Array[(String, IR_Expression, IR_Expression, Long)], () => ListBuffer[IR_Statement])]()
+    val scopes = new ArrayBuffer[(String, IR_LoopOverDimensions, Array[(String, IR_Expression, IR_Expression, Long)], () => ListBuffer[IR_Statement])]()
     var curFunc : String = null
     this.execute(new Transformation("find and extract relevant scopes", {
-      case f : IR_Function        =>
+      case f : IR_Function           =>
         curFunc = f.name
         f
-      case l : LoopOverDimensions =>
+      case l : IR_LoopOverDimensions =>
         val incr = (0 until l.stepSize.length - Knowledge.opt_loopCarriedCSE_skipOuter).view.map { d =>
           l.stepSize(d) match {
             case IR_IntegerConstant(i) if (i > 0) => (dimToString(d), l.indices.begin(d), l.indices.end(d), i)
@@ -143,7 +143,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     SimplifyStrategy.doUntilDoneStandalone(parent, true)
   }
 
-  private def loopCarriedCSE(curFunc : String, loop : LoopOverDimensions,
+  private def loopCarriedCSE(curFunc : String, loop : IR_LoopOverDimensions,
       loopIt : Array[(String, IR_Expression, IR_Expression, Long)], orderMap : Map[Any, Int]) : Seq[ListBuffer[IR_Statement]] = {
     if (loopIt == null || loopIt.forall(_ == null))
       return Nil

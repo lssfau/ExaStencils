@@ -3,6 +3,7 @@ package exastencils.knowledge
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -137,7 +138,7 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
 }
 
 object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
-  var replacement : IR_ExpressionIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
+  var replacement : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
   def doUntilDone(node : Option[Node] = None) = {
     do { apply(node) }
@@ -170,7 +171,7 @@ object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
 
 object CreateGeomCoordinates extends DefaultStrategy("Add geometric coordinate calculations") {
   this += new Transformation("Search and extend", {
-    case loop : LoopOverPointsInOneFragment =>
+    case loop : IR_LoopOverPointsInOneFragment =>
       if (StateManager.findFirst[AnyRef]((node : Any) => node match {
         case IR_StringLiteral("xPos") | IR_StringLiteral("yPos") | IR_StringLiteral("zPos")             => true
         case IR_VariableAccess("xPos", _) | IR_VariableAccess("yPos", _) | IR_VariableAccess("zPos", _) => true

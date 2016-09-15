@@ -3,7 +3,7 @@ package exastencils.datastructures.ir.iv
 import scala.collection.mutable._
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
@@ -11,7 +11,7 @@ import exastencils.prettyprinting._
 
 /// variables and flags
 
-case class CurrentSlot(var field : Field, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+case class CurrentSlot(var field : Field, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
@@ -21,7 +21,7 @@ case class CurrentSlot(var field : Field, var fragmentIdx : IR_Expression = Loop
   override def resolveDefValue = Some(IR_IntegerConstant(0))
 }
 
-case class IndexFromField(var layoutIdentifier : String, var level : IR_Expression, var indexId : String, var dim : Int, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
+case class IndexFromField(var layoutIdentifier : String, var level : IR_Expression, var indexId : String, var dim : Int, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends InternalVariable(true, false, true, true, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = false
@@ -51,7 +51,7 @@ case class IndexFromField(var layoutIdentifier : String, var level : IR_Expressi
       }
     }
     level = oldLev
-    Some(new LoopOverFragments(statements))
+    Some(new IR_LoopOverFragments(statements))
   }
 }
 
@@ -90,7 +90,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   override def getCtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
+    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue.get)))
     slot = origSlot
     ret
   }
@@ -98,7 +98,7 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   override def getDtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+    val access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
 
     val ret = Some(wrapInLoops(
       IR_IfCondition(access,
@@ -117,13 +117,13 @@ abstract class AbstractFieldData extends InternalVariable(true, false, true, tru
   }
 }
 
-case class FieldDataBasePtr(override var field : Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends AbstractFieldData {
+case class FieldDataBasePtr(override var field : Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends AbstractFieldData {
   override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "") +
     "_base"
 }
 
-case class FieldData(override var field : Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends AbstractFieldData {
+case class FieldData(override var field : Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends AbstractFieldData {
   def basePtr = FieldDataBasePtr(field, level, slot, fragmentIdx)
 
   override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
@@ -133,7 +133,7 @@ case class FieldData(override var field : Field, override var level : IR_Express
     if (Knowledge.data_alignFieldPointers) {
       val origSlot = slot
       slot = "slot"
-      val access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+      val access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
       val ret = Some(wrapInLoops(new IR_Assignment(access, 0)))
       slot = origSlot
       ret

@@ -46,7 +46,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
       IR_PointerDatatype(src.resolveBaseDatatype)
 
     val loopDim = dest.fieldLayout.numDimsData
-    def multiIndex = LoopOverDimensions.defIt(loopDim)
+    def multiIndex = IR_LoopOverDimensions.defIt(loopDim)
 
     // access field layouts
     val internal = src.fieldLayout
@@ -67,11 +67,11 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     new IR_Function(IR_UnitDatatype, name,
       ListBuffer(new IR_FunctionArgument("dest", externalDT), new IR_FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
-        new LoopOverDimensions(loopDim, new IndexRange(
+        new IR_LoopOverDimensions(loopDim, new IndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
-          new IR_Assignment(IR_ExternalFieldAccess("dest", dest, multiIndex + offsetForExtField),
-            IR_DirectFieldAccess(FieldSelection(src, src.level, "slot"), multiIndex))) with OMP_PotentiallyParallel with PolyhedronAccessible),
+          ListBuffer[IR_Statement](IR_Assignment(IR_ExternalFieldAccess("dest", dest, multiIndex + offsetForExtField),
+            IR_DirectFieldAccess(FieldSelection(src, src.level, "slot"), multiIndex)))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }
 }
@@ -95,7 +95,7 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
       IR_PointerDatatype(dest.resolveBaseDatatype)
 
     val loopDim = src.fieldLayout.numDimsData
-    def multiIndex = LoopOverDimensions.defIt(loopDim)
+    def multiIndex = IR_LoopOverDimensions.defIt(loopDim)
 
     // access field layouts
     val internal = dest.fieldLayout
@@ -116,11 +116,11 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     new IR_Function(IR_UnitDatatype, name,
       ListBuffer(new IR_FunctionArgument("src", externalDT), new IR_FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
-        new LoopOverDimensions(loopDim, new IndexRange(
+        new IR_LoopOverDimensions(loopDim, new IndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
-          new IR_Assignment(IR_DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), multiIndex),
-            IR_ExternalFieldAccess("src", src, multiIndex + offsetForExtField))) with OMP_PotentiallyParallel with PolyhedronAccessible),
+          ListBuffer[IR_Statement](IR_Assignment(IR_DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), multiIndex),
+            IR_ExternalFieldAccess("src", src, multiIndex + offsetForExtField)))) with OMP_PotentiallyParallel with PolyhedronAccessible),
       false, true)
   }
 }

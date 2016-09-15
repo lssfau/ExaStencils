@@ -14,6 +14,7 @@ import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
 
+@deprecated("to be integrated with loop annotations/ loop member holding optimization and parallelization information", "15.09.2016")
 trait PolyhedronAccessible {
   var optLevel : Int = 3
   // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]

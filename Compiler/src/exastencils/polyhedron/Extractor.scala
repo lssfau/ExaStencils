@@ -3,7 +3,7 @@ package exastencils.polyhedron
 import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, Set, StringBuilder }
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_DirectFieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures._
@@ -360,7 +360,7 @@ class Extractor extends Collector {
     private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
     private final val formatter = new java.util.Formatter(formatterResult)
 
-    def create(root : LoopOverDimensions with PolyhedronAccessible, localContext : isl.Set,
+    def create(root : IR_LoopOverDimensions with PolyhedronAccessible, localContext : isl.Set,
         globalContext : isl.Set, optLevel : Int, origLoopVars : ArrayBuffer[String],
         modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
 
@@ -457,7 +457,7 @@ class Extractor extends Collector {
     try {
       if (!curScop.exists())
         node match {
-          case loop : LoopOverDimensions with PolyhedronAccessible =>
+          case loop : IR_LoopOverDimensions with PolyhedronAccessible =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
@@ -600,7 +600,7 @@ class Extractor extends Collector {
 
     if (curScop.exists())
       node match {
-        case l : LoopOverDimensions           => leaveLoop(l)
+        case l : IR_LoopOverDimensions        => leaveLoop(l)
         case c : IR_IfCondition               => leaveCondition(c)
         case _ : IR_Assignment                => leaveAssign()
         case _ : IR_StringLiteral             => leaveScalarAccess()
@@ -629,7 +629,7 @@ class Extractor extends Collector {
 
   /////////////////// methods for node processing \\\\\\\\\\\\\\\\\\\
 
-  private def enterLoop(loop : LoopOverDimensions with PolyhedronAccessible, mergeWithPrev : Boolean) : Unit = {
+  private def enterLoop(loop : IR_LoopOverDimensions with PolyhedronAccessible, mergeWithPrev : Boolean) : Unit = {
 
     for (step <- loop.stepSize)
       if (step != IR_IntegerConstant(1))
@@ -645,7 +645,7 @@ class Extractor extends Collector {
         (loop.indices.begin, loop.indices.end)
     if (hasOmpLoop && !loop.areOmpIndicesAffine)
       paramExprs += begin.last += end.last
-    val loopVarExps : IR_ExpressionIndex = LoopOverDimensions.defIt(loop.numDimensions)
+    val loopVarExps : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(loop.numDimensions)
 
     val params = new HashSet[String]()
     val modelLoopVars = new ArrayStack[String]()
@@ -737,7 +737,7 @@ class Extractor extends Collector {
     executeAfterExtraction += { () => loop.body.remove(0, nrConds) }
   }
 
-  private def leaveLoop(loop : LoopOverDimensions) : Unit = {
+  private def leaveLoop(loop : IR_LoopOverDimensions) : Unit = {
     for (exec <- executeAfterExtraction)
       exec()
     executeAfterExtraction.clear()

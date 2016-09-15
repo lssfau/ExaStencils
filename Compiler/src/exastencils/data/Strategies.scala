@@ -64,14 +64,14 @@ object ResolveBoundedExpressions extends DefaultStrategy("Resolving BoundedExpre
 
 object ResolveLoopOverDimensions extends DefaultStrategy("Resolving LoopOverDimensions nodes") {
   this += new Transformation("Resolving", {
-    case loop : LoopOverDimensions =>
+    case loop : IR_LoopOverDimensions =>
       loop.expandSpecial
   })
 }
 
 object ResolveLoopOverPointsInOneFragment extends DefaultStrategy("Resolving LoopOverPointsInOneFragment nodes") {
   this += new Transformation("Resolving", {
-    case loop : LoopOverPointsInOneFragment =>
+    case loop : IR_LoopOverPointsInOneFragment =>
       loop.expandSpecial
   })
 }
@@ -81,7 +81,7 @@ object ResolveLoopOverPoints extends DefaultStrategy("Resolving ResolveLoopOverP
   this.register(collector)
 
   this += new Transformation("Resolving", {
-    case loop : LoopOverPoints =>
+    case loop : IR_LoopOverPoints =>
       loop.expandSpecial(collector)
   })
 }
@@ -96,20 +96,20 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
     case advanceSlot : AdvanceSlotStatement =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
-        case _ : LoopOverFragments                                                                             => true
-        case IR_ForLoop(VariableDeclarationStatement(_, it, _), _, _, _, _) if (LoopOverFragments.defIt == it) => true
-        case _                                                                                                 => false
+        case _ : IR_LoopOverFragments                                                                             => true
+        case IR_ForLoop(VariableDeclarationStatement(_, it, _), _, _, _, _) if (IR_LoopOverFragments.defIt == it) => true
+        case _                                                                                                    => false
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial
       else
-        new LoopOverFragments(advanceSlot.expandSpecial) with OMP_PotentiallyParallel // TODO: parallelization will probably be quite slow -> SPL?
+        new IR_LoopOverFragments(ListBuffer[IR_Statement](advanceSlot.expandSpecial)) with OMP_PotentiallyParallel // TODO: parallelization will probably be quite slow -> SPL?
   })
 }
 
 // Note: Must run after ResolveLoopOverPointsInOneFragment
 object ResolveContractingLoop extends DefaultStrategy("Resolving ContractingLoop nodes") {
   this += new Transformation("Resolving", {
-    case loop : ContractingLoop =>
+    case loop : IR_ContractingLoop =>
       loop.expandSpecial
   })
 }
@@ -215,7 +215,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
         }
 
         // wrap body in fragment loop
-        body = ListBuffer[IR_Statement](LoopOverFragments(body))
+        body = ListBuffer[IR_Statement](IR_LoopOverFragments(body))
 
         // set up function
         multiGrid.functions += new IR_Function(
@@ -286,7 +286,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
   this += new Transformation("Collecting buffer sizes", {
     case buf : iv.TmpBuffer => {
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+      val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (bufferSizes.contains(id))
           bufferSizes.get(id).get.asInstanceOf[IR_MaximumExpression].args += Duplicate(buf.size)
@@ -302,7 +302,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
     case field : iv.FieldData => {
       val cleanedField = Duplicate(field)
       cleanedField.slot = "slot"
-      cleanedField.fragmentIdx = LoopOverFragments.defIt
+      cleanedField.fragmentIdx = IR_LoopOverFragments.defIt
 
       var numDataPoints : IR_Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
       var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -333,8 +333,8 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       else
         statements ++= innerStmts
 
-      fieldAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
-        IR_IfCondition(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
+      fieldAllocs += (cleanedField.prettyprint() -> new IR_LoopOverFragments(
+        ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.field.domain.index), statements))) with OMP_PotentiallyParallel)
 
       field
     }
@@ -342,7 +342,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
     case field : iv.FieldDeviceData => {
       val cleanedField = Duplicate(field)
       cleanedField.slot = "slot"
-      cleanedField.fragmentIdx = LoopOverFragments.defIt
+      cleanedField.fragmentIdx = IR_LoopOverFragments.defIt
 
       var numDataPoints : IR_Expression = (0 until field.field.fieldLayout.numDimsData).map(dim => field.field.fieldLayout.idxById("TOT", dim)).reduceLeft(_ * _)
       var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -362,14 +362,14 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       else
         statements ++= innerStmts
 
-      deviceFieldAllocs += (cleanedField.prettyprint() -> new LoopOverFragments(
-        IR_IfCondition(iv.IsValidForSubdomain(field.field.domain.index), statements)) with OMP_PotentiallyParallel)
+      deviceFieldAllocs += (cleanedField.prettyprint() -> new IR_LoopOverFragments(
+        ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.field.domain.index), statements))) with OMP_PotentiallyParallel)
 
       field
     }
 
     case buf : iv.ReductionDeviceData => {
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
+      val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (deviceBufferSizes.contains(id))
           deviceBufferSizes.get(id).get.asInstanceOf[IR_MaximumExpression].args += Duplicate(buf.size)
@@ -400,12 +400,12 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
   this += new Transformation("Updating temporary buffer allocations", {
     case buf : iv.TmpBuffer =>
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+      val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = bufferSizes(id)
 
       if (Knowledge.data_alignTmpBufferPointers) {
         counter += 1
-        bufferAllocs += (id -> new LoopOverFragments(ListBuffer[IR_Statement](
+        bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](
           VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * SizeOfExpression(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
@@ -413,16 +413,16 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
             Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / SizeOfExpression(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
       } else {
-        bufferAllocs += (id -> new LoopOverFragments(IR_ArrayAllocation(buf, IR_RealDatatype, size)) with OMP_PotentiallyParallel)
+        bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](IR_ArrayAllocation(buf, IR_RealDatatype, size))) with OMP_PotentiallyParallel)
       }
 
       buf
 
     case buf : iv.ReductionDeviceData =>
-      val id = buf.resolveAccess(buf.resolveName, LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
+      val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> new LoopOverFragments(CUDA_AllocateStatement(buf, size, IR_RealDatatype /*FIXME*/)) with OMP_PotentiallyParallel)
+      deviceBufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](CUDA_AllocateStatement(buf, size, IR_RealDatatype /*FIXME*/))) with OMP_PotentiallyParallel)
 
       buf
 

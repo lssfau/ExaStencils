@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils._
 import exastencils.base.ir._
 import exastencils.base.l4._
-import exastencils.baseExt.ir.IR_FieldAccess
+import exastencils.baseExt.ir._
 import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.prettyprinting._
@@ -148,7 +148,7 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     // TODO: extract common index stuff from here and VirtualFieldAccess, StencilFieldAccess, etc
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
-    var multiIndex = ir.LoopOverDimensions.defIt(numDims)
+    var multiIndex = IR_LoopOverDimensions.defIt(numDims)
     if (arrayIndex.isDefined)
       multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
@@ -172,7 +172,7 @@ case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecific
   def progress : ir.VirtualFieldAccess = {
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
-    var multiIndex = ir.LoopOverDimensions.defIt(numDims)
+    var multiIndex = IR_LoopOverDimensions.defIt(numDims)
     if (arrayIndex.isDefined)
       multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
@@ -252,7 +252,7 @@ case class StencilFieldAccess(var name : String,
 
     var numDims = stencilField.field.fieldLayout.numDimsGrid
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
-    var multiIndex = ir.LoopOverDimensions.defIt(numDims)
+    var multiIndex = IR_LoopOverDimensions.defIt(numDims)
     if (arrayIndex.isDefined)
       multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
@@ -279,7 +279,7 @@ case class StencilFieldAccess(var name : String,
 
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
     numDims += 1 // TODO: remove array index and update function after integration of vec types
-    var multiIndex = ir.LoopOverDimensions.defIt(numDims)
+    var multiIndex = IR_LoopOverDimensions.defIt(numDims)
 
     if (accessIndex < 0)
       multiIndex(numDims - 1) = IR_IntegerConstant(0)

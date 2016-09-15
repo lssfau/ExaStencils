@@ -3,7 +3,7 @@ package exastencils.datastructures.ir.iv
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir._
 import exastencils.cuda._
 import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
@@ -43,13 +43,13 @@ abstract class FieldFlag extends InternalVariable(true, false, true, true, false
   override def getCtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt), resolveDefValue.get)))
+    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue.get)))
     slot = origSlot
     ret
   }
 }
 
-case class HostDataUpdated(override var field : Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends FieldFlag {
+case class HostDataUpdated(override var field : Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends FieldFlag {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
@@ -58,7 +58,7 @@ case class HostDataUpdated(override var field : Field, override var slot : IR_Ex
   override def resolveDefValue = Some(IR_BooleanConstant(true))
 }
 
-case class DeviceDataUpdated(override var field : Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends FieldFlag {
+case class DeviceDataUpdated(override var field : Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends FieldFlag {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
@@ -69,14 +69,14 @@ case class DeviceDataUpdated(override var field : Field, override var slot : IR_
 
 /// memory management
 
-case class FieldDeviceData(override var field : Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends AbstractFieldData {
+case class FieldDeviceData(override var field : Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends AbstractFieldData {
   override def resolveName = (if (1 == field.numSlots) s"fieldDeviceData" else "slottedFieldDeviceData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
 
   override def getDtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+    var access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
 
     val ret = Some(wrapInLoops(
       IR_IfCondition(access,
@@ -88,13 +88,13 @@ case class FieldDeviceData(override var field : Field, override var level : IR_E
   }
 }
 
-case class ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Expression = LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+case class ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
   override def resolveDatatype = IR_PointerDatatype(IR_RealDatatype)
   // TODO: extend for other types
   override def resolveName : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
 
   override def getDtor() : Option[IR_Statement] = {
-    var access = resolveAccess(resolveName, LoopOverFragments.defIt, LoopOverDomains.defIt, LoopOverFields.defIt, LoopOverLevels.defIt, LoopOverNeighbors.defIt)
+    var access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
     Some(IR_IfCondition(access,
       ListBuffer[IR_Statement](
         CUDA_FreeStatement(access),

@@ -5,7 +5,7 @@ import scala.collection.mutable.{ Node => _, _ }
 import java.io.PrintWriter
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MultiDimFieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core.Settings
 import exastencils.data._
 import exastencils.datastructures.Transformation._
@@ -174,7 +174,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
       fct
     }
 
-    case loop : LoopOverDimensions => {
+    case loop : IR_LoopOverDimensions => {
       if (loop.hasAnnotation("perf_timeEstimate_host") || loop.hasAnnotation("perf_timeEstimate_device")) {
         addTimeToStack(loop)
         loop

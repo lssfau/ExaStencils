@@ -3,7 +3,7 @@ package exastencils.util
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_FieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.ImplicitConversions._
@@ -76,13 +76,13 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
 
   def getPos(field : FieldSelection, dim : Int) : IR_Expression = {
     field.field.discretization match {
-      case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
-      case "cell"                                   => GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case "cell"                                   => GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
       case discr @ ("face_x" | "face_y" | "face_z") => {
         if (s"face_${ dimToString(dim) }" == discr)
-          GridGeometry.getGeometry.nodePosition(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+          GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
         else
-          GridGeometry.getGeometry.cellCenter(field.level, LoopOverDimensions.defIt(numDimsGrid), None, dim)
+          GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
       }
     }
   }
@@ -112,9 +112,9 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
     var innerLoop = ListBuffer[IR_Statement](
       new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
       fileHeader,
-      new LoopOverFragments(
+      IR_LoopOverFragments(
         IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
-          new LoopOverDimensions(numDimsData, new IndexRange(
+          IR_LoopOverDimensions(numDimsData, new IndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
@@ -122,7 +122,7 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
                 ((0 until numDimsGrid).view.flatMap { dim =>
                   List(getPos(field, dim), separator)
                 } ++ arrayIndexRange.view.flatMap { index =>
-                  val access = new IR_FieldAccess(field, LoopOverDimensions.defIt(numDimsData))
+                  val access = new IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
                   if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
                     access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
                   List(access, separator)

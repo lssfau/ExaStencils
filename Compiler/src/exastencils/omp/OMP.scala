@@ -11,6 +11,7 @@ import exastencils.prettyprinting._
 
 trait OMP_PotentiallyCritical
 
+@deprecated("to be integrated with loop annotations/ loop member holding optimization and parallelization information", "15.09.2016")
 trait OMP_PotentiallyParallel {
   var reduction : Option[Reduction];
   var additionalOMPClauses = new ListBuffer[OMP_Clause];

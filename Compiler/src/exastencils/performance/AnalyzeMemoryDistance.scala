@@ -3,12 +3,11 @@ package exastencils.performance
 import scala.collection.mutable.HashMap
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MultiDimFieldAccess
+import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.strategies.SimplifyStrategy
 
 /**
@@ -95,21 +94,21 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
   //  * Use of loop variables of a higher dimension than the supscript dimension should map to zero offset,
   //  * example: [z,y,y] should map to [0,0,0] since y is a constant in the inner-loop
 
-  var curLoop : LoopOverDimensions = null
+  var curLoop : IR_LoopOverDimensions = null
 
   val loopCollector = new Collector {
     override def leave(node : Node) : Unit = {
       node match {
-        case loop : LoopOverDimensions => curLoop = null
+        case loop : IR_LoopOverDimensions => curLoop = null
           println("============================================")
-        case _                         =>
+        case _                            =>
       }
     }
 
     override def enter(node : Node) : Unit = {
       node match {
-        case loop : LoopOverDimensions => curLoop = loop
-        case _                         =>
+        case loop : IR_LoopOverDimensions => curLoop = loop
+        case _                            =>
       }
     }
 

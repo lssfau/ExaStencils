@@ -1,6 +1,7 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -29,7 +30,7 @@ object Testbed {
   }
 
   object ResolveCoordinates0 extends DefaultStrategy("ResolveCoordinates0") {
-    var replacement : IR_ExpressionIndex = LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
+    var replacement : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
 
     Knowledge.dimensionality match {
       case 1 => this += new Transformation("SearchAndReplace", {
