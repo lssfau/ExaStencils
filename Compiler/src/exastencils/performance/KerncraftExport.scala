@@ -1,6 +1,7 @@
 package exastencils.performance
 
 import java.io.{File, PrintWriter}
+import java.nio.file.Paths
 
 import exastencils.core.Duplicate
 import exastencils.datastructures.ir._
@@ -24,7 +25,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
 
   var kernelId = 0
 
-  val kerncraftDirStr = Settings.getBasePath + "/kerncraft"
+  val kerncraftDirStr = Paths.get(Settings.getBasePath, "kerncraft").toString
   val kerncraftDir = new File(kerncraftDirStr)
   kerncraftDir.mkdir()
 
