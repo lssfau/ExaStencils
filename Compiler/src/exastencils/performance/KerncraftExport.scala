@@ -3,9 +3,11 @@ package exastencils.performance
 import java.io.{File, PrintWriter}
 import java.nio.file.Paths
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.ir._
-import exastencils.datastructures.{DefaultStrategy, Node, Transformation}
+import exastencils.datastructures._
 import exastencils.knowledge.{Field, FieldLayout, Mapping, dimToString}
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PrettyPrintable
@@ -33,7 +35,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
   // Clone it and transform the clone.
   // Pretty print transformed kernel to file as simplified c++.
   this += new Transformation("Visiting LoopOverDimension", {
-    case loop : LoopOverDimensions => {
+    case loop : IR_LoopOverDimensions => {
       val clone = Duplicate(loop)
 //      val kernelFileStr = kerncraftDir.toString() + s"/kernel-${kernelId%4d}.c"
       val kernelFileStr = kerncraftDir.toString() + "/kernel-%04d.c".format(kernelId)
@@ -121,42 +123,42 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
     ).toList
   }
 
-  def buildOrdinaryLoop(loop : LoopOverDimensions) : ForLoopStatement = {
+  def buildOrdinaryLoop(loop : IR_LoopOverDimensions) : IR_ForLoop = {
     (0 until loop.indices.size).foreach(i => {
       println(i)
 
     })
 
-    val begin = VariableDeclarationStatement(IntegerDatatype, "i", Some(IntegerConstant(0)))
-    val end = LowerExpression(new VariableAccess(begin), IntegerConstant(0))
-    val inc = ExpressionStatement(PreIncrementExpression(new VariableAccess(begin)))
+    val begin = IR_VariableDeclaration(IR_IntegerDatatype, "i", Some(IR_IntegerConstant(0)))
+    val end = IR_LowerExpression(new IR_VariableAccess(begin), IR_IntegerConstant(0))
+    val inc = IR_ExpressionStatement(IR_PreIncrementExpression(new IR_VariableAccess(begin)))
 
-    val forLoop = ForLoopStatement(begin, end, inc, ListBuffer[Statement]())
+    val forLoop = IR_ForLoop(begin, end, inc, ListBuffer[IR_Statement]())
     println("*****")
     println(forLoop.prettyprint())
     //    println(">>>>>")
     //    loop.expandSpecial.foreach(s => println(s.prettyprint()))
-    //      val forLoop = new ForLoopStatement(/**/,0,0,null)
+    //      val forLoop = new IR_ForLoop(/**/,0,0,null)
     forLoop
   }
 
-  def buildForLoopRec(loop : LoopOverDimensions) : ForLoopStatement = {
+  def buildForLoopRec(loop : IR_LoopOverDimensions) : IR_ForLoop = {
 
-    val begin = LoopOverDimensions.evalMinIndex(loop.indices.begin, loop.numDimensions, true)
-    val end = LoopOverDimensions.evalMaxIndex(loop.indices.end, loop.numDimensions, true)
+    val begin = IR_LoopOverDimensions.evalMinIndex(loop.indices.begin, loop.numDimensions, true)
+    val end = IR_LoopOverDimensions.evalMaxIndex(loop.indices.end, loop.numDimensions, true)
 
     println(begin.map(x => x.toString).toList)
     println(end.map(x => x.toString).toList)
 
-    def buildRec(d : Integer, outer : Option[ForLoopStatement]) : Option[ForLoopStatement] = {
+    def buildRec(d : Integer, outer : Option[IR_ForLoop]) : Option[IR_ForLoop] = {
       if (d < loop.numDimensions) {
 
-        def it = VariableAccess(dimToString(d), Some(IntegerDatatype))
-        val decl = VariableDeclarationStatement(IntegerDatatype, dimToString(d), Some(IntegerConstant(begin(d))))
-        val cond = LowerExpression(it, IntegerConstant(end(d)))
-        val incr = AssignmentStatement(it, loop.stepSize(d), "+=")
+        def it = IR_VariableAccess(dimToString(d), Some(IR_IntegerDatatype))
+        val decl = IR_VariableDeclaration(IR_IntegerDatatype, dimToString(d), Some(IR_IntegerConstant(begin(d))))
+        val cond = IR_LowerExpression(it, IR_IntegerConstant(end(d)))
+        val incr = IR_Assignment(it, loop.stepSize(d), "+=")
 
-        val forloop = ForLoopStatement(decl, cond, incr, ListBuffer())
+        val forloop = IR_ForLoop(decl, cond, incr, ListBuffer[IR_Statement]())
 
         outer match {
           case Some(outer) => outer.body.append(forloop)
@@ -173,14 +175,14 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
     }
 
     //    val begin = VariableDeclarationStatement(IntegerDatatype, "i", Some(IntegerConstant(0)))
-    //    val end = LowerExpression(new VariableAccess(begin), IntegerConstant(0))
-    //    val inc = ExpressionStatement(PreIncrementExpression(new VariableAccess(begin)))
+    //    val end = LowerExpression(new IR_VariableAccess(begin), IntegerConstant(0))
+    //    val inc = ExpressionStatement(PreIncrementExpression(new IR_VariableAccess(begin)))
     //
-    //    val forLoop = ForLoopStatement(begin, end, inc, ListBuffer[Statement]())
+    //    val forLoop = IR_ForLoop(begin, end, inc, ListBuffer[Statement]())
     //    println("*****")
 
 
-    //      val forLoop = new ForLoopStatement(/**/,0,0,null)
+    //      val forLoop = new IR_ForLoop(/**/,0,0,null)
     //    forLoop
 
     buildRec(0, None).get
@@ -206,13 +208,13 @@ object TransformKernel extends DefaultStrategy("Kernel Transformation") {
   }
 
   this += new Transformation("Transforming kernels", {
-    case fa : FieldAccessLike =>
+    case fa : IR_MultiDimFieldAccess =>
       //      println("-----")
       //      println(fa)
       //      println(fa.fieldSelection.field.identifier, fa.index)
       fields += fa.fieldSelection.field
       val idname = "f" + fa.fieldSelection.field.identifier
-      val ident = new VariableAccess(idname, fa.fieldSelection.field.resolveBaseDatatype)
+      val ident = new IR_VariableAccess(idname, Some(fa.fieldSelection.field.resolveBaseDatatype))
 //      val aaidx = fa.index.map( ix => ix)
 
       val aa = new ArrayAccessMultiDim(ident, fa.index)
@@ -220,9 +222,9 @@ object TransformKernel extends DefaultStrategy("Kernel Transformation") {
       //      println(aa.prettyprint())
       aa
 
-    case be : BoundedExpression =>
-      println("----" + be)
-      be
+    case bs : IR_BoundedScalar =>
+      println("----" + bs)
+      bs
     case x =>
       //      println("xxxxx not handled: " + x.toString())
       x

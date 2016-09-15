@@ -235,9 +235,6 @@ object Main {
 
     if (Knowledge.kerncraftExport) {
       KerncraftExport.apply()
-//        KerncraftDump.apply()
-//      Logger.warn("KerncraftExport enabled. Terminating IR handling.")
-//      return
     }
 
     if (Knowledge.experimental_addPerformanceEstimate)

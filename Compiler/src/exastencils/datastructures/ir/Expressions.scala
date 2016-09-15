@@ -90,7 +90,9 @@ case class CastExpression(var innerDatatype : IR_Datatype, var toCast : IR_Expre
 }
 
 // HACK altmann: non-linearized multi dimensional arrays of pointers (to pointers, ...) to data, e.g. a[z-1][y+1][x]
-case class ArrayAccessMultiDim(var base : Expression, var indices : Iterable[Expression]) extends Access{
+case class ArrayAccessMultiDim(var base : IR_Expression, var indices : Iterable[IR_Expression]) extends IR_Access{
+  // FIXME how to get the base data type of an array expression?
+  override def datatype = ???
   override def prettyprint(out : PpStream) : Unit = {
     out << base
     indices.foreach({ ix =>
