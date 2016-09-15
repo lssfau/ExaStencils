@@ -13,7 +13,7 @@ import exastencils.mpi._
 import exastencils.prettyprinting._
 
 case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerDetail_AssignNow\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
@@ -52,7 +52,7 @@ case class TimerDetail_Zero() extends IR_Expression {
 }
 
 case class TimerDetail_ReturnConvertToMS(var time : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerDetail_ReturnConvertToMS\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
@@ -100,7 +100,7 @@ case class TimerFct_StartTimer() extends AbstractTimerFunction with IR_Expandabl
 
   import AbstractTimerFunction._
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_StartTimer\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "startTimer"
 
@@ -120,7 +120,7 @@ case class TimerFct_StopTimer() extends AbstractTimerFunction with IR_Expandable
 
   import AbstractTimerFunction._
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_StopTimer\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "stopTimer"
 
@@ -146,7 +146,7 @@ case class TimerFct_GetTotalTime /* in milliseconds */ () extends AbstractTimerF
 
   import AbstractTimerFunction._
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_GetTotalTime\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "getTotalTime"
 
@@ -162,7 +162,7 @@ case class TimerFct_GetMeanTime /* in milliseconds */ () extends AbstractTimerFu
 
   import AbstractTimerFunction._
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_GetMeanTime\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "getMeanTime"
 
@@ -181,7 +181,7 @@ case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFu
 
   import AbstractTimerFunction._
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_GetLastTime\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "getLastTime"
 
@@ -195,7 +195,7 @@ case class TimerFct_GetLastTime /* in milliseconds */ () extends AbstractTimerFu
 
 case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with IR_Expandable {
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_PrintAllTimers\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "printAllTimers"
 
@@ -231,7 +231,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with IR_Expan
 
 case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR_Expandable {
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = TimerFct_PrintAllTimersToFile\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "printAllTimersToFile"
 

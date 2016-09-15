@@ -26,11 +26,11 @@ case class hackMatComponentAccess(var mat : IR_VariableAccess, var i : IR_Expres
 
 case class EquationExpression(var lhs : IR_Expression, var rhs : IR_Expression) extends IR_Expression {
   override def datatype = rhs.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EquationExpression\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 }
 
 case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[EquationExpression]) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SolveLocallyStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   var fVals = ListBuffer[IR_AdditionExpression]()
   var AVals = ListBuffer[ListBuffer[IR_AdditionExpression]]()

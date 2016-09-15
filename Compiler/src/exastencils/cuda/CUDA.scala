@@ -28,7 +28,7 @@ case class CUDA_Finalize() extends CUDA_Statement {
 }
 
 case class CUDA_CheckError(var exp : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_CheckError\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Scope] = {
     // TODO: replace with define?
@@ -41,7 +41,7 @@ case class CUDA_CheckError(var exp : IR_Expression) extends IR_Statement with IR
 }
 
 case class CUDA_AllocateStatement(var pointer : IR_Expression, var numElements : IR_Expression, var datatype : IR_Datatype) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_AllocateStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     CUDA_CheckError(
@@ -53,7 +53,7 @@ case class CUDA_AllocateStatement(var pointer : IR_Expression, var numElements :
 }
 
 case class CUDA_FreeStatement(var pointer : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_FreeStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     IR_ExpressionStatement(IR_FunctionCall("cudaFree", pointer))
@@ -63,7 +63,7 @@ case class CUDA_FreeStatement(var pointer : IR_Expression) extends IR_Statement 
 case class CUDA_UpdateHostData(var fieldAccess : IR_MultiDimFieldAccess) extends IR_Statement with IR_Expandable {
   // TODO: allow targeting of specific index ranges
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateHostData\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_IfCondition] = {
     val fieldSelection = fieldAccess.fieldSelection
@@ -82,7 +82,7 @@ case class CUDA_UpdateHostData(var fieldAccess : IR_MultiDimFieldAccess) extends
 }
 
 case class CUDA_UpdateDeviceData(var fieldAccess : IR_MultiDimFieldAccess) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateDeviceData\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_IfCondition] = {
     val fieldSelection = fieldAccess.fieldSelection
@@ -155,7 +155,7 @@ case class CUDA_FunctionCallExperimentalExpression(
 }
 
 case class CUDA_DeviceSynchronize() extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_DeviceSynchronize\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     CUDA_CheckError(IR_FunctionCall("cudaDeviceSynchronize"))
@@ -163,7 +163,7 @@ case class CUDA_DeviceSynchronize() extends IR_Statement with IR_Expandable {
 }
 
 case class CUDA_Memcpy(var dest : IR_Expression, var src : IR_Expression, var sizeInBytes : IR_Expression, var direction : String) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_Memcpy\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     CUDA_CheckError(
@@ -173,7 +173,7 @@ case class CUDA_Memcpy(var dest : IR_Expression, var src : IR_Expression, var si
 }
 
 case class CUDA_Memset(var data : IR_Expression, var value : IR_Expression, var numElements : IR_Expression, var datatype : IR_Datatype) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_Memset\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     CUDA_CheckError(IR_FunctionCall("cudaMemset", ListBuffer(data, value, numElements * IR_SizeOf(datatype))))

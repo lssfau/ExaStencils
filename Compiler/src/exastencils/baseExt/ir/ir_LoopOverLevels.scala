@@ -18,7 +18,7 @@ case class IR_LoopOverLevels(var body : ListBuffer[IR_Statement]) extends IR_Sta
 
   import IR_LoopOverLevels._
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverLevels\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_ForLoop] = {
     IR_ForLoop(

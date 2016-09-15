@@ -28,7 +28,8 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
     var reduction : Option[IR_Reduction] = None,
     var condition : Option[IR_Expression] = None) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDims = field.fieldLayout.numDimsGrid
 

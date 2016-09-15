@@ -1,11 +1,11 @@
 package exastencils.grid
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -69,7 +69,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
 
   case class EvalAtRFace(var fieldAccess : IR_FieldAccess, var faceDim : Int, var stagDim : Option[Int], var interpolation : String = "default") extends IR_Expression {
     override def datatype = IR_UnitDatatype
-    override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EvalAtRFace\n"
+    override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
     def expandSpecial : Output[IR_Expression] = {
       val field = fieldAccess.fieldSelection.field
@@ -186,7 +186,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
       def addPIntAnnot(exp : IR_Expression) = { exp.annotate(pIntAnnot); exp }
 
       this += new Transformation("Wrapping", {
-        case fieldAccess : IR_FieldAccess                                                                                         => {
+        case fieldAccess : IR_FieldAccess                                                                                  => {
           val discr = fieldAccess.fieldSelection.field.discretization
           if (stagDim.isDefined) {
             val curStagDim = stagDim.get
@@ -216,7 +216,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
             }
           }
         }
-        case fieldAccess : VirtualFieldAccess                                                                                     => {
+        case fieldAccess : VirtualFieldAccess                                                                              => {
           Logger.warn(s"Virtual field accesses ($fieldAccess) are currently unsupported within evaluation and intergration functions")
           fieldAccess
         }

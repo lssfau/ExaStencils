@@ -14,7 +14,7 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 
 case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetupBuffers\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "setupBuffers"
 
@@ -28,7 +28,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
 }
 
 case class GetFromExternalField(var src : Field, var dest : ExternalField) extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "get" + dest.identifier
 
@@ -77,7 +77,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
 }
 
 case class SetFromExternalField(var dest : Field, var src : ExternalField) extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetFromExternalField\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "set" + src.identifier
 
@@ -132,7 +132,7 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends IR_Ex
     offset += slot.field.numSlots
 
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SlotAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def expandSpecial : IR_Expression = {
     (slot + offset) Mod slot.field.numSlots // offset is always positive
@@ -140,7 +140,7 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends IR_Ex
 }
 
 case class AdvanceSlotStatement(var slot : iv.CurrentSlot) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AdvanceSlot\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def expandSpecial : IR_Statement = {
     IR_Assignment(slot, (slot + 1) Mod slot.field.numSlots) // slot never contains negative values (currently)

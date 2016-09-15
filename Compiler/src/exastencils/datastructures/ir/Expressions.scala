@@ -92,7 +92,7 @@ case class ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expression) 
 
 case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Expression {
   override def datatype = buffer.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopCarriedCSEBufferAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def linearize() : IR_ArrayAccess = {
     if (buffer.dimSizes.isEmpty)
@@ -107,20 +107,19 @@ case class VirtualFieldAccess(var fieldName : String,
     var index : IR_ExpressionIndex,
     var arrayIndex : Option[Int] = None,
     var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_Expression {
+  // FIXME: datatype
   override def datatype = IR_RealDatatype
-  // FIXME
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = VirtualFieldAccess\n"
-
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 }
 
 case class StencilAccess(var stencil : Stencil) extends IR_Expression {
   override def datatype = stencil.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 }
 
 case class StencilFieldAccess(var stencilFieldSelection : StencilFieldSelection, var index : IR_ExpressionIndex) extends IR_Expression {
   override def datatype = stencilFieldSelection.stencilField.stencil.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def buildStencil : Stencil = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
@@ -147,7 +146,7 @@ case class DerefAccess(var base : IR_Access) extends IR_Access {
 
 case class StencilConvolution(var stencil : Stencil, var fieldAccess : IR_FieldAccess) extends IR_Expression with IR_Expandable {
   override def datatype = GetResultingDatatype(stencil.datatype, fieldAccess.datatype)
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def resolveEntry(idx : Int) : IR_Expression = {
     stencil.entries(idx).coefficient * new IR_FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
@@ -164,7 +163,7 @@ case class StencilConvolution(var stencil : Stencil, var fieldAccess : IR_FieldA
 
 case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : IR_FieldAccess) extends IR_Expression with IR_Expandable {
   override def datatype = GetResultingDatatype(stencilFieldAccess.datatype, fieldAccess.datatype)
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilConvolution\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def resolveEntry(idx : Int) : IR_Expression = {
     val stencilFieldIdx = Duplicate(stencilFieldAccess.index)
@@ -183,7 +182,7 @@ case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, 
 
 case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends IR_Expression with IR_Expandable {
   override def datatype = GetResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilStencilConvolution\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()
@@ -223,7 +222,7 @@ case class StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight
 
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : Stencil) extends IR_Expression with IR_Expandable {
   override def datatype = GetResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StencilFieldStencilConvolution\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[StencilAccess] = {
     var entries : ListBuffer[StencilEntry] = ListBuffer()

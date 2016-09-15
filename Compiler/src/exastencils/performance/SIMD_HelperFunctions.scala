@@ -69,7 +69,7 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
     }
   }
 
-  override def prettyprint_decl() : String = "NOT VALID ; no prototype for " + name + "\n"
+  override def prettyprint_decl() : String = "\n --- NOT VALID ; no prototype for " + name + "\n"
 
   private def scalarFunc(out : PpStream) : Unit = {
     val arrDt = IR_ArrayDatatype(IR_ArrayDatatype(IR_RealDatatype, Platform.simd_vectorSize), nrArgs)
@@ -117,6 +117,6 @@ case object NEONDivision extends IR_AbstractFunction(true) {
   return vmulq_f32(a,reciprocal);
 }"""
   }
-  override def prettyprint_decl() : String = "NOT VALID ; no prototype for vdivq_f32\n"
+  override def prettyprint_decl() : String = "\n --- NOT VALID ; no prototype for vdivq_f32\n"
   override def name = "vdivq_f32"
 }

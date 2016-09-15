@@ -28,7 +28,7 @@ case class IR_Comment(var comment : String) extends IR_Statement {
 /// IR_Assert
 
 case class IR_Assert(var check : IR_Expression, var msg : ListBuffer[IR_Expression], var abort : IR_Statement) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = AssertStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def expand = IR_IfCondition(IR_NegationExpression(check), ListBuffer(PrintStatement(msg), abort))
 }
 

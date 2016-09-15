@@ -23,7 +23,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
     var spec : IR_ContractionSpecification) extends IR_Statement {
   // FIXME: iterator is not used?!
   // TODO: validate spec
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ContractingLoop\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsBegin(expr : IR_Expression, extent : Int) : IR_Expression = {

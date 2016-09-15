@@ -17,7 +17,7 @@ import exastencils.util._
 
 case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
@@ -41,7 +41,7 @@ case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends 
 
 case class PointInsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
@@ -65,7 +65,7 @@ case class PointInsideDomain(var pos : IR_Access, var domain : Domain) extends I
 
 case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -94,7 +94,7 @@ case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with IR_
 
 case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentIndex\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -132,7 +132,7 @@ case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with 
 
 case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -161,7 +161,7 @@ case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression wit
 
 case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -195,7 +195,7 @@ case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends I
 }
 
 case class ConnectFragments() extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_LoopOverFragments] = {
     var body = new ListBuffer[IR_Statement]
@@ -263,7 +263,7 @@ case class ConnectFragments() extends IR_Statement with IR_Expandable {
 }
 
 case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl = prettyprint
   override def name = "initDomain"
 
@@ -314,7 +314,7 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
 }
 
 case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl = prettyprint
   override def name = "initDomain"
 
@@ -395,7 +395,7 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
 }
 
 case class SetValues() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetValues\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl = prettyprint
   override def name = "setValues"
 

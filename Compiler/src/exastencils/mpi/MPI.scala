@@ -184,7 +184,7 @@ object MPI_DataType {
 case class MPI_Sequential(var body : ListBuffer[IR_Statement]) extends IR_Statement with IR_Expandable {
   def this(body : IR_Statement) = this(ListBuffer(body))
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = MPI_Sequential\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_ForLoop] = {
     IR_ForLoop(
@@ -198,7 +198,7 @@ case class MPI_Sequential(var body : ListBuffer[IR_Statement]) extends IR_Statem
 }
 
 case class MPI_WaitForRequest() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = WaitForMPIReq\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "waitForMPIReq"
 

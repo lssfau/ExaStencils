@@ -94,7 +94,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
   if (stepSize == null)
     stepSize = IR_ExpressionIndex(Array.fill(numDimensions)(1))
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def maxIterationCount() : Array[Long] = {
     var start : Array[Long] = null

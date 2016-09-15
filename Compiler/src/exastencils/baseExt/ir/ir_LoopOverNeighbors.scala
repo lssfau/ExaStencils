@@ -2,9 +2,9 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation.Output
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.knowledge.Fragment
 import exastencils.prettyprinting.PpStream
 
@@ -18,7 +18,7 @@ case class IR_LoopOverNeighbors(var body : ListBuffer[IR_Statement]) extends IR_
 
   import IR_LoopOverNeighbors._
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverNeighbors\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_ForLoop] = {
     IR_ForLoop(

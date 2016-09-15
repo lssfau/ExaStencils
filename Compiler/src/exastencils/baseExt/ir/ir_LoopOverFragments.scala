@@ -23,7 +23,7 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
 
   import IR_LoopOverFragments._
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverFragments\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def generateBasicLoop(parallelize : Boolean) = {
     val loop = if (parallelize)

@@ -27,7 +27,7 @@ case class CommunicationFunctions() extends IR_FunctionCollection("CommFunctions
 }
 
 case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expression, var fragment : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetIterationOffset\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Switch] = {
     var cases : ListBuffer[IR_Case] = ListBuffer()
@@ -50,7 +50,7 @@ case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expr
 }
 
 case class ConnectLocalElement() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectLocalElement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "connectLocalElement"
 
@@ -70,7 +70,7 @@ case class ConnectLocalElement() extends IR_AbstractFunction with IR_Expandable 
 }
 
 case class ConnectRemoteElement() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectRemoteElement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "connectRemoteElement"
 
