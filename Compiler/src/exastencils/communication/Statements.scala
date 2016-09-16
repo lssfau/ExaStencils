@@ -9,6 +9,7 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.{ StatementList, _ }
+import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.omp._
@@ -169,9 +170,9 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
 
   override def expand : Output[IR_Statement] = {
     var innerStmt : IR_Statement = new IR_Assignment(
-      new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), IR_ExpressionIndex(
+      IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), IR_ExpressionIndex(
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)),
-      new IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims)))
+      IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims)))
 
     if (condition.isDefined)
       innerStmt = IR_IfCondition(condition.get, innerStmt)

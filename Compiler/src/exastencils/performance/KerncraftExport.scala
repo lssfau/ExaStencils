@@ -9,6 +9,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.knowledge._
 
 /** Strategy to export kernels to kerncraft.

@@ -6,9 +6,9 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
+import exastencils.stencil.ir.IR_StencilStencilConvolution
 import exastencils.strategies._
 
 object Testbed {
@@ -50,11 +50,11 @@ object Testbed {
 
   def rap(R : Stencil, A : Stencil, P : Stencil) : Stencil = {
 
-    var RAP = StencilStencilConvolution(A, R).expand.inner.stencil
+    var RAP = IR_StencilStencilConvolution(A, R).expand.inner.stencil
     //    for (e <- RAP.entries)
     //      println(e.offset.prettyprint + "\t>>\t" + e.weight.prettyprint)
 
-    RAP = StencilStencilConvolution(P, RAP).expand.inner.stencil
+    RAP = IR_StencilStencilConvolution(P, RAP).expand.inner.stencil
 
     //var RAP : Stencil = StencilStencilConvolution(P, StencilStencilConvolution(A, R).expand).expand
 

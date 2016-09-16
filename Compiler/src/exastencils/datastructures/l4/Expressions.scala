@@ -7,9 +7,11 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.datastructures._
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.logger._
 import exastencils.prettyprinting._
+import exastencils.stencil.ir._
 
 trait Number extends L4_Expression {
   def value : AnyVal
@@ -205,11 +207,11 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
     if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
-  def getBasicStencilAccess : ir.StencilAccess = {
+  def getBasicStencilAccess : IR_StencilAccess = {
     if (arrayIndex.isDefined || dirAccess.isDefined)
       Logger.warn(s"Discarding modifiers of access to stencil $name on level ${ level.asInstanceOf[SingleLevelSpecification].level }")
 
-    ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
+    IR_StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 
   def progress : IR_Expression = {
@@ -223,7 +225,7 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
     else if (dirAccess.isDefined)
       stencil.findStencilEntry(dirAccess.get.progress).get.coefficient
     else
-      ir.StencilAccess(stencil)
+      IR_StencilAccess(stencil)
   }
 }
 
@@ -245,7 +247,7 @@ case class StencilFieldAccess(var name : String,
     knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get.field
   }
 
-  def getBasicStencilFieldAccess : ir.StencilFieldAccess = {
+  def getBasicStencilFieldAccess : IR_StencilFieldAccess = {
     if (arrayIndex.isDefined || dirAccess.isDefined)
       Logger.warn(s"Discarding modifiers of access to stencilfield $name on level ${ level.asInstanceOf[SingleLevelSpecification].level }")
 
@@ -262,7 +264,7 @@ case class StencilFieldAccess(var name : String,
       multiIndex += progressedOffset
     }
 
-    ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
+    IR_StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
   }
 
   def progress : IR_Expression = {
@@ -294,7 +296,7 @@ case class StencilFieldAccess(var name : String,
     }
 
     if (accessIndex < 0)
-      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None),
+      IR_StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None),
         multiIndex)
     else
       IR_FieldAccess(knowledge.FieldSelection(stencilField.field, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
@@ -345,31 +347,31 @@ case class FunctionCallExpression(var identifier : Access, var arguments : List[
 case class StencilConvolution(var stencilAccess : StencilAccess, var fieldAccess : FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilAccess << " * " << fieldAccess }
 
-  def progress : ir.StencilConvolution = {
-    ir.StencilConvolution(stencilAccess.getBasicStencilAccess.stencil, fieldAccess.progress)
+  def progress : IR_StencilConvolution = {
+    IR_StencilConvolution(stencilAccess.getBasicStencilAccess.stencil, fieldAccess.progress)
   }
 }
 
 case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilFieldAccess << " * " << fieldAccess }
 
-  def progress : ir.StencilFieldConvolution = {
-    ir.StencilFieldConvolution(stencilFieldAccess.getBasicStencilFieldAccess, fieldAccess.progress)
+  def progress : IR_StencilFieldConvolution = {
+    IR_StencilFieldConvolution(stencilFieldAccess.getBasicStencilFieldAccess, fieldAccess.progress)
   }
 }
 
 case class StencilStencilConvolution(var stencilLeft : StencilAccess, var stencilRight : StencilAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
 
-  def progress : ir.StencilStencilConvolution = {
-    ir.StencilStencilConvolution(stencilLeft.getBasicStencilAccess.stencil, stencilRight.getBasicStencilAccess.stencil)
+  def progress : IR_StencilStencilConvolution = {
+    IR_StencilStencilConvolution(stencilLeft.getBasicStencilAccess.stencil, stencilRight.getBasicStencilAccess.stencil)
   }
 }
 
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : StencilAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
 
-  def progress : ir.StencilFieldStencilConvolution = {
-    ir.StencilFieldStencilConvolution(stencilLeft.getBasicStencilFieldAccess, stencilRight.getBasicStencilAccess.stencil)
+  def progress : IR_StencilFieldStencilConvolution = {
+    IR_StencilFieldStencilConvolution(stencilLeft.getBasicStencilFieldAccess, stencilRight.getBasicStencilAccess.stencil)
   }
 }

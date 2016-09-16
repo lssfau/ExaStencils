@@ -12,6 +12,7 @@ import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir._
 import exastencils.globals._
 import exastencils.interfacing.IR_ExternalFieldAccess
 import exastencils.knowledge._

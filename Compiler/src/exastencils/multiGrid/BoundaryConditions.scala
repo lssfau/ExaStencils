@@ -9,6 +9,7 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid._
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge._

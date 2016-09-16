@@ -12,9 +12,11 @@ import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
+import exastencils.stencil.ir._
 import exastencils.strategies.ReplaceStringConstantsStrategy
 import exastencils.util._
 
@@ -63,14 +65,14 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
         fieldAccess.index(i) = 2 * fieldAccess.index(i)
       fieldAccess
     }
-    case access : StencilFieldAccess if collector.inLevelScope &&
+    case access : IR_StencilFieldAccess if collector.inLevelScope &&
       SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) < collector.getCurrentLevel => {
       var stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
       stencilFieldAccess
     }
-    case access : StencilFieldAccess if collector.inLevelScope &&
+    case access : IR_StencilFieldAccess if collector.inLevelScope &&
       SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) > collector.getCurrentLevel => {
       var stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
@@ -86,15 +88,15 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
 
   this += new Transformation("SearchAndReplace", {
     case IR_FunctionCall("diag", args) => args(0) match {
-      case access : StencilAccess      =>
+      case access : IR_StencilAccess      =>
         val centralOffset = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(0))
         access.stencil.findStencilEntry(centralOffset).get.coefficient
-      case access : StencilFieldAccess => {
+      case access : IR_StencilFieldAccess => {
         var index = Duplicate(access.index)
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
         new IR_FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
       }
-      case _                           => {
+      case _                              => {
         Logger.warn("diag with unknown arg " + args(0))
         IR_FunctionCall("diag", args)
       }

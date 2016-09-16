@@ -5,6 +5,7 @@ import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger._
 import exastencils.util._
 

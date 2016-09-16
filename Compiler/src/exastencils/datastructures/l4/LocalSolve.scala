@@ -3,7 +3,7 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.baseExt.ir.IR_FieldAccess
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting._
 import exastencils.solver._
 

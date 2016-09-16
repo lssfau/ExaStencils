@@ -9,6 +9,7 @@ import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.optimization.IR_LoopCarriedCSBufferAccess
@@ -559,7 +560,7 @@ class Extractor extends Collector {
                | _ : IR_NegativeExpression
                | _ : IR_NegationExpression
                | _ : IR_AddressofExpression
-               | _ : DerefAccess
+               | _ : IR_DerefAccess
                | _ : IR_AdditionExpression
                | _ : IR_SubtractionExpression
                | _ : IR_MultiplicationExpression

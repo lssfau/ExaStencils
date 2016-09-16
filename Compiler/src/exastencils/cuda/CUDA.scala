@@ -4,9 +4,9 @@ import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MultiDimFieldAccess
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._

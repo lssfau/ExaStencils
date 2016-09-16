@@ -9,7 +9,9 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger._
+import exastencils.stencil.ir._
 import exastencils.util._
 
 case class StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Expression) {
@@ -136,13 +138,13 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (StencilAccess(stencil), fieldAccess : IR_FieldAccess)                  =>
-          result += StencilConvolution(stencil, fieldAccess)
+        case (IR_StencilAccess(stencil), fieldAccess : IR_FieldAccess)                  =>
+          result += IR_StencilConvolution(stencil, fieldAccess)
           prev = null
-        case (stencilFieldAccess : StencilFieldAccess, fieldAccess : IR_FieldAccess) =>
-          result += StencilFieldConvolution(stencilFieldAccess, fieldAccess)
+        case (stencilFieldAccess : IR_StencilFieldAccess, fieldAccess : IR_FieldAccess) =>
+          result += IR_StencilFieldConvolution(stencilFieldAccess, fieldAccess)
           prev = null
-        case _                                                                       =>
+        case _                                                                          =>
           if (prev != null) result += prev
           prev = f
       }
@@ -157,13 +159,13 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (StencilAccess(stencilLeft), StencilAccess(stencilRight))       =>
-          result += StencilStencilConvolution(stencilLeft, stencilRight)
+        case (IR_StencilAccess(stencilLeft), IR_StencilAccess(stencilRight))       =>
+          result += IR_StencilStencilConvolution(stencilLeft, stencilRight)
           prev = null
-        case (stencilLeft : StencilFieldAccess, StencilAccess(stencilRight)) =>
-          result += StencilFieldStencilConvolution(stencilLeft, stencilRight)
+        case (stencilLeft : IR_StencilFieldAccess, IR_StencilAccess(stencilRight)) =>
+          result += IR_StencilFieldStencilConvolution(stencilLeft, stencilRight)
           prev = null
-        case _                                                               =>
+        case _                                                                     =>
           if (prev != null) result += prev
           prev = f
       }
@@ -178,11 +180,11 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (StencilAccess(stencilLeft), stencilRight : StencilFieldAccess)       =>
+        case (IR_StencilAccess(stencilLeft), stencilRight : IR_StencilFieldAccess)       =>
           ??? // TODO
-        case (stencilLeft : StencilFieldAccess, stencilRight : StencilFieldAccess) =>
+        case (stencilLeft : IR_StencilFieldAccess, stencilRight : IR_StencilFieldAccess) =>
           ??? // TODO
-        case _                                                                     =>
+        case _                                                                           =>
           if (prev != null) result += prev
           prev = f
       }
@@ -209,7 +211,7 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
 
 object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
   this += new Transformation("SearchAndMark", {
-    case IR_Assignment(stencilFieldAccess : StencilFieldAccess, StencilAccess(stencil), op) => {
+    case IR_Assignment(stencilFieldAccess : IR_StencilFieldAccess, IR_StencilAccess(stencil), op) => {
       var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val stencilRight = stencil

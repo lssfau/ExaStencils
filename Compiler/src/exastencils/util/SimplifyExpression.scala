@@ -4,12 +4,12 @@ import scala.collection._
 import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir._
 import exastencils.interfacing.IR_ExternalFieldAccess
 import exastencils.logger._
 import exastencils.strategies._
