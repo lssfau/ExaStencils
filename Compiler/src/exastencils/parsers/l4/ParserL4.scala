@@ -9,6 +9,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import exastencils.field.l4._
 import exastencils.parsers._
 
 class ParserL4 extends ExaParser with PackratParsers {
@@ -304,14 +305,14 @@ class ParserL4 extends ExaParser with PackratParsers {
     "$" ~> slotModifier ^^ { case s => s }
       ||| "[" ~> slotModifier <~ "]" ^^ { case s => s })
 
-  lazy val slotModifier = locationize("active" ^^ { case _ => SlotModifier.Active }
-    ||| "activeSlot" ^^ { case _ => SlotModifier.Active }
-    ||| "currentSlot" ^^ { case _ => SlotModifier.Active }
-    ||| "next" ^^ { case _ => SlotModifier.Next }
-    ||| "nextSlot" ^^ { case _ => SlotModifier.Next }
-    ||| "previous" ^^ { case _ => SlotModifier.Previous }
-    ||| "previousSlot" ^^ { case _ => SlotModifier.Previous }
-    ||| integerLit ^^ { case i => SlotModifier.Constant(i) })
+  lazy val slotModifier = locationize("active" ^^ { case _ => L4_ActiveSlot }
+    ||| "activeSlot" ^^ { case _ => L4_ActiveSlot }
+    ||| "currentSlot" ^^ { case _ => L4_ActiveSlot }
+    ||| "next" ^^ { case _ => L4_NextSlot }
+    ||| "nextSlot" ^^ { case _ => L4_NextSlot }
+    ||| "previous" ^^ { case _ => L4_PreviousSlot }
+    ||| "previousSlot" ^^ { case _ => L4_PreviousSlot }
+    ||| integerLit ^^ { case i => L4_ConstantSlot(i) })
 
   lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => AdvanceStatement(a) })
 
@@ -320,7 +321,7 @@ class ParserL4 extends ExaParser with PackratParsers {
       ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))
 
   lazy val fieldAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").?
-    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active), arrayIndex) })
+    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(L4_ActiveSlot), arrayIndex) })
 
   lazy val flatAccess = locationize(ident
     ^^ { case id => UnresolvedAccess(id, None, None, None, None, None) })
