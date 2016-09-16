@@ -1,6 +1,7 @@
 import java.util.Locale
 
 import exastencils.base.ir.IR_Root
+import exastencils.base.l4.L4_Progressable
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
@@ -138,7 +139,7 @@ object MainJeremias {
     // go to IR
     UnfoldLevelSpecifications.apply() // preparation step
     ResolveL4.apply()
-    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progress.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
     if (!Knowledge.domain_rect_generate) {
       if (Knowledge.domain_readFromFile) {

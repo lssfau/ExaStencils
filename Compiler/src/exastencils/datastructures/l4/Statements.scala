@@ -8,13 +8,14 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
+import exastencils.datastructures.ir._
 import exastencils.domain._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
 
-abstract class SpecialStatement /*TODO: think about an appropriate name*/ extends Node with ProgressableToIr with PrettyPrintable {
-  override def progress : Any
+abstract class SpecialStatement /*TODO: think about an appropriate name*/ extends Node /*with L4_Progressable*/ with PrettyPrintable {
+  def progress : Any
 }
 
 trait HasIdentifier {
@@ -271,7 +272,7 @@ case class FunctionStatement(override var identifier : Identifier,
 }
 
 case class FunctionArgument(override var identifier : Identifier,
-    var datatype : L4_Datatype) extends L4_Node with PrettyPrintable with HasIdentifier with ProgressableToIr {
+    var datatype : L4_Datatype) extends L4_Node with PrettyPrintable with HasIdentifier with L4_Progressable {
   def name = identifier.name
   override def prettyprint(out : PpStream) {
     out << identifier.name << " : " << datatype.prettyprint
@@ -426,7 +427,7 @@ case class AdvanceStatement(var field : Access) extends L4_Statement {
   }
 
   override def progress = {
-    data.AdvanceSlotStatement(ir.iv.CurrentSlot(field.asInstanceOf[FieldAccess].progress.fieldSelection.field,
+    data.AdvanceSlotStatement(iv.CurrentSlot(field.asInstanceOf[FieldAccess].progress.fieldSelection.field,
       IR_StringLiteral(IR_LoopOverFragments.defIt)))
   }
 }

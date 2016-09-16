@@ -1,6 +1,7 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
+import exastencils.base.l4.L4_Progressable
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -174,7 +175,7 @@ object MainChristoph {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progress.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")

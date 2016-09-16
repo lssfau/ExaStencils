@@ -2,15 +2,15 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Root
-import exastencils.base.l4.L4_Statement
+import exastencils.base.ir._
+import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.prettyprinting._
 
-case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with PrettyPrintable {
+case class Root()(nodes : List[Node]) extends Node with L4_Progressable with PrettyPrintable {
 
   var domains : ListBuffer[DomainDeclarationStatement] = new ListBuffer()
   var fieldLayouts : ListBuffer[LayoutDeclarationStatement] = new ListBuffer()
@@ -72,7 +72,7 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
       out <<< (statements, "\n") << '\n'
   }
 
-  override def progress : Node = {
+  override def progress : IR_Root = {
     var newRoot = IR_Root()
 
     // Domains
