@@ -18,6 +18,19 @@ case class ConcatenationExpression(var expressions : ListBuffer[IR_Expression]) 
   override def prettyprint(out : PpStream) : Unit = out <<< expressions
 }
 
+// HACK altmann: non-linearized multi dimensional arrays of pointers (to pointers, ...) to data, e.g. a[z-1][y+1][x]
+case class ArrayAccessMultiDim(var base : IR_Expression, var indices : Iterable[IR_Expression]) extends IR_Access{
+  // FIXME how to get the base data type of an array expression?
+  override def datatype = ???
+  override def prettyprint(out : PpStream) : Unit = {
+    out << base
+    indices.foreach({ ix =>
+      out << '[' << ix << ']'
+    })
+  }
+
+}
+
 //TODO specific expression for reading from fragment data file
 case class ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expression) extends IR_Expression {
   override def datatype = IR_UnitDatatype

@@ -15,6 +15,7 @@ object IR_VariableAccess {
 
 // FIXME: mandatory datatype
 case class IR_VariableAccess(var name : String, var innerDatatype : Option[IR_Datatype]) extends IR_Access {
+  def this(decl : IR_VariableDeclaration) = this(decl.name, Some(decl.datatype))
   override def datatype = innerDatatype.getOrElse(IR_RealDatatype)
   override def prettyprint(out : PpStream) : Unit = out << name
 }
