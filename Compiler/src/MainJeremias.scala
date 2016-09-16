@@ -6,9 +6,9 @@ import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures._
-import exastencils.domain._
+import exastencils.domain.{ l4 => _, _ }
 import exastencils.globals._
-import exastencils.knowledge._
+import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
 import exastencils.mpi._

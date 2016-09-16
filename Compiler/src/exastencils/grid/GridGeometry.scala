@@ -9,11 +9,11 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.domain._
+import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge
-import exastencils.knowledge._
+import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
 import exastencils.util._
 
