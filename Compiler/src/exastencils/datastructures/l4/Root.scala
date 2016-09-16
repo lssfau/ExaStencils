@@ -24,7 +24,7 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
   var functions : ListBuffer[FunctionStatement] = new ListBuffer()
   var statements : ListBuffer[L4_Statement] = new ListBuffer()
 
-  nodes.foreach(n => n match {
+  nodes.foreach {
     case p : L4_DomainDeclaration              => domains.+=(p)
     case p : LayoutDeclarationStatement        => fieldLayouts.+=(p)
     case p : FieldDeclarationStatement         => fields.+=(p)
@@ -35,7 +35,18 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
     case p : FunctionTemplateStatement         => functionTemplates.+=(p)
     case p : FunctionStatement                 => functions.+=(p)
     case p : L4_Statement                      => statements.+=(p)
-  })
+    case r : Root                              =>
+      domains.++=(r.domains)
+      fieldLayouts.++=(r.fieldLayouts)
+      fields.++=(r.fields)
+      stencilFields.++=(r.stencilFields)
+      externalFields.++=(r.externalFields)
+      stencils.++=(r.stencils)
+      globals.++=(r.globals)
+      functionTemplates.++=(r.functionTemplates)
+      functions.++=(r.functions)
+      statements.++=(r.statements)
+  }
 
   // set domain indices -> just number consecutively
   var i = domains.size

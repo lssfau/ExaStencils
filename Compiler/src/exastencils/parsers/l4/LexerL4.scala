@@ -9,6 +9,9 @@ class LexerL4 extends ExaLexer {
   // general delimiters
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
+  // for import functionality
+  reserved += ("import")
+
   // function keywords
   reserved += ("Func", "Function", "return", "noinline")
 
@@ -40,7 +43,7 @@ class LexerL4 extends ExaLexer {
   // level specification keywords
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
 
-  //domain keywords
+  // domain keywords
   reserved += ("fromFile")
 
   // layout and field keywords
