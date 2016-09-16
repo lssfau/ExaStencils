@@ -9,7 +9,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 
 /** Strategy to export kernels to kerncraft.
@@ -208,7 +207,7 @@ object TransformKernel extends DefaultStrategy("Kernel Transformation") {
       val ident = new IR_VariableAccess(idname, Some(fa.fieldSelection.field.resolveBaseDatatype))
       //      val aaidx = fa.index.map( ix => ix)
 
-      val aa = new ArrayAccessMultiDim(ident, fa.index)
+      val aa = new IR_MultiDimArrayAccess(ident, fa.index)
 
       //      println(aa.prettyprint())
       aa
