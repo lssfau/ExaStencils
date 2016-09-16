@@ -1,36 +1,35 @@
-package exastencils.datastructures.ir
+package exastencils.solver
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication._
-import exastencils.core._
-import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.logger._
-import exastencils.prettyprinting._
-import exastencils.strategies._
+import exastencils.communication.IsValidPoint
+import exastencils.core.Duplicate
+import exastencils.datastructures.Transformation.Output
+import exastencils.datastructures._
+import exastencils.logger.Logger
+import exastencils.prettyprinting.PpStream
+import exastencils.strategies.SimplifyStrategy
 
-// FIXME: update with actual accessors
-case class hackVecComponentAccess(var vec : IR_VariableAccess, var i : IR_Expression) extends IR_Expression {
-  override def datatype = vec.innerDatatype.getOrElse(IR_RealDatatype)
-  override def prettyprint(out : PpStream) : Unit = out << vec << "(" << i << ", " << 0 << ")"
+/// IR_ResolveLocalSolve
+
+object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes") {
+  this += new Transformation("Perform expandSpecial for applicable nodes", {
+    case solve : IR_LocalSolve => solve.expandSpecial
+  })
 }
 
-// FIXME: update with actual accessors
-case class hackMatComponentAccess(var mat : IR_VariableAccess, var i : IR_Expression, var j : IR_Expression) extends IR_Expression {
-  override def datatype = mat.innerDatatype.getOrElse(IR_RealDatatype)
-  override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
-}
+/// IR_Equation
 
-case class EquationExpression(var lhs : IR_Expression, var rhs : IR_Expression) extends IR_Expression {
-  override def datatype = rhs.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = EquationExpression\n"
-}
+// TODO: move eq node to more fitting file/package
+case class IR_Equation(var lhs : IR_Expression, var rhs : IR_Expression) extends IR_Node
 
-case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[EquationExpression]) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SolveLocallyStatement\n"
+/// IR_LocalSolve
+
+case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[IR_Equation]) extends IR_Statement {
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   var fVals = ListBuffer[IR_AdditionExpression]()
   var AVals = ListBuffer[ListBuffer[IR_AdditionExpression]]()
@@ -40,7 +39,7 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var 
   }
 
   def matchUnknowns(other : IR_FieldAccess) : Int = {
-    for (i <- 0 until unknowns.size) {
+    for (i <- unknowns.indices) {
       if (other.fieldSelection.field.codeName == unknowns(i).fieldSelection.field.codeName
         && other.index == unknowns(i).index)
         return i // match
@@ -104,12 +103,12 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var 
 
   def sortEquations() = {
     // preparation: bring all entries to left side and simplify
-    var zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : IR_Expression)
+    val zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : IR_Expression)
     for (eq <- zeroEqs)
       SimplifyStrategy.doUntilDoneStandalone(eq, true)
 
     // scan lhs for constants
-    for (eqNumber <- 0 until zeroEqs.size) {
+    for (eqNumber <- zeroEqs.indices) {
       zeroEqs(eqNumber) match {
         case IR_AdditionExpression(adds)        => processEqSummands(eqNumber, adds)
         case IR_SubtractionExpression(pos, neg) =>
@@ -138,32 +137,32 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var 
 
     var stmts = ListBuffer[IR_Statement]()
 
-    def u = IR_VariableAccess("_local_unknowns", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
-    def f = IR_VariableAccess("_local_rhs", Some(IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false))))
-    def A = IR_VariableAccess("_local_matrix", Some(IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length)))
+    def u = IR_VariableAccess("_local_unknowns", IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false)))
+    def f = IR_VariableAccess("_local_rhs", IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false)))
+    def A = IR_VariableAccess("_local_matrix", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length))
 
     // declare local variables -> to be merged later
-    stmts += new VariableDeclarationStatement(u)
-    stmts += new VariableDeclarationStatement(f)
-    stmts += new VariableDeclarationStatement(A)
+    stmts += IR_VariableDeclaration(u)
+    stmts += IR_VariableDeclaration(f)
+    stmts += IR_VariableDeclaration(A)
 
     // initialize with zero - TODO: adapt to new matrix types
-    stmts += MemberFunctionCallExpression(u, "set", ListBuffer[IR_Expression](0))
-    stmts += MemberFunctionCallExpression(f, "set", ListBuffer[IR_Expression](0))
-    stmts += MemberFunctionCallExpression(A, "set", ListBuffer[IR_Expression](0))
+    stmts += IR_MemberFunctionCall(u, "set", ListBuffer[IR_Expression](0))
+    stmts += IR_MemberFunctionCall(f, "set", ListBuffer[IR_Expression](0))
+    stmts += IR_MemberFunctionCall(A, "set", ListBuffer[IR_Expression](0))
 
     // construct rhs and matrix
-    for (i <- 0 until unknowns.length) {
+    for (i <- unknowns.indices) {
       var innerStmts = ListBuffer[IR_Statement]()
       var boundaryStmts = ListBuffer[IR_Statement]()
 
-      innerStmts += IR_Assignment(hackVecComponentAccess(f, i), fVals(i))
-      for (j <- 0 until unknowns.length)
-        innerStmts += IR_Assignment(hackMatComponentAccess(A, i, j), AVals(i)(j))
+      innerStmts += IR_Assignment(IR_HackVecComponentAccess(f, i), fVals(i))
+      for (j <- unknowns.indices)
+        innerStmts += IR_Assignment(IR_HackMatComponentAccess(A, i, j), AVals(i)(j))
 
-      boundaryStmts += IR_Assignment(hackVecComponentAccess(f, i), unknowns(i))
-      for (j <- 0 until unknowns.length)
-        boundaryStmts += IR_Assignment(hackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
+      boundaryStmts += IR_Assignment(IR_HackVecComponentAccess(f, i), unknowns(i))
+      for (j <- unknowns.indices)
+        boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
 
       // check if current unknown is on/ beyond boundary
       stmts += IR_IfCondition(
@@ -173,13 +172,13 @@ case class SolveLocallyStatement(var unknowns : ListBuffer[IR_FieldAccess], var 
     }
 
     // solve local system - TODO: replace inverse function call with internal function
-    stmts += IR_Assignment(u, IR_MultiplicationExpression(MemberFunctionCallExpression(A, "inverse", ListBuffer()), f))
+    stmts += IR_Assignment(u, IR_MultiplicationExpression(IR_MemberFunctionCall(A, "inverse"), f))
 
     // write back results
-    for (i <- 0 until unknowns.length)
+    for (i <- unknowns.indices)
       stmts += IR_IfCondition(// don't write back result on boundaries
         IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
-        IR_Assignment(unknowns(i), hackVecComponentAccess(u, i)))
+        IR_Assignment(unknowns(i), IR_HackVecComponentAccess(u, i)))
 
     IR_Scope(stmts)
   }

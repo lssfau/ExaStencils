@@ -2,12 +2,12 @@ package exastencils.grid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.domain._
 import exastencils.knowledge
@@ -98,7 +98,7 @@ trait GridGeometry_uniform extends GridGeometry {
 
   override def nodePosition(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
     //index(dim) * cellWidth(level, index, arrayIndex, dim) + ArrayAccess(iv.PrimitivePositionBegin(), dim)
-    index(dim) * cellWidth(level, index, arrayIndex, dim) + MemberAccess(iv.PrimitivePositionBegin(), dimToString(dim)) // FIXME: HACK
+    index(dim) * cellWidth(level, index, arrayIndex, dim) + IR_MemberAccess(iv.PrimitivePositionBegin(), dimToString(dim)) // FIXME: HACK
   }
 
   override def cellCenter(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
@@ -173,12 +173,12 @@ trait GridGeometry_nonUniform extends GridGeometry {
     if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
       IR_LoopOverDimensions.defItForDim(dim)
     else
-      IR_VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+      IR_VariableAccess(s"global_${ dimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        IR_VariableDeclaration(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);
@@ -268,12 +268,12 @@ trait GridGeometry_nonUniform extends GridGeometry {
     if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
       IR_LoopOverDimensions.defItForDim(dim)
     else
-      IR_VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+      IR_VariableAccess(s"global_${ dimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        IR_VariableDeclaration(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);
@@ -468,7 +468,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
             IR_Assignment(Duplicate(baseAccess), 0.0),
             IR_IfCondition(IR_LowerEqualExpression(innerIt, 1 * zoneSize),
               IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
-                + zoneLength * FunctionCallExpression("pow", ListBuffer[IR_Expression](step * (IR_LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
+                + zoneLength * IR_FunctionCall("pow", ListBuffer[IR_Expression](step * (IR_LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
               IR_IfCondition(IR_LowerEqualExpression(innerIt, 2 * zoneSize),
                 IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
                   + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
@@ -477,7 +477,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
                     + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
                   IR_IfCondition(IR_LowerEqualExpression(innerIt, 4 * zoneSize),
                     IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
-                      + zoneLength * (1.0 - FunctionCallExpression("pow", ListBuffer[IR_Expression](1.0 - step * (IR_LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
+                      + zoneLength * (1.0 - IR_FunctionCall("pow", ListBuffer[IR_Expression](1.0 - step * (IR_LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
                     IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))),
       IR_Assignment(Duplicate(leftGhostAccess),
         2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
@@ -525,7 +525,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
             IR_Assignment(Duplicate(baseAccess), 0.0),
             IR_IfCondition(IR_LowerEqualExpression(innerIt, zoneSize_1),
               IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt, dim)
-                + zoneLength_1 * FunctionCallExpression("pow", ListBuffer[IR_Expression](step_1 * (IR_LoopOverDimensions.defItForDim(dim)), expo))),
+                + zoneLength_1 * IR_FunctionCall("pow", ListBuffer[IR_Expression](step_1 * (IR_LoopOverDimensions.defItForDim(dim)), expo))),
               IR_IfCondition(IR_LowerEqualExpression(innerIt, (zoneSize_1 + zoneSize_2)),
                 IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + zoneSize_1, dim)
                   + zoneLength_2 * step_2 * (IR_LoopOverDimensions.defItForDim(dim) - zoneSize_1)),
@@ -555,12 +555,12 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
       IR_LoopOverDimensions.defItForDim(dim)
     else
-      IR_VariableAccess(s"global_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+      IR_VariableAccess(s"global_${ dimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        new VariableDeclarationStatement(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        IR_VariableDeclaration(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);

@@ -2,10 +2,10 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
@@ -27,30 +27,30 @@ case class CommunicationFunctions() extends IR_FunctionCollection("CommFunctions
 }
 
 case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expression, var fragment : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetIterationOffset\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  override def expand : Output[SwitchStatement] = {
-    var cases : ListBuffer[CaseStatement] = ListBuffer()
+  override def expand : Output[IR_Switch] = {
+    var cases : ListBuffer[IR_Case] = ListBuffer()
 
     for (neigh <- Fragment.neighbors) {
       // neighbor directions are always 3D vectors; invalid directions are not part of the given collection
       neigh.dir match {
-        case Array(-1, 0, 0) => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0))
-        case Array(1, 0, 0)  => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0))
-        case Array(0, -1, 0) => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0))
-        case Array(0, 1, 0)  => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0))
-        case Array(0, 0, -1) => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0))
-        case Array(0, 0, 1)  => cases += new CaseStatement(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))
+        case Array(-1, 0, 0) => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0))
+        case Array(1, 0, 0)  => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0))
+        case Array(0, -1, 0) => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0))
+        case Array(0, 1, 0)  => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0))
+        case Array(0, 0, -1) => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0))
+        case Array(0, 0, 1)  => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))
         case _               =>
       }
     }
 
-    SwitchStatement(location, cases)
+    IR_Switch(location, cases)
   }
 }
 
 case class ConnectLocalElement() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectLocalElement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "connectLocalElement"
 
@@ -70,7 +70,7 @@ case class ConnectLocalElement() extends IR_AbstractFunction with IR_Expandable 
 }
 
 case class ConnectRemoteElement() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectRemoteElement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "connectRemoteElement"
 

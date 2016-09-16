@@ -4,7 +4,6 @@ import scala.collection.mutable.ArrayStack
 
 import exastencils.base.ir._
 import exastencils.datastructures.Node
-import exastencils.datastructures.ir._
 
 abstract class ScopeCollector[T](init : T) extends Collector {
 
@@ -34,8 +33,8 @@ abstract class ScopeCollector[T](init : T) extends Collector {
            | _ : IR_ForLoop
            | _ : IR_WhileLoop
            | _ : IR_Function
-           | _ : SwitchStatement
-           | _ : CaseStatement =>
+           | _ : IR_Switch
+           | _ : IR_Case =>
         enterScope()
 
       case _ =>
@@ -49,8 +48,8 @@ abstract class ScopeCollector[T](init : T) extends Collector {
            | _ : IR_ForLoop
            | _ : IR_WhileLoop
            | _ : IR_Function
-           | _ : SwitchStatement
-           | _ : CaseStatement =>
+           | _ : IR_Switch
+           | _ : IR_Case =>
         leaveScope()
 
       case _ =>

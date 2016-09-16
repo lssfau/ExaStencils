@@ -2,10 +2,10 @@ package exastencils.performance
 
 import scala.collection.mutable._
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.core.StateManager
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
@@ -69,11 +69,11 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
     }
   }
 
-  override def prettyprint_decl() : String = "NOT VALID ; no prototype for " + name + "\n"
+  override def prettyprint_decl() : String = "\n --- NOT VALID ; no prototype for " + name + "\n"
 
   private def scalarFunc(out : PpStream) : Unit = {
     val arrDt = IR_ArrayDatatype(IR_ArrayDatatype(IR_RealDatatype, Platform.simd_vectorSize), nrArgs)
-    val aDecls = new VariableDeclarationStatement(arrDt, "a")
+    val aDecls = IR_VariableDeclaration(arrDt, "a")
     aDecls.alignment = Platform.simd_vectorSize
     def aVAcc(argi : Int) = new IR_ArrayAccess(IR_VariableAccess(aDecls.name, arrDt), argi)
     def aSAcc(argi : Int, i : Int) = new IR_ArrayAccess(aVAcc(argi), i)
@@ -88,8 +88,8 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
     for ((arg, i) <- args.view.zipWithIndex)
       out << new IR_SIMD_Store(aVAcc(i), IR_VariableAccess(arg, IR_SIMD_RealDatatype), true) << '\n'
     for (i <- 0 until Platform.simd_vectorSize)
-      out << new IR_Assignment(aSAcc(0, i), new FunctionCallExpression(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
-    out << IR_Return(SIMD_LoadExpression(aVAcc(0), true)) << '\n'
+      out << new IR_Assignment(aSAcc(0, i), new IR_FunctionCall(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
+    out << IR_Return(IR_SIMD_Load(aVAcc(0), true)) << '\n'
     out << '}'
   }
 
@@ -117,6 +117,6 @@ case object NEONDivision extends IR_AbstractFunction(true) {
   return vmulq_f32(a,reciprocal);
 }"""
   }
-  override def prettyprint_decl() : String = "NOT VALID ; no prototype for vdivq_f32\n"
+  override def prettyprint_decl() : String = "\n --- NOT VALID ; no prototype for vdivq_f32\n"
   override def name = "vdivq_f32"
 }

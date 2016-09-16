@@ -27,7 +27,7 @@ case class VectorExpression(var datatype : Option[L4_Datatype], var expressions 
       out << 'T';
     }
   }
-  def progress = new ir.VectorExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.progress).to[ListBuffer], rowVector)
+  def progress = IR_VectorExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.progress).to[ListBuffer], rowVector)
 }
 
 object VectorExpression {
@@ -57,7 +57,7 @@ case class MatrixExpression(var datatype : Option[L4_Datatype], var expressions 
 
   def prettyprint(out : PpStream) = { out << '{'; expressions.foreach(e => { e.prettyprint(out); out << ",\n" }); out << "} '" }
 
-  def progress = new ir.MatrixExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.expressions.map(_.progress).to[ListBuffer]).to[ListBuffer])
+  def progress = IR_MatrixExpression(if (datatype.isDefined) Some(datatype.get.progress); else None, expressions.map(_.expressions.map(_.progress).to[ListBuffer]).to[ListBuffer])
 
   def rows = expressions.length
   def columns = expressions(0).length
@@ -321,7 +321,7 @@ case class LeveledIdentifier(var name : String, var level : LevelSpecification) 
 case class VariableExpression(var access : Access, var datatype : L4_Datatype) extends L4_Expression {
   def prettyprint(out : PpStream) = access.prettyprint(out)
 
-  def progress = IR_VariableAccess(access.name, Some(datatype.progress))
+  def progress = IR_VariableAccess(access.name, datatype.progress)
 }
 
 case class UnaryExpression(var operator : String, var exp : L4_Expression) extends L4_Expression {
@@ -335,8 +335,8 @@ case class UnaryExpression(var operator : String, var exp : L4_Expression) exten
 case class FunctionCallExpression(var identifier : Access, var arguments : List[L4_Expression]) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
 
-  def progress : ir.FunctionCallExpression = {
-    ir.FunctionCallExpression(identifier.progress.asInstanceOf[IR_StringLiteral].value,
+  def progress : IR_FunctionCall = {
+    IR_FunctionCall(identifier.progress.asInstanceOf[IR_StringLiteral].value,
       arguments.map(s => s.progress).to[ListBuffer])
   }
 }

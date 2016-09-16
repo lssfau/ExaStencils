@@ -14,7 +14,7 @@ trait IR_MultiDimFieldAccess extends IR_Expression {
 
 case class IR_DirectFieldAccess(var fieldSelection : FieldSelection, var index : IR_ExpressionIndex) extends IR_MultiDimFieldAccess {
   override def datatype = fieldSelection.fieldLayout.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = DirectFieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def linearize = IR_LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.fieldLayout, index))
 }
@@ -23,7 +23,7 @@ case class IR_DirectFieldAccess(var fieldSelection : FieldSelection, var index :
 
 case class IR_FieldAccess(var fieldSelection : FieldSelection, var index : IR_ExpressionIndex) extends IR_MultiDimFieldAccess {
   override def datatype = fieldSelection.fieldLayout.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def expandSpecial = IR_DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
 }
@@ -32,7 +32,7 @@ case class IR_FieldAccess(var fieldSelection : FieldSelection, var index : IR_Ex
 
 case class IR_LinearizedFieldAccess(var fieldSelection : FieldSelection, var index : IR_Expression) extends IR_Expression with IR_Expandable {
   override def datatype = fieldSelection.fieldLayout.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LinearizedFieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() = {
     IR_ArrayAccess(

@@ -2,12 +2,12 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.{ StatementList, _ }
 import exastencils.knowledge._
 import exastencils.mpi._
@@ -21,10 +21,11 @@ case class CommunicateTarget(var target : String, var begin : Option[IR_Expressi
     end = Some(Duplicate(begin.get) + IR_ExpressionIndex(Array.fill(begin.get.length)(1)))
 
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CommunicateTarget\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 }
 
 case class CommunicateStatement(var field : FieldSelection, var op : String, var targets : ListBuffer[CommunicateTarget], var condition : Option[IR_Expression]) extends IR_Statement {
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   object ShiftIndexAccesses extends QuietDefaultStrategy("Shifting index accesses") {
     this += new Transformation("SearchAndReplace", {
@@ -33,7 +34,7 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (dimToString(dim) == s.value)
-            ret = IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
+            ret = IR_VariableAccess(dimToString(dim), IR_IntegerDatatype) - field.field.referenceOffset(dim)
         ret
       }
       case va : IR_VariableAccess => {
@@ -41,7 +42,7 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (dimToString(dim) == va.name)
-            ret = IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)) - field.field.referenceOffset(dim)
+            ret = IR_VariableAccess(dimToString(dim), IR_IntegerDatatype) - field.field.referenceOffset(dim)
         ret
       }
     }, false)
@@ -49,12 +50,10 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
 
   // shift all index accesses in condition as later functions will generate direct field accesses and according loop bounds
   if (condition.isDefined) ShiftIndexAccesses.applyStandalone(IR_ExpressionStatement(condition.get))
-
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CommunicateStatement\n"
 }
 
 case class ApplyBCsStatement(var field : FieldSelection) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 }
 
 /// local communication operations
@@ -85,7 +84,8 @@ case class StartLocalComm(var field : FieldSelection,
     var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var insideFragLoop : Boolean, var cond : Option[IR_Expression]) extends LocalTransfers {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = StartLocalComm\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def setLocalCommReady(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[IR_Statement] = {
     wrapFragLoop(
@@ -129,7 +129,8 @@ case class FinishLocalComm(var field : FieldSelection,
     var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
     var insideFragLoop : Boolean, var cond : Option[IR_Expression]) extends LocalTransfers {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = FinishLocalComm\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def waitForLocalComm(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[IR_Statement] = {
     wrapFragLoop(
@@ -137,7 +138,7 @@ case class FinishLocalComm(var field : FieldSelection,
         IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
           AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
           ListBuffer[IR_Statement](
-            new FunctionCallExpression("waitForFlag", IR_AddressofExpression(iv.LocalCommDone(
+            IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommDone(
               field.field,
               Fragment.getOpposingNeigh(neighbor._1).index,
               iv.NeighborFragLocalId(field.domainIndex, neighbor._1.index))))))),
@@ -161,7 +162,8 @@ case class FinishLocalComm(var field : FieldSelection,
 
 case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, var dest : IndexRange, var src : IndexRange,
     var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalSend\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDims = field.field.fieldLayout.numDimsData
 
@@ -177,7 +179,7 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
     IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
-        new FunctionCallExpression("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
+        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
         new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt)) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         IR_Assignment(iv.LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
@@ -186,7 +188,8 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
 
 case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : IndexRange, var src : IndexRange,
     var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LocalRecv\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDims = field.field.fieldLayout.numDimsData
 
@@ -202,7 +205,7 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
     IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be read from is ready for communication
-        new FunctionCallExpression("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
+        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
         new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt)) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         IR_Assignment(iv.LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
@@ -237,7 +240,8 @@ abstract class RemoteTransfers extends IR_Statement with IR_Expandable {
 
 case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean,
     var concurrencyId : Int, var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends RemoteTransfers {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSends\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : IR_Statement = {
     if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
@@ -304,7 +308,8 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
 
 case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean,
     var concurrencyId : Int, var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends RemoteTransfers {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecvs\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : IR_Statement = {
     if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
@@ -368,7 +373,8 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
 
 case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange,
     var concurrencyId : Int, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CopyToSendBuffer\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDims = field.field.fieldLayout.numDimsData
 
@@ -402,7 +408,8 @@ case class CopyToSendBuffer(var field : FieldSelection, var neighbor : NeighborI
 
 case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange,
     var concurrencyId : Int, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CopyFromRecvBuffer\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDims = field.field.fieldLayout.numDimsData
 
@@ -436,7 +443,7 @@ case class CopyFromRecvBuffer(var field : FieldSelection, var neighbor : Neighbo
 }
 
 case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, var src : IR_Expression, var numDataPoints : IR_Expression, var datatype : IR_Datatype, var concurrencyId : Int) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteSend\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[StatementList] = {
     ListBuffer[IR_Statement](
@@ -448,7 +455,7 @@ case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, v
 }
 
 case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, var dest : IR_Expression, var numDataPoints : IR_Expression, var datatype : IR_Datatype, var concurrencyId : Int) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = RemoteRecv\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[StatementList] = {
     ListBuffer[IR_Statement](
@@ -461,13 +468,13 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
 }
 
 case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborInfo, var direction : String) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = WaitForTransfer\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Statement] = {
     IR_IfCondition(
       iv.RemoteReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[IR_Statement](
-        new FunctionCallExpression("waitForMPIReq", IR_AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index))),
+        IR_FunctionCall("waitForMPIReq", IR_AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index))),
         IR_Assignment(iv.RemoteReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }
@@ -476,7 +483,7 @@ case class WaitForTransfer(var field : FieldSelection, var neighbor : NeighborIn
 
 case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsOnSpecBoundary\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Expression] = {
     // should work for node, cell and face discretizations
@@ -496,7 +503,7 @@ case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo
 
 case class IsOnBoundary(var field : FieldSelection, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsOnBoundary\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Expression] = {
     var applicableNeighbors = Fragment.neighbors
@@ -513,7 +520,7 @@ case class IsOnBoundary(var field : FieldSelection, var index : IR_ExpressionInd
 /// checks for IsOnBoundary as well as if outside inner/dup layers on fragment transitions
 case class IsValidPoint(var field : FieldSelection, var index : IR_ExpressionIndex) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = IsValidPoint\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Expression] = {
     var applicableNeighbors = Fragment.neighbors

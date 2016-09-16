@@ -6,7 +6,7 @@ import exastencils.base.ir._
 import exastencils.communication.CommunicateStatement
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir.{ Reduction, _ }
+import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
@@ -27,9 +27,10 @@ case class IR_LoopOverPoints(var field : Field,
     var body : ListBuffer[IR_Statement],
     var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
     var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
-    var reduction : Option[Reduction] = None,
+    var reduction : Option[IR_Reduction] = None,
     var condition : Option[IR_Expression] = None) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPoints\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def expandSpecial(collector : StackCollector) : Output[StatementList] = {
     val insideFragLoop = collector.stack.map({ case loop : IR_LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)

@@ -78,50 +78,50 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
   }
 
   private def inlineDecls(parent : Node, body : ListBuffer[IR_Statement]) : Unit = {
-    val accesses = new HashMap[String, (VariableDeclarationStatement, Buffer[IR_Expression])]()
+    val accesses = new HashMap[String, (IR_VariableDeclaration, Buffer[IR_Expression])]()
     val usageIn = new HashMap[String, ListBuffer[String]]().withDefault(_ => new ListBuffer[String]())
     var assignTo : String = null
     this.execute(new Transformation("find removable declarations", {
-      case decl @ VariableDeclarationStatement(_ : IR_ScalarDatatype, vName, Some(init)) =>
+      case decl @ IR_VariableDeclaration(_ : IR_ScalarDatatype, vName, Some(init)) =>
         accesses(vName) = (decl, new ArrayBuffer[IR_Expression]())
         assignTo = vName
         decl
-      case ass @ IR_Assignment(IR_VariableAccess(vName, _), _, _)                        =>
+      case ass @ IR_Assignment(IR_VariableAccess(vName, _), _, _)                  =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         ass
-      case inc @ IR_PreDecrementExpression(IR_VariableAccess(vName, _))                  =>
+      case inc @ IR_PreDecrementExpression(IR_VariableAccess(vName, _))            =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PreIncrementExpression(IR_VariableAccess(vName, _))                  =>
+      case inc @ IR_PreIncrementExpression(IR_VariableAccess(vName, _))            =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostIncrementExpression(IR_VariableAccess(vName, _))                 =>
+      case inc @ IR_PostIncrementExpression(IR_VariableAccess(vName, _))           =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostDecrementExpression(IR_VariableAccess(vName, _))                 =>
+      case inc @ IR_PostDecrementExpression(IR_VariableAccess(vName, _))           =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case acc @ IR_VariableAccess(vName, _)                                             =>
+      case acc @ IR_VariableAccess(vName, _)                                       =>
         for ((_, uses) <- accesses.get(vName))
           uses += acc
         usageIn(vName) += assignTo
@@ -130,7 +130,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
     for ((_, (decl, uses)) <- accesses) {
       decl.annotate(REMOVE_ANNOT)
-      val init = decl.expression.get
+      val init = decl.initialValue.get
       for (use <- uses)
         use.annotate(REPLACE_ANNOT, init) // do not duplicate here, since init could get additional annotations later (which would not be visible, when we copy here)
     }
@@ -216,7 +216,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         }.toArray
       java.util.Arrays.sort(filteredCS, Ordering.Tuple2[Int, String] on { x : (Int, String, Subexpression) => (x._1, x._2) })
 
-      val decls = new ArrayBuffer[VariableDeclarationStatement]()
+      val decls = new ArrayBuffer[IR_VariableDeclaration]()
       val firstInits = new ListBuffer[IR_Statement]()
       val nextUpdates = new ArrayBuffer[IR_Assignment]()
       for (commonExp <- filteredCS.view.map(_._3)) {
@@ -246,11 +246,11 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           csNext = csNextWrap.expression
 
           // FIXME: fix datatypes
-          val decl : VariableDeclarationStatement = commonExp.declaration
+          val decl : IR_VariableDeclaration = commonExp.declaration
           val tmpBuf = new iv.LoopCarriedCSBuffer(bufferCounter, decl.datatype, IR_ExpressionIndex(Duplicate(tmpBufLen)))
           bufferCounter += 1
           val tmpBufAcc = new LoopCarriedCSBufferAccess(tmpBuf, IR_ExpressionIndex(Duplicate(tmpBufInd)))
-          decl.expression = Some(tmpBufAcc)
+          decl.initialValue = Some(tmpBufAcc)
           decls += decl
 
           firstInits += new IR_Assignment(Duplicate(tmpBufAcc), Duplicate(commonExp.witness), "=")
@@ -359,7 +359,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       // only process this node if it is a CS and not already processed (based on ref eq)
         if (commonSubs.contains(c) && !processedChildren.containsKey(c) && par.isInstanceOf[IR_Expression])
           par.asInstanceOf[IR_Expression] match {
-            case func : FunctionCallExpression =>
+            case func : IR_FunctionCall =>
               if (!func.name.contains("std::rand")) {
                 // HACK to prevent inlining call to std::rand
                 val childCSes = func.arguments.view.map { e => commonSubs.get(e) }
@@ -367,7 +367,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                   registerCS(func, childCSes.map(_.get.prio).sum + 1, 3, pos, true, List.empty)
               }
 
-            case _ : VectorExpression | _ : MatrixExpression | _ : PrintExpression =>
+            case _ : IR_VectorExpression | _ : IR_MatrixExpression | _ : PrintExpression =>
             // don't do anything, these are never common subexpressions
 
             case parent : Product =>
@@ -551,7 +551,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
         c.annotate(SKIP_ANNOT)
         skip = true
 
-      case VariableDeclarationStatement(dt, name, _)                           =>
+      case IR_VariableDeclaration(dt, name, _)                                 =>
         commonSubs(IR_VariableAccess(name, dt)) = null
       case IR_Assignment(vAcc : IR_VariableAccess, _, _)                       =>
         commonSubs(vAcc) = null
@@ -621,7 +621,7 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
   // FIXME: make generic!
   private lazy val tmpVarName : String = Subexpression.getNewCseName(func)
 
-  lazy val declaration = VariableDeclarationStatement(tmpVarDatatype, tmpVarName, Some(witness))
+  lazy val declaration = IR_VariableDeclaration(tmpVarDatatype, tmpVarName, Some(witness))
   lazy val ppString : String = witness.prettyprint()
 
   def addPosition(nju : List[Node]) : Boolean = {
@@ -634,7 +634,7 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
 
   def getReplOrModify(old : IR_Expression with Product) : IR_Expression = {
     if (witness == old) { // we can completely replace the subtree
-      return IR_VariableAccess(tmpVarName, Some(tmpVarDatatype))
+      IR_VariableAccess(tmpVarName, tmpVarDatatype)
     } else {
       // only a part of the n-ary expression can be extracted...
       // according to the matching above (in findCommSubs), this expression must have a single Buffer child
@@ -642,8 +642,8 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
       val commSubsChildren = witness.productIterator.find { x => x.isInstanceOf[Buffer[_]] }.get.asInstanceOf[Buffer[Any]]
       // according to the generation of witnesses children above, both buffers have the same ordering
       allChildren --= commSubsChildren
-      allChildren += IR_VariableAccess(tmpVarName, Some(tmpVarDatatype))
-      return null // no need to replace node, since its children were already modified
+      allChildren += IR_VariableAccess(tmpVarName, tmpVarDatatype)
+      null // no need to replace node, since its children were already modified
     }
   }
 }

@@ -2,11 +2,11 @@ package exastencils.domain
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.grid._
 import exastencils.knowledge._
@@ -17,55 +17,55 @@ import exastencils.util._
 
 case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointOutsideDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) ~ ")"
-      case 1 => (MemberAccess(posD, "x") < size.lower_x) Or (MemberAccess(posD, "x") > size.upper_x)
+      case 1 => (IR_MemberAccess(posD, "x") < size.lower_x) Or (IR_MemberAccess(posD, "x") > size.upper_x)
       // case 2 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
       //   ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) ~ ")"
-      case 2 => (MemberAccess(posD, "x") < size.lower_x) Or (MemberAccess(posD, "x") > size.upper_x) Or
-        (MemberAccess(posD, "y") < size.lower_y) Or (MemberAccess(posD, "y") > size.upper_y)
+      case 2 => (IR_MemberAccess(posD, "x") < size.lower_x) Or (IR_MemberAccess(posD, "x") > size.upper_x) Or
+        (IR_MemberAccess(posD, "y") < size.lower_y) Or (IR_MemberAccess(posD, "y") > size.upper_y)
       // case 3 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
       //   ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) Or
       //   ((pos ~ ".z") < size.lower_z) Or ((pos ~ ".z") > size.upper_z) ~ ")"
-      case 3 => (MemberAccess(posD, "x") < size.lower_x) Or (MemberAccess(posD, "x") > size.upper_x) Or
-        (MemberAccess(posD, "y") < size.lower_y) Or (MemberAccess(posD, "y") > size.upper_y) Or
-        (MemberAccess(posD, "z") < size.lower_z) Or (MemberAccess(posD, "z") > size.upper_z)
+      case 3 => (IR_MemberAccess(posD, "x") < size.lower_x) Or (IR_MemberAccess(posD, "x") > size.upper_x) Or
+        (IR_MemberAccess(posD, "y") < size.lower_y) Or (IR_MemberAccess(posD, "y") > size.upper_y) Or
+        (IR_MemberAccess(posD, "z") < size.lower_z) Or (IR_MemberAccess(posD, "z") > size.upper_z)
     }
   }
 }
 
 case class PointInsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointInsideDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) ~ ")"
-      case 1 => (MemberAccess(posD, "x") >= size.lower_x) And (MemberAccess(posD, "x") <= size.upper_x)
+      case 1 => (IR_MemberAccess(posD, "x") >= size.lower_x) And (IR_MemberAccess(posD, "x") <= size.upper_x)
       // case 2 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
       //   ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) ~ ")"
-      case 2 => (MemberAccess(posD, "x") >= size.lower_x) And (MemberAccess(posD, "x") <= size.upper_x) And
-        (MemberAccess(posD, "y") >= size.lower_y) And (MemberAccess(posD, "y") <= size.upper_y)
+      case 2 => (IR_MemberAccess(posD, "x") >= size.lower_x) And (IR_MemberAccess(posD, "x") <= size.upper_x) And
+        (IR_MemberAccess(posD, "y") >= size.lower_y) And (IR_MemberAccess(posD, "y") <= size.upper_y)
       // case 3 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
       //   ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) And
       //   ((pos ~ ".z") >= size.lower_z) And ((pos ~ ".z") <= size.upper_z) ~ ")"
-      case 3 => (MemberAccess(posD, "x") >= size.lower_x) And (MemberAccess(posD, "x") <= size.upper_x) And
-        (MemberAccess(posD, "y") >= size.lower_y) And (MemberAccess(posD, "y") <= size.upper_y) And
-        (MemberAccess(posD, "z") >= size.lower_z) And (MemberAccess(posD, "z") <= size.upper_z)
+      case 3 => (IR_MemberAccess(posD, "x") >= size.lower_x) And (IR_MemberAccess(posD, "x") <= size.upper_x) And
+        (IR_MemberAccess(posD, "y") >= size.lower_y) And (IR_MemberAccess(posD, "y") <= size.upper_y) And
+        (IR_MemberAccess(posD, "z") >= size.lower_z) And (IR_MemberAccess(posD, "z") <= size.upper_z)
     }
   }
 }
 
 case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -77,24 +77,24 @@ case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with IR_
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 1 => CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      case 1 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
       // case 2 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
       //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 2 => CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      case 2 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
       // case 3 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
       //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
       //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 3 => CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
+      case 3 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
     }
   }
 }
 
 case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentIndex\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -107,32 +107,32 @@ case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with 
     val entries = Knowledge.dimensionality match {
       case 1 => ListBuffer[IR_Expression](
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         0,
         0)
       case 2 => ListBuffer[IR_Expression](
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
         0)
       case 3 => ListBuffer[IR_Expression](
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x)),
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y),
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)),
         // "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z))
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)))
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)))
     }
 
     // "Vec3i(" ~ entries.reduceLeft((l, r) => l ~ ", " ~ r) ~ ")"
-    FunctionCallExpression("Vec3i", entries) // FIXME: Constructor?
+    IR_FunctionCall("Vec3i", entries) // FIXME: Constructor?
   }
 }
 
 case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToFragmentId\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -144,24 +144,24 @@ case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression wit
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
       // case 1 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 1 => ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 1 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
       // case 2 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
       //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 2 => ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 2 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
       // case 3 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z)) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
       //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
       //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 3 => ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z))) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
+      case 3 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z))) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
+        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
     }
   }
 }
 
 case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PointToOwningRank\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
     val globalDomain = DomainCollection.getDomainByIdentifier("global").get
@@ -172,30 +172,30 @@ case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends I
 
     def posD = Duplicate(pos)
     Knowledge.dimensionality match {
-      case 1 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
+      case 1 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
         // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-      case 2 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+      case 2 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
         // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
         //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
-          CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-      case 3 => TernaryConditionExpression(PointOutsideDomain(pos, domain),
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
+          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+      case 3 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
         s"MPI_PROC_NULL",
         // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x
         //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
         //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x +
-          CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
-          CastExpression(IR_IntegerDatatype, new FunctionCallExpression("floor", (MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
+        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x +
+          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
+          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
     }
   }
 }
 
 case class ConnectFragments() extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ConnectFragments\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_LoopOverFragments] = {
     var body = new ListBuffer[IR_Statement]
@@ -242,15 +242,15 @@ case class ConnectFragments() extends IR_Statement with IR_Expandable {
             (if (Knowledge.domain_canHaveRemoteNeighs) {
               if (Knowledge.domain_canHaveLocalNeighs)
                 IR_IfCondition(IR_EqEqExpression("mpiRank", PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d))),
-                  FunctionCallExpression("connectLocalElement", ListBuffer[IR_Expression](
+                  IR_FunctionCall("connectLocalElement", ListBuffer[IR_Expression](
                     IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d)),
-                  FunctionCallExpression("connectRemoteElement", ListBuffer[IR_Expression](
+                  IR_FunctionCall("connectRemoteElement", ListBuffer[IR_Expression](
                     IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d))) // FIXME: datatype for VariableAccess
               else
-                FunctionCallExpression("connectRemoteElement", ListBuffer[IR_Expression](
+                IR_FunctionCall("connectRemoteElement", ListBuffer[IR_Expression](
                   IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d)) // FIXME: datatype for VariableAccess
             } else {
-              FunctionCallExpression("connectLocalElement", ListBuffer[IR_Expression](
+              IR_FunctionCall("connectLocalElement", ListBuffer[IR_Expression](
                 IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d))
             }) : IR_Statement))
 
@@ -263,7 +263,7 @@ case class ConnectFragments() extends IR_Statement with IR_Expandable {
 }
 
 case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl = prettyprint
   override def name = "initDomain"
 
@@ -275,14 +275,14 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
     val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
     // val vecDelta = "Vec3(" ~ (0.5 * fragWidth_x) ~ "," ~ (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0) ~ "," ~ (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0) ~ ")"
     // FIXME: Constructor?
-    val vecDelta = new FunctionCallExpression("Vec3", (0.5 * fragWidth_x), (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0), (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0))
+    val vecDelta = IR_FunctionCall("Vec3", (0.5 * fragWidth_x), (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0), (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0))
 
     var body = ListBuffer[IR_Statement]()
 
     if (Knowledge.mpi_enabled)
-      body += AssertStatement(IR_EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
+      body += IR_Assert(IR_EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
         ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
-        new FunctionCallExpression("exit", 1))
+        IR_FunctionCall("exit", 1))
 
     body ++= ListBuffer(
       s"Vec3 positions[${ Knowledge.domain_numFragmentsPerBlock }]",
@@ -293,7 +293,7 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
         s"Vec3 rankPos(0, 0, 0)")
 
     body += IR_LoopOverDimensions(Knowledge.dimensionality, IndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
-      new IR_Assignment("positions[posWritePos++]", new FunctionCallExpression("Vec3",
+      IR_Assignment("positions[posWritePos++]", IR_FunctionCall("Vec3",
         ((("rankPos.x" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x,
         (if (Knowledge.dimensionality > 1) ((("rankPos.y" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0),
         (if (Knowledge.dimensionality > 2) ((("rankPos.z" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0)))) // FIXME: Constructor?
@@ -307,14 +307,14 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
 
     body += ConnectFragments()
 
-    body += new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")) // FIXME: move to app
+    body += IR_FunctionCall("setupBuffers") // FIXME: move to app
 
     IR_Function(IR_UnitDatatype, name, body)
   }
 }
 
 case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeneratedDomain\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl = prettyprint
   override def name = "initDomain"
 
@@ -322,31 +322,31 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
     IR_Function(IR_UnitDatatype, name,
       if (Knowledge.mpi_enabled) {
         ListBuffer(
-          VariableDeclarationStatement(IR_IntegerDatatype, "numFragments", Some("0")),
-          VariableDeclarationStatement(IR_IntegerDatatype, "bufsize", Some("0")),
-          VariableDeclarationStatement(IR_IntegerDatatype, "fileOffset", Some("0")),
-          AssertStatement(IR_EqEqExpression("mpiSize", Knowledge.mpi_numThreads),
+          IR_VariableDeclaration(IR_IntegerDatatype, "numFragments", 0),
+          IR_VariableDeclaration(IR_IntegerDatatype, "bufsize", 0),
+          IR_VariableDeclaration(IR_IntegerDatatype, "fileOffset", 0),
+          IR_Assert(IR_EqEqExpression("mpiSize", Knowledge.mpi_numThreads),
             ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.domain_numBlocks),
             "return"),
           IR_IfCondition("mpiRank == 0",
             ListBuffer[IR_Statement](
-              VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
+              IR_VariableDeclaration(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
               IR_IfCondition(
                 "file.is_open()",
                 ListBuffer[IR_Statement](
-                  VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("file.tellg()")),
-                  VariableDeclarationStatement(IR_PointerDatatype("char"), "memblock", Some("new char[size]")),
+                  IR_VariableDeclaration(IR_IntegerDatatype, "size", "file.tellg()"),
+                  IR_VariableDeclaration(IR_PointerDatatype("char"), "memblock", "new char[size]"),
                   "file.seekg (0, std::ios::beg)",
                   "file.read (memblock, size)",
-                  VariableDeclarationStatement(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
+                  IR_VariableDeclaration(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
                   IR_Assignment("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
                   IR_Assignment("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
-                  (if (Knowledge.mpi_enabled) VariableDeclarationStatement(IR_IntegerDatatype, "fileOffset", Some("bufsize"))
+                  (if (Knowledge.mpi_enabled) IR_VariableDeclaration(IR_IntegerDatatype, "fileOffset", "bufsize")
                   else IR_NullStatement),
                   (if (Knowledge.mpi_enabled) {
                     IR_ForLoop("int i = 1", " i < numRanks ", "++i",
-                      VariableDeclarationStatement(IR_IntegerDatatype, "n", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
-                      VariableDeclarationStatement(IR_IntegerDatatype, "b", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
+                      IR_VariableDeclaration(IR_IntegerDatatype, "n", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
+                      IR_VariableDeclaration(IR_IntegerDatatype, "b", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
                       MPI_Send("&n", "1", IR_IntegerDatatype, "i", 0, "mpiRequest_Send_0[i][0]"),
                       MPI_Send("&fileOffset", "1", IR_IntegerDatatype, "i", 1, "mpiRequest_Send_0[i][1]"),
                       MPI_Send("&b", "1", IR_IntegerDatatype, "i", 2, "mpiRequest_Send_0[i][2]"),
@@ -358,44 +358,44 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
               "MPI_Irecv(&numFragments, 1, MPI_INT, 0, 0, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][0])",
               "MPI_Irecv(&fileOffset, 1, MPI_INT, 0, 1, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][1])",
               "MPI_Irecv(&bufsize, 1, MPI_INT, 0, 2, mpiCommunicator, &mpiRequest_Recv_0[mpiRank][2])")),
-          VariableDeclarationStatement(IR_SpecialDatatype("MPI_File"), "fh"),
+          IR_VariableDeclaration(IR_SpecialDatatype("MPI_File"), "fh"),
           "MPI_File_open(mpiCommunicator, \"./Domains/fragments.dat\", MPI_MODE_RDONLY, MPI_INFO_NULL,&fh)",
-          VariableDeclarationStatement(IR_CharDatatype, "buf[bufsize]"),
+          IR_VariableDeclaration(IR_CharDatatype, "buf[bufsize]"),
           "MPI_File_read_at(fh, fileOffset, buf, bufsize,MPI_BYTE, MPI_STATUSES_IGNORE)",
           "MPI_Barrier(MPI_COMM_WORLD)",
           "MPI_File_close(&fh)",
           "setValues(buf,numFragments)",
-          new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")))
+          IR_FunctionCall("setupBuffers"))
       } else {
         ListBuffer(
-          VariableDeclarationStatement(IR_IntegerDatatype, "numFragments", Some("0")),
-          VariableDeclarationStatement(IR_IntegerDatatype, "bufsize", Some("0")),
-          VariableDeclarationStatement(IR_IntegerDatatype, "fileOffset", Some("0")),
-          VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
+          IR_VariableDeclaration(IR_IntegerDatatype, "numFragments", 0),
+          IR_VariableDeclaration(IR_IntegerDatatype, "bufsize", 0),
+          IR_VariableDeclaration(IR_IntegerDatatype, "fileOffset", 0),
+          IR_VariableDeclaration(IR_SpecialDatatype("std::ifstream"), "file(\"./Domains/config.dat\", std::ios::binary | std::ios::ate | std::ios::in)"),
           IR_IfCondition(
             "file.is_open()",
             ListBuffer[IR_Statement](
-              VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("file.tellg()")),
-              VariableDeclarationStatement(IR_PointerDatatype("char"), "memblock", Some("new char[size]")),
+              IR_VariableDeclaration(IR_IntegerDatatype, "size", "file.tellg()"),
+              IR_VariableDeclaration(IR_PointerDatatype("char"), "memblock", "new char[size]"),
               "file.seekg (0, std::ios::beg)",
               "file.read (memblock, size)",
-              VariableDeclarationStatement(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
+              IR_VariableDeclaration(IR_IntegerDatatype, "numRanks", Some(ReadValueFrom(IR_IntegerDatatype, "memblock"))),
               IR_Assignment("numFragments", ReadValueFrom(IR_IntegerDatatype, "memblock")),
               IR_Assignment("bufsize", ReadValueFrom(IR_IntegerDatatype, "memblock")),
               "file.close()"), ListBuffer[IR_Statement]()),
-          VariableDeclarationStatement(IR_SpecialDatatype("std::ifstream"), s"""fileFrags("./Domains/fragments.dat", std::ios::binary | std::ios::in)"""),
-          VariableDeclarationStatement(IR_CharDatatype, "buf[bufsize]"),
+          IR_VariableDeclaration(IR_SpecialDatatype("std::ifstream"), s"""fileFrags("./Domains/fragments.dat", std::ios::binary | std::ios::in)"""),
+          IR_VariableDeclaration(IR_CharDatatype, "buf[bufsize]"),
           "fileFrags.read (buf, bufsize)",
           "fileFrags.close()",
           "setValues(buf,numFragments)",
-          new IR_ExpressionStatement(new FunctionCallExpression("setupBuffers")))
+          IR_FunctionCall("setupBuffers"))
       })
 
   }
 }
 
 case class SetValues() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = SetValues\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl = prettyprint
   override def name = "setValues"
 
@@ -407,22 +407,22 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
     body += IR_Scope(
       IR_Assignment(iv.PrimitiveId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_Assignment(iv.CommId(), ReadValueFrom(IR_IntegerDatatype, "data")),
-      IR_ForLoop(VariableDeclarationStatement(IR_IntegerDatatype, "i", Some(0)),
-        IR_LowerExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype)), math.pow(2, Knowledge.dimensionality)),
-        IR_PreIncrementExpression(IR_VariableAccess("i", Some(IR_IntegerDatatype))),
+      IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, "i", 0),
+        IR_LowerExpression(IR_VariableAccess("i", IR_IntegerDatatype), math.pow(2, Knowledge.dimensionality)),
+        IR_PreIncrementExpression(IR_VariableAccess("i", IR_IntegerDatatype)),
         // FIXME: Constructor?
         // s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
-        VariableDeclarationStatement(IR_SpecialDatatype("Vec3"), "vertPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
+        IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "vertPos", IR_FunctionCall("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0)),
         (if (Knowledge.dimensionality == 2) IR_Assignment("vertPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
         (if (Knowledge.dimensionality == 3) IR_Assignment("vertPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
-        SwitchStatement("i", ListBuffer(
-          CaseStatement("0", ListBuffer(IR_Assignment(iv.PrimitivePositionBegin(), "vertPos"))),
-          CaseStatement("1", ListBuffer(IR_Assignment(iv.PrimitivePositionEnd(), "vertPos"))),
-          CaseStatement("3", ListBuffer(IR_Assignment(iv.PrimitivePositionEnd(), "vertPos"))),
-          CaseStatement("7", ListBuffer(IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")))))),
+        IR_Switch("i",
+          IR_Case("0", IR_Assignment(iv.PrimitivePositionBegin(), "vertPos")),
+          IR_Case("1", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")),
+          IR_Case("3", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")),
+          IR_Case("7", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")))),
       // FIXME: Constructor?
       // s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
-      VariableDeclarationStatement(IR_SpecialDatatype("Vec3"), "fragPos", Some(new FunctionCallExpression("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0))),
+      IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "fragPos", IR_FunctionCall("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0)),
       (if (Knowledge.dimensionality == 2) IR_Assignment("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       (if (Knowledge.dimensionality == 3) IR_Assignment("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       IR_Assignment(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
@@ -433,11 +433,11 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
           ListBuffer[IR_Statement](//neighbor is valid
             IR_IfCondition(ReadValueFrom(IR_BooleanDatatype, "data"),
               ListBuffer[IR_Statement](//neighbor is remote
-                VariableDeclarationStatement(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
-                VariableDeclarationStatement(IR_IntegerDatatype, "neighRank", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
+                IR_VariableDeclaration(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
+                IR_VariableDeclaration(IR_IntegerDatatype, "neighRank", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
                 (if (Knowledge.mpi_enabled) s"connectRemoteElement (${ iv.CommId().prettyprint() }, neighIdx, neighRank, location, $d)" else IR_NullStatement)),
               ListBuffer[IR_Statement](//neighbor is local
-                VariableDeclarationStatement(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
+                IR_VariableDeclaration(IR_IntegerDatatype, "neighIdx", Some(ReadValueFrom(IR_IntegerDatatype, "data"))),
                 if (FragmentCollection.fragments.length > 1) s"connectLocalElement(${ iv.CommId().prettyprint() },neighIdx,location,$d)" else IR_NullStatement)))))
     }
     body += IR_IfCondition(ReadValueFrom(IR_BooleanDatatype, "data"),
@@ -475,8 +475,8 @@ case class DomainFunctions() extends IR_FunctionCollection(
         IR_FunctionArgument("memblock", IR_SpecialDatatype("char*&")),
         IR_FunctionArgument("title = \"\"", IR_SpecialDatatype("std::string"))),
       ListBuffer[IR_Statement](
-        VariableDeclarationStatement(IR_IntegerDatatype, "size", Some("sizeof(T)")),
-        VariableDeclarationStatement(IR_CharDatatype, "bytes[size]"),
+        IR_VariableDeclaration(IR_IntegerDatatype, "size", "sizeof(T)"),
+        IR_VariableDeclaration(IR_CharDatatype, "bytes[size]"),
         IR_ForLoop("int j = 0", " j < size ", "++j", "bytes[size-1-j] = memblock[j]"),
         "memblock+=size",
         IR_Return("*(T *)&bytes")))

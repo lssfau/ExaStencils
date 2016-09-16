@@ -9,7 +9,7 @@ import exastencils.core.collectors.StackCollector
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -144,7 +144,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
-      FunctionCallExpression(functionName, fctArgs) : IR_Statement
+      IR_FunctionCall(functionName, fctArgs) : IR_Statement
     }
 
     case applyBCsStatement : ApplyBCsStatement => {
@@ -179,7 +179,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
-      FunctionCallExpression(functionName, fctArgs) : IR_Statement
+      IR_FunctionCall(functionName, fctArgs) : IR_Statement
     }
   }, false)
 }

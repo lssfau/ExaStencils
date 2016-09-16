@@ -2,11 +2,11 @@ package exastencils.util
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.{ StatementList, _ }
 import exastencils.grid._
 import exastencils.knowledge._
@@ -27,17 +27,16 @@ case class PrintExpression(var stream : IR_Expression, toPrint : ListBuffer[IR_E
 }
 
 case class BuildStringStatement(var stringName : IR_Expression, var toPrint : ListBuffer[IR_Expression]) extends IR_Statement with IR_Expandable {
-
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = BuildStringStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[StatementList] = {
     val streamName = BuildStringStatement.getNewName()
     def streamType = IR_SpecialDatatype("std::ostringstream")
     val statements = ListBuffer[IR_Statement](
-      VariableDeclarationStatement(streamType, streamName),
+      IR_VariableDeclaration(streamType, streamName),
       PrintExpression(IR_VariableAccess(streamName, streamType), toPrint),
-      IR_Assignment(stringName, MemberFunctionCallExpression(IR_VariableAccess(streamName, Some(IR_SpecialDatatype("std::ostringstream"))), "str", ListBuffer())))
-    return statements
+      IR_Assignment(stringName, IR_MemberFunctionCall(IR_VariableAccess(streamName, IR_SpecialDatatype("std::ostringstream")), "str")))
+    statements
   }
 }
 
@@ -52,24 +51,23 @@ private object BuildStringStatement {
 case class PrintStatement(var toPrint : ListBuffer[IR_Expression], var stream : String = "std::cout") extends IR_Statement with IR_Expandable {
   def this(toPrint : IR_Expression) = this(ListBuffer(toPrint))
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     if (toPrint.isEmpty) {
-      return IR_NullStatement
+      IR_NullStatement
     } else {
       val printStmt : IR_Statement = new PrintExpression(IR_VariableAccess(stream), toPrint.view.flatMap { e => List(e, IR_StringConstant(" ")) }.to[ListBuffer] += PrintExpression.endl)
       if (Knowledge.mpi_enabled) // filter by mpi rank if required
-        return IR_IfCondition(MPI_IsRootProc(), printStmt)
+        IR_IfCondition(MPI_IsRootProc(), printStmt)
       else
-        return printStmt
+        printStmt
     }
   }
 }
 
 case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = IR_BooleanConstant(true)) extends IR_Statement with IR_Expandable {
-
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = PrintFieldStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
@@ -110,11 +108,11 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
     }
 
     var innerLoop = ListBuffer[IR_Statement](
-      new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
+      IR_ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
       fileHeader,
       IR_LoopOverFragments(
         IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
-          IR_LoopOverDimensions(numDimsData, new IndexRange(
+          IR_LoopOverDimensions(numDimsData, IndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => (field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
@@ -122,27 +120,27 @@ case class PrintFieldStatement(var filename : IR_Expression, var field : FieldSe
                 ((0 until numDimsGrid).view.flatMap { dim =>
                   List(getPos(field, dim), separator)
                 } ++ arrayIndexRange.view.flatMap { index =>
-                  val access = new IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
+                  val access = IR_FieldAccess(field, IR_LoopOverDimensions.defIt(numDimsData))
                   if (numDimsData > numDimsGrid) // TODO: replace after implementing new field accessors
                     access.index(numDimsData - 1) = index // TODO: assumes innermost dimension to represent vector index
                   List(access, separator)
                 }).to[ListBuffer] += PrintExpression.endl))))),
-      new MemberFunctionCallExpression(new IR_VariableAccess(streamName, Some(streamType)), "close"))
+      IR_MemberFunctionCall(IR_VariableAccess(streamName, streamType), "close"))
 
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     if (Knowledge.mpi_enabled) {
       statements += IR_IfCondition(MPI_IsRootProc(),
         ListBuffer[IR_Statement](
-          new ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc")),
-          new MemberFunctionCallExpression(IR_VariableAccess(streamName, streamType), "close")))
+          IR_ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc")),
+          IR_MemberFunctionCall(IR_VariableAccess(streamName, streamType), "close")))
 
-      statements += new MPI_Sequential(innerLoop)
+      statements += MPI_Sequential(innerLoop)
     } else {
       statements ++= innerLoop
     }
 
-    return statements
+    statements
   }
 }
 

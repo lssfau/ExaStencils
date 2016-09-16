@@ -61,3 +61,23 @@ private object IR_SIMD_HorizontalPrinterHelper {
     out << '}'
   }
 }
+
+/// IR_SIMD_FusedPrinterHelper
+
+private object IR_SIMD_FusedPrinterHelper {
+  def prettyprint(out : PpStream, factor1 : IR_Expression, factor2 : IR_Expression, summand : IR_Expression, addSub : String) : Unit = {
+    val prec = if (Knowledge.useDblPrecision) 'd' else 's'
+    Platform.simd_instructionSet match {
+      case "SSE3"            => out << "_mm_" << addSub << "_p" << prec << "(_mm_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
+      case "AVX"             => out << "_mm256_" << addSub << "_p" << prec << "(_mm256_mul_p" << prec << '(' << factor1 << ", " << factor2 << "), " << summand << ')'
+      case "AVX2"            => out << "_mm256_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
+      case "AVX512" | "IMCI" => out << "_mm512_fm" << addSub << "_p" << prec << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
+      case "QPX"             => out << "vec_m" << addSub << '(' << factor1 << ", " << factor2 << ", " << summand << ')'
+      case "NEON"            =>
+        if (addSub == "add")
+          out << "vmlaq_f32(" << summand << ", " << factor1 << ", " << factor2 << ')' // use unfused for compatibility with gcc 4.7 and older
+        else // vmlsq_f32(a,b,c) is a-b*c and not a*b-c; thanks ARM  -.-
+          out << "vnegq_f32(vmlsq_f32(" << summand << ", " << factor1 << ", " << factor2 << "))"
+    }
+  }
+}

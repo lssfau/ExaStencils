@@ -2,10 +2,10 @@ package exastencils.cuda
 
 import scala.collection.mutable._
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MultiDimFieldAccess
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -28,42 +28,42 @@ case class CUDA_Finalize() extends CUDA_Statement {
 }
 
 case class CUDA_CheckError(var exp : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_CheckError\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Scope] = {
     // TODO: replace with define?
     IR_Scope(ListBuffer[IR_Statement](
-      VariableDeclarationStatement(IR_SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
+      IR_VariableDeclaration(IR_SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
       IR_IfCondition(IR_NeqExpression("cudaStatus", "cudaSuccess"),
         PrintStatement(ListBuffer("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", "cudaStatus",
-          "\" -> \"", new FunctionCallExpression("cudaGetErrorString", "cudaStatus"), "std::endl")))))
+          "\" -> \"", IR_FunctionCall("cudaGetErrorString", "cudaStatus"), "std::endl")))))
   }
 }
 
 case class CUDA_AllocateStatement(var pointer : IR_Expression, var numElements : IR_Expression, var datatype : IR_Datatype) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_AllocateStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     CUDA_CheckError(
-      FunctionCallExpression("cudaMalloc",
+      IR_FunctionCall("cudaMalloc",
         ListBuffer[IR_Expression](
-          CastExpression(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), IR_AddressofExpression(pointer)),
+          IR_Cast(IR_PointerDatatype(IR_PointerDatatype(IR_UnitDatatype)), IR_AddressofExpression(pointer)),
           numElements * IR_SizeOf(datatype))))
   }
 }
 
 case class CUDA_FreeStatement(var pointer : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_FreeStatement\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
-    IR_ExpressionStatement(new FunctionCallExpression("cudaFree", pointer))
+    IR_ExpressionStatement(IR_FunctionCall("cudaFree", pointer))
   }
 }
 
 case class CUDA_UpdateHostData(var fieldAccess : IR_MultiDimFieldAccess) extends IR_Statement with IR_Expandable {
   // TODO: allow targeting of specific index ranges
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateHostData\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_IfCondition] = {
     val fieldSelection = fieldAccess.fieldSelection
@@ -82,7 +82,7 @@ case class CUDA_UpdateHostData(var fieldAccess : IR_MultiDimFieldAccess) extends
 }
 
 case class CUDA_UpdateDeviceData(var fieldAccess : IR_MultiDimFieldAccess) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_UpdateDeviceData\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_IfCondition] = {
     val fieldSelection = fieldAccess.fieldSelection
@@ -155,28 +155,28 @@ case class CUDA_FunctionCallExperimentalExpression(
 }
 
 case class CUDA_DeviceSynchronize() extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_DeviceSynchronize\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
-    CUDA_CheckError(FunctionCallExpression("cudaDeviceSynchronize", ListBuffer()))
+    CUDA_CheckError(IR_FunctionCall("cudaDeviceSynchronize"))
   }
 }
 
 case class CUDA_Memcpy(var dest : IR_Expression, var src : IR_Expression, var sizeInBytes : IR_Expression, var direction : String) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_Memcpy\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
     CUDA_CheckError(
-      FunctionCallExpression("cudaMemcpy",
+      IR_FunctionCall("cudaMemcpy",
         ListBuffer[IR_Expression](dest, src, sizeInBytes, direction)))
   }
 }
 
 case class CUDA_Memset(var data : IR_Expression, var value : IR_Expression, var numElements : IR_Expression, var datatype : IR_Datatype) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = CUDA_Memset\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Statement] = {
-    CUDA_CheckError(FunctionCallExpression("cudaMemset", ListBuffer(data, value, numElements * IR_SizeOf(datatype))))
+    CUDA_CheckError(IR_FunctionCall("cudaMemset", ListBuffer(data, value, numElements * IR_SizeOf(datatype))))
   }
 }
 

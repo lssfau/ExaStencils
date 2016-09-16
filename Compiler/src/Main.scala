@@ -21,6 +21,7 @@ import exastencils.parsers.settings._
 import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
+import exastencils.solver.IR_ResolveLocalSolve
 import exastencils.strategies._
 import exastencils.util._
 
@@ -224,7 +225,7 @@ object Main {
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
-    ResolveLocalSolves.apply()
+    IR_ResolveLocalSolve.apply()
 
     ResolveLoopOverPointsInOneFragment.apply()
 
@@ -233,8 +234,8 @@ object Main {
     TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
-    if (Knowledge.experimental_memoryDistanceAnalysis) {
-      AnalyzeIterationDistance()
+    if (Knowledge.kerncraftExport) {
+      KerncraftExport.apply()
     }
 
     if (Knowledge.experimental_addPerformanceEstimate)

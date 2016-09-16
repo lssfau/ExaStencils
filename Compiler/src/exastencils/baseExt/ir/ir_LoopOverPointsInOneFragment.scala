@@ -2,11 +2,11 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.communication.CommunicateStatement
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
@@ -26,9 +26,10 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     var body : ListBuffer[IR_Statement],
     var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
     var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
-    var reduction : Option[Reduction] = None,
+    var reduction : Option[IR_Reduction] = None,
     var condition : Option[IR_Expression] = None) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverPointsInOneFragment\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDims = field.fieldLayout.numDimsGrid
 
@@ -107,7 +108,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
         || ("face_x" == field.fieldLayout.discretization && 0 == dim)
         || ("face_y" == field.fieldLayout.discretization && 1 == dim)
         || ("face_z" == field.fieldLayout.discretization && 2 == dim))*/
-          condition = Some(IR_AndAndExpression(condition.get, IR_GreaterEqualExpression(IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype)), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
+          condition = Some(IR_AndAndExpression(condition.get, IR_GreaterEqualExpression(IR_VariableAccess(dimToString(dim), IR_IntegerDatatype), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
     }
 
     var loop : IR_LoopOverDimensions = {

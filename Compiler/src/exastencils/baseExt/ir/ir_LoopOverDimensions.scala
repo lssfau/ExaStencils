@@ -2,10 +2,9 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable._
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
@@ -16,9 +15,9 @@ import exastencils.util._
 
 // FIXME: refactor
 object IR_LoopOverDimensions {
-  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[Reduction], condition : Option[IR_Expression]) =
+  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction], condition : Option[IR_Expression]) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction, condition)
-  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[Reduction]) =
+  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction]) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction)
   def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize)
@@ -26,7 +25,7 @@ object IR_LoopOverDimensions {
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body))
 
   def defIt(numDims : Int) = IR_ExpressionIndex((0 until numDims).map(dim => defItForDim(dim) : IR_Expression).toArray)
-  def defItForDim(dim : Int) = IR_VariableAccess(dimToString(dim), Some(IR_IntegerDatatype))
+  def defItForDim(dim : Int) = IR_VariableAccess(dimToString(dim), IR_IntegerDatatype)
 
   val threadIdxName : String = "threadIdx"
 
@@ -80,7 +79,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
     var indices : IndexRange,
     var body : ListBuffer[IR_Statement],
     var stepSize : IR_ExpressionIndex = null, // actual default set in constructor
-    var reduction : Option[Reduction] = None,
+    var reduction : Option[IR_Reduction] = None,
     var condition : Option[IR_Expression] = None,
     var genOMPThreadLoop : Boolean = false) extends IR_Statement {
 
@@ -95,7 +94,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
   if (stepSize == null)
     stepSize = IR_ExpressionIndex(Array.fill(numDimensions)(1))
 
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = LoopOverDimensions\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def maxIterationCount() : Array[Long] = {
     var start : Array[Long] = null
@@ -140,7 +139,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
 
   def createOMPThreadsWrapper(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     if (explParLoop) {
-      val begin = new VariableDeclarationStatement(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
+      val begin = IR_VariableDeclaration(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
       val end = IR_LowerExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype)))
       ListBuffer(new IR_ForLoop(begin, end, inc, body) with OMP_PotentiallyParallel)
@@ -205,8 +204,8 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
     val inds = if (explParLoop) ompIndices else indices
     // compile loop(s)
     for (d <- 0 until numDimensions) {
-      def it = IR_VariableAccess(dimToString(d), Some(IR_IntegerDatatype))
-      val decl = VariableDeclarationStatement(IR_IntegerDatatype, dimToString(d), Some(inds.begin(d)))
+      def it = IR_VariableAccess(dimToString(d), IR_IntegerDatatype)
+      val decl = IR_VariableDeclaration(IR_IntegerDatatype, dimToString(d), Some(inds.begin(d)))
       val cond = IR_LowerExpression(it, inds.end(d))
       val incr = IR_Assignment(it, stepSize(d), "+=")
       val compiledLoop : IR_ForLoop with OptimizationHint =
@@ -241,20 +240,21 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
       // resolve max reductions
       val redOp = reduction.get.op
       val redExpName = reduction.get.target.name
-      def redExp = IR_VariableAccess(redExpName, None)
+      val redDatatype = None // FIXME: reduction.get.target.datatype
+      def redExp = IR_VariableAccess(redExpName, redDatatype)
       val redExpLocalName = redExpName + "_red"
-      def redExpLocal = IR_VariableAccess(redExpLocalName, None)
+      def redExpLocal = IR_VariableAccess(redExpLocalName, redDatatype)
 
       // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = VariableDeclarationStatement(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
+      val decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
       val init = (0 until Knowledge.omp_numThreads).map(fragIdx => IR_Assignment(IR_ArrayAccess(redExpLocal, fragIdx), redExp))
       val redOperands = ListBuffer[IR_Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
       val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
 
       ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", Some(IR_IntegerDatatype)))
+      ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
       ReplaceStringConstantsStrategy.applyStandalone(body)
-      body.prepend(VariableDeclarationStatement(IR_IntegerDatatype, "omp_tid", Some("omp_get_thread_num()")))
+      body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
 
       retStmts = ListBuffer(IR_Scope(decl +=: init ++=: wrappedBody += red))
     }

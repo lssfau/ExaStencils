@@ -2,12 +2,12 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir.{ StatementList, _ }
 import exastencils.logger._
 import exastencils.prettyprinting._
@@ -70,62 +70,62 @@ object dimToString extends (Int => String) {
 }
 
 case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0, 0) /* was float index before */) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = InitGeomCoords\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[StatementList] = {
     if (Knowledge.domain_fragmentTransformation) {
       // TODO: integrate into the new grid class family
       ListBuffer[IR_Statement](
-        VariableDeclarationStatement(IR_RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
+        IR_VariableDeclaration(IR_RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
           case "node" | "face_x"            =>
             Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : IR_Expression)) + offset(0))
-              / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 1)
+              / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 1)
               * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 0) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 0)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 0))
           case "cell" | "face_y" | "face_z" =>
             Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : IR_Expression)) + 0.5 + offset(0))
-              / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 0)
+              / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 0)
               * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 0) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 0)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 0))
         }),
-        VariableDeclarationStatement(IR_RealDatatype, "yPosTMP",
+        IR_VariableDeclaration(IR_RealDatatype, "yPosTMP",
           if (Knowledge.dimensionality > 1) {
             field.fieldLayout.discretization match {
               case "node" | "face_y"            =>
-                Some(((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + offset(1))
-                  / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 1)
+                (((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + offset(1))
+                  / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 1)
                   * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 1) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 1)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 1))
               case "cell" | "face_x" | "face_z" =>
-                Some(((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + 0.5 + offset(1))
-                  / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 0)
+                (((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + 0.5 + offset(1))
+                  / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 0)
                   * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 1) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 1)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 1))
             }
-          } else Some(1)),
-        VariableDeclarationStatement(IR_RealDatatype, "zPosTMP",
+          } else IR_IntegerConstant(1)),
+        IR_VariableDeclaration(IR_RealDatatype, "zPosTMP",
           if (Knowledge.dimensionality > 2) {
             field.fieldLayout.discretization match {
               case "node" | "face_z"            =>
-                Some(((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + offset(2))
-                  / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 1)
+                (((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + offset(2))
+                  / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 1)
                   * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 2) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 2)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 2))
               case "cell" | "face_x" | "face_y" =>
-                Some(((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + 0.5 + offset(2))
-                  / CastExpression(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 0)
+                (((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + 0.5 + offset(2))
+                  / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 0)
                   * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 2) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 2)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 2))
             }
-          } else Some(1)),
-        VariableDeclarationStatement(IR_RealDatatype, "xPos", Some(
+          } else IR_IntegerConstant(1)),
+        IR_VariableDeclaration(IR_RealDatatype, "xPos", Some(
           ("xPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 0)
             + ("yPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 1)
             + ("zPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 2)
             + IR_ArrayAccess(iv.PrimitiveTransformation(), 3))),
         if (Knowledge.dimensionality > 1)
-          VariableDeclarationStatement(IR_RealDatatype, "yPos", Some(
+          IR_VariableDeclaration(IR_RealDatatype, "yPos", Some(
             ("xPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 4)
               + ("yPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 5)
               + ("zPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 6)
               + IR_ArrayAccess(iv.PrimitiveTransformation(), 7)))
         else IR_NullStatement,
         if (Knowledge.dimensionality > 2)
-          VariableDeclarationStatement(IR_RealDatatype, "zPos", Some(
+          IR_VariableDeclaration(IR_RealDatatype, "zPos", Some(
             ("xPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 8)
               + ("yPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 9)
               + ("zPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 10)

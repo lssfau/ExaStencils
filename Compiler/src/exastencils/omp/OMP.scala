@@ -13,7 +13,7 @@ trait OMP_PotentiallyCritical
 
 @deprecated("to be integrated with loop annotations/ loop member holding optimization and parallelization information", "15.09.2016")
 trait OMP_PotentiallyParallel {
-  var reduction : Option[Reduction];
+  var reduction : Option[IR_Reduction];
   var additionalOMPClauses = new ListBuffer[OMP_Clause];
   var collapse = 1
 }
@@ -53,7 +53,7 @@ case class OMP_ParallelFor(var body : IR_ForLoop, var additionalOMPClauses : Lis
     var res : Int = 1
     var stmts : ListBuffer[IR_Statement] = body.body
     while (res < collapse) {
-      val filtered = stmts.filterNot(s => s.isInstanceOf[CommentStatement] || s == IR_NullStatement)
+      val filtered = stmts.filterNot(s => s.isInstanceOf[IR_Comment] || s == IR_NullStatement)
       if (filtered.length != 1)
         return res // no more than one statement allowed: not perfectly nested anymore, return last valid collapse level
       stmts =
@@ -78,12 +78,12 @@ case class OMP_ParallelFor(var body : IR_ForLoop, var additionalOMPClauses : Lis
 }
 
 case class OMP_WaitForFlag() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = OMP_WaitForFlag\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "waitForFlag"
 
   override def expand : Output[IR_Function] = {
-    def flag = IR_VariableAccess("flag", Some(IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype))))
+    def flag = IR_VariableAccess("flag", IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype)))
 
     IR_Function(IR_UnitDatatype, name, ListBuffer(IR_FunctionArgument(flag.name, flag.innerDatatype.get)),
       ListBuffer[IR_Statement](
@@ -96,7 +96,7 @@ case class OMP_WaitForFlag() extends IR_AbstractFunction with IR_Expandable {
 abstract class OMP_Clause extends Node with PrettyPrintable
 
 case class OMP_Reduction(var op : String, var target : IR_VariableAccess) extends OMP_Clause {
-  def this(red : Reduction) = this(red.op, red.target)
+  def this(red : IR_Reduction) = this(red.op, red.target)
   override def prettyprint(out : PpStream) : Unit = out << "reduction(" << op << " : " << target << ')'
 }
 

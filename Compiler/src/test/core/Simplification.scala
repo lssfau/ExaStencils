@@ -1,7 +1,7 @@
 package test.core
 
 import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.datastructures.ir.ImplicitConversions._
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.knowledge._
 import exastencils.strategies._
 

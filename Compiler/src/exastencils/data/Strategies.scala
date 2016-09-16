@@ -2,6 +2,7 @@ package exastencils.data
 
 import scala.collection.mutable.{ Node => _, _ }
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
@@ -10,7 +11,6 @@ import exastencils.core.collectors.StackCollector
 import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.globals._
 import exastencils.interfacing.IR_ExternalFieldAccess
@@ -98,9 +98,9 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
     case advanceSlot : AdvanceSlotStatement =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
-        case _ : IR_LoopOverFragments                                                                             => true
-        case IR_ForLoop(VariableDeclarationStatement(_, it, _), _, _, _, _) if (IR_LoopOverFragments.defIt == it) => true
-        case _                                                                                                    => false
+        case _ : IR_LoopOverFragments                                                                       => true
+        case IR_ForLoop(IR_VariableDeclaration(_, it, _), _, _, _, _) if (IR_LoopOverFragments.defIt == it) => true
+        case _                                                                                              => false
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial
       else
@@ -167,7 +167,7 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
         case IR_Assignment(_ : iv.LocalCommDone, _, _) => IR_NullStatement
         case _ : iv.LocalCommDone                      => IR_BooleanConstant(true)
 
-        case FunctionCallExpression("waitForFlag", _) => IR_NullExpression
+        case IR_FunctionCall("waitForFlag", _) => IR_NullExpression
       }))
     }
 
@@ -198,13 +198,13 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
     case multiGrid : MultiGridFunctions =>
       for (layout <- layoutMap) {
         var body = ListBuffer[IR_Statement]()
-        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
-        def idxShift(dim : Integer) = IR_VariableAccess(s"idxShift_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ dimToString(dim) }", IR_IntegerDatatype)
+        def idxShift(dim : Integer) = IR_VariableAccess(s"idxShift_${ dimToString(dim) }", IR_IntegerDatatype)
 
         // compile body for all dimensions - TODO: adapt to field layout dimensionality if required
         for (dim <- 0 until Knowledge.dimensionality) {
           // calculate index shift
-          body += new VariableDeclarationStatement(idxShift(dim), (newInnerSize(dim) - (
+          body += IR_VariableDeclaration(idxShift(dim), (newInnerSize(dim) - (
             iv.IndexFromField(layout._2._1, layout._2._2, "IE", dim) -
               iv.IndexFromField(layout._2._1, layout._2._2, "IB", dim))))
 
@@ -231,11 +231,11 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
       // generate a special resize functions for all fields on a given level
       for (level <- Knowledge.maxLevel to Knowledge.minLevel by -1) {
         var body = ListBuffer[IR_Statement]()
-        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ dimToString(dim) }", Some(IR_IntegerDatatype))
+        def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ dimToString(dim) }", IR_IntegerDatatype)
 
         // generate function calls with adapted sizes
         for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {
-          body += FunctionCallExpression(s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
+          body += IR_FunctionCall(s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
             (0 until Knowledge.dimensionality).map(dim => newInnerSize(dim) : IR_Expression).to[ListBuffer])
         }
 
@@ -260,7 +260,7 @@ object GenerateIndexManipFcts extends DefaultStrategy("Generating index manipula
 }
 
 object AddInternalVariables extends DefaultStrategy("Adding internal variables") {
-  var declarationMap : HashMap[String, VariableDeclarationStatement] = HashMap()
+  var declarationMap : HashMap[String, IR_VariableDeclaration] = HashMap()
   var ctorMap : HashMap[String, IR_Statement] = HashMap()
   var dtorMap : HashMap[String, IR_Statement] = HashMap()
 
@@ -316,11 +316,11 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         if (Knowledge.data_alignFieldPointers) {
           counter += 1
           ListBuffer(
-            VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+            IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
               Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
             IR_ArrayAllocation(newFieldData.basePtr, field.field.resolveDeclType, numDataPoints + Platform.simd_vectorSize - 1),
-            VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-              Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
+            IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+              Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), newFieldData.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
             IR_Assignment(newFieldData, newFieldData.basePtr + s"offset_$counter"))
         } else {
           ListBuffer(IR_ArrayAllocation(newFieldData, field.field.resolveDeclType, numDataPoints))
@@ -328,7 +328,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       if (field.field.numSlots > 1)
         statements += new IR_ForLoop(
-          VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
+          IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
           IR_LowerExpression("slot", field.field.numSlots),
           IR_PreIncrementExpression("slot"),
           innerStmts)
@@ -357,7 +357,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
       if (field.field.numSlots > 1)
         statements += new IR_ForLoop(
-          VariableDeclarationStatement(IR_IntegerDatatype, "slot", Some(0)),
+          IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
           IR_LowerExpression("slot", field.field.numSlots),
           IR_PreIncrementExpression("slot"),
           innerStmts)
@@ -408,11 +408,11 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       if (Knowledge.data_alignTmpBufferPointers) {
         counter += 1
         bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](
-          VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
-          VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-            Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
+          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+            Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
       } else {
         bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](IR_ArrayAllocation(buf, IR_RealDatatype, size))) with OMP_PotentiallyParallel)
@@ -438,11 +438,11 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
       }
       if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned
         bufferAllocs += (id -> buf.wrapInLoops(IR_Scope(ListBuffer[IR_Statement](
-          VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
+          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
-          VariableDeclarationStatement(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
-            Some(((s"vs_$counter" - (CastExpression(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
+          IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
+            Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter")))))
       else
         bufferAllocs += (id -> buf.wrapInLoops(IR_ArrayAllocation(buf, buf.baseDatatype, size)))

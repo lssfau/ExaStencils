@@ -114,8 +114,8 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
 
         completeFunctions.put(fct.name, estimatedTime)
         fct.body.prepend(
-          CommentStatement(s"Estimated host time for function: ${ hostTimeMs } ms"),
-          CommentStatement(s"Estimated device time for function: ${ estimatedTime.device * 1000.0 } ms"))
+          IR_Comment(s"Estimated host time for function: ${ hostTimeMs } ms"),
+          IR_Comment(s"Estimated device time for function: ${ estimatedTime.device * 1000.0 } ms"))
 
       }
       fct
@@ -164,7 +164,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
   this += new Transformation("Progressing key statements", {
     // function calls
-    case fct : FunctionCallExpression => {
+    case fct : IR_FunctionCall => {
       if (!CollectFunctionStatements.internalFunctions.contains(fct.name))
         () // external functions -> no estimate
       else if (EvaluatePerformanceEstimates.completeFunctions.contains(fct.name))
@@ -208,14 +208,14 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         addTimeToStack(totalEstimate)
 
         ListBuffer(
-          CommentStatement(s"Max iterations: $maxIterations"),
-          CommentStatement(s"Optimistic memory transfer per iteration: $optimisticDataPerIt byte"),
-          CommentStatement(s"Optimistic host time for memory ops: ${ optimisticTimeMem_host * 1000.0 } ms"),
-          CommentStatement(s"Optimistic device time for memory ops: ${ optimisticTimeMem_device * 1000.0 } ms"),
-          CommentStatement(s"Optimistic host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms"),
-          CommentStatement(s"Optimistic device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms"),
-          CommentStatement(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms"),
-          CommentStatement(s"Found accesses: ${ EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._1).mkString(", ") }"),
+          IR_Comment(s"Max iterations: $maxIterations"),
+          IR_Comment(s"Optimistic memory transfer per iteration: $optimisticDataPerIt byte"),
+          IR_Comment(s"Optimistic host time for memory ops: ${ optimisticTimeMem_host * 1000.0 } ms"),
+          IR_Comment(s"Optimistic device time for memory ops: ${ optimisticTimeMem_device * 1000.0 } ms"),
+          IR_Comment(s"Optimistic host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms"),
+          IR_Comment(s"Optimistic device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms"),
+          IR_Comment(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms"),
+          IR_Comment(s"Found accesses: ${ EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._1).mkString(", ") }"),
           loop)
       }
     }
@@ -238,8 +238,8 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
           addLoopTimeToStack(loop)
 
           loop.body = ListBuffer[IR_Statement](
-            CommentStatement(s"Estimated host time for loop: ${ estimatedTime_host * 1000.0 } ms"),
-            CommentStatement(s"Estimated device time for loop: ${ estimatedTime_device * 1000.0 } ms")) ++ loop.body
+            IR_Comment(s"Estimated host time for loop: ${ estimatedTime_host * 1000.0 } ms"),
+            IR_Comment(s"Estimated device time for loop: ${ estimatedTime_device * 1000.0 } ms")) ++ loop.body
         }
       }
       loop

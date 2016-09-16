@@ -2,11 +2,11 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.multiGrid._
@@ -57,7 +57,7 @@ abstract class FieldBoundaryFunction() extends IR_AbstractFunction with IR_Expan
 
 case class ApplyBCsFunction(var name : String, override var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
     var insideFragLoop : Boolean) extends FieldBoundaryFunction {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ApplyBCsFunction\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl = prettyprint
 
   def numDimsGrid = fieldSelection.field.fieldLayout.numDimsGrid
@@ -123,7 +123,8 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
     var ghostLayerExch : Boolean, var ghostLayerBegin : IR_ExpressionIndex, var ghostLayerEnd : IR_ExpressionIndex,
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends FieldBoundaryFunction {
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExchangeDataFunction\n"
+
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl = prettyprint
 
   def numDimsGrid = fieldSelection.field.fieldLayout.numDimsGrid

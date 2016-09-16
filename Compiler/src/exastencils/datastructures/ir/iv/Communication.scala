@@ -2,10 +2,9 @@ package exastencils.datastructures.ir.iv
 
 import scala.collection.mutable._
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
@@ -99,7 +98,7 @@ case class TmpBuffer(override var field : Field, override var direction : String
     }
   }
 
-  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
+  override def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     declarations += (resolveName -> getDeclaration)
     ctors += (resolveName -> getCtor().get)
     dtors += (resolveName -> getDtor().get)

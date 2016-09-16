@@ -8,7 +8,7 @@ import exastencils.prettyprinting.PpStream
 case class IR_ExternalFieldAccess(var name : IR_Expression, var field : ExternalField, var index : IR_ExpressionIndex) extends IR_Expression {
   // TODO: var index : IR_Index
   override def datatype = field.fieldLayout.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "NOT VALID ; CLASS = ExternalFieldAccess\n"
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   val alignedAccessPossible = false
 

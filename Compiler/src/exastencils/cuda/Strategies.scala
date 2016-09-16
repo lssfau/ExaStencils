@@ -4,6 +4,7 @@ import scala.annotation._
 import scala.collection.mutable._
 import scala.collection.{ Set, SortedSet => _, _ }
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
@@ -11,7 +12,6 @@ import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.ImplicitConversions._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -37,7 +37,7 @@ object CudaStrategiesUtils {
     * @return <code>true</code> if the loop meets the conditions; <code>false</code> otherwise
     */
   def verifyCudaLoopSuitability(loop : IR_ForLoop) : Boolean = {
-    loop.begin.isInstanceOf[VariableDeclarationStatement] &&
+    loop.begin.isInstanceOf[IR_VariableDeclaration] &&
       (loop.end.isInstanceOf[IR_LowerExpression] || loop.end.isInstanceOf[IR_LowerEqualExpression]) &&
       loop.inc.isInstanceOf[IR_Assignment]
   }
@@ -67,9 +67,9 @@ object CudaStrategiesUtils {
     var stepSize = ListBuffer[IR_Expression]()
 
     loops foreach { loop =>
-      val loopDeclaration = loop.begin.asInstanceOf[VariableDeclarationStatement]
+      val loopDeclaration = loop.begin.asInstanceOf[IR_VariableDeclaration]
       loopVariables += loopDeclaration.name
-      lowerBounds += loopDeclaration.expression.get
+      lowerBounds += loopDeclaration.initialValue.get
       upperBounds += (loop.end match {
         case l : IR_LowerExpression      =>
           l.right
@@ -178,7 +178,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       val containedLoop = cl.statements.find(s =>
         s.isInstanceOf[IR_IfCondition] || s.isInstanceOf[IR_LoopOverDimensions]) match {
         case Some(IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer())) =>
-          val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
+          val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
           bodyWithoutComments match {
             case ListBuffer(loop : IR_LoopOverDimensions) => loop
             case _                                        => IR_LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
@@ -211,7 +211,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
               fields(fKey) = field
 
             case cStmt @ IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer()) =>
-              val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[CommentStatement])
+              val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
               bodyWithoutComments match {
                 case ListBuffer(l : IR_LoopOverDimensions) =>
                   val nju = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
@@ -396,14 +396,14 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
     case scope : IR_Scope if scope.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) =>
       scope.removeAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION)
 
-      val varDeclarations = scope.body.takeWhile(x => x.isInstanceOf[VariableDeclarationStatement])
-      val remainingBody = scope.body.dropWhile(x => x.isInstanceOf[VariableDeclarationStatement])
+      val varDeclarations = scope.body.takeWhile(x => x.isInstanceOf[IR_VariableDeclaration])
+      val remainingBody = scope.body.dropWhile(x => x.isInstanceOf[IR_VariableDeclaration])
 
       remainingBody match {
-        case ListBuffer(c : CommentStatement, loop : IR_ForLoop) =>
+        case ListBuffer(c : IR_Comment, loop : IR_ForLoop) =>
           updateLoopAnnotations(mutable.HashMap[String, (Long, Long)](), loop, varDeclarations)
           IR_Scope(c, loop)
-        case _                                                   =>
+        case _                                             =>
           scope
       }
   }, false)
@@ -471,7 +471,7 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
       val kernelBody = pruneKernelBody(ListBuffer[IR_Statement](loop), parallelInnerLoops.reverse)
 
       if (loop.hasAnnotation(CudaStrategiesUtils.CUDA_BODY_DECL)) {
-        loop.getAnnotation(CudaStrategiesUtils.CUDA_BODY_DECL).getOrElse(ListBuffer[VariableDeclarationStatement]()).asInstanceOf[ListBuffer[VariableDeclarationStatement]].foreach(x => kernelBody.prepend(x))
+        loop.getAnnotation(CudaStrategiesUtils.CUDA_BODY_DECL).getOrElse(ListBuffer[IR_VariableDeclaration]()).asInstanceOf[ListBuffer[IR_VariableDeclaration]].foreach(x => kernelBody.prepend(x))
       }
 
       val deviceStatements = ListBuffer[IR_Statement]()
@@ -509,9 +509,9 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         val red = loop.reduction.get
         deviceStatements += IR_Assignment(red.target,
           IR_BinaryOperators.createExpression(red.op, red.target,
-            FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))))
+            IR_FunctionCall(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))))
       } else {
-        deviceStatements += FunctionCallExpression(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))
+        deviceStatements += IR_FunctionCall(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))
       }
 
       deviceStatements
@@ -522,9 +522,9 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
   this += new Transformation("Process kernel nodes", {
     case kernel : Kernel =>
       while (kernel.parallelDims > Platform.hw_cuda_maxNumDimsBlock) {
-        def it = IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), Some(IR_IntegerDatatype))
+        def it = IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), IR_IntegerDatatype)
         kernel.body = ListBuffer[IR_Statement](IR_ForLoop(
-          new VariableDeclarationStatement(it, kernel.lowerBounds.last),
+          IR_VariableDeclaration(it, kernel.lowerBounds.last),
           IR_LowerExpression(it, kernel.upperBounds.last),
           IR_Assignment(it, kernel.stepSize.last, "+="),
           kernel.body))
@@ -540,7 +540,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
       // update assignments according to reduction clauses
       kernel.evalIndexBounds()
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
-        IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), Some(IR_IntegerDatatype)) : IR_Expression).toArray)
+        IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), IR_IntegerDatatype) : IR_Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_SubtractionExpression(x, y) : IR_Expression)
 
@@ -614,7 +614,7 @@ object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local
   }
 
   this += new Transformation("Searching", {
-    case decl : VariableDeclarationStatement                                  =>
+    case decl : IR_VariableDeclaration                                        =>
       ignoredAccesses += decl.name
       decl
     case access : IR_VariableAccess if !ignoredAccesses.contains(access.name) =>

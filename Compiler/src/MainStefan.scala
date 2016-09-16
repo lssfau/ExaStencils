@@ -21,6 +21,7 @@ import exastencils.parsers.settings._
 import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
+import exastencils.solver.IR_ResolveLocalSolve
 import exastencils.strategies._
 import exastencils.util._
 
@@ -228,7 +229,7 @@ object MainStefan {
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
-    ResolveLocalSolves.apply()
+    IR_ResolveLocalSolve.apply()
 
     ResolveLoopOverPointsInOneFragment.apply()
 

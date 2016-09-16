@@ -31,7 +31,7 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
   }
 
   this += new Transformation("", {
-    case fct : FunctionCallExpression if (collector.insideStatement <= 1 && functionsToBeProcessed.contains(fct.name)) =>
+    case fct : IR_FunctionCall if (collector.insideStatement <= 1 && functionsToBeProcessed.contains(fct.name)) =>
       // adapt call arguments
       for ((paramIdx, datatype) <- functionsToBeProcessed.get(fct.name).get) {
         fct.arguments(paramIdx) match {
@@ -42,8 +42,8 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
           case _ =>
             var newName = s"callByValReplacement_${ fct.name }_${ paramIdx.toString() }"
             while (callByValReplacements.contains(newName)) newName += "0"
-            callByValReplacements += (newName -> VariableDeclarationStatement(Duplicate(datatype), newName, Some(fct.arguments(paramIdx))))
-            fct.arguments(paramIdx) = IR_AddressofExpression(IR_VariableAccess(newName, Some(Duplicate(datatype))))
+            callByValReplacements += (newName -> IR_VariableDeclaration(Duplicate(datatype), newName, Some(fct.arguments(paramIdx))))
+            fct.arguments(paramIdx) = IR_AddressofExpression(IR_VariableAccess(newName, Duplicate(datatype)))
         }
       }
 
@@ -91,9 +91,9 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
 
                 // redirect parameter
                 fct.body.prepend(
-                  VariableDeclarationStatement(
+                  IR_VariableDeclaration(
                     IR_ReferenceDatatype(Duplicate(datatype)), param.name,
-                    Some(DerefAccess(IR_VariableAccess(param.name + "_ptr", Some(IR_PointerDatatype(datatype)))))))
+                    Some(DerefAccess(IR_VariableAccess(param.name + "_ptr", IR_PointerDatatype(datatype))))))
                 param.name += "_ptr"
                 param.datatype = IR_PointerDatatype(Duplicate(datatype))
               }

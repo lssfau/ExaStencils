@@ -2,11 +2,10 @@ package exastencils.datastructures.ir.iv
 
 import scala.collection.mutable._
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
-import exastencils.datastructures.ir.ImplicitConversions._
-import exastencils.datastructures.ir._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -22,7 +21,7 @@ case class Timer(var name : IR_Expression) extends UnduplicatedVariable with IR_
 
   override def getCtor() : Option[IR_Statement] = {
     // FIXME: datatype for VariableAccess
-    Some(IR_Assignment(MemberAccess(IR_VariableAccess(resolveName, Some(resolveDatatype)), "timerName"), IR_StringConstant(stripName)))
+    Some(IR_Assignment(IR_MemberAccess(IR_VariableAccess(resolveName, resolveDatatype), "timerName"), IR_StringConstant(stripName)))
   }
 }
 
@@ -68,7 +67,7 @@ object LoopCarriedCSBuffer {
 abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private val namePostfix : String,
     private val baseDatatype : IR_Datatype, private val freeInDtor : Boolean) extends UnduplicatedVariable {
 
-  override def getDeclaration() : VariableDeclarationStatement = {
+  override def getDeclaration() : IR_VariableDeclaration = {
     val superDecl = super.getDeclaration()
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
       superDecl.datatype = IR_ArrayDatatype(superDecl.datatype, Knowledge.omp_numThreads)
@@ -78,9 +77,9 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
   override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = super.wrapInLoops(body)
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
-      val begin = new VariableDeclarationStatement(IR_IntegerDatatype, IR_LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
-      val end = new IR_LowerExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
-      val inc = new IR_PreIncrementExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
+      val begin = IR_VariableDeclaration(IR_IntegerDatatype, IR_LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
+      val end = IR_LowerExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
+      val inc = IR_PreIncrementExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
       wrappedBody = new IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody)) with OMP_PotentiallyParallel
     }
     return wrappedBody
@@ -127,7 +126,7 @@ case class LoopCarriedCSBuffer(val identifier : Int, val baseDatatype : IR_Datat
 
   lazy val basePtr = new LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
 
-  override def registerIV(declarations : HashMap[String, VariableDeclarationStatement], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
+  override def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
     super.registerIV(declarations, ctors, dtors)
     if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
       basePtr.registerIV(declarations, ctors, dtors)

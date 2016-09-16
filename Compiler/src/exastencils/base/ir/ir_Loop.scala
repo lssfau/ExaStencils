@@ -2,13 +2,12 @@ package exastencils.base.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures.ir.Reduction
 import exastencils.prettyprinting.PpStream
 
 /// IR_ForLoop
 
 object IR_ForLoop {
-  def apply(begin : IR_Statement, end : IR_Expression, inc : IR_Statement, reduction : Reduction, body : IR_Statement*) =
+  def apply(begin : IR_Statement, end : IR_Expression, inc : IR_Statement, reduction : IR_Reduction, body : IR_Statement*) =
     new IR_ForLoop(begin, end, inc, body.to[ListBuffer], Option(reduction))
   def apply(begin : IR_Statement, end : IR_Expression, inc : IR_Statement, body : IR_Statement*) =
     new IR_ForLoop(begin, end, inc, body.to[ListBuffer])
@@ -19,7 +18,7 @@ case class IR_ForLoop(var begin : IR_Statement,
     var end : IR_Expression,
     var inc : IR_Statement,
     var body : ListBuffer[IR_Statement],
-    var reduction : Option[Reduction] = None) extends IR_Statement {
+    var reduction : Option[IR_Reduction] = None) extends IR_Statement {
   // TODO: extract reduction, eg IR_ReductionLoop(IR_ForLoop)
 
   def maxIterationCount() = {
@@ -61,4 +60,10 @@ case class IR_WhileLoop(var comparison : IR_Expression, var body : ListBuffer[IR
     out <<< (body, "\n") << '\n'
     out << '}'
   }
+}
+
+/// IR_BreakStatement
+
+case class IR_Break() extends IR_Statement {
+  override def prettyprint(out : PpStream) = out << "break;"
 }
