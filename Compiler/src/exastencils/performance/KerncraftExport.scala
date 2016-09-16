@@ -1,20 +1,16 @@
 package exastencils.performance
 
-import java.io.{File, PrintWriter}
+import scala.collection.mutable.ListBuffer
+
+import java.io._
 import java.nio.file.Paths
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.core.Duplicate
-import exastencils.datastructures.ir._
+import exastencils.core._
 import exastencils.datastructures._
-import exastencils.knowledge.{Field, FieldLayout, Mapping, dimToString}
-import exastencils.logger.Logger
-import exastencils.prettyprinting.PrettyPrintable
-import exastencils.core.Settings
-import exastencils.util.SimplifyExpression
-
-import scala.collection.mutable.ListBuffer
+import exastencils.datastructures.ir._
+import exastencils.knowledge._
 
 /** Strategy to export kernels to kerncraft.
   *
@@ -37,13 +33,13 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
   this += new Transformation("Visiting LoopOverDimension", {
     case loop : IR_LoopOverDimensions => {
       val clone = Duplicate(loop)
-//      val kernelFileStr = kerncraftDir.toString() + s"/kernel-${kernelId%4d}.c"
+      //      val kernelFileStr = kerncraftDir.toString() + s"/kernel-${kernelId%4d}.c"
       val kernelFileStr = kerncraftDir.toString() + "/kernel-%04d.c".format(kernelId)
       val kernelFunFileStr = kerncraftDir.toString() + "/kernel-%04d-fun.c".format(kernelId)
       println("======================================================================")
       println(s"kernel %04d - $kernelFileStr".format(kernelId))
-      println(s"loop.indices ${loop.indices}")
-      println(s"loop.numDimensions ${loop.numDimensions}")
+      println(s"loop.indices ${ loop.indices }")
+      println(s"loop.numDimensions ${ loop.numDimensions }")
 
       // transform kernel to for-loop nest
       val forLoop = buildForLoopRec(clone)
@@ -115,7 +111,6 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
       //      field.fieldSelection.field.fieldLayout.layoutsPerDim.foreach()
       //      println("field index: " + field.fieldSelection.field.fieldLayout.layoutsPerDim
 
-
       //      val arrdt = ArrayDatatype_VS(scalarDataType, )
       //      VariableDeclarationStatement(scalarDataType, idname)
     }
@@ -130,8 +125,8 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
     })
 
     val begin = IR_VariableDeclaration(IR_IntegerDatatype, "i", Some(IR_IntegerConstant(0)))
-    val end = IR_LowerExpression(new IR_VariableAccess(begin), IR_IntegerConstant(0))
-    val inc = IR_ExpressionStatement(IR_PreIncrementExpression(new IR_VariableAccess(begin)))
+    val end = IR_LowerExpression(IR_VariableAccess(begin), IR_IntegerConstant(0))
+    val inc = IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(begin)))
 
     val forLoop = IR_ForLoop(begin, end, inc, ListBuffer[IR_Statement]())
     println("*****")
@@ -162,7 +157,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
 
         outer match {
           case Some(outer) => outer.body.append(forloop)
-          case _ =>
+          case _           =>
         }
 
         buildRec(d + 1, Some(forloop))
@@ -181,21 +176,17 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
     //    val forLoop = IR_ForLoop(begin, end, inc, ListBuffer[Statement]())
     //    println("*****")
 
-
     //      val forLoop = new IR_ForLoop(/**/,0,0,null)
     //    forLoop
 
     buildRec(0, None).get
   }
 
-
 }
-
 
 object TransformKernel extends DefaultStrategy("Kernel Transformation") {
 
   val fields = ListBuffer[Field]()
-
 
   override def apply(applyAtNode : Option[Node] = None) : Unit = {
     fields.clear()
@@ -215,7 +206,7 @@ object TransformKernel extends DefaultStrategy("Kernel Transformation") {
       fields += fa.fieldSelection.field
       val idname = "f" + fa.fieldSelection.field.identifier
       val ident = new IR_VariableAccess(idname, Some(fa.fieldSelection.field.resolveBaseDatatype))
-//      val aaidx = fa.index.map( ix => ix)
+      //      val aaidx = fa.index.map( ix => ix)
 
       val aa = new ArrayAccessMultiDim(ident, fa.index)
 
@@ -225,7 +216,7 @@ object TransformKernel extends DefaultStrategy("Kernel Transformation") {
     case bs : IR_BoundedScalar =>
       println("----" + bs)
       bs
-    case x =>
+    case x                     =>
       //      println("xxxxx not handled: " + x.toString())
       x
 
