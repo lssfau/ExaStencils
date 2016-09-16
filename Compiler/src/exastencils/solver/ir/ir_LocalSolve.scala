@@ -1,4 +1,4 @@
-package exastencils.solver
+package exastencils.solver.ir
 
 import scala.collection.mutable.ListBuffer
 

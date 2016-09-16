@@ -22,7 +22,7 @@ import exastencils.parsers.settings._
 import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
-import exastencils.solver.IR_ResolveLocalSolve
+import exastencils.solver.ir.IR_ResolveLocalSolve
 import exastencils.strategies._
 import exastencils.util._
 
