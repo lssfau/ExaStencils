@@ -44,13 +44,31 @@ case class IR_RealConstant(var v : Double) extends IR_Number {
 
 case class IR_FloatConstant(var v : Double) extends IR_Number {
   override def datatype = IR_FloatDatatype
-  override def prettyprint(out : PpStream) : Unit = out << value << "f"
+  override def prettyprint(out : PpStream) : Unit = {
+    if (value == Double.PositiveInfinity)
+      out << "(1.0f/0.0f)"
+    else if (value == Double.NegativeInfinity)
+      out << "(-1.0f/0.0f)"
+    else if (java.lang.Double.isNaN(value))
+      out << "(0.0f/0.0f)"
+    else
+      out << value << "f"
+  }
   override def value = v
 }
 
 case class IR_DoubleConstant(var v : Double) extends IR_Number {
   override def datatype = IR_DoubleDatatype
-  override def prettyprint(out : PpStream) : Unit = out << value
+  override def prettyprint(out : PpStream) : Unit = {
+    if (value == Double.PositiveInfinity)
+      out << "(1.0/0.0)"
+    else if (value == Double.NegativeInfinity)
+      out << "(-1.0/0.0)"
+    else if (java.lang.Double.isNaN(value))
+      out << "(0.0/0.0)"
+    else
+      out << value
+  }
   override def value = v
 }
 
