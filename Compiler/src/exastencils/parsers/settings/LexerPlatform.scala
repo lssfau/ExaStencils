@@ -4,5 +4,5 @@ import exastencils.parsers._
 
 class LexerPlatform extends ExaLexer {
   delimiters += ("=", "(", ")", "{", "}", "-", "+=")
-  reserved += ("true", "false")
+  reserved += ("true", "false", "import")
 }
