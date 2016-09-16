@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.datastructures._
+import exastencils.domain.l4.L4_DomainDeclaration
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.multiGrid._
@@ -12,7 +13,7 @@ import exastencils.prettyprinting._
 
 case class Root()(nodes : List[Node]) extends Node with L4_Progressable with PrettyPrintable {
 
-  var domains : ListBuffer[DomainDeclarationStatement] = new ListBuffer()
+  var domains : ListBuffer[L4_DomainDeclaration] = new ListBuffer()
   var fieldLayouts : ListBuffer[LayoutDeclarationStatement] = new ListBuffer()
   var fields : ListBuffer[FieldDeclarationStatement] = new ListBuffer()
   var stencilFields : ListBuffer[StencilFieldDeclarationStatement] = new ListBuffer()
@@ -24,7 +25,7 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
   var statements : ListBuffer[L4_Statement] = new ListBuffer()
 
   nodes.foreach(n => n match {
-    case p : DomainDeclarationStatement        => domains.+=(p)
+    case p : L4_DomainDeclaration              => domains.+=(p)
     case p : LayoutDeclarationStatement        => fieldLayouts.+=(p)
     case p : FieldDeclarationStatement         => fields.+=(p)
     case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
