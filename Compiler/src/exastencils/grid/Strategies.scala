@@ -2,13 +2,13 @@ package exastencils.grid
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.datastructures.ir._
+import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.logger._
 
 object PrepareShiftedEvaluationFunctions extends DefaultStrategy("PrepareShiftedEvaluationFunctions") {
@@ -111,13 +111,13 @@ object ExpandEvaluationFunctions extends DefaultStrategy("ExpandEvaluationFuncti
 
 object ResolveVirtualFields extends DefaultStrategy("ResolveVirtualFields") {
   this += new Transformation("SearchAndReplace", {
-    case virtualField : VirtualFieldAccess => GridGeometry.getGeometry.invokeAccessResolve(virtualField)
+    case virtualField : IR_VirtualFieldAccess => GridGeometry.getGeometry.invokeAccessResolve(virtualField)
   })
 }
 
 object CollectFieldAccesses extends QuietDefaultStrategy("Collecting field accesses") {
   var fieldAccesses : ListBuffer[IR_FieldAccess] = ListBuffer()
-  var vFieldAccesses : ListBuffer[VirtualFieldAccess] = ListBuffer()
+  var vFieldAccesses : ListBuffer[IR_VirtualFieldAccess] = ListBuffer()
 
   override def apply(node : Option[Node] = None) = {
     fieldAccesses.clear
@@ -132,10 +132,10 @@ object CollectFieldAccesses extends QuietDefaultStrategy("Collecting field acces
   }
 
   this += new Transformation("Collecting", {
-    case fieldAccess : IR_FieldAccess     =>
+    case fieldAccess : IR_FieldAccess        =>
       fieldAccesses += fieldAccess
       fieldAccess
-    case fieldAccess : VirtualFieldAccess =>
+    case fieldAccess : IR_VirtualFieldAccess =>
       vFieldAccesses += fieldAccess
       fieldAccess
   })
@@ -146,10 +146,10 @@ object ShiftFieldAccessIndices extends QuietDefaultStrategy("Shifting indices of
   var dim : Int = 0
 
   this += new Transformation("Searching and shifting", {
-    case fieldAccess : IR_FieldAccess     =>
+    case fieldAccess : IR_FieldAccess        =>
       fieldAccess.index(dim) += offset
       fieldAccess
-    case fieldAccess : VirtualFieldAccess =>
+    case fieldAccess : IR_VirtualFieldAccess =>
       fieldAccess.index(dim) += offset
       fieldAccess
   })

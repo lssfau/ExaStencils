@@ -10,6 +10,7 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.domain._
+import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge
 import exastencils.knowledge._
 import exastencils.logger._
@@ -38,7 +39,7 @@ abstract class GridGeometry() {
   }
 
   // helper method to map names of special fields to actual member functions implementing the resolving step
-  def invokeAccessResolve(virtualField : VirtualFieldAccess) : IR_Expression = {
+  def invokeAccessResolve(virtualField : IR_VirtualFieldAccess) : IR_Expression = {
     var functionName = virtualField.fieldName
     if (functionName.startsWith("vf_")) functionName = functionName.substring(3)
     functionName.substring(functionName.length() - 2) match {

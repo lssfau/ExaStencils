@@ -18,6 +18,7 @@ import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.multiGrid._
 import exastencils.omp._
+import exastencils.optimization.IR_LoopCarriedCSBufferAccess
 import exastencils.util._
 
 object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
@@ -52,7 +53,7 @@ object LinearizeFieldAccesses extends DefaultStrategy("Linearizing FieldAccess n
       access.linearize
     case access : IR_ReductionDeviceDataAccess            =>
       access.linearize
-    case access : LoopCarriedCSBufferAccess               =>
+    case access : IR_LoopCarriedCSBufferAccess            =>
       access.linearize
   })
 }

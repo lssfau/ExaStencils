@@ -15,7 +15,7 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
-import exastencils.prettyprinting.PrettyPrintable
+import exastencils.prettyprinting._
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util._
 
@@ -249,7 +249,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           val decl : IR_VariableDeclaration = commonExp.declaration
           val tmpBuf = new iv.LoopCarriedCSBuffer(bufferCounter, decl.datatype, IR_ExpressionIndex(Duplicate(tmpBufLen)))
           bufferCounter += 1
-          val tmpBufAcc = new LoopCarriedCSBufferAccess(tmpBuf, IR_ExpressionIndex(Duplicate(tmpBufInd)))
+          val tmpBufAcc = new IR_LoopCarriedCSBufferAccess(tmpBuf, IR_ExpressionIndex(Duplicate(tmpBufInd)))
           decl.initialValue = Some(tmpBufAcc)
           decls += decl
 
@@ -572,7 +572,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
            | _ : IR_ArrayAccess
            | _ : IR_DirectFieldAccess
            | _ : IR_TempBufferAccess
-           | _ : LoopCarriedCSBufferAccess
+           | _ : IR_LoopCarriedCSBufferAccess
            | _ : iv.InternalVariable //
       =>
 
@@ -645,5 +645,17 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
       allChildren += IR_VariableAccess(tmpVarName, tmpVarDatatype)
       null // no need to replace node, since its children were already modified
     }
+  }
+}
+
+case class IR_LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access {
+  override def datatype = buffer.datatype
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
+
+  def linearize() : IR_ArrayAccess = {
+    if (buffer.dimSizes.isEmpty)
+      IR_ArrayAccess(buffer, IR_IntegerConstant(0), Knowledge.data_alignFieldPointers)
+    else
+      IR_ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
   }
 }

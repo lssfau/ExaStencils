@@ -15,6 +15,12 @@ import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
 
+//TODO specific expression for reading from fragment data file
+case class ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expression) extends IR_Expression {
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << "readValue<" << innerDatatype << '>' << "(" << data << ")"
+}
+
 case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"

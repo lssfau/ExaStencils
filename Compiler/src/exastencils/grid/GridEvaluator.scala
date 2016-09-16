@@ -6,7 +6,7 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
+import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
@@ -216,7 +216,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
             }
           }
         }
-        case fieldAccess : VirtualFieldAccess                                                                              => {
+        case fieldAccess : IR_VirtualFieldAccess                                                                           => {
           Logger.warn(s"Virtual field accesses ($fieldAccess) are currently unsupported within evaluation and intergration functions")
           fieldAccess
         }
@@ -273,13 +273,13 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
       var requiredAnnot : Option[String] = None
 
       this += new Transformation("Searching and shifting", {
-        case fieldAccess : IR_FieldAccess if requiredAnnot.isEmpty || fieldAccess.hasAnnotation(requiredAnnot.get)     =>
+        case fieldAccess : IR_FieldAccess if requiredAnnot.isEmpty || fieldAccess.hasAnnotation(requiredAnnot.get)        =>
           fieldAccess.index(dim) += offset
           fieldAccess
-        case fieldAccess : VirtualFieldAccess if requiredAnnot.isEmpty || fieldAccess.hasAnnotation(requiredAnnot.get) =>
+        case fieldAccess : IR_VirtualFieldAccess if requiredAnnot.isEmpty || fieldAccess.hasAnnotation(requiredAnnot.get) =>
           fieldAccess.index(dim) += offset
           fieldAccess
-        case eval : EvalAtRFace if requiredAnnot.isEmpty || eval.hasAnnotation(requiredAnnot.get)                      =>
+        case eval : EvalAtRFace if requiredAnnot.isEmpty || eval.hasAnnotation(requiredAnnot.get)                         =>
           eval.fieldAccess.index(dim) += offset
           eval
       }, false) // skip field accesses inside eval nodes
@@ -303,9 +303,9 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         ShiftFieldAccessIndices_.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
         ShiftFieldAccessIndices_.applyStandalone(IR_ExpressionStatement(offsetExp))
 
-        (VirtualFieldAccess(s"vf_cellWidth_${ dimToString(compDim) }", level, index) *
-          (VirtualFieldAccess(s"vf_cellCenterToFace_${ dimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp
-            + VirtualFieldAccess(s"vf_cellCenterToFace_${ dimToString(curStagDim) }", level, index) * offsetExp))
+        (IR_VirtualFieldAccess(s"vf_cellWidth_${ dimToString(compDim) }", level, index) *
+          (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ dimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp
+            + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ dimToString(curStagDim) }", level, index) * offsetExp))
       } else {
         Logger.error("piecewise integration on non-staggered cell interfaces is not supported")
       }

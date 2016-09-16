@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.datastructures._
+import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.logger._
 import exastencils.prettyprinting._
 
@@ -169,7 +170,7 @@ case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecific
     if (offset.isDefined) out << "@" << offset
   }
 
-  def progress : ir.VirtualFieldAccess = {
+  def progress : IR_VirtualFieldAccess = {
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
     var multiIndex = IR_LoopOverDimensions.defIt(numDims)
@@ -181,7 +182,7 @@ case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecific
       multiIndex += progressedOffset
     }
 
-    ir.VirtualFieldAccess(name, IR_IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
+    IR_VirtualFieldAccess(name, IR_IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
   }
 }
 

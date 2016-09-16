@@ -11,6 +11,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.optimization.IR_LoopCarriedCSBufferAccess
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -519,7 +520,7 @@ class Extractor extends Collector {
             extent.annotate(SKIP_ANNOT)
             enterTempBufferAccess(buffer, index)
 
-          case LoopCarriedCSBufferAccess(buffer, index) =>
+          case IR_LoopCarriedCSBufferAccess(buffer, index) =>
             buffer.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterLoopCarriedCSBufferAccess(buffer, index)
@@ -601,17 +602,17 @@ class Extractor extends Collector {
 
     if (curScop.exists())
       node match {
-        case l : IR_LoopOverDimensions     => leaveLoop(l)
-        case c : IR_IfCondition            => leaveCondition(c)
-        case _ : IR_Assignment             => leaveAssign()
-        case _ : IR_StringLiteral          => leaveScalarAccess()
-        case _ : IR_VariableAccess         => leaveScalarAccess()
-        case _ : IR_ArrayAccess            => leaveArrayAccess()
-        case _ : IR_DirectFieldAccess      => leaveFieldAccess()
-        case _ : IR_TempBufferAccess       => leaveTempBufferAccess()
-        case _ : LoopCarriedCSBufferAccess => leaveLoopCarriedCSBufferAccess()
-        case _ : IR_VariableDeclaration    => leaveDecl()
-        case _                             =>
+        case l : IR_LoopOverDimensions        => leaveLoop(l)
+        case c : IR_IfCondition               => leaveCondition(c)
+        case _ : IR_Assignment                => leaveAssign()
+        case _ : IR_StringLiteral             => leaveScalarAccess()
+        case _ : IR_VariableAccess            => leaveScalarAccess()
+        case _ : IR_ArrayAccess               => leaveArrayAccess()
+        case _ : IR_DirectFieldAccess         => leaveFieldAccess()
+        case _ : IR_TempBufferAccess          => leaveTempBufferAccess()
+        case _ : IR_LoopCarriedCSBufferAccess => leaveLoopCarriedCSBufferAccess()
+        case _ : IR_VariableDeclaration       => leaveDecl()
+        case _                                =>
       }
   }
 

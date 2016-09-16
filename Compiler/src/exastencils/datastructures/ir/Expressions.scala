@@ -18,34 +18,6 @@ case class ConcatenationExpression(var expressions : ListBuffer[IR_Expression]) 
   override def prettyprint(out : PpStream) : Unit = out <<< expressions
 }
 
-//TODO specific expression for reading from fragment data file
-case class ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expression) extends IR_Expression {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "readValue<" << innerDatatype << '>' << "(" << data << ")"
-}
-
-case class LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Expression {
-  override def datatype = buffer.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  def linearize() : IR_ArrayAccess = {
-    if (buffer.dimSizes.isEmpty)
-      return new IR_ArrayAccess(buffer, IR_IntegerConstant(0), Knowledge.data_alignFieldPointers)
-
-    return new IR_ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
-  }
-}
-
-case class VirtualFieldAccess(var fieldName : String,
-    var level : IR_Expression,
-    var index : IR_ExpressionIndex,
-    var arrayIndex : Option[Int] = None,
-    var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_Expression {
-  // FIXME: datatype
-  override def datatype = IR_RealDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-}
-
 case class StencilAccess(var stencil : Stencil) extends IR_Expression {
   override def datatype = stencil.datatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
