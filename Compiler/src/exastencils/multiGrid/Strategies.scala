@@ -13,6 +13,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.hack.ir.HACK_IR_ConcatenationExpression
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
@@ -123,7 +124,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       IR_StringLiteral(args(0).asInstanceOf[IR_StringConstant].value)
 
     case IR_FunctionCall("concat", args) =>
-      new ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
+      HACK_IR_ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
 
     // HACK to realize time measurement functionality -> FIXME: move to specialized node
     case IR_ExpressionStatement(IR_FunctionCall("startTimer", args)) =>

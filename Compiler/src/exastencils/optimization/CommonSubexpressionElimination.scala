@@ -13,6 +13,7 @@ import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
+import exastencils.hack.ir.HACK_IR_ConcatenationExpression
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
@@ -154,7 +155,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     val currItBody = IR_Scope(loop.body)
     var maxID : Int = 0
     this.execute(new Transformation("number nodes", {
-      case _ : ConcatenationExpression =>
+      case _ : HACK_IR_ConcatenationExpression =>
         Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression are too difficult to analyze")
         return Nil // don't do anything, since we cannot ensure the transformation is correct
       // there are some singleton datatypes, so don't enumerate them
@@ -543,7 +544,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
 
     node match {
       // blacklist concat
-      case _ : ConcatenationExpression =>
+      case _ : HACK_IR_ConcatenationExpression =>
         skip = true // skip everything from now on...
         commonSubs.clear()
         Logger.warn(s"cannot perform CSE, because ${ node.getClass } is too difficult to analyze")
