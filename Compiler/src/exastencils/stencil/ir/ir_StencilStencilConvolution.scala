@@ -6,11 +6,11 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir.GetResultingDatatype
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.SimplifyStrategy
+import exastencils.util.ir.IR_ResultingDatatype
 
 // TODO: is it really necessary to wrap convolutions in separate nodes?
 // TODO: update convolutions with new dimensionality logic
@@ -18,7 +18,7 @@ import exastencils.strategies.SimplifyStrategy
 /// IR_StencilStencilConvolution
 
 case class IR_StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends IR_Expression with IR_Expandable {
-  override def datatype = GetResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
+  override def datatype = IR_ResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_StencilAccess] = {
@@ -60,7 +60,7 @@ case class IR_StencilStencilConvolution(var stencilLeft : Stencil, var stencilRi
 /// IR_StencilFieldStencilConvolution
 
 case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAccess, var stencilRight : Stencil) extends IR_Expression with IR_Expandable {
-  override def datatype = GetResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
+  override def datatype = IR_ResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_StencilAccess] = {

@@ -13,6 +13,7 @@ import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.optimization.IR_LoopCarriedCSBufferAccess
+import exastencils.util.ir.IR_MathFunctions
 
 /** Object for all "static" attributes */
 object Extractor {
@@ -30,7 +31,7 @@ object Extractor {
   private final val SKIP_ANNOT : String = "PolySkip"
 
   /** set of all functions that are allowed in a scop (these must not have side effects) */
-  private final val allowedFunctions = Set[String]("abs", "fabs") ++= MathFunctions.signatures.keys
+  private final val allowedFunctions = Set[String]("abs", "fabs") ++= IR_MathFunctions.signatures.keys
 
   /** set of symbolic constants that must not be modeled as read accesses (these must be constant inside a scop) */
   private final val symbolicConstants = HashSet[String]()

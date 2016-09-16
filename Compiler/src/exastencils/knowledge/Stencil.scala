@@ -8,11 +8,11 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger._
 import exastencils.stencil.ir._
 import exastencils.util._
+import exastencils.util.ir.IR_ResultingDatatype
 
 case class StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Expression) {
   def datatype : IR_Datatype = coefficient.datatype
@@ -21,7 +21,7 @@ case class StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Ex
 case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
   def datatype = {
     var ret = entries(0).datatype
-    entries.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
+    entries.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
     ret
   }
   def getReach(dim : Int) : Int = {

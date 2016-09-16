@@ -1,8 +1,8 @@
-package exastencils.datastructures.ir
+package exastencils.util.ir
 
 import exastencils.base.ir.IR_RealDatatype
 
-object MathFunctions {
+object IR_MathFunctions {
   val signatures = Map(
     "exp" -> (List(IR_RealDatatype) -> IR_RealDatatype),
     "exp2" -> (List(IR_RealDatatype) -> IR_RealDatatype),

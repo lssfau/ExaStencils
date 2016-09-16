@@ -7,11 +7,11 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
+import exastencils.util.ir.IR_ResultingDatatype
 
 object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   this += new Transformation("Pretty-Print", {
@@ -258,7 +258,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
               val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => IR_NegationExpression(x) }
               val vExprs = if (pos) v.expressions else v.expressions.view.map { x => IR_NegationExpression(x) }
               vecExpr =
-                IR_VectorExpression(Some(GetResultingDatatype(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
+                IR_VectorExpression(Some(IR_ResultingDatatype(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
                   vecExprsView.zip(vExprs).map { x => x._1 + x._2 : IR_Expression }.to[ListBuffer],
                   if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
             }
@@ -376,10 +376,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         rem.transform {
           case v : IR_VectorExpression if (!found) =>
             found = true
-            IR_VectorExpression(Some(GetResultingDatatype(cstDt.get, v.innerDatatype.getOrElse(IR_RealDatatype))), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
+            IR_VectorExpression(Some(IR_ResultingDatatype(cstDt.get, v.innerDatatype.getOrElse(IR_RealDatatype))), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
           case m : IR_MatrixExpression if (!found) =>
             found = true
-            IR_MatrixExpression(Some(GetResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
+            IR_MatrixExpression(Some(IR_ResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
           case x                                   =>
             x
         }
