@@ -194,12 +194,12 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    L4_StencilCollection.progress
     L4_FieldLayoutCollection.progress
     if (Knowledge.data_alignFieldPointers)
       IR_AddPaddingToFieldLayouts
     L4_FieldCollection.progress
     L4_ExternalFieldCollection.progress
+    L4_StencilCollection.progress
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
