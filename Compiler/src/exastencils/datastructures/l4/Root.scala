@@ -2,17 +2,18 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Root
-import exastencils.base.l4.L4_Statement
+import exastencils.base.ir._
+import exastencils.base.l4._
 import exastencils.datastructures._
+import exastencils.domain.l4.L4_DomainDeclaration
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.prettyprinting._
 
-case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with PrettyPrintable {
+case class Root()(nodes : List[Node]) extends Node with L4_Progressable with PrettyPrintable {
 
-  var domains : ListBuffer[DomainDeclarationStatement] = new ListBuffer()
+  var domains : ListBuffer[L4_DomainDeclaration] = new ListBuffer()
   var fieldLayouts : ListBuffer[LayoutDeclarationStatement] = new ListBuffer()
   var fields : ListBuffer[FieldDeclarationStatement] = new ListBuffer()
   var stencilFields : ListBuffer[StencilFieldDeclarationStatement] = new ListBuffer()
@@ -23,8 +24,8 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
   var functions : ListBuffer[FunctionStatement] = new ListBuffer()
   var statements : ListBuffer[L4_Statement] = new ListBuffer()
 
-  nodes.foreach(n => n match {
-    case p : DomainDeclarationStatement        => domains.+=(p)
+  nodes.foreach {
+    case p : L4_DomainDeclaration              => domains.+=(p)
     case p : LayoutDeclarationStatement        => fieldLayouts.+=(p)
     case p : FieldDeclarationStatement         => fields.+=(p)
     case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
@@ -34,7 +35,18 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
     case p : FunctionTemplateStatement         => functionTemplates.+=(p)
     case p : FunctionStatement                 => functions.+=(p)
     case p : L4_Statement                      => statements.+=(p)
-  })
+    case r : Root                              =>
+      domains.++=(r.domains)
+      fieldLayouts.++=(r.fieldLayouts)
+      fields.++=(r.fields)
+      stencilFields.++=(r.stencilFields)
+      externalFields.++=(r.externalFields)
+      stencils.++=(r.stencils)
+      globals.++=(r.globals)
+      functionTemplates.++=(r.functionTemplates)
+      functions.++=(r.functions)
+      statements.++=(r.statements)
+  }
 
   // set domain indices -> just number consecutively
   var i = domains.size
@@ -72,7 +84,7 @@ case class Root()(nodes : List[Node]) extends Node with ProgressableToIr with Pr
       out <<< (statements, "\n") << '\n'
   }
 
-  override def progress : Node = {
+  override def progress : IR_Root = {
     var newRoot = IR_Root()
 
     // Domains

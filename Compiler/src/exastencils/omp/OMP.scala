@@ -87,8 +87,8 @@ case class OMP_WaitForFlag() extends IR_AbstractFunction with IR_Expandable {
 
     IR_Function(IR_UnitDatatype, name, ListBuffer(IR_FunctionArgument(flag.name, flag.innerDatatype.get)),
       ListBuffer[IR_Statement](
-        new IR_WhileLoop(IR_NegationExpression(DerefAccess(flag)), ListBuffer[IR_Statement]()),
-        new IR_Assignment(DerefAccess(flag), IR_BooleanConstant(false))),
+        new IR_WhileLoop(IR_NegationExpression(IR_DerefAccess(flag)), ListBuffer[IR_Statement]()),
+        new IR_Assignment(IR_DerefAccess(flag), IR_BooleanConstant(false))),
       false)
   }
 }

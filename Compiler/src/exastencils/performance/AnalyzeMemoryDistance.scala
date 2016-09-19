@@ -8,6 +8,7 @@ import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.strategies.SimplifyStrategy
 
 /**

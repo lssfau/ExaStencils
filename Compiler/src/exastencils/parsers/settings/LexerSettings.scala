@@ -5,5 +5,5 @@ import scala.util.parsing.combinator.lexical.StdLexical
 
 class LexerSettings extends ExaLexer {
   delimiters += ("=", "(", ")", "{", "}", "-", "+=", ",")
-  reserved += ("true", "false")
+  reserved += ("true", "false", "import")
 }

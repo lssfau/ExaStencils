@@ -8,13 +8,12 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.domain._
+import exastencils.datastructures.ir._
 import exastencils.logger._
 import exastencils.prettyprinting._
-import exastencils.util._
 
-abstract class SpecialStatement /*TODO: think about an appropriate name*/ extends Node with ProgressableToIr with PrettyPrintable {
-  override def progress : Any
+abstract class SpecialStatement /*TODO: think about an appropriate name*/ extends Node /*with L4_Progressable*/ with PrettyPrintable {
+  def progress : Any
 }
 
 trait HasIdentifier {
@@ -22,49 +21,6 @@ trait HasIdentifier {
 }
 
 trait ExternalDeclarationStatement extends SpecialStatement
-
-case class DomainDeclarationStatement(var name : String, var lower : Any, var upper : Any, var index : Int = 0) extends SpecialStatement {
-  override def prettyprint(out : PpStream) = {
-    (lower, upper) match {
-      case (null, null)                 => out << s"Domain = fromFile($name) \n"
-      case (l : ConstVec, u : ConstVec) => out << "Domain " << name << "< " << l << " to " << u << " >\n"
-      case (lo : List[_], up : List[_]) => {
-        (lo.head, up.head) match {
-          case (_ : ConstVec, _ : ConstVec) => {
-            val sep = lo.map(m => ", ").dropRight(1) :+ " >\n"
-            out << "Domain " << name << "< "
-            for (i <- lo.indices) { out << lo(i) << " to " << up(i) << sep(i) }
-            //out << "Domain " << name << "< " << l(0) << " to " << u(0) << ", " << l(1) << " to " << u(1) << " ," << l(2) << " to " << u(2) << " >\n"
-          }
-        }
-      }
-    }
-  }
-  override def progress : knowledge.Domain = {
-    (lower, upper) match {
-      case (null, null)                     => {
-        new knowledge.FileInputGlobalDomain("global", index, DomainFileHeader.domainIdentifier.zipWithIndex.map {
-          case (identifier, index) => new knowledge.FileInputDomain(identifier, index, new FileInputDomainShape(identifier))
-        }.toList)
-      }
-      case (lo : List[_], up : List[_])     => {
-        (lo.head, up.head) match {
-          case (_ : ConstVec2D, _ : ConstVec2D) => {
-            val rectUnionDomains : List[RectangularDomainShape] =
-              (lo.zip(up)).map {
-                case (li : ConstVec2D, ui : ConstVec2D) =>
-                  new RectangularDomainShape(new AABB(li.x, ui.x, li.y, ui.y, 0.0, 0.0))
-              }
-            new knowledge.ShapedDomain(name, index, new ShapedDomainShape(rectUnionDomains))
-          }
-        }
-      }
-      case (l : ConstVec2D, u : ConstVec2D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, 0, 0)))
-      case (l : ConstVec3D, u : ConstVec3D) => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB(l.x, u.x, l.y, u.y, l.z, u.z)))
-      case _                                => new knowledge.RectangularDomain(name, index, new RectangularDomainShape(new AABB()))
-    }
-  }
-}
 
 case class StencilEntry(var offset : L4_ExpressionIndex, var coeff : L4_Expression) extends SpecialStatement {
   override def prettyprint(out : PpStream) = { out << offset << " => " << coeff }
@@ -271,7 +227,7 @@ case class FunctionStatement(override var identifier : Identifier,
 }
 
 case class FunctionArgument(override var identifier : Identifier,
-    var datatype : L4_Datatype) extends L4_Node with PrettyPrintable with HasIdentifier with ProgressableToIr {
+    var datatype : L4_Datatype) extends L4_Node with PrettyPrintable with HasIdentifier with L4_Progressable {
   def name = identifier.name
   override def prettyprint(out : PpStream) {
     out << identifier.name << " : " << datatype.prettyprint
@@ -426,7 +382,7 @@ case class AdvanceStatement(var field : Access) extends L4_Statement {
   }
 
   override def progress = {
-    data.AdvanceSlotStatement(ir.iv.CurrentSlot(field.asInstanceOf[FieldAccess].progress.fieldSelection.field,
+    data.AdvanceSlotStatement(iv.CurrentSlot(field.asInstanceOf[FieldAccess].progress.fieldSelection.field,
       IR_StringLiteral(IR_LoopOverFragments.defIt)))
   }
 }

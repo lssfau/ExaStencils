@@ -2,8 +2,8 @@ package exastencils.base.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.datastructures.ir.GetResultingDatatype
 import exastencils.prettyprinting.PpStream
+import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_IfCondition
 
@@ -31,7 +31,7 @@ case class IR_IfCondition(var condition : IR_Expression, var trueBody : ListBuff
 /// IR_TernaryCondition
 
 case class IR_TernaryCondition(var condition : IR_Expression, var trueBody : IR_Expression, var falseBody : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype(trueBody.datatype, falseBody.datatype)
+  override def datatype = IR_ResultingDatatype(trueBody.datatype, falseBody.datatype)
   override def prettyprint(out : PpStream) : Unit = out << '(' << condition << " ? " << trueBody << " : " << falseBody << ')'
 }
 

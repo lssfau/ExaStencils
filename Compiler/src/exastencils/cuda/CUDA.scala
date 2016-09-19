@@ -4,13 +4,14 @@ import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_MultiDimFieldAccess
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util._
+import exastencils.util.ir.IR_ResultingDatatype
 
 // TODO: introduce abstraction layer for general device interfaces
 
@@ -221,7 +222,7 @@ case class CUDA_SharedArrayAccess(base : IR_Expression, indices : ListBuffer[IR_
 }
 
 case class CUDA_MinimumExpression(left : IR_Expression, right : IR_Expression) extends IR_Expression {
-  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
+  override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     out << "min(" << left << "," << right << ")"
   }

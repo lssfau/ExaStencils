@@ -1,4 +1,4 @@
-package exastencils.solver
+package exastencils.solver.ir
 
 import scala.collection.mutable.ListBuffer
 
@@ -9,6 +9,7 @@ import exastencils.communication.IsValidPoint
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.SimplifyStrategy

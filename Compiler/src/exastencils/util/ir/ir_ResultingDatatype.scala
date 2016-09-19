@@ -1,9 +1,9 @@
-package exastencils.datastructures.ir
+package exastencils.util.ir
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 
-object GetResultingDatatype {
+object IR_ResultingDatatype {
   def apply(a : IR_Datatype, b : IR_Datatype) : IR_Datatype = {
     if (a eq IR_UnitDatatype) return IR_UnitDatatype
     if (b eq IR_UnitDatatype) return IR_UnitDatatype
@@ -28,10 +28,10 @@ object GetResultingDatatype {
         case IR_DoubleDatatype           => IR_DoubleDatatype
         case IR_StringDatatype           => IR_StringDatatype
         case IR_CharDatatype             => IR_RealDatatype
-        case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(GetResultingDatatype(dt, a), l)
-        case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(GetResultingDatatype(dt, a))
-        case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(GetResultingDatatype(dt, a), l, r)
-        case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(GetResultingDatatype(dt, a), m, n)
+        case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(IR_ResultingDatatype(dt, a), l)
+        case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(IR_ResultingDatatype(dt, a))
+        case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(IR_ResultingDatatype(dt, a), l, r)
+        case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a), m, n)
       }
       case IR_FloatDatatype            => b match {
         case IR_IntegerDatatype          => IR_RealDatatype
@@ -40,10 +40,10 @@ object GetResultingDatatype {
         case IR_DoubleDatatype           => IR_DoubleDatatype
         case IR_StringDatatype           => IR_StringDatatype
         case IR_CharDatatype             => IR_RealDatatype
-        case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(GetResultingDatatype(dt, a), l)
-        case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(GetResultingDatatype(dt, a))
-        case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(GetResultingDatatype(dt, a), l, r)
-        case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(GetResultingDatatype(dt, a), m, n)
+        case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(IR_ResultingDatatype(dt, a), l)
+        case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(IR_ResultingDatatype(dt, a))
+        case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(IR_ResultingDatatype(dt, a), l, r)
+        case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a), m, n)
       }
       case IR_DoubleDatatype           => b match {
         case IR_IntegerDatatype          => IR_DoubleDatatype
@@ -52,10 +52,10 @@ object GetResultingDatatype {
         case IR_DoubleDatatype           => IR_DoubleDatatype
         case IR_StringDatatype           => IR_StringDatatype
         case IR_CharDatatype             => IR_DoubleDatatype
-        case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(GetResultingDatatype(dt, a), l)
-        case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(GetResultingDatatype(dt, a))
-        case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(GetResultingDatatype(dt, a), l, r)
-        case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(GetResultingDatatype(dt, a), m, n)
+        case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(IR_ResultingDatatype(dt, a), l)
+        case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(IR_ResultingDatatype(dt, a))
+        case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(IR_ResultingDatatype(dt, a), l, r)
+        case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a), m, n)
       }
       case IR_StringDatatype           => b match {
         case IR_IntegerDatatype          => IR_StringDatatype
@@ -80,10 +80,10 @@ object GetResultingDatatype {
         case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(dt, l, r)
         case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(dt, m, n)
       }
-      case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(GetResultingDatatype(dt, a), l)
-      case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(GetResultingDatatype(dt, a))
-      case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(GetResultingDatatype(dt, a), l, r)
-      case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(GetResultingDatatype(dt, a), m, n)
+      case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(IR_ResultingDatatype(dt, a), l)
+      case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(IR_ResultingDatatype(dt, a))
+      case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(IR_ResultingDatatype(dt, a), l, r)
+      case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a), m, n)
       case x : IR_SpecialDatatype      => x
     }
   }

@@ -1,8 +1,8 @@
 package exastencils.grid
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_FieldAccess
 import exastencils.core._
+import exastencils.field.ir.IR_FieldAccess
 
 object GridUtil {
   // helper functions of shifting indices and accesses

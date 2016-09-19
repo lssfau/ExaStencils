@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.{ StatementList, _ }
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.mpi._

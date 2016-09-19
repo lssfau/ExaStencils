@@ -3,9 +3,9 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.datastructures.ir.GetResultingDatatype
 import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
+import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_HackMatComponentAccess
 
@@ -23,7 +23,7 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var expr
     if (innerDatatype.isEmpty) {
       var l = expressions.flatten
       var ret = l(0).datatype
-      l.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
+      l.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
       innerDatatype = Some(ret)
     }
     IR_MatrixDatatype(innerDatatype.getOrElse(IR_RealDatatype), this.rows, this.columns)

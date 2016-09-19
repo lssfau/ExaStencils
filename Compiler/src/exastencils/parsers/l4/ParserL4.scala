@@ -2,6 +2,7 @@ package exastencils.parsers.l4
 
 import scala.collection.immutable.PagedSeq
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Stack
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input.PagedSeqReader
 
@@ -9,7 +10,10 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import exastencils.domain.l4.L4_DomainDeclaration
+import exastencils.field.l4._
 import exastencils.parsers._
+import exastencils.solver.l4._
 
 class ParserL4 extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = new LexerL4()
@@ -18,12 +22,17 @@ class ParserL4 extends ExaParser with PackratParsers {
     parseTokens(new lexical.Scanner(s))
   }
 
+  private val prevDirs = new Stack[java.io.File]().push(null)
   def parseFile(filename : String) : Node = {
-    val lines = io.Source.fromFile(filename).getLines
+    val file = new java.io.File(prevDirs.top, filename)
+    val lines = io.Source.fromFile(file).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
 
-    parseTokens(scanner)
+    prevDirs.push(file.getAbsoluteFile().getParentFile())
+    val ret = parseTokens(scanner)
+    prevDirs.pop()
+    return ret
   }
 
   protected def parseTokens(tokens : lexical.Scanner) : Node = {
@@ -31,7 +40,7 @@ class ParserL4 extends ExaParser with PackratParsers {
       case Success(e, _)        => e
       case Error(msg, _)        => throw new Exception("parse error: " + msg)
       case Failure(msg, parser) => {
-        var sb = new StringBuilder
+        val sb = new StringBuilder
         sb.append(s"Parse failure at position ${ parser.pos }: $msg\n")
         sb.append(parser.pos.longString)
         sb.append("\n")
@@ -42,8 +51,10 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   //###########################################################
 
-  lazy val program = ((domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
+  lazy val program = ((import_ ||| domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
     ^^ { case d => Root()(d) })
+
+  lazy val import_ = "import" ~> stringLit ^^ { case path => parseFile(path).asInstanceOf[Root] }
 
   //###########################################################
 
@@ -217,10 +228,10 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   lazy val leveledScope = locationize((level <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => LeveledScopeStatement(l, s) })
 
-  lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => EquationExpression(lhs, rhs) })
+  lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
   lazy val solveLocallyComponent = /*locationize*/ ((genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) })
   lazy val solveLocallyStatement = locationize(("solve" ~ "locally" ~ "{") ~> solveLocallyComponent.* <~ "}"
-    ^^ { case stmts => SolveLocallyStatement(stmts.map(_._1), stmts.map(_._2)) })
+    ^^ { case stmts => L4_LocalSolve(stmts.map(_._1), stmts.map(_._2)) })
 
   lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (booleanexpression <~ ",").+ ~ loopOver <~ "}"
     ^^ { case colors ~ loop => ColorWithStatement(colors, loop) })
@@ -237,10 +248,10 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val domain = (
-    locationize(("Domain" ~> "fromFile" ~> ("(" ~> stringLit <~ ")")) ^^ { case file => { DomainDeclarationStatement(file, null, null) } })
-      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => DomainDeclarationStatement(id, l, u) })
-      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 => DomainDeclarationStatement(id, List(l1, l2, l3), List(u1, u2, u3)) })
-      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 ~ l4 ~ u4 ~ l5 ~ u5 => DomainDeclarationStatement(id, List(l1, l2, l3, l4, l5), List(u1, u2, u3, u4, u5)) }))
+    locationize(("Domain" ~> "fromFile" ~> ("(" ~> stringLit <~ ")")) ^^ { case file => { L4_DomainDeclaration(file, null, null) } })
+      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => L4_DomainDeclaration(id, l, u) })
+      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 => L4_DomainDeclaration(id, List(l1, l2, l3), List(u1, u2, u3)) })
+      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 ~ l4 ~ u4 ~ l5 ~ u5 => L4_DomainDeclaration(id, List(l1, l2, l3, l4, l5), List(u1, u2, u3, u4, u5)) }))
 
   lazy val discretization = ("Node" ||| "node" ||| "Cell" ||| "cell"
     ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
@@ -304,14 +315,14 @@ class ParserL4 extends ExaParser with PackratParsers {
     "$" ~> slotModifier ^^ { case s => s }
       ||| "[" ~> slotModifier <~ "]" ^^ { case s => s })
 
-  lazy val slotModifier = locationize("active" ^^ { case _ => SlotModifier.Active }
-    ||| "activeSlot" ^^ { case _ => SlotModifier.Active }
-    ||| "currentSlot" ^^ { case _ => SlotModifier.Active }
-    ||| "next" ^^ { case _ => SlotModifier.Next }
-    ||| "nextSlot" ^^ { case _ => SlotModifier.Next }
-    ||| "previous" ^^ { case _ => SlotModifier.Previous }
-    ||| "previousSlot" ^^ { case _ => SlotModifier.Previous }
-    ||| integerLit ^^ { case i => SlotModifier.Constant(i) })
+  lazy val slotModifier = locationize("active" ^^ { case _ => L4_ActiveSlot }
+    ||| "activeSlot" ^^ { case _ => L4_ActiveSlot }
+    ||| "currentSlot" ^^ { case _ => L4_ActiveSlot }
+    ||| "next" ^^ { case _ => L4_NextSlot }
+    ||| "nextSlot" ^^ { case _ => L4_NextSlot }
+    ||| "previous" ^^ { case _ => L4_PreviousSlot }
+    ||| "previousSlot" ^^ { case _ => L4_PreviousSlot }
+    ||| integerLit ^^ { case i => L4_ConstantSlot(i) })
 
   lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => AdvanceStatement(a) })
 
@@ -320,7 +331,7 @@ class ParserL4 extends ExaParser with PackratParsers {
       ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))
 
   lazy val fieldAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").?
-    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(SlotModifier.Active), arrayIndex) })
+    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(L4_ActiveSlot), arrayIndex) })
 
   lazy val flatAccess = locationize(ident
     ^^ { case id => UnresolvedAccess(id, None, None, None, None, None) })

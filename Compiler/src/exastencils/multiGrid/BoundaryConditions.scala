@@ -9,7 +9,9 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid._
+import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.omp._
@@ -25,7 +27,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     // apply local trafo and replace boundaryCoord
     val strat = QuietDefaultStrategy("ResolveBoundaryCoordinates")
     strat += new Transformation("SearchAndReplace", {
-      case virtualField : VirtualFieldAccess if virtualField.fieldName.startsWith("boundaryCoord") || virtualField.fieldName.startsWith("vf_boundaryCoord") => {
+      case virtualField : IR_VirtualFieldAccess if virtualField.fieldName.startsWith("boundaryCoord") || virtualField.fieldName.startsWith("vf_boundaryCoord") => {
         val evalDim = virtualField.fieldName match {
           case "boundaryCoord_x" | "vf_boundaryCoord_x" => 0
           case "boundaryCoord_y" | "vf_boundaryCoord_y" => 1

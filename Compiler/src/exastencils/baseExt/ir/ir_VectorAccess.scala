@@ -3,9 +3,9 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.datastructures.ir.GetResultingDatatype
 import exastencils.knowledge.Platform
 import exastencils.prettyprinting.PpStream
+import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_HackVecComponentAccess
 
@@ -27,7 +27,7 @@ case class IR_VectorExpression(var innerDatatype : Option[IR_Datatype], var expr
   override def datatype = {
     if (innerDatatype.isEmpty) {
       var ret = expressions(0).datatype
-      expressions.foreach(s => ret = GetResultingDatatype(ret, s.datatype))
+      expressions.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
       innerDatatype = Some(ret)
     }
     IR_VectorDatatype(innerDatatype.getOrElse(IR_RealDatatype), expressions.length, rowVector)

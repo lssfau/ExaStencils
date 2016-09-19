@@ -4,15 +4,16 @@ import scala.collection._
 import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir._
 import exastencils.interfacing.IR_ExternalFieldAccess
 import exastencils.logger._
 import exastencils.strategies._
+import exastencils.util.ir.IR_MathFunctions
 
 object SimplifyExpression {
 
@@ -542,8 +543,8 @@ object SimplifyExpression {
                 arg
             }.to[ListBuffer]
         }
-        if (MathFunctions.signatures.contains(call.name))
-          simplifyFloatingArgs(MathFunctions.signatures(call.name)._1)
+        if (IR_MathFunctions.signatures.contains(call.name))
+          simplifyFloatingArgs(IR_MathFunctions.signatures(call.name)._1)
         else for (func <- StateManager.findFirst({ f : IR_Function => f.name == call.name }))
           simplifyFloatingArgs(func.parameters.view.map(_.datatype))
         res = new HashMap[IR_Expression, Double]()

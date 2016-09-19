@@ -6,12 +6,12 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.core.StateManager
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.multiGrid.MultiGridFunctions
 import exastencils.prettyprinting.PpStream
 import exastencils.simd._
+import exastencils.util.ir.IR_MathFunctions
 
 object SIMD_MathFunctions {
 
@@ -19,11 +19,11 @@ object SIMD_MathFunctions {
   private lazy val multigridCollection = StateManager.findFirst[MultiGridFunctions].get // there must be a MultiGridFunctions object
 
   def isAllowed(func : String) : Boolean = {
-    return MathFunctions.signatures.contains(func)
+    return IR_MathFunctions.signatures.contains(func)
   }
 
   def addUsage(func : String) : String = {
-    val nrArgs = MathFunctions.signatures(func)._1.length // expected fail if !isAllowed(func)
+    val nrArgs = IR_MathFunctions.signatures(func)._1.length // expected fail if !isAllowed(func)
     return functionNameMapping.getOrElseUpdate(func, {
       val funcStmt : IR_AbstractFunction = new SIMD_MathFunc(func, nrArgs)
       multigridCollection.functions += funcStmt

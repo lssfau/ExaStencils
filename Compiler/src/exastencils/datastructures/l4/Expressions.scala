@@ -7,8 +7,12 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.datastructures._
+import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.l4._
+import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.logger._
 import exastencils.prettyprinting._
+import exastencils.stencil.ir._
 
 trait Number extends L4_Expression {
   def value : AnyVal
@@ -69,7 +73,7 @@ abstract class Access() extends L4_Expression {
 }
 
 case class UnresolvedAccess(var name : String,
-    var slot : Option[SlotModifier],
+    var slot : Option[L4_SlotSpecification],
     var level : Option[AccessLevelSpecification],
     var offset : Option[L4_ExpressionIndex],
     var arrayIndex : Option[Int],
@@ -95,7 +99,7 @@ case class UnresolvedAccess(var name : String,
   def resolveToFieldAccess = {
     if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
     try {
-      FieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active), arrayIndex, offset)
+      FieldAccess(name, level.get, slot.getOrElse(L4_ActiveSlot), arrayIndex, offset)
     } catch {
       case e : Exception => Logger.warn(s"""Could not resolve field "${ name }""""); throw e
     }
@@ -111,7 +115,7 @@ case class UnresolvedAccess(var name : String,
     StencilAccess(name, level.get, arrayIndex, dirAccess)
   }
   def resolveToStencilFieldAccess = {
-    StencilFieldAccess(name, level.get, slot.getOrElse(SlotModifier.Active), arrayIndex, offset, dirAccess)
+    StencilFieldAccess(name, level.get, slot.getOrElse(L4_ActiveSlot), arrayIndex, offset, dirAccess)
   }
 }
 
@@ -128,7 +132,7 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
   }
 }
 
-case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : SlotModifier, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends Access {
+case class FieldAccess(var name : String, var level : AccessLevelSpecification, var slot : L4_SlotSpecification, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
     out << name << '[' << slot << ']' << '@' << level
@@ -169,7 +173,7 @@ case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecific
     if (offset.isDefined) out << "@" << offset
   }
 
-  def progress : ir.VirtualFieldAccess = {
+  def progress : IR_VirtualFieldAccess = {
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
     var multiIndex = IR_LoopOverDimensions.defIt(numDims)
@@ -181,19 +185,19 @@ case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecific
       multiIndex += progressedOffset
     }
 
-    ir.VirtualFieldAccess(name, IR_IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
+    IR_VirtualFieldAccess(name, IR_IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
   }
 }
 
 object FieldAccess {
-  def resolveSlot(field : knowledge.Field, slot : SlotModifier) = {
+  def resolveSlot(field : knowledge.Field, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)
     else slot match {
-      case SlotModifier.Active       => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
-      case SlotModifier.Next         => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
-      case SlotModifier.Previous     => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
-      case x : SlotModifier.Constant => IR_IntegerConstant(x.number)
-      case _                         => Logger.error("Unknown slot modifier " + slot)
+      case L4_ActiveSlot       => data.SlotAccess(ir.iv.CurrentSlot(field), 0)
+      case L4_NextSlot         => data.SlotAccess(ir.iv.CurrentSlot(field), 1)
+      case L4_PreviousSlot     => data.SlotAccess(ir.iv.CurrentSlot(field), -1)
+      case x : L4_ConstantSlot => IR_IntegerConstant(x.number)
+      case _                   => Logger.error("Unknown slot modifier " + slot)
     }
   }
 }
@@ -204,11 +208,11 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
     if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
-  def getBasicStencilAccess : ir.StencilAccess = {
+  def getBasicStencilAccess : IR_StencilAccess = {
     if (arrayIndex.isDefined || dirAccess.isDefined)
       Logger.warn(s"Discarding modifiers of access to stencil $name on level ${ level.asInstanceOf[SingleLevelSpecification].level }")
 
-    ir.StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
+    IR_StencilAccess(knowledge.StencilCollection.getStencilByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get)
   }
 
   def progress : IR_Expression = {
@@ -222,13 +226,13 @@ case class StencilAccess(var name : String, var level : AccessLevelSpecification
     else if (dirAccess.isDefined)
       stencil.findStencilEntry(dirAccess.get.progress).get.coefficient
     else
-      ir.StencilAccess(stencil)
+      IR_StencilAccess(stencil)
   }
 }
 
 case class StencilFieldAccess(var name : String,
     var level : AccessLevelSpecification,
-    var slot : SlotModifier,
+    var slot : L4_SlotSpecification,
     var arrayIndex : Option[Int] = None,
     var offset : Option[L4_ExpressionIndex] = None,
     var dirAccess : Option[L4_ExpressionIndex] = None) extends Access {
@@ -244,7 +248,7 @@ case class StencilFieldAccess(var name : String,
     knowledge.StencilFieldCollection.getStencilFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get.field
   }
 
-  def getBasicStencilFieldAccess : ir.StencilFieldAccess = {
+  def getBasicStencilFieldAccess : IR_StencilFieldAccess = {
     if (arrayIndex.isDefined || dirAccess.isDefined)
       Logger.warn(s"Discarding modifiers of access to stencilfield $name on level ${ level.asInstanceOf[SingleLevelSpecification].level }")
 
@@ -261,7 +265,7 @@ case class StencilFieldAccess(var name : String,
       multiIndex += progressedOffset
     }
 
-    ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
+    IR_StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
   }
 
   def progress : IR_Expression = {
@@ -293,7 +297,7 @@ case class StencilFieldAccess(var name : String,
     }
 
     if (accessIndex < 0)
-      ir.StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None),
+      IR_StencilFieldAccess(knowledge.StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), None),
         multiIndex)
     else
       IR_FieldAccess(knowledge.FieldSelection(stencilField.field, IR_IntegerConstant(stencilField.field.level), FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
@@ -344,31 +348,31 @@ case class FunctionCallExpression(var identifier : Access, var arguments : List[
 case class StencilConvolution(var stencilAccess : StencilAccess, var fieldAccess : FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilAccess << " * " << fieldAccess }
 
-  def progress : ir.StencilConvolution = {
-    ir.StencilConvolution(stencilAccess.getBasicStencilAccess.stencil, fieldAccess.progress)
+  def progress : IR_StencilConvolution = {
+    IR_StencilConvolution(stencilAccess.getBasicStencilAccess.stencil, fieldAccess.progress)
   }
 }
 
 case class StencilFieldConvolution(var stencilFieldAccess : StencilFieldAccess, var fieldAccess : FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilFieldAccess << " * " << fieldAccess }
 
-  def progress : ir.StencilFieldConvolution = {
-    ir.StencilFieldConvolution(stencilFieldAccess.getBasicStencilFieldAccess, fieldAccess.progress)
+  def progress : IR_StencilFieldConvolution = {
+    IR_StencilFieldConvolution(stencilFieldAccess.getBasicStencilFieldAccess, fieldAccess.progress)
   }
 }
 
 case class StencilStencilConvolution(var stencilLeft : StencilAccess, var stencilRight : StencilAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
 
-  def progress : ir.StencilStencilConvolution = {
-    ir.StencilStencilConvolution(stencilLeft.getBasicStencilAccess.stencil, stencilRight.getBasicStencilAccess.stencil)
+  def progress : IR_StencilStencilConvolution = {
+    IR_StencilStencilConvolution(stencilLeft.getBasicStencilAccess.stencil, stencilRight.getBasicStencilAccess.stencil)
   }
 }
 
 case class StencilFieldStencilConvolution(var stencilLeft : StencilFieldAccess, var stencilRight : StencilAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
 
-  def progress : ir.StencilFieldStencilConvolution = {
-    ir.StencilFieldStencilConvolution(stencilLeft.getBasicStencilFieldAccess, stencilRight.getBasicStencilAccess.stencil)
+  def progress : IR_StencilFieldStencilConvolution = {
+    IR_StencilFieldStencilConvolution(stencilLeft.getBasicStencilFieldAccess, stencilRight.getBasicStencilAccess.stencil)
   }
 }

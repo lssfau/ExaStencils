@@ -93,7 +93,7 @@ object Fortranify extends DefaultStrategy("Preparing function for fortran interf
                 fct.body.prepend(
                   IR_VariableDeclaration(
                     IR_ReferenceDatatype(Duplicate(datatype)), param.name,
-                    Some(DerefAccess(IR_VariableAccess(param.name + "_ptr", IR_PointerDatatype(datatype))))))
+                    Some(IR_DerefAccess(IR_VariableAccess(param.name + "_ptr", IR_PointerDatatype(datatype))))))
                 param.name += "_ptr"
                 param.datatype = IR_PointerDatatype(Duplicate(datatype))
               }

@@ -1,14 +1,14 @@
 package exastencils.simd
 
 import exastencils.base.ir._
-import exastencils.datastructures.ir.GetResultingDatatype
 import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
+import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_SIMD_Addition
 
 case class IR_SIMD_Addition(var left : IR_Expression, var right : IR_Expression) extends IR_SIMD_Expression {
-  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
+  override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -25,7 +25,7 @@ case class IR_SIMD_Addition(var left : IR_Expression, var right : IR_Expression)
 /// IR_SIMD_Subtraction
 
 case class IR_SIMD_Subtraction(var left : IR_Expression, var right : IR_Expression) extends IR_SIMD_Expression {
-  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
+  override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -42,7 +42,7 @@ case class IR_SIMD_Subtraction(var left : IR_Expression, var right : IR_Expressi
 /// IR_SIMD_Multiplication
 
 case class IR_SIMD_Multiplication(var left : IR_Expression, var right : IR_Expression) extends IR_SIMD_Expression {
-  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
+  override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {
@@ -59,7 +59,7 @@ case class IR_SIMD_Multiplication(var left : IR_Expression, var right : IR_Expre
 /// IR_SIMD_Division
 
 case class IR_SIMD_Division(var left : IR_Expression, var right : IR_Expression) extends IR_SIMD_Expression {
-  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
+  override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
   // FIXME
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
@@ -78,7 +78,7 @@ case class IR_SIMD_Division(var left : IR_Expression, var right : IR_Expression)
 /// IR_SIMD_Minimum
 
 case class IR_SIMD_Minimum(var left : IR_Expression, var right : IR_Expression) extends IR_SIMD_Expression {
-  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
+  override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX") // TODO: export function
       out << "vec_sel(" << right << ", " << left << ", vec_cmplt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...
@@ -99,7 +99,7 @@ case class IR_SIMD_Minimum(var left : IR_Expression, var right : IR_Expression) 
 /// IR_SIMD_Maximum
 
 case class IR_SIMD_Maximum(var left : IR_Expression, var right : IR_Expression) extends IR_SIMD_Expression {
-  override def datatype = GetResultingDatatype(left.datatype, right.datatype)
+  override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX") // TODO: export function
       out << "vec_sel(" << right << ", " << left << ", vec_cmpgt(" << left << ", " << right << "))" // vec_sel selects the second if the third represents true...

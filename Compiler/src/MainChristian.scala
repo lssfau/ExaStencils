@@ -1,15 +1,16 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
+import exastencils.base.l4.L4_Progressable
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
-import exastencils.domain._
+import exastencils.domain.{ l4 => _, _ }
 import exastencils.globals._
 import exastencils.grid._
-import exastencils.knowledge._
+import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
 import exastencils.mpi._
@@ -21,7 +22,7 @@ import exastencils.parsers.settings._
 import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
-import exastencils.solver.IR_ResolveLocalSolve
+import exastencils.solver.ir.IR_ResolveLocalSolve
 import exastencils.strategies._
 import exastencils.util._
 
@@ -171,7 +172,7 @@ object MainChristian {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[l4.ProgressableToIr].progress.asInstanceOf[Node]
+    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")
