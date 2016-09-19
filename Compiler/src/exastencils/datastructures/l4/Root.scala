@@ -13,7 +13,6 @@ import exastencils.prettyprinting._
 case class Root()(nodes : List[Node]) extends Node with L4_Progressable with PrettyPrintable {
 
   var stencilFields : ListBuffer[StencilFieldDeclarationStatement] = new ListBuffer()
-  var externalFields : ListBuffer[ExternalFieldDeclarationStatement] = new ListBuffer()
   var globals : ListBuffer[GlobalDeclarationStatement] = new ListBuffer()
   var functionTemplates : ListBuffer[FunctionTemplateStatement] = new ListBuffer()
   var functions : ListBuffer[FunctionStatement] = new ListBuffer()
@@ -21,13 +20,12 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
   var otherNodes : ListBuffer[L4_Node] = new ListBuffer()
 
   nodes.foreach(n => n match {
-    case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
-    case p : ExternalFieldDeclarationStatement => externalFields.+=(p)
-    case p : GlobalDeclarationStatement        => globals.+=(p)
-    case p : FunctionTemplateStatement         => functionTemplates.+=(p)
-    case p : FunctionStatement                 => functions.+=(p)
-    case p : L4_Statement                      => statements.+=(p)
-    case p : L4_Node                           => otherNodes.+=(p)
+    case p : StencilFieldDeclarationStatement => stencilFields.+=(p)
+    case p : GlobalDeclarationStatement       => globals.+=(p)
+    case p : FunctionTemplateStatement        => functionTemplates.+=(p)
+    case p : FunctionStatement                => functions.+=(p)
+    case p : L4_Statement                     => statements.+=(p)
+    case p : L4_Node                          => otherNodes.+=(p)
   })
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -35,8 +33,6 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
 
     if (!stencilFields.isEmpty)
       out <<< stencilFields << '\n'
-    if (!externalFields.isEmpty)
-      out <<< externalFields << '\n'
     if (!globals.isEmpty)
       out <<< globals << '\n'
     if (!functionTemplates.isEmpty)
@@ -54,11 +50,6 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
     StencilFieldCollection.stencilFields.clear
     for (stencilField <- stencilFields)
       StencilFieldCollection.stencilFields += stencilField.progress
-
-    // ExternalFields => requires Fields
-    ExternalFieldCollection.fields.clear
-    for (extField <- externalFields)
-      ExternalFieldCollection.fields += extField.progress
 
     // Globals
     var progGlobals = new Globals(new ListBuffer)

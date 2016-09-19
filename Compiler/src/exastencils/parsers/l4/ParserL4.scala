@@ -11,6 +11,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.domain.l4.L4_DomainDecl
 import exastencils.field.l4._
+import exastencils.interfacing.l4.L4_ExternalFieldDecl
 import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.stencil.l4._
@@ -296,7 +297,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val externalField = locationize((("external" ~ "Field") ~> ident) ~ ("<" ~> ident <~ ">") ~ ("=>" ~> fieldAccess)
-    ^^ { case extid ~ layout ~ field => ExternalFieldDeclarationStatement(extid, field, layout) })
+    ^^ { case extid ~ layout ~ field => L4_ExternalFieldDecl(extid, layout, field) })
 
   // ######################################
   // ##### Object Access
