@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.logger._
 
 case class FieldLayout(
@@ -20,7 +21,7 @@ case class FieldLayout(
     var referenceOffset : IR_ExpressionIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
-) {
+) extends IR_KnowledgeObject {
   def apply(dim : Int) = layoutsPerDim(dim)
 
   def defIdxPadLeftBegin(dim : Int) = { 0 }
@@ -85,6 +86,9 @@ case class FieldLayoutPerDim(
     var numPadLayersRight : Int // number of padding data points added to the right (/ upper / back) side of the field
 ) {
   var total : IR_Expression = "NOT SET"
+
+  // update total at initialization
+  updateTotal()
 
   def updateTotal() = {
     total = numPadLayersLeft + numGhostLayersLeft + numDupLayersLeft + numInnerLayers + numDupLayersRight + numGhostLayersRight + numPadLayersRight

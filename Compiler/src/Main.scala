@@ -8,6 +8,7 @@ import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain.{ l4 => _, _ }
+import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid._
 import exastencils.knowledge.{ l4 => _, _ }
@@ -171,6 +172,7 @@ object Main {
     ResolveL4_Pre.apply()
 
     L4_ProcessStencilDeclarations.apply()
+    L4_ProcessFieldLayoutDeclarations.apply()
 
     ResolveL4_Post.apply()
 
@@ -180,6 +182,7 @@ object Main {
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
     L4_StencilCollection.progress
+    //L4_FieldLayoutCollection.progress
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
