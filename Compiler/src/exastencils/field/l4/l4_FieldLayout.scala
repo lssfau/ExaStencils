@@ -72,9 +72,7 @@ case class L4_FieldLayout(
     out << "}\n"
   }
 
-  override def progress : FieldLayout = progress("GENERIC") //FIXME
-
-  def progress(targetFieldName : String) : FieldLayout = {
+  override def progress : FieldLayout = {
     // determine full data dimensionality
     val numDimsData = numDimsGrid + datatype.dimensionality
 
@@ -87,19 +85,6 @@ case class L4_FieldLayout(
     // add layouts for additional dimensions introduced by the datatype - no ghost, dup, pad layers required
     if (numDimsData > numDimsGrid)
       layouts ++= datatype.getSizeArray.map(size => FieldLayoutPerDim(0, 0, 0, size, 0, 0, 0))
-
-    // add padding for innermost dimension if required - FIXME: extract to separate strategy
-    {
-      if (Knowledge.data_alignFieldPointers) {
-        val innerLayout : FieldLayoutPerDim = layouts(0)
-        innerLayout.numPadLayersLeft = (Platform.simd_vectorSize - innerLayout.numGhostLayersLeft % Platform.simd_vectorSize) % Platform.simd_vectorSize
-        val total = innerLayout.numPadLayersLeft + innerLayout.numGhostLayersLeft + innerLayout.numDupLayersLeft + innerLayout.numInnerLayers + innerLayout.numDupLayersRight + innerLayout.numGhostLayersRight
-        innerLayout.numPadLayersRight = (Platform.simd_vectorSize - total % Platform.simd_vectorSize) % Platform.simd_vectorSize
-      }
-
-      // set/ update total
-      for (layout <- layouts) layout.updateTotal()
-    }
 
     // determine reference offset
     // TODO: this should work for now but may be adapted in the future
@@ -115,7 +100,7 @@ case class L4_FieldLayout(
       discretization
 
     FieldLayout(
-      s"${ identifier }_$targetFieldName",
+      identifier,
       level,
       datatype.progress,
       finalDiscretization,

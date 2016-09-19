@@ -178,6 +178,9 @@ object Main {
     L4_ProcessFieldLayoutDeclarations.apply()
     L4_ProcessFieldDeclarations.apply()
 
+    if (Knowledge.ir_genSepLayoutsPerField)
+      L4_DuplicateFieldLayoutsForFields.apply()
+
     ResolveL4_Post.apply()
 
     if (Settings.timeStrategies)
@@ -185,6 +188,8 @@ object Main {
 
     L4_StencilCollection.progress
     L4_FieldLayoutCollection.progress
+    if (Knowledge.data_alignFieldPointers)
+      IR_AddPaddingToFieldLayouts
     L4_FieldCollection.progress
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]

@@ -29,23 +29,12 @@ case class L4_Field(
   }
 
   override def progress : Field = {
-    // FIXME: separate mechanic
-    val IR_layout = if (Knowledge.ir_genSepLayoutsPerField) {
-      val L4_layout = L4_FieldLayoutCollection.getByIdentifier(fieldLayout, level).get
-      val IR_layout = L4_layout.progress(identifier)
-      FieldLayoutCollection.fieldLayouts += IR_layout
-      IR_layout
-    } else {
-      // layouts have already been processed -> find the required one
-      FieldLayoutCollection.getFieldLayoutByIdentifier(fieldLayout, level).get
-    }
-
     Field(
       identifier,
       index,
       DomainCollection.getDomainByIdentifier(domain).get,
       identifier.toLowerCase + "Data_" + level,
-      IR_layout,
+      FieldLayoutCollection.getFieldLayoutByIdentifier(fieldLayout, level).get,
       level,
       numSlots,
       L4_ProgressOption(boundary)(_.progress))

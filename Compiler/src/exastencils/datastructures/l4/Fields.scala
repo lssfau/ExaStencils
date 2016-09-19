@@ -31,7 +31,7 @@ case class ExternalFieldDeclarationStatement(
     val IR_layout = if (knowledge.Knowledge.ir_genSepLayoutsPerField) {
       // layouts must not be shared -> generate a field specific layout
       val L4_layout = L4_FieldLayoutCollection.getByIdentifier(extLayout, level).get
-      val IR_layout = L4_layout.progress(extIdentifier)
+      val IR_layout = L4_layout.progress //FIXME: extIdentifier)
       knowledge.FieldLayoutCollection.fieldLayouts += IR_layout
       IR_layout
     } else {
