@@ -49,7 +49,6 @@ case class L4_FieldLayoutDecl(
   }
 
   def composeLayout(level : Int) : L4_FieldLayout = {
-
     val innerPoints : L4_ConstIndex = ???
 
     val numGhost = evalFieldLayoutValue("ghostLayers")

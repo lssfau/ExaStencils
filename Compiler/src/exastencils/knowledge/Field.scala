@@ -117,7 +117,7 @@ case class Field(
     var level : Int, // the (geometric) level the field lives on
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var boundaryConditions : Option[IR_Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
-) {
+) extends IR_KnowledgeObject {
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype
   def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype

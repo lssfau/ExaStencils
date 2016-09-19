@@ -173,6 +173,7 @@ object Main {
 
     L4_ProcessStencilDeclarations.apply()
     L4_ProcessFieldLayoutDeclarations.apply()
+    L4_ProcessFieldDeclarations.apply()
 
     ResolveL4_Post.apply()
 
@@ -182,7 +183,8 @@ object Main {
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
     L4_StencilCollection.progress
-    //L4_FieldLayoutCollection.progress
+    L4_FieldLayoutCollection.progress
+    L4_FieldCollection.progress
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
