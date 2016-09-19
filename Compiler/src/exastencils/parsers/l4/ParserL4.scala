@@ -13,6 +13,7 @@ import exastencils.domain.l4.L4_DomainDeclaration
 import exastencils.field.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
+import exastencils.stencil.l4._
 
 class ParserL4 extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = new LexerL4()
@@ -281,11 +282,11 @@ class ParserL4 extends ExaParser with PackratParsers {
       ||| locationize(("[" ~> binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ (binaryexpression <~ "]") ^^ { case n1 ~ n2 ~ n3 => L4_ExpressionIndex(n1, n2, n3) }))
 
   lazy val stencil = locationize(("Stencil" ~> identifierWithOptionalLevel) ~ ("{" ~> stencilEntries <~ "}")
-    ^^ { case id ~ entries => StencilDeclarationStatement(id, entries) })
+    ^^ { case id ~ entries => L4_StencilDecl(id, entries) })
   lazy val stencilEntries = (
     (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilEntry.+)
-  lazy val stencilEntry = ((expressionIndex ~ ("=>" ~> (binaryexpression ||| matrixExpression))) ^^ { case offset ~ weight => StencilEntry(offset, weight) })
+  lazy val stencilEntry = expressionIndex ~ ("=>" ~> (binaryexpression ||| matrixExpression)) ^^ { case offset ~ weight => L4_StencilEntry(offset, weight) }
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ level.?)
     ^^ { case id ~ f ~ s ~ level => StencilFieldDeclarationStatement(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), f, s) })

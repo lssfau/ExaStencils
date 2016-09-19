@@ -1,15 +1,15 @@
 package exastencils.languageprocessing.l4
 
-import scala.collection.mutable.HashSet
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.core._
 import exastencils.core.collectors.L4LevelCollector
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
+import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.stencil.l4.L4_StencilDecl
 
 object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecifications") {
   var functions = new HashSet[Tuple2[String, Integer]]
@@ -66,7 +66,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     }))
 
     this.execute(new Transformation("Unfold Values and Variables", {
-      case value : ValueDeclarationStatement => value.identifier match {
+      case value : ValueDeclarationStatement       => value.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(value, level)
         case BasicIdentifier(_)          => value
       }
@@ -84,9 +84,9 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
             functions += ((function.identifier.name, x.level))
             function
           }
-          case _ => function
+          case _                            => function
         }
-        case _ => function
+        case _                           => function
       }
     }))
 
@@ -132,7 +132,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // unfold stencil declarations
     this.execute(new Transformation("Unfold leveled Stencil declarations", {
-      case stencil : StencilDeclarationStatement => stencil.identifier match {
+      case stencil : L4_StencilDecl => stencil.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(stencil, level)
         case BasicIdentifier(_)          => stencil
       }
@@ -160,9 +160,9 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
         f.identifier = new LeveledIdentifier(f.identifier.name, level)
         ts += f
       }
-      case level : ListLevelSpecification =>
+      case level : ListLevelSpecification                                                                                          =>
         level.levels.foreach(level => ts ++= doDuplicate(t, level))
-      case level : RangeLevelSpecification =>
+      case level : RangeLevelSpecification                                                                                         =>
         for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
           if (!functions.contains(t.identifier.name, level)) {
             var f = Duplicate(t)
@@ -172,7 +172,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
             functions += ((f.identifier.name, level))
           }
         }
-      case _ => Logger.error(s"Invalid level specification for Value $t: $level")
+      case _                                                                                                                       => Logger.error(s"Invalid level specification for Value $t: $level")
     }
     return ts.toList
   }

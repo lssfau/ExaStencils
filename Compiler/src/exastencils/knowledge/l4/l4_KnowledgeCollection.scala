@@ -3,9 +3,16 @@ package exastencils.knowledge.l4
 import scala.collection.mutable._
 import scala.reflect.runtime.universe._
 
+import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.logger._
+import exastencils.prettyprinting.PpStream
 
-trait L4_HasIdentifier {
+trait L4_KnowledgeObject {
+  def prettyprintDecl(out : PpStream) : Unit
+  def progress : IR_KnowledgeObject
+}
+
+trait L4_HasIdentifier extends L4_KnowledgeObject {
   def identifier : String
 }
 

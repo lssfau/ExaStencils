@@ -10,6 +10,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.knowledge
 import exastencils.logger._
+import exastencils.stencil.l4.L4_StencilCollection
 
 object CollectCommInformation extends DefaultStrategy("Collecting information relevant for adding communication statements") {
   var commCollector : L4CommCollector = new L4CommCollector(HashMap())
@@ -33,7 +34,8 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
   })
 }
 
-object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
+// FIXME: name
+object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
   val virtualFields : ListBuffer[String] = ListBuffer(
     "vf_nodePosition_x", "vf_nodePosition_y", "vf_nodePosition_z",
     "nodePosition_x", "nodePosition_y", "nodePosition_z",
@@ -76,17 +78,17 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     this.register(valueCollector)
 
     this.execute(new Transformation("Resolve Values in Expressions", {
-      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
+      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None)                                                         => {
         var value = valueCollector.getValue(x.name)
         value match {
-          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
+          case None => { Logger.info(s"""Could not resolve identifier ${ x.name } as no matching Val was found"""); x }
           case _    => Duplicate(value.get)
         }
       }
       case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
         var value = valueCollector.getValue(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
-          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Val was found"""); x }
+          case None => { Logger.info(s"""Could not resolve identifier ${ x.name } as no matching Val was found"""); x }
           case _    => Duplicate(value.get)
         }
       }
@@ -101,53 +103,49 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
     }))
 
     this.execute(new Transformation("Resolve Global Values", {
-      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None) => {
+      case x : UnresolvedAccess if (x.level == None && x.slot == None && x.arrayIndex == None)                                                         => {
         var value = globalVals.get(x.name)
         value match {
-          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Global Val was found"""); x }
+          case None => { Logger.info(s"""Could not resolve identifier ${ x.name } as no matching Global Val was found"""); x }
           case _    => Duplicate(value.get)
         }
       }
       case x : UnresolvedAccess if (x.level.isDefined && x.level.get.isInstanceOf[SingleLevelSpecification] && x.slot == None && x.arrayIndex == None) => {
         var value = globalVals.get(x.name + "@@" + x.level.get.asInstanceOf[SingleLevelSpecification].level)
         value match {
-          case None => { Logger.info(s"""Could not resolve identifier ${x.name} as no matching Global Val was found"""); x }
+          case None => { Logger.info(s"""Could not resolve identifier ${ x.name } as no matching Global Val was found"""); x }
           case _    => Duplicate(value.get)
         }
       }
     }))
     globalVals.clear()
 
-    // resolve accesses
+    // resolve virtual field accesses
     this.execute(new Transformation("Resolve AccessSpecifications", {
-      case access : UnresolvedAccess =>
-        if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
-          access.resolveToFieldAccess
-        else if (virtualFields.contains(access.name.toLowerCase()))
-          access.resolveToVirtualFieldAccess
-        else if (StateManager.root_.asInstanceOf[Root].stencils.exists(s => access.name == s.identifier.name))
-          access.resolveToStencilAccess
-        else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))
-          access.resolveToStencilFieldAccess
-        else access.resolveToBasicOrLeveledAccess
+      case access : UnresolvedAccess if virtualFields.contains(access.name.toLowerCase()) => access.resolveToVirtualFieldAccess
     }))
+
 
     this.execute(new Transformation("special functions and constants", {
       // get knowledge/settings/platform
-      case FunctionCallExpression(BasicAccess("getKnowledge"), List(L4_StringConstant(ident))) =>
+      case FunctionCallExpression(access : UnresolvedAccess, List(L4_StringConstant(ident))) if "getKnowledge" == access.name =>
         resolveParameterToConstant(knowledge.Knowledge, ident)
-      case FunctionCallExpression(BasicAccess("getSetting"), List(L4_StringConstant(ident))) =>
+      case FunctionCallExpression(access : UnresolvedAccess, List(L4_StringConstant(ident))) if "getSetting" == access.name   =>
         resolveParameterToConstant(Settings, ident)
-      case FunctionCallExpression(BasicAccess("getPlatform"), List(L4_StringConstant(ident))) =>
+      case FunctionCallExpression(access : UnresolvedAccess, List(L4_StringConstant(ident))) if "getPlatform" == access.name  =>
         resolveParameterToConstant(knowledge.Platform, ident)
 
       // levelIndex
-      case FunctionCallExpression(LeveledAccess("levels", SingleLevelSpecification(level)), List())      => L4_IntegerConstant(level)
-      case FunctionCallExpression(LeveledAccess("levelIndex", SingleLevelSpecification(level)), List())  => L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case FunctionCallExpression(LeveledAccess("levelString", SingleLevelSpecification(level)), List()) => L4_StringConstant(level.toString())
+      case FunctionCallExpression(UnresolvedAccess("levels", _, Some(SingleLevelSpecification(level)), _, _, _), List())      =>
+        L4_IntegerConstant(level)
+      case FunctionCallExpression(UnresolvedAccess("levelIndex", _, Some(SingleLevelSpecification(level)), _, _, _), List())  =>
+        L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
+      case FunctionCallExpression(UnresolvedAccess("levelString", _, Some(SingleLevelSpecification(level)), _, _, _), List()) =>
+        L4_StringConstant(level.toString)
 
       // constants
-      case BasicAccess("PI") | BasicAccess("M_PI") | BasicAccess("Pi")                                   => L4_RealConstant(math.Pi)
+      case access : UnresolvedAccess if "PI" == access.name || "M_PI" == access.name || "Pi" == access.name =>
+        L4_RealConstant(math.Pi)
     }))
 
     this.execute(new Transformation("Resolving string constants to literals", {
@@ -183,6 +181,20 @@ object ResolveL4 extends DefaultStrategy("Resolving L4 specifics") {
 
     this.commit()
   }
+}
+
+object ResolveL4_Post extends DefaultStrategy("Resolving L4 specifics") {
+  // resolve accesses
+  this += new Transformation("Resolve AccessSpecifications", {
+    case access : UnresolvedAccess =>
+      if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
+        access.resolveToFieldAccess
+      else if (L4_StencilCollection.exists(access.name))
+        access.resolveToStencilAccess
+      else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))
+        access.resolveToStencilFieldAccess
+      else access.resolveToBasicOrLeveledAccess
+  })
 }
 
 object ReplaceExpressions extends DefaultStrategy("Replace something with something else") {
@@ -222,7 +234,7 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
             newAccess.dirAccess = origAccess.dirAccess
           }
         }
-        case _ =>
+        case _                            =>
       }
       newAccess
     }
@@ -233,7 +245,7 @@ object ResolveFunctionTemplates extends DefaultStrategy("Resolving function temp
   this += new Transformation("Find and resolve", {
     case functionInst : FunctionInstantiationStatement => {
       val template = StateManager.root.asInstanceOf[Root].functionTemplates.find(_.name == functionInst.templateName)
-      if (template.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${functionInst.templateName}")
+      if (template.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
       var instantiated = Duplicate(FunctionStatement(functionInst.targetFct, template.get.returntype, template.get.functionArgs, template.get.statements))
 
       ReplaceExpressions.replacements = Map() ++ (template.get.templateArgs zip functionInst.args).toMap[String, L4_Expression]
@@ -288,7 +300,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
             _ match {
               case f : FunctionStatement if f.identifier.isInstanceOf[LeveledIdentifier]
                 && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
-              case _ => false
+              case _                                                                     => false
             }).get.asInstanceOf[FunctionStatement]
           if (fctDecl.returntype eq L4_UnitDatatype) {
             bcs(fromIdentifier(field.identifier)) = fctCall
@@ -330,7 +342,7 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
       CollectCommInformation.applyStandalone(assignment)
 
       var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>
-        CommunicateStatement(comm._1, "both", List( /* FIXME: add radius */ ), None)).toList
+        CommunicateStatement(comm._1, "both", List(/* FIXME: add radius */), None)).toList
 
       LoopOverFragmentsStatement(List(
         LoopOverPointsStatement(lhs, None, false, None, None, None, None, List(assignment), None, commStatements, List())),
@@ -340,7 +352,7 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
     // FIXME: handle reductions
     // FIXME: handle stencil fields
     // FIXME: handle region loops
-  }, false /* recursion must be switched of due to wrapping mechanism */ )
+  }, false /* recursion must be switched of due to wrapping mechanism */)
 }
 
 //object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) vectors and matrices") {

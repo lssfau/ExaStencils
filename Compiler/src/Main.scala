@@ -23,6 +23,7 @@ import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
+import exastencils.stencil.l4._
 import exastencils.strategies._
 import exastencils.util._
 
@@ -166,11 +167,19 @@ object Main {
     // go to IR
     ResolveFunctionTemplates.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
-    ResolveL4.apply()
+
+    ResolveL4_Pre.apply()
+
+    L4_ProcessStencilDeclarations.apply()
+
+    ResolveL4_Post.apply()
+
     ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
+
+    L4_StencilCollection.progress
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 

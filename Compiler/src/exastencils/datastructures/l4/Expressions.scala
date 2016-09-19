@@ -87,7 +87,11 @@ case class UnresolvedAccess(var name : String,
     if (dirAccess.isDefined) out << ':' << dirAccess
   }
 
-  def progress : IR_StringLiteral = IR_StringLiteral("ERROR - Unresolved Access")
+  def progress : IR_Expression = {
+    // IR_StringLiteral("ERROR - Unresolved Access")
+    Logger.warn(s"Progressing UnresolvedAccess $name")
+    resolveToBasicOrLeveledAccess.progress
+  }
 
   def resolveToBasicOrLeveledAccess = {
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")

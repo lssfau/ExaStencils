@@ -18,11 +18,11 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
   var fields : ListBuffer[FieldDeclarationStatement] = new ListBuffer()
   var stencilFields : ListBuffer[StencilFieldDeclarationStatement] = new ListBuffer()
   var externalFields : ListBuffer[ExternalFieldDeclarationStatement] = new ListBuffer()
-  var stencils : ListBuffer[StencilDeclarationStatement] = new ListBuffer()
   var globals : ListBuffer[GlobalDeclarationStatement] = new ListBuffer()
   var functionTemplates : ListBuffer[FunctionTemplateStatement] = new ListBuffer()
   var functions : ListBuffer[FunctionStatement] = new ListBuffer()
   var statements : ListBuffer[L4_Statement] = new ListBuffer()
+  var otherNodes : ListBuffer[L4_Node] = new ListBuffer()
 
   nodes.foreach(n => n match {
     case p : L4_DomainDeclaration              => domains.+=(p)
@@ -30,11 +30,11 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
     case p : FieldDeclarationStatement         => fields.+=(p)
     case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
     case p : ExternalFieldDeclarationStatement => externalFields.+=(p)
-    case p : StencilDeclarationStatement       => stencils.+=(p)
     case p : GlobalDeclarationStatement        => globals.+=(p)
     case p : FunctionTemplateStatement         => functionTemplates.+=(p)
     case p : FunctionStatement                 => functions.+=(p)
     case p : L4_Statement                      => statements.+=(p)
+    case p : L4_Node                           => otherNodes.+=(p)
   })
 
   // set domain indices -> just number consecutively
@@ -51,6 +51,8 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
   }
 
   override def prettyprint(out : PpStream) : Unit = {
+    // print L4_StencilCollection
+
     if (!domains.isEmpty)
       out <<< domains << '\n'
     if (!fieldLayouts.isEmpty)
@@ -61,8 +63,6 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
       out <<< stencilFields << '\n'
     if (!externalFields.isEmpty)
       out <<< externalFields << '\n'
-    if (!stencils.isEmpty)
-      out <<< stencils << '\n'
     if (!globals.isEmpty)
       out <<< globals << '\n'
     if (!functionTemplates.isEmpty)
@@ -94,9 +94,9 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
       FieldCollection.fields += field.progress
 
     // Stencils
-    StencilCollection.stencils.clear
-    for (stencil <- stencils)
-      StencilCollection.stencils += stencil.progress
+    //    StencilCollection.stencils.clear
+    //    for (stencil <- stencils)
+    //      StencilCollection.stencils += stencil.progress
 
     // StencilFields => requires Fields and Stencils
     StencilFieldCollection.stencilFields.clear

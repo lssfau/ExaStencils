@@ -9,6 +9,7 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.datastructures.l4.FieldDeclarationStatement
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_VirtualFieldAccess
@@ -146,13 +147,13 @@ trait GridGeometry_nonUniform extends GridGeometry {
       Some(L4_ConstIndex(0, 0, 1)), None,
       Some(L4_ConstIndex(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1)))
 
-    root.fields += l4.FieldDeclarationStatement(
+    root.fields += FieldDeclarationStatement(
       l4.LeveledIdentifier("node_pos_x", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_x", None, 1, 0)
     if (Knowledge.dimensionality > 1)
-      root.fields += l4.FieldDeclarationStatement(
+      root.fields += FieldDeclarationStatement(
         l4.LeveledIdentifier("node_pos_y", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_y", None, 1, 0)
     if (Knowledge.dimensionality > 2)
-      root.fields += l4.FieldDeclarationStatement(
+      root.fields += FieldDeclarationStatement(
         l4.LeveledIdentifier("node_pos_z", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
@@ -406,13 +407,13 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     // extend with info required by staggered grid
     val root = StateManager.root_.asInstanceOf[l4.Root]
 
-    root.fields += l4.FieldDeclarationStatement(
+    root.fields += FieldDeclarationStatement(
       l4.LeveledIdentifier("stag_cv_width_x", l4.FinestLevelSpecification), "global", "DefNodeLineLayout_x", None, 1, 0)
     if (Knowledge.dimensionality > 1)
-      root.fields += l4.FieldDeclarationStatement(
+      root.fields += FieldDeclarationStatement(
         l4.LeveledIdentifier("stag_cv_width_y", l4.FinestLevelSpecification), "global", "DefNodeLineLayout_y", None, 1, 0)
     if (Knowledge.dimensionality > 2)
-      root.fields += l4.FieldDeclarationStatement(
+      root.fields += FieldDeclarationStatement(
         l4.LeveledIdentifier("stag_cv_width_z", l4.FinestLevelSpecification), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
