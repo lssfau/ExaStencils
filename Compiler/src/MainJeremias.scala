@@ -18,6 +18,7 @@ import exastencils.optimization._
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
+import exastencils.stencil.l4.L4_ProcessStencilDeclarations
 import exastencils.strategies._
 import exastencils.util._
 
@@ -138,7 +139,13 @@ object MainJeremias {
 
     // go to IR
     UnfoldLevelSpecifications.apply() // preparation step
-    ResolveL4.apply()
+
+    ResolveL4_Pre.apply()
+
+    L4_ProcessStencilDeclarations.apply()
+
+    ResolveL4_Post.apply()
+
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
     if (!Knowledge.domain_rect_generate) {

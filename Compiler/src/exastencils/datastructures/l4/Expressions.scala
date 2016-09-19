@@ -87,13 +87,17 @@ case class UnresolvedAccess(var name : String,
     if (dirAccess.isDefined) out << ':' << dirAccess
   }
 
-  def progress : IR_StringLiteral = IR_StringLiteral("ERROR - Unresolved Access")
+  def progress : IR_Expression = {
+    // IR_StringLiteral("ERROR - Unresolved Access")
+    Logger.warn(s"Progressing UnresolvedAccess $name")
+    resolveToBasicOrLeveledAccess.progress
+  }
 
   def resolveToBasicOrLeveledAccess = {
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
     if (offset.isDefined) Logger.warn("Discarding meaningless offset access on basic or leveled access")
     if (arrayIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
-    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on basic or leveled access")
+    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on basic or leveled access " + name)
     if (level.isDefined) LeveledAccess(name, level.get) else BasicAccess(name)
   }
   def resolveToFieldAccess = {
@@ -146,6 +150,10 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
 
   def resolveField : knowledge.Field = {
     knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
+  }
+
+  def resolveL4Field : L4_Field = {
+    L4_FieldCollection.getByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
   }
 
   def progress : IR_FieldAccess = {

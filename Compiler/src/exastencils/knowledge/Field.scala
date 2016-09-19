@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.logger._
 
 case class FieldLayout(
@@ -20,7 +21,7 @@ case class FieldLayout(
     var referenceOffset : IR_ExpressionIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
-) {
+) extends IR_KnowledgeObject {
   def apply(dim : Int) = layoutsPerDim(dim)
 
   def defIdxPadLeftBegin(dim : Int) = { 0 }
@@ -86,6 +87,9 @@ case class FieldLayoutPerDim(
 ) {
   var total : IR_Expression = "NOT SET"
 
+  // update total at initialization
+  updateTotal()
+
   def updateTotal() = {
     total = numPadLayersLeft + numGhostLayersLeft + numDupLayersLeft + numInnerLayers + numDupLayersRight + numGhostLayersRight + numPadLayersRight
   }
@@ -113,7 +117,7 @@ case class Field(
     var level : Int, // the (geometric) level the field lives on
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var boundaryConditions : Option[IR_Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
-) {
+) extends IR_KnowledgeObject {
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype
   def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype
@@ -177,7 +181,7 @@ case class ExternalField(
     var targetField : Field, // the (internal) field to be copied to/ from
     var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
     var level : Int // the (geometric) level the field lives on
-) {
+) extends IR_KnowledgeObject {
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype
   def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype

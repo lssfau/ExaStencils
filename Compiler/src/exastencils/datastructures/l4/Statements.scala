@@ -22,28 +22,6 @@ trait HasIdentifier {
 
 trait ExternalDeclarationStatement extends SpecialStatement
 
-case class StencilEntry(var offset : L4_ExpressionIndex, var coeff : L4_Expression) extends SpecialStatement {
-  override def prettyprint(out : PpStream) = { out << offset << " => " << coeff }
-
-  override def progress : knowledge.StencilEntry = {
-    var off = offset.progress
-    while (off.length < knowledge.Knowledge.dimensionality + 1) off.indices :+= IR_IntegerConstant(0)
-    knowledge.StencilEntry(off, coeff.progress)
-  }
-}
-
-case class StencilDeclarationStatement(override var identifier : Identifier, var entries : List[StencilEntry]) extends SpecialStatement with HasIdentifier {
-  override def prettyprint(out : PpStream) = {
-    out << "Stencil " << identifier.name << '@' << identifier.asInstanceOf[LeveledIdentifier].level << " {\n"
-    out <<< (entries, "\n") << '\n'
-    out << "}\n"
-  }
-
-  override def progress : knowledge.Stencil = {
-    knowledge.Stencil(identifier.name, identifier.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level, entries.map(e => e.progress).to[ListBuffer])
-  }
-}
-
 case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatement], var variables : List[VariableDeclarationStatement]) extends SpecialStatement {
   def this(entries : List[L4_Statement]) = this(entries.filter(_ match {
     case x : ValueDeclarationStatement => true

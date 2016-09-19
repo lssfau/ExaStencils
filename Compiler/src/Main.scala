@@ -1,15 +1,18 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
-import exastencils.base.l4.L4_Progressable
+import exastencils.base.l4._
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
+import exastencils.domain.l4.L4_HACK_ProcessDomainDeclarations
 import exastencils.domain.{ l4 => _, _ }
+import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid._
+import exastencils.interfacing.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
@@ -23,6 +26,7 @@ import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
+import exastencils.stencil.l4._
 import exastencils.strategies._
 import exastencils.util._
 
@@ -166,11 +170,40 @@ object Main {
     // go to IR
     ResolveFunctionTemplates.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
-    ResolveL4.apply()
+
+    ResolveL4_Pre.apply()
+
+    L4_HACK_ProcessDomainDeclarations.apply()
+    L4_ProcessStencilDeclarations.apply()
+    L4_ProcessFieldLayoutDeclarations.apply()
+    L4_ProcessFieldDeclarations.apply()
+    L4_ProcessExternalFieldDeclarations.apply()
+
+    if (Knowledge.ir_genSepLayoutsPerField)
+      L4_DuplicateFieldLayoutsForFields.apply()
+
+    ResolveL4_Post.apply()
+
+    /// BEGIN HACK: progress expression in knowledge
+    for (obj <- L4_StencilCollection.objects)
+      for (entry <- obj.entries)
+        ResolveL4_Post.apply(Some(entry))
+    for (obj <- L4_FieldCollection.objects)
+      if (obj.boundary.isDefined)
+        ResolveL4_Post.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+    /// END HACK: progress expression in knowledge
+
     ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
+
+    L4_FieldLayoutCollection.progress
+    if (Knowledge.data_alignFieldPointers)
+      IR_AddPaddingToFieldLayouts
+    L4_FieldCollection.progress
+    L4_ExternalFieldCollection.progress
+    L4_StencilCollection.progress
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 

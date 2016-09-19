@@ -23,6 +23,7 @@ import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
+import exastencils.stencil.l4.L4_ProcessStencilDeclarations
 import exastencils.strategies._
 import exastencils.util._
 
@@ -166,7 +167,13 @@ object MainChristian {
     // go to IR
     ResolveFunctionTemplates.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
-    ResolveL4.apply()
+
+    ResolveL4_Pre.apply()
+
+    L4_ProcessStencilDeclarations.apply()
+
+    ResolveL4_Post.apply()
+
     ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)

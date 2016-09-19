@@ -9,6 +9,7 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.logger._
 import exastencils.stencil.ir._
 import exastencils.util._
@@ -18,7 +19,7 @@ case class StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Ex
   def datatype : IR_Datatype = coefficient.datatype
 }
 
-case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) {
+case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) extends IR_KnowledgeObject {
   def datatype = {
     var ret = entries(0).datatype
     entries.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))

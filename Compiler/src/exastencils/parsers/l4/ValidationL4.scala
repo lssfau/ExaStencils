@@ -7,6 +7,7 @@ import exastencils.baseExt.l4._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import exastencils.interfacing.l4.L4_ExternalFieldDecl
 import exastencils.logger._
 
 object ValidationL4 {
@@ -34,10 +35,10 @@ object ValidationL4 {
       x.name = "user_" + x.name; x
     case x : UnresolvedAccess if (x.name.startsWith("_"))                                                    =>
       x.name = "user_" + x.name; x
-    case x : ExternalFieldDeclarationStatement if (protectedkeywords.contains(x.extIdentifier))              =>
-      x.extIdentifier = "user_" + x.extIdentifier; x
-    case x : ExternalFieldDeclarationStatement if (x.extIdentifier.startsWith("_"))                          =>
-      x.extIdentifier = "user_" + x.extIdentifier; x
+    case x : L4_ExternalFieldDecl if (protectedkeywords.contains(x.identifier))                              =>
+      x.identifier = "user_" + x.identifier; x
+    case x : L4_ExternalFieldDecl if (x.identifier.startsWith("_"))                                          =>
+      x.identifier = "user_" + x.identifier; x
   })
 
   var functioncalls = ListBuffer[String]()

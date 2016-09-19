@@ -31,7 +31,9 @@ object Knowledge {
   // [0~4§minLevel+1]  // nonSISC [0~12] // @constant // the coarsest level
   var maxLevel : Int = 6
   // [4~12§maxLevel+1] // @constant // the finest level
-  def numLevels : Int = maxLevel - minLevel + 1 // the number of levels -> this assumes that the cycle descents to the coarsest level
+  def numLevels : Int = maxLevel - minLevel + 1
+  // the number of levels -> this assumes that the cycle descents to the coarsest level
+  def levels = minLevel to maxLevel
 
   // --- Domain Decomposition ---
 
