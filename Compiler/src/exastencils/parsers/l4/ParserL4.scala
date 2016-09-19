@@ -2,6 +2,7 @@ package exastencils.parsers.l4
 
 import scala.collection.immutable.PagedSeq
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Stack
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input.PagedSeqReader
 
@@ -23,12 +24,17 @@ class ParserL4 extends ExaParser with PackratParsers {
     parseTokens(new lexical.Scanner(s))
   }
 
+  private val prevDirs = new Stack[java.io.File]().push(null)
   def parseFile(filename : String) : Node = {
-    val lines = io.Source.fromFile(filename).getLines
+    val file = new java.io.File(prevDirs.top, filename)
+    val lines = io.Source.fromFile(file).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
 
-    parseTokens(scanner)
+    prevDirs.push(file.getAbsoluteFile().getParentFile())
+    val ret = parseTokens(scanner)
+    prevDirs.pop()
+    return ret
   }
 
   protected def parseTokens(tokens : lexical.Scanner) : Node = {
@@ -36,7 +42,7 @@ class ParserL4 extends ExaParser with PackratParsers {
       case Success(e, _)        => e
       case Error(msg, _)        => throw new Exception("parse error: " + msg)
       case Failure(msg, parser) => {
-        var sb = new StringBuilder
+        val sb = new StringBuilder
         sb.append(s"Parse failure at position ${ parser.pos }: $msg\n")
         sb.append(parser.pos.longString)
         sb.append("\n")
@@ -47,8 +53,10 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   //###########################################################
 
-  lazy val program = ((domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
+  lazy val program = ((import_ ||| domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
     ^^ { case d => Root()(d) })
+
+  lazy val import_ = "import" ~> stringLit ^^ { case path => parseFile(path).asInstanceOf[Root] }
 
   //###########################################################
 

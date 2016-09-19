@@ -19,14 +19,21 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
   var statements : ListBuffer[L4_Statement] = new ListBuffer()
   var otherNodes : ListBuffer[L4_Node] = new ListBuffer()
 
-  nodes.foreach(n => n match {
+  nodes.foreach {
     case p : StencilFieldDeclarationStatement => stencilFields.+=(p)
     case p : GlobalDeclarationStatement       => globals.+=(p)
     case p : FunctionTemplateStatement        => functionTemplates.+=(p)
     case p : FunctionStatement                => functions.+=(p)
     case p : L4_Statement                     => statements.+=(p)
+    case r : Root                             =>
+      stencilFields.++=(r.stencilFields)
+      globals.++=(r.globals)
+      functionTemplates.++=(r.functionTemplates)
+      functions.++=(r.functions)
+      statements.++=(r.statements)
+      otherNodes.++=(r.otherNodes)
     case p : L4_Node                          => otherNodes.+=(p)
-  })
+  }
 
   override def prettyprint(out : PpStream) : Unit = {
     // print L4_DomainCollection, L4_FieldLayoutCollection, L4_FieldCollection, L4_StencilCollection
