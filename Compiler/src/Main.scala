@@ -185,6 +185,12 @@ object Main {
 
     ResolveL4_Post.apply()
 
+    /// BEGIN HACK: progress expression in knowledge
+    for (obj <- L4_StencilCollection.objects)
+      for (entry <- obj.entries)
+        ResolveL4_Post.apply(Some(entry))
+    /// END HACK: progress expression in knowledge
+
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
