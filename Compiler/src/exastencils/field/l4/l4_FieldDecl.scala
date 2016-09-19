@@ -32,8 +32,10 @@ case class L4_FieldDecl(
     def index = runningIndex
     runningIndex += 1
 
+    val resolvedFieldLayout = L4_FieldLayoutCollection.getByIdentifier(fieldLayout, level).get
+
     // compile final layout
-    L4_Field(identifier.name, level, index, domain, fieldLayout, numSlots, boundary)
+    L4_Field(identifier.name, level, index, domain, resolvedFieldLayout, numSlots, boundary)
   }
 
   override def addToKnowledge() = {

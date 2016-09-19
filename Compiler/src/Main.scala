@@ -12,6 +12,7 @@ import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid._
+import exastencils.interfacing.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
@@ -177,6 +178,7 @@ object Main {
     L4_ProcessStencilDeclarations.apply()
     L4_ProcessFieldLayoutDeclarations.apply()
     L4_ProcessFieldDeclarations.apply()
+    L4_ProcessExternalFieldDeclarations.apply()
 
     if (Knowledge.ir_genSepLayoutsPerField)
       L4_DuplicateFieldLayoutsForFields.apply()
@@ -191,6 +193,7 @@ object Main {
     if (Knowledge.data_alignFieldPointers)
       IR_AddPaddingToFieldLayouts
     L4_FieldCollection.progress
+    L4_ExternalFieldCollection.progress
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 

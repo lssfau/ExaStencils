@@ -152,6 +152,10 @@ case class FieldAccess(var name : String, var level : AccessLevelSpecification, 
     knowledge.FieldCollection.getFieldByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
   }
 
+  def resolveL4Field : L4_Field = {
+    L4_FieldCollection.getByIdentifier(name, level.asInstanceOf[SingleLevelSpecification].level).get
+  }
+
   def progress : IR_FieldAccess = {
     // TODO: extract common index stuff from here and VirtualFieldAccess, StencilFieldAccess, etc
     var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info

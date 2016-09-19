@@ -4,6 +4,7 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_HasIdentifierAndLevel
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 object L4_FieldLayout {
@@ -99,16 +100,16 @@ case class L4_FieldLayout(
     else
       discretization
 
-    FieldLayout(
-      identifier,
-      level,
-      datatype.progress,
-      finalDiscretization,
-      layouts,
-      numDimsGrid,
-      numDimsData,
-      refOffset,
-      communicatesDuplicated,
-      communicatesGhosts)
+    progressed = Some(FieldLayout(identifier, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, refOffset,
+      communicatesDuplicated, communicatesGhosts))
+
+    progressed.get
+  }
+
+  var progressed : Option[FieldLayout] = None
+  override def getProgressedObject = {
+    if (progressed.isEmpty)
+      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ identifier }")
+    progressed.get
   }
 }

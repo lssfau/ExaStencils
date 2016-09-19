@@ -10,6 +10,7 @@ import exastencils.prettyprinting.PpStream
 trait L4_KnowledgeObject {
   def prettyprintDecl(out : PpStream) : Unit
   def progress : IR_KnowledgeObject
+  def getProgressedObject : IR_KnowledgeObject
 }
 
 trait L4_HasIdentifier extends L4_KnowledgeObject {

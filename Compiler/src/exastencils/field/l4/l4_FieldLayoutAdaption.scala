@@ -11,10 +11,9 @@ object L4_DuplicateFieldLayoutsForFields {
     val newFieldLayouts = ListBuffer[L4_FieldLayout]()
 
     for (field <- L4_FieldCollection.objects) {
-      // TODO: check if Duplicate works for knowledge objects
-      val fieldLayout = Duplicate(L4_FieldLayoutCollection.getByIdentifier(field.fieldLayout, field.level).get)
+      val fieldLayout = Duplicate(field.fieldLayout)
       fieldLayout.identifier += "_" + field.identifier
-      field.fieldLayout += "_" + field.identifier
+      field.fieldLayout = fieldLayout
       newFieldLayouts += fieldLayout
     }
 

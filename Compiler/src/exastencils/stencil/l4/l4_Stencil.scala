@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.knowledge._
 import exastencils.knowledge.l4._
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 /// L4_StencilEntry
@@ -27,5 +28,15 @@ case class L4_Stencil(var identifier : String, // will be used to find the stenc
     out << "\n}\n"
   }
 
-  def progress = Stencil(identifier, level, entries.map(_.progress))
+  def progress = {
+    progressed = Some(Stencil(identifier, level, entries.map(_.progress)))
+    progressed.get
+  }
+
+  var progressed : Option[Stencil] = None
+  override def getProgressedObject = {
+    if (progressed.isEmpty)
+      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ identifier }")
+    progressed.get
+  }
 }
