@@ -8,6 +8,8 @@ import exastencils.datastructures.l4._
 import exastencils.knowledge.Knowledge
 import exastencils.prettyprinting._
 
+/// L4_FieldLayoutOption
+
 case class L4_FieldLayoutOption(
     var name : String,
     var value : L4_ConstIndex,
@@ -18,6 +20,13 @@ case class L4_FieldLayoutOption(
     if (hasCommunication)
       out << " with communication"
   }
+}
+
+/// L4_FieldLayoutDecl
+
+object L4_FieldLayoutDecl {
+  def apply(identifier : Identifier, datatype : L4_Datatype, discretization : String, options : List[L4_FieldLayoutOption]) =
+    new L4_FieldLayoutDecl(identifier, datatype, discretization, options.to[ListBuffer])
 }
 
 case class L4_FieldLayoutDecl(
@@ -49,14 +58,53 @@ case class L4_FieldLayoutDecl(
   }
 
   def composeLayout(level : Int) : L4_FieldLayout = {
-    val innerPoints : L4_ConstIndex = ???
+    val numDimsGrid = Knowledge.dimensionality // TODO: adapt for edge data structures
 
     val numGhost = evalFieldLayoutValue("ghostLayers")
     val numDup = evalFieldLayoutValue("duplicateLayers")
 
+    // determine number of inner points
+    val providedInnerPoints = options.find(_.name == "innerPoints")
+    val innerPoints : L4_ConstIndex =
+      if (providedInnerPoints.isDefined) {
+        // user specified values are available -> use those
+        providedInnerPoints.get.value
+      } else {
+        // attempt automatic deduction - TODO: adapt for edge data structures
+        discretization match {
+          case "node"      => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)).toArray)
+          case "cell"      => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
+          case "face_x"    => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+            if (0 == dim)
+              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
+            else
+              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
+          case "face_y"    => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+            if (1 == dim)
+              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
+            else
+              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
+          case "face_z"    => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+            if (2 == dim)
+              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
+            else
+              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
+          case "edge_node" => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+            if (0 == dim)
+              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
+            else
+              0).toArray)
+          case "edge_cell" => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+            if (0 == dim)
+              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)
+            else
+              0).toArray)
+        }
+      }
+
     // compile final layout
     L4_FieldLayout(
-      identifier.name, level,
+      identifier.name, level, numDimsGrid,
       datatype, discretization,
       numGhost,
       evalFieldLayoutBoolean("ghostLayers"),
@@ -83,6 +131,6 @@ object L4_ProcessFieldLayoutDeclarations extends DefaultStrategy("Integrating L4
   this += Transformation("Process new field layouts", {
     case fieldLayoutDecl : L4_FieldLayoutDecl =>
       fieldLayoutDecl.addToKnowledge()
-      None
+      None // consume declaration statement
   })
 }

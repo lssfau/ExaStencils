@@ -52,6 +52,7 @@ object L4_FieldLayout {
 case class L4_FieldLayout(
     var identifier : String, // will be used to find the layout
     var level : Int, // the level the field lives on
+    var numDimsGrid : Int, // the number of dimensions of the grid
     var datatype : L4_Datatype,
     var discretization : String,
     var ghostLayers : L4_ConstIndex,
@@ -74,8 +75,7 @@ case class L4_FieldLayout(
   override def progress : FieldLayout = progress("GENERIC") //FIXME
 
   def progress(targetFieldName : String) : FieldLayout = {
-    // determine dimensionalities
-    val numDimsGrid = Knowledge.dimensionality // TODO: adapt for edge data structures
+    // determine full data dimensionality
     val numDimsData = numDimsGrid + datatype.dimensionality
 
     var layouts = Array[FieldLayoutPerDim]()

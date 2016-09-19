@@ -7,6 +7,7 @@ import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
+import exastencils.domain.l4.L4_HACK_ProcessDomainDeclarations
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.l4._
 import exastencils.globals._
@@ -170,14 +171,14 @@ object Main {
     UnfoldLevelSpecifications.apply() // preparation step
 
     ResolveL4_Pre.apply()
+    ResolveBoundaryHandlingFunctions.apply()
 
+    L4_HACK_ProcessDomainDeclarations.apply()
     L4_ProcessStencilDeclarations.apply()
     L4_ProcessFieldLayoutDeclarations.apply()
     L4_ProcessFieldDeclarations.apply()
 
     ResolveL4_Post.apply()
-
-    ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")

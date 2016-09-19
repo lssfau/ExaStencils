@@ -8,6 +8,7 @@ import exastencils.core.collectors._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import exastencils.field.l4._
 import exastencils.knowledge
 import exastencils.logger._
 import exastencils.stencil.l4.L4_StencilCollection
@@ -187,7 +188,7 @@ object ResolveL4_Post extends DefaultStrategy("Resolving L4 specifics") {
   // resolve accesses
   this += new Transformation("Resolve AccessSpecifications", {
     case access : UnresolvedAccess =>
-      if (StateManager.root_.asInstanceOf[Root].fields.exists(f => access.name == f.identifier.name))
+      if (L4_FieldCollection.exists(access.name))
         access.resolveToFieldAccess
       else if (L4_StencilCollection.exists(access.name))
         access.resolveToStencilAccess
@@ -292,16 +293,15 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
   }
 
   this += new Transformation("Find applicable fields", {
-    case field : FieldDeclarationStatement => {
+    case field : L4_FieldDecl => {
       if (field.boundary.isDefined) {
         if (field.boundary.get.isInstanceOf[FunctionCallExpression]) {
           val fctCall = field.boundary.get.asInstanceOf[FunctionCallExpression]
-          val fctDecl = StateManager.root.asInstanceOf[Root].functions.find(
-            _ match {
-              case f : FunctionStatement if f.identifier.isInstanceOf[LeveledIdentifier]
-                && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
-              case _                                                                     => false
-            }).get.asInstanceOf[FunctionStatement]
+          val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
+            case f : FunctionStatement if f.identifier.isInstanceOf[LeveledIdentifier]
+              && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
+            case _                                                                     => false
+          }.get
           if (fctDecl.returntype eq L4_UnitDatatype) {
             bcs(fromIdentifier(field.identifier)) = fctCall
           }
@@ -327,7 +327,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
   })
 
   this += new Transformation("Remove obsolete field bc's", {
-    case field : FieldDeclarationStatement => {
+    case field : L4_FieldDecl => {
       val fctCall = bcs.find(_._1 == fromIdentifier(field.identifier))
       if (fctCall.isDefined)
         field.boundary = None

@@ -9,7 +9,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
-import exastencils.domain.l4.L4_DomainDeclaration
+import exastencils.domain.l4.L4_DomainDecl
 import exastencils.field.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
@@ -241,25 +241,25 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val domain = (
-    locationize(("Domain" ~> "fromFile" ~> ("(" ~> stringLit <~ ")")) ^^ { case file => { L4_DomainDeclaration(file, null, null) } })
-      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => L4_DomainDeclaration(id, l, u) })
-      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 => L4_DomainDeclaration(id, List(l1, l2, l3), List(u1, u2, u3)) })
-      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 ~ l4 ~ u4 ~ l5 ~ u5 => L4_DomainDeclaration(id, List(l1, l2, l3, l4, l5), List(u1, u2, u3, u4, u5)) }))
+    locationize(("Domain" ~> "fromFile" ~> ("(" ~> stringLit <~ ")")) ^^ { case file => { L4_DomainDecl(file, null, null) } })
+      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => L4_DomainDecl(id, l, u) })
+      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 => L4_DomainDecl(id, List(l1, l2, l3), List(u1, u2, u3)) })
+      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 ~ l4 ~ u4 ~ l5 ~ u5 => L4_DomainDecl(id, List(l1, l2, l3, l4, l5), List(u1, u2, u3, u4, u5)) }))
 
   lazy val discretization = ("Node" ||| "node" ||| "Cell" ||| "cell"
     ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ { case d => d })
   lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (discretization <~ ">") ~ level.? ~ ("{" ~> layoutOptions <~ "}")
-    ^^ { case id ~ dt ~ disc ~ level ~ opts => var x = LayoutDeclarationStatement(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), dt, disc.toLowerCase); x.set(opts); x })
+    ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), dt, disc.toLowerCase, opts) })
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
       ||| layoutOption.*)
   lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").?
-    ^^ { case id ~ idx ~ comm => LayoutOption(id, idx, Some(comm.isDefined)) })
+    ^^ { case id ~ idx ~ comm => L4_FieldLayoutOption(id, idx, comm.isDefined) })
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ level.?
-    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => FieldDeclarationStatement(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), domain, layout, boundary, slots.getOrElse(1).toInt) })
+    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_FieldDecl(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), domain, layout, boundary, slots.getOrElse(1).toInt) })
   lazy val fieldBoundary = binaryexpression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[L4_ConstIndex] = (

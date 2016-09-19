@@ -7,6 +7,7 @@ import exastencils.core.collectors.L4LevelCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import exastencils.field.l4._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.stencil.l4.L4_StencilDecl
@@ -108,7 +109,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // unfold field layout declarations
     this.execute(new Transformation("Unfold leveled FieldLayout declarations", {
-      case fieldLayout : LayoutDeclarationStatement => fieldLayout.identifier match {
+      case fieldLayout : L4_FieldLayoutDecl => fieldLayout.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(fieldLayout, level)
         case BasicIdentifier(_)          => fieldLayout
       }
@@ -116,7 +117,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // unfold field declarations
     this.execute(new Transformation("Unfold leveled Field declarations", {
-      case field : FieldDeclarationStatement => field.identifier match {
+      case field : L4_FieldDecl => field.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(field, level)
         case BasicIdentifier(_)          => field
       }

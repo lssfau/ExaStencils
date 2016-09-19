@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.datastructures._
-import exastencils.domain.l4.L4_DomainDeclaration
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.multiGrid._
@@ -13,9 +12,6 @@ import exastencils.prettyprinting._
 
 case class Root()(nodes : List[Node]) extends Node with L4_Progressable with PrettyPrintable {
 
-  var domains : ListBuffer[L4_DomainDeclaration] = new ListBuffer()
-  var fieldLayouts : ListBuffer[LayoutDeclarationStatement] = new ListBuffer()
-  var fields : ListBuffer[FieldDeclarationStatement] = new ListBuffer()
   var stencilFields : ListBuffer[StencilFieldDeclarationStatement] = new ListBuffer()
   var externalFields : ListBuffer[ExternalFieldDeclarationStatement] = new ListBuffer()
   var globals : ListBuffer[GlobalDeclarationStatement] = new ListBuffer()
@@ -25,9 +21,6 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
   var otherNodes : ListBuffer[L4_Node] = new ListBuffer()
 
   nodes.foreach(n => n match {
-    case p : L4_DomainDeclaration              => domains.+=(p)
-    case p : LayoutDeclarationStatement        => fieldLayouts.+=(p)
-    case p : FieldDeclarationStatement         => fields.+=(p)
     case p : StencilFieldDeclarationStatement  => stencilFields.+=(p)
     case p : ExternalFieldDeclarationStatement => externalFields.+=(p)
     case p : GlobalDeclarationStatement        => globals.+=(p)
@@ -37,28 +30,9 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
     case p : L4_Node                           => otherNodes.+=(p)
   })
 
-  // set domain indices -> just number consecutively
-  var i = domains.size
-  for (d <- domains) {
-    d.index = i
-    i += 1
-  }
-  // set field indices -> just number consecutively
-  i = fields.size
-  for (f <- fields) {
-    f.index = i
-    i += 1
-  }
-
   override def prettyprint(out : PpStream) : Unit = {
-    // print L4_StencilCollection
+    // print L4_DomainCollection, L4_FieldLayoutCollection, L4_FieldCollection, L4_StencilCollection
 
-    if (!domains.isEmpty)
-      out <<< domains << '\n'
-    if (!fieldLayouts.isEmpty)
-      out <<< fieldLayouts << '\n'
-    if (!fields.isEmpty)
-      out <<< fields << '\n'
     if (!stencilFields.isEmpty)
       out <<< stencilFields << '\n'
     if (!externalFields.isEmpty)
@@ -75,28 +49,6 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
 
   override def progress : IR_Root = {
     var newRoot = IR_Root()
-
-    // Domains
-    DomainCollection.domains.clear
-    for (domain <- domains)
-      DomainCollection.domains += domain.progress
-
-    // FieldLayouts
-    FieldLayoutCollection.fieldLayouts.clear
-    if (!Knowledge.ir_genSepLayoutsPerField) {
-      for (fieldLayout <- fieldLayouts)
-        FieldLayoutCollection.fieldLayouts += fieldLayout.progress("")
-    }
-
-    // Fields => requires Domains and FieldLayouts
-    FieldCollection.fields.clear
-    for (field <- fields)
-      FieldCollection.fields += field.progress
-
-    // Stencils
-    //    StencilCollection.stencils.clear
-    //    for (stencil <- stencils)
-    //      StencilCollection.stencils += stencil.progress
 
     // StencilFields => requires Fields and Stencils
     StencilFieldCollection.stencilFields.clear

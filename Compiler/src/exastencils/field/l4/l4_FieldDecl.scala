@@ -6,7 +6,11 @@ import exastencils.datastructures.l4._
 import exastencils.knowledge.Knowledge
 import exastencils.prettyprinting.PpStream
 
-/// L4_FieldDeclaration
+/// L4_FieldDecl
+
+object L4_FieldDecl {
+  var runningIndex = 0
+}
 
 case class L4_FieldDecl(
     override var identifier : Identifier,
@@ -23,8 +27,10 @@ case class L4_FieldDecl(
   }
 
   def composeField(level : Int) : L4_Field = {
-    // get index - TODO: incremental index
-    def index = 0
+    import L4_FieldDecl.runningIndex
+
+    def index = runningIndex
+    runningIndex += 1
 
     // compile final layout
     L4_Field(identifier.name, level, index, domain, fieldLayout, numSlots, boundary)
@@ -48,6 +54,6 @@ object L4_ProcessFieldDeclarations extends DefaultStrategy("Integrating L4 field
   this += Transformation("Process new fields", {
     case fieldDecl : L4_FieldDecl =>
       fieldDecl.addToKnowledge()
-      None
+      None // consume declaration statement
   })
 }

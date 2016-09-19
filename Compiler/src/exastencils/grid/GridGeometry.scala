@@ -9,9 +9,9 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.l4.FieldDeclarationStatement
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.l4.{ L4_FieldLayoutOption, _ }
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge
 import exastencils.knowledge.{ l4 => _, _ }
@@ -128,32 +128,35 @@ trait GridGeometry_nonUniform extends GridGeometry {
   // injection of  missing l4 information for virtual fields and generation of setup code
   override def initL4 = {
     val root = StateManager.root_.asInstanceOf[l4.Root]
-    root.fieldLayouts += l4.LayoutDeclarationStatement(
+    root.otherNodes += L4_FieldLayoutDecl(
       l4.LeveledIdentifier("DefNodeLineLayout_x", l4.AllLevelsSpecification),
       L4_RealDatatype, "Edge_Node".toLowerCase(),
-      Some(L4_ConstIndex(2, 0, 0)), None,
-      Some(L4_ConstIndex(1, 0, 0)), None,
-      Some(L4_ConstIndex((1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_x - 1, 1, 1)))
-    root.fieldLayouts += l4.LayoutDeclarationStatement(
+      ListBuffer(
+        L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(2, 0, 0), false),
+        L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(1, 0, 0), false),
+        L4_FieldLayoutOption("innerPoints", L4_ConstIndex((1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_x - 1, 1, 1), false)))
+    root.otherNodes += L4_FieldLayoutDecl(
       l4.LeveledIdentifier("DefNodeLineLayout_y", l4.AllLevelsSpecification),
       L4_RealDatatype, "Edge_Node".toLowerCase(),
-      Some(L4_ConstIndex(0, 2, 0)), None,
-      Some(L4_ConstIndex(0, 1, 0)), None,
-      Some(L4_ConstIndex(1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_y - 1, 1)))
-    root.fieldLayouts += l4.LayoutDeclarationStatement(
+      ListBuffer(
+        L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 2, 0), false),
+        L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 1, 0), false),
+        L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_y - 1, 1), false)))
+    root.otherNodes += L4_FieldLayoutDecl(
       l4.LeveledIdentifier("DefNodeLineLayout_z", l4.AllLevelsSpecification),
       L4_RealDatatype, "Edge_Node".toLowerCase(),
-      Some(L4_ConstIndex(0, 0, 2)), None,
-      Some(L4_ConstIndex(0, 0, 1)), None,
-      Some(L4_ConstIndex(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1)))
+      ListBuffer(
+        L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 0, 2), false),
+        L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 0, 1), false),
+        L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1), false)))
 
-    root.fields += FieldDeclarationStatement(
+    root.otherNodes += L4_FieldDecl(
       l4.LeveledIdentifier("node_pos_x", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_x", None, 1, 0)
     if (Knowledge.dimensionality > 1)
-      root.fields += FieldDeclarationStatement(
+      root.otherNodes += L4_FieldDecl(
         l4.LeveledIdentifier("node_pos_y", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_y", None, 1, 0)
     if (Knowledge.dimensionality > 2)
-      root.fields += FieldDeclarationStatement(
+      root.otherNodes += L4_FieldDecl(
         l4.LeveledIdentifier("node_pos_z", l4.AllLevelsSpecification), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
@@ -407,13 +410,13 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     // extend with info required by staggered grid
     val root = StateManager.root_.asInstanceOf[l4.Root]
 
-    root.fields += FieldDeclarationStatement(
+    root.otherNodes += L4_FieldDecl(
       l4.LeveledIdentifier("stag_cv_width_x", l4.FinestLevelSpecification), "global", "DefNodeLineLayout_x", None, 1, 0)
     if (Knowledge.dimensionality > 1)
-      root.fields += FieldDeclarationStatement(
+      root.otherNodes += L4_FieldDecl(
         l4.LeveledIdentifier("stag_cv_width_y", l4.FinestLevelSpecification), "global", "DefNodeLineLayout_y", None, 1, 0)
     if (Knowledge.dimensionality > 2)
-      root.fields += FieldDeclarationStatement(
+      root.otherNodes += L4_FieldDecl(
         l4.LeveledIdentifier("stag_cv_width_z", l4.FinestLevelSpecification), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
