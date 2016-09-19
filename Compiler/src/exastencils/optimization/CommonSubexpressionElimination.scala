@@ -654,7 +654,7 @@ case class IR_LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var
   override def datatype = buffer.datatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  def linearize() : IR_ArrayAccess = {
+  def linearize : IR_ArrayAccess = {
     if (buffer.dimSizes.isEmpty)
       IR_ArrayAccess(buffer, IR_IntegerConstant(0), Knowledge.data_alignFieldPointers)
     else

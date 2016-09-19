@@ -256,11 +256,11 @@ object ResolveFunctionTemplates extends DefaultStrategy("Resolving function temp
     }
   })
 
-  //  this += new Transformation("Remove function templates", {
-  //    case root : Root =>
-  //      root.functionTemplates.clear; root
-  //    case functionTemplate : FunctionTemplateStatement => None
-  //  })
+  this += new Transformation("Remove function templates", {
+    case root : Root                                  =>
+      root.functionTemplates.clear; root
+    case functionTemplate : FunctionTemplateStatement => None
+  })
 }
 
 object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundaryHandlingFunctions") {
@@ -289,7 +289,33 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
 
   override def apply(node : Option[Node] = None) = {
     bcs.clear
+
+    // gather applicable fields
+    for (field <- L4_FieldCollection.objects) {
+      if (field.boundary.isDefined) {
+        if (field.boundary.get.isInstanceOf[FunctionCallExpression]) {
+          val fctCall = field.boundary.get.asInstanceOf[FunctionCallExpression]
+          val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
+            case f : FunctionStatement if f.identifier.isInstanceOf[LeveledIdentifier]
+              && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
+            case _                                                                     => false
+          }.get
+          if (fctDecl.returntype eq L4_UnitDatatype) {
+            bcs(CombinedIdentifier(field.identifier, field.level)) = fctCall
+          }
+        }
+      }
+    }
+
     super.apply(node)
+
+    // remove obsolete field bc's
+    for (field <- L4_FieldCollection.objects) {
+      val fctCall = bcs.find(_._1 == CombinedIdentifier(field.identifier, field.level))
+      if (fctCall.isDefined)
+        field.boundary = None
+      field
+    }
   }
 
   this += new Transformation("Find applicable fields", {
@@ -323,15 +349,6 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
         FunctionCallStatement(Duplicate(fctCall.get._2))
       else
         applyBC
-    }
-  })
-
-  this += new Transformation("Remove obsolete field bc's", {
-    case field : L4_FieldDecl => {
-      val fctCall = bcs.find(_._1 == fromIdentifier(field.identifier))
-      if (fctCall.isDefined)
-        field.boundary = None
-      field
     }
   })
 }

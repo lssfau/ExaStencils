@@ -1,7 +1,7 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
-import exastencils.base.l4.L4_Progressable
+import exastencils.base.l4._
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -184,13 +184,16 @@ object Main {
 
     ResolveL4_Post.apply()
 
-    ResolveBoundaryHandlingFunctions.apply()
-
     /// BEGIN HACK: progress expression in knowledge
     for (obj <- L4_StencilCollection.objects)
       for (entry <- obj.entries)
         ResolveL4_Post.apply(Some(entry))
+    for (obj <- L4_FieldCollection.objects)
+      if (obj.boundary.isDefined)
+        ResolveL4_Post.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
     /// END HACK: progress expression in knowledge
+
+    ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")

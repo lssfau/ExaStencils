@@ -97,7 +97,7 @@ case class UnresolvedAccess(var name : String,
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
     if (offset.isDefined) Logger.warn("Discarding meaningless offset access on basic or leveled access")
     if (arrayIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
-    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on basic or leveled access")
+    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on basic or leveled access " + name)
     if (level.isDefined) LeveledAccess(name, level.get) else BasicAccess(name)
   }
   def resolveToFieldAccess = {
