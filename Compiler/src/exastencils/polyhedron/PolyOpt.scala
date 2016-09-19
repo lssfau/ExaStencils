@@ -581,7 +581,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       validity = validity.gistDomain(domain)
     }
 
-    explConfig.getParentFile.mkdirs()
+    explConfig.getAbsoluteFile().getParentFile().mkdirs()
     val eConfOut = new java.io.PrintWriter(explConfig)
     eConfOut.println(domain)
     eConfOut.println(validity)
