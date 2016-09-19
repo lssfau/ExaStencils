@@ -172,7 +172,6 @@ object Main {
     UnfoldLevelSpecifications.apply() // preparation step
 
     ResolveL4_Pre.apply()
-    ResolveBoundaryHandlingFunctions.apply()
 
     L4_HACK_ProcessDomainDeclarations.apply()
     L4_ProcessStencilDeclarations.apply()
@@ -184,6 +183,8 @@ object Main {
       L4_DuplicateFieldLayoutsForFields.apply()
 
     ResolveL4_Post.apply()
+
+    ResolveBoundaryHandlingFunctions.apply()
 
     /// BEGIN HACK: progress expression in knowledge
     for (obj <- L4_StencilCollection.objects)
