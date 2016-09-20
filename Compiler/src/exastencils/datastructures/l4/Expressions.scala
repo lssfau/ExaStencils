@@ -176,20 +176,6 @@ case class LeveledIdentifier(var name : String, var level : LevelSpecification) 
   def fullName = name + "_" + level.prettyprint
 }
 
-case class VariableExpression(var access : Access, var datatype : L4_Datatype) extends L4_Expression {
-  def prettyprint(out : PpStream) = access.prettyprint(out)
-
-  def progress = IR_VariableAccess(access.name, datatype.progress)
-}
-
-case class UnaryExpression(var operator : String, var exp : L4_Expression) extends L4_Expression {
-  def prettyprint(out : PpStream) = { out << operator << '(' << exp << ')' }
-
-  def progress : IR_Expression = {
-    IR_UnaryOperators.createExpression(operator, exp.progress)
-  }
-}
-
 case class StencilConvolution(var stencilAccess : L4_StencilAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilAccess << " * " << fieldAccess }
 
