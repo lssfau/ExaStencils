@@ -3,27 +3,9 @@ package exastencils.knowledge.l4
 import scala.collection.mutable._
 import scala.reflect.runtime.universe._
 
-import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.logger._
-import exastencils.prettyprinting.PpStream
 
-trait L4_KnowledgeObject {
-  def prettyprintDecl(out : PpStream) : Unit
-  def progress : IR_KnowledgeObject
-  def getProgressedObject : IR_KnowledgeObject
-}
-
-trait L4_HasIdentifier extends L4_KnowledgeObject {
-  def identifier : String
-}
-
-trait L4_HasLevel extends L4_HasIdentifier {
-  def level : Int
-}
-
-trait L4_HasIdentifierAndLevel extends L4_HasIdentifier with L4_HasLevel
-
-class L4_KnowledgeCollection[T <: L4_HasIdentifier : TypeTag] {
+class L4_KnowledgeCollection[T <: L4_KnowledgeObjectWithIdent : TypeTag] {
   var objects : ListBuffer[T] = ListBuffer()
 
   def exists(identifier : String) = objects.exists(f => f.identifier == identifier)
@@ -37,7 +19,7 @@ class L4_KnowledgeCollection[T <: L4_HasIdentifier : TypeTag] {
   def add(newObj : T) = objects += newObj
 }
 
-class L4_LeveledKnowledgeCollection[T <: L4_HasIdentifierAndLevel : TypeTag] {
+class L4_LeveledKnowledgeCollection[T <: L4_KnowledgeObjectWithIdentAndLevel : TypeTag] {
   var objects : ListBuffer[T] = ListBuffer()
 
   def exists(identifier : String) = { objects.exists(f => f.identifier == identifier) }

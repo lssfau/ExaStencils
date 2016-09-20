@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4.L4_Index
 import exastencils.knowledge.ir.IR_KnowledgeObject
-import exastencils.knowledge.l4.L4_HasIdentifierAndLevel
+import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.prettyprinting._
 
 case class L4_StencilTemplate(
@@ -12,7 +12,7 @@ case class L4_StencilTemplate(
     var level : Int, // the level the stencil lives on
     var localization : String, // localization of the stencil data
     var domain : String, // domain the stencil lives on
-    var offsets : ListBuffer[L4_Index]) extends L4_HasIdentifierAndLevel {
+    var offsets : ListBuffer[L4_Index]) extends L4_KnowledgeObjectWithIdentAndLevel {
 
   def prettyprintDecl(out : PpStream) = {
     out << "Stencil " << identifier << "@(" << level << ") {\n"

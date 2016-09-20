@@ -2,7 +2,7 @@ package exastencils.field.l4
 
 import exastencils.base.l4._
 import exastencils.knowledge._
-import exastencils.knowledge.l4.L4_HasIdentifierAndLevel
+import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -13,7 +13,7 @@ case class L4_Field(
     var domain : String, // FIXME: l4.Domain
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
-    var boundary : Option[L4_Expression]) extends L4_HasIdentifierAndLevel {
+    var boundary : Option[L4_Expression]) extends L4_KnowledgeObjectWithIdentAndLevel {
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << identifier << "< "
