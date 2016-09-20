@@ -129,21 +129,21 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ##### Functions
   // ######################################
 
-  lazy val function = locationize("noinline".? ~ (("Func" ||| "Function") ~> identifierWithOptionalLevel) ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
-    ^^ { case inline ~ id ~ args ~ t ~ stmts => FunctionStatement(id, t, args.getOrElse(List[FunctionArgument]()), stmts, !inline.isDefined) })
+  lazy val function = locationize("noinline".? ~ (("Func" ||| "Function") ~> identifierWithOptionalLevel) ~ ("(" ~> functionArgumentList.? <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
+    ^^ { case inline ~ id ~ args ~ t ~ stmts => L4_Function(id, t, args.getOrElse(List[L4_FunctionArgument]()), stmts, inline.isEmpty) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg }
-  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => FunctionArgument(new BasicIdentifier(id), t) })
+  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => L4_FunctionArgument(id, t) })
 
-  lazy val functionCallArgumentList = /*locationize*/ (((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex })
-  lazy val functionCall = locationize((flatAccess ||| leveledAccess) ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => FunctionCallExpression(id, args.getOrElse(List[L4_Expression]())) })
+  lazy val functionCallArgumentList = /*locationize*/ ((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex }
+  lazy val functionCall = locationize((flatAccess ||| leveledAccess) ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => L4_FunctionCall(id, args.getOrElse(List()).to[ListBuffer]) })
 
-  lazy val functionTemplateArgList = /*locationize*/ ((ident <~ ("," | newline)).* ~ ident ^^ { case args ~ arg => args :+ arg })
-  lazy val functionInstArgList = /*locationize*/ ((functionInstArgument <~ ("," | newline)).* ~ functionInstArgument ^^ { case args ~ arg => args :+ arg })
-  lazy val functionInstArgument = (binaryexpression ||| booleanexpression)
-  lazy val functionTemplate = locationize((("FuncTemplate" ||| "FunctionTemplate") ~> ident) ~ ("<" ~> functionTemplateArgList.? <~ ">") ~ ("(" ~> (functionArgumentList.?) <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
-    ^^ { case id ~ templateArgs ~ functionArgs ~ retType ~ stmts => FunctionTemplateStatement(id, templateArgs.getOrElse(List()), functionArgs.getOrElse(List()), retType, stmts) })
+  lazy val functionTemplateArgList = /*locationize*/ (ident <~ ("," | newline)).* ~ ident ^^ { case args ~ arg => args :+ arg }
+  lazy val functionInstArgList = /*locationize*/ (functionInstArgument <~ ("," | newline)).* ~ functionInstArgument ^^ { case args ~ arg => args :+ arg }
+  lazy val functionInstArgument = binaryexpression ||| booleanexpression
+  lazy val functionTemplate = locationize((("FuncTemplate" ||| "FunctionTemplate") ~> ident) ~ ("<" ~> functionTemplateArgList.? <~ ">") ~ ("(" ~> functionArgumentList.? <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
+    ^^ { case id ~ templateArgs ~ functionArgs ~ retType ~ stmts => L4_FunctionTemplate(id, templateArgs.getOrElse(List()), functionArgs.getOrElse(List()), retType, stmts) })
   lazy val functionInstantiation = locationize(((("Inst" ||| "Instantiate") ~> ident) ~ ("<" ~> functionInstArgList.? <~ ">") ~ ("as" ~> identifierWithOptionalLevel))
-    ^^ { case template ~ args ~ target => FunctionInstantiationStatement(template, args.getOrElse(List()), target) })
+    ^^ { case template ~ args ~ target => L4_FunctionInstantiation(template, args.getOrElse(List()), target) })
 
   // ######################################
   // ##### Statements
@@ -159,7 +159,7 @@ class ParserL4 extends ExaParser with PackratParsers {
       ||| loopOverFragments
       ||| assignment
       ||| operatorassignment
-      ||| locationize(functionCall ^^ { case f => FunctionCallStatement(f) })
+      ||| locationize(functionCall ^^ { L4_ExpressionStatement(_) })
       ||| conditional
       ||| applyBCsStatement
       ||| communicateStatement
@@ -225,7 +225,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val postcomm = locationize("postcomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
     ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
 
-  lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => ReturnStatement(exp) })
+  lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => L4_Return(exp) })
 
   lazy val leveledScope = locationize((level <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => LeveledScopeStatement(l, s) })
 

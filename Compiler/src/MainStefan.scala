@@ -1,8 +1,8 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
-import exastencils.base.l4.L4_ExpressionStatement
-import exastencils.base.l4.L4_Progressable
+import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_ResolveFunctionInstantiations
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -13,8 +13,7 @@ import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid._
-import exastencils.interfacing.l4.L4_ExternalFieldCollection
-import exastencils.interfacing.l4.L4_ProcessExternalFieldDeclarations
+import exastencils.interfacing.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
@@ -28,8 +27,7 @@ import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
-import exastencils.stencil.l4.L4_ProcessStencilDeclarations
-import exastencils.stencil.l4.L4_StencilCollection
+import exastencils.stencil.l4._
 import exastencils.strategies._
 import exastencils.util._
 
@@ -175,7 +173,7 @@ object MainStefan {
     GridGeometry.getGeometry.initL4()
 
     // go to IR
-    ResolveFunctionTemplates.apply() // preparation step
+    L4_ResolveFunctionInstantiations.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
 
     ResolveL4_Pre.apply()

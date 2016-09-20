@@ -3,6 +3,7 @@ package exastencils.parsers.l4
 import scala.collection.immutable.HashSet
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -45,7 +46,7 @@ object ValidationL4 {
   var functions = ListBuffer[String]()
 
   s += Transformation("find Function calls", {
-    case f : FunctionCallExpression => {
+    case f : L4_FunctionCall => {
       f.identifier match {
         case a : LeveledAccess    => functioncalls += (f.identifier.name + a.level.asInstanceOf[SingleLevelSpecification].level)
         case a : UnresolvedAccess => functioncalls += (f.identifier.name + a.level.getOrElse("-1"))
@@ -57,11 +58,11 @@ object ValidationL4 {
   })
 
   s += Transformation("check destroyGlobals", {
-    case f : FunctionStatement if (f.identifier.name == "Application") => {
+    case f : L4_Function if (f.identifier.name == "Application") => {
       var last = f.statements.last
       last match {
-        case c : FunctionCallStatement => if (c.call.identifier.name != "destroyGlobals") Logger.error("destroyGlobals has to be last statement in Application()")
-        case _                         =>
+        case c : L4_FunctionCall => if (c.identifier.name != "destroyGlobals") Logger.error("destroyGlobals has to be last statement in Application()")
+        case _                   =>
       }
       f
     }

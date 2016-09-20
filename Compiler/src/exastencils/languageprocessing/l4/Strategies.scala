@@ -129,19 +129,19 @@ object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
 
     this.execute(new Transformation("special functions and constants", {
       // get knowledge/settings/platform
-      case FunctionCallExpression(access : UnresolvedAccess, List(L4_StringConstant(ident))) if "getKnowledge" == access.name =>
+      case L4_FunctionCall(access : UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getKnowledge" == access.name =>
         resolveParameterToConstant(knowledge.Knowledge, ident)
-      case FunctionCallExpression(access : UnresolvedAccess, List(L4_StringConstant(ident))) if "getSetting" == access.name   =>
+      case L4_FunctionCall(access : UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getSetting" == access.name   =>
         resolveParameterToConstant(Settings, ident)
-      case FunctionCallExpression(access : UnresolvedAccess, List(L4_StringConstant(ident))) if "getPlatform" == access.name  =>
+      case L4_FunctionCall(access : UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getPlatform" == access.name  =>
         resolveParameterToConstant(knowledge.Platform, ident)
 
       // levelIndex
-      case FunctionCallExpression(UnresolvedAccess("levels", _, Some(SingleLevelSpecification(level)), _, _, _), List())      =>
+      case L4_FunctionCall(UnresolvedAccess("levels", _, Some(SingleLevelSpecification(level)), _, _, _), ListBuffer())      =>
         L4_IntegerConstant(level)
-      case FunctionCallExpression(UnresolvedAccess("levelIndex", _, Some(SingleLevelSpecification(level)), _, _, _), List())  =>
+      case L4_FunctionCall(UnresolvedAccess("levelIndex", _, Some(SingleLevelSpecification(level)), _, _, _), ListBuffer())  =>
         L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case FunctionCallExpression(UnresolvedAccess("levelString", _, Some(SingleLevelSpecification(level)), _, _, _), List()) =>
+      case L4_FunctionCall(UnresolvedAccess("levelString", _, Some(SingleLevelSpecification(level)), _, _, _), ListBuffer()) =>
         L4_StringConstant(level.toString)
 
       // constants
@@ -150,7 +150,7 @@ object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
     }))
 
     this.execute(new Transformation("Resolving string constants to literals", {
-      case f : FunctionCallExpression =>
+      case f : L4_FunctionCall =>
         f.identifier.name match {
           case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
           case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
@@ -242,27 +242,6 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
   })
 }
 
-object ResolveFunctionTemplates extends DefaultStrategy("Resolving function templates and instantiations") {
-  this += new Transformation("Find and resolve", {
-    case functionInst : FunctionInstantiationStatement => {
-      val template = StateManager.root.asInstanceOf[Root].functionTemplates.find(_.name == functionInst.templateName)
-      if (template.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
-      var instantiated = Duplicate(FunctionStatement(functionInst.targetFct, template.get.returntype, template.get.functionArgs, template.get.statements))
-
-      ReplaceExpressions.replacements = Map() ++ (template.get.templateArgs zip functionInst.args).toMap[String, L4_Expression]
-      ReplaceExpressions.applyStandalone(instantiated)
-      StateManager.root.asInstanceOf[Root].functions += instantiated
-      None
-    }
-  })
-
-  this += new Transformation("Remove function templates", {
-    case root : Root                                  =>
-      root.functionTemplates.clear; root
-    case functionTemplate : FunctionTemplateStatement => None
-  })
-}
-
 object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundaryHandlingFunctions") {
 
   case class CombinedIdentifier(var name : String, var level : Int) {}
@@ -285,7 +264,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
     CombinedIdentifier(fieldName, level)
   }
 
-  var bcs : HashMap[CombinedIdentifier, FunctionCallExpression] = HashMap()
+  var bcs : HashMap[CombinedIdentifier, L4_FunctionCall] = HashMap()
 
   override def apply(node : Option[Node] = None) = {
     bcs.clear
@@ -293,10 +272,10 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
     // gather applicable fields
     for (field <- L4_FieldCollection.objects) {
       if (field.boundary.isDefined) {
-        if (field.boundary.get.isInstanceOf[FunctionCallExpression]) {
-          val fctCall = field.boundary.get.asInstanceOf[FunctionCallExpression]
+        if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
+          val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
           val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
-            case f : FunctionStatement if f.identifier.isInstanceOf[LeveledIdentifier]
+            case f : L4_Function if f.identifier.isInstanceOf[LeveledIdentifier]
               && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
             case _                                                                     => false
           }.get
@@ -321,10 +300,10 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
   this += new Transformation("Find applicable fields", {
     case field : L4_FieldDecl => {
       if (field.boundary.isDefined) {
-        if (field.boundary.get.isInstanceOf[FunctionCallExpression]) {
-          val fctCall = field.boundary.get.asInstanceOf[FunctionCallExpression]
+        if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
+          val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
           val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
-            case f : FunctionStatement if f.identifier.isInstanceOf[LeveledIdentifier]
+            case f : L4_Function if f.identifier.isInstanceOf[LeveledIdentifier]
               && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
             case _                                                                     => false
           }.get
@@ -346,7 +325,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
       }
       val fctCall = bcs.find(_._1 == field)
       if (fctCall.isDefined)
-        FunctionCallStatement(Duplicate(fctCall.get._2))
+        L4_ExpressionStatement(Duplicate(fctCall.get._2))
       else
         applyBC
     }

@@ -6,6 +6,8 @@ import exastencils.core._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
+/// IR_AbstractFunction
+
 abstract class IR_AbstractFunction(var isHeaderOnly : Boolean = false) extends IR_Statement {
   def name : String
   def prettyprint_decl() : String

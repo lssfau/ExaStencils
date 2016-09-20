@@ -2,6 +2,7 @@ package exastencils.languageprocessing.l4
 
 import scala.collection.mutable.{ Node => _, _ }
 
+import exastencils.base.l4.L4_Function
 import exastencils.core._
 import exastencils.core.collectors.L4LevelCollector
 import exastencils.datastructures.Transformation._
@@ -79,7 +80,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // find all functions that are defined with an explicit level specification
     this.execute(new Transformation("Find explicitly leveled functions", {
-      case function : FunctionStatement => function.identifier match {
+      case function : L4_Function => function.identifier match {
         case LeveledIdentifier(_, level) => level match {
           case x : SingleLevelSpecification => {
             functions += ((function.identifier.name, x.level))
@@ -93,7 +94,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // unfold function declarations
     this.execute(new Transformation("Unfold leveled Function declarations", {
-      case function : FunctionStatement => function.identifier match {
+      case function : L4_Function => function.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(function, level)
         case BasicIdentifier(_)          => function
       }

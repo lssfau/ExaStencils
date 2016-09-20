@@ -190,15 +190,6 @@ case class UnaryExpression(var operator : String, var exp : L4_Expression) exten
   }
 }
 
-case class FunctionCallExpression(var identifier : Access, var arguments : List[L4_Expression]) extends L4_Expression {
-  def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
-
-  def progress : IR_FunctionCall = {
-    IR_FunctionCall(identifier.progress.asInstanceOf[IR_StringLiteral].value,
-      arguments.map(s => s.progress).to[ListBuffer])
-  }
-}
-
 case class StencilConvolution(var stencilAccess : L4_StencilAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilAccess << " * " << fieldAccess }
 

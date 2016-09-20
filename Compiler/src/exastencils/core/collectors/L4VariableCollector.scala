@@ -12,7 +12,7 @@ class L4VariableCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case x : FunctionStatement            => values.+=((new HashMap[String, L4_Datatype]()))
+      case x : L4_Function                  => values.+=((new HashMap[String, L4_Datatype]()))
       case x : LoopOverFragmentsStatement   => values.+=((new HashMap[String, L4_Datatype]()))
       case x : LoopOverPointsStatement      => values.+=((new HashMap[String, L4_Datatype]()))
       case x : RepeatTimesStatement         => values.+=((new HashMap[String, L4_Datatype]()))
@@ -30,7 +30,7 @@ class L4VariableCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case x : FunctionStatement          => values.trimEnd(1)
+      case x : L4_Function                => values.trimEnd(1)
       case x : LoopOverFragmentsStatement => values.trimEnd(1)
       case x : LoopOverPointsStatement    => values.trimEnd(1)
       case x : RepeatTimesStatement       => values.trimEnd(1)

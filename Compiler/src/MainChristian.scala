@@ -2,6 +2,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4.L4_Progressable
+import exastencils.baseExt.l4.L4_ResolveFunctionInstantiations
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -165,7 +166,7 @@ object MainChristian {
     GridGeometry.getGeometry.initL4()
 
     // go to IR
-    ResolveFunctionTemplates.apply() // preparation step
+    L4_ResolveFunctionInstantiations.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
 
     ResolveL4_Pre.apply()

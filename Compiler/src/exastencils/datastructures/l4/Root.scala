@@ -12,19 +12,16 @@ import exastencils.prettyprinting._
 case class Root()(nodes : List[Node]) extends Node with L4_Progressable with PrettyPrintable {
 
   var globals : ListBuffer[GlobalDeclarationStatement] = new ListBuffer()
-  var functionTemplates : ListBuffer[FunctionTemplateStatement] = new ListBuffer()
-  var functions : ListBuffer[FunctionStatement] = new ListBuffer()
+  var functions : ListBuffer[L4_Function] = new ListBuffer()
   var statements : ListBuffer[L4_Statement] = new ListBuffer()
   var otherNodes : ListBuffer[L4_Node] = new ListBuffer()
 
   nodes.foreach {
     case p : GlobalDeclarationStatement => globals.+=(p)
-    case p : FunctionTemplateStatement  => functionTemplates.+=(p)
-    case p : FunctionStatement          => functions.+=(p)
+    case p : L4_Function                => functions.+=(p)
     case p : L4_Statement               => statements.+=(p)
     case r : Root                       =>
       globals.++=(r.globals)
-      functionTemplates.++=(r.functionTemplates)
       functions.++=(r.functions)
       statements.++=(r.statements)
       otherNodes.++=(r.otherNodes)
@@ -36,8 +33,6 @@ case class Root()(nodes : List[Node]) extends Node with L4_Progressable with Pre
 
     if (!globals.isEmpty)
       out <<< globals << '\n'
-    if (!functionTemplates.isEmpty)
-      out <<< (functionTemplates, "\n") << '\n'
     if (!functions.isEmpty)
       out <<< (functions, "\n") << '\n'
     if (!statements.isEmpty)

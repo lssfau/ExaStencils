@@ -179,84 +179,6 @@ case class ColorWithStatement(var colors : List[L4_Expression], var loop : LoopO
   }
 }
 
-case class FunctionStatement(override var identifier : Identifier,
-    var returntype : L4_Datatype,
-    var arguments : List[FunctionArgument],
-    var statements : List[L4_Statement],
-    var allowInlining : Boolean = true) extends L4_Statement with HasIdentifier {
-
-  override def prettyprint(out : PpStream) = {
-    out << "Function " << identifier << " ("
-    if (!arguments.isEmpty) {
-      for (arg <- arguments) { arg.prettyprint(out); out << ", " }
-      out.removeLast(2)
-    }
-    out << " )" << " : " << returntype << " {\n"
-    out <<< statements
-    out << "}\n"
-  }
-
-  override def progress : IR_AbstractFunction = {
-    IR_Function(
-      returntype.progress,
-      identifier.fullName,
-      arguments.map(s => s.progress).to[ListBuffer], // FIXME: .to[ListBuffer]
-      statements.map(s => s.progress).to[ListBuffer], // FIXME: .to[ListBuffer]
-      allowInlining)
-  }
-}
-
-case class FunctionArgument(override var identifier : Identifier,
-    var datatype : L4_Datatype) extends L4_Node with PrettyPrintable with HasIdentifier with L4_Progressable {
-  def name = identifier.name
-  override def prettyprint(out : PpStream) {
-    out << identifier.name << " : " << datatype.prettyprint
-  }
-
-  override def progress = IR_FunctionArgument(identifier.fullName, datatype.progress)
-}
-
-case class FunctionTemplateStatement(var name : String,
-    var templateArgs : List[String],
-    var functionArgs : List[FunctionArgument],
-    var returntype : L4_Datatype,
-    var statements : List[L4_Statement]) extends L4_Statement {
-
-  override def prettyprint(out : PpStream) = {
-    out << "FunctionTemplate " << name << " < " << templateArgs.mkString(", ") << " > ( "
-    if (!functionArgs.isEmpty) {
-      for (arg <- functionArgs) { out << arg.name << " : " << arg.datatype << ", " }
-      out.removeLast(2)
-    }
-    out << " )" << " : " << returntype << " {\n"
-    out <<< statements
-    out << "}\n"
-  }
-
-  override def progress : IR_Statement = {
-    Logger.warn("Trying to progress FunctionTemplateStatement to ir which is not supported")
-    IR_NullStatement
-  }
-}
-
-case class FunctionInstantiationStatement(var templateName : String,
-    args : List[L4_Expression],
-    targetFct : Identifier) extends L4_Statement {
-  override def prettyprint(out : PpStream) = {
-    out << "Instantiate " << templateName << " < "
-    if (!args.isEmpty) {
-      for (arg <- args) { out << arg << ", " }
-      out.removeLast(2)
-    }
-    out << " > " << " as " << targetFct << "\n"
-  }
-
-  override def progress : IR_Statement = {
-    Logger.warn("Trying to progress FunctionTemplateStatement to ir which is not supported")
-    IR_NullStatement
-  }
-}
-
 case class ContractionSpecification(var posExt : L4_ConstIndex, var negExt : Option[L4_ConstIndex]) extends SpecialStatement {
   override def prettyprint(out : PpStream) : Unit = {
     out << posExt
@@ -321,26 +243,6 @@ case class RegionSpecification(var region : String, var dir : L4_ConstIndex, var
 
   override def progress : IR_RegionSpecification = {
     IR_RegionSpecification(region, L4_ConstIndex(dir.indices ++ Array.fill(3 - dir.indices.length)(0)).progress, onlyOnBoundary)
-  }
-}
-
-case class FunctionCallStatement(var call : FunctionCallExpression) extends L4_Statement {
-  override def prettyprint(out : PpStream) = { out << call << '\n' }
-
-  override def progress : IR_ExpressionStatement = {
-    IR_ExpressionStatement(call.progress)
-  }
-}
-
-case class ReturnStatement(var expr : Option[L4_Expression]) extends L4_Statement {
-  override def prettyprint(out : PpStream) = {
-    out << "return"
-    if (expr.isDefined) out << ' ' << expr.get.prettyprint()
-    out << '\n'
-  }
-
-  override def progress : IR_Return = {
-    IR_Return(expr.map(_.progress))
   }
 }
 
