@@ -194,12 +194,25 @@ object Main {
     ResolveL4_Post.apply()
 
     /// BEGIN HACK: progress expression in knowledge
-    for (obj <- L4_StencilCollection.objects)
-      for (entry <- obj.entries)
-        ResolveL4_Post.apply(Some(entry))
-    for (obj <- L4_FieldCollection.objects)
-      if (obj.boundary.isDefined)
-        ResolveL4_Post.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+    {
+      val oldLoggerLevel = Logger.getLevel
+      Logger.setLevel(Logger.WARNING)
+      for (obj <- L4_StencilCollection.objects)
+        for (entry <- obj.entries) {
+          L4_ResolveFieldAccesses.apply(Some(entry))
+          L4_ResolveStencilAccesses.apply(Some(entry))
+          L4_ResolveStencilFieldAccesses.apply(Some(entry))
+          ResolveL4_Post.apply(Some(entry))
+        }
+      for (obj <- L4_FieldCollection.objects)
+        if (obj.boundary.isDefined) {
+          L4_ResolveFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+          L4_ResolveStencilAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+          L4_ResolveStencilFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+          ResolveL4_Post.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+        }
+      Logger.setLevel(oldLoggerLevel)
+    }
     /// END HACK: progress expression in knowledge
 
     ResolveBoundaryHandlingFunctions.apply()
