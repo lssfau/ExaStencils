@@ -3,9 +3,11 @@ package exastencils.datastructures.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils._
-import exastencils.base.ir.IR_IntegerConstant
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.l4._
+import exastencils.field.l4.L4_FieldAccess
 import exastencils.prettyprinting._
+import exastencils.stencil.l4.L4_StencilFieldAccess
 
 case class CommunicateTarget(var target : String, var begin : Option[L4_ConstIndex], var end : Option[L4_ConstIndex]) extends L4_Expression {
   override def prettyprint(out : PpStream) = {
@@ -27,10 +29,10 @@ case class ApplyBCsStatement(var field : Access) extends L4_Statement {
 
   override def progress : communication.ApplyBCsStatement = {
     val resolvedField = field match {
-      case f : FieldAccess => f.progress.fieldSelection
-      case sf : StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
-        IR_IntegerConstant(sf.level.asInstanceOf[SingleLevelSpecification].level),
-        FieldAccess.resolveSlot(sf.resolveField, sf.slot),
+      case f : L4_FieldAccess         => f.progress.fieldSelection
+      case sf : L4_StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
+        sf.target.level,
+        L4_FieldAccess.resolveSlot(sf.resolveField, sf.slot),
         sf.arrayIndex)
     }
     communication.ApplyBCsStatement(resolvedField)
@@ -47,10 +49,10 @@ case class CommunicateStatement(var field : Access, var op : String, var targets
 
   override def progress : communication.CommunicateStatement = {
     val progressedField = field match {
-      case f : FieldAccess => f.progress.fieldSelection
-      case sf : StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
-        IR_IntegerConstant(sf.level.asInstanceOf[SingleLevelSpecification].level),
-        FieldAccess.resolveSlot(sf.resolveField, sf.slot),
+      case f : L4_FieldAccess         => f.progress.fieldSelection
+      case sf : L4_StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
+        sf.target.level,
+        L4_FieldAccess.resolveSlot(sf.resolveField, sf.slot),
         sf.arrayIndex)
     }
     val progressedTargets : ListBuffer[communication.CommunicateTarget] = ListBuffer()

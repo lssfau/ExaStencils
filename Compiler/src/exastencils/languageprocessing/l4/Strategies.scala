@@ -275,12 +275,12 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
     val level = access.asInstanceOf[LeveledAccess].level.asInstanceOf[SingleLevelSpecification].level
     CombinedIdentifier(access.asInstanceOf[LeveledAccess].name, level)
   }
-  def fromFieldAccess(access : FieldAccess) : CombinedIdentifier = {
-    val level = access.level.asInstanceOf[SingleLevelSpecification].level
+  def fromFieldAccess(access : L4_FieldAccess) : CombinedIdentifier = {
+    val level = access.target.level
     CombinedIdentifier(access.name, level)
   }
-  def fromStencilFieldAccess(access : StencilFieldAccess) : CombinedIdentifier = {
-    val level = access.level.asInstanceOf[SingleLevelSpecification].level
+  def fromStencilFieldAccess(access : L4_StencilFieldAccess) : CombinedIdentifier = {
+    val level = access.target.level
     val fieldName = L4_StencilFieldCollection.getByIdentifier(access.name, level).get.field.identifier
     CombinedIdentifier(fieldName, level)
   }
@@ -340,9 +340,9 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
   this += new Transformation("Replace applicable boundary condition updates", {
     case applyBC : ApplyBCsStatement => {
       val field = applyBC.field match {
-        case field : FieldAccess     => fromFieldAccess(field)
-        case sf : StencilFieldAccess => fromStencilFieldAccess(sf)
-        case _                       => Logger.warn(_) // FIXME WTF ?
+        case field : L4_FieldAccess     => fromFieldAccess(field)
+        case sf : L4_StencilFieldAccess => fromStencilFieldAccess(sf)
+        case _                          => Logger.warn(_) // FIXME WTF ?
       }
       val fctCall = bcs.find(_._1 == field)
       if (fctCall.isDefined)
@@ -355,7 +355,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
 
 object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and loops to L4 statements") {
   this += new Transformation("Search and wrap", {
-    case assignment @ AssignmentStatement(lhs : FieldAccess, rhs, op) => {
+    case assignment @ AssignmentStatement(lhs : L4_FieldAccess, rhs, op) => {
       CollectCommInformation.applyStandalone(assignment)
 
       var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>

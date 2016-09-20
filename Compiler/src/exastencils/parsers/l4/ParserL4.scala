@@ -303,7 +303,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ##### "External" Definitions
   // ######################################
 
-  lazy val externalField = locationize((("external" ~ "Field") ~> ident) ~ ("<" ~> ident <~ ">") ~ ("=>" ~> fieldAccess)
+  lazy val externalField = locationize((("external" ~ "Field") ~> ident) ~ ("<" ~> ident <~ ">") ~ ("=>" ~> genericAccess)
     ^^ { case extid ~ layout ~ field => L4_ExternalFieldDecl(extid, layout, field) })
 
   // ######################################
@@ -330,9 +330,6 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val levelAccess = (
     locationize("@" ~> levelsingle ^^ { case l => l })
       ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { case l => l }))
-
-  lazy val fieldAccess = locationize(ident ~ slotAccess.? ~ levelAccess ~ ("[" ~> integerLit <~ "]").?
-    ^^ { case id ~ slot ~ level ~ arrayIndex => FieldAccess(id, level, slot.getOrElse(L4_ActiveSlot), arrayIndex) })
 
   lazy val flatAccess = locationize(ident
     ^^ { case id => UnresolvedAccess(id, None, None, None, None, None) })

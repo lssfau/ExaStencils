@@ -9,8 +9,10 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.l4.L4_FieldAccess
 import exastencils.logger._
 import exastencils.prettyprinting._
+import exastencils.stencil.l4.L4_StencilFieldAccess
 
 abstract class SpecialStatement /*TODO: think about an appropriate name*/ extends Node /*with L4_Progressable*/ with PrettyPrintable {
   def progress : Any
@@ -102,9 +104,9 @@ case class LoopOverPointsStatement(
 
   override def progress : IR_LoopOverPoints = {
     val resolvedField = field match {
-      case access : FieldAccess        => access.resolveField
-      case access : StencilFieldAccess => access.resolveField
-      case _                           => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
+      case access : L4_FieldAccess        => access.target.getProgressedObject
+      case access : L4_StencilFieldAccess => access.target.getProgressedObject.field
+      case _                              => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 
     val numDims = resolvedField.fieldLayout.numDimsGrid
@@ -360,7 +362,7 @@ case class AdvanceStatement(var field : Access) extends L4_Statement {
   }
 
   override def progress = {
-    data.AdvanceSlotStatement(iv.CurrentSlot(field.asInstanceOf[FieldAccess].progress.fieldSelection.field,
+    data.AdvanceSlotStatement(iv.CurrentSlot(field.asInstanceOf[L4_FieldAccess].progress.fieldSelection.field,
       IR_StringLiteral(IR_LoopOverFragments.defIt)))
   }
 }
