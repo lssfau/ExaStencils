@@ -110,14 +110,7 @@ object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
 object ResolveL4_Post extends DefaultStrategy("Resolving L4 specifics") {
   // resolve accesses
   this += new Transformation("Resolve AccessSpecifications", {
-    case access : UnresolvedAccess =>
-      if (L4_FieldCollection.exists(access.name))
-        access.resolveToFieldAccess
-      else if (L4_StencilCollection.exists(access.name))
-        access.resolveToStencilAccess
-      else if (L4_StencilFieldCollection.exists(access.name))
-        access.resolveToStencilFieldAccess
-      else access.resolveToBasicOrLeveledAccess
+    case access : UnresolvedAccess => access.resolveToBasicOrLeveledAccess
   })
 }
 

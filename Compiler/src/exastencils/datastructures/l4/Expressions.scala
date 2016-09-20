@@ -98,22 +98,6 @@ case class UnresolvedAccess(var name : String,
     if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on basic or leveled access " + name)
     if (level.isDefined) LeveledAccess(name, level.get) else BasicAccess(name)
   }
-  def resolveToFieldAccess = {
-    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
-    try {
-      L4_FieldAccess(name, level.get.asInstanceOf[SingleLevelSpecification].level, slot.getOrElse(L4_ActiveSlot), arrayIndex, offset)
-    } catch {
-      case e : Exception => Logger.warn(s"""Could not resolve field "${ name }""""); throw e
-    }
-  }
-  def resolveToStencilAccess = {
-    if (slot.isDefined) Logger.warn("Discarding meaningless slot access on stencil")
-    if (offset.isDefined) Logger.warn("Discarding meaningless offset access on stencil - was a direction access (:) intended?")
-    L4_StencilAccess(name, level.get.asInstanceOf[SingleLevelSpecification].level, arrayIndex, dirAccess)
-  }
-  def resolveToStencilFieldAccess = {
-    L4_StencilFieldAccess(name, level.get.asInstanceOf[SingleLevelSpecification].level, slot.getOrElse(L4_ActiveSlot), arrayIndex, offset, dirAccess)
-  }
 }
 
 case class BasicAccess(var name : String) extends Access {

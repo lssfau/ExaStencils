@@ -2,6 +2,8 @@ package exastencils.stencil.l4
 
 import exastencils.base.ir.IR_Expression
 import exastencils.base.l4.L4_ExpressionIndex
+import exastencils.datastructures._
+import exastencils.datastructures.l4._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -47,4 +49,16 @@ case class L4_StencilAccess(
     else
       IR_StencilAccess(stencil)
   }
+}
+
+/// L4_ResolveStencilAccesses
+
+object L4_ResolveStencilAccesses extends DefaultStrategy("Resolve accesses to stencils") {
+  this += new Transformation("Resolve applicable unresolved accesses", {
+    case access : UnresolvedAccess if L4_StencilCollection.exists(access.name) =>
+      if (access.slot.isDefined) Logger.warn("Discarding meaningless slot access on stencil")
+      if (access.offset.isDefined) Logger.warn("Discarding meaningless offset access on stencil - was a direction access (:) intended?")
+      L4_StencilAccess(access.name, access.level.get.asInstanceOf[SingleLevelSpecification].level,
+        access.arrayIndex, access.dirAccess)
+  })
 }
