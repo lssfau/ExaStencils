@@ -23,7 +23,7 @@ case class L4_StencilDecl(override var identifier : Identifier, var entries : Li
     out << "}\n"
   }
 
-  override def addToKnowledge() : Unit = {
+  override def addToKnowledge() = {
     identifier match {
       case BasicIdentifier(name)                                    =>
         for (level <- Knowledge.levels) {

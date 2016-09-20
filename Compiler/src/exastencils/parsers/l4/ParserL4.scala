@@ -1,8 +1,7 @@
 package exastencils.parsers.l4
 
 import scala.collection.immutable.PagedSeq
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Stack
+import scala.collection.mutable.{ Node => _, _ }
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input.PagedSeqReader
 
@@ -298,7 +297,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val stencilEntry = expressionIndex ~ ("=>" ~> (binaryexpression ||| matrixExpression)) ^^ { case offset ~ weight => L4_StencilEntry(offset, weight) }
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ level.?)
-    ^^ { case id ~ f ~ s ~ level => StencilFieldDeclarationStatement(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), f, s) })
+    ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), f, s) })
 
   // ######################################
   // ##### "External" Definitions

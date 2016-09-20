@@ -11,7 +11,7 @@ import exastencils.datastructures.l4._
 import exastencils.field.l4._
 import exastencils.knowledge
 import exastencils.logger._
-import exastencils.stencil.l4.L4_StencilCollection
+import exastencils.stencil.l4._
 
 object CollectCommInformation extends DefaultStrategy("Collecting information relevant for adding communication statements") {
   var commCollector : L4CommCollector = new L4CommCollector(HashMap())
@@ -192,7 +192,7 @@ object ResolveL4_Post extends DefaultStrategy("Resolving L4 specifics") {
         access.resolveToFieldAccess
       else if (L4_StencilCollection.exists(access.name))
         access.resolveToStencilAccess
-      else if (StateManager.root_.asInstanceOf[Root].stencilFields.exists(s => access.name == s.identifier.name))
+      else if (L4_StencilFieldCollection.exists(access.name))
         access.resolveToStencilFieldAccess
       else access.resolveToBasicOrLeveledAccess
   })
@@ -281,7 +281,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
   }
   def fromStencilFieldAccess(access : StencilFieldAccess) : CombinedIdentifier = {
     val level = access.level.asInstanceOf[SingleLevelSpecification].level
-    val fieldName = StateManager.root.asInstanceOf[Root].stencilFields.find(sf => fromIdentifier(sf.identifier) == CombinedIdentifier(access.name, level)).get.fieldName
+    val fieldName = L4_StencilFieldCollection.getByIdentifier(access.name, level).get.field.identifier
     CombinedIdentifier(fieldName, level)
   }
 

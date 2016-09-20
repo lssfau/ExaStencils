@@ -10,7 +10,7 @@ import exastencils.datastructures.l4._
 import exastencils.field.l4._
 import exastencils.knowledge._
 import exastencils.logger._
-import exastencils.stencil.l4.L4_StencilDecl
+import exastencils.stencil.l4._
 
 object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecifications") {
   var functions = new HashSet[Tuple2[String, Integer]]
@@ -107,6 +107,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
       }
     }))
 
+    // TODO: is it possible to use HasIdentifier to prevent having to list each and every applicable node type?
     // unfold field layout declarations
     this.execute(new Transformation("Unfold leveled FieldLayout declarations", {
       case fieldLayout : L4_FieldLayoutDecl => fieldLayout.identifier match {
@@ -125,7 +126,7 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // unfold stencil field declarations
     this.execute(new Transformation("Unfold leveled StencilField declarations", {
-      case stencilField : StencilFieldDeclarationStatement => stencilField.identifier match {
+      case stencilField : L4_StencilFieldDecl => stencilField.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(stencilField, level)
         case BasicIdentifier(_)          => stencilField
       }
