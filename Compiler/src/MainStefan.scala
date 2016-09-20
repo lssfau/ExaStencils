@@ -12,7 +12,7 @@ import exastencils.domain.l4.L4_HACK_ProcessDomainDeclarations
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.l4._
 import exastencils.globals._
-import exastencils.grid._
+import exastencils.grid.{ l4 => _, _ }
 import exastencils.interfacing.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._

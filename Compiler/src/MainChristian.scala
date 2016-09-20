@@ -10,7 +10,7 @@ import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.globals._
-import exastencils.grid._
+import exastencils.grid.{ l4 => _, _ }
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._

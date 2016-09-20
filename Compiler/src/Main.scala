@@ -11,7 +11,8 @@ import exastencils.datastructures._
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.l4._
 import exastencils.globals._
-import exastencils.grid._
+import exastencils.grid.l4.L4_ResolveVirtualFieldAccesses
+import exastencils.grid.{ l4 => _, _ }
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
@@ -179,6 +180,7 @@ object Main {
       // resolve globals AFTER L4_InlineValueDeclarations (lower precedence than local values!)
       L4_InlineGlobalValueDeclarations.apply()
     }
+    L4_ResolveVirtualFieldAccesses.apply()
     ResolveL4_Pre.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()

@@ -2,13 +2,11 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils._
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.datastructures._
 import exastencils.field.l4._
-import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.stencil.ir._
@@ -108,11 +106,6 @@ case class UnresolvedAccess(var name : String,
       case e : Exception => Logger.warn(s"""Could not resolve field "${ name }""""); throw e
     }
   }
-  def resolveToVirtualFieldAccess = {
-    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on special field - was an offset access (@) intended?")
-    if (slot.isDefined) Logger.warn("Discarding meaningless slot access on special field")
-    VirtualFieldAccess(name, level.get, arrayIndex, offset)
-  }
   def resolveToStencilAccess = {
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on stencil")
     if (offset.isDefined) Logger.warn("Discarding meaningless offset access on stencil - was a direction access (:) intended?")
@@ -133,29 +126,6 @@ case class LeveledAccess(var name : String, var level : AccessLevelSpecification
 
   def progress : IR_Expression = {
     IR_StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
-  }
-}
-
-case class VirtualFieldAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends Access {
-  def prettyprint(out : PpStream) = {
-    out << name << '@' << level
-    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
-    if (offset.isDefined) out << "@" << offset
-  }
-
-  def progress : IR_VirtualFieldAccess = {
-    var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
-    if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
-    var multiIndex = IR_LoopOverDimensions.defIt(numDims)
-    if (arrayIndex.isDefined)
-      multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
-    if (offset.isDefined) {
-      var progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
-      multiIndex += progressedOffset
-    }
-
-    IR_VirtualFieldAccess(name, IR_IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
   }
 }
 
