@@ -2,7 +2,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
-import exastencils.baseExt.l4.L4_ResolveFunctionInstantiations
+import exastencils.baseExt.l4._
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -164,6 +164,8 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 4")
 
+    L4_UnifyGlobalSections.apply()
+
     // add specialized fields for geometric data - TODO: decide if better left here or moved to ir
     GridGeometry.getGeometry.initL4()
 
@@ -171,6 +173,12 @@ object Main {
     L4_ResolveFunctionInstantiations.apply() // preparation step
     UnfoldLevelSpecifications.apply() // preparation step
 
+    if (true) {
+      // TODO: optionalize value resolution
+      L4_InlineValueDeclarations.apply()
+      // resolve globals AFTER L4_InlineValueDeclarations (lower precedence than local values!)
+      L4_InlineGlobalValueDeclarations.apply()
+    }
     ResolveL4_Pre.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()

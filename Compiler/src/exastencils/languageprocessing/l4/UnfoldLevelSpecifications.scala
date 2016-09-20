@@ -2,7 +2,7 @@ package exastencils.languageprocessing.l4
 
 import scala.collection.mutable.{ Node => _, _ }
 
-import exastencils.base.l4.L4_Function
+import exastencils.base.l4._
 import exastencils.core._
 import exastencils.core.collectors.L4LevelCollector
 import exastencils.datastructures.Transformation._
@@ -68,11 +68,11 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     }))
 
     this.execute(new Transformation("Unfold Values and Variables", {
-      case value : ValueDeclarationStatement       => value.identifier match {
+      case value : L4_ValueDeclaration       => value.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(value, level)
         case BasicIdentifier(_)          => value
       }
-      case variable : VariableDeclarationStatement => variable.identifier match {
+      case variable : L4_VariableDeclaration => variable.identifier match {
         case LeveledIdentifier(_, level) => doDuplicate(variable, level)
         case BasicIdentifier(_)          => variable
       }

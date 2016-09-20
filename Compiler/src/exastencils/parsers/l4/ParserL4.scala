@@ -172,10 +172,10 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val statementInsideRepeat = statement ||| breakStatement
 
   lazy val variableDeclaration = (locationize((("Var" ||| "Variable") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
-    ^^ { case id ~ dt ~ exp => VariableDeclarationStatement(id, dt, exp) }))
+    ^^ { case id ~ dt ~ exp => L4_VariableDeclaration(id, dt, exp) }))
 
   lazy val valueDeclaration = (locationize((("Val" ||| "Value") ~> identifierWithOptionalLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
-    ^^ { case id ~ dt ~ exp => ValueDeclarationStatement(id, dt, exp) }))
+    ^^ { case id ~ dt ~ exp => L4_ValueDeclaration(id, dt, exp) }))
 
   lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ contractionClause.? ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^ { case n ~ i ~ c ~ s => RepeatTimesStatement(n.toInt, i, c, s) })
   lazy val contractionClause = locationize("with" ~ "contraction" ~> index ~ ("," ~> index).? ^^ { case l ~ r => new ContractionSpecification(l, r) })
@@ -241,7 +241,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   // ##### Globals
   // ######################################
 
-  lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { case entries => new GlobalDeclarationStatement(entries) })
+  lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L4_GlobalSection(_) })
   lazy val globalEntry : PackratParser[L4_Statement] = locationize(valueDeclaration ||| variableDeclaration)
 
   // ######################################

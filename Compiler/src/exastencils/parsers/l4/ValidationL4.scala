@@ -69,14 +69,14 @@ object ValidationL4 {
   })
 
   s += Transformation("Check assignment of vectors and matrices", {
-    case x : ValueDeclarationStatement if (x.datatype.isInstanceOf[L4_VectorDatatype] && x.expression.isInstanceOf[VectorExpression]) =>
-      if (x.datatype.asInstanceOf[L4_VectorDatatype].numElements != x.expression.asInstanceOf[VectorExpression].length) Logger.error("Sizes of vectors must match for assignments!"); x
-    case x : ValueDeclarationStatement if (x.datatype.isInstanceOf[L4_MatrixDatatype] && x.expression.isInstanceOf[MatrixExpression]) =>
+    case x : L4_ValueDeclaration if (x.datatype.isInstanceOf[L4_VectorDatatype] && x.initialValue.isInstanceOf[VectorExpression]) =>
+      if (x.datatype.asInstanceOf[L4_VectorDatatype].numElements != x.initialValue.asInstanceOf[VectorExpression].length) Logger.error("Sizes of vectors must match for assignments!"); x
+    case x : L4_ValueDeclaration if (x.datatype.isInstanceOf[L4_MatrixDatatype] && x.initialValue.isInstanceOf[MatrixExpression]) =>
       if (x.datatype.asInstanceOf[L4_MatrixDatatype].numRows != x.datatype.asInstanceOf[L4_MatrixDatatype].numRows || x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns != x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns) Logger.error("Sizes of matrices must match for assignments!"); x
-    case x : VariableDeclarationStatement if (x.datatype.isInstanceOf[L4_VectorDatatype])                                             =>
-      if (x.expression.isDefined && x.expression.get.isInstanceOf[VectorExpression] && x.expression.get.asInstanceOf[VectorExpression].length != x.expression.get.asInstanceOf[VectorExpression].length) Logger.error("Sizes of vectors must match for assignments!"); x
-    case x : VariableDeclarationStatement /*(_, mat : L4_MatrixDatatype, exp)*/ if (x.datatype.isInstanceOf[L4_MatrixDatatype])       =>
-      if (x.expression.isDefined && x.expression.get.isInstanceOf[MatrixExpression] && (x.datatype.asInstanceOf[L4_MatrixDatatype].numRows != x.expression.get.asInstanceOf[MatrixExpression].rows || x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns != x.expression.get.asInstanceOf[MatrixExpression].columns)) Logger.error("Sizes of matrices must match for assignments!"); x
+    case x : L4_VariableDeclaration if (x.datatype.isInstanceOf[L4_VectorDatatype])                                               =>
+      if (x.initialValue.isDefined && x.initialValue.get.isInstanceOf[VectorExpression] && x.initialValue.get.asInstanceOf[VectorExpression].length != x.initialValue.get.asInstanceOf[VectorExpression].length) Logger.error("Sizes of vectors must match for assignments!"); x
+    case x : L4_VariableDeclaration /*(_, mat : L4_MatrixDatatype, exp)*/ if (x.datatype.isInstanceOf[L4_MatrixDatatype])         =>
+      if (x.initialValue.isDefined && x.initialValue.get.isInstanceOf[MatrixExpression] && (x.datatype.asInstanceOf[L4_MatrixDatatype].numRows != x.initialValue.get.asInstanceOf[MatrixExpression].rows || x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns != x.initialValue.get.asInstanceOf[MatrixExpression].columns)) Logger.error("Sizes of matrices must match for assignments!"); x
   })
 
   s.apply()

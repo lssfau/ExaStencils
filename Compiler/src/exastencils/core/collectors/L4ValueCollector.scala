@@ -3,6 +3,7 @@ package exastencils.core.collectors
 import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_GlobalSection
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 
@@ -12,17 +13,17 @@ class L4ValueCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case x : GlobalDeclarationStatement => insideGlobals = true
+      case x : L4_GlobalSection           => insideGlobals = true
       case x : L4_Function                => { values.clear(); values.+=((new HashMap[String, L4_Expression]())) }
       case x : LoopOverFragmentsStatement => values.+=((new HashMap[String, L4_Expression]()))
       case x : LoopOverPointsStatement    => values.+=((new HashMap[String, L4_Expression]()))
       case x : RepeatTimesStatement       => values.+=((new HashMap[String, L4_Expression]()))
       case x : L4_UntilLoop               => values.+=((new HashMap[String, L4_Expression]()))
       case x : L4_IfCondition             => values.+=((new HashMap[String, L4_Expression]()))
-      case x : ValueDeclarationStatement  => {
+      case x : L4_ValueDeclaration        => {
         x.identifier match { // ignore Values in Globals
-          case v : LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.expression))
-          case _                     => if (!insideGlobals) values.last += ((x.identifier.name, x.expression))
+          case v : LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.initialValue))
+          case _                     => if (!insideGlobals) values.last += ((x.identifier.name, x.initialValue))
         }
       }
       case _                              =>
@@ -31,7 +32,7 @@ class L4ValueCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case x : GlobalDeclarationStatement => insideGlobals = false
+      case x : L4_GlobalSection           => insideGlobals = false
       case x : L4_Function                => values.clear()
       case x : LoopOverFragmentsStatement => values.trimEnd(1)
       case x : LoopOverPointsStatement    => values.trimEnd(1)

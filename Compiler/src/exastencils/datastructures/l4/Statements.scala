@@ -24,49 +24,6 @@ trait HasIdentifier {
 
 trait ExternalDeclarationStatement extends SpecialStatement
 
-case class GlobalDeclarationStatement(var values : List[ValueDeclarationStatement], var variables : List[VariableDeclarationStatement]) extends SpecialStatement {
-  def this(entries : List[L4_Statement]) = this(entries.filter(_ match {
-    case x : ValueDeclarationStatement => true
-    case _                             => false
-  }).asInstanceOf[List[ValueDeclarationStatement]],
-    entries.filter(_ match {
-      case x : VariableDeclarationStatement => true
-      case _                                => false
-    }).asInstanceOf[List[VariableDeclarationStatement]])
-
-  override def prettyprint(out : PpStream) = { out << "Globals {\n" <<< (values, "\n") <<< (variables, "\n") << "}\n" }
-
-  override def progress : ListBuffer[IR_VariableDeclaration] = {
-    variables.to[ListBuffer].map(e => e.progress)
-  }
-}
-
-case class VariableDeclarationStatement(override var identifier : Identifier, var datatype : L4_Datatype, var expression : Option[L4_Expression] = None) extends L4_Statement with HasIdentifier {
-  override def prettyprint(out : PpStream) = {
-    out << "Variable " << identifier << " : " << datatype
-    if (expression.isDefined)
-      out << " = " << expression.get
-    out << '\n'
-  }
-
-  override def progress : IR_VariableDeclaration = {
-    IR_VariableDeclaration(datatype.progress,
-      identifier.fullName,
-      if (expression.isDefined) Some(expression.get.progress) else None)
-  }
-}
-
-case class ValueDeclarationStatement(override var identifier : Identifier, var datatype : L4_Datatype, var expression : L4_Expression) extends L4_Statement with HasIdentifier {
-  //  def progress : ir.ValueDeclarationStatement = {
-  //    ir.ValueDeclarationStatement(datatype.progress,
-  //      identifier.progress.asInstanceOf[ir.StringConstant].value,
-  //      expression.get.progress
-  //  }
-  override def prettyprint(out : PpStream) = { out << "Value " << identifier << " : " << datatype << " = " << expression << '\n' }
-
-  override def progress : IR_Statement = IR_NullStatement
-}
-
 case class AssignmentStatement(var dest : Access, var src : L4_Expression, var op : String) extends L4_Statement {
   override def prettyprint(out : PpStream) = { out << dest << ' ' << op << ' ' << src << '\n' }
 
