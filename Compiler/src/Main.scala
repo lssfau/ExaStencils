@@ -7,12 +7,11 @@ import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
-import exastencils.domain.l4.L4_HACK_ProcessDomainDeclarations
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid._
-import exastencils.interfacing.l4._
+import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
@@ -173,12 +172,7 @@ object Main {
 
     ResolveL4_Pre.apply()
 
-    L4_HACK_ProcessDomainDeclarations.apply()
-    L4_ProcessStencilDeclarations.apply()
-    L4_ProcessFieldLayoutDeclarations.apply()
-    L4_ProcessFieldDeclarations.apply()
-    L4_ProcessExternalFieldDeclarations.apply()
-    L4_ProcessStencilFieldDeclarations.apply()
+    L4_ProcessKnowledgeDeclarations.apply()
 
     if (Knowledge.ir_genSepLayoutsPerField)
       L4_DuplicateFieldLayoutsForFields.apply()
@@ -199,13 +193,10 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    L4_FieldLayoutCollection.progress
+    L4_ProgressKnowledge.apply()
+
     if (Knowledge.data_alignFieldPointers)
       IR_AddPaddingToFieldLayouts
-    L4_FieldCollection.progress
-    L4_ExternalFieldCollection.progress
-    L4_StencilCollection.progress
-    L4_StencilFieldCollection.progress
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
