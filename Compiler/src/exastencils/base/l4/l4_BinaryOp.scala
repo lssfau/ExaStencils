@@ -69,6 +69,11 @@ object L4_BinaryOperators extends Enumeration {
     case Greater                => L4_GreaterExpression(left, right)
     case GreaterEqual           => L4_GreaterEqualExpression(left, right)
   }
+
+  def progress(op : Value) : IR_BinaryOperators.BinaryOperators = {
+    // TODO: better implementation?
+    IR_BinaryOperators.withName(op.toString)
+  }
 }
 
 /// (scalar) arithmetic operations

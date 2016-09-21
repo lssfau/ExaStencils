@@ -205,9 +205,9 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ index ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
-  lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
+  lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
   lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
-    ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
+    ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
 
   lazy val conditional : PackratParser[L4_IfCondition] = (
     locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ~ (("else" ~ "{") ~> statement.+ <~ "}").?
@@ -327,7 +327,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| "previousSlot" ^^ { case _ => L4_PreviousSlot }
     ||| integerLit ^^ { case i => L4_ConstantSlot(i) })
 
-  lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => AdvanceStatement(a) })
+  lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => L4_AdvanceSlot(a) })
 
   lazy val levelAccess = (
     locationize("@" ~> levelsingle ^^ { case l => l })

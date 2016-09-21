@@ -97,7 +97,7 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
   this += new Transformation("SearchAndReplace", {
     case slotAccess : SlotAccess => slotAccess.expandSpecial
 
-    case advanceSlot : AdvanceSlotStatement =>
+    case advanceSlot : IR_AdvanceSlot =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
         case _ : IR_LoopOverFragments                                                                       => true

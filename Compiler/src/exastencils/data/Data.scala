@@ -140,10 +140,3 @@ case class SlotAccess(var slot : iv.CurrentSlot, var offset : Int) extends IR_Ex
   }
 }
 
-case class AdvanceSlotStatement(var slot : iv.CurrentSlot) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  def expandSpecial : IR_Statement = {
-    IR_Assignment(slot, (slot + 1) Mod slot.field.numSlots) // slot never contains negative values (currently)
-  }
-}

@@ -251,7 +251,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
 
 object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and loops to L4 statements") {
   this += new Transformation("Search and wrap", {
-    case assignment @ AssignmentStatement(lhs : L4_FieldAccess, rhs, op) => {
+    case assignment @ L4_Assignment(lhs : L4_FieldAccess, rhs, op) => {
       CollectCommInformation.applyStandalone(assignment)
 
       var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>
