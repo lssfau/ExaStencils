@@ -48,7 +48,7 @@ object ValidationL4 {
   s += Transformation("find Function calls", {
     case f : L4_FunctionCall => {
       f.identifier match {
-        case a : LeveledAccess    => functioncalls += (f.identifier.name + a.level.asInstanceOf[SingleLevelSpecification].level)
+        case a : LeveledAccess    => functioncalls += (f.identifier.name + a.level.resolveLevel)
         case a : UnresolvedAccess => functioncalls += (f.identifier.name + a.level.getOrElse("-1"))
         case a : BasicAccess      => functioncalls += (f.identifier.name + "-1")
         case _                    => println("something else: " + f.identifier)

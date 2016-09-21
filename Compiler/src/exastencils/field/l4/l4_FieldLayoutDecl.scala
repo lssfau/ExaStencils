@@ -115,10 +115,10 @@ case class L4_FieldLayoutDecl(
 
   override def addToKnowledge() = {
     identifier match {
-      case BasicIdentifier(name)                                    =>
+      case BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels)
           L4_FieldLayoutCollection.add(composeLayout(level))
-      case LeveledIdentifier(name, SingleLevelSpecification(level)) =>
+      case LeveledIdentifier(name, L4_SingleLevel(level)) =>
         L4_FieldLayoutCollection.add(composeLayout(level))
     }
     None // consume declaration statement

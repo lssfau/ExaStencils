@@ -8,7 +8,7 @@ trait HasIdentifier {
   var identifier : Identifier
 }
 
-case class LeveledScopeStatement(var level : LevelSpecification, var statements : List[L4_Statement]) extends L4_Statement {
+case class LeveledScopeStatement(var level : L4_LevelSpecification, var statements : List[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << level << " {\n"
     statements.foreach(_.prettyprint(out))

@@ -92,13 +92,13 @@ object L4_InlineGlobalValueDeclarations extends DefaultStrategy("Propagate and i
   })
 
   this += new Transformation("Resolve global values in expressions", {
-    case x @ UnresolvedAccess(_, None, None, _, None, _)                                  =>
+    case x @ UnresolvedAccess(_, None, None, _, None, _)                        =>
       val value = globalVals.get(x.name)
       value match {
         case None => x // no hit
         case _    => Duplicate(value.get)
       }
-    case x @ UnresolvedAccess(_, None, Some(SingleLevelSpecification(level)), _, None, _) =>
+    case x @ UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
       val value = globalVals.get(x.name + "@@" + level)
       value match {
         case None => x // no hit

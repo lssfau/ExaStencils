@@ -1,6 +1,6 @@
 package exastencils.stencil.l4
 
-import exastencils.base.l4.L4_KnowledgeDeclStatement
+import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.field.l4.L4_FieldCollection
@@ -28,10 +28,10 @@ case class L4_StencilFieldDecl(
 
   override def addToKnowledge() : Unit = {
     identifier match {
-      case BasicIdentifier(name)                                    =>
+      case BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels)
           L4_StencilFieldCollection.add(composeStencilField(level))
-      case LeveledIdentifier(name, SingleLevelSpecification(level)) =>
+      case LeveledIdentifier(name, L4_SingleLevel(level)) =>
         L4_StencilFieldCollection.add(composeStencilField(level))
         None // consume declaration statement
     }

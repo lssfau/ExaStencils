@@ -40,10 +40,10 @@ case class L4_FieldDecl(
 
   override def addToKnowledge() = {
     identifier match {
-      case BasicIdentifier(name)                                    =>
+      case BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels)
           L4_FieldCollection.add(composeField(level))
-      case LeveledIdentifier(name, SingleLevelSpecification(level)) =>
+      case LeveledIdentifier(name, L4_SingleLevel(level)) =>
         L4_FieldCollection.add(composeField(level))
     }
     None // consume declaration statement

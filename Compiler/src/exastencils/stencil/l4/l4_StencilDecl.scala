@@ -25,12 +25,12 @@ case class L4_StencilDecl(override var identifier : Identifier, var entries : Li
 
   override def addToKnowledge() = {
     identifier match {
-      case BasicIdentifier(name)                                    =>
+      case BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels) {
           val stencil = L4_Stencil(name, level, Duplicate(entries))
           L4_StencilCollection.add(stencil)
         }
-      case LeveledIdentifier(name, SingleLevelSpecification(level)) =>
+      case LeveledIdentifier(name, L4_SingleLevel(level)) =>
         val stencil = L4_Stencil(name, level, entries)
         L4_StencilCollection.add(stencil)
         None // consume declaration statement

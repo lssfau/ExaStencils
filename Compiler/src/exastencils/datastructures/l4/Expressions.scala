@@ -72,7 +72,7 @@ abstract class Access() extends L4_Expression {
 
 case class UnresolvedAccess(var name : String,
     var slot : Option[L4_SlotSpecification],
-    var level : Option[AccessLevelSpecification],
+    var level : Option[L4_AccessLevelSpecification],
     var offset : Option[L4_ExpressionIndex],
     var arrayIndex : Option[Int],
     var dirAccess : Option[L4_ExpressionIndex]) extends Access {
@@ -105,11 +105,11 @@ case class BasicAccess(var name : String) extends Access {
   def progress : IR_StringLiteral = { IR_StringLiteral(name) }
 }
 
-case class LeveledAccess(var name : String, var level : AccessLevelSpecification) extends Access {
+case class LeveledAccess(var name : String, var level : L4_AccessLevelSpecification) extends Access {
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
   def progress : IR_Expression = {
-    IR_StringLiteral(name + "_" + level.asInstanceOf[SingleLevelSpecification].level)
+    IR_StringLiteral(name + "_" + level.resolveLevel)
   }
 }
 
@@ -124,7 +124,7 @@ case class BasicIdentifier(var name : String) extends Identifier {
   def fullName = name
 }
 
-case class LeveledIdentifier(var name : String, var level : LevelSpecification) extends Identifier {
+case class LeveledIdentifier(var name : String, var level : L4_LevelSpecification) extends Identifier {
   def prettyprint(out : PpStream) = { out << name << '@' << level }
 
   def fullName = name + "_" + level.prettyprint

@@ -104,7 +104,7 @@ case class L4_StencilFieldAccess(
 object L4_ResolveStencilFieldAccesses extends DefaultStrategy("Resolve accesses to stencil fields") {
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : UnresolvedAccess if L4_StencilFieldCollection.exists(access.name) =>
-      L4_StencilFieldAccess(access.name, access.level.get.asInstanceOf[SingleLevelSpecification].level,
+      L4_StencilFieldAccess(access.name, access.level.get.resolveLevel,
         access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset, access.dirAccess)
   })
 }

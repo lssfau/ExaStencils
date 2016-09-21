@@ -48,13 +48,13 @@ object L4_InlineValueDeclarations extends DefaultStrategy("Propagate and inline 
 
   // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
   this += new Transformation("Resolve values in expressions", {
-    case x @ UnresolvedAccess(_, None, None, _, None, _)                                  =>
+    case x @ UnresolvedAccess(_, None, None, _, None, _)                        =>
       val value = valueCollector.getValue(x.name)
       value match {
         case None => x // no hit
         case _    => Duplicate(value.get)
       }
-    case x @ UnresolvedAccess(_, None, Some(SingleLevelSpecification(level)), _, None, _) =>
+    case x @ UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
       val value = valueCollector.getValue(x.name + "@@" + level)
       value match {
         case None => x // no hit

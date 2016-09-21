@@ -31,40 +31,40 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // resolve level identifiers "coarsest", "finest"
     this.execute(new Transformation("Resolve IdentifierLevelSpecifications", {
-      case AllLevelsSpecification     => RangeLevelSpecification(SingleLevelSpecification(Knowledge.minLevel), SingleLevelSpecification(Knowledge.maxLevel))
-      case CoarsestLevelSpecification => SingleLevelSpecification(Knowledge.minLevel)
-      case FinestLevelSpecification   => SingleLevelSpecification(Knowledge.maxLevel)
+      case L4_AllLevels     => L4_LevelRange(L4_SingleLevel(Knowledge.minLevel), L4_SingleLevel(Knowledge.maxLevel))
+      case L4_CoarsestLevel => L4_SingleLevel(Knowledge.minLevel)
+      case L4_FinestLevel   => L4_SingleLevel(Knowledge.maxLevel)
     }))
 
     // resolve relative level identifiers
     this.execute(new Transformation("Resolve RelativeLevelSpecifications", {
-      case x : RelativeLevelSpecification => {
-        def calc(a : Int, b : Int) = x.operator match {
+      case x : L4_RelativeLevel => {
+        def calc(a : Int, b : Int) = x.op match {
           case "+" => a + b
           case "-" => a - b
         };
         x.base match {
-          case SingleLevelSpecification(b) => SingleLevelSpecification(calc(b, x.offset))
+          case L4_SingleLevel(b) => L4_SingleLevel(calc(b, x.offset))
         }
       }
     }))
 
     this.execute(new Transformation("Resolve RangeLevelSpecifications", {
-      case x : RangeLevelSpecification => {
-        var set = HashSet[LevelSpecification]()
-        for (l <- x.begin.asInstanceOf[SingleLevelSpecification].level to x.end.asInstanceOf[SingleLevelSpecification].level) {
-          set += (SingleLevelSpecification(l))
+      case x : L4_LevelRange => {
+        var set = HashSet[L4_LevelSpecification]()
+        for (l <- x.begin.resolveLevel to x.end.resolveLevel) {
+          set += L4_SingleLevel(l)
         }
-        ListLevelSpecification(set)
+        L4_LevelList(set)
       }
     }))
 
     this.execute(new Transformation("Flatten ListLevelSpecifications", {
-      case x : ListLevelSpecification => x.flatten(); x
+      case x : L4_LevelList => x.flatten(); x
     }))
 
     this.execute(new Transformation("Remove NegatedLevelSpecifications", {
-      case x : ListLevelSpecification => x.cleanup(); x
+      case x : L4_LevelList => x.cleanup(); x
     }))
 
     this.execute(new Transformation("Unfold Values and Variables", {
@@ -82,11 +82,11 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     this.execute(new Transformation("Find explicitly leveled functions", {
       case function : L4_Function => function.identifier match {
         case LeveledIdentifier(_, level) => level match {
-          case x : SingleLevelSpecification => {
+          case x : L4_SingleLevel => {
             functions += ((function.identifier.name, x.level))
             function
           }
-          case _                            => function
+          case _                  => function
         }
         case _                           => function
       }
@@ -103,8 +103,8 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     // Flatten leveled scope or remove completely
     this.execute(new Transformation("Resolve leveled scopes", {
       case scope : LeveledScopeStatement => scope.level match {
-        case s : SingleLevelSpecification => if (levelCollector.getCurrentLevel == s.level) scope.statements; else List()
-        case s : ListLevelSpecification   => if (s.contains(levelCollector.getCurrentLevel)) scope.statements; else List()
+        case s : L4_SingleLevel => if (levelCollector.getCurrentLevel == s.level) scope.statements; else List()
+        case s : L4_LevelList   => if (s.contains(levelCollector.getCurrentLevel)) scope.statements; else List()
       }
     }))
 
@@ -143,9 +143,9 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
 
     // resolve level specifications
     this.execute(new Transformation("Resolve RelativeLevelSpecifications", {
-      case CurrentLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel)
-      case CoarserLevelSpecification => SingleLevelSpecification(levelCollector.getCurrentLevel - 1) // FIXME: coarser and finer are not reliable
-      case FinerLevelSpecification   => SingleLevelSpecification(levelCollector.getCurrentLevel + 1)
+      case L4_CurrentLevel => L4_SingleLevel(levelCollector.getCurrentLevel)
+      case L4_CoarserLevel => L4_SingleLevel(levelCollector.getCurrentLevel - 1) // FIXME: coarser and finer are not reliable
+      case L4_FinerLevel   => L4_SingleLevel(levelCollector.getCurrentLevel + 1)
     }))
 
     if (Settings.timeStrategies)
@@ -155,27 +155,27 @@ object UnfoldLevelSpecifications extends DefaultStrategy("UnfoldLevelSpecificati
     this.commit()
   }
 
-  def doDuplicate[T <: HasIdentifier](t : T, level : LevelSpecification) : List[T] = {
+  def doDuplicate[T <: HasIdentifier](t : T, level : L4_LevelSpecification) : List[T] = {
     var ts = new ListBuffer[T]()
     level match {
-      case level @ (SingleLevelSpecification(_) | CurrentLevelSpecification | CoarserLevelSpecification | FinerLevelSpecification) => {
+      case level @ (L4_SingleLevel(_) | L4_CurrentLevel | L4_CoarserLevel | L4_FinerLevel) => {
         var f = Duplicate(t)
         f.identifier = new LeveledIdentifier(f.identifier.name, level)
         ts += f
       }
-      case level : ListLevelSpecification                                                                                          =>
+      case level : L4_LevelList                                                            =>
         level.levels.foreach(level => ts ++= doDuplicate(t, level))
-      case level : RangeLevelSpecification                                                                                         =>
-        for (level <- math.min(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level) to math.max(level.begin.asInstanceOf[SingleLevelSpecification].level, level.end.asInstanceOf[SingleLevelSpecification].level)) {
+      case level : L4_LevelRange                                                           =>
+        for (level <- math.min(level.begin.resolveLevel, level.end.resolveLevel) to math.max(level.begin.resolveLevel, level.end.resolveLevel)) {
           if (!functions.contains(t.identifier.name, level)) {
             var f = Duplicate(t)
-            f.identifier = new LeveledIdentifier(f.identifier.name, SingleLevelSpecification(level))
+            f.identifier = new LeveledIdentifier(f.identifier.name, L4_SingleLevel(level))
             ts += f
 
             functions += ((f.identifier.name, level))
           }
         }
-      case _                                                                                                                       => Logger.error(s"Invalid level specification for Value $t: $level")
+      case _                                                                               => Logger.error(s"Invalid level specification for Value $t: $level")
     }
     return ts.toList
   }

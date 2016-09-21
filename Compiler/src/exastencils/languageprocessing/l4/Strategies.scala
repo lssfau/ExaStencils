@@ -61,11 +61,11 @@ object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
         resolveParameterToConstant(knowledge.Platform, ident)
 
       // levelIndex
-      case L4_FunctionCall(UnresolvedAccess("levels", _, Some(SingleLevelSpecification(level)), _, _, _), ListBuffer())      =>
+      case L4_FunctionCall(UnresolvedAccess("levels", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())      =>
         L4_IntegerConstant(level)
-      case L4_FunctionCall(UnresolvedAccess("levelIndex", _, Some(SingleLevelSpecification(level)), _, _, _), ListBuffer())  =>
+      case L4_FunctionCall(UnresolvedAccess("levelIndex", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())  =>
         L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case L4_FunctionCall(UnresolvedAccess("levelString", _, Some(SingleLevelSpecification(level)), _, _, _), ListBuffer()) =>
+      case L4_FunctionCall(UnresolvedAccess("levelString", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer()) =>
         L4_StringConstant(level.toString)
 
       // constants
@@ -164,11 +164,11 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
   case class CombinedIdentifier(var name : String, var level : Int) {}
 
   def fromIdentifier(ident : Identifier) : CombinedIdentifier = {
-    val level = ident.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
+    val level = ident.asInstanceOf[LeveledIdentifier].level.resolveLevel
     CombinedIdentifier(ident.name, level)
   }
   def fromLeveledAccess(access : Access) : CombinedIdentifier = {
-    val level = access.asInstanceOf[LeveledAccess].level.asInstanceOf[SingleLevelSpecification].level
+    val level = access.asInstanceOf[LeveledAccess].level.resolveLevel
     CombinedIdentifier(access.asInstanceOf[LeveledAccess].name, level)
   }
   def fromFieldAccess(access : L4_FieldAccess) : CombinedIdentifier = {

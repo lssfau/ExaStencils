@@ -20,7 +20,7 @@ case class L4_ExternalFieldDecl(
     val resolvedAccess = targetField match {
       case access : UnresolvedAccess =>
         if (access.dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
-        L4_FieldAccess(access.name, access.level.get.asInstanceOf[SingleLevelSpecification].level,
+        L4_FieldAccess(access.name, access.level.get.resolveLevel,
           access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
       case access : L4_FieldAccess   => access
     }

@@ -3,7 +3,7 @@ package exastencils.grid.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.l4.L4_ExpressionIndex
+import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
@@ -12,7 +12,7 @@ import exastencils.knowledge
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
-case class L4_VirtualFieldAccess(var name : String, var level : AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends Access {
+case class L4_VirtualFieldAccess(var name : String, var level : L4_AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
@@ -31,7 +31,7 @@ case class L4_VirtualFieldAccess(var name : String, var level : AccessLevelSpeci
       multiIndex += progressedOffset
     }
 
-    IR_VirtualFieldAccess(name, IR_IntegerConstant(level.asInstanceOf[SingleLevelSpecification].level), multiIndex, arrayIndex)
+    IR_VirtualFieldAccess(name, IR_IntegerConstant(level.resolveLevel), multiIndex, arrayIndex)
   }
 }
 
