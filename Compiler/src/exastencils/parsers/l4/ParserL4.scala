@@ -237,7 +237,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case stmts => L4_LocalSolve(stmts.map(_._1), stmts.map(_._2)) })
 
   lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (booleanexpression <~ ",").+ ~ loopOver <~ "}"
-    ^^ { case colors ~ loop => ColorWithStatement(colors, loop) })
+    ^^ { case colors ~ loop => L4_ColorLoops(colors, loop) })
 
   // ######################################
   // ##### Globals
