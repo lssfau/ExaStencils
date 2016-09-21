@@ -21,8 +21,8 @@ class L4VariableCollector extends Collector {
       case x : L4_IfCondition         => values.+=((new HashMap[String, L4_Datatype]()))
       case x : L4_VariableDeclaration => {
         x.identifier match { // ignore Values in Globals
-          case v : LeveledIdentifier => values.last += ((v.name + "@@" + v.level, x.datatype))
-          case _                     => values.last += ((x.identifier.name, x.datatype))
+          case v : L4_LeveledIdentifier => values.last += ((v.name + "@@" + v.level, x.datatype))
+          case _                        => values.last += ((x.identifier.name, x.datatype))
         }
       }
       case _                          =>
@@ -46,8 +46,8 @@ class L4VariableCollector extends Collector {
     // get globals
     values.+=((new HashMap[String, L4_Datatype]()))
     exastencils.core.StateManager.findAll[L4_GlobalSection]().foreach(_.variableDeclarations.foreach(v => values.head.+=((v.identifier match {
-      case vv : LeveledIdentifier => vv.name + "@@" + vv.level;
-      case _                      => v.identifier.name
+      case vv : L4_LeveledIdentifier => vv.name + "@@" + vv.level;
+      case _                         => v.identifier.name
     }, v.datatype))))
     exastencils.logger.Logger.warn("Vars: " + values)
   }

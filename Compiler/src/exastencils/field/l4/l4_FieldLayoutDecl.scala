@@ -4,8 +4,8 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.prettyprinting._
 
 /// L4_FieldLayoutOption
@@ -25,18 +25,18 @@ case class L4_FieldLayoutOption(
 /// L4_FieldLayoutDecl
 
 object L4_FieldLayoutDecl {
-  def apply(identifier : Identifier, datatype : L4_Datatype, discretization : String, options : List[L4_FieldLayoutOption]) =
+  def apply(identifier : L4_Identifier, datatype : L4_Datatype, discretization : String, options : List[L4_FieldLayoutOption]) =
     new L4_FieldLayoutDecl(identifier, datatype, discretization, options.to[ListBuffer])
 }
 
 case class L4_FieldLayoutDecl(
-    override var identifier : Identifier,
+    override var identifier : L4_Identifier,
     var datatype : L4_Datatype,
     var discretization : String,
-    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_KnowledgeDeclStatement with HasIdentifier {
+    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << "Layout " << identifier.name << "< " << datatype << " >" << '@' << identifier.asInstanceOf[LeveledIdentifier].level << " {\n"
+    out << "Layout " << identifier.name << "< " << datatype << " >" << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level << " {\n"
     out <<< (options, "\n")
     out << "\n}\n"
   }
@@ -115,10 +115,10 @@ case class L4_FieldLayoutDecl(
 
   override def addToKnowledge() = {
     identifier match {
-      case BasicIdentifier(name)                          =>
+      case L4_BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels)
           L4_FieldLayoutCollection.add(composeLayout(level))
-      case LeveledIdentifier(name, L4_SingleLevel(level)) =>
+      case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
         L4_FieldLayoutCollection.add(composeLayout(level))
     }
     None // consume declaration statement

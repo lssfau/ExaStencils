@@ -35,25 +35,12 @@ object L4_LevelList {
 case class L4_LevelList(var levels : HashSet[L4_LevelSpecification]) extends L4_LevelGroup {
   override def prettyprint(out : PpStream) = out << '(' <<< (levels, ", ") << ')'
 
-  def add(level : L4_LevelSpecification) = levels += level
-
   def flatten() : Unit = {
     levels.foreach {
       case elem @ L4_LevelList(x) =>
         levels.++=(x)
         levels.remove(elem)
       case _                      =>
-    }
-  }
-
-  def cleanup() : Unit = {
-    // TODO: will this work if x occurs multiple times?
-    levels.foreach {
-      case elem @ L4_NegatedLevelList(L4_LevelList(x)) => {
-        levels.--=(x)
-        levels.remove(elem)
-      }
-      case _                                           =>
     }
   }
 

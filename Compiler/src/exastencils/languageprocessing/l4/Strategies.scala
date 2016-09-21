@@ -163,8 +163,8 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
 
   case class CombinedIdentifier(var name : String, var level : Int) {}
 
-  def fromIdentifier(ident : Identifier) : CombinedIdentifier = {
-    val level = ident.asInstanceOf[LeveledIdentifier].level.resolveLevel
+  def fromIdentifier(ident : L4_Identifier) : CombinedIdentifier = {
+    val level = ident.asInstanceOf[L4_LeveledIdentifier].level.resolveLevel
     CombinedIdentifier(ident.name, level)
   }
   def fromLeveledAccess(access : Access) : CombinedIdentifier = {
@@ -192,7 +192,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
         if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
           val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
           val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
-            case f : L4_Function if f.identifier.isInstanceOf[LeveledIdentifier]
+            case f : L4_Function if f.identifier.isInstanceOf[L4_LeveledIdentifier]
               && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
             case _                                                                     => false
           }.get
@@ -220,7 +220,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
         if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
           val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
           val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
-            case f : L4_Function if f.identifier.isInstanceOf[LeveledIdentifier]
+            case f : L4_Function if f.identifier.isInstanceOf[L4_LeveledIdentifier]
               && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
             case _                                                                     => false
           }.get

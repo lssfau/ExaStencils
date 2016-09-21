@@ -85,8 +85,8 @@ object L4_InlineGlobalValueDeclarations extends DefaultStrategy("Propagate and i
   this += new Transformation("Collect global value declarations", {
     case globals : L4_GlobalSection =>
       globals.valueDeclarations.foreach(x => x.identifier match {
-        case v : LeveledIdentifier => globalVals += ((v.name + "@@" + v.level, x.initialValue))
-        case _                     => globalVals += ((x.identifier.name, x.initialValue))
+        case v : L4_LeveledIdentifier => globalVals += ((v.name + "@@" + v.level, x.initialValue))
+        case _                        => globalVals += ((x.identifier.name, x.initialValue))
       })
       globals
   })

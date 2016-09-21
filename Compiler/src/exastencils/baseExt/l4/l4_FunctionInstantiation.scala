@@ -13,11 +13,11 @@ import exastencils.prettyprinting._
 /// L4_FunctionInstantiation
 
 object L4_FunctionInstantiation {
-  def apply(templateName : String, args : List[L4_Expression], targetFct : Identifier) =
+  def apply(templateName : String, args : List[L4_Expression], targetFct : L4_Identifier) =
     new L4_FunctionInstantiation(templateName, args.to[ListBuffer], targetFct)
 }
 
-case class L4_FunctionInstantiation(var templateName : String, args : ListBuffer[L4_Expression], targetFct : Identifier) extends L4_Node with PrettyPrintable {
+case class L4_FunctionInstantiation(var templateName : String, args : ListBuffer[L4_Expression], targetFct : L4_Identifier) extends L4_Node with PrettyPrintable {
   override def prettyprint(out : PpStream) = {
     out << "Instantiate " << templateName << " < " <<< (args, ", ") << " > "
     out << " as " << targetFct << "\n"

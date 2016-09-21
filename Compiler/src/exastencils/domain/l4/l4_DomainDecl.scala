@@ -1,11 +1,11 @@
 package exastencils.domain.l4
 
-import exastencils.base.l4.L4_KnowledgeDeclStatement
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.domain._
 import exastencils.knowledge
 import exastencils.knowledge.DomainCollection
+import exastencils.knowledge.l4.L4_KnowledgeDecl
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB
 
@@ -16,7 +16,7 @@ object L4_DomainDecl {
 }
 
 // TODO: refactor - members of type Any, mixed declaration for different domain types, ConstVec usage, etc.
-case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) extends L4_KnowledgeDeclStatement {
+case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) extends L4_KnowledgeDecl {
   override def prettyprint(out : PpStream) = {
     (lower, upper) match {
       case (null, null)                 => out << s"Domain = fromFile($name) \n"

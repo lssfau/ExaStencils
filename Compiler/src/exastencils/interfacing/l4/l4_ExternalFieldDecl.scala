@@ -1,9 +1,9 @@
 package exastencils.interfacing.l4
 
-import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.field.l4._
+import exastencils.knowledge.l4.L4_KnowledgeDecl
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
@@ -12,7 +12,7 @@ import exastencils.prettyprinting.PpStream
 case class L4_ExternalFieldDecl(
     var identifier : String,
     var fieldLayout : String,
-    var targetField : Access) extends L4_KnowledgeDeclStatement {
+    var targetField : Access) extends L4_KnowledgeDecl {
 
   override def prettyprint(out : PpStream) = out << "external Field " << identifier << " <" << fieldLayout << "> => " << targetField << '\n'
 

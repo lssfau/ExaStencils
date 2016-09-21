@@ -113,23 +113,6 @@ case class LeveledAccess(var name : String, var level : L4_AccessLevelSpecificat
   }
 }
 
-abstract class Identifier extends Node {
-  var name : String
-  def fullName : String
-}
-
-case class BasicIdentifier(var name : String) extends Identifier {
-  def prettyprint(out : PpStream) = { out << name }
-
-  def fullName = name
-}
-
-case class LeveledIdentifier(var name : String, var level : L4_LevelSpecification) extends Identifier {
-  def prettyprint(out : PpStream) = { out << name << '@' << level }
-
-  def fullName = name + "_" + level.prettyprint
-}
-
 case class StencilConvolution(var stencilAccess : L4_StencilAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = { out << stencilAccess << " * " << fieldAccess }
 

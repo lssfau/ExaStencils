@@ -2,7 +2,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
-import exastencils.baseExt.l4.L4_ResolveFunctionInstantiations
+import exastencils.baseExt.l4._
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -14,6 +14,7 @@ import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid.{ l4 => _, _ }
 import exastencils.interfacing.l4._
+import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
@@ -173,8 +174,16 @@ object MainStefan {
     GridGeometry.getGeometry.initL4()
 
     // go to IR
-    L4_ResolveFunctionInstantiations.apply() // preparation step
-    UnfoldLevelSpecifications.apply() // preparation step
+    L4_ResolveFunctionInstantiations.apply()
+
+    L4_ResolveLevelSpecifications.apply()
+
+    L4_UnfoldLeveledFunctions.apply()
+    L4_UnfoldLeveledDeclarations.apply()
+    L4_UnfoldLeveledKnowledgeDecls.apply()
+    L4_ResolveLeveledScopes.apply()
+
+    L4_ResolveCurrentLevels.apply()
 
     ResolveL4_Pre.apply()
 

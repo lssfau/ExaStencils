@@ -60,7 +60,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   //###########################################################
 
   lazy val identifierWithOptionalLevel = locationize(ident ~ level.?
-    ^^ { case id ~ level => if (level.isDefined) LeveledIdentifier(id, level.get) else BasicIdentifier(id) })
+    ^^ { case id ~ level => if (level.isDefined) L4_LeveledIdentifier(id, level.get) else L4_BasicIdentifier(id) })
 
   // ######################################
   // ##### Level Specifications
@@ -74,7 +74,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case a ~ b => L4_LevelList(a :+ b) })
 
   lazy val levelsublist = locationize(((levelsingle ||| levelrange ||| levelrelative) <~ ("," ||| "and")).* ~ (levelsingle ||| levelrange ||| levelrelative)
-    ^^ { case a ~ b => var x = L4_LevelList(); a.foreach(x.add(_)); x.add(b); x })
+    ^^ { case a ~ b => L4_LevelList(a :+ b) })
 
   lazy val levelnegation = locationize(("not" ~ "(") ~> levelsublist <~ ")"
     ^^ { L4_NegatedLevelList })
@@ -83,7 +83,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case b ~ e => L4_LevelRange(b, e) })
 
   lazy val levelrelative = locationize(levelsingle ~ ("+" ||| "-") ~ integerLit
-    ^^ { case l ~ op ~ i => L4_RelativeLevel(op, l, i) })
+    ^^ { case l ~ op ~ i => L4_RelativeLevel(l, op, i) })
 
   lazy val levelall = locationize("all" ^^ { _ => L4_AllLevels })
 
@@ -229,7 +229,7 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => L4_Return(exp) })
 
-  lazy val leveledScope = locationize((level <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => LeveledScopeStatement(l, s) })
+  lazy val leveledScope = locationize((level <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => L4_LeveledScope(l, s) })
 
   lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
   lazy val solveLocallyComponent = /*locationize*/ ((genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) })
@@ -261,7 +261,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ { case d => d })
   lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (discretization <~ ">") ~ level.? ~ ("{" ~> layoutOptions <~ "}")
-    ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), dt, disc.toLowerCase, opts) })
+    ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(L4_LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), dt, disc.toLowerCase, opts) })
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
       ||| layoutOption.*)
@@ -269,7 +269,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case id ~ idx ~ comm => L4_FieldLayoutOption(id, idx, comm.isDefined) })
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ level.?
-    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_FieldDecl(LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), domain, layout, boundary, slots.getOrElse(1).toInt) })
+    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_FieldDecl(L4_LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), domain, layout, boundary, slots.getOrElse(1).toInt) })
   lazy val fieldBoundary = binaryexpression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[L4_ConstIndex] = (
@@ -299,7 +299,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val stencilEntry = expressionIndex ~ ("=>" ~> (binaryexpression ||| matrixExpression)) ^^ { case offset ~ weight => L4_StencilEntry(offset, weight) }
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ level.?)
-    ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), f, s) })
+    ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(L4_LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), f, s) })
 
   // ######################################
   // ##### "External" Definitions

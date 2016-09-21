@@ -171,8 +171,16 @@ object Main {
     GridGeometry.getGeometry.initL4()
 
     // go to IR
-    L4_ResolveFunctionInstantiations.apply() // preparation step
-    UnfoldLevelSpecifications.apply() // preparation step
+    L4_ResolveFunctionInstantiations.apply()
+
+    L4_ResolveLevelSpecifications.apply()
+
+    L4_UnfoldLeveledFunctions.apply()
+    L4_UnfoldLeveledDeclarations.apply()
+    L4_UnfoldLeveledKnowledgeDecls.apply()
+    L4_ResolveLeveledScopes.apply()
+
+    L4_ResolveCurrentLevels.apply()
 
     if (true) {
       // TODO: optionalize value resolution

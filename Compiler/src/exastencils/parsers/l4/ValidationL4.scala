@@ -28,9 +28,9 @@ object ValidationL4 {
 
   // No need to transform Domain- and LayoutDeclarationStatements because their names are not outputted.
   s += Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
-    case x : Identifier if (protectedkeywords.contains(x.name))                                              =>
+    case x : L4_Identifier if (protectedkeywords.contains(x.name))                                           =>
       x.name = "user_" + x.name; x
-    case x : Identifier if (x.name.startsWith("_"))                                                          =>
+    case x : L4_Identifier if (x.name.startsWith("_"))                                                       =>
       x.name = "user_" + x.name; x
     case x : UnresolvedAccess if (protectedkeywords.contains(x.name) && !x.hasAnnotation("NO_PROTECT_THIS")) =>
       x.name = "user_" + x.name; x
