@@ -20,7 +20,12 @@ case class IR_StencilConvolution(var stencil : Stencil, var fieldAccess : IR_Fie
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def resolveEntry(idx : Int) : IR_Expression = {
-    stencil.entries(idx).coefficient * IR_FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencil.entries(idx).offset)
+    // fill offset with zeros to match dimensionality of the field access
+    val offset = Duplicate(stencil.entries(idx).offset)
+    while (offset.length < fieldAccess.index.length)
+      offset.indices :+= IR_IntegerConstant(0)
+
+    stencil.entries(idx).coefficient * IR_FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + offset)
   }
 
   override def expand() : Output[IR_Expression] = {
@@ -40,8 +45,13 @@ case class IR_StencilFieldConvolution(var stencilFieldAccess : IR_StencilFieldAc
     val stencilFieldIdx = Duplicate(stencilFieldAccess.index)
     stencilFieldIdx(Knowledge.dimensionality) = idx
 
+    // fill offset with zeros to match dimensionality of the field access
+    val offset = Duplicate(stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
+    while (offset.length < fieldAccess.index.length)
+      offset.indices :+= IR_IntegerConstant(0)
+
     IR_FieldAccess(stencilFieldAccess.stencilFieldSelection.toFieldSelection, stencilFieldIdx) *
-      IR_FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
+      IR_FieldAccess(fieldAccess.fieldSelection, fieldAccess.index + offset)
   }
 
   override def expand() : Output[IR_Expression] = {

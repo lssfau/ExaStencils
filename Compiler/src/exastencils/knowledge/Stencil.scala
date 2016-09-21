@@ -93,7 +93,9 @@ object StencilCollection {
   }
 }
 
-case class StencilField(var identifier : String, var field : Field, var stencil : Stencil) {}
+case class StencilField(var identifier : String, var field : Field, var stencil : Stencil) extends IR_KnowledgeObject {
+  // TODO: add level
+}
 
 object StencilFieldCollection {
   var stencilFields : ListBuffer[StencilField] = ListBuffer()

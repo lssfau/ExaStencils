@@ -19,7 +19,7 @@ case class IR_ContractionSpecification(var posExt : IR_ConstIndex, var negExt : 
 
 /// IR_ContractingLoop
 
-case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Expression], var statements : ListBuffer[IR_Statement],
+case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Expression], var body : ListBuffer[IR_Statement],
     var spec : IR_ContractionSpecification) extends IR_Statement {
   // FIXME: iterator is not used?!
   // TODO: validate spec
@@ -115,7 +115,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
     val fields = new HashMap[FieldKey, Field]()
     var condStmt : IR_IfCondition = null
     for (i <- 1 to number)
-      for (stmt <- statements)
+      for (stmt <- body)
         stmt match {
           case AdvanceSlotStatement(iv.CurrentSlot(field, fragment)) =>
             val fKey = FieldKey(field)

@@ -1,5 +1,6 @@
 package exastencils.core.collectors
 
+import exastencils.base.l4.L4_Function
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.field.l4.L4_FieldDecl
@@ -11,19 +12,19 @@ class L4LevelCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case FunctionStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _) => curLevel = level
-      case L4_FieldDecl(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _, _)   => curLevel = level
-      case L4_StencilDecl(LeveledIdentifier(_, SingleLevelSpecification(level)), _)             => curLevel = level
-      case _                                                                                    =>
+      case L4_Function(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _)     => curLevel = level
+      case L4_FieldDecl(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _, _) => curLevel = level
+      case L4_StencilDecl(LeveledIdentifier(_, SingleLevelSpecification(level)), _)           => curLevel = level
+      case _                                                                                  =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case FunctionStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _) => // due to duplication of functions, functions can be left that were never entered
-      case L4_FieldDecl(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _, _)   => //
-      case L4_StencilDecl(LeveledIdentifier(_, SingleLevelSpecification(level)), _)             => //
-      case _                                                                                    =>
+      case L4_Function(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _)     => // due to duplication of functions, functions can be left that were never entered
+      case L4_FieldDecl(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _, _) => //
+      case L4_StencilDecl(LeveledIdentifier(_, SingleLevelSpecification(level)), _)           => //
+      case _                                                                                  =>
     }
   }
 

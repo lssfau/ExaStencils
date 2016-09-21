@@ -3,7 +3,7 @@ package exastencils.field.l4
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.knowledge._
-import exastencils.knowledge.l4.L4_HasIdentifierAndLevel
+import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -60,7 +60,7 @@ case class L4_FieldLayout(
     var communicatesGhosts : Boolean,
     var duplicateLayers : L4_ConstIndex,
     var communicatesDuplicated : Boolean,
-    var innerPoints : L4_ConstIndex) extends L4_HasIdentifierAndLevel {
+    var innerPoints : L4_ConstIndex) extends L4_KnowledgeObjectWithIdentAndLevel {
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Layout " << identifier << "< "
