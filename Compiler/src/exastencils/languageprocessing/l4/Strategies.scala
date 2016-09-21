@@ -191,11 +191,10 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
       if (field.boundary.isDefined) {
         if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
           val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
-          val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
-            case f : L4_Function if f.identifier.isInstanceOf[L4_LeveledIdentifier]
-              && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
-            case _                                                                     => false
-          }.get
+          val fctDecl = StateManager.findFirst({
+            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
+              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.identifier))
+          }).get
           if (fctDecl.returntype eq L4_UnitDatatype) {
             bcs(CombinedIdentifier(field.identifier, field.level)) = fctCall
           }
@@ -219,11 +218,10 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
       if (field.boundary.isDefined) {
         if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
           val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
-          val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
-            case f : L4_Function if f.identifier.isInstanceOf[L4_LeveledIdentifier]
-              && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
-            case _                                                                     => false
-          }.get
+          val fctDecl = StateManager.findFirst({
+            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
+              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.identifier))
+          }).get
           if (fctDecl.returntype eq L4_UnitDatatype) {
             bcs(fromIdentifier(field.identifier)) = fctCall
           }

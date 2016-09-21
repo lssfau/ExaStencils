@@ -127,22 +127,22 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
   // injection of  missing l4 information for virtual fields and generation of setup code
   override def initL4 = {
-    val root = StateManager.root_.asInstanceOf[Root]
-    root.otherNodes += L4_FieldLayoutDecl(
+    val root = StateManager.root_.asInstanceOf[L4_Root]
+    root.nodes += L4_FieldLayoutDecl(
       L4_LeveledIdentifier("DefNodeLineLayout_x", L4_AllLevels),
       L4_RealDatatype, "Edge_Node".toLowerCase(),
       ListBuffer(
         L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(2, 0, 0), false),
         L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(1, 0, 0), false),
         L4_FieldLayoutOption("innerPoints", L4_ConstIndex((1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_x - 1, 1, 1), false)))
-    root.otherNodes += L4_FieldLayoutDecl(
+    root.nodes += L4_FieldLayoutDecl(
       L4_LeveledIdentifier("DefNodeLineLayout_y", L4_AllLevels),
       L4_RealDatatype, "Edge_Node".toLowerCase(),
       ListBuffer(
         L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 2, 0), false),
         L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 1, 0), false),
         L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_y - 1, 1), false)))
-    root.otherNodes += L4_FieldLayoutDecl(
+    root.nodes += L4_FieldLayoutDecl(
       L4_LeveledIdentifier("DefNodeLineLayout_z", L4_AllLevels),
       L4_RealDatatype, "Edge_Node".toLowerCase(),
       ListBuffer(
@@ -150,13 +150,13 @@ trait GridGeometry_nonUniform extends GridGeometry {
         L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 0, 1), false),
         L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1), false)))
 
-    root.otherNodes += L4_FieldDecl(
+    root.nodes += L4_FieldDecl(
       L4_LeveledIdentifier("node_pos_x", L4_AllLevels), "global", "DefNodeLineLayout_x", None, 1, 0)
     if (Knowledge.dimensionality > 1)
-      root.otherNodes += L4_FieldDecl(
+      root.nodes += L4_FieldDecl(
         L4_LeveledIdentifier("node_pos_y", L4_AllLevels), "global", "DefNodeLineLayout_y", None, 1, 0)
     if (Knowledge.dimensionality > 2)
-      root.otherNodes += L4_FieldDecl(
+      root.nodes += L4_FieldDecl(
         L4_LeveledIdentifier("node_pos_z", L4_AllLevels), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 
@@ -408,15 +408,15 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     super.initL4 // set basic stuff
 
     // extend with info required by staggered grid
-    val root = StateManager.root_.asInstanceOf[Root]
+    val root = StateManager.root_.asInstanceOf[L4_Root]
 
-    root.otherNodes += L4_FieldDecl(
+    root.nodes += L4_FieldDecl(
       L4_LeveledIdentifier("stag_cv_width_x", L4_FinestLevel), "global", "DefNodeLineLayout_x", None, 1, 0)
     if (Knowledge.dimensionality > 1)
-      root.otherNodes += L4_FieldDecl(
+      root.nodes += L4_FieldDecl(
         L4_LeveledIdentifier("stag_cv_width_y", L4_FinestLevel), "global", "DefNodeLineLayout_y", None, 1, 0)
     if (Knowledge.dimensionality > 2)
-      root.otherNodes += L4_FieldDecl(
+      root.nodes += L4_FieldDecl(
         L4_LeveledIdentifier("stag_cv_width_z", L4_FinestLevel), "global", "DefNodeLineLayout_z", None, 1, 0)
   }
 

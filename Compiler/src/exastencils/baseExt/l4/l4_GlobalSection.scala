@@ -49,8 +49,8 @@ object L4_UnifyGlobalSections extends DefaultStrategy("Unify all global sections
   // FIXME: use transformation below instead of overriding apply -> requires ability to match root node
   override def apply(applyAtNode : Option[Node]) = {
     super.apply(applyAtNode)
-    val root = StateManager.root.asInstanceOf[Root]
-    root.otherNodes += unifiedGlobalSection
+    val root = StateManager.root.asInstanceOf[L4_Root]
+    root.nodes += unifiedGlobalSection
     // reset unifiedGlobalSection for potential subsequent runs
     unifiedGlobalSection = L4_GlobalSection()
   }

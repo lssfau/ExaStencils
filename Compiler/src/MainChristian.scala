@@ -148,7 +148,7 @@ object MainChristian {
 
     if (false) // re-print the merged L4 state
     {
-      val L4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
+      val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
       outFile.write((Indenter.addIndentations(L4_printed)))

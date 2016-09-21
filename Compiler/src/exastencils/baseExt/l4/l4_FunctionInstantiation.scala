@@ -36,7 +36,7 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
 
       ReplaceExpressions.replacements = Map() ++ (template.templateArgs zip functionInst.args).toMap[String, L4_Expression]
       ReplaceExpressions.applyStandalone(instantiated)
-      StateManager.root.asInstanceOf[Root].functions += instantiated
+      StateManager.root.asInstanceOf[L4_Root].nodes += instantiated
 
       None // consume instantiation
     }

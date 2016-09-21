@@ -53,9 +53,9 @@ class ParserL4 extends ExaParser with PackratParsers {
   //###########################################################
 
   lazy val program = ((import_ ||| domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
-    ^^ { case d => Root()(d) })
+    ^^ { L4_Root(_) })
 
-  lazy val import_ = "import" ~> stringLit ^^ { case path => parseFile(path).asInstanceOf[Root] }
+  lazy val import_ = "import" ~> stringLit ^^ { path => parseFile(path).asInstanceOf[L4_Root] }
 
   //###########################################################
 
