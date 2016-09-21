@@ -3,6 +3,7 @@ package exastencils.languageprocessing.l4
 import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.base.l4._
+import exastencils.baseExt.l4._
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.datastructures.Transformation._
@@ -256,8 +257,8 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
       var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>
         CommunicateStatement(comm._1, "both", List(/* FIXME: add radius */), None)).toList
 
-      LoopOverFragmentsStatement(List(
-        LoopOverPointsStatement(lhs, None, false, None, None, None, None, List(assignment), None, commStatements, List())),
+      L4_LoopOverFragments(List(
+        L4_LoopOverField(lhs, None, false, None, None, None, None, List(assignment), None, commStatements, List())),
         None)
     }
 

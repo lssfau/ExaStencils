@@ -176,7 +176,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       var hostCondStmt : IR_IfCondition = null
       var deviceCondStmt : IR_IfCondition = null
 
-      val containedLoop = cl.statements.find(s =>
+      val containedLoop = cl.body.find(s =>
         s.isInstanceOf[IR_IfCondition] || s.isInstanceOf[IR_LoopOverDimensions]) match {
         case Some(IR_IfCondition(cond, trueBody : ListBuffer[IR_Statement], ListBuffer())) =>
           val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
@@ -204,7 +204,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
       // resolve contracting loop
       for (i <- 1 to cl.number)
-        for (stmt <- cl.statements)
+        for (stmt <- cl.body)
           stmt match {
             case AdvanceSlotStatement(iv.CurrentSlot(field, fragment)) =>
               val fKey = (field.identifier, field.level)

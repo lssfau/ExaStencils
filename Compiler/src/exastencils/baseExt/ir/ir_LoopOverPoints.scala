@@ -14,7 +14,7 @@ import exastencils.prettyprinting.PpStream
 
 /// IR_RegionSpecification
 
-case class IR_RegionSpecification(var region : String, var dir : IR_ConstIndex, var onlyOnBoundary : Boolean)
+case class IR_RegionSpecification(var region : String, var dir : IR_ConstIndex, var onlyOnBoundary : Boolean) extends IR_Node
 
 /// IR_LoopOverPoints
 
