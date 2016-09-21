@@ -8,13 +8,12 @@ import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
-import exastencils.domain.l4.L4_HACK_ProcessDomainDeclarations
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.l4._
 import exastencils.globals._
+import exastencils.grid.l4.L4_ResolveVirtualFieldAccesses
 import exastencils.grid.{ l4 => _, _ }
-import exastencils.interfacing.l4._
-import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
+import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
@@ -162,13 +161,15 @@ object MainStefan {
       outFile.close()
 
       // re-parse the file to check for errors
-      var parserl4 = new ParserL4
+      val parserl4 = new ParserL4
       StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
       ValidationL4.apply
     }
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 4")
+
+    L4_UnifyGlobalSections.apply()
 
     // add specialized fields for geometric data - TODO: decide if better left here or moved to ir
     GridGeometry.getGeometry.initL4()
@@ -185,26 +186,45 @@ object MainStefan {
 
     L4_ResolveCurrentLevels.apply()
 
+    if (true) {
+      // TODO: optionalize value resolution
+      L4_InlineValueDeclarations.apply()
+      // resolve globals AFTER L4_InlineValueDeclarations (lower precedence than local values!)
+      L4_InlineGlobalValueDeclarations.apply()
+    }
+    L4_ResolveVirtualFieldAccesses.apply()
     ResolveL4_Pre.apply()
 
-    L4_HACK_ProcessDomainDeclarations.apply()
-    L4_ProcessStencilDeclarations.apply()
-    L4_ProcessFieldLayoutDeclarations.apply()
-    L4_ProcessFieldDeclarations.apply()
-    L4_ProcessExternalFieldDeclarations.apply()
+    L4_ProcessKnowledgeDeclarations.apply()
 
     if (Knowledge.ir_genSepLayoutsPerField)
       L4_DuplicateFieldLayoutsForFields.apply()
 
+    L4_ResolveFieldAccesses.apply()
+    L4_ResolveStencilAccesses.apply()
+    L4_ResolveStencilFieldAccesses.apply()
     ResolveL4_Post.apply()
 
     /// BEGIN HACK: progress expression in knowledge
-    for (obj <- L4_StencilCollection.objects)
-      for (entry <- obj.entries)
-        ResolveL4_Post.apply(Some(entry))
-    for (obj <- L4_FieldCollection.objects)
-      if (obj.boundary.isDefined)
-        ResolveL4_Post.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+    {
+      val oldLoggerLevel = Logger.getLevel
+      Logger.setLevel(Logger.WARNING)
+      for (obj <- L4_StencilCollection.objects)
+        for (entry <- obj.entries) {
+          L4_ResolveFieldAccesses.apply(Some(entry))
+          L4_ResolveStencilAccesses.apply(Some(entry))
+          L4_ResolveStencilFieldAccesses.apply(Some(entry))
+          ResolveL4_Post.apply(Some(entry))
+        }
+      for (obj <- L4_FieldCollection.objects)
+        if (obj.boundary.isDefined) {
+          L4_ResolveFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+          L4_ResolveStencilAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+          L4_ResolveStencilFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+          ResolveL4_Post.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
+        }
+      Logger.setLevel(oldLoggerLevel)
+    }
     /// END HACK: progress expression in knowledge
 
     ResolveBoundaryHandlingFunctions.apply()
@@ -212,12 +232,10 @@ object MainStefan {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    L4_FieldLayoutCollection.progress
+    L4_ProgressKnowledge.apply()
+
     if (Knowledge.data_alignFieldPointers)
       IR_AddPaddingToFieldLayouts
-    L4_FieldCollection.progress
-    L4_ExternalFieldCollection.progress
-    L4_StencilCollection.progress
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
@@ -281,6 +299,10 @@ object MainStefan {
 
     TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
+
+    if (Knowledge.experimental_memoryDistanceAnalysis) {
+      AnalyzeIterationDistance()
+    }
 
     if (Knowledge.kerncraftExport) {
       KerncraftExport.apply()

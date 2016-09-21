@@ -96,18 +96,23 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
   //  * example: [z,y,y] should map to [0,0,0] since y is a constant in the inner-loop
 
   var curLoop : IR_LoopOverDimensions = null
+  var curFun : IR_Function = null
 
   val loopCollector = new Collector {
     override def leave(node : Node) : Unit = {
       node match {
+        case fun : IR_Function => curFun = null
         case loop : IR_LoopOverDimensions => curLoop = null
           println("============================================")
+          println("loop in function " + curFun.name)
+          println("loop stepSize "+ loop.stepSize.prettyprint())
         case _                            =>
       }
     }
 
     override def enter(node : Node) : Unit = {
       node match {
+        case fun : IR_Function => curFun = fun
         case loop : IR_LoopOverDimensions => curLoop = loop
         case _                            =>
       }
@@ -126,14 +131,15 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
     case fa : IR_MultiDimFieldAccess =>
 
       if (null != curLoop) {
-        println(fa.index)
         val field = fa.fieldSelection.field
         // Array of number of iterations per dimension
         val iterSpace = curLoop.maxIterationCount()
         val numDims = fa.fieldSelection.fieldLayout.numDimsGrid
+        val fieldAccess = Duplicate(fa)
+        SimplifyStrategy.doUntilDoneStandalone(fieldAccess)
+        println(fa.fieldSelection.field.codeName + fieldAccess.index.prettyprint())
         val offsets = (0 to numDims - 1).map({ dim => // loop over dimensions
-          val indexExpr = Duplicate(fa.index.indices(dim))
-          SimplifyStrategy.doUntilDoneStandalone(indexExpr)
+          val indexExpr = fieldAccess.index.indices(dim)
           AnalyzeSubscriptExpression(indexExpr, dim, iterSpace)
         }).toList
         println(s"subscript offsets: $offsets")
@@ -205,7 +211,8 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
 
       case IR_SubtractionExpression(left, right) => addTerm(left, true) + addTerm(right, false)
 
-      case IR_MultiplicationExpression(factors) => InfiniteIndexOffset()
+      case _ : IR_MultiplicationExpression => InfiniteIndexOffset()
+      case _ : IR_DivisionExpression => InfiniteIndexOffset()
       case va : IR_VariableAccess               => addTerm(va, true)
 
     }
@@ -240,10 +247,18 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
       case IR_NegativeExpression(IR_IntegerConstant(x))          => signedConstantIndexOffset(x, !sign)
 
       // nested expressions -> not simplfied to (a * x + b) -> non-constant offset
-      case IR_AdditionExpression(_)       => InfiniteIndexOffset()
-      case IR_MultiplicationExpression(_) => InfiniteIndexOffset()
+      case ex : IR_AdditionExpression       => InfiniteIndexOffset()
+      case ex : IR_MultiplicationExpression => InfiniteIndexOffset()
+      case ex : IR_DivisionExpression     => InfiniteIndexOffset()
+      case IR_ModuloExpression(left, right) =>
+        right match {
+          case IR_IntegerConstant(v) =>
+            val c = math.signum(v)*(math.abs(v)-1)
+            ConstantIndexOffset(c)
+          case _ => InfiniteIndexOffset()
+        }
 
-      case _ => throw new Exception("Unhandled expression")
+      case _ => throw new Exception("Unhandled expression, " + t.getClass.getCanonicalName)
     }
 
   }
