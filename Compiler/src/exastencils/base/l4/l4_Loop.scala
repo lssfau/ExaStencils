@@ -3,19 +3,18 @@ package exastencils.base.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.datastructures.l4.Access
 import exastencils.prettyprinting.PpStream
 
 /// L4_ForLoop
 
 object L4_ForLoop {
-  def apply(number : Int, iterator : Option[Access], body : List[L4_Statement]) =
+  def apply(number : Int, iterator : Option[L4_Access], body : List[L4_Statement]) =
     new L4_ForLoop(number, iterator, body.to[ListBuffer])
 }
 
 case class L4_ForLoop(
     var number : Int,
-    var iterator : Option[Access],
+    var iterator : Option[L4_Access],
     var body : ListBuffer[L4_Statement]) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {

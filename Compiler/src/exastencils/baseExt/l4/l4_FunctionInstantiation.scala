@@ -5,7 +5,6 @@ import scala.collection.mutable._
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.languageprocessing.l4.ReplaceExpressions
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
@@ -32,13 +31,12 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
       val templateOpt = StateManager.findFirst({ f : L4_FunctionTemplate => f.name == functionInst.templateName })
       if (templateOpt.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
       val template = templateOpt.get
-      var instantiated = Duplicate(L4_Function(functionInst.targetFct, template.returntype, template.functionArgs, template.statements))
+      val instantiated = Duplicate(L4_Function(functionInst.targetFct, template.returntype, template.functionArgs, template.statements))
 
       ReplaceExpressions.replacements = Map() ++ (template.templateArgs zip functionInst.args).toMap[String, L4_Expression]
       ReplaceExpressions.applyStandalone(instantiated)
-      StateManager.root.asInstanceOf[L4_Root].nodes += instantiated
 
-      None // consume instantiation
+      instantiated // replace instantiation with function declaration
     }
   })
 

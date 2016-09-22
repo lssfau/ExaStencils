@@ -8,7 +8,6 @@ import exastencils.core._
 import exastencils.core.collectors.StatementCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 
 object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking for function inside statements") {
   val collector = new StatementCollector
@@ -48,7 +47,7 @@ object FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking 
       }
 
       // adapt name
-      fct.name = fct.name.toLowerCase() + "_"
+      fct.function.name = fct.function.name.toLowerCase() + "_"
 
       // return
       fct

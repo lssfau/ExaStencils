@@ -59,16 +59,16 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
     def numGhostInternalRight(dim : Integer) = internal.idxById("GRE", dim) - internal.idxById("DRE", dim)
     def numGhostExternalRight(dim : Integer) = external.idxById("GRE", dim) - external.idxById("DRE", dim)
     def idxBegin(dim : Integer) : IR_Expression =
-      internal.idxById("DLB", dim) - new IR_MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
+      internal.idxById("DLB", dim) - IR_MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
     def idxEnd(dim : Integer) : IR_Expression =
-      internal.idxById("DRE", dim) + new IR_MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
+      internal.idxById("DRE", dim) + IR_MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
     def offsetForExtField = IR_ExpressionIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim) : IR_Expression).toArray)
 
     // compile final function
     new IR_Function(IR_UnitDatatype, name,
-      ListBuffer(new IR_FunctionArgument("dest", externalDT), new IR_FunctionArgument("slot", IR_IntegerDatatype)),
+      ListBuffer(IR_FunctionArgument("dest", externalDT), IR_FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
-        new IR_LoopOverDimensions(loopDim, new IndexRange(
+        new IR_LoopOverDimensions(loopDim, IndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
           ListBuffer[IR_Statement](IR_Assignment(IR_ExternalFieldAccess("dest", dest, multiIndex + offsetForExtField),
@@ -108,16 +108,16 @@ case class SetFromExternalField(var dest : Field, var src : ExternalField) exten
     def numGhostInternalRight(dim : Integer) = internal.idxById("GRE", dim) - internal.idxById("DRE", dim)
     def numGhostExternalRight(dim : Integer) = external.idxById("GRE", dim) - external.idxById("DRE", dim)
     def idxBegin(dim : Integer) : IR_Expression =
-      internal.idxById("DLB", dim) - new IR_MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
+      internal.idxById("DLB", dim) - IR_MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
     def idxEnd(dim : Integer) : IR_Expression =
-      internal.idxById("DRE", dim) + new IR_MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
+      internal.idxById("DRE", dim) + IR_MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
     def offsetForExtField = IR_ExpressionIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim) : IR_Expression).toArray)
 
     // compile final function
     new IR_Function(IR_UnitDatatype, name,
-      ListBuffer(new IR_FunctionArgument("src", externalDT), new IR_FunctionArgument("slot", IR_IntegerDatatype)),
+      ListBuffer(IR_FunctionArgument("src", externalDT), IR_FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
-        new IR_LoopOverDimensions(loopDim, new IndexRange(
+        new IR_LoopOverDimensions(loopDim, IndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
           ListBuffer[IR_Statement](IR_Assignment(IR_DirectFieldAccess(FieldSelection(dest, dest.level, "slot"), multiIndex),

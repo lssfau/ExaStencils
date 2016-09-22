@@ -42,12 +42,23 @@ case class L4_Function(
 /// L4_FunctionCall
 
 object L4_FunctionCall {
-  def apply(identifier : Access, arguments : L4_Expression*) = new L4_FunctionCall(identifier, arguments.to[ListBuffer])
+  def apply(function : L4_Access, arguments : L4_Expression*) = new L4_FunctionCall(function, arguments.to[ListBuffer])
 }
 
-case class L4_FunctionCall(var identifier : Access, var arguments : ListBuffer[L4_Expression]) extends L4_Expression {
-  def prettyprint(out : PpStream) = out << identifier << " ( " <<< (arguments, ", ") << " )"
-  def progress = IR_FunctionCall(identifier.progress.asInstanceOf[IR_StringLiteral].value, arguments.map(s => s.progress))
+case class L4_FunctionCall(var function : L4_Access, var arguments : ListBuffer[L4_Expression]) extends L4_Expression {
+  def prettyprint(out : PpStream) = out << function << " ( " <<< (arguments, ", ") << " )"
+  def progress : IR_FunctionCall = {
+    function match {
+      case access : L4_FunctionAccess =>
+        IR_FunctionCall(access.progress, arguments.map(s => s.progress))
+      case access : BasicAccess       =>
+        Logger.warn("Found function call without resolved access " + access.name)
+        IR_FunctionCall(access.name, arguments.map(s => s.progress))
+      case access : LeveledAccess     =>
+        Logger.warn("Found leveled function call without resolved access " + access.name + " on level " + access.level.resolveLevel)
+        IR_FunctionCall(access.name + "_" + access.level.resolveLevel, arguments.map(s => s.progress))
+    }
+  }
 }
 
 /// L4_Return
@@ -98,6 +109,8 @@ object L4_UnfoldLeveledFunctions extends DefaultStrategy("Unfold leveled functio
           if (!functions.contains(toDuplicate.identifier.name, level)) {
             duplicated += duplicateInstance(L4_SingleLevel(level))
             functions += ((toDuplicate.identifier.name, level))
+          } else {
+            Logger.warn("Potentially shadowed function " + toDuplicate.identifier.name + " on level " + level)
           }
       case _                                                                               =>
         Logger.error(s"Invalid level specification for Value $toDuplicate: $level")

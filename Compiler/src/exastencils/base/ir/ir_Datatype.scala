@@ -4,6 +4,8 @@ import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
+/// IR_Datatype
+
 trait IR_Datatype extends IR_Node with PrettyPrintable {
   def prettyprint_mpi : String
 
@@ -14,6 +16,23 @@ trait IR_Datatype extends IR_Node with PrettyPrintable {
   def resolveDeclPostscript : String
   def resolveFlattendSize : Int
   def typicalByteSize : Int
+}
+
+/// IR_UnitDatatype
+
+case object IR_UnknownDatatype extends IR_Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
+
+  override def prettyprint(out : PpStream) : Unit = out << "???"
+  override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
+
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
+  override def resolveBaseDatatype : IR_Datatype = this
+  override def resolveDeclType : IR_Datatype = this
+  override def resolveDeclPostscript : String = ""
+  override def resolveFlattendSize : Int = 0
+  override def typicalByteSize = 0
 }
 
 /// special data types

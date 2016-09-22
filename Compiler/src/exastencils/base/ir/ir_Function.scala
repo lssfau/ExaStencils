@@ -71,20 +71,29 @@ case class IR_Function(
 /// IR_FunctionCall
 
 object IR_FunctionCall {
-  def apply(name : String, args : IR_Expression*) = new IR_FunctionCall(name, args.to[ListBuffer])
+  def apply(function : IR_FunctionAccess, args : IR_Expression*) = new IR_FunctionCall(function, args.to[ListBuffer])
+
+  @deprecated("Used for backwards compatibility - to be removed", "22.09.16")
+  def apply(functionName : String, args : IR_Expression*)
+  = new IR_FunctionCall(IR_FunctionAccess(functionName, IR_UnitDatatype), args.to[ListBuffer])
+  @deprecated("Used for backwards compatibility - to be removed", "22.09.16")
+  def apply(functionName : String, args : ListBuffer[IR_Expression])
+  = new IR_FunctionCall(IR_FunctionAccess(functionName, IR_UnitDatatype), args)
 }
 
-case class IR_FunctionCall(var name : String, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+case class IR_FunctionCall(var function : IR_FunctionAccess, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
+  def name = function.name
+
   override def datatype = {
     // TODO: special nodes for special functions
-    name match {
+    function.name match {
       case "diag" | "diag_inv" | "diag_inverse" => arguments(0).datatype
       case "inv" | "inverse"                    => arguments(0).datatype
       case "Vec3"                               => IR_UnitDatatype
       case _                                    => {
-        val fct = StateManager.findAll[IR_Function]((t : IR_Function) => { t.name == this.name })
+        val fct = StateManager.findAll[IR_Function]((t : IR_Function) => { t.name == function.name })
         if (fct.length <= 0) {
-          Logger.warn(s"""Did not find function '${ name }'""")
+          Logger.warn(s"""Did not find function '${ function.name }'""")
           IR_UnitDatatype
         } else {
           fct(0).returntype
@@ -93,7 +102,7 @@ case class IR_FunctionCall(var name : String, var arguments : ListBuffer[IR_Expr
     }
   }
 
-  override def prettyprint(out : PpStream) : Unit = out << name << '(' <<< (arguments, ", ") << ')'
+  override def prettyprint(out : PpStream) : Unit = out << function << '(' <<< (arguments, ", ") << ')'
 }
 
 /// IR_Return

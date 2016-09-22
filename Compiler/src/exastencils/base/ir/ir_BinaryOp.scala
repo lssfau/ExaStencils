@@ -268,8 +268,6 @@ object IR_MinimumExpression {
 }
 
 case class IR_MinimumExpression(var args : ListBuffer[IR_Expression]) extends IR_Expression {
-  def this(varargs : IR_Expression*) = this(varargs.to[ListBuffer])
-
   override def datatype = {
     var ret = args(0).datatype
     args.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
@@ -288,8 +286,6 @@ object IR_MaximumExpression {
 }
 
 case class IR_MaximumExpression(var args : ListBuffer[IR_Expression]) extends IR_Expression {
-  def this(varargs : IR_Expression*) = this(varargs.to[ListBuffer])
-
   override def datatype = {
     var ret = args(0).datatype
     args.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))

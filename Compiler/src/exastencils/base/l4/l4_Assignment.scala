@@ -1,14 +1,13 @@
 package exastencils.base.l4
 
 import exastencils.base.ir._
-import exastencils.datastructures.l4.Access
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// L4_Assignment
 
 // TODO: use specialized compound assignment and eliminate op member
-case class L4_Assignment(var dest : Access, var src : L4_Expression, var op : String) extends L4_Statement {
+case class L4_Assignment(var dest : L4_Access, var src : L4_Expression, var op : String) extends L4_Statement {
   override def prettyprint(out : PpStream) = out << dest << ' ' << op << ' ' << src << '\n'
   override def progress = IR_Assignment(dest.progress, src.progress, op)
 }

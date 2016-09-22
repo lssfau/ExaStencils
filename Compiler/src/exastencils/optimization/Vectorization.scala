@@ -653,7 +653,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           exprs.enqueue(IR_SIMD_Maximum(exprs.dequeue(), exprs.dequeue()))
         exprs.dequeue()
 
-      case IR_FunctionCall(func, args) if (SIMD_MathFunctions.isAllowed(func)) =>
+      // TODO: datatypes of function accesses relevant?
+      case IR_FunctionCall(IR_FunctionAccess(func, _), args) if (SIMD_MathFunctions.isAllowed(func)) =>
         IR_FunctionCall(SIMD_MathFunctions.addUsage(func), args.map { arg => vectorizeExpr(arg, ctx) })
 
       case IR_PowerExpression(base, exp) if (SIMD_MathFunctions.isAllowed("pow")) =>

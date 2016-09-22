@@ -41,12 +41,11 @@ object L4_ResolveLevelSpecifications extends DefaultStrategy("Resolve level spec
 
   // convert level ranges to level lists
   this += new Transformation("Resolve level ranges", {
-    case L4_LevelRange(L4_SingleLevel(begin), L4_SingleLevel(end)) =>
-      L4_LevelList((begin to end).map(L4_SingleLevel).toList)
+    case L4_LevelRange(L4_SingleLevel(begin), L4_SingleLevel(end)) => L4_LevelList((begin to end).map(L4_SingleLevel).toList)
     case levels : L4_LevelRange                                    => Logger.error("Unsupported variant of L4_LevelRange found: " + levels)
   })
 
-  // flatten level lists and incorporate XXX
+  // flatten level lists and incorporate negated level lists
   this += new Transformation("Process level lists", {
     case levels : L4_LevelList =>
       // resolve lists of lists

@@ -66,16 +66,12 @@ case class MatrixExpression(var datatype : Option[L4_Datatype], var expressions 
   def isConstant = expressions.filter(_.isConstant).length == expressions.length
 }
 
-abstract class Access() extends L4_Expression {
-  def name : String
-}
-
 case class UnresolvedAccess(var name : String,
     var slot : Option[L4_SlotSpecification],
     var level : Option[L4_AccessLevelSpecification],
     var offset : Option[L4_ExpressionIndex],
     var arrayIndex : Option[Int],
-    var dirAccess : Option[L4_ExpressionIndex]) extends Access {
+    var dirAccess : Option[L4_ExpressionIndex]) extends L4_Access {
   def prettyprint(out : PpStream) = {
     out << name
     if (slot.isDefined) out << '[' << slot.get << ']'
@@ -100,15 +96,19 @@ case class UnresolvedAccess(var name : String,
   }
 }
 
-case class BasicAccess(var name : String) extends Access {
+case class BasicAccess(var name : String) extends L4_Access {
   def prettyprint(out : PpStream) = { out << name }
-  def progress : IR_StringLiteral = { IR_StringLiteral(name) }
+  def progress : IR_StringLiteral = {
+    Logger.warn(s"Progressing BasicAccess $name")
+    IR_StringLiteral(name)
+  }
 }
 
-case class LeveledAccess(var name : String, var level : L4_AccessLevelSpecification) extends Access {
+case class LeveledAccess(var name : String, var level : L4_AccessLevelSpecification) extends L4_Access {
   def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
 
   def progress : IR_Expression = {
+    Logger.warn(s"Progressing LeveledAccess $name on level $level")
     IR_StringLiteral(name + "_" + level.resolveLevel)
   }
 }

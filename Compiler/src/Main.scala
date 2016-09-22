@@ -11,7 +11,7 @@ import exastencils.datastructures._
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.l4._
 import exastencils.globals._
-import exastencils.grid.l4.L4_ResolveVirtualFieldAccesses
+import exastencils.grid.l4._
 import exastencils.grid.{ l4 => _, _ }
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
@@ -29,7 +29,9 @@ import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
 import exastencils.stencil.l4._
 import exastencils.strategies._
+import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
+import exastencils.util.l4.L4_ResolveMathFunctions
 
 object Main {
   def initialize(args : Array[String]) = {
@@ -192,6 +194,11 @@ object Main {
       L4_InlineGlobalValueDeclarations.apply()
     }
     L4_ResolveVirtualFieldAccesses.apply()
+    L4_ResolveVariableAccesses.apply()
+    L4_ResolveFunctionAccesses.apply()
+    L4_ResolveMathFunctions.apply()
+    L4_ResolveTimerFunctions.apply()
+    L4_ResolveGridFunctions.apply()
     ResolveL4_Pre.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()

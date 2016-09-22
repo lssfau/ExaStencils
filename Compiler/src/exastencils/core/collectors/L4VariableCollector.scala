@@ -5,7 +5,6 @@ import scala.collection.mutable.{ Node => _, _ }
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 
 class L4VariableCollector extends Collector {
   private var values = new ListBuffer[HashMap[String, L4_Datatype]]()
@@ -49,7 +48,6 @@ class L4VariableCollector extends Collector {
       case vv : L4_LeveledIdentifier => vv.name + "@@" + vv.level;
       case _                         => v.identifier.name
     }, v.datatype))))
-    exastencils.logger.Logger.warn("Vars: " + values)
   }
 
   def getValue(name : String) : Option[L4_Datatype] = {
@@ -61,6 +59,8 @@ class L4VariableCollector extends Collector {
     }
     dt
   }
+
+  def exists(name : String) = getValue(name).isDefined
 
   override def toString = "[L4VariableCollector]: " + values.toString()
 }

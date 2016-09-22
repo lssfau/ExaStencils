@@ -12,7 +12,7 @@ import exastencils.knowledge
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
-case class L4_VirtualFieldAccess(var name : String, var level : L4_AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends Access {
+case class L4_VirtualFieldAccess(var name : String, var level : L4_AccessLevelSpecification, var arrayIndex : Option[Int] = None, var offset : Option[L4_ExpressionIndex] = None) extends L4_Access {
   def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'

@@ -44,7 +44,7 @@ case class L4_LevelList(var levels : HashSet[L4_LevelSpecification]) extends L4_
     }
   }
 
-  def contains(level : Int) = levels.exists({ case L4_SingleLevel(`level`) => true })
+  def contains(level : Int) = levels.exists({ case L4_SingleLevel(`level`) => true; case _ => false })
 }
 
 /// L4_NegatedLevelList

@@ -3,7 +3,7 @@ package exastencils.base.l4
 import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_GlobalSection
 import exastencils.core.Duplicate
-import exastencils.core.collectors.L4ValueCollector
+import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.logger.Logger

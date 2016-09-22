@@ -3,6 +3,8 @@ package exastencils.base.l4
 import exastencils.base.ir._
 import exastencils.prettyprinting._
 
+/// L4_Datatype
+
 trait L4_Datatype extends L4_Node with PrettyPrintable with L4_Progressable {
   override def progress : IR_Datatype
 
@@ -12,6 +14,22 @@ trait L4_Datatype extends L4_Node with PrettyPrintable with L4_Progressable {
   def resolveDeclType : L4_Datatype
   def resolveFlattendSize : Int
   def typicalByteSize : Int
+}
+
+/// L4_UnknownDatatype
+
+case object L4_UnknownDatatype extends L4_Datatype {
+  exastencils.core.Duplicate.registerConstant(this)
+
+  override def prettyprint(out : PpStream) : Unit = out << "???"
+  override def progress = IR_UnknownDatatype
+
+  override def dimensionality : Int = 0
+  override def getSizeArray : Array[Int] = Array()
+  override def resolveBaseDatatype : L4_Datatype = this
+  override def resolveDeclType : L4_Datatype = this
+  override def resolveFlattendSize : Int = 0
+  override def typicalByteSize = 0
 }
 
 /// special data types

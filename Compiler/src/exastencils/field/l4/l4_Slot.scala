@@ -4,7 +4,6 @@ import exastencils.base.ir.IR_StringLiteral
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures.ir.iv
-import exastencils.datastructures.l4.Access
 import exastencils.field.ir.IR_AdvanceSlot
 import exastencils.prettyprinting._
 
@@ -43,7 +42,7 @@ case class L4_ConstantSlot(number : Long) extends L4_SlotSpecification {
 
 /// L4_AdvanceSlot
 
-case class L4_AdvanceSlot(var field : Access) extends L4_Statement {
+case class L4_AdvanceSlot(var field : L4_Access) extends L4_Statement {
   override def prettyprint(out : PpStream) = out << "advance " << field << '\n'
 
   override def progress = {
