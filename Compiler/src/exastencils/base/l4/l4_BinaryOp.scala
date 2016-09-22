@@ -76,9 +76,9 @@ object L4_BinaryOperators extends Enumeration {
     case Minimum => L4_MinimumExpression(left, right)
   }
 
-  def progress(op : Value) : L4_BinaryOperators.BinaryOperators = {
+  def progress(op : Value) : IR_BinaryOperators.BinaryOperators = {
     // TODO: better implementation?
-    L4_BinaryOperators.withName(op.toString)
+    IR_BinaryOperators.withName(op.toString)
   }
 }
 
