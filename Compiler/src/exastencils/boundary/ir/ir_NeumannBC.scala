@@ -1,0 +1,11 @@
+package exastencils.boundary.ir
+
+import exastencils.knowledge.Knowledge
+
+/// IR_NeumannBC
+
+object IR_NeumannBC {
+  def apply() = new IR_NeumannBC(Knowledge.experimental_NeumannOrder)
+}
+
+case class IR_NeumannBC(order : Int) extends IR_BoundaryCondition {}
