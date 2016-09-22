@@ -199,6 +199,8 @@ object Main {
     L4_ResolveMathFunctions.apply()
     L4_ResolveTimerFunctions.apply()
     L4_ResolveGridFunctions.apply()
+    L4_ResolveStencilFunctions.apply()
+    L4_ResolveLoopItAccesses.apply()
     ResolveL4_Pre.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()
