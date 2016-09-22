@@ -328,7 +328,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           FindSurroundingLoopIteratorUsages.applyStandalone(IR_Scope(IR_ExpressionStatement(upperBounds.head)))
           loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
 
-          extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap) _1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap) _2))
+          extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
           innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
           if (loopDependsOnSurroundingIterators) {
@@ -363,7 +363,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
         val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
-        extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap) _1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap) _2))
+        extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
         loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
         if (CudaStrategiesUtils.verifyCudaLoopParallel(loop)) {
