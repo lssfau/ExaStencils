@@ -228,7 +228,7 @@ object MainStefan {
     L4_ProgressKnowledge.apply()
 
     if (Knowledge.data_alignFieldPointers)
-      IR_AddPaddingToFieldLayouts
+      IR_AddPaddingToFieldLayouts.apply()
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
