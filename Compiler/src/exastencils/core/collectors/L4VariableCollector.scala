@@ -24,6 +24,7 @@ class L4VariableCollector extends Collector {
           case _                        => values.last += ((x.identifier.name, x.datatype))
         }
       }
+      case x : L4_FunctionArgument    => values.last += ((x.name, x.datatype))
       case _                          =>
     }
   }
