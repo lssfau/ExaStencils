@@ -13,15 +13,9 @@ trait L4_Access extends L4_Expression {
 
 /// L4_VariableAccess
 
-object L4_VariableAccess {
-  def apply(name : String) = new L4_VariableAccess(name, None)
-  def apply(name : String, datatype : L4_Datatype) = new L4_VariableAccess(name, Some(datatype))
-}
-
-// FIXME: mandatory datatype
-case class L4_VariableAccess(var name : String, var datatype : Option[L4_Datatype]) extends L4_Access {
+case class L4_VariableAccess(var name : String, var datatype : L4_Datatype) extends L4_Access {
   override def prettyprint(out : PpStream) : Unit = out << name
-  override def progress = IR_VariableAccess(name, L4_ProgressOption(datatype)(_.progress))
+  override def progress = IR_VariableAccess(name, datatype.progress)
 }
 
 /// L4_ResolveVariableAccesses
@@ -34,8 +28,8 @@ object L4_ResolveVariableAccesses extends DefaultStrategy("Resolve variable acce
 
   this += new Transformation("Resolve variable accesses", {
     case access @ UnresolvedAccess(accessName, _, Some(L4_SingleLevel(level)), _, _, _) if collector.exists(accessName + "@@" + level) =>
-      L4_VariableAccess(accessName, collector.getValue(accessName + "@@" + level))
+      L4_VariableAccess(accessName, collector.getValue(accessName + "@@" + level).get)
     case access @ UnresolvedAccess(accessName, _, None, _, _, _) if collector.exists(accessName)                                       =>
-      L4_VariableAccess(accessName, collector.getValue(accessName))
+      L4_VariableAccess(accessName, collector.getValue(accessName).get)
   })
 }
