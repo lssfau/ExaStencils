@@ -19,7 +19,7 @@ object StrategyTimer {
 
   def startTiming(name : String) = {
     if (!data.contains(name)) data.put(name, new Data)
-    val thisData = data.get(name).get
+    val thisData = data(name)
 
     thisData.entries += 1
 
@@ -29,7 +29,7 @@ object StrategyTimer {
 
   def stopTiming(name : String) = {
     if (!data.contains(name)) data.put(name, new Data)
-    val thisData = data.get(name).get
+    val thisData = data(name)
 
     thisData.entries -= 1
 
@@ -41,7 +41,7 @@ object StrategyTimer {
     } // otherwise nothing to do due to inclusive regions
   }
 
-  def print = {
+  def print() = {
     val totalSum = data.map(_._2.totalDuration).sum
     for (d <- data.toSeq.sortBy(_._2.totalDuration)) {
       val runtime : Double = math.round(d._2.totalDuration / 1e6)
