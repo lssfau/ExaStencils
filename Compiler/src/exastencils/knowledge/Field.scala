@@ -74,6 +74,13 @@ case class FieldLayout(
       case "TOT" => defTotal(dim)
     }
   }
+
+  def updateDefReferenceOffset() = {
+    // TODO: this should work for now but may be adapted in the future
+    referenceOffset = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
+    for (dim <- 0 until layoutsPerDim.length)
+      referenceOffset(dim) = IR_IntegerConstant(layoutsPerDim(dim).numPadLayersLeft + layoutsPerDim(dim).numGhostLayersLeft)
+  }
 }
 
 case class FieldLayoutPerDim(

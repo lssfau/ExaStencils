@@ -1,6 +1,6 @@
 package exastencils.field.l4
 
-import exastencils.base.ir._
+import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
@@ -87,12 +87,6 @@ case class L4_FieldLayout(
     if (numDimsData > numDimsGrid)
       layouts ++= datatype.getSizeArray.map(size => FieldLayoutPerDim(0, 0, 0, size, 0, 0, 0))
 
-    // determine reference offset
-    // TODO: this should work for now but may be adapted in the future
-    val refOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
-    for (dim <- 0 until numDimsGrid)
-      refOffset(dim) = IR_IntegerConstant(layouts(dim).numPadLayersLeft + layouts(dim).numGhostLayersLeft)
-
     // adapt discretization identifier for low-dimensional primitives - TODO: support edges directly?
     val finalDiscretization =
     if (discretization.startsWith("edge_"))
@@ -100,8 +94,14 @@ case class L4_FieldLayout(
     else
       discretization
 
-    progressed = Some(FieldLayout(identifier, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, refOffset,
+    // will be updated afterwards
+    val dummyRefOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
+
+    progressed = Some(FieldLayout(identifier, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
       communicatesDuplicated, communicatesGhosts))
+
+    // update reference offset
+    progressed.get.updateDefReferenceOffset()
 
     progressed.get
   }
