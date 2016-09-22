@@ -23,13 +23,13 @@ object PrettyprintingManager {
     printers.getOrElseUpdate(filename, new Prettyprinter(filename, (new java.io.File(Settings.getOutputPath + filename)).getAbsolutePath()))
   }
 
-  def finish = {
+  def finish() : Unit = {
     printers.values.foreach(f => f.finish)
     Settings.parseBuildfileGenerators.foreach(gen => gen.write )
     JobScriptGenerator.write
 
-    printers.clear
-    printerStack.clear
+    printers.clear()
+    printerStack.clear()
   }
 
   protected class Prettyprinter(val filename : String, val path : String) extends java.io.StringWriter {
@@ -50,16 +50,16 @@ object PrettyprintingManager {
       return externalDependencies_
     }
 
-    def <<(s : String) = write(s)
-    def <<<(s : String) = write(s + "\n")
+    def <<(s : String) : Unit = write(s)
+    def <<<(s : String) : Unit = write(s + "\n")
 
-    def writeToFile = {
+    def writeToFile() : Unit = {
       val outFile = new java.io.FileWriter(path)
       outFile.write(Indenter.addIndentations(this.toString))
-      outFile.close
+      outFile.close()
     }
 
-    def finish = {
+    def finish() : Unit = {
       // post-process code files
       val isCodeFile = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx")
         || filename.endsWith(".c") || filename.endsWith(".cpp") || filename.endsWith(".cxx")

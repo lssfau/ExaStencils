@@ -40,27 +40,27 @@ object MainStefan {
     StrategyTimer.startTiming("Initializing")
 
     // check from where to read input
-    val settingsParser = new ParserSettings
-    val knowledgeParser = new ParserKnowledge
-    val platformParser = new ParserPlatform
+    val settingsParser = new ParserSettings()
+    val knowledgeParser = new ParserKnowledge()
+    val platformParser = new ParserPlatform()
     if (args.length == 1 && args(0) == "--json-stdin") {
-      InputReader.read
+      InputReader.read()
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else if (args.length == 2 && args(0) == "--json-file") {
       InputReader.read(args(1))
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else {
       if (args.length >= 1)
         settingsParser.parseFile(args(0))
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       if (args.length >= 2)
         knowledgeParser.parseFile(args(1))
       if (args.length >= 3)
@@ -75,7 +75,7 @@ object MainStefan {
     Platform.update()
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.getOutputPath)).exists) {
+      if ((new java.io.File(Settings.getOutputPath)).exists()) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
@@ -91,10 +91,10 @@ object MainStefan {
 
   def shutdown() : Unit = {
     if (Settings.timeStrategies)
-      StrategyTimer.print
+      StrategyTimer.print()
 
     if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+      Logger_HTML.finish()
   }
 
   def handleL1() : Unit = {
@@ -134,7 +134,7 @@ object MainStefan {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = new l3.Generate.Root
+      StateManager.root_ = new l3.Generate.Root()
       StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
     }
 
@@ -151,10 +151,10 @@ object MainStefan {
     } else {
       StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
     }
-    ValidationL4.apply
+    ValidationL4.apply()
 
-    if (false) // re-print the merged L4 state
-    {
+    // re-print the merged L4 state
+    if (false) {
       val L4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
@@ -162,9 +162,9 @@ object MainStefan {
       outFile.close()
 
       // re-parse the file to check for errors
-      val parserl4 = new ParserL4
+      val parserl4 = new ParserL4()
       StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
-      ValidationL4.apply
+      ValidationL4.apply()
     }
 
     if (Settings.timeStrategies)
@@ -294,7 +294,7 @@ object MainStefan {
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
     if (Knowledge.experimental_memoryDistanceAnalysis) {
-      AnalyzeIterationDistance()
+      AnalyzeIterationDistance.apply()
     }
 
     if (Knowledge.kerncraftExport) {
@@ -302,7 +302,7 @@ object MainStefan {
     }
 
     if (Knowledge.experimental_addPerformanceEstimate)
-      AddPerformanceEstimates()
+      AddPerformanceEstimates.apply()
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
@@ -419,7 +419,7 @@ object MainStefan {
   def print() : Unit = {
     Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
     PrintStrategy.apply()
-    PrettyprintingManager.finish
+    PrettyprintingManager.finish()
   }
 
   def main(args : Array[String]) : Unit = {

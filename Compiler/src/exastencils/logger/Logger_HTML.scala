@@ -6,10 +6,10 @@ object Logger_HTML {
   var isInit : Boolean = false
   var log : java.io.FileWriter = null
 
-  def init = {
+  def init() : Unit = {
     val targetFile = Settings.getHtmlLogFile
     if (!(new java.io.File(targetFile)).exists) {
-      var file = new java.io.File(targetFile)
+      val file = new java.io.File(targetFile)
       if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
     }
 
@@ -30,10 +30,10 @@ object Logger_HTML {
     isInit = true
   }
 
-  def finish = {
+  def finish() : Unit = {
     if (isInit) {
       log.write("</table></body>")
-      log.close
+      log.close()
 
       isInit = false
     }

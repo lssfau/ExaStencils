@@ -32,32 +32,32 @@ import exastencils.strategies._
 import exastencils.util._
 
 object Main {
-  def initialize(args : Array[String]) = {
+  def initialize(args : Array[String]) : Unit = {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
 
     // check from where to read input
-    val settingsParser = new ParserSettings
-    val knowledgeParser = new ParserKnowledge
-    val platformParser = new ParserPlatform
+    val settingsParser = new ParserSettings()
+    val knowledgeParser = new ParserKnowledge()
+    val platformParser = new ParserPlatform()
     if (args.length == 1 && args(0) == "--json-stdin") {
-      InputReader.read
+      InputReader.read()
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else if (args.length == 2 && args(0) == "--json-file") {
       InputReader.read(args(1))
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else {
       if (args.length >= 1)
         settingsParser.parseFile(args(0))
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       if (args.length >= 2)
         knowledgeParser.parseFile(args(1))
       if (args.length >= 3)
@@ -70,7 +70,7 @@ object Main {
     Platform.update()
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.getOutputPath)).exists) {
+      if ((new java.io.File(Settings.getOutputPath)).exists()) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
@@ -84,15 +84,15 @@ object Main {
       StrategyTimer.stopTiming("Initializing")
   }
 
-  def shutdown() = {
+  def shutdown() : Unit = {
     if (Settings.timeStrategies)
-      StrategyTimer.print
+      StrategyTimer.print()
 
     if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+      Logger_HTML.finish()
   }
 
-  def handleL1() = {
+  def handleL1() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 1")
 
@@ -102,7 +102,7 @@ object Main {
       StrategyTimer.stopTiming("Handling Layer 1")
   }
 
-  def handleL2() = {
+  def handleL2() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 2")
 
@@ -122,14 +122,14 @@ object Main {
       StrategyTimer.stopTiming("Handling Layer 2")
   }
 
-  def handleL3() = {
+  def handleL3() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 3")
 
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = new l3.Generate.Root
+      StateManager.root_ = new l3.Generate.Root()
       StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
     }
 
@@ -137,7 +137,7 @@ object Main {
       StrategyTimer.stopTiming("Handling Layer 3")
   }
 
-  def handleL4() = {
+  def handleL4() : Unit = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
@@ -146,20 +146,20 @@ object Main {
     } else {
       StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
     }
-    ValidationL4.apply
+    ValidationL4.apply()
 
-    if (false) // re-print the merged L4 state
-    {
+    // re-print the merged L4 state
+    if (false) {
       val L4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
       outFile.write((Indenter.addIndentations(L4_printed)))
-      outFile.close
+      outFile.close()
 
       // re-parse the file to check for errors
-      var parserl4 = new ParserL4
+      val parserl4 = new ParserL4()
       StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
-      ValidationL4.apply
+      ValidationL4.apply()
     }
 
     if (Settings.timeStrategies)
@@ -231,7 +231,7 @@ object Main {
       StrategyTimer.stopTiming("Progressing from L4 to IR")
   }
 
-  def handleIR() = {
+  def handleIR() : Unit = {
     // add some more nodes
     AddDefaultGlobals.apply()
     SetupDataStructures.apply()
@@ -289,7 +289,7 @@ object Main {
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
     if (Knowledge.experimental_memoryDistanceAnalysis) {
-      AnalyzeIterationDistance()
+      AnalyzeIterationDistance.apply()
     }
 
     if (Knowledge.kerncraftExport) {
@@ -297,7 +297,7 @@ object Main {
     }
 
     if (Knowledge.experimental_addPerformanceEstimate)
-      AddPerformanceEstimates()
+      AddPerformanceEstimates.apply()
     // Prepare all suitable LoopOverDimensions and ContractingLoops. This transformation is applied before resolving
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
@@ -411,10 +411,10 @@ object Main {
       Fortranify.apply()
   }
 
-  def print() = {
+  def print() : Unit = {
     Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
     PrintStrategy.apply()
-    PrettyprintingManager.finish
+    PrettyprintingManager.finish()
   }
 
   def main(args : Array[String]) : Unit = {
