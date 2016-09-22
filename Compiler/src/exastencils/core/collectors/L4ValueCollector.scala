@@ -5,7 +5,6 @@ import scala.collection.mutable.{ Node => _, _ }
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 
 class L4ValueCollector extends Collector {
   private var values = new ListBuffer[HashMap[String, L4_Expression]]()
@@ -22,8 +21,8 @@ class L4ValueCollector extends Collector {
       case x : L4_IfCondition       => values.+=((new HashMap[String, L4_Expression]()))
       case x : L4_ValueDeclaration  => {
         x.identifier match { // ignore Values in Globals
-          case v : LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.initialValue))
-          case _                     => if (!insideGlobals) values.last += ((x.identifier.name, x.initialValue))
+          case v : L4_LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.initialValue))
+          case _                        => if (!insideGlobals) values.last += ((x.identifier.name, x.initialValue))
         }
       }
       case _                        =>

@@ -53,47 +53,47 @@ class ParserL4 extends ExaParser with PackratParsers {
   //###########################################################
 
   lazy val program = ((import_ ||| domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
-    ^^ { case d => Root()(d) })
+    ^^ { L4_Root(_) })
 
-  lazy val import_ = "import" ~> stringLit ^^ { case path => parseFile(path).asInstanceOf[Root] }
+  lazy val import_ = "import" ~> stringLit ^^ { path => parseFile(path).asInstanceOf[L4_Root] }
 
   //###########################################################
 
   lazy val identifierWithOptionalLevel = locationize(ident ~ level.?
-    ^^ { case id ~ level => if (level.isDefined) LeveledIdentifier(id, level.get) else BasicIdentifier(id) })
+    ^^ { case id ~ level => if (level.isDefined) L4_LeveledIdentifier(id, level.get) else L4_BasicIdentifier(id) })
 
   // ######################################
   // ##### Level Specifications
   // ######################################
 
   lazy val level = (
-    locationize("@" ~> (levelsingle ||| levelall) ^^ { case l => l })
-      ||| locationize("@" ~ "(" ~> levellist ~ ")" ^^ { case l ~ _ => l }))
+    locationize("@" ~> (levelsingle ||| levelall) ^^ { l => l })
+      ||| locationize("@" ~ "(" ~> levellist <~ ")" ^^ { l => l }))
 
-  lazy val levellist = (
-    locationize(((levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation) <~ ("," ||| "and")).* ~ (levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation) ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x }))
+  lazy val levellist = locationize(((levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation) <~ ("," ||| "and")).* ~ (levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation)
+    ^^ { case a ~ b => L4_LevelList(a :+ b) })
 
-  lazy val levelsublist = (
-    locationize(((levelsingle ||| levelrange ||| levelrelative) <~ ("," ||| "and")).* ~ (levelsingle ||| levelrange ||| levelrelative) ^^ { case a ~ b => var x = new ListLevelSpecification(); a.foreach(x.add(_)); x.add(b); x }))
+  lazy val levelsublist = locationize(((levelsingle ||| levelrange ||| levelrelative) <~ ("," ||| "and")).* ~ (levelsingle ||| levelrange ||| levelrelative)
+    ^^ { case a ~ b => L4_LevelList(a :+ b) })
 
-  lazy val levelnegation = (
-    locationize(("not" ~ "(") ~> levelsublist <~ ")") ^^ { case l => new NegatedLevelSpecification(l) })
+  lazy val levelnegation = locationize(("not" ~ "(") ~> levelsublist <~ ")"
+    ^^ { L4_NegatedLevelList })
 
-  lazy val levelrange = (
-    locationize((levelsingle ||| "(" ~> levelrelative <~ ")") ~ "to" ~ (levelsingle ||| "(" ~> levelrelative <~ ")") ^^ { case b ~ _ ~ e => RangeLevelSpecification(b, e) }))
+  lazy val levelrange = locationize(((levelsingle ||| "(" ~> levelrelative <~ ")") <~ "to") ~ (levelsingle ||| "(" ~> levelrelative <~ ")")
+    ^^ { case b ~ e => L4_LevelRange(b, e) })
 
-  lazy val levelrelative = (
-    locationize(levelsingle ~ ("+" ||| "-") ~ integerLit ^^ { case l ~ op ~ i => RelativeLevelSpecification(op, l, i) }))
+  lazy val levelrelative = locationize(levelsingle ~ ("+" ||| "-") ~ integerLit
+    ^^ { case l ~ op ~ i => L4_RelativeLevel(l, op, i) })
 
-  lazy val levelall = locationize("all" ^^ { case _ => AllLevelsSpecification })
+  lazy val levelall = locationize("all" ^^ { _ => L4_AllLevels })
 
   lazy val levelsingle = (
-    locationize("current" ^^ { case _ => CurrentLevelSpecification })
-      ||| locationize("coarser" ^^ { case _ => CoarserLevelSpecification })
-      ||| locationize("finer" ^^ { case _ => FinerLevelSpecification })
-      ||| locationize("coarsest" ^^ { case _ => CoarsestLevelSpecification })
-      ||| locationize("finest" ^^ { case _ => FinestLevelSpecification })
-      ||| locationize(integerLit ^^ { case l => SingleLevelSpecification(l) }))
+    locationize("current" ^^ { _ => L4_CurrentLevel })
+      ||| locationize("coarser" ^^ { _ => L4_CoarserLevel })
+      ||| locationize("finer" ^^ { _ => L4_FinerLevel })
+      ||| locationize("coarsest" ^^ { _ => L4_CoarsestLevel })
+      ||| locationize("finest" ^^ { _ => L4_FinestLevel })
+      ||| locationize(integerLit ^^ { l => L4_SingleLevel(l) }))
 
   // ######################################
   // ##### Datatypes
@@ -205,9 +205,9 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
   lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ index ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
-  lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
+  lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
   lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
-    ^^ { case id ~ op ~ exp => AssignmentStatement(id, exp, op) })
+    ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
 
   lazy val conditional : PackratParser[L4_IfCondition] = (
     locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ~ (("else" ~ "{") ~> statement.+ <~ "}").?
@@ -229,7 +229,7 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => L4_Return(exp) })
 
-  lazy val leveledScope = locationize((level <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => LeveledScopeStatement(l, s) })
+  lazy val leveledScope = locationize((level <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => L4_LeveledScope(l, s) })
 
   lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
   lazy val solveLocallyComponent = /*locationize*/ ((genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) })
@@ -237,7 +237,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case stmts => L4_LocalSolve(stmts.map(_._1), stmts.map(_._2)) })
 
   lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (booleanexpression <~ ",").+ ~ loopOver <~ "}"
-    ^^ { case colors ~ loop => ColorWithStatement(colors, loop) })
+    ^^ { case colors ~ loop => L4_ColorLoops(colors, loop) })
 
   // ######################################
   // ##### Globals
@@ -261,7 +261,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ { case d => d })
   lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (discretization <~ ">") ~ level.? ~ ("{" ~> layoutOptions <~ "}")
-    ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), dt, disc.toLowerCase, opts) })
+    ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(L4_LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), dt, disc.toLowerCase, opts) })
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
       ||| layoutOption.*)
@@ -269,7 +269,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case id ~ idx ~ comm => L4_FieldLayoutOption(id, idx, comm.isDefined) })
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ level.?
-    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_FieldDecl(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), domain, layout, boundary, slots.getOrElse(1).toInt) })
+    ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_FieldDecl(L4_LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), domain, layout, boundary, slots.getOrElse(1).toInt) })
   lazy val fieldBoundary = binaryexpression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
 
   lazy val index : PackratParser[L4_ConstIndex] = (
@@ -299,7 +299,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val stencilEntry = expressionIndex ~ ("=>" ~> (binaryexpression ||| matrixExpression)) ^^ { case offset ~ weight => L4_StencilEntry(offset, weight) }
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ level.?)
-    ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(LeveledIdentifier(id, level.getOrElse(AllLevelsSpecification)), f, s) })
+    ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(L4_LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), f, s) })
 
   // ######################################
   // ##### "External" Definitions
@@ -327,7 +327,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     ||| "previousSlot" ^^ { case _ => L4_PreviousSlot }
     ||| integerLit ^^ { case i => L4_ConstantSlot(i) })
 
-  lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => AdvanceStatement(a) })
+  lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ { case a => L4_AdvanceSlot(a) })
 
   lazy val levelAccess = (
     locationize("@" ~> levelsingle ^^ { case l => l })

@@ -13,7 +13,7 @@ import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.field.ir.IR_MultiDimFieldAccess
+import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.omp._
@@ -206,7 +206,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       for (i <- 1 to cl.number)
         for (stmt <- cl.body)
           stmt match {
-            case AdvanceSlotStatement(iv.CurrentSlot(field, fragment)) =>
+            case IR_AdvanceSlot(iv.CurrentSlot(field, fragment)) =>
               val fKey = (field.identifier, field.level)
               fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
               fields(fKey) = field
@@ -328,7 +328,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           FindSurroundingLoopIteratorUsages.applyStandalone(IR_Scope(IR_ExpressionStatement(upperBounds.head)))
           loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
 
-          extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap) _1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap) _2))
+          extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
           innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
           if (loopDependsOnSurroundingIterators) {
@@ -363,7 +363,7 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
         val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
-        extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap) _1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap) _2))
+        extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
         loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
 
         if (CudaStrategiesUtils.verifyCudaLoopParallel(loop)) {

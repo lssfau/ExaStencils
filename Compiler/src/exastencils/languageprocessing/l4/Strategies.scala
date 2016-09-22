@@ -61,11 +61,11 @@ object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
         resolveParameterToConstant(knowledge.Platform, ident)
 
       // levelIndex
-      case L4_FunctionCall(UnresolvedAccess("levels", _, Some(SingleLevelSpecification(level)), _, _, _), ListBuffer())      =>
+      case L4_FunctionCall(UnresolvedAccess("levels", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())      =>
         L4_IntegerConstant(level)
-      case L4_FunctionCall(UnresolvedAccess("levelIndex", _, Some(SingleLevelSpecification(level)), _, _, _), ListBuffer())  =>
+      case L4_FunctionCall(UnresolvedAccess("levelIndex", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())  =>
         L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case L4_FunctionCall(UnresolvedAccess("levelString", _, Some(SingleLevelSpecification(level)), _, _, _), ListBuffer()) =>
+      case L4_FunctionCall(UnresolvedAccess("levelString", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer()) =>
         L4_StringConstant(level.toString)
 
       // constants
@@ -75,7 +75,7 @@ object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
 
     this.execute(new Transformation("Resolving string constants to literals", {
       case f : L4_FunctionCall =>
-        f.identifier.name match {
+        f.function.name match {
           case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
           case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
           case "getMeanFromTimer"  => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
@@ -163,12 +163,12 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
 
   case class CombinedIdentifier(var name : String, var level : Int) {}
 
-  def fromIdentifier(ident : Identifier) : CombinedIdentifier = {
-    val level = ident.asInstanceOf[LeveledIdentifier].level.asInstanceOf[SingleLevelSpecification].level
+  def fromIdentifier(ident : L4_Identifier) : CombinedIdentifier = {
+    val level = ident.asInstanceOf[L4_LeveledIdentifier].level.resolveLevel
     CombinedIdentifier(ident.name, level)
   }
-  def fromLeveledAccess(access : Access) : CombinedIdentifier = {
-    val level = access.asInstanceOf[LeveledAccess].level.asInstanceOf[SingleLevelSpecification].level
+  def fromLeveledAccess(access : L4_Access) : CombinedIdentifier = {
+    val level = access.asInstanceOf[LeveledAccess].level.resolveLevel
     CombinedIdentifier(access.asInstanceOf[LeveledAccess].name, level)
   }
   def fromFieldAccess(access : L4_FieldAccess) : CombinedIdentifier = {
@@ -191,12 +191,12 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
       if (field.boundary.isDefined) {
         if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
           val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
-          val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
-            case f : L4_Function if f.identifier.isInstanceOf[LeveledIdentifier]
-              && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
-            case _                                                                     => false
-          }.get
-          if (fctDecl.returntype eq L4_UnitDatatype) {
+          if (fctCall.function.asInstanceOf[L4_FunctionAccess].datatype == L4_UnitDatatype) {
+            //          val fctDecl = StateManager.findFirst({
+            //            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
+            //              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.identifier))
+            //          }).get
+            //          if (fctDecl.returntype eq L4_UnitDatatype) {
             bcs(CombinedIdentifier(field.identifier, field.level)) = fctCall
           }
         }
@@ -219,11 +219,10 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
       if (field.boundary.isDefined) {
         if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
           val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
-          val fctDecl = StateManager.root.asInstanceOf[Root].functions.find {
-            case f : L4_Function if f.identifier.isInstanceOf[LeveledIdentifier]
-              && fromIdentifier(f.identifier) == fromLeveledAccess(fctCall.identifier) => true
-            case _                                                                     => false
-          }.get
+          val fctDecl = StateManager.findFirst({
+            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
+              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.function))
+          }).get
           if (fctDecl.returntype eq L4_UnitDatatype) {
             bcs(fromIdentifier(field.identifier)) = fctCall
           }
@@ -251,7 +250,7 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
 
 object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and loops to L4 statements") {
   this += new Transformation("Search and wrap", {
-    case assignment @ AssignmentStatement(lhs : L4_FieldAccess, rhs, op) => {
+    case assignment @ L4_Assignment(lhs : L4_FieldAccess, rhs, op) => {
       CollectCommInformation.applyStandalone(assignment)
 
       var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>

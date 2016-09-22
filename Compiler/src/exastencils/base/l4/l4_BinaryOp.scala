@@ -38,6 +38,9 @@ object L4_BinaryOperators extends Enumeration {
   val Greater = Value(">")
   val GreaterEqual = Value(">=")
 
+  val Maximum = Value("max")
+  val Minimum = Value("min")
+
   //  Conversions for Enumeration:
   // BinaryOperators -> String:  op.toString()
   // String -> BinaryOperators:  BinaryOperators.withName(op)
@@ -68,6 +71,14 @@ object L4_BinaryOperators extends Enumeration {
     case LowerEqual             => L4_LowerEqualExpression(left, right)
     case Greater                => L4_GreaterExpression(left, right)
     case GreaterEqual           => L4_GreaterEqualExpression(left, right)
+
+    case Maximum => L4_MaximumExpression(left, right)
+    case Minimum => L4_MinimumExpression(left, right)
+  }
+
+  def progress(op : Value) : IR_BinaryOperators.BinaryOperators = {
+    // TODO: better implementation?
+    IR_BinaryOperators.withName(op.toString)
   }
 }
 
@@ -187,4 +198,24 @@ case class L4_AndAndExpression(var left : L4_Expression, var right : L4_Expressi
 case class L4_OrOrExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
   override def progress = IR_OrOrExpression(left.progress, right.progress)
+}
+
+/// min/max operations
+
+object L4_MinimumExpression {
+  def apply(varargs : L4_Expression*) = new L4_MinimumExpression(varargs.to[ListBuffer])
+}
+
+case class L4_MinimumExpression(var args : ListBuffer[L4_Expression]) extends L4_Expression {
+  override def prettyprint(out : PpStream) = out << "min (" <<< (args, ", ") << ')'
+  override def progress = IR_MinimumExpression(args.map(_.progress))
+}
+
+object L4_MaximumExpression {
+  def apply(varargs : L4_Expression*) = new L4_MaximumExpression(varargs.to[ListBuffer])
+}
+
+case class L4_MaximumExpression(var args : ListBuffer[L4_Expression]) extends L4_Expression {
+  override def prettyprint(out : PpStream) = out << "max (" <<< (args, ", ") << ')'
+  override def progress = IR_MaximumExpression(args.map(_.progress))
 }

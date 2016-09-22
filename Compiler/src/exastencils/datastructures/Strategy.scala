@@ -41,7 +41,7 @@ object StrategyTimer {
     } // otherwise nothing to do due to inclusive regions
   }
 
-  def print() : Unit = {
+  def print() = {
     val totalSum = data.map(_._2.totalDuration).sum
     for (d <- data.toSeq.sortBy(_._2.totalDuration)) {
       val runtime : Double = math.round(d._2.totalDuration / 1e6)

@@ -24,8 +24,3 @@ case class L4_ExpressionStatement(var expression : L4_Expression) extends L4_Sta
   override def prettyprint(out : PpStream) : Unit = out << expression << '\n'
   override def progress = IR_ExpressionStatement(expression.progress)
 }
-
-/// trait L4_KnowledgeDeclStatement
-trait L4_KnowledgeDeclStatement extends L4_Node with PrettyPrintable {
-  def addToKnowledge() : Unit
-}

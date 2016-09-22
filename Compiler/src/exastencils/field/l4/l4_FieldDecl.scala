@@ -2,8 +2,8 @@ package exastencils.field.l4
 
 import exastencils.base.l4._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.prettyprinting.PpStream
 
 /// L4_FieldDecl
@@ -13,17 +13,17 @@ object L4_FieldDecl {
 }
 
 case class L4_FieldDecl(
-    override var identifier : Identifier,
+    override var identifier : L4_Identifier,
     var domain : String,
     var fieldLayout : String,
     var boundary : Option[L4_Expression],
     var numSlots : Integer,
-    var index : Int = 0) extends L4_KnowledgeDeclStatement with HasIdentifier {
+    var index : Int = 0) extends L4_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) = {
-    out << "Field " << identifier.name << "< " << domain << ", " << fieldLayout << ", " << boundary.getOrElse(BasicIdentifier("None")) << " >"
+    out << "Field " << identifier.name << "< " << domain << ", " << fieldLayout << ", " << boundary.getOrElse(L4_BasicIdentifier("None")) << " >"
     if (numSlots > 1) out << '[' << numSlots << ']'
-    out << '@' << identifier.asInstanceOf[LeveledIdentifier].level << '\n'
+    out << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level << '\n'
   }
 
   def composeField(level : Int) : L4_Field = {
@@ -40,10 +40,10 @@ case class L4_FieldDecl(
 
   override def addToKnowledge() = {
     identifier match {
-      case BasicIdentifier(name)                                    =>
+      case L4_BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels)
           L4_FieldCollection.add(composeField(level))
-      case LeveledIdentifier(name, SingleLevelSpecification(level)) =>
+      case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
         L4_FieldCollection.add(composeField(level))
     }
     None // consume declaration statement

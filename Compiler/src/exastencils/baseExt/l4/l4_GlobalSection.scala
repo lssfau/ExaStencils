@@ -49,8 +49,8 @@ object L4_UnifyGlobalSections extends DefaultStrategy("Unify all global sections
   // FIXME: use transformation below instead of overriding apply -> requires ability to match root node
   override def apply(applyAtNode : Option[Node]) = {
     super.apply(applyAtNode)
-    val root = StateManager.root.asInstanceOf[Root]
-    root.otherNodes += unifiedGlobalSection
+    val root = StateManager.root.asInstanceOf[L4_Root]
+    root.nodes += unifiedGlobalSection
     // reset unifiedGlobalSection for potential subsequent runs
     unifiedGlobalSection = L4_GlobalSection()
   }
@@ -85,20 +85,20 @@ object L4_InlineGlobalValueDeclarations extends DefaultStrategy("Propagate and i
   this += new Transformation("Collect global value declarations", {
     case globals : L4_GlobalSection =>
       globals.valueDeclarations.foreach(x => x.identifier match {
-        case v : LeveledIdentifier => globalVals += ((v.name + "@@" + v.level, x.initialValue))
-        case _                     => globalVals += ((x.identifier.name, x.initialValue))
+        case v : L4_LeveledIdentifier => globalVals += ((v.name + "@@" + v.level, x.initialValue))
+        case _                        => globalVals += ((x.identifier.name, x.initialValue))
       })
       globals
   })
 
   this += new Transformation("Resolve global values in expressions", {
-    case x @ UnresolvedAccess(_, None, None, _, None, _)                                  =>
+    case x @ UnresolvedAccess(_, None, None, _, None, _)                        =>
       val value = globalVals.get(x.name)
       value match {
         case None => x // no hit
         case _    => Duplicate(value.get)
       }
-    case x @ UnresolvedAccess(_, None, Some(SingleLevelSpecification(level)), _, None, _) =>
+    case x @ UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
       val value = globalVals.get(x.name + "@@" + level)
       value match {
         case None => x // no hit

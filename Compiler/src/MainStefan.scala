@@ -14,8 +14,7 @@ import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid.l4.L4_ResolveVirtualFieldAccesses
 import exastencils.grid.{ l4 => _, _ }
-import exastencils.knowledge.l4.L4_ProcessKnowledgeDeclarations
-import exastencils.knowledge.l4.L4_ProgressKnowledge
+import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.languageprocessing.l4._
 import exastencils.logger._
@@ -156,7 +155,7 @@ object MainStefan {
 
     // re-print the merged L4 state
     if (false) {
-      val L4_printed = StateManager.root_.asInstanceOf[l4.Root].prettyprint()
+      val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
       outFile.write((Indenter.addIndentations(L4_printed)))
@@ -177,8 +176,16 @@ object MainStefan {
     GridGeometry.getGeometry.initL4()
 
     // go to IR
-    L4_ResolveFunctionInstantiations.apply() // preparation step
-    UnfoldLevelSpecifications.apply() // preparation step
+    L4_ResolveFunctionInstantiations.apply()
+
+    L4_ResolveLevelSpecifications.apply()
+
+    L4_UnfoldLeveledFunctions.apply()
+    L4_UnfoldLeveledDeclarations.apply()
+    L4_UnfoldLeveledKnowledgeDecls.apply()
+    L4_ResolveLeveledScopes.apply()
+
+    L4_ResolveCurrentLevels.apply()
 
     if (true) {
       // TODO: optionalize value resolution

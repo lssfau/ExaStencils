@@ -44,7 +44,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   }
 
   def getIntermExpr(newIncr : Long) : IR_Expression = {
-    return new IR_MaximumExpression(startVarAcc, endVarAcc - ((endVarAcc - startVarAcc) Mod IR_IntegerConstant(newIncr)))
+    return IR_MaximumExpression(startVarAcc, endVarAcc - ((endVarAcc - startVarAcc) Mod IR_IntegerConstant(newIncr)))
   }
 
   private[optimization] def addBounds(itVar : String, begin : IR_Statement, end : IR_Expression, incr : IR_Expression,
@@ -78,14 +78,14 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   private[optimization] def addBounds(lower : IR_Expression, upperExcl : IR_Expression, incr : IR_Expression,
       writeDecls : Boolean, stmts : ListBuffer[IR_Statement]) : Unit = {
 
-    val intermExpr = new IR_MaximumExpression(endVarAcc - ((endVarAcc - startVarAcc) Mod incr), startVarAcc)
+    val intermExpr = IR_MaximumExpression(endVarAcc - ((endVarAcc - startVarAcc) Mod incr), startVarAcc)
 
     if (writeDecls) {
       stmts += IR_VariableDeclaration(IR_IntegerDatatype, startVar, lower)
       stmts += IR_VariableDeclaration(IR_IntegerDatatype, endVar, upperExcl)
       stmts += IR_VariableDeclaration(IR_IntegerDatatype, intermVar, intermExpr)
     } else
-      stmts += new IR_Assignment(intermVarAcc, intermExpr, "=")
+      stmts += IR_Assignment(intermVarAcc, intermExpr, "=")
   }
 
   this += new Transformation("optimize", UnrollInnermost)

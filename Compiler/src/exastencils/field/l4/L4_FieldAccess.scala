@@ -2,7 +2,7 @@ package exastencils.field.l4
 
 import exastencils._
 import exastencils.base.ir._
-import exastencils.base.l4.L4_ExpressionIndex
+import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.datastructures.ir.iv
 import exastencils.datastructures.l4._
@@ -70,6 +70,6 @@ object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fiel
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : UnresolvedAccess if L4_FieldCollection.exists(access.name) =>
       if (access.dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
-      L4_FieldAccess(access.name, access.level.get.asInstanceOf[SingleLevelSpecification].level, access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
+      L4_FieldAccess(access.name, access.level.get.resolveLevel, access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
   })
 }

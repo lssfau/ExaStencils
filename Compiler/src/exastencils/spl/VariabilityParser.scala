@@ -2,41 +2,16 @@ package exastencils.spl
 
 import scala.io.Source
 import scala.util.Random
-import exastencils.communication._
-import exastencils.core._
-import exastencils.data._
-import exastencils.datastructures._
-import exastencils.domain._
-import exastencils.globals._
-import exastencils.knowledge._
-import exastencils.languageprocessing.l4.UnfoldLevelSpecifications
-import exastencils.mpi._
-import exastencils.multiGrid._
-import exastencils.omp._
-import exastencils.parsers.l4._
-import exastencils.prettyprinting._
-import exastencils.spl.test.PredictionTests
-import exastencils.strategies._
-import exastencils.util._
-import exastencils.spl.samplingStrategies._
-import exastencils.optimization.MergeConditions
-import exastencils.polyhedron.PolyOpt
-import exastencils.optimization.AddressPrecalculation
-import exastencils.optimization.TypeInference
-import exastencils.optimization.SimplifyFloatExpressions
-import exastencils.optimization.Vectorization
-import exastencils.optimization.Unrolling
-import scala.reflect.macros.blackbox
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
-import exastencils.spl.test.DomainKnowledgeTests
-import exastencils.spl.samplingStrategies.doe._
+
 import java.io._
-import exastencils.spl.test.DomainKnowledgeTests
-import exastencils.spl.samplingStrategies.heuristics.FWHeuristic
+import java.nio.charset.StandardCharsets
+import java.nio.file._
+
+import exastencils.core._
+import exastencils.knowledge._
 import exastencils.spl.learning._
+import exastencils.spl.samplingStrategies.doe._
+import exastencils.spl.test._
 
 object VariabilityParser {
   def main(args : Array[String]) : Unit = {

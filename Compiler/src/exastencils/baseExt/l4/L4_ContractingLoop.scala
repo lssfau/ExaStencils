@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
-import exastencils.datastructures.l4._
 import exastencils.prettyprinting._
 
 /// L4_ContractionSpecification
@@ -22,13 +21,13 @@ case class L4_ContractionSpecification(var posExt : L4_ConstIndex, var negExt : 
 /// L4_ContractingLoop
 
 object L4_ContractingLoop {
-  def apply(number : Int, iterator : Option[Access], contraction : L4_ContractionSpecification, body : List[L4_Statement]) =
+  def apply(number : Int, iterator : Option[L4_Access], contraction : L4_ContractionSpecification, body : List[L4_Statement]) =
     new L4_ContractingLoop(number, iterator, contraction, body.to[ListBuffer])
 }
 
 case class L4_ContractingLoop(
     var number : Int,
-    var iterator : Option[Access],
+    var iterator : Option[L4_Access],
     var contraction : L4_ContractionSpecification,
     var body : ListBuffer[L4_Statement]) extends L4_Statement {
 

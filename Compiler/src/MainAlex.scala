@@ -1,5 +1,6 @@
 import exastencils.base.ir.IR_Root
-import exastencils.base.l4.L4_Progressable
+import exastencils.base.l4._
+import exastencils.baseExt.l4._
 import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
@@ -7,7 +8,7 @@ import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
 import exastencils.knowledge._
-import exastencils.languageprocessing.l4._
+import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
 import exastencils.mpi._
 import exastencils.multiGrid._
 import exastencils.omp._
@@ -46,7 +47,16 @@ object MainAlex {
     var parserl4 = new ParserL4
     StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
     ValidationL4.apply
-    UnfoldLevelSpecifications.apply()
+    L4_ResolveFunctionInstantiations.apply()
+
+    L4_ResolveLevelSpecifications.apply()
+
+    L4_UnfoldLeveledFunctions.apply()
+    L4_UnfoldLeveledDeclarations.apply()
+    L4_UnfoldLeveledKnowledgeDecls.apply()
+    L4_ResolveLeveledScopes.apply()
+
+    L4_ResolveCurrentLevels.apply()
 
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 

@@ -16,6 +16,7 @@ object IR_LoopOverFragments {
   def apply(body : IR_Statement, reduction : Option[IR_Reduction]) = new IR_LoopOverFragments(ListBuffer(body), reduction)
   def apply(body : IR_Statement*) = new IR_LoopOverFragments(body.to[ListBuffer])
 
+  // TODO: VariableAccess
   def defIt = "fragmentIdx"
 }
 

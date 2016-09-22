@@ -3,7 +3,7 @@ package exastencils.base.l4
 import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_GlobalSection
 import exastencils.core.Duplicate
-import exastencils.core.collectors.L4ValueCollector
+import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.logger.Logger
@@ -12,9 +12,9 @@ import exastencils.prettyprinting.PpStream
 /// L4_ValueDeclaration
 
 case class L4_ValueDeclaration(
-    override var identifier : Identifier,
+    override var identifier : L4_Identifier,
     var datatype : L4_Datatype,
-    var initialValue : L4_Expression) extends L4_Statement with HasIdentifier {
+    var initialValue : L4_Expression) extends L4_Statement with L4_HasIdentifier {
 
   override def prettyprint(out : PpStream) = out << "Value " << identifier << " : " << datatype << " = " << initialValue << '\n'
 
@@ -27,9 +27,9 @@ case class L4_ValueDeclaration(
 /// L4_VariableDeclaration
 
 case class L4_VariableDeclaration(
-    override var identifier : Identifier,
+    override var identifier : L4_Identifier,
     var datatype : L4_Datatype,
-    var initialValue : Option[L4_Expression] = None) extends L4_Statement with HasIdentifier {
+    var initialValue : Option[L4_Expression] = None) extends L4_Statement with L4_HasIdentifier {
 
   override def prettyprint(out : PpStream) = {
     out << "Variable " << identifier << " : " << datatype
@@ -40,6 +40,15 @@ case class L4_VariableDeclaration(
   override def progress = IR_VariableDeclaration(datatype.progress, identifier.fullName, L4_ProgressOption(initialValue)(_.progress))
 }
 
+/// L4_UnfoldLeveledDeclarations
+
+object L4_UnfoldLeveledDeclarations extends DefaultStrategy("Unfold leveled declarations") {
+  this += new Transformation("Unfold value and variable declarations", {
+    case decl @ L4_ValueDeclaration(L4_LeveledIdentifier(_, levels), _, _)    => L4_Identifier.doDuplicate(decl, levels)
+    case decl @ L4_VariableDeclaration(L4_LeveledIdentifier(_, levels), _, _) => L4_Identifier.doDuplicate(decl, levels)
+  })
+}
+
 /// L4_InlineValueDeclarations
 
 object L4_InlineValueDeclarations extends DefaultStrategy("Propagate and inline value declarations") {
@@ -48,13 +57,13 @@ object L4_InlineValueDeclarations extends DefaultStrategy("Propagate and inline 
 
   // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
   this += new Transformation("Resolve values in expressions", {
-    case x @ UnresolvedAccess(_, None, None, _, None, _)                                  =>
+    case x @ UnresolvedAccess(_, None, None, _, None, _)                        =>
       val value = valueCollector.getValue(x.name)
       value match {
         case None => x // no hit
         case _    => Duplicate(value.get)
       }
-    case x @ UnresolvedAccess(_, None, Some(SingleLevelSpecification(level)), _, None, _) =>
+    case x @ UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
       val value = valueCollector.getValue(x.name + "@@" + level)
       value match {
         case None => x // no hit

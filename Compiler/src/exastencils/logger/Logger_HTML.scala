@@ -6,7 +6,7 @@ object Logger_HTML {
   var isInit : Boolean = false
   var log : java.io.FileWriter = null
 
-  def init() : Unit = {
+  def init() = {
     val targetFile = Settings.getHtmlLogFile
     if (!(new java.io.File(targetFile)).exists) {
       val file = new java.io.File(targetFile)
@@ -30,7 +30,7 @@ object Logger_HTML {
     isInit = true
   }
 
-  def finish() : Unit = {
+  def finish() = {
     if (isInit) {
       log.write("</table></body>")
       log.close()

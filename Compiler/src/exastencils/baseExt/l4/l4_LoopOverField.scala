@@ -25,7 +25,7 @@ case class L4_RegionSpecification(var region : String, var dir : L4_ConstIndex, 
 /// L4_LoopOverField
 
 object L4_LoopOverField {
-  def apply(field : Access, region : Option[L4_RegionSpecification], seq : Boolean, condition : Option[L4_Expression], startOffset : Option[L4_ExpressionIndex], endOffset : Option[L4_ExpressionIndex],
+  def apply(field : L4_Access, region : Option[L4_RegionSpecification], seq : Boolean, condition : Option[L4_Expression], startOffset : Option[L4_ExpressionIndex], endOffset : Option[L4_ExpressionIndex],
       increment : Option[L4_ExpressionIndex], statements : List[L4_Statement], reduction : Option[L4_Reduction], preComms : List[CommunicateStatement], postComms : List[CommunicateStatement]) =
     new L4_LoopOverField(field, region, seq, condition, startOffset, endOffset,
       increment, statements.to[ListBuffer], reduction, preComms.to[ListBuffer], postComms.to[ListBuffer])
@@ -33,7 +33,7 @@ object L4_LoopOverField {
 
 // TODO: refactor -> less options/knowledge in loop nodes
 case class L4_LoopOverField(
-    var field : Access,
+    var field : L4_Access,
     var region : Option[L4_RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var condition : Option[L4_Expression],

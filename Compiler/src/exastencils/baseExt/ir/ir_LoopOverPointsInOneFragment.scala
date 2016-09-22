@@ -170,7 +170,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
           start(dim) + ret
         })
 
-        lowerBounds = (lowerBounds, newLowerBounds).zipped.map(new IR_MaximumExpression(_, _))
+        lowerBounds = (lowerBounds, newLowerBounds).zipped.map(IR_MaximumExpression(_, _))
       }
 
       for (cs <- preComms) {
@@ -181,7 +181,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
           stop(dim) - ret
         })
 
-        upperBounds = (upperBounds, newUpperBounds).zipped.map(new IR_MinimumExpression(_, _))
+        upperBounds = (upperBounds, newUpperBounds).zipped.map(IR_MinimumExpression(_, _))
       }
 
       // start communication
@@ -238,7 +238,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
           cs.field.fieldLayout.idxById("DLB", dim) - cs.field.referenceOffset(dim) + ret
         })
 
-        lowerBounds = (lowerBounds, newLowerBounds).zipped.map(new IR_MaximumExpression(_, _))
+        lowerBounds = (lowerBounds, newLowerBounds).zipped.map(IR_MaximumExpression(_, _))
       }
 
       for (cs <- postComms) {
@@ -247,7 +247,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
           cs.field.fieldLayout.idxById("DRE", dim) - cs.field.referenceOffset(dim) - ret
         })
 
-        upperBounds = (upperBounds, newUpperBounds).zipped.map(new IR_MinimumExpression(_, _))
+        upperBounds = (upperBounds, newUpperBounds).zipped.map(IR_MinimumExpression(_, _))
       }
 
       // outerRegion

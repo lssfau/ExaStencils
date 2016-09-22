@@ -5,32 +5,32 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.prettyprinting.PpStream
 
 /// L4_StencilDecl
 
 object L4_StencilDecl {
-  def apply(identifier : Identifier, entries : L4_StencilEntry*) = new L4_StencilDecl(identifier, entries.to[ListBuffer])
-  def apply(identifier : Identifier, entries : List[L4_StencilEntry]) = new L4_StencilDecl(identifier, entries.to[ListBuffer])
+  def apply(identifier : L4_Identifier, entries : L4_StencilEntry*) = new L4_StencilDecl(identifier, entries.to[ListBuffer])
+  def apply(identifier : L4_Identifier, entries : List[L4_StencilEntry]) = new L4_StencilDecl(identifier, entries.to[ListBuffer])
 }
 
-case class L4_StencilDecl(override var identifier : Identifier, var entries : ListBuffer[L4_StencilEntry]) extends L4_KnowledgeDeclStatement with HasIdentifier {
+case class L4_StencilDecl(override var identifier : L4_Identifier, var entries : ListBuffer[L4_StencilEntry]) extends L4_LeveledKnowledgeDecl {
   override def prettyprint(out : PpStream) = {
-    out << "Stencil " << identifier.name << '@' << identifier.asInstanceOf[LeveledIdentifier].level << " {\n"
+    out << "Stencil " << identifier.name << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level << " {\n"
     out <<< (entries, "\n") << '\n'
     out << "}\n"
   }
 
   override def addToKnowledge() = {
     identifier match {
-      case BasicIdentifier(name)                                    =>
+      case L4_BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels) {
           val stencil = L4_Stencil(name, level, Duplicate(entries))
           L4_StencilCollection.add(stencil)
         }
-      case LeveledIdentifier(name, SingleLevelSpecification(level)) =>
+      case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
         val stencil = L4_Stencil(name, level, entries)
         L4_StencilCollection.add(stencil)
         None // consume declaration statement

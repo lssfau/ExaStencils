@@ -1,20 +1,20 @@
 package exastencils.stencil.l4
 
-import exastencils.base.l4.L4_KnowledgeDeclStatement
+import exastencils.base.l4._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.field.l4.L4_FieldCollection
 import exastencils.knowledge.Knowledge
+import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.prettyprinting.PpStream
 
 case class L4_StencilFieldDecl(
-    override var identifier : Identifier,
+    override var identifier : L4_Identifier,
     var fieldName : String,
-    var stencilName : String) extends L4_KnowledgeDeclStatement with HasIdentifier {
+    var stencilName : String) extends L4_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) = {
     out << "StencilField " << identifier.name << "< " << fieldName << " => " << stencilName << " >" <<
-      "@" << identifier.asInstanceOf[LeveledIdentifier].level << '\n'
+      "@" << identifier.asInstanceOf[L4_LeveledIdentifier].level << '\n'
   }
 
   def composeStencilField(level : Int) : L4_StencilField = {
@@ -28,10 +28,10 @@ case class L4_StencilFieldDecl(
 
   override def addToKnowledge() : Unit = {
     identifier match {
-      case BasicIdentifier(name)                                    =>
+      case L4_BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels)
           L4_StencilFieldCollection.add(composeStencilField(level))
-      case LeveledIdentifier(name, SingleLevelSpecification(level)) =>
+      case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
         L4_StencilFieldCollection.add(composeStencilField(level))
         None // consume declaration statement
     }

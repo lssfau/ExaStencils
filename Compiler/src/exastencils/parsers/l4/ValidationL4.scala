@@ -28,9 +28,9 @@ object ValidationL4 {
 
   // No need to transform Domain- and LayoutDeclarationStatements because their names are not outputted.
   s += Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
-    case x : Identifier if (protectedkeywords.contains(x.name))                                              =>
+    case x : L4_Identifier if (protectedkeywords.contains(x.name))                                           =>
       x.name = "user_" + x.name; x
-    case x : Identifier if (x.name.startsWith("_"))                                                          =>
+    case x : L4_Identifier if (x.name.startsWith("_"))                                                       =>
       x.name = "user_" + x.name; x
     case x : UnresolvedAccess if (protectedkeywords.contains(x.name) && !x.hasAnnotation("NO_PROTECT_THIS")) =>
       x.name = "user_" + x.name; x
@@ -47,11 +47,11 @@ object ValidationL4 {
 
   s += Transformation("find Function calls", {
     case f : L4_FunctionCall => {
-      f.identifier match {
-        case a : LeveledAccess    => functioncalls += (f.identifier.name + a.level.asInstanceOf[SingleLevelSpecification].level)
-        case a : UnresolvedAccess => functioncalls += (f.identifier.name + a.level.getOrElse("-1"))
-        case a : BasicAccess      => functioncalls += (f.identifier.name + "-1")
-        case _                    => println("something else: " + f.identifier)
+      f.function match {
+        case a : LeveledAccess    => functioncalls += (f.function.name + a.level.resolveLevel)
+        case a : UnresolvedAccess => functioncalls += (f.function.name + a.level.getOrElse("-1"))
+        case a : BasicAccess      => functioncalls += (f.function.name + "-1")
+        case _                    => println("something else: " + f.function)
       }
       f
     }
@@ -61,7 +61,7 @@ object ValidationL4 {
     case f : L4_Function if (f.identifier.name == "Application") => {
       var last = f.statements.last
       last match {
-        case c : L4_FunctionCall => if (c.identifier.name != "destroyGlobals") Logger.error("destroyGlobals has to be last statement in Application()")
+        case c : L4_FunctionCall => if (c.function.name != "destroyGlobals") Logger.error("destroyGlobals has to be last statement in Application()")
         case _                   =>
       }
       f

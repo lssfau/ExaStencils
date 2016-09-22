@@ -97,7 +97,7 @@ object ResolveSlotOperationsStrategy extends DefaultStrategy("ResolveSlotOperati
   this += new Transformation("SearchAndReplace", {
     case slotAccess : SlotAccess => slotAccess.expandSpecial
 
-    case advanceSlot : AdvanceSlotStatement =>
+    case advanceSlot : IR_AdvanceSlot =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
         case _ : IR_LoopOverFragments                                                                       => true
@@ -169,7 +169,7 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
         case IR_Assignment(_ : iv.LocalCommDone, _, _) => IR_NullStatement
         case _ : iv.LocalCommDone                      => IR_BooleanConstant(true)
 
-        case IR_FunctionCall("waitForFlag", _) => IR_NullExpression
+        case IR_FunctionCall(IR_FunctionAccess("waitForFlag", _), _) => IR_NullExpression
       }))
     }
 

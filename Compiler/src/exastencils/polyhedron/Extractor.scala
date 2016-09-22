@@ -552,7 +552,7 @@ class Extractor extends Collector {
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
           // ignore
-          case IR_FunctionCall(name, _) if (allowedFunctions.contains(name)) =>
+          case IR_FunctionCall(IR_FunctionAccess(name, _), _) if (allowedFunctions.contains(name)) =>
           // nothing to do...
 
           case _ : IR_IntegerConstant

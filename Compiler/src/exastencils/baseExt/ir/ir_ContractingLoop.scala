@@ -9,6 +9,7 @@ import exastencils.data._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_AdvanceSlot
 import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 import exastencils.util.SimplifyExpression
@@ -117,7 +118,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
     for (i <- 1 to number)
       for (stmt <- body)
         stmt match {
-          case AdvanceSlotStatement(iv.CurrentSlot(field, fragment)) =>
+          case IR_AdvanceSlot(iv.CurrentSlot(field, fragment)) =>
             val fKey = FieldKey(field)
             fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
             fields(fKey) = field

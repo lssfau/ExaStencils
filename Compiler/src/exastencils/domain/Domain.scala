@@ -299,10 +299,10 @@ case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable 
         s"Vec3 rankPos(0, 0, 0)")
 
     body += IR_LoopOverDimensions(Knowledge.dimensionality, IndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
-      IR_Assignment("positions[posWritePos++]", IR_FunctionCall("Vec3",
+      IR_Assignment("positions[posWritePos++]", IR_FunctionCall("Vec3", ListBuffer[IR_Expression](
         ((("rankPos.x" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x,
-        (if (Knowledge.dimensionality > 1) ((("rankPos.y" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0),
-        (if (Knowledge.dimensionality > 2) ((("rankPos.z" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0)))) // FIXME: Constructor?
+        if (Knowledge.dimensionality > 1) ((("rankPos.y" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0,
+        if (Knowledge.dimensionality > 2) ((("rankPos.z" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0)))) // FIXME: Constructor?
     body += IR_LoopOverFragments(
       IR_Assignment(iv.PrimitiveId(), PointToFragmentId(IR_ArrayAccess("positions", IR_LoopOverFragments.defIt))),
       IR_Assignment(iv.PrimitiveIndex(), PointToFragmentIndex(IR_ArrayAccess("positions", IR_LoopOverFragments.defIt))),
