@@ -9,6 +9,7 @@ import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain.{ l4 => _, _ }
+import exastencils.field.ir.IR_AddPaddingToFieldLayouts
 import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid.l4.L4_ResolveVirtualFieldAccesses
