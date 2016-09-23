@@ -176,7 +176,6 @@ case class Kernel(var identifier : String,
 
   import Kernel._
 
-  var originalParallelDims = parallelDims
   var firstNSeqDims = loopVariables.size - parallelDims
   var smemCanBeUsed = Knowledge.cuda_useSharedMemory && firstNSeqDims == 0 && stepSize.forall(x => IR_IntegerConstant(1).equals(x))
   var spatialBlockingCanBeApplied = smemCanBeUsed && Knowledge.cuda_spatialBlockingWithSmem && parallelDims == Platform.hw_cuda_maxNumDimsBlock
@@ -283,7 +282,7 @@ case class Kernel(var identifier : String,
       if (spatialBlockingCanBeApplied && !isSameRadius) {
         Logger.warning("Cannot apply spatial blocking with shared memory, because the stencil is not symmetric")
         spatialBlockingCanBeApplied = false
-        executionDim = if (spatialBlockingCanBeApplied) parallelDims - 1 else math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
+        executionDim = math.min(Platform.hw_cuda_maxNumDimsBlock, parallelDims)
         evaluatedIndexBounds = false
         evaluatedExecutionConfiguration = false
         evalIndexBounds()
@@ -395,7 +394,7 @@ case class Kernel(var identifier : String,
           case _                              =>
             Logger.warn(s"Start index for dimension $dim (${ lowerBounds(dim) }) could not be evaluated")
             0
-        }).toArray.reverse
+        }).toArray.reverse.drop(firstNSeqDims)
 
       maxIndices = (loopVariables.size - 1 to 0 by -1).map(dim =>
         loopVariableExtrema.get(loopVariables(dim)) match {
@@ -403,7 +402,7 @@ case class Kernel(var identifier : String,
           case _                              =>
             Logger.warn(s"Start index for dimension $dim (${ upperBounds(dim) }) could not be evaluated")
             0
-        }).toArray.reverse
+        }).toArray.reverse.drop(firstNSeqDims)
 
       evaluatedIndexBounds = true
     }
@@ -414,7 +413,7 @@ case class Kernel(var identifier : String,
     */
   def evalExecutionConfiguration() = {
     if (!evaluatedExecutionConfiguration) {
-      requiredThreadsPerDim = (maxIndices.drop(firstNSeqDims), minIndices.drop(firstNSeqDims)).zipped.map(_ - _)
+      requiredThreadsPerDim = (maxIndices, minIndices).zipped.map(_ - _)
 
       if (null == requiredThreadsPerDim || requiredThreadsPerDim.product <= 0) {
         Logger.warn("Could not evaluate required number of threads for kernel " + identifier)

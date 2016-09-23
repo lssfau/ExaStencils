@@ -539,7 +539,6 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
   this += new Transformation("Process kernel nodes", {
     case kernel : Kernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
-      kernel.evalIndexBounds()
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
         IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), IR_IntegerDatatype) : IR_Expression).toArray)
 
