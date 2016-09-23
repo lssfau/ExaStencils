@@ -92,3 +92,4 @@ cuda_linearizeSharedMemoryAccess   = false
 cuda_favorL1CacheOverSharedMemory  = false
 cuda_spatialBlockingWithSmem       = true
 cuda_spatialBlockingWithROC        = false
+experimental_cuda_useOldVersion    = false

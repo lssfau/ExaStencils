@@ -85,3 +85,4 @@ cuda_reductionBlockSize            = 1024
 cuda_useSharedMemory               = true
 cuda_linearizeSharedMemoryAccess   = true
 cuda_favorL1CacheOverSharedMemory  = false
+experimental_cuda_useOldVersion    = false

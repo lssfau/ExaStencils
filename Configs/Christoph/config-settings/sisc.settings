@@ -1,5 +1,5 @@
 user                        = "Christoph"
-basePathPrefix              = "../generator-result/exp/sisc"
+basePathPrefix              = "../generator-result/sisc"
 l3file                      = ""
 l4file                      = "/dsl/Layer4.exa"
 outputPath                  = "/generated/"

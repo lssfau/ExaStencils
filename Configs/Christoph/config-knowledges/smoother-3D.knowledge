@@ -1,9 +1,10 @@
 ///////////////////////////
 // General configuration //
 ///////////////////////////
-simd_avoidUnaligned         = false
-data_alignFieldPointers     = true
-useDblPrecision             = false
+simd_avoidUnaligned                 = false
+data_alignFieldPointers             = true
+useDblPrecision                     = false
+experimental_addPerformanceEstimate = true
 
 /////////////////////////
 // Layer configuration //
@@ -38,8 +39,6 @@ domain_rect_numFragsPerBlock_z  = 1
 // OpenMP
 omp_enabled    = false
 omp_numThreads = 1
-omp_parallelizeLoopOverFragments  = false
-omp_parallelizeLoopOverDimensions = true
 
 // MPI
 mpi_enabled    = false
@@ -62,8 +61,8 @@ poly_filterDeps             = true
 // other optimizations
 opt_useAddressPrecalc           = false
 opt_vectorize                   = false
-opt_unroll                      = 2
-opt_unroll_interleave           = true
+opt_unroll                      = 0
+opt_unroll_interleave           = false
 opt_conventionalCSE             = false // works only with useDblPrecision = true
 opt_loopCarriedCSE              = false // this is not working with CUDA
 
@@ -89,8 +88,9 @@ cuda_blockSize_z                   = 8
 cuda_reductionBlockSize            = 1024
 
 // my new experimental cuda properties
-cuda_useSharedMemory               = true
+cuda_useSharedMemory               = false
 cuda_linearizeSharedMemoryAccess   = false
-cuda_favorL1CacheOverSharedMemory  = false
-cuda_spatialBlockingWithSmem       = true
-cuda_spatialBlockingWithROC        = false
+cuda_favorL1CacheOverSharedMemory  = true
+cuda_spatialBlockingWithSmem       = false
+cuda_spatialBlockingWithROC        = true
+experimental_cuda_useOldVersion    = false

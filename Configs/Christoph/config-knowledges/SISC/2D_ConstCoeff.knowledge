@@ -2,13 +2,14 @@
 // General configuration //
 ///////////////////////////
 useDblPrecision = false
+experimental_addPerformanceEstimate = false
 
 ///////////////////////
 /// Domain Settings ///
 ///////////////////////
 dimensionality				= 2
 
-minLevel					= 0
+minLevel					= 5
 maxLevel					= 10
 comm_strategyFragment		= 6
 
@@ -64,7 +65,7 @@ l3tmp_genTemporalBlocking   = false
 ///////////////////
 // Polyhedron optimizations
 // Polyhedron optimizations
-poly_optLevel_fine          = 3
+poly_optLevel_fine          = 0
 poly_optLevel_coarse        = 1
 poly_numFinestLevels        = 1
 poly_performDCE             = false // this is not working with CUDA
@@ -77,8 +78,8 @@ poly_filterDeps             = true
 // other optimizations
 opt_useAddressPrecalc           = false
 opt_vectorize                   = false
-opt_unroll                      = 2
-opt_unroll_interleave           = true
+opt_unroll                      = 0
+opt_unroll_interleave           = false
 opt_conventionalCSE             = false // works only with useDblPrecision = true
 opt_loopCarriedCSE              = false // this is not working with CUDA
 
@@ -96,7 +97,7 @@ mpi_numThreads				= 1
 ////////////
 /// Cuda ///
 ////////////
-cuda_enabled                       = true
+cuda_enabled                       = false
 //cuda_deviceId                      = 0
 cuda_preferredExecution            = "Device"
 cuda_syncDeviceAfterKernelCalls    = true
@@ -109,8 +110,9 @@ cuda_blockSize_z                   = 1
 cuda_reductionBlockSize            = 1024
 
 // my new experimental cuda properties
-cuda_useSharedMemory               = true
+cuda_useSharedMemory               = false
 cuda_linearizeSharedMemoryAccess   = false
 cuda_favorL1CacheOverSharedMemory  = false
-cuda_spatialBlockingWithSmem       = true
+cuda_spatialBlockingWithSmem       = false
 cuda_spatialBlockingWithROC        = false
+experimental_cuda_useOldVersion    = false
