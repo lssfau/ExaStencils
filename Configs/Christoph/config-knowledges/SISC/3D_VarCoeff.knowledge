@@ -2,6 +2,7 @@
 // General configuration //
 ///////////////////////////
 useDblPrecision = false
+experimental_addPerformanceEstimate = false
 
 ///////////////////////
 /// Domain Settings ///
@@ -77,8 +78,8 @@ poly_filterDeps             = true
 // other optimizations
 opt_useAddressPrecalc           = false
 opt_vectorize                   = false
-opt_unroll                      = 2
-opt_unroll_interleave           = true
+opt_unroll                      = 0
+opt_unroll_interleave           = false
 opt_conventionalCSE             = false // works only with useDblPrecision = true
 opt_loopCarriedCSE              = false // this is not working with CUDA
 
@@ -114,3 +115,4 @@ cuda_linearizeSharedMemoryAccess   = false
 cuda_favorL1CacheOverSharedMemory  = false
 cuda_spatialBlockingWithSmem       = true
 cuda_spatialBlockingWithROC        = false
+experimental_cuda_useOldVersion    = false

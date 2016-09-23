@@ -87,8 +87,9 @@ cuda_blockSize_z                   = 8
 cuda_reductionBlockSize            = 1024
 
 // my new experimental cuda properties
-cuda_useSharedMemory               = true
+cuda_useSharedMemory               = false
 cuda_linearizeSharedMemoryAccess   = false
 cuda_favorL1CacheOverSharedMemory  = false
-cuda_spatialBlockingWithSmem       = true
+cuda_spatialBlockingWithSmem       = false
 cuda_spatialBlockingWithROC        = false
+experimental_cuda_useOldVersion    = false

@@ -19,6 +19,9 @@ object IR_AddPaddingToFieldLayouts {
 
       // update total number of values in the field
       for (layout <- fieldLayout.layoutsPerDim) layout.updateTotal()
+
+      // update reference offset since left padding may have changed
+      fieldLayout.updateDefReferenceOffset()
     }
   }
 }

@@ -1,7 +1,7 @@
 user                        = "Christoph"
-basePathPrefix              = "../generator-result/seq/sisc"
+basePathPrefix              = "../generator-result/smoother-2D"
 l3file                      = ""
-l4file                      = "/dsl/Layer4.exa"
+l4file                      = "../../Configs/Christoph/config-knowledges/smoother-2D.exa4"
 outputPath                  = "/generated/"
 htmlLogFile                 = "/log/log.html"
 produceHtmlLog              = true

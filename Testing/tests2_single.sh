@@ -88,7 +88,7 @@ echo "Run generator:"
 echo "  Created  ${RESULT}: run generator and save its stdout and stderr."
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 set -o pipefail
-srun java -XX:+UseG1GC -Xmx3G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | sed 's|\(WARN:.*\)$|<span style="color: #FF8000">\1</span>|;s|\(ERROR:.*\)$|<span style="color: #E00000">\1</span>|' | tee "${RESULT}"
+srun java -XX:+UseG1GC -Xmx3G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | sed 's|\(WARN:.*\)$|<span style="color: #FF8000">\1</span>|;s|\(ERROR:.*\)$|<span style="color: #E00000">\1</span>|;s|\(Exception in.*\)$|<span style="color: #E00000">\1</span>|;s|\(DBG:\s*Done!\)$|<span style="color: #00E000">\1</span>|' | tee "${RESULT}"
 RETCODE=$?
     if grep -q "Bad file descriptor" ${RESULT}; then
       echo "restart generation..."
@@ -98,7 +98,7 @@ RETCODE=$?
     fi
     if [[ ${RETCODE} -ne 0 ]]; then
       echo ""
-      echo "ERROR: generator return code unequal to 0."
+      echo "<span style=\"color: #E00000\">ERROR: generator return code unequal to 0: ${RETCODE}.</span>"
       echo ""
       touch ${ERROR_MARKER}
       echo "${LINK}" >> "${LOG_ALL}"
@@ -131,9 +131,10 @@ if [[ ! ${PATH} =~ cuda ]]; then
 fi
 echo "Call make:"
 srun make -C "${TEST_DIR}" -j ${SLURM_CPUS_ON_NODE}
-    if [[ $? -ne 0 ]]; then
+RETCODE=$?
+    if [[ ${RETCODE} -ne 0 ]]; then
       echo ""
-      echo "ERROR: make return code unequal to 0."
+      echo "<span style=\"color: #E00000\">ERROR: generator return code unequal to 0: ${RETCODE}.</span>"
       echo ""
       touch ${ERROR_MARKER}
       echo "${LINK}" >> "${LOG_ALL}"

@@ -552,8 +552,8 @@ class Extractor extends Collector {
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
           // ignore
-          case IR_FunctionCall(IR_FunctionAccess(name, _), _) if (allowedFunctions.contains(name)) =>
-          // nothing to do...
+          case IR_FunctionCall(fAcc @ IR_FunctionAccess(name, _), _) if (allowedFunctions.contains(name)) =>
+            fAcc.annotate(SKIP_ANNOT)
 
           case _ : IR_IntegerConstant
                | _ : IR_RealConstant
@@ -584,6 +584,7 @@ class Extractor extends Collector {
         for (exec <- executeAfterExtraction)
           exec()
         executeAfterExtraction.clear()
+        conditions.clear()
         curScop.discard(msg)
     }
   }

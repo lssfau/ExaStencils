@@ -3,7 +3,6 @@ package exastencils.base.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
-import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 /// IR_AbstractFunction
@@ -83,25 +82,7 @@ object IR_FunctionCall {
 
 case class IR_FunctionCall(var function : IR_FunctionAccess, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
   def name = function.name
-
-  override def datatype = {
-    // TODO: special nodes for special functions
-    function.name match {
-      case "diag" | "diag_inv" | "diag_inverse" => arguments(0).datatype
-      case "inv" | "inverse"                    => arguments(0).datatype
-      case "Vec3"                               => IR_UnitDatatype
-      case _                                    => {
-        val fct = StateManager.findAll[IR_Function]((t : IR_Function) => { t.name == function.name })
-        if (fct.length <= 0) {
-          Logger.warn(s"""Did not find function '${ function.name }'""")
-          IR_UnitDatatype
-        } else {
-          fct(0).returntype
-        }
-      }
-    }
-  }
-
+  override def datatype = function.datatype
   override def prettyprint(out : PpStream) : Unit = out << function << '(' <<< (arguments, ", ") << ')'
 }
 

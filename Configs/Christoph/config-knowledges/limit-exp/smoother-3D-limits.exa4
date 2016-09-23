@@ -33,18 +33,7 @@ Function LUPs() : Real {
     return(dimSize * dimSize * dimSize)
 }
 
-Function SmootherTTempBlock() : Unit {
-    loop over fragments {
-        repeat 3 times with contraction [1,1,1] { // marker;
-            loop over SolutionT@finest {
-                SolutionT[nextSlot]@finest = SolutionT[active]@finest + (0.8 / diag(Laplace@finest) * (RHST@finest - Laplace@finest * SolutionT[active]@finest))
-            }
-            advance SolutionT@finest
-        }
-    }
-}
-
-Function SmootherTNoTempBlock() : Unit {
+Function SmootherTBlock() : Unit {
     loop over fragments {
         loop over SolutionT@finest {
             SolutionT[nextSlot]@finest = SolutionT[active]@finest + (0.8 / diag(Laplace@finest) * (RHST@finest - Laplace@finest * SolutionT[active]@finest))
@@ -67,19 +56,19 @@ Function BenchmarkT() : Unit {
     print('Smoother 3D')
     print('Cache warmup')
     repeat 1 times {
-        SmootherTNoTempBlock()
+        SmootherTBlock()
     }
 
-    print('Starting benchmark (no temporal blocking)')
+    print('Starting benchmark')
     startTimer(benchTTimer)
     repeat 9 times { // marker
-        SmootherTNoTempBlock()
+        SmootherTBlock()
     }
     stopTimer(benchTTimer)
 
     Variable time : Real = getTotalFromTimer(benchTTimer)
-    print('Runtime: ', time)
-    print('MLUPs: ', (LUPs() * 9) / time / 1e3) // TODO: der Faktor 9 hier ergibt sich aus dem Produkt der Schleifeniterationen bei den obigen beiden "marker"n
+    print('Smoother runtime for 9 runs: ', time)
+    print('Smoother MLUPs for 9 runs: ', (LUPs() * 9) / time / 1e3) // TODO: der Faktor 9 hier ergibt sich aus dem Produkt der Schleifeniterationen bei den obigen beiden "marker"n
 }
 
 Function Application() : Unit {
