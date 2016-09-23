@@ -584,6 +584,7 @@ class Extractor extends Collector {
         for (exec <- executeAfterExtraction)
           exec()
         executeAfterExtraction.clear()
+        conditions.clear()
         curScop.discard(msg)
     }
   }
