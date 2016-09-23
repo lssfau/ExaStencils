@@ -12,6 +12,7 @@ import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_AddPaddingToFieldLayouts
 import exastencils.field.l4._
 import exastencils.globals._
+import exastencils.grid.l4.L4_ResolveGridFunctions
 import exastencils.grid.l4.L4_ResolveVirtualFieldAccesses
 import exastencils.grid.{ l4 => _, _ }
 import exastencils.knowledge.l4._
@@ -30,12 +31,14 @@ import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
 import exastencils.stencil.l4._
 import exastencils.strategies._
+import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
+import exastencils.util.l4.L4_ResolveMathFunctions
 
 object MainStefan {
   private var polyOptExplID : Int = 0
 
-  def initialize(args : Array[String]) : Unit = {
+  def initialize(args : Array[String]) = {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
 
@@ -89,7 +92,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Initializing")
   }
 
-  def shutdown() : Unit = {
+  def shutdown() = {
     if (Settings.timeStrategies)
       StrategyTimer.print()
 
@@ -97,7 +100,7 @@ object MainStefan {
       Logger_HTML.finish()
   }
 
-  def handleL1() : Unit = {
+  def handleL1() = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 1")
 
@@ -107,7 +110,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Handling Layer 1")
   }
 
-  def handleL2() : Unit = {
+  def handleL2() = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 2")
 
@@ -127,7 +130,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Handling Layer 2")
   }
 
-  def handleL3() : Unit = {
+  def handleL3() = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 3")
 
@@ -142,7 +145,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Handling Layer 3")
   }
 
-  def handleL4() : Unit = {
+  def handleL4() = {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
@@ -151,6 +154,9 @@ object MainStefan {
     } else {
       StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
     }
+
+    StateManager.root.asInstanceOf[L4_Root].flatten()
+
     ValidationL4.apply()
 
     // re-print the merged L4 state
@@ -194,6 +200,13 @@ object MainStefan {
       L4_InlineGlobalValueDeclarations.apply()
     }
     L4_ResolveVirtualFieldAccesses.apply()
+    L4_ResolveVariableAccesses.apply()
+    L4_ResolveFunctionAccesses.apply()
+    L4_ResolveMathFunctions.apply()
+    L4_ResolveTimerFunctions.apply()
+    L4_ResolveGridFunctions.apply()
+    L4_ResolveStencilFunctions.apply()
+    L4_ResolveLoopItAccesses.apply()
     ResolveL4_Pre.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()
@@ -244,7 +257,7 @@ object MainStefan {
       StrategyTimer.stopTiming("Progressing from L4 to IR")
   }
 
-  def handleIR() : Unit = {
+  def handleIR() = {
     // add some more nodes
     AddDefaultGlobals.apply()
     SetupDataStructures.apply()
@@ -424,7 +437,7 @@ object MainStefan {
       Fortranify.apply()
   }
 
-  def print() : Unit = {
+  def print() = {
     Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
     PrintStrategy.apply()
     PrettyprintingManager.finish()
