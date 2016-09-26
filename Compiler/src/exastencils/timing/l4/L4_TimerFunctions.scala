@@ -45,4 +45,11 @@ object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function 
         Logger.warn(s"Found leveled timing function $accessName with level ${ level.get }; level is ignored")
       L4_TimerFunctionAccess(accessName, L4_TimerFunctions.getValue(accessName).get)
   })
+
+  this += new Transformation("Convert string constants in function call arguments", {
+    case fctCall @ L4_FunctionCall(_ : L4_TimerFunctionAccess, args) =>
+      L4_ConvertStringConstantsToLiterals.applyStandalone(args)
+      fctCall
+  })
 }
+

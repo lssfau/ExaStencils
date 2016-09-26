@@ -13,9 +13,8 @@ import exastencils.deprecated.l3Generate
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.globals._
 import exastencils.grid.{ l4 => _, _ }
-import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
+import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
-import exastencils.languageprocessing.l4._
 import exastencils.logger._
 import exastencils.mpi._
 import exastencils.multiGrid._
@@ -29,6 +28,7 @@ import exastencils.prettyprinting._
 import exastencils.stencil.l4.L4_ProcessStencilDeclarations
 import exastencils.strategies._
 import exastencils.util._
+import exastencils.util.l4.L4_ResolveSpecialConstants
 
 object MainChristoph {
   private var polyOptExplID : Int = 0
@@ -182,8 +182,8 @@ object MainChristoph {
     L4_ResolveLeveledScopes.apply()
 
     L4_ResolveCurrentLevels.apply()
-
-    ResolveL4_Pre.apply()
+    L4_ResolveSpecialConstants.apply()
+    L4_ResolveKnowledgeParameterAccess.apply()
 
     L4_ProcessStencilDeclarations.apply()
 

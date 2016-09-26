@@ -9,7 +9,6 @@ import exastencils.core.collectors._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.l4._
-import exastencils.knowledge
 import exastencils.l4.L4_Communicate
 import exastencils.logger._
 
@@ -33,78 +32,6 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
   this += new Transformation("Collect", { // FIXME: add visitor strategy defining dummy trafo?
     case n : Node => n
   })
-}
-
-// FIXME: name
-object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
-  def resolveParameterToConstant(obj : AnyRef, ident : String) : L4_Expression = {
-    val ret = obj.getClass.getMethod(ident).invoke(obj)
-
-    if (ret.isInstanceOf[Int]) L4_IntegerConstant(ret.asInstanceOf[Int])
-    else if (ret.isInstanceOf[Float]) L4_RealConstant(ret.asInstanceOf[Float])
-    else if (ret.isInstanceOf[Boolean]) L4_BooleanConstant(ret.asInstanceOf[Boolean])
-    else if (ret.isInstanceOf[String]) L4_StringConstant(ret.asInstanceOf[String])
-    else Logger.error(s"Trying to access parameter $ident from L4 with unsupported type")
-  }
-
-  override def apply(applyAtNode : Option[Node]) = {
-    this.transaction()
-
-    this.execute(new Transformation("special functions and constants", {
-      // get knowledge/settings/platform
-      case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getKnowledge" == access.name =>
-        resolveParameterToConstant(knowledge.Knowledge, ident)
-      case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getSetting" == access.name   =>
-        resolveParameterToConstant(Settings, ident)
-      case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getPlatform" == access.name  =>
-        resolveParameterToConstant(knowledge.Platform, ident)
-
-      // levelIndex
-      case L4_FunctionCall(L4_UnresolvedAccess("levels", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())      =>
-        L4_IntegerConstant(level)
-      case L4_FunctionCall(L4_UnresolvedAccess("levelIndex", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())  =>
-        L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case L4_FunctionCall(L4_UnresolvedAccess("levelString", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer()) =>
-        L4_StringConstant(level.toString)
-
-      // constants
-      case access : L4_UnresolvedAccess if "PI" == access.name || "M_PI" == access.name || "Pi" == access.name =>
-        L4_RealConstant(math.Pi)
-    }))
-
-    this.execute(new Transformation("Resolving string constants to literals", {
-      case f : L4_FunctionCall =>
-        f.function.name match {
-          case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "getMeanFromTimer"  => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "getMeanTime"       => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "getTotalFromTimer" => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "getTotalTime"      => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case _                   =>
-        }
-        f
-    }))
-
-    //    var variableCollector = new L4VariableCollector()
-    //    this.register(variableCollector)
-    //    this.execute(new Transformation("Resolving to Variable Accesses", {
-    //      case x : BasicAccess => {
-    //        var value = variableCollector.getValue(x.name)
-    //        if (value.isDefined) {
-    //          Logger.warn("VarResolve: found:     " + x.name)
-    //          //          VariableAccess(x.name, None, value.get)
-    //          x
-    //        } else {
-    //          Logger.warn("VarResolve: not found: " + x.name)
-    //          x
-    //        }
-    //      }
-    //    }))
-    //    this.unregister(variableCollector)
-
-    this.commit()
-  }
 }
 
 object ReplaceExpressions extends DefaultStrategy("Replace something with something else") {

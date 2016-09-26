@@ -18,7 +18,6 @@ import exastencils.grid.l4._
 import exastencils.grid.{ l4 => _, _ }
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
-import exastencils.languageprocessing.l4._
 import exastencils.logger._
 import exastencils.mpi._
 import exastencils.multiGrid._
@@ -34,7 +33,7 @@ import exastencils.stencil.l4._
 import exastencils.strategies._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
-import exastencils.util.l4.L4_ResolveMathFunctions
+import exastencils.util.l4._
 
 object Main {
   def initialize(args : Array[String]) = {
@@ -204,7 +203,8 @@ object Main {
     L4_ResolveGridFunctions.apply()
     L4_ResolveStencilFunctions.apply()
     L4_ResolveLoopItAccesses.apply()
-    ResolveL4_Pre.apply()
+    L4_ResolveSpecialConstants.apply()
+    L4_ResolveKnowledgeParameterAccess.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()
 
