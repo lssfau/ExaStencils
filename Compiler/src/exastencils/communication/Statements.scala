@@ -53,10 +53,6 @@ case class CommunicateStatement(var field : FieldSelection, var op : String, var
   if (condition.isDefined) ShiftIndexAccesses.applyStandalone(IR_ExpressionStatement(condition.get))
 }
 
-case class ApplyBCsStatement(var field : FieldSelection) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-}
-
 /// local communication operations
 
 abstract class LocalTransfers extends IR_Statement with IR_Expandable {

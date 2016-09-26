@@ -2,15 +2,15 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.boundary.ir.IR_ApplyBC
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
@@ -147,7 +147,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       IR_FunctionCall(functionName, fctArgs) : IR_Statement
     }
 
-    case applyBCsStatement : ApplyBCsStatement => {
+    case applyBCsStatement : IR_ApplyBC => {
       var insideFragLoop = collector.stack.map(node => node match { case loop : IR_LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
       if (insideFragLoop && !Knowledge.experimental_allowCommInFragLoops) {
         Logger.warn("Found apply BCs inside fragment loop; this is currently unsupported")

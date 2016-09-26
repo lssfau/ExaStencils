@@ -24,21 +24,6 @@ case class CommunicateTarget(var target : String, var begin : Option[L4_ConstInd
   }
 }
 
-case class ApplyBCsStatement(var field : L4_Access) extends L4_Statement {
-  override def prettyprint(out : PpStream) = { out << "apply bc to " << field << '\n' }
-
-  override def progress : communication.ApplyBCsStatement = {
-    val resolvedField = field match {
-      case f : L4_FieldAccess         => f.progress.fieldSelection
-      case sf : L4_StencilFieldAccess => knowledge.FieldSelection(sf.target.getProgressedObject.field,
-        sf.target.level,
-        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject.field, sf.slot),
-        sf.arrayIndex)
-    }
-    communication.ApplyBCsStatement(resolvedField)
-  }
-}
-
 case class CommunicateStatement(var field : L4_Access, var op : String, var targets : List[CommunicateTarget], var condition : Option[L4_Expression]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     if ("both" != op) out << op + ' '

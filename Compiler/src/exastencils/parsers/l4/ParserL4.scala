@@ -218,7 +218,7 @@ class ParserL4 extends ExaParser with PackratParsers {
       ^^ { case exp ~ stmts ~ elsecond => L4_IfCondition(exp, stmts.to[ListBuffer], ListBuffer[L4_Statement](elsecond)) }))
 
   lazy val applyBCsStatement = locationize(("apply" ~ "bc" ~ "to") ~> genericAccess //fieldAccess
-    ^^ { case field => ApplyBCsStatement(field) })
+    ^^ { case field => L4_ApplyBC(field) })
   lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ ("communicate" ||| "communicating")) ~ communicateTarget.* ~ (("of").? ~> genericAccess) //fieldAccess
     ~ ("where" ~> booleanexpression).?
     ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
