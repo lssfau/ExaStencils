@@ -5,6 +5,7 @@ import exastencils.prettyprinting.PpStream
 
 /// IR_Native
 
-case class HACK_IR_Native(nativeCode : String) extends IR_Statement {
-  override def prettyprint(out : PpStream) = out << nativeCode << ';'
+case class HACK_IR_Native(nativeCode : String) extends IR_Expression {
+  override def datatype = IR_UnknownDatatype
+  override def prettyprint(out : PpStream) = out << nativeCode
 }
