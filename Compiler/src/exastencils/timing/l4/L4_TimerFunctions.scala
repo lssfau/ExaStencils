@@ -14,8 +14,11 @@ object L4_TimerFunctions {
   val functions = HashMap[String, L4_Datatype](
     "startTimer" -> L4_UnitDatatype,
     "stopTimer" -> L4_UnitDatatype,
+    "getTotalFromTimer" -> L4_DoubleDatatype,
     "getTotalTime" -> L4_DoubleDatatype,
+    "getMeanFromTimer" -> L4_DoubleDatatype,
     "getMeanTime" -> L4_DoubleDatatype,
+    "getLastFromTimer" -> L4_DoubleDatatype,
     "getLastTime" -> L4_DoubleDatatype,
     "printAllTimers" -> L4_UnitDatatype,
     "printAllTimersToFile" -> L4_UnitDatatype
