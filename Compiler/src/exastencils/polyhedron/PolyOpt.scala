@@ -564,11 +564,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       Logger.debug("[PolyOpt] Exploration: no configuration file found or file empty, perform exploration and create it, progress:")
       performExploration(scop, explConfig, df)
       Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
-      Settings.outputPath += df.format(0)
-    } else {
-      applyConfig(scop, explConfig, df.format(confID))
-      Settings.outputPath += df.format(confID)
     }
+    if (confID != 0)
+      applyConfig(scop, explConfig, df.format(confID))
+    Settings.outputPath += df.format(confID)
   }
 
   private def performExploration(scop : Scop, explConfig : java.io.File, df : DecimalFormat) : Unit = {
