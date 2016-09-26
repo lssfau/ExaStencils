@@ -134,7 +134,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
         })))) with OMP_PotentiallyParallel
   }
 
-  override def expand : Output[IR_Statement] = {
+  override def expand() : Output[IR_Statement] = {
     field.field.boundary match {
       case _ : IR_NeumannBC                => constructLoops
       case _ : IR_DirichletBC              => constructLoops

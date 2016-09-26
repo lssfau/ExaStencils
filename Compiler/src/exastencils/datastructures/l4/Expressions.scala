@@ -5,11 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.datastructures._
-import exastencils.field.l4._
 import exastencils.logger._
 import exastencils.prettyprinting._
-import exastencils.stencil.ir._
-import exastencils.stencil.l4._
 
 case class VectorExpression(var datatype : Option[L4_Datatype], var expressions : List[L4_Expression], var rowVector : Option[Boolean]) extends L4_Expression {
   // rowVector == true: Row; false: Column; None: unspecified
@@ -59,36 +56,4 @@ case class MatrixExpression(var datatype : Option[L4_Datatype], var expressions 
   def rows = expressions.length
   def columns = expressions(0).length
   def isConstant = expressions.filter(_.isConstant).length == expressions.length
-}
-
-case class StencilConvolution(var stencilAccess : L4_StencilAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {
-  def prettyprint(out : PpStream) = { out << stencilAccess << " * " << fieldAccess }
-
-  def progress : IR_StencilConvolution = {
-    IR_StencilConvolution(stencilAccess.getBasicStencilAccess.stencil, fieldAccess.progress)
-  }
-}
-
-case class StencilFieldConvolution(var stencilFieldAccess : L4_StencilFieldAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {
-  def prettyprint(out : PpStream) = { out << stencilFieldAccess << " * " << fieldAccess }
-
-  def progress : IR_StencilFieldConvolution = {
-    IR_StencilFieldConvolution(stencilFieldAccess.getBasicStencilFieldAccess, fieldAccess.progress)
-  }
-}
-
-case class StencilStencilConvolution(var stencilLeft : L4_StencilAccess, var stencilRight : L4_StencilAccess) extends L4_Expression {
-  def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
-
-  def progress : IR_StencilStencilConvolution = {
-    IR_StencilStencilConvolution(stencilLeft.getBasicStencilAccess.stencil, stencilRight.getBasicStencilAccess.stencil)
-  }
-}
-
-case class StencilFieldStencilConvolution(var stencilLeft : L4_StencilFieldAccess, var stencilRight : L4_StencilAccess) extends L4_Expression {
-  def prettyprint(out : PpStream) = { out << stencilLeft << " * " << stencilRight }
-
-  def progress : IR_StencilFieldStencilConvolution = {
-    IR_StencilFieldStencilConvolution(stencilLeft.getBasicStencilFieldAccess, stencilRight.getBasicStencilAccess.stencil)
-  }
 }
