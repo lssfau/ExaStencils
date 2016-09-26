@@ -5,8 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge
 import exastencils.logger.Logger
@@ -64,7 +64,7 @@ object L4_ResolveVirtualFieldAccesses extends DefaultStrategy("Resolve accesses 
     "vf_cellCenterToFace_x", "vf_cellCenterToFace_y", "vf_cellCenterToFace_z").map(_.toLowerCase())
 
   this += new Transformation("Resolve applicable unresolved accesses", {
-    case access : UnresolvedAccess if virtualFields.contains(access.name.toLowerCase()) =>
+    case access : L4_UnresolvedAccess if virtualFields.contains(access.name.toLowerCase()) =>
       // resolveToVirtualFieldAccess
       if (access.dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on special field - was an offset access (@) intended?")
       if (access.slot.isDefined) Logger.warn("Discarding meaningless slot access on special field")

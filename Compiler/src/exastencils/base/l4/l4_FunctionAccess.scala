@@ -3,9 +3,9 @@ package exastencils.base.l4
 import scala.collection.mutable.HashMap
 
 import exastencils.base.ir._
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
-import exastencils.datastructures.l4.UnresolvedAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
@@ -81,9 +81,9 @@ object L4_ResolveFunctionAccesses extends DefaultStrategy("Resolve function acce
   this += new Transformation("Collecting function declarations", PartialFunction.empty)
 
   this += new Transformation("Resolve function accesses", {
-    case access @ UnresolvedAccess(accessName, _, None, _, _, _) if collector.exists(accessName)                                       =>
+    case access @ L4_UnresolvedAccess(accessName, _, None, _, _, _) if collector.exists(accessName)                                       =>
       L4_UserFunctionAccess(accessName, collector.getValue(accessName).get)
-    case access @ UnresolvedAccess(accessName, _, Some(L4_SingleLevel(level)), _, _, _) if collector.exists(accessName + "@@" + level) =>
+    case access @ L4_UnresolvedAccess(accessName, _, Some(L4_SingleLevel(level)), _, _, _) if collector.exists(accessName + "@@" + level) =>
       L4_UserFunctionAccess(accessName, level, collector.getValue(accessName + "@@" + level).get)
   })
 }

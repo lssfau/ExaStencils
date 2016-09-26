@@ -2,7 +2,6 @@ package exastencils.datastructures.l4
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.datastructures._
@@ -12,16 +11,12 @@ import exastencils.prettyprinting._
 import exastencils.stencil.ir._
 import exastencils.stencil.l4._
 
-trait Number extends L4_Expression {
-  def value : AnyVal
-}
-
 case class VectorExpression(var datatype : Option[L4_Datatype], var expressions : List[L4_Expression], var rowVector : Option[Boolean]) extends L4_Expression {
   // rowVector == true: Row; false: Column; None: unspecified
   def length = expressions.length
 
   def apply(i : Integer) = expressions(i)
-  def isConstant = expressions.filter(e => e.isInstanceOf[Number]).length == expressions.length
+  def isConstant = expressions.filter(e => e.isInstanceOf[L4_Number]).length == expressions.length
 
   def prettyprint(out : PpStream) = {
     out << '{' <<< (expressions, ", ") << '}'
@@ -64,53 +59,6 @@ case class MatrixExpression(var datatype : Option[L4_Datatype], var expressions 
   def rows = expressions.length
   def columns = expressions(0).length
   def isConstant = expressions.filter(_.isConstant).length == expressions.length
-}
-
-case class UnresolvedAccess(var name : String,
-    var slot : Option[L4_SlotSpecification],
-    var level : Option[L4_AccessLevelSpecification],
-    var offset : Option[L4_ExpressionIndex],
-    var arrayIndex : Option[Int],
-    var dirAccess : Option[L4_ExpressionIndex]) extends L4_Access {
-  def prettyprint(out : PpStream) = {
-    out << name
-    if (slot.isDefined) out << '[' << slot.get << ']'
-    if (level.isDefined) out << '@' << level.get
-    if (offset.isDefined) out << '@' << offset.get
-    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
-    if (dirAccess.isDefined) out << ':' << dirAccess
-  }
-
-  def progress : IR_Expression = {
-    // IR_StringLiteral("ERROR - Unresolved Access")
-    Logger.warn(s"Progressing UnresolvedAccess $name")
-    resolveToBasicOrLeveledAccess.progress
-  }
-
-  def resolveToBasicOrLeveledAccess = {
-    if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
-    if (offset.isDefined) Logger.warn("Discarding meaningless offset access on basic or leveled access")
-    if (arrayIndex.isDefined) Logger.warn("Discarding meaningless array index access on basic or leveled access")
-    if (dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on basic or leveled access " + name)
-    if (level.isDefined) LeveledAccess(name, level.get) else BasicAccess(name)
-  }
-}
-
-case class BasicAccess(var name : String) extends L4_Access {
-  def prettyprint(out : PpStream) = { out << name }
-  def progress : IR_StringLiteral = {
-    Logger.warn(s"Progressing BasicAccess $name")
-    IR_StringLiteral(name)
-  }
-}
-
-case class LeveledAccess(var name : String, var level : L4_AccessLevelSpecification) extends L4_Access {
-  def prettyprint(out : PpStream) = { out << name << '[' << level << ']' }
-
-  def progress : IR_Expression = {
-    Logger.warn(s"Progressing LeveledAccess $name on level $level")
-    IR_StringLiteral(name + "_" + level.resolveLevel)
-  }
 }
 
 case class StencilConvolution(var stencilAccess : L4_StencilAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {

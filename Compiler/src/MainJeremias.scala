@@ -155,8 +155,6 @@ object MainJeremias {
 
     L4_ProcessStencilDeclarations.apply()
 
-    ResolveL4_Post.apply()
-
     StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
 
     if (!Knowledge.domain_rect_generate) {

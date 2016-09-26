@@ -1,11 +1,10 @@
 package exastencils.base.l4
 
 import exastencils.base.ir._
-import exastencils.baseExt.l4.L4_GlobalSection
+import exastencils.baseExt.l4._
 import exastencils.core.Duplicate
 import exastencils.core.collectors._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
@@ -57,13 +56,13 @@ object L4_InlineValueDeclarations extends DefaultStrategy("Propagate and inline 
 
   // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work
   this += new Transformation("Resolve values in expressions", {
-    case x @ UnresolvedAccess(_, None, None, _, None, _)                        =>
+    case x @ L4_UnresolvedAccess(_, None, None, _, None, _)                        =>
       val value = valueCollector.getValue(x.name)
       value match {
         case None => x // no hit
         case _    => Duplicate(value.get)
       }
-    case x @ UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
+    case x @ L4_UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
       val value = valueCollector.getValue(x.name + "@@" + level)
       value match {
         case None => x // no hit

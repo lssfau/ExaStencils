@@ -3,7 +3,7 @@ package exastencils.solver.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.datastructures.l4.UnresolvedAccess
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting._
 import exastencils.solver.ir._
@@ -20,7 +20,7 @@ case class L4_Equation(var lhs : L4_Expression, var rhs : L4_Expression) extends
 
 object L4_LocalSolve {
   // parser interface
-  def apply(unknowns : List[UnresolvedAccess], equations : List[L4_Equation])
+  def apply(unknowns : List[L4_UnresolvedAccess], equations : List[L4_Equation])
   = new L4_LocalSolve(unknowns.map(_.asInstanceOf[L4_Expression]).to[ListBuffer], equations.to[ListBuffer])
 }
 

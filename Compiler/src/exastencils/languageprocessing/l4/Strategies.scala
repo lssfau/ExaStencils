@@ -53,23 +53,23 @@ object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
 
     this.execute(new Transformation("special functions and constants", {
       // get knowledge/settings/platform
-      case L4_FunctionCall(access : UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getKnowledge" == access.name =>
+      case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getKnowledge" == access.name =>
         resolveParameterToConstant(knowledge.Knowledge, ident)
-      case L4_FunctionCall(access : UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getSetting" == access.name   =>
+      case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getSetting" == access.name   =>
         resolveParameterToConstant(Settings, ident)
-      case L4_FunctionCall(access : UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getPlatform" == access.name  =>
+      case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getPlatform" == access.name  =>
         resolveParameterToConstant(knowledge.Platform, ident)
 
       // levelIndex
-      case L4_FunctionCall(UnresolvedAccess("levels", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())      =>
+      case L4_FunctionCall(L4_UnresolvedAccess("levels", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())      =>
         L4_IntegerConstant(level)
-      case L4_FunctionCall(UnresolvedAccess("levelIndex", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())  =>
+      case L4_FunctionCall(L4_UnresolvedAccess("levelIndex", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())  =>
         L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case L4_FunctionCall(UnresolvedAccess("levelString", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer()) =>
+      case L4_FunctionCall(L4_UnresolvedAccess("levelString", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer()) =>
         L4_StringConstant(level.toString)
 
       // constants
-      case access : UnresolvedAccess if "PI" == access.name || "M_PI" == access.name || "Pi" == access.name =>
+      case access : L4_UnresolvedAccess if "PI" == access.name || "M_PI" == access.name || "Pi" == access.name =>
         L4_RealConstant(math.Pi)
     }))
 
@@ -108,13 +108,6 @@ object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
   }
 }
 
-object ResolveL4_Post extends DefaultStrategy("Resolving L4 specifics") {
-  // resolve accesses
-  this += new Transformation("Resolve AccessSpecifications", {
-    case access : UnresolvedAccess => access.resolveToBasicOrLeveledAccess
-  })
-}
-
 object ReplaceExpressions extends DefaultStrategy("Replace something with something else") {
   var replacements : Map[String, L4_Expression] = Map()
 
@@ -126,11 +119,11 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
   }
 
   this += new Transformation("SearchAndReplace", {
-    case origAccess : UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
+    case origAccess : L4_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
       // includes accesses used as identifiers in function calls
       var newAccess = Duplicate(replacements.get(origAccess.name).get)
       newAccess match {
-        case newAccess : UnresolvedAccess => {
+        case newAccess : L4_UnresolvedAccess => {
           if (origAccess.slot.isDefined) {
             if (newAccess.slot.isDefined) Logger.warn("Overriding slot on access in function instantiation")
             newAccess.slot = origAccess.slot
@@ -152,7 +145,7 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
             newAccess.dirAccess = origAccess.dirAccess
           }
         }
-        case _                            =>
+        case _                               =>
       }
       newAccess
     }
@@ -166,10 +159,6 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
   def fromIdentifier(ident : L4_Identifier) : CombinedIdentifier = {
     val level = ident.asInstanceOf[L4_LeveledIdentifier].level.resolveLevel
     CombinedIdentifier(ident.name, level)
-  }
-  def fromLeveledAccess(access : L4_Access) : CombinedIdentifier = {
-    val level = access.asInstanceOf[LeveledAccess].level.resolveLevel
-    CombinedIdentifier(access.asInstanceOf[LeveledAccess].name, level)
   }
   def fromFieldAccess(access : L4_FieldAccess) : CombinedIdentifier = {
     val level = access.target.level
@@ -219,11 +208,12 @@ object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundary
       if (field.boundary.isDefined) {
         if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
           val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
-          val fctDecl = StateManager.findFirst({
-            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
-              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.function))
-          }).get
-          if (fctDecl.returntype eq L4_UnitDatatype) {
+          if (fctCall.function.asInstanceOf[L4_FunctionAccess].datatype == L4_UnitDatatype) {
+            //          val fctDecl = StateManager.findFirst({
+            //            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
+            //              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.function))
+            //          }).get
+            //          if (fctDecl.returntype eq L4_UnitDatatype) {
             bcs(fromIdentifier(field.identifier)) = fctCall
           }
         }

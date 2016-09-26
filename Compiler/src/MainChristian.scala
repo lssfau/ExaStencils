@@ -182,8 +182,6 @@ object MainChristian {
 
     L4_ProcessStencilDeclarations.apply()
 
-    ResolveL4_Post.apply()
-
     ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)

@@ -12,8 +12,7 @@ import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_AddPaddingToFieldLayouts
 import exastencils.field.l4._
 import exastencils.globals._
-import exastencils.grid.l4.L4_ResolveGridFunctions
-import exastencils.grid.l4.L4_ResolveVirtualFieldAccesses
+import exastencils.grid.l4._
 import exastencils.grid.{ l4 => _, _ }
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
@@ -217,7 +216,6 @@ object MainStefan {
     L4_ResolveFieldAccesses.apply()
     L4_ResolveStencilAccesses.apply()
     L4_ResolveStencilFieldAccesses.apply()
-    ResolveL4_Post.apply()
 
     /// BEGIN HACK: progress expression in knowledge
     {
@@ -228,14 +226,12 @@ object MainStefan {
           L4_ResolveFieldAccesses.apply(Some(entry))
           L4_ResolveStencilAccesses.apply(Some(entry))
           L4_ResolveStencilFieldAccesses.apply(Some(entry))
-          ResolveL4_Post.apply(Some(entry))
         }
       for (obj <- L4_FieldCollection.objects)
         if (obj.boundary.isDefined) {
           L4_ResolveFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
           L4_ResolveStencilAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
           L4_ResolveStencilFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
-          ResolveL4_Post.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
         }
       Logger.setLevel(oldLoggerLevel)
     }

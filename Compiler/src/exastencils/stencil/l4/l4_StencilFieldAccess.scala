@@ -3,8 +3,8 @@ package exastencils.stencil.l4
 import exastencils.base.ir._
 import exastencils.base.l4.L4_ExpressionIndex
 import exastencils.baseExt.ir.IR_LoopOverDimensions
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.l4._
 import exastencils.knowledge._
@@ -103,7 +103,7 @@ case class L4_StencilFieldAccess(
 
 object L4_ResolveStencilFieldAccesses extends DefaultStrategy("Resolve accesses to stencil fields") {
   this += new Transformation("Resolve applicable unresolved accesses", {
-    case access : UnresolvedAccess if L4_StencilFieldCollection.exists(access.name) =>
+    case access : L4_UnresolvedAccess if L4_StencilFieldCollection.exists(access.name) =>
       L4_StencilFieldAccess(access.name, access.level.get.resolveLevel,
         access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset, access.dirAccess)
   })

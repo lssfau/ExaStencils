@@ -28,17 +28,17 @@ object ValidationL4 {
 
   // No need to transform Domain- and LayoutDeclarationStatements because their names are not outputted.
   s += Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
-    case x : L4_Identifier if (protectedkeywords.contains(x.name))                                           =>
+    case x : L4_Identifier if (protectedkeywords.contains(x.name))                                              =>
       x.name = "user_" + x.name; x
-    case x : L4_Identifier if (x.name.startsWith("_"))                                                       =>
+    case x : L4_Identifier if (x.name.startsWith("_"))                                                          =>
       x.name = "user_" + x.name; x
-    case x : UnresolvedAccess if (protectedkeywords.contains(x.name) && !x.hasAnnotation("NO_PROTECT_THIS")) =>
+    case x : L4_UnresolvedAccess if (protectedkeywords.contains(x.name) && !x.hasAnnotation("NO_PROTECT_THIS")) =>
       x.name = "user_" + x.name; x
-    case x : UnresolvedAccess if (x.name.startsWith("_"))                                                    =>
+    case x : L4_UnresolvedAccess if (x.name.startsWith("_"))                                                    =>
       x.name = "user_" + x.name; x
-    case x : L4_ExternalFieldDecl if (protectedkeywords.contains(x.identifier))                              =>
+    case x : L4_ExternalFieldDecl if (protectedkeywords.contains(x.identifier))                                 =>
       x.identifier = "user_" + x.identifier; x
-    case x : L4_ExternalFieldDecl if (x.identifier.startsWith("_"))                                          =>
+    case x : L4_ExternalFieldDecl if (x.identifier.startsWith("_"))                                             =>
       x.identifier = "user_" + x.identifier; x
   })
 
@@ -48,10 +48,9 @@ object ValidationL4 {
   s += Transformation("find Function calls", {
     case f : L4_FunctionCall => {
       f.function match {
-        case a : LeveledAccess    => functioncalls += (f.function.name + a.level.resolveLevel)
-        case a : UnresolvedAccess => functioncalls += (f.function.name + a.level.getOrElse("-1"))
-        case a : BasicAccess      => functioncalls += (f.function.name + "-1")
-        case _                    => println("something else: " + f.function)
+        case a : L4_FunctionAccess   => functioncalls += (a.name + a.level.getOrElse("-1"))
+        case a : L4_UnresolvedAccess => functioncalls += (a.name + a.level.getOrElse("-1"))
+        case _                       => println("something else: " + f.function)
       }
       f
     }
