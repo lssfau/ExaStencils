@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.boundary.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -55,8 +56,9 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
         //Grid.getGridObject.invokeAccessResolve(virtualField)
       }
     })
-    val bc = Duplicate(field.field.boundaryConditions.get)
-    strat.applyStandalone(IR_ExpressionStatement(bc))
+
+    val bc = Duplicate(field.field.boundary)
+    strat.applyStandalone(IR_Root(bc))
 
     // FIXME: this works for now, but users may want to specify bc's per vector element
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
@@ -66,61 +68,78 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
     def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
 
-    field.fieldLayout.discretization match {
-      case d if "node" == d
-        || ("face_x" == d && 0 != neigh.dir(0))
-        || ("face_y" == d && 0 != neigh.dir(1))
-        || ("face_z" == d && 0 != neigh.dir(2)) =>
-        if (IR_StringLiteral("Neumann") == bc)
-          Knowledge.experimental_NeumannOrder match {
-            case 1 => statements += new IR_Assignment(new IR_FieldAccess(fieldSel, index), new IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
-            case 2 => statements += new IR_Assignment(new IR_FieldAccess(fieldSel, index),
-              ((4.0 / 3.0) * new IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
-                + ((-1.0 / 3.0) * new IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i))))
-            case 3 => // TODO: do we want this? what do we do on the coarser levels?
-              statements += new IR_Assignment(new IR_FieldAccess(fieldSel, index),
-                (((3.0 * 6.0 / 11.0) * new IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -1 * i)))
-                  + ((-3.0 / 2.0 * 6.0 / 11.0) * new IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i)))
-                  + ((1.0 / 3.0 * 6.0 / 11.0) * new IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -3 * i)))))
-          }
-        else
-          statements += new IR_Assignment(new IR_FieldAccess(fieldSel, index), bc)
-      case d if "cell" == d
-        || ("face_x" == d && 0 == neigh.dir(0))
-        || ("face_y" == d && 0 == neigh.dir(1))
-        || ("face_z" == d && 0 == neigh.dir(2)) =>
-        if (IR_StringLiteral("Neumann") == bc)
-          Knowledge.experimental_NeumannOrder match {
-            case 1 => statements += new IR_Assignment(new IR_FieldAccess(fieldSel, index + offsetIndex),
-              new IR_FieldAccess(fieldSel, index))
-          }
-        else
-          statements += new IR_Assignment(new IR_FieldAccess(fieldSel, index + offsetIndex),
-            (2.0 * bc) - new IR_FieldAccess(fieldSel, index))
+    bc match {
+      case IR_NeumannBC(order)          =>
+        // TODO: move this logic to the appropriate bc classes
+        field.fieldLayout.discretization match {
+          case d if "node" == d
+            || ("face_x" == d && 0 != neigh.dir(0))
+            || ("face_y" == d && 0 != neigh.dir(1))
+            || ("face_z" == d && 0 != neigh.dir(2)) =>
+            order match {
+              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index), IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+              case 2 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
+                ((4.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+                  + ((-1.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i))))
+              case 3 => // TODO: do we want this? what do we do on the coarser levels?
+                statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
+                  ((3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -1 * i)))
+                    + ((-3.0 / 2.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i)))
+                    + ((1.0 / 3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -3 * i))))
+            }
+          case d if "cell" == d
+            || ("face_x" == d && 0 == neigh.dir(0))
+            || ("face_y" == d && 0 == neigh.dir(1))
+            || ("face_z" == d && 0 == neigh.dir(2)) =>
+            order match {
+              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
+                IR_FieldAccess(fieldSel, index))
+            }
+        }
+      case IR_DirichletBC(boundaryExpr) =>
+        field.fieldLayout.discretization match {
+          case d if "node" == d
+            || ("face_x" == d && 0 != neigh.dir(0))
+            || ("face_y" == d && 0 != neigh.dir(1))
+            || ("face_z" == d && 0 != neigh.dir(2)) =>
+            statements += IR_Assignment(IR_FieldAccess(fieldSel, index), boundaryExpr)
+          case d if "cell" == d
+            || ("face_x" == d && 0 == neigh.dir(0))
+            || ("face_y" == d && 0 == neigh.dir(1))
+            || ("face_z" == d && 0 == neigh.dir(2)) =>
+            statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
+              (2.0 * boundaryExpr) - IR_FieldAccess(fieldSel, index))
+        }
     }
 
     statements
   }
 
-  override def expand : Output[IR_Statement] = {
+  def constructLoops = {
     val layout = field.field.fieldLayout
-    if (field.field.boundaryConditions.isDefined) {
-      new IR_LoopOverFragments(
-        ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
-          neighbors.map({ neigh =>
-            var adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
-            // TODO: assumes equal bc's for all components
-            adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : IR_Expression)
-            adaptedIndexRange.end.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => layout.idxById("TOT", dim))
-            val loopOverDims = new IR_LoopOverDimensions(
-              field.fieldLayout.numDimsData,
-              adaptedIndexRange,
-              setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
-            loopOverDims.optLevel = 1
-            IR_IfCondition(IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
-          })))) with OMP_PotentiallyParallel
-    } else {
-      IR_NullStatement
+
+    new IR_LoopOverFragments(
+      ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+        neighbors.map({ neigh =>
+          var adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
+          // TODO: assumes equal bc's for all components
+          adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : IR_Expression)
+          adaptedIndexRange.end.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => layout.idxById("TOT", dim))
+          val loopOverDims = new IR_LoopOverDimensions(
+            field.fieldLayout.numDimsData,
+            adaptedIndexRange,
+            setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
+          loopOverDims.optLevel = 1
+          IR_IfCondition(IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
+        })))) with OMP_PotentiallyParallel
+  }
+
+  override def expand : Output[IR_Statement] = {
+    field.field.boundary match {
+      case _ : IR_NeumannBC                => constructLoops
+      case _ : IR_DirichletBC              => constructLoops
+      case IR_FunctionBC(boundaryFunction) => boundaryFunction : IR_Statement
+      case IR_NoBC                         => IR_NullStatement
     }
   }
 }

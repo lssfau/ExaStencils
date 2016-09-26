@@ -3,6 +3,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
+import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -227,17 +228,16 @@ object MainStefan {
           L4_ResolveStencilAccesses.apply(Some(entry))
           L4_ResolveStencilFieldAccesses.apply(Some(entry))
         }
-      for (obj <- L4_FieldCollection.objects)
-        if (obj.boundary.isDefined) {
-          L4_ResolveFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
-          L4_ResolveStencilAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
-          L4_ResolveStencilFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
-        }
+      for (obj <- L4_FieldCollection.objects) {
+        L4_ResolveFieldAccesses.apply(Some(L4_Root(obj.boundary)))
+        L4_ResolveStencilAccesses.apply(Some(L4_Root(obj.boundary)))
+        L4_ResolveStencilFieldAccesses.apply(Some(L4_Root(obj.boundary)))
+      }
       Logger.setLevel(oldLoggerLevel)
     }
     /// END HACK: progress expression in knowledge
 
-    ResolveBoundaryHandlingFunctions.apply()
+    L4_ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")

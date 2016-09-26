@@ -7,6 +7,7 @@ import scala.util.parsing.input.PagedSeqReader
 
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
+import exastencils.boundary.l4._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
 import exastencils.domain.l4.L4_DomainDecl
@@ -270,7 +271,11 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ level.?
     ^^ { case id ~ domain ~ layout ~ boundary ~ _ ~ slots ~ level => L4_FieldDecl(L4_LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), domain, layout, boundary, slots.getOrElse(1).toInt) })
-  lazy val fieldBoundary = binaryexpression ^^ { case x => Some(x) } ||| "None" ^^ { case x => None }
+  lazy val fieldBoundary = (
+    "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }
+      ||| "None" ^^ { _ => L4_NoBC }
+      ||| binaryexpression ^^ { L4_DirichletBC(_) }
+    )
 
   lazy val index : PackratParser[L4_ConstIndex] = (
     index1d

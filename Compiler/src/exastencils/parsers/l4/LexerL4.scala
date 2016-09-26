@@ -53,7 +53,7 @@ class LexerL4 extends ExaLexer {
     "Edge_Cell", "edge_cell", "Edge_Node", "edge_node")
 
   // boundary condition keywords
-  reserved += ("apply", "bc", "to")
+  reserved += ("apply", "bc", "to", "Neumann")
 
   // communication keywords
   reserved += ("begin", "finish", "communicate", "communicating", "dup", "ghost", "of")

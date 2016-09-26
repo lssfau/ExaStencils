@@ -1,6 +1,6 @@
 package exastencils.field.l4
 
-import exastencils.base.l4._
+import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
@@ -13,14 +13,11 @@ case class L4_Field(
     var domain : String, // FIXME: l4.Domain
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
-    var boundary : Option[L4_Expression]) extends L4_KnowledgeObjectWithIdentAndLevel {
+    var boundary : L4_BoundaryCondition) extends L4_KnowledgeObjectWithIdentAndLevel {
 
   override def prettyprintDecl(out : PpStream) = {
-    out << "Field " << identifier << "< "
-    out << domain << ", "
-    out << fieldLayout << ", "
-    if (boundary.isDefined) out << boundary.get else out << "None"
-    out << " >"
+    out << "Field " << identifier
+    out << "< " << domain << ", " << fieldLayout << ", " << boundary << " >"
     if (numSlots > 1) out << "[" << numSlots << "]"
     out << "@" << level << "\n"
   }
@@ -34,7 +31,7 @@ case class L4_Field(
       fieldLayout.getProgressedObject,
       level,
       numSlots,
-      L4_ProgressOption(boundary)(_.progress)))
+      boundary.progress))
 
     progressed.get
   }

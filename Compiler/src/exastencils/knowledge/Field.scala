@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.knowledge.ir.IR_KnowledgeObject
@@ -123,7 +124,7 @@ case class Field(
     var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
     var level : Int, // the (geometric) level the field lives on
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
-    var boundaryConditions : Option[IR_Expression] // None if no explicit boundary handling is given, otherwise specifies the expression to be used for the dirichlet boundary or Neumann as magic identifier
+    var boundary : IR_BoundaryCondition // the boundary condition to be enforced when calling apply bc
 ) extends IR_KnowledgeObject {
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype

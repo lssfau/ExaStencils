@@ -3,6 +3,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
+import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
@@ -182,7 +183,7 @@ object MainChristian {
 
     L4_ProcessStencilDeclarations.apply()
 
-    ResolveBoundaryHandlingFunctions.apply()
+    L4_ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")

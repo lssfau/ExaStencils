@@ -8,6 +8,7 @@ import exastencils.multiGrid.MultiGridFunctions
 import exastencils.prettyprinting._
 
 object L4_Root {
+  def apply(node : L4_Node) = new L4_Root(ListBuffer(node))
   def apply(nodes : List[L4_Node]) = new L4_Root(nodes.to[ListBuffer])
 }
 

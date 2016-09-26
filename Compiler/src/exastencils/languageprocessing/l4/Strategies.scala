@@ -12,7 +12,6 @@ import exastencils.datastructures.l4._
 import exastencils.field.l4._
 import exastencils.knowledge
 import exastencils.logger._
-import exastencils.stencil.l4._
 
 object CollectCommInformation extends DefaultStrategy("Collecting information relevant for adding communication statements") {
   var commCollector : L4CommCollector = new L4CommCollector(HashMap())
@@ -148,92 +147,6 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
         case _                               =>
       }
       newAccess
-    }
-  })
-}
-
-object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundaryHandlingFunctions") {
-
-  case class CombinedIdentifier(var name : String, var level : Int) {}
-
-  def fromIdentifier(ident : L4_Identifier) : CombinedIdentifier = {
-    val level = ident.asInstanceOf[L4_LeveledIdentifier].level.resolveLevel
-    CombinedIdentifier(ident.name, level)
-  }
-  def fromFieldAccess(access : L4_FieldAccess) : CombinedIdentifier = {
-    val level = access.target.level
-    CombinedIdentifier(access.name, level)
-  }
-  def fromStencilFieldAccess(access : L4_StencilFieldAccess) : CombinedIdentifier = {
-    val level = access.target.level
-    val fieldName = L4_StencilFieldCollection.getByIdentifier(access.name, level).get.field.identifier
-    CombinedIdentifier(fieldName, level)
-  }
-
-  var bcs : HashMap[CombinedIdentifier, L4_FunctionCall] = HashMap()
-
-  override def apply(node : Option[Node] = None) = {
-    bcs.clear
-
-    // gather applicable fields
-    for (field <- L4_FieldCollection.objects) {
-      if (field.boundary.isDefined) {
-        if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
-          val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
-          if (fctCall.function.asInstanceOf[L4_FunctionAccess].datatype == L4_UnitDatatype) {
-            //          val fctDecl = StateManager.findFirst({
-            //            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
-            //              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.identifier))
-            //          }).get
-            //          if (fctDecl.returntype eq L4_UnitDatatype) {
-            bcs(CombinedIdentifier(field.identifier, field.level)) = fctCall
-          }
-        }
-      }
-    }
-
-    super.apply(node)
-
-    // remove obsolete field bc's
-    for (field <- L4_FieldCollection.objects) {
-      val fctCall = bcs.find(_._1 == CombinedIdentifier(field.identifier, field.level))
-      if (fctCall.isDefined)
-        field.boundary = None
-      field
-    }
-  }
-
-  this += new Transformation("Find applicable fields", {
-    case field : L4_FieldDecl => {
-      if (field.boundary.isDefined) {
-        if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
-          val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
-          if (fctCall.function.asInstanceOf[L4_FunctionAccess].datatype == L4_UnitDatatype) {
-            //          val fctDecl = StateManager.findFirst({
-            //            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
-            //              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.function))
-            //          }).get
-            //          if (fctDecl.returntype eq L4_UnitDatatype) {
-            bcs(fromIdentifier(field.identifier)) = fctCall
-          }
-        }
-      }
-      field
-    }
-  })
-
-  this += new Transformation("Replace applicable boundary condition updates", {
-    case applyBC : ApplyBCsStatement => {
-      val field = applyBC.field match {
-        case field : L4_FieldAccess     => fromFieldAccess(field)
-        case sf : L4_StencilFieldAccess => fromStencilFieldAccess(sf)
-        case _                          => Logger.warn(_) // FIXME WTF ?
-      }
-      val fctCall = bcs.find(_._1 == field)
-      if (fctCall.isDefined)
-        L4_ExpressionStatement(Duplicate(fctCall.get._2))
-      else
-        applyBC
     }
   })
 }
