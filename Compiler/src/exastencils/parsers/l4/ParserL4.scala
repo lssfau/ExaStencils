@@ -379,11 +379,11 @@ class ParserL4 extends ExaParser with PackratParsers {
       ||| genericAccess
       ||| locationize(booleanLit ^^ { case s => L4_BooleanConstant(s) }))
 
-  lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => VectorExpression(None, x :+ y, None) })
+  lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => L4_VectorExpression(None, x :+ y, None) })
 
-  lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ { case x => VectorExpression(None, x.expressions, Some(false)) })
+  lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ { case x => L4_VectorExpression(None, x.expressions, Some(false)) })
 
-  lazy val matrixExpression = locationize("{" ~> (rowVectorExpression <~ ",").+ ~ (rowVectorExpression <~ "}") ^^ { case x ~ y => MatrixExpression(None, x :+ y) })
+  lazy val matrixExpression = locationize("{" ~> (rowVectorExpression <~ ",").+ ~ (rowVectorExpression <~ "}") ^^ { case x ~ y => L4_MatrixExpression(None, x :+ y) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (
     locationize((booleanexpression ~ ("||" ||| "or") ~ booleanexpression1) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
