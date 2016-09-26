@@ -36,30 +36,6 @@ case class L4_StencilFieldAccess(
     if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
-  @deprecated("to be deleted", "20.09.2016")
-  def resolveField = target.getProgressedObject.field
-
-  @deprecated("to be deleted", "20.09.2016")
-  def getBasicStencilFieldAccess : IR_StencilFieldAccess = {
-    if (arrayIndex.isDefined || dirAccess.isDefined)
-      Logger.warn(s"Discarding modifiers of access to stencilfield ${ target.identifier } on level ${ target.level }")
-
-    val stencilField = target.getProgressedObject
-
-    var numDims = stencilField.field.fieldLayout.numDimsGrid
-    if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
-    var multiIndex = IR_LoopOverDimensions.defIt(numDims)
-    if (arrayIndex.isDefined)
-      multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
-    if (offset.isDefined) {
-      var progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
-      multiIndex += progressedOffset
-    }
-
-    IR_StencilFieldAccess(StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), L4_FieldAccess.resolveSlot(stencilField.field, slot), None), multiIndex)
-  }
-
   def progress : IR_Expression = {
     // TODO: extract mapping to FieldAccess for cases where single entries are targeted into a separate strategy
 

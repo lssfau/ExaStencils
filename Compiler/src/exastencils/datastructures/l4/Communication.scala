@@ -30,9 +30,9 @@ case class ApplyBCsStatement(var field : L4_Access) extends L4_Statement {
   override def progress : communication.ApplyBCsStatement = {
     val resolvedField = field match {
       case f : L4_FieldAccess         => f.progress.fieldSelection
-      case sf : L4_StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
+      case sf : L4_StencilFieldAccess => knowledge.FieldSelection(sf.target.getProgressedObject.field,
         sf.target.level,
-        L4_FieldAccess.resolveSlot(sf.resolveField, sf.slot),
+        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject.field, sf.slot),
         sf.arrayIndex)
     }
     communication.ApplyBCsStatement(resolvedField)
@@ -50,9 +50,9 @@ case class CommunicateStatement(var field : L4_Access, var op : String, var targ
   override def progress : communication.CommunicateStatement = {
     val progressedField = field match {
       case f : L4_FieldAccess         => f.progress.fieldSelection
-      case sf : L4_StencilFieldAccess => knowledge.FieldSelection(sf.resolveField,
+      case sf : L4_StencilFieldAccess => knowledge.FieldSelection(sf.target.getProgressedObject.field,
         sf.target.level,
-        L4_FieldAccess.resolveSlot(sf.resolveField, sf.slot),
+        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject.field, sf.slot),
         sf.arrayIndex)
     }
     val progressedTargets : ListBuffer[communication.CommunicateTarget] = ListBuffer()

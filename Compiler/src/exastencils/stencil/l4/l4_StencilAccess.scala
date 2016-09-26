@@ -26,14 +26,6 @@ case class L4_StencilAccess(
     if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
-  @deprecated("to be deleted", "20.09.2016")
-  def getBasicStencilAccess : IR_StencilAccess = {
-    if (arrayIndex.isDefined || dirAccess.isDefined)
-      Logger.warn(s"Discarding modifiers of access to stencil ${ target.identifier } on level ${ target.level }")
-
-    IR_StencilAccess(target.getProgressedObject)
-  }
-
   def progress : IR_Expression = {
     // TODO: implement strategy converting accesses with arrayIndex or dirAccess
 
