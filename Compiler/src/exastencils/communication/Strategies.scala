@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_ApplyBC
+import exastencils.communication.ir.IR_Communicate
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.data._
@@ -50,7 +51,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
     case loop : IR_LoopOverPoints if firstCall => // skip communication statements in loops -> to be handled after resolving loops
       loop
 
-    case communicateStatement : CommunicateStatement => {
+    case communicateStatement : IR_Communicate => {
       val numDims = communicateStatement.field.field.fieldLayout.numDimsData
 
       var commDup = false;
@@ -192,9 +193,9 @@ object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate st
 
     for (i <- 1 until body.length) { // check for pre communications steps
       (body(i - 1), body(i)) match {
-        case (cs : CommunicateStatement, loop : IR_LoopOverPoints) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+        case (cs : IR_Communicate, loop : IR_LoopOverPoints) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
           loop.preComms += cs // already merged: newBody += cs
-        case (first, second)                                                                                   => newBody += first
+        case (first, second)                                                                             => newBody += first
       }
     }
     newBody += body.last
@@ -203,9 +204,9 @@ object MergeCommunicatesAndLoops extends DefaultStrategy("Merging communicate st
       newBody.clear
       for (i <- body.length - 1 until 0 by -1) {
         (body(i - 1), body(i)) match {
-          case (loop : IR_LoopOverPoints, cs : CommunicateStatement) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
+          case (loop : IR_LoopOverPoints, cs : IR_Communicate) if cs.field.field.level == loop.field.level => // skip intergrid ops for now
             loop.postComms += cs // already merged: newBody += cs
-          case (first, second)                                                                                   => newBody.prepend(second)
+          case (first, second)                                                                             => newBody.prepend(second)
         }
       }
       newBody.prepend(body.head)

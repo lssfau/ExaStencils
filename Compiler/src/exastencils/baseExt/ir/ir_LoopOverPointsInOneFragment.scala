@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.communication.CommunicateStatement
+import exastencils.communication.ir.IR_Communicate
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
@@ -24,8 +24,8 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     var endOffset : IR_ExpressionIndex,
     var increment : IR_ExpressionIndex,
     var body : ListBuffer[IR_Statement],
-    var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
-    var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
+    var preComms : ListBuffer[IR_Communicate] = ListBuffer(),
+    var postComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var reduction : Option[IR_Reduction] = None,
     var condition : Option[IR_Expression] = None) extends IR_Statement {
 

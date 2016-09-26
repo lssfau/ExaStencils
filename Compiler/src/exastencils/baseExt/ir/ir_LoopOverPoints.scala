@@ -3,7 +3,7 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.communication.CommunicateStatement
+import exastencils.communication.ir.IR_Communicate
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
@@ -25,8 +25,8 @@ case class IR_LoopOverPoints(var field : Field,
     var endOffset : IR_ExpressionIndex,
     var increment : IR_ExpressionIndex,
     var body : ListBuffer[IR_Statement],
-    var preComms : ListBuffer[CommunicateStatement] = ListBuffer(),
-    var postComms : ListBuffer[CommunicateStatement] = ListBuffer(),
+    var preComms : ListBuffer[IR_Communicate] = ListBuffer(),
+    var postComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var reduction : Option[IR_Reduction] = None,
     var condition : Option[IR_Expression] = None) extends IR_Statement {
 

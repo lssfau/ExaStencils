@@ -8,9 +8,9 @@ import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.field.l4._
 import exastencils.knowledge
+import exastencils.l4.L4_Communicate
 import exastencils.logger._
 
 object CollectCommInformation extends DefaultStrategy("Collecting information relevant for adding communication statements") {
@@ -157,7 +157,7 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
       CollectCommInformation.applyStandalone(assignment)
 
       var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>
-        CommunicateStatement(comm._1, "both", List(/* FIXME: add radius */), None)).toList
+        L4_Communicate(comm._1, "both", List(/* FIXME: add radius */), None)).toList
 
       L4_LoopOverFragments(List(
         L4_LoopOverField(lhs, None, false, None, None, None, None, List(assignment), None, commStatements, List())),

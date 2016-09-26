@@ -9,11 +9,11 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.boundary.l4._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.deprecated.l4._
 import exastencils.domain.l4.L4_DomainDecl
 import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldDecl
+import exastencils.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.stencil.l4._
@@ -221,13 +221,13 @@ class ParserL4 extends ExaParser with PackratParsers {
     ^^ { case field => L4_ApplyBC(field) })
   lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ ("communicate" ||| "communicating")) ~ communicateTarget.* ~ (("of").? ~> genericAccess) //fieldAccess
     ~ ("where" ~> booleanexpression).?
-    ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
+    ^^ { case op ~ targets ~ field ~ cond => L4_Communicate(field, op.getOrElse("both"), targets, cond) })
   lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclucive indices
-    ^^ { case target ~ start ~ end => CommunicateTarget(target, start, end) })
+    ^^ { case target ~ start ~ end => L4_CommunicateTarget(target, start, end) })
   lazy val precomm = locationize("precomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
-    ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
+    ^^ { case op ~ targets ~ field ~ cond => L4_Communicate(field, op.getOrElse("both"), targets, cond) })
   lazy val postcomm = locationize("postcomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ (("of").? ~> genericAccess) ~ ("where" ~> booleanexpression).?
-    ^^ { case op ~ targets ~ field ~ cond => CommunicateStatement(field, op.getOrElse("both"), targets, cond) })
+    ^^ { case op ~ targets ~ field ~ cond => L4_Communicate(field, op.getOrElse("both"), targets, cond) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { case exp => L4_Return(exp) })
 

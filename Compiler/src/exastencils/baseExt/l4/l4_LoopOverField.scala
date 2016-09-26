@@ -5,8 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4.{ L4_ProgressOption, _ }
 import exastencils.baseExt.ir._
-import exastencils.datastructures.l4._
 import exastencils.field.l4.L4_FieldAccess
+import exastencils.l4.L4_Communicate
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 import exastencils.stencil.l4.L4_StencilFieldAccess
@@ -26,7 +26,7 @@ case class L4_RegionSpecification(var region : String, var dir : L4_ConstIndex, 
 
 object L4_LoopOverField {
   def apply(field : L4_Access, region : Option[L4_RegionSpecification], seq : Boolean, condition : Option[L4_Expression], startOffset : Option[L4_ExpressionIndex], endOffset : Option[L4_ExpressionIndex],
-      increment : Option[L4_ExpressionIndex], statements : List[L4_Statement], reduction : Option[L4_Reduction], preComms : List[CommunicateStatement], postComms : List[CommunicateStatement]) =
+      increment : Option[L4_ExpressionIndex], statements : List[L4_Statement], reduction : Option[L4_Reduction], preComms : List[L4_Communicate], postComms : List[L4_Communicate]) =
     new L4_LoopOverField(field, region, seq, condition, startOffset, endOffset,
       increment, statements.to[ListBuffer], reduction, preComms.to[ListBuffer], postComms.to[ListBuffer])
 }
@@ -42,8 +42,8 @@ case class L4_LoopOverField(
     var increment : Option[L4_ExpressionIndex],
     var statements : ListBuffer[L4_Statement],
     var reduction : Option[L4_Reduction],
-    var preComms : ListBuffer[CommunicateStatement],
-    var postComms : ListBuffer[CommunicateStatement]) extends L4_Statement {
+    var preComms : ListBuffer[L4_Communicate],
+    var postComms : ListBuffer[L4_Communicate]) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "loop over " << field << ' '

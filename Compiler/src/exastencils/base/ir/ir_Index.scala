@@ -3,7 +3,10 @@ package exastencils.base.ir
 import exastencils.core.Duplicate
 import exastencils.prettyprinting.PpStream
 
-trait IR_Index extends IR_Expression {}
+trait IR_Index extends IR_Expression {
+  // to be implemented by inheriting from IR_ArrayBasedIndex
+  def length() : Int
+}
 
 trait IR_ArrayBasedIndex[T] extends Iterable[T] {
   var indices : Array[T]
