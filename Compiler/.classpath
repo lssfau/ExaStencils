@@ -9,6 +9,7 @@
 
 	<classpathentry kind="lib" path="lib/scala-parser-combinators_2.11-1.0.4.jar"/>
 	<classpathentry kind="lib" path="lib/cloning-1.9.1.jar"/>
+	<classpathentry kind="lib" path="lib/objenesis-2.1.jar"/>
 
 	<classpathentry kind="lib" path="lib/isl-scala.jar" sourcepath="lib/isl-scala.jar"/>
 
