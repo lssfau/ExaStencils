@@ -1,1 +1,1 @@
-java.exe -Xmx2G -Xms2G -cp "C:\Eclipse\plugins\*;.\Compiler\bin;.\CompilerMacros\CompilerMacros\bin;.\Compiler\lib\*" Main .\Configs\Sebastian\notebook.settings .\Configs\Sebastian\notebook.knowledge .\Configs\Sebastian\notebook.platform
+java.exe -Xmx2G -Xms2G -cp "C:\Eclipse\plugins\*;.\Compiler\bin;.\CompilerMacros\bin;.\Compiler\lib\*" Main .\Configs\Sebastian\notebook.settings .\Configs\Sebastian\notebook.knowledge .\Configs\Sebastian\notebook.platform
