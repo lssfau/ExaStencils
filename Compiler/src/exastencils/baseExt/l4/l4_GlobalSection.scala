@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.globals.Globals
 import exastencils.prettyprinting._
 

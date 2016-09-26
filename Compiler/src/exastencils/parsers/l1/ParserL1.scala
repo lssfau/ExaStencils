@@ -4,7 +4,6 @@ import scala.collection.immutable.PagedSeq
 import scala.util.parsing.input.PagedSeqReader
 
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.parsers._
 
 class ParserL1 extends ExaParser with scala.util.parsing.combinator.PackratParsers {
@@ -24,11 +23,11 @@ class ParserL1 extends ExaParser with scala.util.parsing.combinator.PackratParse
 
   protected def parseTokens(tokens : lexical.Scanner) : Node = {
     phrase(program)(tokens) match {
-      case Success(e, _) => e
-      case Error(msg, _) => throw new Exception("parse error: " + msg)
+      case Success(e, _)        => e
+      case Error(msg, _)        => throw new Exception("parse error: " + msg)
       case Failure(msg, parser) => {
         var sb = new StringBuilder
-        sb.append(s"Parse failure at position ${parser.pos}: $msg\n")
+        sb.append(s"Parse failure at position ${ parser.pos }: $msg\n")
         sb.append(parser.pos.longString)
         sb.append("\n")
         throw new Exception(sb.toString)
