@@ -13,7 +13,7 @@ import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._
 
 // FIXME: why is name an Expression?
-case class Timer(var name : IR_Expression) extends UnduplicatedVariable with IR_Access {
+case class Timer(var name : IR_Expression) extends IR_UnduplicatedVariable with IR_Access {
   override def resolveName = s"timer_" + stripName
   override def resolveDatatype = "StopWatch"
 
@@ -31,7 +31,7 @@ object VecShiftIndexStaticInit {
     StateManager.findFirst[Globals].get.externalDependencies += header
 }
 
-case class VecShiftIndex(val offset : Int) extends UnduplicatedVariable {
+case class VecShiftIndex(val offset : Int) extends IR_UnduplicatedVariable {
   VecShiftIndexStaticInit // just to ensure VecShiftIndexStaticInit is initialized (once, since its an object)
 
   if (offset <= 0 || offset >= Platform.simd_vectorSize)
@@ -65,7 +65,7 @@ object LoopCarriedCSBuffer {
 }
 
 abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private val namePostfix : String,
-    private val baseDatatype : IR_Datatype, private val freeInDtor : Boolean) extends UnduplicatedVariable {
+    private val baseDatatype : IR_Datatype, private val freeInDtor : Boolean) extends IR_UnduplicatedVariable {
 
   override def getDeclaration() : IR_VariableDeclaration = {
     val superDecl = super.getDeclaration()

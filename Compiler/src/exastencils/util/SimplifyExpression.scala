@@ -4,11 +4,11 @@ import scala.collection._
 import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.communication.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.field.ir._
 import exastencils.interfacing.IR_ExternalFieldAccess
 import exastencils.logger._
@@ -351,11 +351,11 @@ object SimplifyExpression {
           res(IR_MinimumExpression(exprs)) = 1L
         }
 
-      case scalarIV : iv.InternalVariable if scalarIV.resolveDatatype.isInstanceOf[IR_ScalarDatatype] =>
+      case scalarIV : IR_InternalVariable if scalarIV.resolveDatatype.isInstanceOf[IR_ScalarDatatype] =>
         res = new HashMap[IR_Expression, Long]()
         res(scalarIV) = 1L
 
-      case anyIV : iv.InternalVariable =>
+      case anyIV : IR_InternalVariable =>
         Logger.warn(s"Found non-scalar iv ${ anyIV.prettyprint() } in extractIntegralSumRec")
         res = new HashMap[IR_Expression, Long]()
         res(anyIV) = 1L

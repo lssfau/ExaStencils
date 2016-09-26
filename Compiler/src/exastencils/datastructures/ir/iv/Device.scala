@@ -11,7 +11,7 @@ import exastencils.prettyprinting._
 
 /// general variables and flags
 
-abstract class FieldFlag extends InternalVariable(true, false, true, true, false) {
+abstract class FieldFlag extends IR_InternalVariable(true, false, true, true, false) {
   var field : Field
   var slot : IR_Expression
   var fragmentIdx : IR_Expression
@@ -87,7 +87,7 @@ case class FieldDeviceData(override var field : Field, override var level : IR_E
   }
 }
 
-case class ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends InternalVariable(true, false, false, false, false) {
+case class ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
   override def resolveDatatype = IR_PointerDatatype(IR_RealDatatype)
   // TODO: extend for other types
   override def resolveName : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")

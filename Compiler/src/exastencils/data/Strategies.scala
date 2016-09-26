@@ -474,7 +474,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
   })
 
   this += new Transformation("Collecting", {
-    case mem : iv.InternalVariable =>
+    case mem : IR_InternalVariable =>
       mem.registerIV(declarationMap, ctorMap, dtorMap)
       mem
   })

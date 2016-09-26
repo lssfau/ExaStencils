@@ -1,14 +1,22 @@
-package exastencils.datastructures.ir.iv
+package exastencils.baseExt.ir
 
 import scala.collection.mutable.HashMap
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
-abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDomain : Boolean, var canBePerField : Boolean, var canBePerLevel : Boolean, var canBePerNeighbor : Boolean) extends IR_Expression {
+/// IR_InternalVariable
+
+abstract class IR_InternalVariable(
+    var canBePerFragment : Boolean,
+    var canBePerDomain : Boolean,
+    var canBePerField : Boolean,
+    var canBePerLevel : Boolean,
+    var canBePerNeighbor : Boolean) extends IR_Expression {
+
+  // FIXME: datatype
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << resolveName
 
@@ -87,21 +95,21 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
 
     // reverse compared to datatype wrapping, since we need to unwrap it "from outer to inner"
     if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      access = new IR_ArrayAccess(access, neigh)
+      access = IR_ArrayAccess(access, neigh)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1) {
       val simplifiedLevel : IR_Expression =
         level match {
           case IR_IntegerConstant(v) => v - Knowledge.minLevel
           case _                     => level - Knowledge.minLevel
         }
-      access = new IR_ArrayAccess(access, simplifiedLevel)
+      access = IR_ArrayAccess(access, simplifiedLevel)
     }
     if (canBePerField && usesFieldArrays && FieldCollection.fields.size > 1)
-      access = new IR_ArrayAccess(access, field)
+      access = IR_ArrayAccess(access, field)
     if (canBePerDomain && usesDomainArrays && DomainCollection.domains.size > 1)
-      access = new IR_ArrayAccess(access, domain)
+      access = IR_ArrayAccess(access, domain)
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
-      access = new IR_ArrayAccess(access, fragment)
+      access = IR_ArrayAccess(access, fragment)
 
     access
   }
@@ -115,6 +123,9 @@ abstract class InternalVariable(var canBePerFragment : Boolean, var canBePerDoma
   }
 }
 
-abstract class UnduplicatedVariable extends InternalVariable(false, false, false, false, false) {
+/// IR_UnduplicatedVariable
+
+// can be used as base class for variables that don't need to be duplicated per fragment/domain/field/level/neighbor
+abstract class IR_UnduplicatedVariable extends IR_InternalVariable(false, false, false, false, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveName
 }

@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
-abstract class CommVariable extends InternalVariable(Knowledge.comm_sepDataByFragment, false, Knowledge.comm_useFieldArrays, Knowledge.comm_useLevelArrays, Knowledge.comm_useNeighborArrays) {
+abstract class CommVariable extends IR_InternalVariable(Knowledge.comm_sepDataByFragment, false, Knowledge.comm_useFieldArrays, Knowledge.comm_useLevelArrays, Knowledge.comm_useNeighborArrays) {
   override def usesFragmentArrays : Boolean = Knowledge.comm_useFragmentArrays
   override def usesDomainArrays : Boolean = Knowledge.comm_useDomainArrays
   override def usesFieldArrays : Boolean = Knowledge.comm_useFieldArrays
