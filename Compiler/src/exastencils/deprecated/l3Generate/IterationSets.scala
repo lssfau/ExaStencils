@@ -1,4 +1,4 @@
-package exastencils.datastructures.l3
+package exastencils.deprecated.l3Generate
 
 import exastencils.knowledge._
 

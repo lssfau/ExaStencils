@@ -1,16 +1,15 @@
-package exastencils.datastructures.l3.Generate
+package exastencils.deprecated.l3Generate
 
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.l3._
 import exastencils.knowledge._
 import exastencils.polyhedron._
 
 case class Root() extends Node {
   def printToL4(filename : String) : Unit = {
-    var file = new java.io.File(filename)
-    if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
-    var printer = new java.io.PrintWriter(filename)
+    val file = new java.io.File(filename)
+    if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
+    val printer = new java.io.PrintWriter(filename)
 
     if (Knowledge.l3tmp_kelvin) {
       Settings.additionalIncludes += "random"

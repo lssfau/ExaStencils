@@ -1,4 +1,4 @@
-package exastencils.datastructures.l3
+package exastencils.deprecated.l3Generate
 
 import exastencils.knowledge._
 
@@ -16,8 +16,8 @@ object Stencils {
   def addLaplaceStencil(printer : java.io.PrintWriter, postfix : String) = {
     // special coefficient function
     if ("Kappa_VC" == Knowledge.l3tmp_exactSolution) {
-      printer.println(s"Function getCoefficient ( x : Real, y : Real${if (Knowledge.dimensionality > 2) ", z : Real" else ""} ) : Real {")
-      printer.println(s"\treturn exp ( kappa * ( (x - x ** 2) * (y - y ** 2) ${if (Knowledge.dimensionality > 2) "* (z - z ** 2) " else ""}) )")
+      printer.println(s"Function getCoefficient ( x : Real, y : Real${ if (Knowledge.dimensionality > 2) ", z : Real" else "" } ) : Real {")
+      printer.println(s"\treturn exp ( kappa * ( (x - x ** 2) * (y - y ** 2) ${ if (Knowledge.dimensionality > 2) "* (z - z ** 2) " else "" }) )")
       printer.println(s"}")
     }
 
@@ -27,7 +27,7 @@ object Stencils {
       printer.println(s"Stencil Laplace$postfix@all {")
 
     for (e <- MainStencilCoefficients.getEntries(postfix))
-      printer.println(s"\t${e._1} => ( ${e._2} )")
+      printer.println(s"\t${ e._1 } => ( ${ e._2 } )")
 
     printer.println("}")
 

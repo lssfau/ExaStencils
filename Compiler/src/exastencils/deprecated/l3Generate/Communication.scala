@@ -1,4 +1,4 @@
-package exastencils.datastructures.l3
+package exastencils.deprecated.l3Generate
 
 import scala.collection.mutable.HashMap
 
@@ -15,7 +15,7 @@ object Communication {
     var commName = "communication"
     if (Knowledge.l3tmp_genCommTimersPerField) commName += "_" + field.split('[')(0).split('@')(0)
     commTimerNames += commName -> (if (Knowledge.l3tmp_genCommTimersPerField) " " + field.split('[')(0).split('@')(0) else "")
-    if (Knowledge.l3tmp_genCommTimersPerLevel) commName = s"concat ( '${commName}_', levels@current() )" else s"'$commName'"
+    if (Knowledge.l3tmp_genCommTimersPerLevel) commName = s"concat ( '${ commName }_', levels@current() )" else s"'$commName'"
 
     if (Knowledge.l3tmp_genTimersForComm)
       printer.println(s"\tstartTimer ( $commName )")
@@ -23,7 +23,7 @@ object Communication {
     if (Knowledge.l3tmp_genCellBasedDiscr || Knowledge.experimental_Neumann)
       applyBCs(printer, field)
 
-    printer.println(s"\tcommunicate${if ("" == target) "" else s" $target of"} $field${if ("" == condition) "" else s" where $condition"}")
+    printer.println(s"\tcommunicate${ if ("" == target) "" else s" $target of" } $field${ if ("" == condition) "" else s" where $condition" }")
 
     if (Knowledge.l3tmp_genTimersForComm)
       printer.println(s"\tstopTimer ( $commName )")

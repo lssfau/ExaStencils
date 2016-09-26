@@ -1,4 +1,4 @@
-package exastencils.datastructures.l3
+package exastencils.deprecated.l3Generate
 
 import exastencils.knowledge._
 
@@ -9,13 +9,13 @@ object InitFields {
       // FIXME: seq HACK
       printer.println(s"\tloop over Solution$postfix@finest sequentially {")
       for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
-        printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "active", postfix)(vecDim)} = native('((${if (Knowledge.useDblPrecision) "double" else "float"})std::rand()/RAND_MAX)')")
+        printer.println(s"\t\t${ Fields.solutionSlotted(s"finest", "active", postfix)(vecDim) } = native('((${ if (Knowledge.useDblPrecision) "double" else "float" })std::rand()/RAND_MAX)')")
       }
       printer.println(s"\t}")
     } else {
       printer.println(s"\tloop over Solution$postfix@finest {")
       for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
-        printer.println(s"\t\t${Fields.solutionSlotted(s"finest", "active", postfix)(vecDim)} = 0")
+        printer.println(s"\t\t${ Fields.solutionSlotted(s"finest", "active", postfix)(vecDim) } = 0")
       }
       printer.println(s"\t}")
     }
@@ -28,7 +28,7 @@ object InitFields {
       printer.println(s"Function InitRHS$postfix@finest ( ) : Unit {")
     printer.println(s"\tloop over RHS$postfix@current {")
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
-      printer.println(s"\t\t${Fields.rhs(s"current", postfix)(vecDim)} = ${Functions.rhsFunction(false)}")
+      printer.println(s"\t\t${ Fields.rhs(s"current", postfix)(vecDim) } = ${ Functions.rhsFunction(false) }")
     }
     printer.println(s"\t}")
     printer.println(s"}")
@@ -43,7 +43,7 @@ object InitFields {
       }
 
       for (e <- MainStencilCoefficients.getEntries(postfix))
-        printer.println(s"\t\tLaplace$postfix@current:${e._1} = ${e._2}")
+        printer.println(s"\t\tLaplace$postfix@current:${ e._1 } = ${ e._2 }")
 
       if (Knowledge.l3tmp_genInvDiagStencil) {
         printer.println
@@ -57,7 +57,7 @@ object InitFields {
 
       if (Knowledge.l3tmp_genTemporalBlocking) {
         printer.println
-        printer.println(s"\tif (levels@current ( ) >= ${Knowledge.l3tmp_tempBlockingMinLevel}) {")
+        printer.println(s"\tif (levels@current ( ) >= ${ Knowledge.l3tmp_tempBlockingMinLevel }) {")
         printer.println(s"\t\tcommunicate LaplaceCoeff$postfix@current")
         if (Knowledge.l3tmp_genInvDiagStencil)
           printer.println(s"\t\tcommunicate InvDiagLaplaceCoeff$postfix@current")

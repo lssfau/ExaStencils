@@ -1,4 +1,4 @@
-package exastencils.datastructures.l3
+package exastencils.deprecated.l3Generate
 
 import exastencils.knowledge._
 
@@ -24,13 +24,13 @@ object Solve {
     if (Knowledge.l3tmp_genFMG) {
       if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
         printer.println("\tstartTimer ( 'fmg' )")
-      printer.println(s"\tFMG@${Knowledge.minLevel} ( )")
+      printer.println(s"\tFMG@${ Knowledge.minLevel } ( )")
       if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)
         printer.println("\tstopTimer ( 'fmg' )")
     }
 
     printer.println("\tVariable numIt : Integer = 0")
-    printer.println(s"\trepeat until (res_0 < ( ${Knowledge.l3tmp_targetResReduction} * resStart_0 ) || numIt >= 100) {")
+    printer.println(s"\trepeat until (res_0 < ( ${ Knowledge.l3tmp_targetResReduction } * resStart_0 ) || numIt >= 100) {")
     printer.println("\t\tnumIt += 1")
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile || Knowledge.l3tmp_timeoutLimit > 0)
       printer.println("\t\tstartTimer ( 'cycle' )")
@@ -56,7 +56,7 @@ object Solve {
       printer.println("\t\tstopTimer ( 'cycle' )")
 
     if (Knowledge.l3tmp_timeoutLimit > 0) {
-      printer.println(s"\t\tif (getTotalFromTimer ( 'cycle' ) > ${Knowledge.l3tmp_timeoutLimit} ) {")
+      printer.println(s"\t\tif (getTotalFromTimer ( 'cycle' ) > ${ Knowledge.l3tmp_timeoutLimit } ) {")
       printer.println("\t\t\tprint ( 'Aborting solve after', getTotalFromTimer ( 'cycle' ), 'ms which exceeds the limit of', " + Knowledge.l3tmp_timeoutLimit + ", 'ms' )")
       printer.println("\t\t\treturn")
       printer.println(s"\t\t}")
@@ -108,7 +108,7 @@ object Solve {
 
       printer.println(s"\tVariable tau2 : Real = myGamma ( nu ) / ( myGamma ( nu + 0.5 ) * (( 4.0 * PI ) ** ( dim / 2.0 )) * ( kappa ** ( 2 * nu )) * sigma * sigma )")
       printer.println(s"\tloop over RHS_GMRF@finest {")
-      printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${(Knowledge.domain_rect_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags) * (1 << Knowledge.maxLevel)}")
+      printer.println(s"\t\tRHS_GMRF@finest = randn ( ) / ${ (Knowledge.domain_rect_numFragsTotal_x - 2 * Knowledge.l3tmp_kelvin_numHaloFrags) * (1 << Knowledge.maxLevel) }")
       printer.println(s"\t}")
 
       Communication.exch(printer, s"RHS_GMRF@finest")

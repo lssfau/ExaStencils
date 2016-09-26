@@ -9,6 +9,7 @@ import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
+import exastencils.deprecated.l3Generate
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.globals._
 import exastencils.grid.{ l4 => _, _ }
@@ -108,13 +109,13 @@ object MainChristian {
     /// HACK: This information has to come from L2
     if (Knowledge.domain_rect_generate) {
       Knowledge.discr_hx = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-        level => l3.Domains.getGlobalWidths(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
+        level => l3Generate.Domains.getGlobalWidths(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
       if (Knowledge.dimensionality > 1)
         Knowledge.discr_hy = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-          level => l3.Domains.getGlobalWidths(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
+          level => l3Generate.Domains.getGlobalWidths(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
       if (Knowledge.dimensionality > 2)
         Knowledge.discr_hz = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-          level => l3.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
+          level => l3Generate.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
     }
 
     if (Settings.timeStrategies)
@@ -128,8 +129,8 @@ object MainChristian {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = new l3.Generate.Root
-      StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
+      StateManager.root_ = l3Generate.Root()
+      StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
     }
 
     if (Settings.timeStrategies)

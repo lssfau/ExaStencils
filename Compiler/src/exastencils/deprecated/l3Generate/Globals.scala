@@ -1,4 +1,4 @@
-package exastencils.datastructures.l3
+package exastencils.deprecated.l3Generate
 
 import exastencils.knowledge._
 
@@ -6,7 +6,7 @@ object Globals {
   def addGlobals(printer : java.io.PrintWriter) = {
     printer.println("Globals {")
     if (Knowledge.l3tmp_genGlobalOmega)
-      printer.println(s"\tValue l3tmp_omega : Real = ${Knowledge.l3tmp_omega}")
+      printer.println(s"\tValue l3tmp_omega : Real = ${ Knowledge.l3tmp_omega }")
     if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
         case 2 => {
