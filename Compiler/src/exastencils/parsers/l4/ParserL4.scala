@@ -10,6 +10,7 @@ import exastencils.baseExt.l4._
 import exastencils.boundary.l4._
 import exastencils.datastructures._
 import exastencils.datastructures.l4._
+import exastencils.deprecated.l4._
 import exastencils.domain.l4.L4_DomainDecl
 import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldDecl
@@ -286,10 +287,10 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val index2d = locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 => L4_ConstIndex(n1, n2) })
   lazy val index3d = locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => L4_ConstIndex(n1, n2, n3) })
 
-  lazy val realIndex : PackratParser[ConstVec] = (
-    locationize("[" ~> realLit <~ "]" ^^ { case n1 => ConstVec1D(n1) })
-      ||| locationize(("[" ~> realLit <~ ",") ~ (realLit <~ "]") ^^ { case n1 ~ n2 => ConstVec2D(n1, n2) })
-      ||| locationize(("[" ~> realLit <~ ",") ~ (realLit <~ ",") ~ (realLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => ConstVec3D(n1, n2, n3) }))
+  lazy val realIndex : PackratParser[L4_ConstVec] = (
+    locationize("[" ~> realLit <~ "]" ^^ { n1 => L4_ConstVec1D(n1) })
+      ||| locationize(("[" ~> realLit <~ ",") ~ (realLit <~ "]") ^^ { case n1 ~ n2 => L4_ConstVec2D(n1, n2) })
+      ||| locationize(("[" ~> realLit <~ ",") ~ (realLit <~ ",") ~ (realLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => L4_ConstVec3D(n1, n2, n3) }))
 
   lazy val expressionIndex : PackratParser[L4_ExpressionIndex] = (
     locationize("[" ~> binaryexpression <~ "]" ^^ { case n1 => L4_ExpressionIndex(n1) })
