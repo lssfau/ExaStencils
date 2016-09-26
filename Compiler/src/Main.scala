@@ -16,6 +16,7 @@ import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid.l4._
 import exastencils.grid.{ l4 => _, _ }
+import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
@@ -204,6 +205,7 @@ object Main {
     L4_ResolveStencilFunctions.apply()
     L4_ResolveLoopItAccesses.apply()
     L4_ResolveSpecialConstants.apply()
+    HACK_L4_ResolveNativeFunctions.apply()
     L4_ResolveKnowledgeParameterAccess.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()
