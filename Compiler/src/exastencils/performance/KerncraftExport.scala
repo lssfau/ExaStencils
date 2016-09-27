@@ -1,7 +1,9 @@
 package exastencils.performance
 
 import java.io._
-import java.nio.file.{Files, Paths}
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.{FileVisitOption, Files, Path, Paths}
+import java.util.function.{BiPredicate, Consumer}
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -30,9 +32,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
   val skipUntransformable = true
 
   val kerncraftDir = Paths.get(Settings.getBasePath, "kerncraft")
-  if (!Files.exists(kerncraftDir)) {
-    Files.createDirectory(kerncraftDir)
-  }
+  setupExportDirectory()
   Logger.dbg("exporting kerncraft kernels to \"%s\"".format(kerncraftDir.toAbsolutePath.toString))
 
   var curFun : IR_Function = null
@@ -205,6 +205,32 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     //    forLoop
 
     buildRec(0, None).get
+  }
+
+  def setupExportDirectory() : Unit = {
+    if (!Files.exists(kerncraftDir)) {
+      Files.createDirectory(kerncraftDir)
+    } else {
+      deleteKernelFiles
+    }
+  }
+
+  private def deleteKernelFiles : Unit = {
+    val matcher = new BiPredicate[Path, BasicFileAttributes] {
+      val pattern = """.*kernel-(\d){1,}(-fun){0,1}.c$""".r
+      def test(p : Path, att : BasicFileAttributes) : Boolean = {
+        val isMatch = pattern.findFirstIn(p.toString) != None
+        //println("file " + p.toString + " match: " + isMatch)
+        return isMatch
+      }
+    }
+    val files = Files.find(kerncraftDir, 1, matcher)
+
+    files.forEach(new Consumer[Path] {
+      override def accept(t : Path) : Unit = {
+        Files.delete(t)
+      }
+    })
   }
 
   def logVerbose(s: AnyRef) : Unit = {
