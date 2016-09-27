@@ -12,19 +12,6 @@ import exastencils.logger._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._
 
-// FIXME: why is name an Expression?
-case class Timer(var name : IR_Expression) extends IR_UnduplicatedVariable with IR_Access {
-  override def resolveName = s"timer_" + stripName
-  override def resolveDatatype = "StopWatch"
-
-  def stripName = name.prettyprint.replaceAll("[^a-zA-Z0-9]", "_")
-
-  override def getCtor() : Option[IR_Statement] = {
-    // FIXME: datatype for VariableAccess
-    Some(IR_Assignment(IR_MemberAccess(IR_VariableAccess(resolveName, resolveDatatype), "timerName"), IR_StringConstant(stripName)))
-  }
-}
-
 object VecShiftIndexStaticInit {
   val header = Platform.simd_header
   if (header != null)

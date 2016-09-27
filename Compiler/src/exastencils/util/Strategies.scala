@@ -2,10 +2,10 @@ package exastencils.util
 
 import scala.collection.mutable.HashMap
 
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
 import exastencils.logger._
+import exastencils.timing.ir.IR_IV_Timer
 
 class CountingStrategy(id : String) extends DefaultStrategy("Counting " + id) {
   var nodes = 0
@@ -25,7 +25,7 @@ class CountingStrategy(id : String) extends DefaultStrategy("Counting " + id) {
 }
 
 object CollectTimers extends DefaultStrategy("Collecting used timers") {
-  var timers : HashMap[String, iv.Timer] = HashMap()
+  var timers : HashMap[String, IR_IV_Timer] = HashMap()
 
   override def apply(node : Option[Node] = None) = {
     timers.clear
@@ -38,7 +38,7 @@ object CollectTimers extends DefaultStrategy("Collecting used timers") {
   }
 
   this += new Transformation("Collecting", {
-    case timer : iv.Timer => // TODO: don't overwrite for performance reasons
+    case timer : IR_IV_Timer => // TODO: don't overwrite for performance reasons
       timers += (timer.resolveName -> timer)
       timer
   })

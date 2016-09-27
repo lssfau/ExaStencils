@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.iv
 import exastencils.logger.Logger
 
 /// IR_TimerFunctionAccess
@@ -28,7 +27,7 @@ object IR_AdaptTimerFunctions extends DefaultStrategy("Adapt function calls to t
         case "startTimer" | "stopTimer" | "getMeanTime" | "getTotalTime" =>
           // functions expecting exactly one timer
           if (args.length != 1) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
-          fctCall.arguments = ListBuffer[IR_Expression](iv.Timer(args(0)))
+          fctCall.arguments = ListBuffer[IR_Expression](IR_IV_Timer(args(0)))
         case "printAllTimers" | "printAllTimersToFile"                   =>
           // functions expecting no parameters
           if (args.length != 0) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)

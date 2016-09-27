@@ -7,10 +7,10 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
+import exastencils.timing.ir.IR_IV_Timer
 import exastencils.util.ir._
 
 case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement with IR_Expandable {
@@ -200,7 +200,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with IR_Expan
   override def prettyprint_decl : String = prettyprint
   override def name = "printAllTimers"
 
-  def genPrintTimerCode(timer : iv.Timer) : IR_Statement = {
+  def genPrintTimerCode(timer : IR_IV_Timer) : IR_Statement = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val timeToPrint = "getTotalTime"
@@ -211,7 +211,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with IR_Expan
       statements += IR_Assignment("timerValue", "mpiSize", "/=")
     }
 
-    statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name.prettyprint() + ":\"", "timerValue")
+    statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + ":\"", "timerValue")
 
     IR_Scope(statements)
   }
@@ -236,7 +236,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
   override def prettyprint_decl : String = prettyprint
   override def name = "printAllTimersToFile"
 
-  def genDataCollect(timers : HashMap[String, iv.Timer]) : ListBuffer[IR_Statement] = {
+  def genDataCollect(timers : HashMap[String, IR_IV_Timer]) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     var it = 0
@@ -250,7 +250,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
     statements
   }
 
-  def genPrint(timers : HashMap[String, iv.Timer]) : ListBuffer[IR_Statement] = {
+  def genPrint(timers : HashMap[String, IR_IV_Timer]) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val stride : IR_Expression = if (Knowledge.mpi_enabled && Knowledge.l3tmp_printTimersToFileForEachRank) "mpiIt" else 0
@@ -259,7 +259,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
       statements += IR_Print(IR_VariableAccess("outFile"), ListBuffer[IR_Expression](
-        IR_StringConstant(timer._2.name.prettyprint()), sep,
+        IR_StringConstant(timer._2.name), sep,
         IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
         IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
 
