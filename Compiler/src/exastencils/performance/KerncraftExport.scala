@@ -1,31 +1,59 @@
 package exastencils.performance
 
 import scala.collection.mutable.ListBuffer
-
 import java.io._
 import java.nio.file.Paths
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
+import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.knowledge._
+import exastencils.strategies.SimplifyStrategy
 
-/** Strategy to export kernels to kerncraft.
+/** Strategy to export kernels for kerncraft.
   *
   * Kerncraft has strict requirements on the syntax of kernel codes.
   * This strategy attempts to trim the kernel code syntax to a form
   * that is accepted by kerncraft.
   */
-object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft") {
+object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft") {
   //  override def apply(applyAtNode : Option[Node] = None) : Unit = {
 
-  var kernelId = 0
 
   val kerncraftDirStr = Paths.get(Settings.getBasePath, "kerncraft").toString
   val kerncraftDir = new File(kerncraftDirStr)
   kerncraftDir.mkdir()
+
+  var curFun : IR_Function = null
+  var curFunLoopCounter = 0
+  var curLoop : IR_LoopOverDimensions = null
+
+  val loopCollector = new Collector {
+
+    override def enter(node : Node) : Unit = {
+      node match {
+        case fun : IR_Function =>
+          curFunLoopCounter = 0
+          curFun = fun
+        case loop : IR_LoopOverDimensions => curLoop = loop
+        case _ =>
+      }
+    }
+
+    override def leave(node : Node) : Unit = {
+      node match {
+        case fun : IR_Function => curFun = null
+        case loop : IR_LoopOverDimensions => curLoop = null
+        case _ =>
+      }
+    }
+
+    override def reset() : Unit = curLoop = null
+  }
+  this.register(loopCollector)
 
   // assume a LoopOverDimension instance is a kernel.
   // Clone it and transform the clone.
@@ -34,14 +62,24 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
     case loop : IR_LoopOverDimensions => {
       val clone = Duplicate(loop)
       //      val kernelFileStr = kerncraftDir.toString() + s"/kernel-${kernelId%4d}.c"
-      val kernelFileStr = kerncraftDir.toString() + "/kernel-%04d.c".format(kernelId)
-      val kernelFunFileStr = kerncraftDir.toString() + "/kernel-%04d-fun.c".format(kernelId)
-      println("======================================================================")
-      println(s"kernel %04d - $kernelFileStr".format(kernelId))
-      println(s"loop.indices ${ loop.indices }")
-      println(s"loop.numDimensions ${ loop.numDimensions }")
 
-      // transform kernel to for-loop nest
+      // FIXME proper path joining
+      val kernelFileStr = kerncraftDir.toString() + "/%s-kernel-%04d.c".format(curFun.name, curFunLoopCounter)
+      val kernelFunFileStr = kerncraftDir.toString() + "/%s-kernel-%04d-fun.c".format(curFun.name, curFunLoopCounter)
+      println("======================================================================")
+      println(s"function %s kernel %04d - $kernelFileStr".format(curFun.name, curFunLoopCounter))
+      println(s"loop.numDimensions ${ loop.numDimensions }")
+      SimplifyStrategy.doUntilDoneStandalone(loop.indices);
+      {
+        val ix = loop.indices
+        val ixPairs = ix.begin.zip(ix.end)
+        println("loop index ranges: " + ixPairs.map(ix =>
+          ix match {
+            case (begin, end) => "[%s,%s]".format(begin.prettyprint, end.prettyprint)
+          }).mkString("[", ",", "]"))
+      }
+
+        // transform kernel to for-loop nest
       val forLoop = buildForLoopRec(clone)
       TransformKernel.applyStandalone(forLoop)
       // extract field accesses to build array declarations, e.g. "double fieldx[1000][1000][1000];"
@@ -67,7 +105,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels to kerncraft")
       printerFun.println("}")
       printerFun.close()
 
-      kernelId += 1
+      curFunLoopCounter += 1
 
       loop
     }
