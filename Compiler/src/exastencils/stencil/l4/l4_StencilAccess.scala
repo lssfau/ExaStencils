@@ -2,8 +2,8 @@ package exastencils.stencil.l4
 
 import exastencils.base.ir.IR_Expression
 import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -24,14 +24,6 @@ case class L4_StencilAccess(
   override def prettyprint(out : PpStream) = {
     out << target.identifier << '@' << target.level
     if (dirAccess.isDefined) out << ":" << dirAccess
-  }
-
-  @deprecated("to be deleted", "20.09.2016")
-  def getBasicStencilAccess : IR_StencilAccess = {
-    if (arrayIndex.isDefined || dirAccess.isDefined)
-      Logger.warn(s"Discarding modifiers of access to stencil ${ target.identifier } on level ${ target.level }")
-
-    IR_StencilAccess(target.getProgressedObject)
   }
 
   def progress : IR_Expression = {
@@ -55,7 +47,7 @@ case class L4_StencilAccess(
 
 object L4_ResolveStencilAccesses extends DefaultStrategy("Resolve accesses to stencils") {
   this += new Transformation("Resolve applicable unresolved accesses", {
-    case access : UnresolvedAccess if L4_StencilCollection.exists(access.name) =>
+    case access : L4_UnresolvedAccess if L4_StencilCollection.exists(access.name) =>
       if (access.slot.isDefined) Logger.warn("Discarding meaningless slot access on stencil")
       if (access.offset.isDefined) Logger.warn("Discarding meaningless offset access on stencil - was a direction access (:) intended?")
       L4_StencilAccess(access.name, access.level.get.resolveLevel,

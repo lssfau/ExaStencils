@@ -6,9 +6,9 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
+import exastencils.boundary.l4.L4_NoBC
 import exastencils.core._
 import exastencils.datastructures.ir._
-import exastencils.datastructures.l4._
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.l4._
@@ -151,13 +151,13 @@ trait GridGeometry_nonUniform extends GridGeometry {
         L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1), false)))
 
     root.nodes += L4_FieldDecl(
-      L4_LeveledIdentifier("node_pos_x", L4_AllLevels), "global", "DefNodeLineLayout_x", None, 1, 0)
+      L4_LeveledIdentifier("node_pos_x", L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 1)
       root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("node_pos_y", L4_AllLevels), "global", "DefNodeLineLayout_y", None, 1, 0)
+        L4_LeveledIdentifier("node_pos_y", L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 2)
       root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("node_pos_z", L4_AllLevels), "global", "DefNodeLineLayout_z", None, 1, 0)
+        L4_LeveledIdentifier("node_pos_z", L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
   }
 
   def setupNodePos_Uniform(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
@@ -411,13 +411,13 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val root = StateManager.root_.asInstanceOf[L4_Root]
 
     root.nodes += L4_FieldDecl(
-      L4_LeveledIdentifier("stag_cv_width_x", L4_FinestLevel), "global", "DefNodeLineLayout_x", None, 1, 0)
+      L4_LeveledIdentifier("stag_cv_width_x", L4_FinestLevel), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 1)
       root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("stag_cv_width_y", L4_FinestLevel), "global", "DefNodeLineLayout_y", None, 1, 0)
+        L4_LeveledIdentifier("stag_cv_width_y", L4_FinestLevel), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 2)
       root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("stag_cv_width_z", L4_FinestLevel), "global", "DefNodeLineLayout_z", None, 1, 0)
+        L4_LeveledIdentifier("stag_cv_width_z", L4_FinestLevel), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
   }
 
   override def generateInitCode() = {

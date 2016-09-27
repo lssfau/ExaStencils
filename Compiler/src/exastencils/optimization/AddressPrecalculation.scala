@@ -4,11 +4,11 @@ import scala.collection.immutable.StringLike
 import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.datastructures.ir.iv.FieldData
 import exastencils.logger._
 import exastencils.util._
@@ -88,7 +88,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           val name = varA.name
           res |= (allowed != name) && inVars.contains(name)
           varA
-        case i : iv.InternalVariable  =>
+        case i : IR_InternalVariable  =>
           val name = i.resolveName
           res |= (allowed != name) && inVars.contains(name)
           i
@@ -199,7 +199,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           case _ : IR_StringLiteral
                | _ : IR_VariableAccess
                | _ : IR_ArrayAccess
-               | _ : iv.InternalVariable => inVars += resolveName(dst)
+               | _ : IR_InternalVariable => inVars += resolveName(dst)
           case _                         => // nothing; expand match here, if more vars should stay inside the loop
         }
 
@@ -253,7 +253,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       case IR_ArrayAccess(base, _, _) => resolveName(base)
       case IR_VariableAccess(name, _) => name
       case IR_StringLiteral(str)      => str
-      case i : iv.InternalVariable    => i.resolveName
+      case i : IR_InternalVariable    => i.resolveName
     }
   }
 }

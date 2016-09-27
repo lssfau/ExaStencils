@@ -3,17 +3,18 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
+import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
+import exastencils.deprecated.l3Generate
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.globals._
 import exastencils.grid.{ l4 => _, _ }
-import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
+import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
-import exastencils.languageprocessing.l4._
 import exastencils.logger._
 import exastencils.mpi._
 import exastencils.multiGrid._
@@ -28,6 +29,7 @@ import exastencils.solver.ir.IR_ResolveLocalSolve
 import exastencils.stencil.l4.L4_ProcessStencilDeclarations
 import exastencils.strategies._
 import exastencils.util._
+import exastencils.util.l4.L4_ResolveSpecialConstants
 
 object MainChristian {
   def initialize(args : Array[String]) = {
@@ -107,13 +109,13 @@ object MainChristian {
     /// HACK: This information has to come from L2
     if (Knowledge.domain_rect_generate) {
       Knowledge.discr_hx = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-        level => l3.Domains.getGlobalWidths(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
+        level => l3Generate.Domains.getGlobalWidths(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
       if (Knowledge.dimensionality > 1)
         Knowledge.discr_hy = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-          level => l3.Domains.getGlobalWidths(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
+          level => l3Generate.Domains.getGlobalWidths(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
       if (Knowledge.dimensionality > 2)
         Knowledge.discr_hz = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-          level => l3.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
+          level => l3Generate.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
     }
 
     if (Settings.timeStrategies)
@@ -127,8 +129,8 @@ object MainChristian {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = new l3.Generate.Root
-      StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
+      StateManager.root_ = l3Generate.Root()
+      StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
     }
 
     if (Settings.timeStrategies)
@@ -177,14 +179,12 @@ object MainChristian {
     L4_ResolveLeveledScopes.apply()
 
     L4_ResolveCurrentLevels.apply()
-
-    ResolveL4_Pre.apply()
+    L4_ResolveSpecialConstants.apply()
+    L4_ResolveKnowledgeParameterAccess.apply()
 
     L4_ProcessStencilDeclarations.apply()
 
-    ResolveL4_Post.apply()
-
-    ResolveBoundaryHandlingFunctions.apply()
+    L4_ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")

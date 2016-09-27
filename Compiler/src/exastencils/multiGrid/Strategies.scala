@@ -120,10 +120,6 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     case IR_FunctionCall(IR_FunctionAccess("min", _), args) => IR_MinimumExpression(args)
     case IR_FunctionCall(IR_FunctionAccess("max", _), args) => IR_MaximumExpression(args)
 
-    // FIXME: UGLY HACK to realize native code functionality
-    case IR_FunctionCall(IR_FunctionAccess("native", _), args) =>
-      IR_StringLiteral(args(0).asInstanceOf[IR_StringConstant].value)
-
     case IR_FunctionCall(IR_FunctionAccess("concat", _), args) =>
       HACK_IR_ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
 

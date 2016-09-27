@@ -3,21 +3,22 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
+import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
 import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
+import exastencils.deprecated.l3Generate
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_AddPaddingToFieldLayouts
 import exastencils.field.l4._
 import exastencils.globals._
-import exastencils.grid.l4.L4_ResolveGridFunctions
-import exastencils.grid.l4.L4_ResolveVirtualFieldAccesses
+import exastencils.grid.l4._
 import exastencils.grid.{ l4 => _, _ }
+import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
-import exastencils.languageprocessing.l4._
 import exastencils.logger._
 import exastencils.mpi._
 import exastencils.multiGrid._
@@ -33,7 +34,7 @@ import exastencils.stencil.l4._
 import exastencils.strategies._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
-import exastencils.util.l4.L4_ResolveMathFunctions
+import exastencils.util.l4._
 
 object MainStefan {
   private var polyOptExplID : Int = 0
@@ -117,13 +118,13 @@ object MainStefan {
     /// HACK: This information has to come from L2
     if (Knowledge.domain_rect_generate) {
       Knowledge.discr_hx = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-        level => l3.Domains.getGlobalWidths(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
+        level => l3Generate.Domains.getGlobalWidths(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
       if (Knowledge.dimensionality > 1)
         Knowledge.discr_hy = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-          level => l3.Domains.getGlobalWidths(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
+          level => l3Generate.Domains.getGlobalWidths(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
       if (Knowledge.dimensionality > 2)
         Knowledge.discr_hz = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-          level => l3.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
+          level => l3Generate.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
     }
 
     if (Settings.timeStrategies)
@@ -137,8 +138,8 @@ object MainStefan {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = new l3.Generate.Root()
-      StateManager.root_.asInstanceOf[l3.Generate.Root].printToL4(Settings.getL4file)
+      StateManager.root_ = l3Generate.Root()
+      StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
     }
 
     if (Settings.timeStrategies)
@@ -207,7 +208,9 @@ object MainStefan {
     L4_ResolveGridFunctions.apply()
     L4_ResolveStencilFunctions.apply()
     L4_ResolveLoopItAccesses.apply()
-    ResolveL4_Pre.apply()
+    L4_ResolveSpecialConstants.apply()
+    HACK_L4_ResolveNativeFunctions.apply()
+    L4_ResolveKnowledgeParameterAccess.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()
 
@@ -217,7 +220,6 @@ object MainStefan {
     L4_ResolveFieldAccesses.apply()
     L4_ResolveStencilAccesses.apply()
     L4_ResolveStencilFieldAccesses.apply()
-    ResolveL4_Post.apply()
 
     /// BEGIN HACK: progress expression in knowledge
     {
@@ -228,20 +230,17 @@ object MainStefan {
           L4_ResolveFieldAccesses.apply(Some(entry))
           L4_ResolveStencilAccesses.apply(Some(entry))
           L4_ResolveStencilFieldAccesses.apply(Some(entry))
-          ResolveL4_Post.apply(Some(entry))
         }
-      for (obj <- L4_FieldCollection.objects)
-        if (obj.boundary.isDefined) {
-          L4_ResolveFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
-          L4_ResolveStencilAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
-          L4_ResolveStencilFieldAccesses.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
-          ResolveL4_Post.apply(Some(L4_ExpressionStatement(obj.boundary.get)))
-        }
+      for (obj <- L4_FieldCollection.objects) {
+        L4_ResolveFieldAccesses.apply(Some(L4_Root(obj.boundary)))
+        L4_ResolveStencilAccesses.apply(Some(L4_Root(obj.boundary)))
+        L4_ResolveStencilFieldAccesses.apply(Some(L4_Root(obj.boundary)))
+      }
       Logger.setLevel(oldLoggerLevel)
     }
     /// END HACK: progress expression in knowledge
 
-    ResolveBoundaryHandlingFunctions.apply()
+    L4_ResolveBoundaryHandlingFunctions.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
@@ -302,6 +301,19 @@ object MainStefan {
     } while (convChanged)
 
     ResolveDiagFunction.apply()
+    // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
+    //   currently this works only if all fields are equally sized
+    if (Knowledge.domain_rect_generate && Knowledge.maxLevel <= 0) {
+      val fLayout : Array[FieldLayoutPerDim] = FieldCollection.fields.head.fieldLayout.layoutsPerDim
+      Knowledge.discr_hx = Array[Double](l3Generate.Domains.getGlobalWidths(0) /
+        (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * fLayout(0).numInnerLayers))
+      if (Knowledge.dimensionality > 1)
+        Knowledge.discr_hy = Array[Double](l3Generate.Domains.getGlobalWidths(1) /
+          (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * fLayout(1).numInnerLayers))
+      if (Knowledge.dimensionality > 2)
+        Knowledge.discr_hz = Array[Double](l3Generate.Domains.getGlobalWidths(2) /
+          (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * fLayout(2).numInnerLayers))
+    }
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 

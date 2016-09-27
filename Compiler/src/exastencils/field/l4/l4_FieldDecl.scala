@@ -1,6 +1,7 @@
 package exastencils.field.l4
 
 import exastencils.base.l4._
+import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.datastructures._
 import exastencils.knowledge.Knowledge
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
@@ -16,12 +17,12 @@ case class L4_FieldDecl(
     override var identifier : L4_Identifier,
     var domain : String,
     var fieldLayout : String,
-    var boundary : Option[L4_Expression],
+    var boundary : L4_BoundaryCondition,
     var numSlots : Integer,
     var index : Int = 0) extends L4_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) = {
-    out << "Field " << identifier.name << "< " << domain << ", " << fieldLayout << ", " << boundary.getOrElse(L4_BasicIdentifier("None")) << " >"
+    out << "Field " << identifier.name << "< " << domain << ", " << fieldLayout << ", " << boundary << " >"
     if (numSlots > 1) out << '[' << numSlots << ']'
     out << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level << '\n'
   }

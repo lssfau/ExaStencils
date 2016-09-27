@@ -3,7 +3,6 @@ package exastencils.domain
 import exastencils.knowledge._
 import exastencils.constraints._
 import exastencils.logger._
-import exastencils.spl._
 import exastencils.datastructures._
 import exastencils.prettyprinting._
 
@@ -14,7 +13,7 @@ object DomainFileHeader {
   var numFragmentsPerBlock = Knowledge.domain_numFragmentsPerBlock
 
   var mpi_numThreads = 1
- 
+
   var discr_hx : List[String] = List()
   var discr_hy : List[String] = List()
   var discr_hz : List[String] = List()
@@ -22,7 +21,7 @@ object DomainFileHeader {
   var domainIdentifier : Array[String] = Array()
   //var domainIdentifier : String = ""
 
-  def updateKnowledge(configuration : Configuration = new Configuration) = {
+  def updateKnowledge() = {
     Constraints.condEnsureValue(Knowledge.dimensionality, dimensionality, Knowledge.dimensionality != dimensionality, "using dimensionality parameter from domain file")
     Constraints.condEnsureValue(Knowledge.domain_numBlocks, numBlocks, Knowledge.domain_numBlocks != numBlocks, "using domain_numBlocks parameter from domain file")
     Constraints.condEnsureValue(Knowledge.domain_numFragmentsPerBlock, numFragmentsPerBlock, Knowledge.domain_numFragmentsPerBlock != numFragmentsPerBlock, "using domain_numFragmentsPerBlock parameter from domain file")

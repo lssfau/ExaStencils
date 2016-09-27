@@ -5,9 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures._
 import exastencils.datastructures.ir.{ StatementList, _ }
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
@@ -16,46 +14,6 @@ import exastencils.omp._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting._
 import exastencils.util._
-
-case class CommunicateTarget(var target : String, var begin : Option[IR_ExpressionIndex], var end : Option[IR_ExpressionIndex]) extends IR_Expression {
-  if (begin.isDefined && !end.isDefined) // create end if only one 'index' is to be communicated
-    end = Some(Duplicate(begin.get) + IR_ExpressionIndex(Array.fill(begin.get.length)(1)))
-
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-}
-
-case class CommunicateStatement(var field : FieldSelection, var op : String, var targets : ListBuffer[CommunicateTarget], var condition : Option[IR_Expression]) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  object ShiftIndexAccesses extends QuietDefaultStrategy("Shifting index accesses") {
-    this += new Transformation("SearchAndReplace", {
-      case s : IR_StringLiteral   => {
-        var ret : IR_Expression = s
-        val numDims = field.field.fieldLayout.numDimsData
-        for (dim <- 0 until numDims)
-          if (dimToString(dim) == s.value)
-            ret = IR_VariableAccess(dimToString(dim), IR_IntegerDatatype) - field.field.referenceOffset(dim)
-        ret
-      }
-      case va : IR_VariableAccess => {
-        var ret : IR_Expression = va
-        val numDims = field.field.fieldLayout.numDimsData
-        for (dim <- 0 until numDims)
-          if (dimToString(dim) == va.name)
-            ret = IR_VariableAccess(dimToString(dim), IR_IntegerDatatype) - field.field.referenceOffset(dim)
-        ret
-      }
-    }, false)
-  }
-
-  // shift all index accesses in condition as later functions will generate direct field accesses and according loop bounds
-  if (condition.isDefined) ShiftIndexAccesses.applyStandalone(IR_ExpressionStatement(condition.get))
-}
-
-case class ApplyBCsStatement(var field : FieldSelection) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-}
 
 /// local communication operations
 

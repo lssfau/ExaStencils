@@ -8,11 +8,9 @@ import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.field.l4._
-import exastencils.knowledge
+import exastencils.l4.L4_Communicate
 import exastencils.logger._
-import exastencils.stencil.l4._
 
 object CollectCommInformation extends DefaultStrategy("Collecting information relevant for adding communication statements") {
   var commCollector : L4CommCollector = new L4CommCollector(HashMap())
@@ -36,85 +34,6 @@ object CollectCommInformation extends DefaultStrategy("Collecting information re
   })
 }
 
-// FIXME: name
-object ResolveL4_Pre extends DefaultStrategy("Resolving L4 specifics") {
-  def resolveParameterToConstant(obj : AnyRef, ident : String) : L4_Expression = {
-    val ret = obj.getClass.getMethod(ident).invoke(obj)
-
-    if (ret.isInstanceOf[Int]) L4_IntegerConstant(ret.asInstanceOf[Int])
-    else if (ret.isInstanceOf[Float]) L4_RealConstant(ret.asInstanceOf[Float])
-    else if (ret.isInstanceOf[Boolean]) L4_BooleanConstant(ret.asInstanceOf[Boolean])
-    else if (ret.isInstanceOf[String]) L4_StringConstant(ret.asInstanceOf[String])
-    else Logger.error(s"Trying to access parameter $ident from L4 with unsupported type")
-  }
-
-  override def apply(applyAtNode : Option[Node]) = {
-    this.transaction()
-
-    this.execute(new Transformation("special functions and constants", {
-      // get knowledge/settings/platform
-      case L4_FunctionCall(access : UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getKnowledge" == access.name =>
-        resolveParameterToConstant(knowledge.Knowledge, ident)
-      case L4_FunctionCall(access : UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getSetting" == access.name   =>
-        resolveParameterToConstant(Settings, ident)
-      case L4_FunctionCall(access : UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getPlatform" == access.name  =>
-        resolveParameterToConstant(knowledge.Platform, ident)
-
-      // levelIndex
-      case L4_FunctionCall(UnresolvedAccess("levels", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())      =>
-        L4_IntegerConstant(level)
-      case L4_FunctionCall(UnresolvedAccess("levelIndex", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())  =>
-        L4_IntegerConstant(level - knowledge.Knowledge.minLevel)
-      case L4_FunctionCall(UnresolvedAccess("levelString", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer()) =>
-        L4_StringConstant(level.toString)
-
-      // constants
-      case access : UnresolvedAccess if "PI" == access.name || "M_PI" == access.name || "Pi" == access.name =>
-        L4_RealConstant(math.Pi)
-    }))
-
-    this.execute(new Transformation("Resolving string constants to literals", {
-      case f : L4_FunctionCall =>
-        f.function.name match {
-          case "startTimer"        => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "stopTimer"         => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "getMeanFromTimer"  => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "getMeanTime"       => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "getTotalFromTimer" => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case "getTotalTime"      => f.arguments = f.arguments.map(a => if (a.isInstanceOf[L4_StringConstant]) L4_StringLiteral(a.asInstanceOf[L4_StringConstant].value); else a)
-          case _                   =>
-        }
-        f
-    }))
-
-    //    var variableCollector = new L4VariableCollector()
-    //    this.register(variableCollector)
-    //    this.execute(new Transformation("Resolving to Variable Accesses", {
-    //      case x : BasicAccess => {
-    //        var value = variableCollector.getValue(x.name)
-    //        if (value.isDefined) {
-    //          Logger.warn("VarResolve: found:     " + x.name)
-    //          //          VariableAccess(x.name, None, value.get)
-    //          x
-    //        } else {
-    //          Logger.warn("VarResolve: not found: " + x.name)
-    //          x
-    //        }
-    //      }
-    //    }))
-    //    this.unregister(variableCollector)
-
-    this.commit()
-  }
-}
-
-object ResolveL4_Post extends DefaultStrategy("Resolving L4 specifics") {
-  // resolve accesses
-  this += new Transformation("Resolve AccessSpecifications", {
-    case access : UnresolvedAccess => access.resolveToBasicOrLeveledAccess
-  })
-}
-
 object ReplaceExpressions extends DefaultStrategy("Replace something with something else") {
   var replacements : Map[String, L4_Expression] = Map()
 
@@ -126,11 +45,11 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
   }
 
   this += new Transformation("SearchAndReplace", {
-    case origAccess : UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
+    case origAccess : L4_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
       // includes accesses used as identifiers in function calls
       var newAccess = Duplicate(replacements.get(origAccess.name).get)
       newAccess match {
-        case newAccess : UnresolvedAccess => {
+        case newAccess : L4_UnresolvedAccess => {
           if (origAccess.slot.isDefined) {
             if (newAccess.slot.isDefined) Logger.warn("Overriding slot on access in function instantiation")
             newAccess.slot = origAccess.slot
@@ -152,98 +71,9 @@ object ReplaceExpressions extends DefaultStrategy("Replace something with someth
             newAccess.dirAccess = origAccess.dirAccess
           }
         }
-        case _                            =>
+        case _                               =>
       }
       newAccess
-    }
-  })
-}
-
-object ResolveBoundaryHandlingFunctions extends DefaultStrategy("ResolveBoundaryHandlingFunctions") {
-
-  case class CombinedIdentifier(var name : String, var level : Int) {}
-
-  def fromIdentifier(ident : L4_Identifier) : CombinedIdentifier = {
-    val level = ident.asInstanceOf[L4_LeveledIdentifier].level.resolveLevel
-    CombinedIdentifier(ident.name, level)
-  }
-  def fromLeveledAccess(access : L4_Access) : CombinedIdentifier = {
-    val level = access.asInstanceOf[LeveledAccess].level.resolveLevel
-    CombinedIdentifier(access.asInstanceOf[LeveledAccess].name, level)
-  }
-  def fromFieldAccess(access : L4_FieldAccess) : CombinedIdentifier = {
-    val level = access.target.level
-    CombinedIdentifier(access.name, level)
-  }
-  def fromStencilFieldAccess(access : L4_StencilFieldAccess) : CombinedIdentifier = {
-    val level = access.target.level
-    val fieldName = L4_StencilFieldCollection.getByIdentifier(access.name, level).get.field.identifier
-    CombinedIdentifier(fieldName, level)
-  }
-
-  var bcs : HashMap[CombinedIdentifier, L4_FunctionCall] = HashMap()
-
-  override def apply(node : Option[Node] = None) = {
-    bcs.clear
-
-    // gather applicable fields
-    for (field <- L4_FieldCollection.objects) {
-      if (field.boundary.isDefined) {
-        if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
-          val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
-          if (fctCall.function.asInstanceOf[L4_FunctionAccess].datatype == L4_UnitDatatype) {
-            //          val fctDecl = StateManager.findFirst({
-            //            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
-            //              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.identifier))
-            //          }).get
-            //          if (fctDecl.returntype eq L4_UnitDatatype) {
-            bcs(CombinedIdentifier(field.identifier, field.level)) = fctCall
-          }
-        }
-      }
-    }
-
-    super.apply(node)
-
-    // remove obsolete field bc's
-    for (field <- L4_FieldCollection.objects) {
-      val fctCall = bcs.find(_._1 == CombinedIdentifier(field.identifier, field.level))
-      if (fctCall.isDefined)
-        field.boundary = None
-      field
-    }
-  }
-
-  this += new Transformation("Find applicable fields", {
-    case field : L4_FieldDecl => {
-      if (field.boundary.isDefined) {
-        if (field.boundary.get.isInstanceOf[L4_FunctionCall]) {
-          val fctCall = field.boundary.get.asInstanceOf[L4_FunctionCall]
-          val fctDecl = StateManager.findFirst({
-            fct : L4_Function => (fct.identifier.isInstanceOf[L4_LeveledIdentifier]
-              && fromIdentifier(fct.identifier) == fromLeveledAccess(fctCall.function))
-          }).get
-          if (fctDecl.returntype eq L4_UnitDatatype) {
-            bcs(fromIdentifier(field.identifier)) = fctCall
-          }
-        }
-      }
-      field
-    }
-  })
-
-  this += new Transformation("Replace applicable boundary condition updates", {
-    case applyBC : ApplyBCsStatement => {
-      val field = applyBC.field match {
-        case field : L4_FieldAccess     => fromFieldAccess(field)
-        case sf : L4_StencilFieldAccess => fromStencilFieldAccess(sf)
-        case _                          => Logger.warn(_) // FIXME WTF ?
-      }
-      val fctCall = bcs.find(_._1 == field)
-      if (fctCall.isDefined)
-        L4_ExpressionStatement(Duplicate(fctCall.get._2))
-      else
-        applyBC
     }
   })
 }
@@ -254,7 +84,7 @@ object WrapL4FieldOpsStrategy extends DefaultStrategy("Adding communcation and l
       CollectCommInformation.applyStandalone(assignment)
 
       var commStatements = CollectCommInformation.commCollector.communicates.map(comm =>
-        CommunicateStatement(comm._1, "both", List(/* FIXME: add radius */), None)).toList
+        L4_Communicate(comm._1, "both", List(/* FIXME: add radius */), None)).toList
 
       L4_LoopOverFragments(List(
         L4_LoopOverField(lhs, None, false, None, None, None, None, List(assignment), None, commStatements, List())),

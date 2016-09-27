@@ -553,17 +553,17 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
         c.annotate(SKIP_ANNOT)
         skip = true
 
-      case IR_VariableDeclaration(dt, name, _)                                 =>
+      case IR_VariableDeclaration(dt, name, _)                                    =>
         commonSubs(IR_VariableAccess(name, dt)) = null
-      case IR_Assignment(vAcc : IR_VariableAccess, _, _)                       =>
+      case IR_Assignment(vAcc : IR_VariableAccess, _, _)                          =>
         commonSubs(vAcc) = null
-      case IR_Assignment(IR_ArrayAccess(vAcc : IR_VariableAccess, _, _), _, _) =>
+      case IR_Assignment(IR_ArrayAccess(vAcc : IR_VariableAccess, _, _), _, _)    =>
         commonSubs(vAcc) = null
-      case IR_Assignment(IR_ArrayAccess(iv : iv.InternalVariable, _, _), _, _) =>
+      case IR_Assignment(IR_ArrayAccess(iv : IR_InternalVariable, _, _), _, _) =>
         commonSubs(iv) = null
-      case IR_Assignment(dfa : IR_DirectFieldAccess, _, _)                     =>
+      case IR_Assignment(dfa : IR_DirectFieldAccess, _, _)                        =>
         commonSubs(dfa) = null
-      case IR_Assignment(tba : IR_TempBufferAccess, _, _)                      =>
+      case IR_Assignment(tba : IR_TempBufferAccess, _, _)                         =>
         commonSubs(tba) = null
 
       case _ : IR_IntegerConstant
@@ -575,7 +575,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
            | _ : IR_DirectFieldAccess
            | _ : IR_TempBufferAccess
            | _ : IR_LoopCarriedCSBufferAccess
-           | _ : iv.InternalVariable //
+           | _ : IR_InternalVariable //
       =>
 
         // all matched types are subclasses of Expression and Product

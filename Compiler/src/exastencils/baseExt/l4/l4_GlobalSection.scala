@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.globals.Globals
 import exastencils.prettyprinting._
 
@@ -92,13 +91,13 @@ object L4_InlineGlobalValueDeclarations extends DefaultStrategy("Propagate and i
   })
 
   this += new Transformation("Resolve global values in expressions", {
-    case x @ UnresolvedAccess(_, None, None, _, None, _)                        =>
+    case x @ L4_UnresolvedAccess(_, None, None, _, None, _)                        =>
       val value = globalVals.get(x.name)
       value match {
         case None => x // no hit
         case _    => Duplicate(value.get)
       }
-    case x @ UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
+    case x @ L4_UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
       val value = globalVals.get(x.name + "@@" + level)
       value match {
         case None => x // no hit

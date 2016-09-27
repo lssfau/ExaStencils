@@ -1,8 +1,8 @@
 package exastencils.util.l4
 
 import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
-import exastencils.datastructures.l4.UnresolvedAccess
 import exastencils.logger.Logger
 
 /// L4_MathFunctions
@@ -51,15 +51,15 @@ case class L4_MathFunctionAccess(var name : String, level : Option[Int], var dat
 
 object L4_ResolveMathFunctions extends DefaultStrategy("Resolve math function accesses") {
   this += new Transformation("Resolve function accesses", {
-    case L4_FunctionCall(UnresolvedAccess("min", _, level, _, _, _), args) =>
+    case L4_FunctionCall(L4_UnresolvedAccess("min", _, level, _, _, _), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
       L4_MinimumExpression(args)
 
-    case L4_FunctionCall(UnresolvedAccess("max", _, level, _, _, _), args) =>
+    case L4_FunctionCall(L4_UnresolvedAccess("max", _, level, _, _, _), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
       L4_MaximumExpression(args)
 
-    case access @ UnresolvedAccess(accessName, _, level, _, _, _) if L4_MathFunctions.exists(accessName) =>
+    case access @ L4_UnresolvedAccess(accessName, _, level, _, _, _) if L4_MathFunctions.exists(accessName) =>
       if (level.isDefined) Logger.warn(s"Found leveled math function $accessName with level ${ level.get }; level is ignored")
       L4_MathFunctionAccess(accessName, L4_MathFunctions.getValue(accessName).get._2)
   })

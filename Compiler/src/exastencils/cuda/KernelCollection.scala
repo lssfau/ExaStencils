@@ -197,7 +197,7 @@ case class Kernel(var identifier : String,
   var evaluatedAccesses = false
   var linearizedFieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
   var writtenFieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
-  var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
+  var ivAccesses = mutable.HashMap[String, IR_InternalVariable]()
 
   var evaluatedIndexBounds = false
   var minIndices = Array[Long]()
@@ -371,7 +371,7 @@ case class Kernel(var identifier : String,
 
       // postprocess iv's -> generate parameter names
       var cnt = 0
-      val processedIVs = mutable.HashMap[String, iv.InternalVariable]()
+      val processedIVs = mutable.HashMap[String, IR_InternalVariable]()
       for (ivAccess <- ivAccesses) {
         processedIVs.put(ivAccess._2.resolveName + "_" + cnt, ivAccess._2)
         cnt += 1
@@ -925,20 +925,20 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
 }
 
 object GatherLocalIVs extends QuietDefaultStrategy("Gathering local InternalVariable nodes") {
-  var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
+  var ivAccesses = mutable.HashMap[String, IR_InternalVariable]()
 
   this += new Transformation("Searching", {
-    case iv : iv.InternalVariable =>
+    case iv : IR_InternalVariable =>
       ivAccesses.put(iv.prettyprint, iv)
       iv
   }, false)
 }
 
 object ReplacingLocalIVs extends QuietDefaultStrategy("Replacing local InternalVariable nodes") {
-  var ivAccesses = mutable.HashMap[String, iv.InternalVariable]()
+  var ivAccesses = mutable.HashMap[String, IR_InternalVariable]()
 
   this += new Transformation("Searching", {
-    case iv : iv.InternalVariable =>
+    case iv : IR_InternalVariable =>
       val ivAccess = ivAccesses.find(_._2 == iv).get // TODO: improve performance
       IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype)
   })

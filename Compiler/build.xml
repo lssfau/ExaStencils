@@ -16,7 +16,7 @@
 
     <!-- variables for paths and files -->
     <property name="src.dir" location="${basedir}/src"/>
-    <property name="macros-src.dir" location="../CompilerMacros/CompilerMacros/src"/> <!-- source for macros -->
+    <property name="macros-src.dir" location="../CompilerMacros/src"/> <!-- source for macros -->
     <property name="schedule-opt-src.dir" location="../../schedule-optimization/src"/>
     <property name="chernikova-src.dir" location="${schedule-opt-src.dir}/../chernikova/src"/>
     <property name="resources.dir" location="${basedir}/resources"/>

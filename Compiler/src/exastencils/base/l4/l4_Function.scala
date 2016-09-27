@@ -2,10 +2,10 @@ package exastencils.base.l4
 
 import scala.collection.mutable._
 
-import exastencils.base.ir._
+import exastencils.base.ir.{ IR_FunctionCall, _ }
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -49,14 +49,12 @@ case class L4_FunctionCall(var function : L4_Access, var arguments : ListBuffer[
   def prettyprint(out : PpStream) = out << function << " ( " <<< (arguments, ", ") << " )"
   def progress : IR_FunctionCall = {
     function match {
-      case access : L4_FunctionAccess =>
+      case access : L4_FunctionAccess   =>
         IR_FunctionCall(access.progress, arguments.map(s => s.progress))
-      case access : BasicAccess       =>
+      case access : L4_UnresolvedAccess =>
         Logger.warn("Found function call without resolved access " + access.name)
+        // FIXME: access.name
         IR_FunctionCall(access.name, arguments.map(s => s.progress))
-      case access : LeveledAccess     =>
-        Logger.warn("Found leveled function call without resolved access " + access.name + " on level " + access.level.resolveLevel)
-        IR_FunctionCall(access.name + "_" + access.level.resolveLevel, arguments.map(s => s.progress))
     }
   }
 }

@@ -1,8 +1,8 @@
 package exastencils.interfacing.l4
 
 import exastencils.base.l4.L4_Access
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 import exastencils.field.l4._
 import exastencils.knowledge.l4.L4_KnowledgeDecl
 import exastencils.logger.Logger
@@ -19,11 +19,11 @@ case class L4_ExternalFieldDecl(
 
   override def addToKnowledge() = {
     val resolvedAccess = targetField match {
-      case access : UnresolvedAccess =>
+      case access : L4_UnresolvedAccess =>
         if (access.dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
         L4_FieldAccess(access.name, access.level.get.resolveLevel,
           access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
-      case access : L4_FieldAccess   => access
+      case access : L4_FieldAccess      => access
     }
     val resolvedField = resolvedAccess.target
     val resolvedFieldLayout = resolvedField.fieldLayout
