@@ -158,7 +158,7 @@ object FieldCollection {
   var fields : ListBuffer[Field] = ListBuffer()
 
   def getSortedFields : ListBuffer[Field] = {
-    fields.sortBy(_.level).sortBy(_.identifier)
+    fields.sortBy(f => (f.identifier, f.level))
   }
 
   def getFieldByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[Field] = {
@@ -205,7 +205,7 @@ object ExternalFieldCollection {
   var fields : ListBuffer[ExternalField] = ListBuffer()
 
   def getSortedFields : ListBuffer[ExternalField] = {
-    fields.sortBy(_.level).sortBy(_.identifier)
+    fields.sortBy(f => (f.identifier, f.level))
   }
 
   def getFieldByIdentifier(identifier : String, level : Int) : Option[ExternalField] = {
