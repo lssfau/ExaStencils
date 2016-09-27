@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.domain.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
@@ -35,12 +36,12 @@ case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expr
     for (neigh <- Fragment.neighbors) {
       // neighbor directions are always 3D vectors; invalid directions are not part of the given collection
       neigh.dir match {
-        case Array(-1, 0, 0) => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 0), 0))
-        case Array(1, 0, 0)  => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 0), 0))
-        case Array(0, -1, 0) => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 1), 0))
-        case Array(0, 1, 0)  => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 1), 0))
-        case Array(0, 0, -1) => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetBegin(domain, fragment), 2), 0))
-        case Array(0, 0, 1)  => cases += IR_Case(neigh.index, IR_Assignment(IR_ArrayAccess(iv.IterationOffsetEnd(domain, fragment), 2), 0))
+        case Array(-1, 0, 0) => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetBegin(0, domain, fragment), 0))
+        case Array(1, 0, 0)  => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetEnd(0, domain, fragment), 0))
+        case Array(0, -1, 0) => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetBegin(1, domain, fragment), 0))
+        case Array(0, 1, 0)  => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetEnd(1, domain, fragment), 0))
+        case Array(0, 0, -1) => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetBegin(2, domain, fragment), 0))
+        case Array(0, 0, 1)  => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetEnd(2, domain, fragment), 0))
         case _               =>
       }
     }

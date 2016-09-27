@@ -23,23 +23,6 @@ case class IsValidForSubdomain(var domain : IR_Expression, var fragmentIdx : IR_
   override def resolveDefValue = Some(false)
 }
 
-case class IterationOffsetBegin(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, true, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, IR_NullExpression, IR_NullExpression, IR_NullExpression)
-
-  override def resolveName = s"iterationOffsetBegin" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
-  override def resolveDatatype = "Vec3i"
-  override def resolveDefValue = Some("Vec3i(1, 1, 1)")
-  def resolveAccess = super.resolveAccess(resolveName, fragmentIdx, domain, IR_NullExpression, IR_NullExpression, IR_NullExpression)
-}
-
-case class IterationOffsetEnd(var domain : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, true, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, domain, IR_NullExpression, IR_NullExpression, IR_NullExpression)
-
-  override def resolveName = s"iterationOffsetEnd" + resolvePostfix(fragmentIdx.prettyprint, domain.prettyprint, "", "", "")
-  override def resolveDatatype = "Vec3i"
-  override def resolveDefValue = Some("Vec3i(-1, -1, -1)")
-}
-
 /// geometric mapping
 
 case class CommId(var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
