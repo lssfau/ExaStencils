@@ -12,7 +12,6 @@ import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
-import exastencils.hack.ir.HACK_IR_ConcatenationExpression
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi._
@@ -113,9 +112,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     // functions
     // FIXME: datatypes for function accesses
 
-    case IR_FunctionCall(IR_UserFunctionAccess("concat", _), args) =>
-      Logger.error("Concat expression is deprecated => will be deleted soon")
-      HACK_IR_ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
+    case IR_FunctionCall(IR_UserFunctionAccess("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
 
     // Vector functions
     case f : IR_FunctionCall if (f.name == "cross" || f.name == "crossproduct") => {
