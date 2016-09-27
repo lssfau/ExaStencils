@@ -297,6 +297,19 @@ object Main {
     } while (convChanged)
 
     ResolveDiagFunction.apply()
+    // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
+    //   currently this works only if all fields are equally sized
+    if (Knowledge.domain_rect_generate && Knowledge.maxLevel <= 0) {
+      val fLayout : Array[FieldLayoutPerDim] = FieldCollection.fields.head.fieldLayout.layoutsPerDim
+      Knowledge.discr_hx = Array[Double](l3Generate.Domains.getGlobalWidths(0) /
+        (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * fLayout(0).numInnerLayers))
+      if (Knowledge.dimensionality > 1)
+        Knowledge.discr_hy = Array[Double](l3Generate.Domains.getGlobalWidths(1) /
+          (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * fLayout(1).numInnerLayers))
+      if (Knowledge.dimensionality > 2)
+        Knowledge.discr_hz = Array[Double](l3Generate.Domains.getGlobalWidths(2) /
+          (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * fLayout(2).numInnerLayers))
+    }
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
