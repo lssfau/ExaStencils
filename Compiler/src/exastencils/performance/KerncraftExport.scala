@@ -10,6 +10,7 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.knowledge._
+import exastencils.logger.Logger
 import exastencils.strategies.SimplifyStrategy
 
 import scala.collection.mutable.ListBuffer
@@ -23,10 +24,13 @@ import scala.collection.mutable.ListBuffer
 object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft") {
   //  override def apply(applyAtNode : Option[Node] = None) : Unit = {
 
+  var verbose = false
+
   val kerncraftDir = Paths.get(Settings.getBasePath, "kerncraft")
   if (!Files.exists(kerncraftDir)) {
     Files.createDirectory(kerncraftDir)
   }
+  Logger.dbg("exporting kerncraft kernels to \"%s\"".format(kerncraftDir.toAbsolutePath.toString))
 
   var curFun : IR_Function = null
   var curFunLoopCounter = 0
@@ -64,14 +68,14 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
       val clone = Duplicate(loop)
       val kernelFilePath = kerncraftDir.resolve("%s-kernel-%04d.c".format(curFun.name, curFunLoopCounter))
       val kernelFunFilePath = kerncraftDir.resolve("%s-kernel-%04d-fun.c".format(curFun.name, curFunLoopCounter))
-      println("======================================================================")
-      println(s"function %s kernel %04d - ${kernelFilePath.toString}".format(curFun.name, curFunLoopCounter))
-      println(s"loop.numDimensions ${ loop.numDimensions }")
-      SimplifyStrategy.doUntilDoneStandalone(loop.indices);
-      {
+      logVerbose("======================================================================")
+      logVerbose(s"function %s kernel %04d - ${kernelFilePath.toString}".format(curFun.name, curFunLoopCounter))
+      logVerbose(s"loop.numDimensions ${ loop.numDimensions }")
+      SimplifyStrategy.doUntilDoneStandalone(loop.indices)
+      if (verbose) {
         val ix = loop.indices
         val ixPairs = ix.begin.zip(ix.end)
-        println("loop index ranges: " + ixPairs.map(ix =>
+        logVerbose("loop index ranges: " + ixPairs.map(ix =>
           ix match {
             case (begin, end) => "[%s,%s]".format(begin.prettyprint, end.prettyprint)
           }).mkString("[", ",", "]"))
@@ -84,8 +88,8 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
       val fieldAccesses = TransformKernel.fields.distinct
       val fieldDecls = buildFieldDeclarations(TransformKernel.fields.toSet, false)
 
-      fieldDecls.foreach(d => println(d))
-      println(forLoop.prettyprint())
+      fieldDecls.foreach(d => logVerbose(d))
+      logVerbose(forLoop.prettyprint())
 
       // print to file
 
@@ -136,41 +140,16 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
         else
           declBuf.append(dimsz)
         declBuf.append("]")
-        //        println(s"field layout ${idname}[$d]: ${ dimsz}")
+        //        logVerbose(s"field layout ${idname}[$d]: ${ dimsz}")
       })
       declBuf.append(";")
 
       declidx += 1
 
       declBuf.toString()
-
-      //      field.fieldSelection.field.fieldLayout.layoutsPerDim.foreach()
-      //      println("field index: " + field.fieldSelection.field.fieldLayout.layoutsPerDim
-
-      //      val arrdt = ArrayDatatype_VS(scalarDataType, )
-      //      VariableDeclarationStatement(scalarDataType, idname)
     }
 
     ).toList
-  }
-
-  def buildOrdinaryLoop(loop : IR_LoopOverDimensions) : IR_ForLoop = {
-    (0 until loop.indices.size).foreach(i => {
-      println(i)
-
-    })
-
-    val begin = IR_VariableDeclaration(IR_IntegerDatatype, "i", Some(IR_IntegerConstant(0)))
-    val end = IR_LowerExpression(IR_VariableAccess(begin), IR_IntegerConstant(0))
-    val inc = IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(begin)))
-
-    val forLoop = IR_ForLoop(begin, end, inc, ListBuffer[IR_Statement]())
-    println("*****")
-    println(forLoop.prettyprint())
-    //    println(">>>>>")
-    //    loop.expandSpecial.foreach(s => println(s.prettyprint()))
-    //      val forLoop = new IR_ForLoop(/**/,0,0,null)
-    forLoop
   }
 
   def buildForLoopRec(loop : IR_LoopOverDimensions) : IR_ForLoop = {
@@ -178,8 +157,8 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     val begin = IR_LoopOverDimensions.evalMinIndex(loop.indices.begin, loop.numDimensions, true)
     val end = IR_LoopOverDimensions.evalMaxIndex(loop.indices.end, loop.numDimensions, true)
 
-    println(begin.map(x => x.toString).toList)
-    println(end.map(x => x.toString).toList)
+    //logVerbose(begin.map(x => x.toString).toList)
+    //logVerbose(end.map(x => x.toString).toList)
 
     def buildRec(d : Integer, outer : Option[IR_ForLoop]) : Option[IR_ForLoop] = {
       if (d < loop.numDimensions) {
@@ -210,7 +189,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     //    val inc = ExpressionStatement(PreIncrementExpression(new IR_VariableAccess(begin)))
     //
     //    val forLoop = IR_ForLoop(begin, end, inc, ListBuffer[Statement]())
-    //    println("*****")
+    //    logVerbose("*****")
 
     //      val forLoop = new IR_ForLoop(/**/,0,0,null)
     //    forLoop
@@ -218,6 +197,11 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     buildRec(0, None).get
   }
 
+  def logVerbose(s: AnyRef) : Unit = {
+    if (verbose) {
+      Logger.debug(s)
+    }
+  }
 }
 
 object TransformKernel extends DefaultStrategy("Kernel Transformation") {
@@ -236,9 +220,9 @@ object TransformKernel extends DefaultStrategy("Kernel Transformation") {
 
   this += new Transformation("Transforming kernels", {
     case fa : IR_MultiDimFieldAccess =>
-      //      println("-----")
-      //      println(fa)
-      //      println(fa.fieldSelection.field.identifier, fa.index)
+      //      logVerbose("-----")
+      //      logVerbose(fa)
+      //      logVerbose(fa.fieldSelection.field.identifier, fa.index)
       fields += fa.fieldSelection.field
       val idname = "f" + fa.fieldSelection.field.identifier
       val ident = new IR_VariableAccess(idname, Some(fa.fieldSelection.field.resolveBaseDatatype))
@@ -246,15 +230,19 @@ object TransformKernel extends DefaultStrategy("Kernel Transformation") {
 
       val aa = new IR_MultiDimArrayAccess(ident, fa.index)
 
-      //      println(aa.prettyprint())
+      //      logVerbose(aa.prettyprint())
       aa
 
     case bs : IR_BoundedScalar =>
-      println("----" + bs)
+      logVerbose("----" + bs)
       bs
     case x                     =>
-      //      println("xxxxx not handled: " + x.toString())
+      //      logVerbose("xxxxx not handled: " + x.toString())
       x
 
   })
+
+  def logVerbose(s:AnyRef): Unit = {
+    KerncraftExport.logVerbose(s)
+  }
 }
