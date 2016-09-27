@@ -1,8 +1,7 @@
 package exastencils.performance
 
-import scala.collection.mutable.ListBuffer
 import java.io._
-import java.nio.file.Paths
+import java.nio.file.{Files, Paths}
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -13,6 +12,8 @@ import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.knowledge._
 import exastencils.strategies.SimplifyStrategy
 
+import scala.collection.mutable.ListBuffer
+
 /** Strategy to export kernels for kerncraft.
   *
   * Kerncraft has strict requirements on the syntax of kernel codes.
@@ -22,10 +23,10 @@ import exastencils.strategies.SimplifyStrategy
 object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft") {
   //  override def apply(applyAtNode : Option[Node] = None) : Unit = {
 
-
-  val kerncraftDirStr = Paths.get(Settings.getBasePath, "kerncraft").toString
-  val kerncraftDir = new File(kerncraftDirStr)
-  kerncraftDir.mkdir()
+  val kerncraftDir = Paths.get(Settings.getBasePath, "kerncraft")
+  if (!Files.exists(kerncraftDir)) {
+    Files.createDirectory(kerncraftDir)
+  }
 
   var curFun : IR_Function = null
   var curFunLoopCounter = 0
@@ -61,13 +62,10 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
   this += new Transformation("Visiting LoopOverDimension", {
     case loop : IR_LoopOverDimensions => {
       val clone = Duplicate(loop)
-      //      val kernelFileStr = kerncraftDir.toString() + s"/kernel-${kernelId%4d}.c"
-
-      // FIXME proper path joining
-      val kernelFileStr = kerncraftDir.toString() + "/%s-kernel-%04d.c".format(curFun.name, curFunLoopCounter)
-      val kernelFunFileStr = kerncraftDir.toString() + "/%s-kernel-%04d-fun.c".format(curFun.name, curFunLoopCounter)
+      val kernelFilePath = kerncraftDir.resolve("%s-kernel-%04d.c".format(curFun.name, curFunLoopCounter))
+      val kernelFunFilePath = kerncraftDir.resolve("%s-kernel-%04d-fun.c".format(curFun.name, curFunLoopCounter))
       println("======================================================================")
-      println(s"function %s kernel %04d - $kernelFileStr".format(curFun.name, curFunLoopCounter))
+      println(s"function %s kernel %04d - ${kernelFilePath.toString}".format(curFun.name, curFunLoopCounter))
       println(s"loop.numDimensions ${ loop.numDimensions }")
       SimplifyStrategy.doUntilDoneStandalone(loop.indices);
       {
@@ -91,13 +89,13 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
 
       // print to file
 
-      val printer = new PrintWriter(kernelFileStr)
+      val printer = new PrintWriter(kernelFilePath.toFile)
       fieldDecls.foreach(d => printer.println(d))
       printer.println(forLoop.prettyprint())
       printer.close()
 
       // print to file, wrapped in a main() function
-      val printerFun = new PrintWriter(kernelFunFileStr)
+      val printerFun = new PrintWriter(kernelFunFilePath.toFile)
       printerFun.println("int main() {")
       fieldDecls.foreach(d => printerFun.println(d))
       printerFun.println(forLoop.prettyprint())
