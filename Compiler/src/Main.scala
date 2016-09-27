@@ -32,6 +32,7 @@ import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
 import exastencils.stencil.l4._
 import exastencils.strategies._
+import exastencils.timing.ir.IR_AdaptTimerFunctions
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
 import exastencils.util.l4._
@@ -286,6 +287,7 @@ object Main {
     SetupCommunication.apply()
 
     ResolveSpecialFunctionsAndConstants.apply()
+    IR_AdaptTimerFunctions.apply()
 
     ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()

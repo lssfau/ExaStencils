@@ -654,8 +654,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         exprs.dequeue()
 
       // TODO: datatypes of function accesses relevant?
-      case IR_FunctionCall(IR_FunctionAccess(func, _), args) if (SIMD_MathFunctions.isAllowed(func)) =>
-        IR_FunctionCall(SIMD_MathFunctions.addUsage(func), args.map { arg => vectorizeExpr(arg, ctx) })
+      case IR_FunctionCall(function, args) if (SIMD_MathFunctions.isAllowed(function.name)) =>
+        IR_FunctionCall(SIMD_MathFunctions.addUsage(function.name), args.map { arg => vectorizeExpr(arg, ctx) })
 
       case IR_PowerExpression(base, exp) if (SIMD_MathFunctions.isAllowed("pow")) =>
         IR_FunctionCall(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))

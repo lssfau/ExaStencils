@@ -21,15 +21,15 @@ trait L4_FunctionAccess extends L4_Access {
     if (level.isDefined) out << "@" << level.get
   }
 
-  override def progress : IR_FunctionAccess = {
-    val resolvedName =
-      if (level.isDefined)
-        L4_LeveledIdentifier(name, L4_SingleLevel(level.get)).fullName
-      else
-        L4_BasicIdentifier(name).fullName
-
-    IR_FunctionAccess(resolvedName, datatype.progress)
+  def resolvedName() = {
+    if (level.isDefined)
+      L4_LeveledIdentifier(name, L4_SingleLevel(level.get)).fullName
+    else
+      L4_BasicIdentifier(name).fullName
   }
+
+  // FIXME: general progression to IR_UserFunctionAccess doesn't make sense
+  override def progress : IR_FunctionAccess = IR_UserFunctionAccess(resolvedName(), datatype.progress)
 }
 
 /// L4_UserFunctionAccess

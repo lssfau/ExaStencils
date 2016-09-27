@@ -35,16 +35,16 @@ object PrepareShiftedEvaluationFunctions extends DefaultStrategy("PrepareShifted
 
   private object DoShift extends QuietDefaultStrategy("DoShift") {
     this += new Transformation("Resolving functions", {
-      case fct @ IR_FunctionCall(IR_FunctionAccess(functionName, _), args) if shiftEvalFunctions.contains(functionName) => {
+      case fct @ IR_FunctionCall(function, args) if shiftEvalFunctions.contains(function.name) => {
         // return datatype remains identical
-        fct.function.name = shiftEvalFunctions(functionName)
+        fct.function.name = shiftEvalFunctions(function.name)
         fct
       }
     })
   }
 
   this += new Transformation("Resolving functions", {
-    case fct @ IR_FunctionCall(IR_FunctionAccess(functionName, _), args) if shiftIntegrateFunctions.contains(functionName) => {
+    case fct @ IR_FunctionCall(function, args) if shiftIntegrateFunctions.contains(function.name) => {
       DoShift.applyStandalone(fct)
       fct
     }
@@ -62,17 +62,17 @@ object ResolveEvaluationFunctions extends DefaultStrategy("ResolveEvaluationFunc
     "evalAtZStaggeredWestFace", "evalAtZStaggeredSouthFace", "evalAtZStaggeredBottomFace")
 
   this += new Transformation("Resolving functions", {
-    case IR_FunctionCall(IR_FunctionAccess(functionName, _), args) if functions.contains(functionName) => {
+    case IR_FunctionCall(function, args) if functions.contains(function.name) => {
       if (0 == args.length) {
-        Logger.warn(s"Trying to use build-in function $functionName without arguments")
+        Logger.warn(s"Trying to use build-in function ${ function.name } without arguments")
         IR_NullExpression
       } else {
-        if (args.length > 2) Logger.warn(s"Trying to use build-in function $functionName with more than one arguments; additional arguments are discarded")
+        if (args.length > 2) Logger.warn(s"Trying to use build-in function ${ function.name } with more than one arguments; additional arguments are discarded")
         args match {
-          case ListBuffer(access : IR_FieldAccess)                                    => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, "default")
-          case ListBuffer(access : IR_FieldAccess, interpolation : IR_StringConstant) => GridEvaluator.getEvaluator.invokeEvalResolve(functionName, access, interpolation.value)
+          case ListBuffer(access : IR_FieldAccess)                                    => GridEvaluator.getEvaluator.invokeEvalResolve(function.name, access, "default")
+          case ListBuffer(access : IR_FieldAccess, interpolation : IR_StringConstant) => GridEvaluator.getEvaluator.invokeEvalResolve(function.name, access, interpolation.value)
           case _                                                                      => {
-            Logger.warn(s"Arguments (${ args.map(_.prettyprint).mkString(", ") }) are currently not supported for function $functionName")
+            Logger.warn(s"Arguments (${ args.map(_.prettyprint).mkString(", ") }) are currently not supported for function ${ function.name }")
             args(0)
           }
         }
@@ -92,13 +92,13 @@ object ResolveIntegrationFunctions extends DefaultStrategy("ResolveIntegrateFunc
     "integrateOverZStaggeredWestFace", "integrateOverZStaggeredSouthFace", "integrateOverZStaggeredBottomFace")
 
   this += new Transformation("Resolving functions", {
-    case IR_FunctionCall(IR_FunctionAccess(functionName, _), args) if functions.contains(functionName) => {
+    case IR_FunctionCall(function, args) if functions.contains(function.name) => {
       if (0 == args.length) {
-        Logger.warn(s"Trying to use build-in function $functionName without arguments")
+        Logger.warn(s"Trying to use build-in function ${ function.name } without arguments")
         IR_NullExpression
       } else {
-        if (args.length > 1) Logger.warn(s"Trying to use build-in function $functionName with more than one arguments; additional arguments are discarded")
-        GridEvaluator.getEvaluator.invokeIntegrateResolve(functionName, args(0))
+        if (args.length > 1) Logger.warn(s"Trying to use build-in function ${ function.name } with more than one arguments; additional arguments are discarded")
+        GridEvaluator.getEvaluator.invokeIntegrateResolve(function.name, args(0))
       }
     }
   })

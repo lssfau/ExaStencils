@@ -6,6 +6,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.timing.ir.IR_TimerFunctionAccess
 
 // L4_TimerFunctions
 
@@ -37,7 +38,9 @@ object L4_TimerFunctionAccess {
     new L4_TimerFunctionAccess(name, Some(level), datatype)
 }
 
-case class L4_TimerFunctionAccess(var name : String, level : Option[Int], var datatype : L4_Datatype) extends L4_FunctionAccess
+case class L4_TimerFunctionAccess(var name : String, level : Option[Int], var datatype : L4_Datatype) extends L4_FunctionAccess {
+  override def progress = IR_TimerFunctionAccess(resolvedName(), datatype.progress)
+}
 
 /// L4_ResolveTimerFunctions
 
