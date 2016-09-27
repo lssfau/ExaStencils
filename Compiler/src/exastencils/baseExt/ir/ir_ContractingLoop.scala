@@ -36,14 +36,14 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
       case IR_IntegerConstant(i) =>
         IR_IntegerConstant(i - extent)
 
-      case bOff @ IR_BoundedScalar(_, _, IR_ArrayAccess(_ : IR_IV_IterationOffsetBegin, _, _)) =>
+      case bOff @ IR_BoundedScalar(_, _, _ : IR_IV_IterationOffsetBegin) =>
         (bOff * (extent + 1)) - extent
 
       case add : IR_AdditionExpression =>
         add.summands.transform {
-          case bOff @ IR_BoundedScalar(_, _, IR_ArrayAccess(_ : IR_IV_IterationOffsetBegin, _, _)) =>
+          case bOff @ IR_BoundedScalar(_, _, _ : IR_IV_IterationOffsetBegin) =>
             bOff * (extent + 1)
-          case x                                                                                   =>
+          case x                                                             =>
             x
         }
         add.summands += IR_IntegerConstant(-extent)
