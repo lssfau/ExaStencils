@@ -114,6 +114,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     // FIXME: datatypes for function accesses
 
     case IR_FunctionCall(IR_UserFunctionAccess("concat", _), args) =>
+      Logger.error("Concat expression is deprecated => will be deleted soon")
       HACK_IR_ConcatenationExpression(args.map(a => if (a.isInstanceOf[IR_StringConstant]) IR_StringLiteral(a.asInstanceOf[IR_StringConstant].value) else a))
 
     // Vector functions
