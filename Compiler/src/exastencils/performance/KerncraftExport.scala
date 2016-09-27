@@ -24,7 +24,10 @@ import scala.collection.mutable.ListBuffer
 object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft") {
   //  override def apply(applyAtNode : Option[Node] = None) : Unit = {
 
-  var verbose = false
+  val verbose = false
+  // Skip kernels with IR constructs that cannot be transformed to kerncraft.
+  // E.g. IR_InternalVariable
+  val skipUntransformable = true
 
   val kerncraftDir = Paths.get(Settings.getBasePath, "kerncraft")
   if (!Files.exists(kerncraftDir)) {
@@ -84,31 +87,38 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
         // transform kernel to for-loop nest
       val forLoop = buildForLoopRec(clone)
       TransformKernel.applyStandalone(forLoop)
-      // extract field accesses to build array declarations, e.g. "double fieldx[1000][1000][1000];"
-      val fieldAccesses = TransformKernel.fields.distinct
-      val fieldDecls = buildFieldDeclarations(TransformKernel.fields.toSet, false)
+      if (TransformKernel.hasInternalVariables) {
+        val skippedNote = if (skipUntransformable) ", skipped" else ", will not be parsed by kerncraft"
+        Logger.warn("%s: kernel uses IR_Internalvariable s%s".format(
+          kernelFilePath.toString, skippedNote))
+      }
+      val skipKernel = TransformKernel.hasInternalVariables && skipUntransformable
+      if (!skipKernel) {
+        // extract field accesses to build array declarations, e.g. "double fieldx[1000][1000][1000];"
+        val fieldAccesses = TransformKernel.fields.distinct
+        val fieldDecls = buildFieldDeclarations(TransformKernel.fields.toSet, false)
 
-      fieldDecls.foreach(d => logVerbose(d))
-      logVerbose(forLoop.prettyprint())
+        fieldDecls.foreach(d => logVerbose(d))
+        logVerbose(forLoop.prettyprint())
 
-      // print to file
+        // print to file
 
-      val printer = new PrintWriter(kernelFilePath.toFile)
-      fieldDecls.foreach(d => printer.println(d))
-      printer.println(forLoop.prettyprint())
-      printer.close()
+        val printer = new PrintWriter(kernelFilePath.toFile)
+        fieldDecls.foreach(d => printer.println(d))
+        printer.println(forLoop.prettyprint())
+        printer.close()
 
-      // print to file, wrapped in a main() function
-      val printerFun = new PrintWriter(kernelFunFilePath.toFile)
-      printerFun.println("int main() {")
-      fieldDecls.foreach(d => printerFun.println(d))
-      printerFun.println(forLoop.prettyprint())
-      printerFun.println("return 0;")
-      printerFun.println("}")
-      printerFun.close()
+        // print to file, wrapped in a main() function
+        val printerFun = new PrintWriter(kernelFunFilePath.toFile)
+        printerFun.println("int main() {")
+        fieldDecls.foreach(d => printerFun.println(d))
+        printerFun.println(forLoop.prettyprint())
+        printerFun.println("return 0;")
+        printerFun.println("}")
+        printerFun.close()
 
-      curFunLoopCounter += 1
-
+        curFunLoopCounter += 1
+      }
       loop
     }
   })
@@ -204,17 +214,20 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
   }
 }
 
-object TransformKernel extends DefaultStrategy("Kernel Transformation") {
+private object TransformKernel extends DefaultStrategy("Kernel Transformation") {
 
   val fields = ListBuffer[Field]()
+  var hasInternalVariables = false
 
   override def apply(applyAtNode : Option[Node] = None) : Unit = {
     fields.clear()
+    hasInternalVariables = false
     super.apply(applyAtNode)
   }
 
   override def applyStandalone(node : Node) : Unit = {
     fields.clear()
+    hasInternalVariables = false
     super.applyStandalone(node)
   }
 
@@ -236,6 +249,10 @@ object TransformKernel extends DefaultStrategy("Kernel Transformation") {
     case bs : IR_BoundedScalar =>
       logVerbose("----" + bs)
       bs
+
+    case va : IR_InternalVariable =>
+      hasInternalVariables = true
+      va
     case x                     =>
       //      logVerbose("xxxxx not handled: " + x.toString())
       x
