@@ -10,8 +10,7 @@ import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
-import exastencils.util._
-import exastencils.util.ir.IR_ResultingDatatype
+import exastencils.util.ir._
 
 // TODO: introduce abstraction layer for general device interfaces
 
@@ -36,8 +35,8 @@ case class CUDA_CheckError(var exp : IR_Expression) extends IR_Statement with IR
     IR_Scope(ListBuffer[IR_Statement](
       IR_VariableDeclaration(IR_SpecialDatatype("cudaError_t"), "cudaStatus", Some(exp)),
       IR_IfCondition(IR_NeqExpression("cudaStatus", "cudaSuccess"),
-        PrintStatement(ListBuffer("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", "cudaStatus",
-          "\" -> \"", IR_FunctionCall("cudaGetErrorString", "cudaStatus"), "std::endl")))))
+        IR_RawPrint("\"CUDA error in file (\"", "__FILE__", "\"), line (\"", "__LINE__", "\"): \"", "cudaStatus",
+          "\" -> \"", IR_FunctionCall("cudaGetErrorString", "cudaStatus"), "std::endl"))))
   }
 }
 

@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.knowledge._
-import exastencils.util._
+import exastencils.util.ir._
 
 object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
   this += new Transformation("Adding default global constants and variables", {
@@ -40,7 +40,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
           func.body ++= ListBuffer[IR_Statement](
             "cudaDeviceProp devProp",
             s"cudaGetDeviceProperties(&devProp, ${ Knowledge.cuda_deviceId })",
-            PrintStatement(ListBuffer("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", "devProp.name", "std::endl")))
+            IR_RawPrint("\"Using CUDA device \"", Knowledge.cuda_deviceId, "\": \"", "devProp.name", "std::endl"))
         }
 
         // create context

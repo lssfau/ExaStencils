@@ -12,7 +12,7 @@ import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir._
 import exastencils.hack.ir.HACK_IR_ConcatenationExpression
 import exastencils.knowledge._
 import exastencils.logger._
@@ -198,23 +198,6 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         x
       }
     }
-
-    // HACK for print functionality
-    case IR_ExpressionStatement(IR_FunctionCall(IR_FunctionAccess("print", _), args))      =>
-      new PrintStatement(args)
-    case IR_ExpressionStatement(IR_FunctionCall(IR_FunctionAccess("printField", _), args)) => {
-      args.length match {
-        case 1 => // option 1: only field -> deduce name
-          new PrintFieldStatement("\"" + args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.identifier + ".dat\"", args(0).asInstanceOf[IR_FieldAccess].fieldSelection)
-        case 2 => // option 2: filename and field
-          new PrintFieldStatement(args(0), args(1).asInstanceOf[IR_FieldAccess].fieldSelection)
-        case 3 => //option 3: filename, file and condition
-          new PrintFieldStatement(args(0), args(1).asInstanceOf[IR_FieldAccess].fieldSelection, args(2))
-      }
-    }
-
-    case IR_ExpressionStatement(IR_FunctionCall(IR_FunctionAccess("buildString", _), args)) =>
-      new BuildStringStatement(args(0), args.slice(1, args.size))
 
     // FIXME: HACK to realize application functionality
     case func : IR_Function if ("Application" == func.name) => {

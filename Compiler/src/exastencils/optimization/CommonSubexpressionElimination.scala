@@ -20,6 +20,7 @@ import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util._
+import exastencils.util.ir.IR_Print
 
 object CommonSubexpressionElimination extends CustomStrategy("Common subexpression elimination") {
   private final val REPLACE_ANNOT : String = "CSE_repl"
@@ -369,7 +370,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                   registerCS(func, childCSes.map(_.get.prio).sum + 1, 3, pos, true, List.empty)
               }
 
-            case _ : IR_VectorExpression | _ : IR_MatrixExpression | _ : PrintExpression =>
+            case _ : IR_VectorExpression | _ : IR_MatrixExpression | _ : IR_Print =>
             // don't do anything, these are never common subexpressions
 
             case parent : Product =>
@@ -553,17 +554,17 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
         c.annotate(SKIP_ANNOT)
         skip = true
 
-      case IR_VariableDeclaration(dt, name, _)                                    =>
+      case IR_VariableDeclaration(dt, name, _)                                 =>
         commonSubs(IR_VariableAccess(name, dt)) = null
-      case IR_Assignment(vAcc : IR_VariableAccess, _, _)                          =>
+      case IR_Assignment(vAcc : IR_VariableAccess, _, _)                       =>
         commonSubs(vAcc) = null
-      case IR_Assignment(IR_ArrayAccess(vAcc : IR_VariableAccess, _, _), _, _)    =>
+      case IR_Assignment(IR_ArrayAccess(vAcc : IR_VariableAccess, _, _), _, _) =>
         commonSubs(vAcc) = null
       case IR_Assignment(IR_ArrayAccess(iv : IR_InternalVariable, _, _), _, _) =>
         commonSubs(iv) = null
-      case IR_Assignment(dfa : IR_DirectFieldAccess, _, _)                        =>
+      case IR_Assignment(dfa : IR_DirectFieldAccess, _, _)                     =>
         commonSubs(dfa) = null
-      case IR_Assignment(tba : IR_TempBufferAccess, _, _)                         =>
+      case IR_Assignment(tba : IR_TempBufferAccess, _, _)                      =>
         commonSubs(tba) = null
 
       case _ : IR_IntegerConstant

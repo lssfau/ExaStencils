@@ -11,6 +11,7 @@ import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.mpi._
 import exastencils.prettyprinting._
+import exastencils.util.ir._
 
 case class TimerDetail_AssignNow(var lhs : IR_Expression) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
@@ -210,7 +211,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with IR_Expan
       statements += IR_Assignment("timerValue", "mpiSize", "/=")
     }
 
-    statements += PrintStatement(ListBuffer("\"Mean mean total time for Timer " + timer.name.prettyprint() + ":\"", "timerValue"))
+    statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name.prettyprint() + ":\"", "timerValue")
 
     IR_Scope(statements)
   }
@@ -257,7 +258,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
     var it = 0
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
-      statements += PrintExpression(IR_VariableAccess("outFile"), ListBuffer[IR_Expression](
+      statements += IR_Print(IR_VariableAccess("outFile"), ListBuffer[IR_Expression](
         IR_StringConstant(timer._2.name.prettyprint()), sep,
         IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
         IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))

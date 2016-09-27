@@ -9,6 +9,8 @@ import exastencils.prettyprinting.PpStream
 object IR_ObjectInstantiation {
   def apply(datatype : IR_Datatype, name : String, ctorArgs : IR_Expression*) =
     new IR_ObjectInstantiation(datatype, name, ctorArgs.to[ListBuffer])
+  def apply(variable : IR_VariableAccess, ctorArgs : IR_Expression*) =
+    new IR_ObjectInstantiation(variable.datatype, variable.name, ctorArgs.to[ListBuffer])
 }
 
 case class IR_ObjectInstantiation(var datatype : IR_Datatype, var name : String, var ctorArgs : ListBuffer[IR_Expression]) extends IR_Statement {

@@ -3,7 +3,7 @@ package exastencils.base.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.prettyprinting.PpStream
-import exastencils.util.PrintStatement
+import exastencils.util.ir._
 
 /// IR_Define
 
@@ -29,7 +29,7 @@ case class IR_Comment(var comment : String) extends IR_Statement {
 
 case class IR_Assert(var check : IR_Expression, var msg : ListBuffer[IR_Expression], var abort : IR_Statement) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-  override def expand = IR_IfCondition(IR_NegationExpression(check), ListBuffer(PrintStatement(msg), abort))
+  override def expand = IR_IfCondition(IR_NegationExpression(check), ListBuffer(IR_RawPrint(msg), abort))
 }
 
 /// IR_InitializerList

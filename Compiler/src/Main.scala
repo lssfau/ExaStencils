@@ -206,6 +206,8 @@ object Main {
     L4_ResolveLoopItAccesses.apply()
     L4_ResolveSpecialConstants.apply()
     HACK_L4_ResolveNativeFunctions.apply()
+    L4_ResolvePrintFunctions.apply()
+    L4_ResolveBuildStringFunctions.apply()
     L4_ResolveKnowledgeParameterAccess.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()
@@ -216,6 +218,9 @@ object Main {
     L4_ResolveFieldAccesses.apply()
     L4_ResolveStencilAccesses.apply()
     L4_ResolveStencilFieldAccesses.apply()
+
+    // after L4_ResolveFieldAccesses
+    L4_ResolvePrintFieldFunctions.apply()
 
     /// BEGIN HACK: progress expression in knowledge
     {

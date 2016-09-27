@@ -11,6 +11,7 @@ import exastencils.logger._
 import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
+import exastencils.util.ir._
 
 trait MPI_Statement extends IR_Statement
 
@@ -224,7 +225,7 @@ case class MPI_WaitForRequest() extends IR_AbstractFunction with IR_Expandable {
               IR_VariableDeclaration(len),
               IR_FunctionCall("MPI_Error_string", ListBuffer(
                 IR_MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
-              PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
+              IR_RawPrint(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\""))))),
           IR_Assignment(IR_DerefAccess(request), IR_FunctionCall("MPI_Request"))),
         false)
     } else {
@@ -238,7 +239,7 @@ case class MPI_WaitForRequest() extends IR_AbstractFunction with IR_Expandable {
             IR_VariableDeclaration(len),
             IR_FunctionCall("MPI_Error_string", ListBuffer(
               IR_MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len))),
-            PrintStatement(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
+            IR_RawPrint(ListBuffer[IR_Expression]("\"MPI Error encountered (\"", msg, "\")\"")))),
           IR_Assignment(IR_DerefAccess(request), IR_FunctionCall("MPI_Request"))),
         false)
     }
