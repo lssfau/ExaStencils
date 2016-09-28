@@ -41,6 +41,12 @@ case class PrimitiveIndex(var fragmentIdx : IR_Expression = IR_LoopOverFragments
   override def resolveDefValue = Some("Vec3i(0, 0, 0)")
 }
 
+// TODO: convert PrimitivePosition to Real datatype
+object PrimitivePosition {
+  def apply(dim : Int) = IR_ArrayAccess(new PrimitivePosition(), dim)
+  def apply(dim : Int, fragmentIdx : IR_Expression) = IR_ArrayAccess(new PrimitivePosition(fragmentIdx), dim)
+}
+
 case class PrimitivePosition(var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) with IR_Access {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
@@ -49,12 +55,24 @@ case class PrimitivePosition(var fragmentIdx : IR_Expression = IR_LoopOverFragme
   override def resolveDefValue = Some("Vec3(0, 0, 0)")
 }
 
+// TODO: convert PrimitivePositionBegin to Real datatype
+object PrimitivePositionBegin {
+  def apply(dim : Int) = IR_ArrayAccess(new PrimitivePositionBegin(), dim)
+  def apply(dim : Int, fragmentIdx : IR_Expression) = IR_ArrayAccess(new PrimitivePositionBegin(fragmentIdx), dim)
+}
+
 case class PrimitivePositionBegin(var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) with IR_Access {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
 
   override def resolveName = s"posBegin" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
   override def resolveDatatype = "Vec3"
   override def resolveDefValue = Some("Vec3(0, 0, 0)")
+}
+
+// TODO: convert PrimitivePositionEnd to Real datatype
+object PrimitivePositionEnd {
+  def apply(dim : Int) = IR_ArrayAccess(new PrimitivePositionEnd(), dim)
+  def apply(dim : Int, fragmentIdx : IR_Expression) = IR_ArrayAccess(new PrimitivePositionEnd(fragmentIdx), dim)
 }
 
 case class PrimitivePositionEnd(var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) with IR_Access {

@@ -245,6 +245,7 @@ case class IR_ConstPointerDatatype(override val datatype : IR_Datatype) extends 
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 }
 
+// TODO: move to CUDA package
 case class IR_CUDAConstPointerDatatype(override val datatype : IR_Datatype) extends IR_PointerLikeDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "const " << datatype << "* __restrict__"
   override def prettyprint_mpi : String = s"INVALID DATATYPE: " + this.prettyprint()
@@ -256,9 +257,3 @@ case class IR_ReferenceDatatype(override val datatype : IR_Datatype) extends IR_
 }
 
 // add const ref, etc here if required
-
-/// IR_Cast
-
-case class IR_Cast(var datatype : IR_Datatype, var toCast : IR_Expression) extends IR_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "((" << datatype << ")" << toCast << ")"
-}

@@ -70,35 +70,6 @@ case class PointInsideDomain(var pos : IR_Access, var domain : IR_Domain) extend
   }
 }
 
-case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with IR_Expandable {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  override def expand : Output[IR_Expression] = {
-    val globalDomain = IR_DomainCollection.getByIdentifier("global").get
-    val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
-    val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
-    val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
-    val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
-
-    def posD = Duplicate(pos)
-    Knowledge.dimensionality match {
-      // case 1 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 1 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
-      // case 2 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
-      //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 2 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
-      // case 3 => "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
-      //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) * Knowledge.domain_rect_numFragsTotal_x +
-      //   "(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)
-      case 3 => IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z)) * Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_rect_numFragsTotal_x +
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y)) * Knowledge.domain_rect_numFragsTotal_x +
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))
-    }
-  }
-}
-
 case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
@@ -420,7 +391,7 @@ case class DomainFunctions() extends IR_FunctionCollection(
     externalDependencies += "omp.h"
 
   if (Knowledge.domain_rect_generate) {
-    functions += InitGeneratedDomain()
+    functions += IR_InitGeneratedDomain()
     functions += IR_Function(IR_UnitDatatype, "initGeometry", GridGeometry.getGeometry.generateInitCode())
   } else {
     externalDependencies += ("iostream", "fstream")

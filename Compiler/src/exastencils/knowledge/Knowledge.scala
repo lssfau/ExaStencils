@@ -21,7 +21,9 @@ object Knowledge {
 
   // === Layer 1 ===
 
-  var dimensionality : Int = 3 // dimensionality of the problem; may be 1, 2 or 3
+  var dimensionality : Int = 3
+  // dimensionality of the problem; may be 1, 2 or 3
+  def dimensions = (0 until dimensionality).toArray
 
   // === Layer 2 ===
 
@@ -71,13 +73,16 @@ object Knowledge {
   var domain_rect_numBlocks_x : Int = 1
   var domain_rect_numBlocks_y : Int = 1
   var domain_rect_numBlocks_z : Int = 1
+  def domain_rect_numBlocksAsVec : Array[Int] = Array(domain_rect_numBlocks_x, domain_rect_numBlocks_y, domain_rect_numBlocks_z)
 
   // number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
   var domain_rect_numFragsPerBlock_x : Int = 1
   // [1~64§domain_rect_numFragsPerBlock_x*2]
   var domain_rect_numFragsPerBlock_y : Int = 1
   // [1~64§domain_rect_numFragsPerBlock_y*2]
-  var domain_rect_numFragsPerBlock_z : Int = 1 // [1~64§domain_rect_numFragsPerBlock_z*2]
+  var domain_rect_numFragsPerBlock_z : Int = 1
+  // [1~64§domain_rect_numFragsPerBlock_z*2]
+  def domain_rect_numFragsPerBlockAsVec : Array[Int] = Array(domain_rect_numFragsPerBlock_x, domain_rect_numFragsPerBlock_y, domain_rect_numFragsPerBlock_z)
 
   // periodicity for rectangular domains -> this information will be handed down from layer 2 later
   var domain_rect_periodic_x : Boolean = false
@@ -647,8 +652,8 @@ object Knowledge {
     Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
 
-    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
-    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
 
     Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
     Constraints.condWarn(cuda_spatialBlockingWithSmem && !cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
