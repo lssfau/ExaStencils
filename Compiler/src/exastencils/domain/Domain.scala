@@ -294,7 +294,7 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
       body += IR_Assignment(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
     }
     body += IR_Scope(
-      IR_Assignment(iv.PrimitiveId(), ReadValueFrom(IR_IntegerDatatype, "data")),
+      IR_Assignment(IR_IV_FragmentId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_Assignment(iv.CommId(), ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, "i", 0),
         IR_LowerExpression(IR_VariableAccess("i", IR_IntegerDatatype), math.pow(2, Knowledge.dimensionality)),

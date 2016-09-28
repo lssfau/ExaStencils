@@ -42,7 +42,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
   }
 
   def setupFragmentId() = {
-    IR_Assignment(iv.PrimitiveId(),
+    IR_Assignment(IR_IV_FragmentId(),
       Knowledge.dimensions.map(dim =>
         IR_ToInt((iv.PrimitivePosition(dim) - globalSize.lower(dim)) / fragWidth(dim))
           * (0 until dim).map(Knowledge.domain_rect_numFragsTotalAsVec(_)).product : IR_Expression).reduce(_ + _))
