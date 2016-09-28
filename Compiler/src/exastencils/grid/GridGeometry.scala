@@ -9,7 +9,7 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.l4.L4_NoBC
 import exastencils.core._
 import exastencils.datastructures.ir._
-import exastencils.domain.ir.IR_DomainCollection
+import exastencils.domain.ir._
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.l4._
@@ -185,7 +185,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        IR_VariableDeclaration(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);
@@ -280,7 +280,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        IR_VariableDeclaration(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);
@@ -567,7 +567,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
       else
-        IR_VariableDeclaration(innerIt.asInstanceOf[IR_VariableAccess], IR_LoopOverDimensions.defItForDim(dim) + IR_ArrayAccess(iv.PrimitiveIndex(), dim) * numCellsPerFrag)
+        IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
     var leftDir = Array(0, 0, 0);

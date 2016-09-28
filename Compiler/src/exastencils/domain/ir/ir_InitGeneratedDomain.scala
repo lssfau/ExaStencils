@@ -50,7 +50,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
 
   def setupFragmentIndex() = {
     Knowledge.dimensions.map(dim =>
-      IR_Assignment(iv.PrimitiveIndex(dim),
+      IR_Assignment(IR_IV_FragmentIndex(dim),
         IR_ToInt((iv.PrimitivePosition(dim) - globalSize.lower(dim)) / fragWidth(dim))))
   }
 

@@ -33,20 +33,6 @@ case class CommId(var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) 
   override def resolveDefValue = Some(-1)
 }
 
-// TODO: convert PrimitiveIndex to Int datatype
-object PrimitiveIndex {
-  def apply(dim : Int) = IR_ArrayAccess(new PrimitiveIndex(), dim)
-  def apply(dim : Int, fragmentIdx : IR_Expression) = IR_ArrayAccess(new PrimitiveIndex(fragmentIdx), dim)
-}
-
-case class PrimitiveIndex(var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression)
-
-  override def resolveName = s"primitiveIndex" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
-  override def resolveDatatype = "Vec3i"
-  override def resolveDefValue = Some("Vec3i(0, 0, 0)")
-}
-
 // TODO: convert PrimitivePosition to Real datatype
 object PrimitivePosition {
   def apply(dim : Int) = IR_ArrayAccess(new PrimitivePosition(), dim)
