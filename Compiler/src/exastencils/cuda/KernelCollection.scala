@@ -606,7 +606,6 @@ case class Kernel(var identifier : String,
     ReplacingLocalLinearizedFieldAccess.applyStandalone(IR_Scope(body))
     ReplacingLocalIVs.ivAccesses = ivAccesses
     ReplacingLocalIVs.applyStandalone(IR_Scope(body))
-    ReplacingLocalIVArrays.applyStandalone(IR_Scope(body))
     ReplacingLoopVariables.loopVariables = loopVariables.drop(firstNSeqDims)
     ReplacingLoopVariables.applyStandalone(IR_Scope(body))
 
@@ -653,9 +652,8 @@ case class Kernel(var identifier : String,
       val access = Duplicate(ivAccess._2)
       // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
       access.resolveDatatype match {
-        case IR_SpecialDatatype("Vec3")  => callArgs += IR_FunctionCall("make_double3", (0 until 3).map(dim => IR_ArrayAccess(ivAccess._2, dim) : IR_Expression).to[ListBuffer])
-        case IR_SpecialDatatype("Vec3i") => callArgs ++= (0 until 3).map(dim => IR_ArrayAccess(ivAccess._2, dim) : IR_Expression).to[ListBuffer]
-        case _                           => callArgs += ivAccess._2
+        case IR_SpecialDatatype("Vec3") => callArgs += IR_FunctionCall("make_double3", (0 until 3).map(dim => IR_ArrayAccess(ivAccess._2, dim) : IR_Expression).to[ListBuffer])
+        case _                          => callArgs += ivAccess._2
       }
     }
 
@@ -722,12 +720,10 @@ case class Kernel(var identifier : String,
       val datatype = ivAccess._2.resolveDatatype
 
       datatype match {
-        case IR_SpecialDatatype("Vec3")  =>
+        case IR_SpecialDatatype("Vec3") =>
           access.innerDatatype = Some(IR_SpecialDatatype("double3"))
           fctParams += IR_FunctionArgument(access.name, access.innerDatatype.get)
-        case IR_SpecialDatatype("Vec3i") =>
-          fctParams ++= (0 until 3).map(dim => IR_FunctionArgument(ivAccess._1 + '_' + dim, IR_SpecialDatatype("int"))).to[ListBuffer]
-        case _                           => fctParams += IR_FunctionArgument(ivAccess._1, datatype)
+        case _                          => fctParams += IR_FunctionArgument(ivAccess._1, datatype)
       }
     }
 
@@ -941,27 +937,6 @@ object ReplacingLocalIVs extends QuietDefaultStrategy("Replacing local InternalV
     case iv : IR_InternalVariable =>
       val ivAccess = ivAccesses.find(_._2 == iv).get // TODO: improve performance
       IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype)
-  })
-}
-
-object ReplacingLocalIVArrays extends QuietDefaultStrategy("Replacing local ArrayAccess nodes with special vector datatype") {
-  def checkAccess(ivArray : IR_ArrayAccess) : Boolean = {
-    var result = false
-
-    (ivArray.base, ivArray.index) match {
-      case (ivAccess : IR_VariableAccess, i : IR_IntegerConstant) =>
-        result = ivAccess.innerDatatype.contains(IR_SpecialDatatype("Vec3i"))
-      case _                                                      =>
-    }
-
-    result
-  }
-
-  this += new Transformation("Searching", {
-    case ivArray : IR_ArrayAccess if checkAccess(ivArray) =>
-      val iv = ivArray.base.asInstanceOf[IR_VariableAccess]
-      val i = ivArray.index.asInstanceOf[IR_IntegerConstant]
-      IR_VariableAccess(iv.name + '_' + i.v, IR_SpecialDatatype("double"))
   })
 }
 
