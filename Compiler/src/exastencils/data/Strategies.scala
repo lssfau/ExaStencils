@@ -12,6 +12,7 @@ import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir._
 import exastencils.globals._
 import exastencils.interfacing.IR_ExternalFieldAccess
@@ -131,7 +132,7 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
   override def apply(applyAtNode : Option[Node]) = {
     this.transaction()
 
-    if (DomainCollection.domains.size <= 1)
+    if (IR_DomainCollection.objects.size <= 1)
       this.execute(new Transformation("Resolving IsValidForSubdomain", {
         case IR_Assignment(_ : iv.IsValidForSubdomain, _, _) => IR_NullStatement
         case _ : iv.IsValidForSubdomain                      => IR_BooleanConstant(true)

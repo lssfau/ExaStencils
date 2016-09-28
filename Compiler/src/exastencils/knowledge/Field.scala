@@ -8,6 +8,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.domain.ir.IR_Domain
 import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.logger._
 
@@ -119,7 +120,7 @@ object FieldLayoutCollection {
 case class Field(
     var identifier : String, // will be used to find the field
     var index : Int, // (consecutive) index of the field, can be used as array subscript
-    var domain : Domain, // the (sub)domain the field lives on
+    var domain : IR_Domain, // the (sub)domain the field lives on
     var codeName : String, // will be used in the generated source code
     var fieldLayout : FieldLayout, // represents the number of data points and their distribution in each dimension
     var level : Int, // the (geometric) level the field lives on

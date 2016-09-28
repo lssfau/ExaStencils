@@ -1,14 +1,14 @@
 package exastencils.parsers.settings
 
 import scala.collection.immutable.PagedSeq
+import scala.collection.mutable.ListBuffer
 import scala.util.parsing.input.PagedSeqReader
-import scala.util.parsing.combinator.syntactical.StandardTokenParsers
+
 import exastencils.core._
+import exastencils.domain._
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.logger._
 import exastencils.parsers._
-import exastencils.domain._
-import scala.collection.mutable.ListBuffer
-import exastencils.knowledge.Knowledge
 
 class ParserDomainFile extends ExaParser {
 
@@ -34,8 +34,8 @@ class ParserDomainFile extends ExaParser {
     try {
       UniversalSetter(exastencils.domain.DomainFileHeader, ident, value)
     } catch {
-      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter DomainFile.${ident} to ${value} but this parameter is undefined")
-      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter DomainFile.${ident} to ${value} but data types are incompatible")
+      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter DomainFile.${ ident } to ${ value } but this parameter is undefined")
+      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter DomainFile.${ ident } to ${ value } but data types are incompatible")
       case e : Exception                           => println("Error " + e)
     }
   }
@@ -109,22 +109,22 @@ class ParserDomainFile extends ExaParser {
   var tmpBlocks : Map[String, Any] = Map()
 
   def setDomainParameter[T](ident : String, value : T) = {
-    exastencils.knowledge.DomainCollection.getDomainByIdentifier("global").get
+    IR_DomainCollection.getByIdentifier("global").get
       .asInstanceOf[exastencils.knowledge.FileInputGlobalDomain].shape.asInstanceOf[List[exastencils.knowledge.FileInputDomain]]
       .find { d => d.identifier == ident } match {
-        case Some(n) => n.shape.asInstanceOf[FileInputDomainShape].blocks = value.asInstanceOf[List[String]]
-        case None    => throw new Exception("error when parsing domain file")
-      }
+      case Some(n) => n.shape.asInstanceOf[FileInputDomainShape].blocks = value.asInstanceOf[List[String]]
+      case None    => throw new Exception("error when parsing domain file")
+    }
     tmpDomains = tmpDomains + (ident -> value)
   }
 
   def setBlockParameter[T](ident : String, value : T) = {
-    exastencils.knowledge.DomainCollection.getDomainByIdentifier("global").get
+    IR_DomainCollection.getByIdentifier("global").get
       .asInstanceOf[exastencils.knowledge.FileInputGlobalDomain].shape.asInstanceOf[List[exastencils.knowledge.FileInputDomain]]
       .find { d => d.shape.asInstanceOf[FileInputDomainShape].blocks.contains(ident) } match {
-        case Some(n) => n.shape.asInstanceOf[FileInputDomainShape].frags ++= value.asInstanceOf[List[String]]
-        case None    => throw new Exception("error when parsing domain file")
-      }
+      case Some(n) => n.shape.asInstanceOf[FileInputDomainShape].frags ++= value.asInstanceOf[List[String]]
+      case None    => throw new Exception("error when parsing domain file")
+    }
     tmpBlocks = tmpBlocks + (ident -> value)
   }
 
@@ -149,7 +149,7 @@ class ParserDomainFile extends ExaParser {
     val localId = tmpBlocks.values.toList.map(f => f.asInstanceOf[List[String]].zipWithIndex.find(f => f._1 == ident)).filter(f => f.isDefined).head.get._2
     val globalId = ident.drop(1).toInt
     val blockIdent = tmpBlocks.find(f => f._2.asInstanceOf[List[String]].contains(ident)).get._1
-    val domainIds = exastencils.knowledge.DomainCollection.getDomainByIdentifier("global").get
+    val domainIds = IR_DomainCollection.getByIdentifier("global").get
       .asInstanceOf[exastencils.knowledge.FileInputGlobalDomain].shape.asInstanceOf[List[exastencils.knowledge.FileInputDomain]]
       .filter { domFil =>
         tmpDomains.filter(f => f._2.asInstanceOf[List[String]].contains(blockIdent)).contains(domFil.identifier)
@@ -166,7 +166,7 @@ class ParserDomainFile extends ExaParser {
         val tmp = trafoList
         f.trafo = trafoList.map { row => row.map { item => item.toDouble } }.flatten.to[ListBuffer]
       }
-      case None =>
+      case None    =>
     }
   }
 

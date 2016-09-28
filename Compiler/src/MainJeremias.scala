@@ -8,6 +8,7 @@ import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.deprecated.l3Generate
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.globals._
 import exastencils.knowledge.l4._
@@ -162,18 +163,18 @@ object MainJeremias {
       if (Knowledge.domain_readFromFile) {
         val d = new exastencils.parsers.settings.ParserDomainFile
         d.parseBody(args(2))
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
       } else if (Knowledge.domain_onlyRectangular) {
         Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
         Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
       } else if (Knowledge.domain_useCase == "L-Shape") {
         Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
         Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
         val tmp = Knowledge.mpi_numThreads
         Knowledge.mpi_numThreads = (Knowledge.domain_numBlocks.toDouble - Knowledge.domain_numBlocks.toDouble / 4.0).round.toInt
         Logger.debug("Changed mpi_numThreads (to work with L-shaped Domain) from " + tmp + " to " + Knowledge.mpi_numThreads)
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
         Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
       } else if (Knowledge.domain_useCase == "2-L-Shape") {
         Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
@@ -181,7 +182,7 @@ object MainJeremias {
         val tmp = Knowledge.mpi_numThreads
         Knowledge.mpi_numThreads = (Knowledge.domain_numBlocks.toDouble - Knowledge.domain_numBlocks.toDouble / 2.0).round.toInt
         Logger.debug("Changed mpi_numThreads (to work with 2-L-shaped Domain) from " + tmp + " to " + Knowledge.mpi_numThreads)
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
         Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
       } else if (Knowledge.domain_useCase == "X-Shape") {
         Knowledge.domain_rect_numBlocks_x = 2
@@ -195,7 +196,7 @@ object MainJeremias {
         Knowledge.domain_rect_numFragsPerBlock_z = 1
         Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
         Knowledge.mpi_numThreads = 4
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
         Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
       }
       if (Knowledge.domain_generateDomainFile) DomainFileWriter.write

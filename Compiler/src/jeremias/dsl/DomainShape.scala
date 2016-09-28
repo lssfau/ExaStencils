@@ -1,16 +1,13 @@
 package jeremias.dsl
 
 import scala.collection.mutable.ListBuffer
-import exastencils.datastructures.ir._
-import exastencils.util._
-import scala.math._
+
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.knowledge._
 import exastencils.util._
-import exastencils.knowledge._
-import jeremias.dsl._
 
 case class Interval(lower : Double, upper : Double) {
-  override def toString = s"[${lower},${upper}]"
+  override def toString = s"[${ lower },${ upper }]"
 }
 
 trait DomainShape {
@@ -66,7 +63,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
               getIntervalOfRank(r)("xInterval").lower + (i + iv).toDouble * fragWidth_x))
             e = ListBuffer(new Edge(v(0), v(1)))
             f = ListBuffer(new Face(ListBuffer(e(0)), v))
-            val domainIDs = DomainCollection.domains.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
+            val domainIDs = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
             val mpiRank = unionDomainIndex * Knowledge.domain_numBlocks + r
             FragmentCollection.fragments += new Fragment(calcLocalFragmentId, calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbours(indices), mpiRank)
           }
@@ -81,7 +78,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
           }
           e = ListBuffer(new Edge(v(0), v(1)), new Edge(v(0), v(2)), new Edge(v(1), v(3)), new Edge(v(2), v(3)))
           f = ListBuffer(new Face(ListBuffer(e(0), e(1), e(2), e(3)), v))
-          val domainIDs = DomainCollection.domains.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
+          val domainIDs = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
           val mpiRank = unionDomainIndex * Knowledge.domain_numBlocks + r
           FragmentCollection.fragments += new Fragment(calcLocalFragmentId, calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbours(indices), mpiRank)
         } else {
@@ -105,7 +102,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
             new Face(ListBuffer(e(5), e(6), e(7), e(11)), ListBuffer(v(2), v(3), v(6), v(7))), //back
             new Face(ListBuffer(e(3), e(4), e(7), e(10)), ListBuffer(v(1), v(3), v(5), v(7))), //top
             new Face(ListBuffer(e(1), e(2), e(6), e(9)), ListBuffer(v(0), v(2), v(4), v(6)))) //bottom
-          val domainIDs = DomainCollection.domains.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
+          val domainIDs = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
           val mpiRank = unionDomainIndex * Knowledge.domain_numBlocks + r
           FragmentCollection.fragments += new Fragment(calcLocalFragmentId, calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbours(indices), mpiRank)
         }
@@ -170,7 +167,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
 
     def checkValidity(id : Int) : Int = {
       //TODO improve this function!!
-      val domains = DomainCollection.domains.filter { d => d.identifier == "global" || d.identifier.contains("union_") }
+      val domains = IR_DomainCollection.objects.filter { d => d.identifier == "global" || d.identifier.contains("union_") }
       val dom = domains(unionDomainIndex)
       val size = dom.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
       if (r < 0) -7
@@ -220,7 +217,7 @@ case class IrregularDomainShape(var faces : ListBuffer[Face], var edges : ListBu
         val cond = {
           ((
             (i.Coords(1) <= vertex.Coords(1) && vertex.Coords(1) < j.Coords(1)) ||
-            (j.Coords(1) <= vertex.Coords(1) && vertex.Coords(1) < i.Coords(1))) &&
+              (j.Coords(1) <= vertex.Coords(1) && vertex.Coords(1) < i.Coords(1))) &&
             (vertex.Coords(0) <= (j.Coords(0) - i.Coords(0)) * (vertex.Coords(1) - i.Coords(1)) / (j.Coords(1) - i.Coords(1)) + i.Coords(0))) //        
         }
         if (cond) {
@@ -252,7 +249,7 @@ case class IrregularDomainShape(var faces : ListBuffer[Face], var edges : ListBu
         }
         e = ListBuffer(new Edge(v(0), v(1)), new Edge(v(0), v(2)), new Edge(v(1), v(3)), new Edge(v(2), v(3)))
         f = ListBuffer(new Face(ListBuffer(e(0), e(1), e(2), e(3)), v))
-        val domainIds = DomainCollection.domains.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
+        val domainIds = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
         FragmentCollection.fragments += new Fragment(i, id, domainIds, f, e, v, getNeighbours(id), r)
 
       }

@@ -6,6 +6,7 @@ import java.io._
 
 import exastencils.base.ir._
 import exastencils.core._
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.knowledge._
 
 object FragmentKnowledge {
@@ -35,13 +36,13 @@ object FragmentKnowledge {
 
     val outData = new FragmentDataWriter(new BufferedOutputStream(new FileOutputStream(Settings.fragmentFile_config_path_binary)))
     FragmentCollection.fragments.foreach(f => {
-      DomainCollection.domains.foreach { d => f.binarySize += outData.writeBinary(IR_BooleanDatatype, FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
+      IR_DomainCollection.objects.foreach { d => f.binarySize += outData.writeBinary(IR_BooleanDatatype, FragmentCollection.isValidForSubDomain(f.globalId, d.index)) }
       f.binarySize += outData.writeBinary(IR_IntegerDatatype, f.globalId)
       f.binarySize += outData.writeBinary(IR_IntegerDatatype, f.localId)
       f.vertices.foreach { v => v.Coords.foreach { c => f.binarySize += outData.writeBinary(IR_RealDatatype, c) } }
       FragmentCollection.getFragPos(f.vertices).Coords.foreach { c => f.binarySize += outData.writeBinary(IR_RealDatatype, c) }
 
-      DomainCollection.domains.foreach { d => {
+      IR_DomainCollection.objects.foreach { d => {
         f.neighborIDs.foreach { n => {
           val valid = FragmentCollection.isNeighborValid(f.globalId, n, d.index)
           f.binarySize += outData.writeBinary(IR_BooleanDatatype, valid)

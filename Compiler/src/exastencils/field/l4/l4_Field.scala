@@ -1,6 +1,7 @@
 package exastencils.field.l4
 
 import exastencils.boundary.l4.L4_BoundaryCondition
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
@@ -26,7 +27,7 @@ case class L4_Field(
     progressed = Some(Field(
       identifier,
       index,
-      DomainCollection.getDomainByIdentifier(domain).get,
+      IR_DomainCollection.getByIdentifier(domain).get,
       identifier.toLowerCase + "Data_" + level,
       fieldLayout.getProgressedObject,
       level,

@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.domain.ir._
 import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.mpi._
@@ -21,7 +22,7 @@ case class ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expression) 
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << innerDatatype << '>' << "(" << data << ")"
 }
 
-case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
+case class PointOutsideDomain(var pos : IR_Access, var domain : IR_Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
@@ -45,7 +46,7 @@ case class PointOutsideDomain(var pos : IR_Access, var domain : Domain) extends 
   }
 }
 
-case class PointInsideDomain(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
+case class PointInsideDomain(var pos : IR_Access, var domain : IR_Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
@@ -74,7 +75,7 @@ case class PointToFragmentId(var pos : IR_Access) extends IR_Expression with IR_
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
-    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
+    val globalDomain = IR_DomainCollection.getByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
@@ -103,7 +104,7 @@ case class PointToFragmentIndex(var pos : IR_Access) extends IR_Expression with 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
-    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
+    val globalDomain = IR_DomainCollection.getByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
@@ -141,7 +142,7 @@ case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression wit
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
-    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
+    val globalDomain = IR_DomainCollection.getByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
@@ -165,12 +166,12 @@ case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression wit
   }
 }
 
-case class PointToOwningRank(var pos : IR_Access, var domain : Domain) extends IR_Expression with IR_Expandable {
+case class PointToOwningRank(var pos : IR_Access, var domain : IR_Domain) extends IR_Expression with IR_Expandable {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[IR_Expression] = {
-    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
+    val globalDomain = IR_DomainCollection.getByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
     val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
@@ -207,8 +208,8 @@ case class ConnectFragments() extends IR_Statement with IR_Expandable {
     var body = new ListBuffer[IR_Statement]
 
     val neighbors = exastencils.knowledge.Fragment.neighbors
-    val domains = DomainCollection.domains
-    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
+    val domains = IR_DomainCollection.objects
+    val globalDomain = IR_DomainCollection.getByIdentifier("global").get
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     for (d <- 0 until domains.size) {
       if (Knowledge.domain_rect_generate) {
@@ -265,57 +266,6 @@ case class ConnectFragments() extends IR_Statement with IR_Expandable {
     }
 
     new IR_LoopOverFragments(body) with OMP_PotentiallyParallel
-  }
-}
-
-case class InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-  override def prettyprint_decl = prettyprint
-  override def name = "initDomain"
-
-  override def expand : Output[IR_Function] = {
-    val globalDomain = DomainCollection.getDomainByIdentifier("global").get
-    val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
-    val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
-    val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
-    val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
-    // val vecDelta = "Vec3(" ~ (0.5 * fragWidth_x) ~ "," ~ (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0) ~ "," ~ (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0) ~ ")"
-    // FIXME: Constructor?
-    val vecDelta = IR_FunctionCall("Vec3", (0.5 * fragWidth_x), (if (Knowledge.dimensionality > 1) (0.5 * fragWidth_y) else 0), (if (Knowledge.dimensionality > 2) (0.5 * fragWidth_z) else 0))
-
-    var body = ListBuffer[IR_Statement]()
-
-    if (Knowledge.mpi_enabled)
-      body += IR_Assert(IR_EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
-        ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
-        IR_FunctionCall("exit", 1))
-
-    body ++= ListBuffer(
-      s"Vec3 positions[${ Knowledge.domain_numFragmentsPerBlock }]",
-      s"unsigned int posWritePos = 0",
-      if (Knowledge.mpi_enabled)
-        s"Vec3 rankPos(mpiRank % ${ Knowledge.domain_rect_numBlocks_x }, (mpiRank / ${ Knowledge.domain_rect_numBlocks_x }) % ${ Knowledge.domain_rect_numBlocks_y }, mpiRank / ${ Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y })"
-      else
-        s"Vec3 rankPos(0, 0, 0)")
-
-    body += IR_LoopOverDimensions(Knowledge.dimensionality, IndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(Knowledge.domain_rect_numFragsPerBlock_x, Knowledge.domain_rect_numFragsPerBlock_y, Knowledge.domain_rect_numFragsPerBlock_z)),
-      IR_Assignment("positions[posWritePos++]", IR_FunctionCall("Vec3", ListBuffer[IR_Expression](
-        ((("rankPos.x" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_x + 0.5 + dimToString(0)) * fragWidth_x) + gSize.lower_x,
-        if (Knowledge.dimensionality > 1) ((("rankPos.y" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_y + 0.5 + dimToString(1)) * fragWidth_y) + gSize.lower_y else 0,
-        if (Knowledge.dimensionality > 2) ((("rankPos.z" : IR_Expression) * Knowledge.domain_rect_numFragsPerBlock_z + 0.5 + dimToString(2)) * fragWidth_z) + gSize.lower_z else 0)))) // FIXME: Constructor?
-    body += IR_LoopOverFragments(
-      IR_Assignment(iv.PrimitiveId(), PointToFragmentId(IR_ArrayAccess("positions", IR_LoopOverFragments.defIt))),
-      IR_Assignment(iv.PrimitiveIndex(), PointToFragmentIndex(IR_ArrayAccess("positions", IR_LoopOverFragments.defIt))),
-      IR_Assignment(iv.CommId(), PointToLocalFragmentId(IR_ArrayAccess("positions", IR_LoopOverFragments.defIt))),
-      IR_Assignment(iv.PrimitivePosition(), IR_ArrayAccess("positions", IR_LoopOverFragments.defIt)),
-      IR_Assignment(iv.PrimitivePositionBegin(), IR_ArrayAccess("positions", IR_LoopOverFragments.defIt) - vecDelta),
-      IR_Assignment(iv.PrimitivePositionEnd(), IR_ArrayAccess("positions", IR_LoopOverFragments.defIt) + vecDelta))
-
-    body += ConnectFragments()
-
-    body += IR_FunctionCall("setupBuffers") // FIXME: move to app
-
-    IR_Function(IR_UnitDatatype, name, body)
   }
 }
 
@@ -407,7 +357,7 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
 
   override def expand : Output[IR_Function] = {
     var body = new ListBuffer[IR_Statement]
-    for (d <- 0 until DomainCollection.domains.size) {
+    for (d <- 0 until IR_DomainCollection.objects.size) {
       body += IR_Assignment(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
     }
     body += IR_Scope(
@@ -433,7 +383,7 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
       (if (Knowledge.dimensionality == 3) IR_Assignment("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       IR_Assignment(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
     )
-    for (d <- 0 until DomainCollection.domains.size) {
+    for (d <- 0 until IR_DomainCollection.objects.size) {
       body += IR_ForLoop("int location = 0", s" location < ${ FragmentCollection.getNumberOfNeighbors() } ", "++location",
         IR_IfCondition(ReadValueFrom(IR_BooleanDatatype, "data"),
           ListBuffer[IR_Statement](//neighbor is valid
@@ -470,7 +420,7 @@ case class DomainFunctions() extends IR_FunctionCollection(
     externalDependencies += "omp.h"
 
   if (Knowledge.domain_rect_generate) {
-    functions += new InitGeneratedDomain
+    functions += InitGeneratedDomain()
     functions += IR_Function(IR_UnitDatatype, "initGeometry", GridGeometry.getGeometry.generateInitCode())
   } else {
     externalDependencies += ("iostream", "fstream")

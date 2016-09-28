@@ -9,6 +9,7 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.l4.L4_NoBC
 import exastencils.core._
 import exastencils.datastructures.ir._
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.l4._
@@ -165,8 +166,8 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
     // fix grid width to match domain size
-    if (DomainCollection.domains.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
-    val domainBounds = DomainCollection.domains(0).asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
+    if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
+    val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     val cellWidth = (domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal
 
     // look up field and compile access to base element
@@ -250,8 +251,8 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val firstIntervalBetaCoeff = xf + 1
 
     // fix alpha to match domain size
-    if (DomainCollection.domains.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
-    val domainBounds = DomainCollection.domains(0).asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
+    if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
+    val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
 
     // simple approach: alpha and beta are equal -> results in very small volumes and aspect ratios if the number of points is high
     //    val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff)

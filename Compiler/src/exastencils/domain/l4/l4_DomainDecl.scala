@@ -3,8 +3,8 @@ package exastencils.domain.l4
 import exastencils.datastructures._
 import exastencils.deprecated.l4._
 import exastencils.domain._
+import exastencils.domain.ir._
 import exastencils.knowledge
-import exastencils.knowledge.DomainCollection
 import exastencils.knowledge.l4.L4_KnowledgeDecl
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB
@@ -34,7 +34,7 @@ case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) ex
     }
   }
 
-  def progress : knowledge.Domain = {
+  def progress : IR_Domain = {
     import L4_DomainDecl.runningIndex
 
     val index = runningIndex
@@ -72,7 +72,7 @@ object L4_HACK_ProcessDomainDeclarations extends DefaultStrategy("Integrating L4
   this += Transformation("Process new domains", {
     case domainDecl : L4_DomainDecl =>
       //domainDecl.addToKnowledge()
-      DomainCollection.domains += domainDecl.progress
+      IR_DomainCollection.objects += domainDecl.progress
       None // consume declaration statement
   })
 }

@@ -6,6 +6,7 @@ import java.io._
 
 import exastencils.base.ir._
 import exastencils.core._
+import exastencils.domain.ir.IR_DomainCollection
 import exastencils.knowledge._
 
 object FragmentKnowledge {
@@ -40,7 +41,7 @@ object FragmentKnowledge {
 
     val outData = new FragmentDataWriter(new BufferedOutputStream(new FileOutputStream(Settings.fragmentFile_config_path_binary)))
     var fragments = FragmentCollection.fragments
-    val domains = if (Knowledge.domain_readFromFile) DomainCollection.getDomainByIdentifier("global").get.shape.asInstanceOf[List[FileInputDomain]] else DomainCollection.domains
+    val domains = if (Knowledge.domain_readFromFile) IR_DomainCollection.getByIdentifier("global").get.shape.asInstanceOf[List[FileInputDomain]] else IR_DomainCollection.objects
     //    if (Knowledge.domain_useCase != "") {
     //      fragments = fragments.filter { f => f.domainIds.exists { e => e != 0 } }
     //    }

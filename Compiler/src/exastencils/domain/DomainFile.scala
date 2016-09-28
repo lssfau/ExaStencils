@@ -1,9 +1,8 @@
 package exastencils.domain
 
-import exastencils.knowledge._
 import exastencils.constraints._
-import exastencils.logger._
-import exastencils.datastructures._
+import exastencils.domain.ir.IR_DomainCollection
+import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 object DomainFileHeader {
@@ -35,7 +34,7 @@ object DomainFileHeader {
 
 object DomainFileWriter extends BuildfileGenerator {
   override def write = {
-    val domains = if (Knowledge.domain_useCase != "") DomainCollection.domains.filter { f => f.identifier != "global" } else DomainCollection.domains
+    val domains = if (Knowledge.domain_useCase != "") IR_DomainCollection.objects.filter { f => f.identifier != "global" } else IR_DomainCollection.objects
     val fragments = if (Knowledge.domain_useCase != "") FragmentCollection.fragments.filter { f => f.domainIds.exists { d => d != 0 } } else FragmentCollection.fragments
 
     val printer = PrettyprintingManager.getPrinter("DomainDefinition.cfg")
