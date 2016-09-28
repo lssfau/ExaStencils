@@ -9,7 +9,6 @@ import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
 import exastencils.logger._
@@ -535,21 +534,21 @@ class Extractor extends Collector {
           // for the following 4 matches: do not distinguish between different elements of
           //    PrimitivePositionBegin and PrimitivePositionEnd (conservative approach)
           // FIXME: case IR_IV_FragmentPositionBegin(index, _) =>
-          case IR_ArrayAccess(ppVec : IR_IV_FragmentPositionBegin, index, _) =>
+          case IR_ArrayAccess(ppVec : iv.PrimitivePositionBegin, index, _) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
-          case IR_ArrayAccess(ppVec : IR_IV_FragmentPositionEnd, index, _) =>
+          case IR_ArrayAccess(ppVec : iv.PrimitivePositionEnd, index, _) =>
             ppVec.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
-          case IR_MemberAccess(ppVec : IR_IV_FragmentPositionBegin, _) =>
+          case IR_MemberAccess(ppVec : iv.PrimitivePositionBegin, _) =>
             ppVec.annotate(SKIP_ANNOT)
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
-          case IR_MemberAccess(ppVec : IR_IV_FragmentPositionEnd, _) =>
+          case IR_MemberAccess(ppVec : iv.PrimitivePositionEnd, _) =>
             ppVec.annotate(SKIP_ANNOT)
             enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
 
