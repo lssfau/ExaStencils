@@ -146,7 +146,7 @@ case class ConnectFragments() extends IR_Statement with IR_Expandable {
     val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
     for (d <- 0 until domains.size) {
       if (Knowledge.domain_rect_generate) {
-        body += IR_Assignment(iv.IsValidForSubdomain(d), PointInsideDomain(iv.PrimitivePosition(), domains(d)))
+        body += IR_Assignment(iv.IsValidForSubdomain(d), PointInsideDomain(IR_IV_FragmentPosition(), domains(d)))
       } else {
         body += IR_Assignment(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
       }
@@ -161,7 +161,7 @@ case class ConnectFragments() extends IR_Statement with IR_Expandable {
         var statements = ListBuffer[IR_Statement]()
 
         statements += IR_Assignment(s"Vec3 offsetPos",
-          iv.PrimitivePosition() + s"Vec3(${ neigh.dir(0) } * ${ fragWidth_x }, ${ neigh.dir(1) } * ${ fragWidth_y }, ${ neigh.dir(2) } * ${ fragWidth_z })")
+          IR_IV_FragmentPosition() + s"Vec3(${ neigh.dir(0) } * ${ fragWidth_x }, ${ neigh.dir(1) } * ${ fragWidth_y }, ${ neigh.dir(2) } * ${ fragWidth_z })")
 
         if (Knowledge.domain_rect_periodic_x) {
           statements += IR_IfCondition(IR_GreaterExpression("offsetPos.x", gSize.upper_x), IR_Assignment("offsetPos.x", gSize.upper_x - gSize.lower_x, "-="))
@@ -305,16 +305,16 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
         (if (Knowledge.dimensionality == 2) IR_Assignment("vertPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
         (if (Knowledge.dimensionality == 3) IR_Assignment("vertPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
         IR_Switch("i",
-          IR_Case("0", IR_Assignment(iv.PrimitivePositionBegin(), "vertPos")),
-          IR_Case("1", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")),
-          IR_Case("3", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")),
-          IR_Case("7", IR_Assignment(iv.PrimitivePositionEnd(), "vertPos")))),
+          IR_Case("0", IR_Assignment(IR_IV_FragmentPositionBegin(), "vertPos")),
+          IR_Case("1", IR_Assignment(IR_IV_FragmentPositionEnd(), "vertPos")),
+          IR_Case("3", IR_Assignment(IR_IV_FragmentPositionEnd(), "vertPos")),
+          IR_Case("7", IR_Assignment(IR_IV_FragmentPositionEnd(), "vertPos")))),
       // FIXME: Constructor?
       // s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
       IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "fragPos", IR_FunctionCall("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0)),
       (if (Knowledge.dimensionality == 2) IR_Assignment("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
       (if (Knowledge.dimensionality == 3) IR_Assignment("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
-      IR_Assignment(iv.PrimitivePosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
+      IR_Assignment(IR_IV_FragmentPosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
     )
     for (d <- 0 until IR_DomainCollection.objects.size) {
       body += IR_ForLoop("int location = 0", s" location < ${ FragmentCollection.getNumberOfNeighbors() } ", "++location",

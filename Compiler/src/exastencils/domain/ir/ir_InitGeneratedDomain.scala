@@ -28,36 +28,36 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
     def rankIndex(dim : Int) = (mpiRank / (0 until dim).map(dim => Knowledge.domain_rect_numBlocksAsVec(dim)).product) Mod Knowledge.domain_rect_numBlocksAsVec(dim)
 
     Knowledge.dimensions.map(dim =>
-      IR_Assignment(iv.PrimitivePosition(dim),
+      IR_Assignment(IR_IV_FragmentPosition(dim),
         ((rankIndex(dim) * Knowledge.domain_rect_numFragsPerBlockAsVec(dim) + 0.5 + localFragIndex(dim)) * fragWidth(dim)) + globalSize.lower(dim))
     )
   }
 
   def setupFragmentPosBeginAndEnd() = {
     val begin = Knowledge.dimensions.map(dim =>
-      IR_Assignment(iv.PrimitivePositionBegin(dim), iv.PrimitivePosition(dim) - 0.5 * fragWidth(dim)))
+      IR_Assignment(IR_IV_FragmentPositionBegin(dim), IR_IV_FragmentPosition(dim) - 0.5 * fragWidth(dim)))
     val end = Knowledge.dimensions.map(dim =>
-      IR_Assignment(iv.PrimitivePositionEnd(dim), iv.PrimitivePosition(dim) + 0.5 * fragWidth(dim)))
+      IR_Assignment(IR_IV_FragmentPositionEnd(dim), IR_IV_FragmentPosition(dim) + 0.5 * fragWidth(dim)))
     begin ++ end
   }
 
   def setupFragmentId() = {
     IR_Assignment(IR_IV_FragmentId(),
       Knowledge.dimensions.map(dim =>
-        IR_ToInt((iv.PrimitivePosition(dim) - globalSize.lower(dim)) / fragWidth(dim))
+        IR_ToInt((IR_IV_FragmentPosition(dim) - globalSize.lower(dim)) / fragWidth(dim))
           * (0 until dim).map(Knowledge.domain_rect_numFragsTotalAsVec(_)).product : IR_Expression).reduce(_ + _))
   }
 
   def setupFragmentIndex() = {
     Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentIndex(dim),
-        IR_ToInt((iv.PrimitivePosition(dim) - globalSize.lower(dim)) / fragWidth(dim))))
+        IR_ToInt((IR_IV_FragmentPosition(dim) - globalSize.lower(dim)) / fragWidth(dim))))
   }
 
   def setupCommId() = {
     IR_Assignment(iv.CommId(),
       Knowledge.dimensions.map(dim =>
-        (IR_ToInt((iv.PrimitivePosition(dim) - globalSize.lower(dim)) / fragWidth(dim))
+        (IR_ToInt((IR_IV_FragmentPosition(dim) - globalSize.lower(dim)) / fragWidth(dim))
           Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) * (0 until dim).map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product : IR_Expression).reduce(_ + _))
   }
 

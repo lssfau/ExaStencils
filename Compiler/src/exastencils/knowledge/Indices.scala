@@ -9,6 +9,7 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.{ StatementList, _ }
+import exastencils.domain.ir._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.strategies._
@@ -80,11 +81,11 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
           case "node" | "face_x"            =>
             Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : IR_Expression)) + offset(0))
               / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 1)
-              * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 0) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 0)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 0))
+              * (IR_IV_FragmentPositionEnd(0) - IR_IV_FragmentPositionBegin(0)) + IR_IV_FragmentPositionBegin(0))
           case "cell" | "face_y" | "face_z" =>
             Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : IR_Expression)) + 0.5 + offset(0))
               / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 0)
-              * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 0) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 0)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 0))
+              * (IR_IV_FragmentPositionEnd(0) - IR_IV_FragmentPositionBegin(0)) + IR_IV_FragmentPositionBegin(0))
         }),
         IR_VariableDeclaration(IR_RealDatatype, "yPosTMP",
           if (Knowledge.dimensionality > 1) {
@@ -92,11 +93,11 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
               case "node" | "face_y"            =>
                 (((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + offset(1))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 1)
-                  * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 1) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 1)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 1))
+                  * (IR_IV_FragmentPositionEnd(1) - IR_IV_FragmentPositionBegin(1)) + IR_IV_FragmentPositionBegin(1))
               case "cell" | "face_x" | "face_z" =>
                 (((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + 0.5 + offset(1))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 0)
-                  * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 1) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 1)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 1))
+                  * (IR_IV_FragmentPositionEnd(1) - IR_IV_FragmentPositionBegin(1)) + IR_IV_FragmentPositionBegin(1))
             }
           } else IR_IntegerConstant(1)),
         IR_VariableDeclaration(IR_RealDatatype, "zPosTMP",
@@ -105,11 +106,11 @@ case class InitGeomCoords(var field : Field, var directCoords : Boolean, var off
               case "node" | "face_z"            =>
                 (((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + offset(2))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 1)
-                  * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 2) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 2)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 2))
+                  * (IR_IV_FragmentPositionEnd(2) - IR_IV_FragmentPositionBegin(2)) + IR_IV_FragmentPositionBegin(2))
               case "cell" | "face_x" | "face_y" =>
                 (((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + 0.5 + offset(2))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 0)
-                  * (IR_ArrayAccess(iv.PrimitivePositionEnd(), 2) - IR_ArrayAccess(iv.PrimitivePositionBegin(), 2)) + IR_ArrayAccess(iv.PrimitivePositionBegin(), 2))
+                  * (IR_IV_FragmentPositionEnd(2) - IR_IV_FragmentPositionBegin(2)) + IR_IV_FragmentPositionBegin(2))
             }
           } else IR_IntegerConstant(1)),
         IR_VariableDeclaration(IR_RealDatatype, "xPos", Some(
