@@ -532,26 +532,13 @@ class Extractor extends Collector {
             d.datatype.annotate(SKIP_ANNOT)
             enterDecl(d)
 
-          // for the following 4 matches: do not distinguish between different elements of
-          //    PrimitivePositionBegin and PrimitivePositionEnd (conservative approach)
-          // FIXME: case IR_IV_FragmentPositionBegin(index, _) =>
-          case IR_ArrayAccess(ppVec : IR_IV_FragmentPositionBegin, index, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
+          case pos @ IR_IV_FragmentPositionBegin(_, frgIdx) =>
+            frgIdx.annotate(SKIP_ANNOT)
+            enterScalarAccess(pos.resolveName)
 
-          case IR_ArrayAccess(ppVec : IR_IV_FragmentPositionEnd, index, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
-
-          case IR_MemberAccess(ppVec : IR_IV_FragmentPositionBegin, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
-
-          case IR_MemberAccess(ppVec : IR_IV_FragmentPositionEnd, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
+          case pos @ IR_IV_FragmentPositionEnd(_, frgIdx) =>
+            frgIdx.annotate(SKIP_ANNOT)
+            enterScalarAccess(pos.resolveName)
 
           // ignore
           case IR_FunctionCall(function, _) if (allowedFunctions.contains(function.name)) =>
