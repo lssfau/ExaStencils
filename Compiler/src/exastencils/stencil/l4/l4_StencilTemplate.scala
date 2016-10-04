@@ -7,6 +7,12 @@ import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.prettyprinting._
 
+/// L4_StencilTemplate
+
+object L4_StencilTemplate {
+  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
+}
+
 case class L4_StencilTemplate(
     var identifier : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on

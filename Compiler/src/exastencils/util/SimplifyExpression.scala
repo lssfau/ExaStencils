@@ -10,7 +10,7 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
-import exastencils.interfacing.IR_ExternalFieldAccess
+import exastencils.interfacing.ir._
 import exastencils.logger._
 import exastencils.strategies._
 import exastencils.util.ir.IR_MathFunctions

@@ -6,7 +6,7 @@ import exastencils.knowledge._
 
 object IR_AddPaddingToFieldLayouts {
   def apply() = {
-    for (fieldLayout <- FieldLayoutCollection.fieldLayouts) {
+    for (fieldLayout <- IR_FieldLayoutCollection.objects) {
       // shortcut to innermost layout information
       val innerLayout = fieldLayout.layoutsPerDim(0)
 

@@ -6,6 +6,12 @@ import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
+/// L4_StencilField
+
+object L4_StencilField {
+  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
+}
+
 case class L4_StencilField(
     var identifier : String, // will be used to find the operator
     var level : Int, // the level the operator lives on

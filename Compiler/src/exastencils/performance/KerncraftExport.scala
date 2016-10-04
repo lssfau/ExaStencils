@@ -1,21 +1,21 @@
 package exastencils.performance
 
+import scala.collection.mutable.ListBuffer
+
 import java.io._
+import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.{FileVisitOption, Files, Path, Paths}
-import java.util.function.{BiPredicate, Consumer}
+import java.util.function._
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
-import exastencils.field.ir.IR_MultiDimFieldAccess
+import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.strategies.SimplifyStrategy
-
-import scala.collection.mutable.ListBuffer
 
 /** Strategy to export kernels for kerncraft.
   *
@@ -43,19 +43,19 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
 
     override def enter(node : Node) : Unit = {
       node match {
-        case fun : IR_Function =>
+        case fun : IR_Function            =>
           curFunLoopCounter = 0
           curFun = fun
         case loop : IR_LoopOverDimensions => curLoop = loop
-        case _ =>
+        case _                            =>
       }
     }
 
     override def leave(node : Node) : Unit = {
       node match {
-        case fun : IR_Function => curFun = null
+        case fun : IR_Function            => curFun = null
         case loop : IR_LoopOverDimensions => curLoop = null
-        case _ =>
+        case _                            =>
       }
     }
 
@@ -72,7 +72,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
       val kernelFilePath = kerncraftDir.resolve("%s-kernel-%04d.c".format(curFun.name, curFunLoopCounter))
       val kernelFunFilePath = kerncraftDir.resolve("%s-kernel-%04d-fun.c".format(curFun.name, curFunLoopCounter))
       logVerbose("======================================================================")
-      logVerbose(s"function %s kernel %04d - ${kernelFilePath.toString}".format(curFun.name, curFunLoopCounter))
+      logVerbose(s"function %s kernel %04d - ${ kernelFilePath.toString }".format(curFun.name, curFunLoopCounter))
       logVerbose(s"loop.numDimensions ${ loop.numDimensions }")
       SimplifyStrategy.doUntilDoneStandalone(loop.indices)
       if (verbose) {
@@ -84,7 +84,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
           }).mkString("[", ",", "]"))
       }
 
-        // transform kernel to for-loop nest
+      // transform kernel to for-loop nest
       val forLoop = buildForLoopRec(clone)
       TransformKernel.applyStandalone(forLoop)
       if (TransformKernel.hasInternalVariables) {
@@ -123,7 +123,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     }
   })
 
-  def buildFieldDeclarations(fieldAccesses : Set[Field], placeHolderDim : Boolean) : List[String] = {
+  def buildFieldDeclarations(fieldAccesses : Set[IR_Field], placeHolderDim : Boolean) : List[String] = {
     val dimSizeConst = Array[String]("R", "S", "M", "N")
     var declidx = 0
     fieldAccesses.map(field => {
@@ -233,7 +233,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     })
   }
 
-  def logVerbose(s: AnyRef) : Unit = {
+  def logVerbose(s : AnyRef) : Unit = {
     if (verbose) {
       Logger.debug(s)
     }
@@ -242,7 +242,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
 
 private object TransformKernel extends DefaultStrategy("Kernel Transformation") {
 
-  val fields = ListBuffer[Field]()
+  val fields = ListBuffer[IR_Field]()
   var hasInternalVariables = false
 
   override def apply(applyAtNode : Option[Node] = None) : Unit = {
@@ -279,13 +279,13 @@ private object TransformKernel extends DefaultStrategy("Kernel Transformation") 
     case va : IR_InternalVariable =>
       hasInternalVariables = true
       va
-    case x                     =>
+    case x                        =>
       //      logVerbose("xxxxx not handled: " + x.toString())
       x
 
   })
 
-  def logVerbose(s:AnyRef): Unit = {
+  def logVerbose(s : AnyRef) : Unit = {
     KerncraftExport.logVerbose(s)
   }
 }

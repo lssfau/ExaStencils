@@ -8,7 +8,7 @@ import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_DirectFieldAccess
+import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.polyhedron._
 import exastencils.util._
@@ -20,7 +20,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
   this += new Transformation("now", new PartialFunction[Node, Transformation.OutputType] {
 
-    val updatedFields = new IdentityHashMap[Field, Integer]()
+    val updatedFields = new IdentityHashMap[IR_Field, Integer]()
 
     override def isDefinedAt(node : Node) : Boolean = {
       node.isInstanceOf[IR_DirectFieldAccess]
@@ -55,8 +55,8 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
     override def apply(node : Node) : Transformation.OutputType = {
 
       val dfa = node.asInstanceOf[IR_DirectFieldAccess]
-      val field : Field = dfa.fieldSelection.field
-      val layout : FieldLayout = field.fieldLayout
+      val field : IR_Field = dfa.fieldSelection.field
+      val layout : IR_FieldLayout = field.fieldLayout
       val innerD = 0
       val outerD = layout.layoutsPerDim.length - 1
       var colorOffset : Integer = updatedFields.get(field)

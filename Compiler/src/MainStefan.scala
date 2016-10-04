@@ -11,7 +11,7 @@ import exastencils.data._
 import exastencils.datastructures._
 import exastencils.deprecated.l3Generate
 import exastencils.domain.{ l4 => _, _ }
-import exastencils.field.ir.IR_AddPaddingToFieldLayouts
+import exastencils.field.ir._
 import exastencils.field.l4._
 import exastencils.globals._
 import exastencils.grid.l4._
@@ -304,7 +304,7 @@ object MainStefan {
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
     if (Knowledge.domain_rect_generate && Knowledge.maxLevel <= 0) {
-      val fLayout : Array[FieldLayoutPerDim] = FieldCollection.fields.head.fieldLayout.layoutsPerDim
+      val fLayout : Array[IR_FieldLayoutPerDim] = IR_FieldCollection.objects.head.fieldLayout.layoutsPerDim
       Knowledge.discr_hx = Array[Double](l3Generate.Domains.getGlobalWidths(0) /
         (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * fLayout(0).numInnerLayers))
       if (Knowledge.dimensionality > 1)

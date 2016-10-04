@@ -15,7 +15,7 @@ import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.globals._
-import exastencils.interfacing.IR_ExternalFieldAccess
+import exastencils.interfacing.ir._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.multiGrid._
@@ -26,13 +26,13 @@ import exastencils.util._
 object SetupDataStructures extends DefaultStrategy("Setting up fragment") {
   override def apply(node : Option[Node] = None) = {
     Fragment.setupNeighbors
-    StateManager.findFirst[Globals]().get.functions += new SetupBuffers(FieldCollection.fields, Fragment.neighbors)
+    StateManager.findFirst[Globals]().get.functions += new SetupBuffers(IR_FieldCollection.objects, Fragment.neighbors)
     super.apply(node)
   }
 
   this += new Transformation("Adding external field transfer functions", {
     case multiGrid : MultiGridFunctions =>
-      for (extField <- ExternalFieldCollection.getSortedFields) {
+      for (extField <- IR_ExternalFieldCollection.sortedObjects) {
         multiGrid.functions += new GetFromExternalField(extField.targetField, extField)
         multiGrid.functions += new SetFromExternalField(extField.targetField, extField)
       }

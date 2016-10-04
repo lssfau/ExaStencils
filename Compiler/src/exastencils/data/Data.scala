@@ -7,14 +7,14 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
-import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.interfacing.IR_ExternalFieldAccess
+import exastencils.field.ir._
+import exastencils.interfacing.ir._
 import exastencils.knowledge._
 import exastencils.omp._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 
-case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuffer[NeighborInfo]) extends IR_AbstractFunction with IR_Expandable {
+case class SetupBuffers(var fields : ListBuffer[IR_Field], var neighbors : ListBuffer[NeighborInfo]) extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "setupBuffers"
@@ -28,7 +28,7 @@ case class SetupBuffers(var fields : ListBuffer[Field], var neighbors : ListBuff
   }
 }
 
-case class GetFromExternalField(var src : Field, var dest : ExternalField) extends IR_AbstractFunction with IR_Expandable {
+case class GetFromExternalField(var src : IR_Field, var dest : IR_ExternalField) extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "get" + dest.identifier
@@ -77,7 +77,7 @@ case class GetFromExternalField(var src : Field, var dest : ExternalField) exten
   }
 }
 
-case class SetFromExternalField(var dest : Field, var src : ExternalField) extends IR_AbstractFunction with IR_Expandable {
+case class SetFromExternalField(var dest : IR_Field, var src : IR_ExternalField) extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "set" + src.identifier

@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.field.ir.IR_DirectFieldAccess
+import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.performance._
@@ -20,7 +20,7 @@ case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
   override def name = "initFieldsWithZero"
 
   override def expand() : Output[IR_Function] = {
-    val fields = FieldCollection.getSortedFields
+    val fields = IR_FieldCollection.sortedObjects
     var statements : ListBuffer[IR_Statement] = new ListBuffer
 
     for (field <- fields) {

@@ -6,13 +6,14 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.cuda._
+import exastencils.field.ir.IR_Field
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 /// general variables and flags
 
 abstract class FieldFlag extends IR_InternalVariable(true, false, true, true, false) {
-  var field : Field
+  var field : IR_Field
   var slot : IR_Expression
   var fragmentIdx : IR_Expression
 
@@ -48,7 +49,7 @@ abstract class FieldFlag extends IR_InternalVariable(true, false, true, true, fa
   }
 }
 
-case class HostDataUpdated(override var field : Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends FieldFlag {
+case class HostDataUpdated(override var field : IR_Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends FieldFlag {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
@@ -57,7 +58,7 @@ case class HostDataUpdated(override var field : Field, override var slot : IR_Ex
   override def resolveDefValue = Some(IR_BooleanConstant(true))
 }
 
-case class DeviceDataUpdated(override var field : Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends FieldFlag {
+case class DeviceDataUpdated(override var field : IR_Field, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends FieldFlag {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
@@ -68,7 +69,7 @@ case class DeviceDataUpdated(override var field : Field, override var slot : IR_
 
 /// memory management
 
-case class FieldDeviceData(override var field : Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends AbstractFieldData {
+case class FieldDeviceData(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends AbstractFieldData {
   override def resolveName = (if (1 == field.numSlots) s"fieldDeviceData" else "slottedFieldDeviceData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
 

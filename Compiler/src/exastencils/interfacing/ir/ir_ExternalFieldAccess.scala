@@ -1,11 +1,11 @@
-package exastencils.interfacing
+package exastencils.interfacing.ir
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 
-case class IR_ExternalFieldAccess(var name : IR_Expression, var field : ExternalField, var index : IR_ExpressionIndex) extends IR_Expression {
+case class IR_ExternalFieldAccess(var name : IR_Expression, var field : IR_ExternalField, var index : IR_ExpressionIndex) extends IR_Expression {
   // TODO: var index : IR_Index
   override def datatype = field.fieldLayout.datatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"

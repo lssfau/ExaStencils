@@ -2,6 +2,7 @@ package exastencils.field.l4
 
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
+import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
@@ -73,19 +74,19 @@ case class L4_FieldLayout(
     out << "}\n"
   }
 
-  override def progress : FieldLayout = {
+  override def progress : IR_FieldLayout = {
     // determine full data dimensionality
     val numDimsData = numDimsGrid + datatype.dimensionality
 
-    var layouts = Array[FieldLayoutPerDim]()
+    var layouts = Array[IR_FieldLayoutPerDim]()
 
     // add layouts for grid dimensions - assume 0 padding as default
     layouts ++= (0 until numDimsGrid).map(dim =>
-      FieldLayoutPerDim(0, ghostLayers(dim), duplicateLayers(dim), innerPoints(dim), duplicateLayers(dim), ghostLayers(dim), 0))
+      IR_FieldLayoutPerDim(0, ghostLayers(dim), duplicateLayers(dim), innerPoints(dim), duplicateLayers(dim), ghostLayers(dim), 0))
 
     // add layouts for additional dimensions introduced by the datatype - no ghost, dup, pad layers required
     if (numDimsData > numDimsGrid)
-      layouts ++= datatype.getSizeArray.map(size => FieldLayoutPerDim(0, 0, 0, size, 0, 0, 0))
+      layouts ++= datatype.getSizeArray.map(size => IR_FieldLayoutPerDim(0, 0, 0, size, 0, 0, 0))
 
     // adapt discretization identifier for low-dimensional primitives - TODO: support edges directly?
     val finalDiscretization =
@@ -97,7 +98,7 @@ case class L4_FieldLayout(
     // will be updated afterwards
     val dummyRefOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
 
-    progressed = Some(FieldLayout(identifier, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
+    progressed = Some(IR_FieldLayout(identifier, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
       communicatesDuplicated, communicatesGhosts))
 
     // update reference offset
@@ -106,7 +107,7 @@ case class L4_FieldLayout(
     progressed.get
   }
 
-  var progressed : Option[FieldLayout] = None
+  var progressed : Option[IR_FieldLayout] = None
   override def getProgressedObject = {
     if (progressed.isEmpty)
       Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ identifier }")

@@ -2,10 +2,16 @@ package exastencils.field.l4
 
 import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.domain.ir.IR_DomainCollection
-import exastencils.knowledge._
+import exastencils.field.ir.IR_Field
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
+
+/// L4_Field
+
+object L4_Field {
+  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
+}
 
 case class L4_Field(
     var identifier : String, // will be used to find the field
@@ -23,21 +29,21 @@ case class L4_Field(
     out << "@" << level << "\n"
   }
 
-  override def progress : Field = {
-    progressed = Some(Field(
+  override def progress : IR_Field = {
+    progressed = Some(IR_Field(
       identifier,
+      level,
       index,
       IR_DomainCollection.getByIdentifier(domain).get,
       identifier.toLowerCase + "Data_" + level,
       fieldLayout.getProgressedObject,
-      level,
       numSlots,
       boundary.progress))
 
     progressed.get
   }
 
-  var progressed : Option[Field] = None
+  var progressed : Option[IR_Field] = None
   override def getProgressedObject = {
     if (progressed.isEmpty)
       Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ identifier }")

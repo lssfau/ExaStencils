@@ -7,7 +7,7 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures.ir.iv
 import exastencils.datastructures.{ ir => _, _ }
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
@@ -19,7 +19,7 @@ object L4_FieldAccess {
   def apply(fieldName : String, level : Int, slot : L4_SlotSpecification, arrayIndex : Option[Int], offset : Option[L4_ExpressionIndex]) =
     new L4_FieldAccess(L4_FieldCollection.getByIdentifier(fieldName, level).get, slot, arrayIndex, offset)
 
-  def resolveSlot(field : Field, slot : L4_SlotSpecification) = {
+  def resolveSlot(field : IR_Field, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)
     else slot match {
       case L4_ActiveSlot       => data.SlotAccess(iv.CurrentSlot(field), 0)

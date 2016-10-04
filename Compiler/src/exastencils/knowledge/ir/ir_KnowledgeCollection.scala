@@ -16,6 +16,8 @@ class IR_KnowledgeCollection[T <: IR_KnowledgeObjectWithIdent : TypeTag] {
     ret
   }
 
+  def sortedObjects = objects.sortBy(_.identifier)
+
   def add(newObj : T) = objects += newObj
 }
 
@@ -40,6 +42,8 @@ class IR_LeveledKnowledgeCollection[T <: IR_KnowledgeObjectWithIdentAndLevel : T
     if (!suppressError && foundObjs.isEmpty) Logger.warn(s"${ typeOf[T].toString } $identifier was not found on any level")
     foundObjs
   }
+
+  def sortedObjects = objects.sortBy(obj => (obj.identifier, obj.level))
 
   def add(newObj : T) = { objects += newObj }
 }

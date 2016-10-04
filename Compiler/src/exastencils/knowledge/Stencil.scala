@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir._
 import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.logger._
 import exastencils.stencil.ir._
@@ -93,7 +93,7 @@ object StencilCollection {
   }
 }
 
-case class StencilField(var identifier : String, var field : Field, var stencil : Stencil) extends IR_KnowledgeObject {
+case class StencilField(var identifier : String, var field : IR_Field, var stencil : Stencil) extends IR_KnowledgeObject {
   // TODO: add level
 }
 

@@ -10,6 +10,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.{ StatementList, _ }
 import exastencils.domain.ir._
+import exastencils.field.ir._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.strategies._
@@ -30,7 +31,7 @@ case class IndexRange(var begin : IR_ExpressionIndex, var end : IR_ExpressionInd
 }
 
 object Mapping {
-  def resolveMultiIdx(layout : FieldLayout, index : IR_ExpressionIndex) : IR_Expression = {
+  def resolveMultiIdx(layout : IR_FieldLayout, index : IR_ExpressionIndex) : IR_Expression = {
     if (layout.numDimsData != index.length)
       Logger.warn(s"Index with dimensionality ${ index.length } does not match layout with dimensionality ${ layout.numDimsData }")
 
@@ -70,7 +71,7 @@ object dimToString extends (Int => String) {
   }
 }
 
-case class InitGeomCoords(var field : Field, var directCoords : Boolean, var offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0, 0) /* was float index before */) extends IR_Statement with IR_Expandable {
+case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0, 0) /* was float index before */) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand : Output[StatementList] = {

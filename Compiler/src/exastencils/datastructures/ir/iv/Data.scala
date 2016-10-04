@@ -5,12 +5,14 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.field.ir._
+import exastencils.interfacing.ir.IR_ExternalFieldCollection
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 /// variables and flags
 
-case class CurrentSlot(var field : Field, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
+case class CurrentSlot(var field : IR_Field, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
@@ -30,17 +32,18 @@ case class IndexFromField(var layoutIdentifier : String, var level : IR_Expressi
   override def resolveDatatype = IR_IntegerDatatype
 
   override def getCtor() : Option[IR_Statement] = {
+    // TODO: refactor -> looking up a field by its layout is not suitable
     var statements : ListBuffer[IR_Statement] = ListBuffer()
     val oldLev = level
     for (l <- Knowledge.minLevel to Knowledge.maxLevel) {
       level = l
-      val field = FieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
+      val field = IR_FieldCollection.getByLayoutIdentifier(layoutIdentifier, l, true)
       if (field.isDefined) {
         statements += IR_Assignment(resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
           field.get.fieldLayout.defIdxById(indexId, dim))
       } else {
         // no field found -> try external fields
-        val extField = ExternalFieldCollection.getFieldByLayoutIdentifier(layoutIdentifier, l, true)
+        val extField = IR_ExternalFieldCollection.getByLayoutIdentifier(layoutIdentifier, l, true)
         if (extField.isDefined) {
           statements += IR_Assignment(resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression),
             extField.get.fieldLayout.defIdxById(indexId, dim))
@@ -57,7 +60,7 @@ case class IndexFromField(var layoutIdentifier : String, var level : IR_Expressi
 /// memory management
 
 abstract class AbstractFieldData extends IR_InternalVariable(true, false, true, true, false) {
-  var field : Field
+  var field : IR_Field
   var level : IR_Expression
   var slot : IR_Expression
   var fragmentIdx : IR_Expression
@@ -116,13 +119,13 @@ abstract class AbstractFieldData extends IR_InternalVariable(true, false, true, 
   }
 }
 
-case class FieldDataBasePtr(override var field : Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends AbstractFieldData {
+case class FieldDataBasePtr(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends AbstractFieldData {
   override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "") +
     "_base"
 }
 
-case class FieldData(override var field : Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends AbstractFieldData {
+case class FieldData(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends AbstractFieldData {
   def basePtr = FieldDataBasePtr(field, level, slot, fragmentIdx)
 
   override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +

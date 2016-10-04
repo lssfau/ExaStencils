@@ -7,6 +7,7 @@ import exastencils.communication.ir.IR_Communicate
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
+import exastencils.field.ir.IR_Field
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
@@ -18,7 +19,7 @@ case class IR_RegionSpecification(var region : String, var dir : IR_ConstIndex, 
 
 /// IR_LoopOverPoints
 
-case class IR_LoopOverPoints(var field : Field,
+case class IR_LoopOverPoints(var field : IR_Field,
     var region : Option[IR_RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var startOffset : IR_ExpressionIndex,

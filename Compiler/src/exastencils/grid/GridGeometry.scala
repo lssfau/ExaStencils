@@ -10,7 +10,7 @@ import exastencils.boundary.l4.L4_NoBC
 import exastencils.core._
 import exastencils.domain.ir._
 import exastencils.domain.{ l4 => _, _ }
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir._
 import exastencils.field.l4._
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge
@@ -111,7 +111,7 @@ trait GridGeometry_uniform extends GridGeometry {
 trait GridGeometry_nonUniform extends GridGeometry {
   // direct accesses
   override def nodePosition(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
-    val field = FieldCollection.getFieldByIdentifierLevExp(s"node_pos_${ dimToString(dim) }", level).get
+    val field = IR_FieldCollection.getByIdentifierLevExp(s"node_pos_${ dimToString(dim) }", level).get
     IR_FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }
 
@@ -169,7 +169,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val cellWidth = (domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal
 
     // look up field and compile access to base element
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
+    val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
@@ -264,7 +264,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     //Logger.debug(s"Using alpha $alpha and beta $beta")
 
     // look up field and compile access to base element
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
+    val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
@@ -398,7 +398,7 @@ object GridGeometry_nonUniform_nonStaggered_AA extends GridGeometry_nonUniform {
 object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with GridGeometry_staggered {
   // direct accesses
   override def stagCVWidth(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
-    val field = FieldCollection.getFieldByIdentifierLevExp(s"stag_cv_width_${ dimToString(dim) }", level).get
+    val field = IR_FieldCollection.getByIdentifierLevExp(s"stag_cv_width_${ dimToString(dim) }", level).get
     IR_FieldAccess(FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }
 
@@ -448,7 +448,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     val zoneLength = 0.0095 //* 8 / zoneSize
 
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
+    val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
@@ -505,7 +505,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val zoneLength_2 = 0.014 // * 8 / zoneSize_2
     val zoneLength_3 = 0.012 // * 8 / zoneSize_3
 
-    val field = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
+    val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
     val baseAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), baseIndex)
 
@@ -550,9 +550,9 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // look up field and compile access to base element
     val baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
-    val field = FieldCollection.getFieldByIdentifier(s"stag_cv_width_${ dimToString(dim) }", level).get
+    val field = IR_FieldCollection.getByIdentifier(s"stag_cv_width_${ dimToString(dim) }", level).get
     val baseAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), Duplicate(baseIndex))
-    val npField = FieldCollection.getFieldByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
+    val npField = IR_FieldCollection.getByIdentifier(s"node_pos_${ dimToString(dim) }", level).get
     val npBaseAccess = IR_FieldAccess(FieldSelection(npField, npField.level, 0), Duplicate(baseIndex))
 
     // fix the inner iterator -> used for zone checks

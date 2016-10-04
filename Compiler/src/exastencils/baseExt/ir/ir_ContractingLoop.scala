@@ -10,7 +10,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_AdvanceSlot
+import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 import exastencils.util.SimplifyExpression
@@ -88,7 +88,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   }
 
   private type FieldKey = (String, Int)
-  private def FieldKey(field : Field) : FieldKey = (field.identifier, field.level)
+  private def FieldKey(field : IR_Field) : FieldKey = (field.identifier, field.level)
 
   private def updateSlots(stmts : ListBuffer[IR_Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends QuietDefaultStrategy("Adapt field slots") {
@@ -114,7 +114,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   def expandSpecial : Output[NodeList] = {
     val res = new ListBuffer[IR_Statement]()
     val fieldOffset = new HashMap[FieldKey, Int]()
-    val fields = new HashMap[FieldKey, Field]()
+    val fields = new HashMap[FieldKey, IR_Field]()
     var condStmt : IR_IfCondition = null
     for (i <- 1 to number)
       for (stmt <- body)

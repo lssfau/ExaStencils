@@ -9,6 +9,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
+import exastencils.field.ir.IR_Field
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
@@ -18,7 +19,7 @@ import exastencils.strategies._
 
 // FIXME: refactor: extract functionality, reduce complexity
 case class IR_LoopOverPointsInOneFragment(var domain : Int,
-    var field : Field,
+    var field : IR_Field,
     var region : Option[IR_RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var startOffset : IR_ExpressionIndex,

@@ -18,7 +18,12 @@ case class L4_StencilEntry(var offset : L4_ExpressionIndex, var coefficient : L4
 
 /// L4_Stencil
 
-case class L4_Stencil(var identifier : String, // will be used to find the stencil
+object L4_Stencil {
+  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
+}
+
+case class L4_Stencil(
+    var identifier : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on
     var entries : ListBuffer[L4_StencilEntry]) extends L4_KnowledgeObjectWithIdentAndLevel {
 

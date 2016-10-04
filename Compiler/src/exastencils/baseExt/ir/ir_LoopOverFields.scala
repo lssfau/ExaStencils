@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation.Output
-import exastencils.knowledge.FieldCollection
+import exastencils.field.ir.IR_FieldCollection
 import exastencils.prettyprinting.PpStream
 
 object IR_LoopOverFields {
@@ -23,7 +23,7 @@ case class IR_LoopOverFields(var body : ListBuffer[IR_Statement]) extends IR_Sta
   override def expand() : Output[IR_ForLoop] = {
     IR_ForLoop(
       IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
-      IR_LowerExpression(defIt, FieldCollection.fields.size),
+      IR_LowerExpression(defIt, IR_FieldCollection.objects.size),
       IR_PreIncrementExpression(defIt),
       body)
   }
