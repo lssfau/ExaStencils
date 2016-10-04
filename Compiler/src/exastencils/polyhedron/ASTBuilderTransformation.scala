@@ -7,7 +7,7 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
+import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.logger._
 import exastencils.omp._
 import exastencils.optimization._
@@ -274,7 +274,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     val n : Int = args.length
 
     return expr.getOpType() match {
-      case isl.AstOpType.OpEq if n == 2 && args(0).isInstanceOf[iv.NeighborIsValid] =>
+      case isl.AstOpType.OpEq if n == 2 && args(0).isInstanceOf[IR_IV_NeighborIsValid] =>
         args(1) match {
           case IR_IntegerConstant(1) => args(0)
           case IR_IntegerConstant(0) => new IR_NegationExpression(args(0))

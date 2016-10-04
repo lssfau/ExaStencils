@@ -2,14 +2,8 @@ package exastencils.communication
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
-import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
-import exastencils.domain.ir._
 import exastencils.knowledge._
-import exastencils.prettyprinting._
 
 case class CommunicationFunctions() extends IR_FunctionCollection("CommFunctions/CommFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
@@ -27,67 +21,3 @@ case class CommunicationFunctions() extends IR_FunctionCollection("CommFunctions
   }
 }
 
-case class SetIterationOffset(var location : IR_Expression, var domain : IR_Expression, var fragment : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  override def expand : Output[IR_Switch] = {
-    var cases : ListBuffer[IR_Case] = ListBuffer()
-
-    for (neigh <- Fragment.neighbors) {
-      // neighbor directions are always 3D vectors; invalid directions are not part of the given collection
-      neigh.dir match {
-        case Array(-1, 0, 0) => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetBegin(0, domain, fragment), 0))
-        case Array(1, 0, 0)  => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetEnd(0, domain, fragment), 0))
-        case Array(0, -1, 0) => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetBegin(1, domain, fragment), 0))
-        case Array(0, 1, 0)  => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetEnd(1, domain, fragment), 0))
-        case Array(0, 0, -1) => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetBegin(2, domain, fragment), 0))
-        case Array(0, 0, 1)  => cases += IR_Case(neigh.index, IR_Assignment(IR_IV_IterationOffsetEnd(2, domain, fragment), 0))
-        case _               =>
-      }
-    }
-
-    IR_Switch(location, cases)
-  }
-}
-
-case class ConnectLocalElement() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-  override def prettyprint_decl : String = prettyprint
-  override def name = "connectLocalElement"
-
-  override def expand : Output[IR_Function] = {
-    IR_Function(IR_UnitDatatype, name,
-      ListBuffer(
-        IR_FunctionArgument("localFragId", IR_IntegerDatatype),
-        IR_FunctionArgument("localNeighId", IR_IntegerDatatype),
-        IR_FunctionArgument("location", IR_IntegerDatatype),
-        IR_FunctionArgument("domain", IR_IntegerDatatype)),
-      ListBuffer[IR_Statement](
-        IR_Assignment(iv.NeighborIsValid("domain", "location", "localFragId"), true),
-        IR_Assignment(iv.NeighborIsRemote("domain", "location", "localFragId"), false),
-        IR_Assignment(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),
-        SetIterationOffset("location", "domain", "localFragId")))
-  }
-}
-
-case class ConnectRemoteElement() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-  override def prettyprint_decl : String = prettyprint
-  override def name = "connectRemoteElement"
-
-  override def expand : Output[IR_Function] = {
-    IR_Function(IR_UnitDatatype, name,
-      ListBuffer(
-        IR_FunctionArgument("localFragId", IR_IntegerDatatype),
-        IR_FunctionArgument("localNeighId", IR_IntegerDatatype),
-        IR_FunctionArgument("remoteRank", IR_IntegerDatatype),
-        IR_FunctionArgument("location", IR_IntegerDatatype),
-        IR_FunctionArgument("domain", IR_IntegerDatatype)),
-      ListBuffer[IR_Statement](
-        IR_Assignment(iv.NeighborIsValid("domain", "location", "localFragId"), true),
-        IR_Assignment(iv.NeighborIsRemote("domain", "location", "localFragId"), true),
-        IR_Assignment(iv.NeighborFragLocalId("domain", "location", "localFragId"), "localNeighId"),
-        IR_Assignment(iv.NeighborRemoteRank("domain", "location", "localFragId"), "remoteRank"),
-        SetIterationOffset("location", "domain", "localFragId")))
-  }
-}

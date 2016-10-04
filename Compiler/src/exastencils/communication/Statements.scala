@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir.{ StatementList, _ }
+import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
 import exastencils.mpi._
@@ -49,8 +50,8 @@ case class StartLocalComm(var field : FieldSelection,
   def setLocalCommReady(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[IR_Statement] = {
     wrapFragLoop(
       neighbors.map(neighbor =>
-        IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
-          AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
+        IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor._1.index)
+          AndAnd IR_NegationExpression(IR_IV_NeighborIsRemote(field.domainIndex, neighbor._1.index)),
           IR_Assignment(iv.LocalCommReady(field.field, neighbor._1.index), IR_BooleanConstant(true)))),
       true)
   }
@@ -69,13 +70,13 @@ case class StartLocalComm(var field : FieldSelection,
     if (Knowledge.comm_pushLocalData) {
       // distribute this fragment's data - if enabled
       output += wrapFragLoop(
-        IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           sendNeighbors.map(neigh => LocalSend(field, neigh._1, neigh._2, neigh._3, insideFragLoop, cond) : IR_Statement)),
         true)
     } else {
       // pull data for this fragment - otherwise
       output += wrapFragLoop(
-        IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           recvNeighbors.map(neigh => LocalRecv(field, neigh._1, neigh._2, neigh._3, insideFragLoop, cond) : IR_Statement)),
         true)
     }
@@ -94,13 +95,13 @@ case class FinishLocalComm(var field : FieldSelection,
   def waitForLocalComm(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[IR_Statement] = {
     wrapFragLoop(
       neighbors.map(neighbor =>
-        IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor._1.index)
-          AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor._1.index)),
+        IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor._1.index)
+          AndAnd IR_NegationExpression(IR_IV_NeighborIsRemote(field.domainIndex, neighbor._1.index)),
           ListBuffer[IR_Statement](
             IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommDone(
               field.field,
               Fragment.getOpposingNeigh(neighbor._1).index,
-              iv.NeighborFragLocalId(field.domainIndex, neighbor._1.index))))))),
+              IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor._1.index))))))),
       true)
   }
 
@@ -128,17 +129,17 @@ case class LocalSend(var field : FieldSelection, var neighbor : NeighborInfo, va
 
   override def expand : Output[IR_Statement] = {
     var innerStmt : IR_Statement = new IR_Assignment(
-      IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)), IR_ExpressionIndex(
+      IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)), IR_ExpressionIndex(
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)),
       IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims)))
 
     if (condition.isDefined)
       innerStmt = IR_IfCondition(condition.get, innerStmt)
 
-    IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
+    IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
-        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
+        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))),
         new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt)) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         IR_Assignment(iv.LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
@@ -155,16 +156,16 @@ case class LocalRecv(var field : FieldSelection, var neighbor : NeighborInfo, va
   override def expand : Output[IR_Statement] = {
     var innerStmt : IR_Statement = IR_Assignment(
       IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims)),
-      IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)),
+      IR_DirectFieldAccess(FieldSelection(field.field, field.level, field.slot, None, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)),
         IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
 
     if (condition.isDefined)
       innerStmt = IR_IfCondition(condition.get, innerStmt)
 
-    IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(iv.NeighborIsRemote(field.domainIndex, neighbor.index)),
+    IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be read from is ready for communication
-        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, iv.NeighborFragLocalId(field.domainIndex, neighbor.index)))),
+        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))),
         new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt)) with OMP_PotentiallyParallel with PolyhedronAccessible,
         // signal other threads that the data reading step is completed
         IR_Assignment(iv.LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
@@ -183,7 +184,7 @@ abstract class RemoteTransfers extends IR_Statement with IR_Expandable {
   def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : IR_Statement
 
   def wrapCond(neighbor : NeighborInfo, body : ListBuffer[IR_Statement]) : IR_Statement = {
-    IR_IfCondition(iv.NeighborIsValid(field.domainIndex, neighbor.index) AndAnd iv.NeighborIsRemote(field.domainIndex, neighbor.index),
+    IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index),
       body)
   }
 
@@ -244,20 +245,20 @@ case class RemoteSends(var field : FieldSelection, var neighbors : ListBuffer[(N
     if (Knowledge.comm_useFragmentLoopsForEachOp)
       ListBuffer[IR_Statement](
         if (start) wrapFragLoop(
-          IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+          IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
             neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))), true)
         else IR_NullStatement,
         if (start) wrapFragLoop(
-          IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+          IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
             neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))), true)
         else IR_NullStatement,
         if (end) wrapFragLoop(
-          IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+          IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
             neighbors.map(neigh => genWait(neigh._1))), true)
         else IR_NullStatement)
     else
       ListBuffer(wrapFragLoop(
-        IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex), neighbors.map(neigh =>
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex), neighbors.map(neigh =>
           wrapCond(neigh._1, ListBuffer(
             if (start) genCopy(neigh._1, neigh._2, false) else IR_NullStatement,
             if (start) genTransfer(neigh._1, neigh._2, false) else IR_NullStatement,
@@ -309,20 +310,20 @@ case class RemoteRecvs(var field : FieldSelection, var neighbors : ListBuffer[(N
     if (Knowledge.comm_useFragmentLoopsForEachOp)
       ListBuffer[IR_Statement](
         if (start) wrapFragLoop(
-          IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+          IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
             neighbors.map(neigh => genTransfer(neigh._1, neigh._2, true))), true)
         else IR_NullStatement,
         if (end) wrapFragLoop(
-          IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+          IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
             neighbors.map(neigh => genWait(neigh._1))), true) // TODO: omp parallel or too much overhead? remove inner critical?
         else IR_NullStatement,
         if (end) wrapFragLoop(
-          IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+          IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
             neighbors.map(neigh => genCopy(neigh._1, neigh._2, true))), true)
         else IR_NullStatement)
     else
       ListBuffer(wrapFragLoop(
-        IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex), neighbors.map(neigh =>
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex), neighbors.map(neigh =>
           wrapCond(neigh._1, ListBuffer(
             if (start) genTransfer(neigh._1, neigh._2, false) else IR_NullStatement,
             if (end) genWait(neigh._1) else IR_NullStatement,
@@ -406,8 +407,8 @@ case class RemoteSend(var field : FieldSelection, var neighbor : NeighborInfo, v
 
   override def expand : Output[StatementList] = {
     ListBuffer[IR_Statement](
-      new MPI_Send(src, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
-        GeneratedMPITag(iv.CommId(), iv.NeighborFragLocalId(field.domainIndex, neighbor.index), neighbor.index, concurrencyId),
+      new MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
+        GeneratedMPITag(iv.CommId(), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), neighbor.index, concurrencyId),
         iv.MpiRequest(field.field, s"Send_${ concurrencyId }", neighbor.index)) with OMP_PotentiallyCritical,
       IR_Assignment(iv.RemoteReqOutstanding(field.field, s"Send_${ concurrencyId }", neighbor.index), true))
   }
@@ -418,8 +419,8 @@ case class RemoteRecv(var field : FieldSelection, var neighbor : NeighborInfo, v
 
   override def expand : Output[StatementList] = {
     ListBuffer[IR_Statement](
-      new MPI_Receive(dest, numDataPoints, datatype, iv.NeighborRemoteRank(field.domainIndex, neighbor.index),
-        GeneratedMPITag(iv.NeighborFragLocalId(field.domainIndex, neighbor.index), iv.CommId(),
+      new MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
+        GeneratedMPITag(IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), iv.CommId(),
           Fragment.getOpposingNeigh(neighbor.index).index, concurrencyId),
         iv.MpiRequest(field.field, s"Recv_${ concurrencyId }", neighbor.index)) with OMP_PotentiallyCritical,
       IR_Assignment(iv.RemoteReqOutstanding(field.field, s"Recv_${ concurrencyId }", neighbor.index), true))
@@ -447,7 +448,7 @@ case class IsOnSpecBoundary(var field : FieldSelection, var neigh : NeighborInfo
   override def expand() : Output[IR_Expression] = {
     // should work for node, cell and face discretizations
 
-    var conditions = ListBuffer[IR_Expression](IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh.index)))
+    var conditions = ListBuffer[IR_Expression](IR_NegationExpression(IR_IV_NeighborIsValid(field.domainIndex, neigh.index)))
     for (dim <- 0 until field.field.fieldLayout.numDimsGrid) {
       neigh.dir(dim) match {
         case -1 => conditions += IR_LowerExpression(index(dim), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))

@@ -36,10 +36,6 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         commFunctions.functions += new MPI_WaitForRequest
       if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
         commFunctions.functions += new OMP_WaitForFlag
-      if (Knowledge.domain_canHaveLocalNeighs)
-        commFunctions.functions += new ConnectLocalElement()
-      if (Knowledge.domain_canHaveRemoteNeighs)
-        commFunctions.functions += new ConnectRemoteElement()
     }
 
     super.apply(node)

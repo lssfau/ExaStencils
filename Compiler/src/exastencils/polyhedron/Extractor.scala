@@ -77,7 +77,7 @@ object Extractor {
       case IR_IntegerConstant(i) =>
         constraints.append(java.lang.Long.toString(i))
 
-      case b : iv.NeighborIsValid =>
+      case b : IR_IV_NeighborIsValid =>
         val islStr : String = ScopNameMapping.expr2id(b)
         // vars and glblParConstr must not be null
         vars.add(islStr)

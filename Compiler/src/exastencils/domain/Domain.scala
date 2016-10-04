@@ -5,201 +5,18 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.grid._
 import exastencils.knowledge._
 import exastencils.mpi._
-import exastencils.omp._
 import exastencils.prettyprinting._
-import exastencils.util._
 
 //TODO specific expression for reading from fragment data file
 case class ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expression) extends IR_Expression {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = out << "readValue<" << innerDatatype << '>' << "(" << data << ")"
-}
-
-case class PointOutsideDomain(var pos : IR_Access, var domain : IR_Domain) extends IR_Expression with IR_Expandable {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  override def expand : Output[IR_Expression] = {
-    val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
-    def posD = Duplicate(pos)
-    Knowledge.dimensionality match {
-      // case 1 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) ~ ")"
-      case 1 => (IR_MemberAccess(posD, "x") < size.lower_x) Or (IR_MemberAccess(posD, "x") > size.upper_x)
-      // case 2 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
-      //   ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) ~ ")"
-      case 2 => (IR_MemberAccess(posD, "x") < size.lower_x) Or (IR_MemberAccess(posD, "x") > size.upper_x) Or
-        (IR_MemberAccess(posD, "y") < size.lower_y) Or (IR_MemberAccess(posD, "y") > size.upper_y)
-      // case 3 => s"(" ~ ((pos ~ ".x") < size.lower_x) Or ((pos ~ ".x") > size.upper_x) Or
-      //   ((pos ~ ".y") < size.lower_y) Or ((pos ~ ".y") > size.upper_y) Or
-      //   ((pos ~ ".z") < size.lower_z) Or ((pos ~ ".z") > size.upper_z) ~ ")"
-      case 3 => (IR_MemberAccess(posD, "x") < size.lower_x) Or (IR_MemberAccess(posD, "x") > size.upper_x) Or
-        (IR_MemberAccess(posD, "y") < size.lower_y) Or (IR_MemberAccess(posD, "y") > size.upper_y) Or
-        (IR_MemberAccess(posD, "z") < size.lower_z) Or (IR_MemberAccess(posD, "z") > size.upper_z)
-    }
-  }
-}
-
-case class PointInsideDomain(var pos : IR_Access, var domain : IR_Domain) extends IR_Expression with IR_Expandable {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  override def expand : Output[IR_Expression] = {
-    val size = domain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
-    def posD = Duplicate(pos)
-    Knowledge.dimensionality match {
-      // case 1 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) ~ ")"
-      case 1 => (IR_MemberAccess(posD, "x") >= size.lower_x) And (IR_MemberAccess(posD, "x") <= size.upper_x)
-      // case 2 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
-      //   ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) ~ ")"
-      case 2 => (IR_MemberAccess(posD, "x") >= size.lower_x) And (IR_MemberAccess(posD, "x") <= size.upper_x) And
-        (IR_MemberAccess(posD, "y") >= size.lower_y) And (IR_MemberAccess(posD, "y") <= size.upper_y)
-      // case 3 => s"(" ~ ((pos ~ ".x") >= size.lower_x) And ((pos ~ ".x") <= size.upper_x) And
-      //   ((pos ~ ".y") >= size.lower_y) And ((pos ~ ".y") <= size.upper_y) And
-      //   ((pos ~ ".z") >= size.lower_z) And ((pos ~ ".z") <= size.upper_z) ~ ")"
-      case 3 => (IR_MemberAccess(posD, "x") >= size.lower_x) And (IR_MemberAccess(posD, "x") <= size.upper_x) And
-        (IR_MemberAccess(posD, "y") >= size.lower_y) And (IR_MemberAccess(posD, "y") <= size.upper_y) And
-        (IR_MemberAccess(posD, "z") >= size.lower_z) And (IR_MemberAccess(posD, "z") <= size.upper_z)
-    }
-  }
-}
-
-case class PointToLocalFragmentId(var pos : IR_Access) extends IR_Expression with IR_Expandable {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  override def expand : Output[IR_Expression] = {
-    val globalDomain = IR_DomainCollection.getByIdentifier("global").get
-    val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
-    val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
-    val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
-    val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
-
-    def posD = Duplicate(pos)
-    Knowledge.dimensionality match {
-      // case 1 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 1 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      // case 2 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-      //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 2 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      // case 3 => (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z)) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
-      //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y)) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-      //   (("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x)) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-      case 3 => ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "z") - gSize.lower_z) / fragWidth_z))) Mod Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "y") - gSize.lower_y) / fragWidth_y))) Mod Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numFragsPerBlock_x +
-        ((IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(posD, "x") - gSize.lower_x) / fragWidth_x))) Mod Knowledge.domain_rect_numFragsPerBlock_x)
-    }
-  }
-}
-
-case class PointToOwningRank(var pos : IR_Access, var domain : IR_Domain) extends IR_Expression with IR_Expandable {
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  override def expand : Output[IR_Expression] = {
-    val globalDomain = IR_DomainCollection.getByIdentifier("global").get
-    val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
-    val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
-    val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
-    val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
-
-    def posD = Duplicate(pos)
-    Knowledge.dimensionality match {
-      case 1 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
-        s"MPI_PROC_NULL",
-        // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-      case 2 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
-        s"MPI_PROC_NULL",
-        // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
-        //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
-          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-      case 3 => IR_TernaryCondition(PointOutsideDomain(pos, domain),
-        s"MPI_PROC_NULL",
-        // ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x
-        //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x
-        //   + ("(int)" ~ new FunctionCallExpression("floor", ((pos ~ ".x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-        IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "z") - gSize.lower_z) / fragWidth_z) / Knowledge.domain_rect_numFragsPerBlock_z) * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_x +
-          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "y") - gSize.lower_y) / fragWidth_y) / Knowledge.domain_rect_numFragsPerBlock_y) * Knowledge.domain_rect_numBlocks_x +
-          IR_Cast(IR_IntegerDatatype, IR_FunctionCall("floor", (IR_MemberAccess(pos, "x") - gSize.lower_x) / fragWidth_x) / Knowledge.domain_rect_numFragsPerBlock_x))
-    }
-  }
-}
-
-case class ConnectFragments() extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  override def expand : Output[IR_LoopOverFragments] = {
-    var body = new ListBuffer[IR_Statement]
-
-    val neighbors = exastencils.knowledge.Fragment.neighbors
-    val domains = IR_DomainCollection.objects
-    val globalDomain = IR_DomainCollection.getByIdentifier("global").get
-    val gSize = globalDomain.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
-    for (d <- 0 until domains.size) {
-      if (Knowledge.domain_rect_generate) {
-        body += IR_Assignment(iv.IsValidForSubdomain(d), PointInsideDomain(IR_IV_FragmentPosition(), domains(d)))
-      } else {
-        body += IR_Assignment(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
-      }
-    }
-
-    val fragWidth_x = gSize.width(0) / Knowledge.domain_rect_numFragsTotal_x
-    val fragWidth_y = gSize.width(1) / Knowledge.domain_rect_numFragsTotal_y
-    val fragWidth_z = gSize.width(2) / Knowledge.domain_rect_numFragsTotal_z
-
-    if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
-      for (neigh <- neighbors) {
-        var statements = ListBuffer[IR_Statement]()
-
-        statements += IR_Assignment(s"Vec3 offsetPos",
-          IR_IV_FragmentPosition() + s"Vec3(${ neigh.dir(0) } * ${ fragWidth_x }, ${ neigh.dir(1) } * ${ fragWidth_y }, ${ neigh.dir(2) } * ${ fragWidth_z })")
-
-        if (Knowledge.domain_rect_periodic_x) {
-          statements += IR_IfCondition(IR_GreaterExpression("offsetPos.x", gSize.upper_x), IR_Assignment("offsetPos.x", gSize.upper_x - gSize.lower_x, "-="))
-          statements += IR_IfCondition(IR_LowerExpression("offsetPos.x", gSize.lower_x), IR_Assignment("offsetPos.x", gSize.upper_x - gSize.lower_x, "+="))
-        }
-        if (Knowledge.domain_rect_periodic_y) {
-          statements += IR_IfCondition(IR_GreaterExpression("offsetPos.y", gSize.upper_y), IR_Assignment("offsetPos.y", gSize.upper_y - gSize.lower_y, "-="))
-          statements += IR_IfCondition(IR_LowerExpression("offsetPos.y", gSize.lower_y), IR_Assignment("offsetPos.y", gSize.upper_y - gSize.lower_y, "+="))
-        }
-        if (Knowledge.domain_rect_periodic_z) {
-          statements += IR_IfCondition(IR_GreaterExpression("offsetPos.z", gSize.upper_z), IR_Assignment("offsetPos.z", gSize.upper_z - gSize.lower_z, "-="))
-          statements += IR_IfCondition(IR_LowerExpression("offsetPos.z", gSize.lower_z), IR_Assignment("offsetPos.z", gSize.upper_z - gSize.lower_z, "+="))
-        }
-
-        // FIXME: datatype for VariableAccesses
-        statements ++= (0 until domains.size).toArray[Int].map(d =>
-          IR_IfCondition(iv.IsValidForSubdomain(d) AndAnd PointInsideDomain(IR_VariableAccess("offsetPos", None), domains(d)),
-            (if (Knowledge.domain_canHaveRemoteNeighs) {
-              if (Knowledge.domain_canHaveLocalNeighs)
-                IR_IfCondition(IR_EqEqExpression("mpiRank", PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d))),
-                  IR_FunctionCall("connectLocalElement", ListBuffer[IR_Expression](
-                    IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d)),
-                  IR_FunctionCall("connectRemoteElement", ListBuffer[IR_Expression](
-                    IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d))) // FIXME: datatype for VariableAccess
-              else
-                IR_FunctionCall("connectRemoteElement", ListBuffer[IR_Expression](
-                  IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), PointToOwningRank(IR_VariableAccess("offsetPos", None), domains(d)), neigh.index, d)) // FIXME: datatype for VariableAccess
-            } else {
-              IR_FunctionCall("connectLocalElement", ListBuffer[IR_Expression](
-                IR_LoopOverFragments.defIt, PointToLocalFragmentId(IR_VariableAccess("offsetPos", None)), neigh.index, d))
-            }) : IR_Statement))
-
-        body += IR_Scope(statements)
-      }
-    }
-
-    new IR_LoopOverFragments(body) with OMP_PotentiallyParallel
-  }
 }
 
 case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expandable {
@@ -291,7 +108,7 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
   override def expand : Output[IR_Function] = {
     var body = new ListBuffer[IR_Statement]
     for (d <- 0 until IR_DomainCollection.objects.size) {
-      body += IR_Assignment(iv.IsValidForSubdomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
+      body += IR_Assignment(IR_IV_IsValidForDomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
     }
     body += IR_Scope(
       IR_Assignment(IR_IV_FragmentId(), ReadValueFrom(IR_IntegerDatatype, "data")),

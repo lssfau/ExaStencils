@@ -8,7 +8,6 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.boundary.l4.L4_NoBC
 import exastencils.core._
-import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir.IR_FieldAccess
@@ -196,7 +195,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val leftGhostAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
@@ -212,7 +211,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val rightGhostAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
@@ -291,7 +290,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val leftGhostAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
@@ -307,7 +306,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val rightGhostAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
@@ -578,7 +577,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val leftGhostAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
         IR_Assignment(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
@@ -592,7 +591,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val rightGhostAccess = IR_FieldAccess(FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(iv.NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim), GridUtil.offsetAccess(rightGhostAccess, -2, dim)),
         IR_Assignment(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim))))

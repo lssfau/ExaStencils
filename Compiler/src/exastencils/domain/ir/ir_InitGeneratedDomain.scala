@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.iv
-import exastencils.domain._
 import exastencils.knowledge.{ Knowledge, _ }
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB
@@ -82,7 +81,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
     // TODO: omp parallelization?
     body += IR_LoopOverFragments(fragStatements)
 
-    body += ConnectFragments()
+    body += IR_ConnectFragments()
 
     // FIXME: move to app
     body += IR_FunctionCall("setupBuffers")

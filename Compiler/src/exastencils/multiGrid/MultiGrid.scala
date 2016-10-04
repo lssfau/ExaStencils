@@ -6,7 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
 import exastencils.omp.OMP_PotentiallyParallel
@@ -37,7 +37,7 @@ case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
       loopOverDims.optLevel = 1
 
       val wrapped = new IR_LoopOverFragments(
-        ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.domain.index), loopOverDims))) with OMP_PotentiallyParallel
+        ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), loopOverDims))) with OMP_PotentiallyParallel
 
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         statements += IR_Scope(wrapped)

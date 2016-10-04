@@ -280,12 +280,12 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     if (region.isDefined) {
       if (region.get.onlyOnBoundary) {
         val neighIndex = Fragment.getNeigh(region.get.dir.indices).index
-        stmts = ListBuffer[IR_Statement](IR_IfCondition(IR_NegationExpression(iv.NeighborIsValid(domain, neighIndex)), stmts))
+        stmts = ListBuffer[IR_Statement](IR_IfCondition(IR_NegationExpression(IR_IV_NeighborIsValid(domain, neighIndex)), stmts))
       }
     }
 
     if (domain >= 0) {
-      stmts = ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(domain), stmts))
+      stmts = ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(domain), stmts))
     }
 
     stmts

@@ -9,7 +9,7 @@ import exastencils.boundary.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
+import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid._
 import exastencils.grid.ir.IR_VirtualFieldAccess
@@ -119,7 +119,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     val layout = field.field.fieldLayout
 
     new IR_LoopOverFragments(
-      ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+      ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
         neighbors.map({ neigh =>
           var adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
           // TODO: assumes equal bc's for all components
@@ -130,7 +130,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
             adaptedIndexRange,
             setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
           loopOverDims.optLevel = 1
-          IR_IfCondition(IR_NegationExpression(iv.NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
+          IR_IfCondition(IR_NegationExpression(IR_IV_NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
         })))) with OMP_PotentiallyParallel
   }
 

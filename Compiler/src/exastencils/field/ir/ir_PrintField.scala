@@ -7,7 +7,8 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core.Settings
 import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir.{ iv, _ }
+import exastencils.datastructures.ir._
+import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.GridGeometry
 import exastencils.knowledge._
 import exastencils.mpi._
@@ -74,7 +75,7 @@ case class IR_PrintField(var filename : IR_Expression, var field : FieldSelectio
       IR_ObjectInstantiation(stream, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc")),
       fileHeader,
       IR_LoopOverFragments(
-        IR_IfCondition(iv.IsValidForSubdomain(field.domainIndex),
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           IR_LoopOverDimensions(numDimsData, IndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) : IR_Expression))),

@@ -12,7 +12,7 @@ import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.domain.ir.IR_DomainCollection
+import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.globals._
 import exastencils.interfacing.IR_ExternalFieldAccess
@@ -134,30 +134,30 @@ object ResolveConstInternalVariables extends DefaultStrategy("Resolving constant
 
     if (IR_DomainCollection.objects.size <= 1)
       this.execute(new Transformation("Resolving IsValidForSubdomain", {
-        case IR_Assignment(_ : iv.IsValidForSubdomain, _, _) => IR_NullStatement
-        case _ : iv.IsValidForSubdomain                      => IR_BooleanConstant(true)
+        case IR_Assignment(_ : IR_IV_IsValidForDomain, _, _) => IR_NullStatement
+        case _ : IR_IV_IsValidForDomain                      => IR_BooleanConstant(true)
       }))
 
     if (!Knowledge.mpi_enabled || Knowledge.mpi_numThreads <= 1)
       this.execute(new Transformation("Resolving NeighborIsRemote and NeighborRemoteRank", {
-        case IR_Assignment(_ : iv.NeighborIsRemote, _, _)   => IR_NullStatement
-        case _ : iv.NeighborIsRemote                        => IR_BooleanConstant(false)
-        case IR_Assignment(_ : iv.NeighborRemoteRank, _, _) => IR_NullStatement
-        case _ : iv.NeighborRemoteRank                      => IR_IntegerConstant(-1)
+        case IR_Assignment(_ : IR_IV_NeighborIsRemote, _, _)   => IR_NullStatement
+        case _ : IR_IV_NeighborIsRemote                        => IR_BooleanConstant(false)
+        case IR_Assignment(_ : IR_IV_NeighborRemoteRank, _, _) => IR_NullStatement
+        case _ : IR_IV_NeighborRemoteRank                      => IR_IntegerConstant(-1)
       }))
 
     if (Knowledge.domain_numFragmentsTotal <= 1 && !Knowledge.domain_rect_hasPeriodicity) {
       this.execute(new Transformation("Resolving NeighborIsValid", {
-        case IR_Assignment(_ : iv.NeighborIsValid, _, _) => IR_NullStatement
-        case _ : iv.NeighborIsValid                      => IR_BooleanConstant(false)
+        case IR_Assignment(_ : IR_IV_NeighborIsValid, _, _) => IR_NullStatement
+        case _ : IR_IV_NeighborIsValid                      => IR_BooleanConstant(false)
       }))
     } else if (Knowledge.domain_rect_generate) {
       for (dim <- 0 until Knowledge.dimensionality)
         if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1 && !Knowledge.domain_rect_periodicAsVec(dim))
           this.execute(new Transformation(s"Resolving NeighborIsValid in dimension $dim", {
-            case IR_Assignment(niv : iv.NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
+            case IR_Assignment(niv : IR_IV_NeighborIsValid, _, _) if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
               && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_NullStatement
-            case niv : iv.NeighborIsValid if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
+            case niv : IR_IV_NeighborIsValid if (niv.neighIdx.isInstanceOf[IR_IntegerConstant])
               && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_BooleanConstant(false)
           }))
     }
@@ -340,7 +340,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         statements ++= innerStmts
 
       fieldAllocs += (cleanedField.prettyprint() -> new IR_LoopOverFragments(
-        ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.field.domain.index), statements))) with OMP_PotentiallyParallel)
+        ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), statements))) with OMP_PotentiallyParallel)
 
       field
     }
@@ -369,7 +369,7 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
         statements ++= innerStmts
 
       deviceFieldAllocs += (cleanedField.prettyprint() -> new IR_LoopOverFragments(
-        ListBuffer[IR_Statement](IR_IfCondition(iv.IsValidForSubdomain(field.field.domain.index), statements))) with OMP_PotentiallyParallel)
+        ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), statements))) with OMP_PotentiallyParallel)
 
       field
     }
