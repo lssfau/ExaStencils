@@ -8,6 +8,7 @@ import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.datastructures.Transformation._
 import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.mpi.ir.IR_IV_MpiRank
 import exastencils.omp._
 import exastencils.prettyprinting._
 import exastencils.util._
@@ -85,7 +86,7 @@ case class MPI_Reduce(var root : IR_Expression, var sendbuf : IR_Expression, var
   override def prettyprint(out : PpStream) : Unit = {
     sendbuf match {
       case IR_StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
-        out << "if (" << IR_EqEqExpression(root, "mpiRank") << ") {\n"
+        out << "if (" << IR_EqEqExpression(root, IR_IV_MpiRank()) << ") {\n"
         MPI_Reduce(root, sendbuf, recvbuf, datatype, count, op).reallyPrint(out) // MPI_IN_PLACE for root proc
         out << "\n} else {\n"
         MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
@@ -193,7 +194,7 @@ case class MPI_Sequential(var body : ListBuffer[IR_Statement]) extends IR_Statem
       IR_PreIncrementExpression("curRank"),
       ListBuffer[IR_Statement](
         MPI_Barrier(),
-        IR_IfCondition(IR_EqEqExpression("mpiRank", "curRank"), body)))
+        IR_IfCondition(IR_EqEqExpression(IR_IV_MpiRank(), "curRank"), body)))
   }
 }
 

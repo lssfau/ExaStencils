@@ -9,6 +9,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.domain._
 import exastencils.knowledge
 import exastencils.knowledge._
+import exastencils.mpi.ir.IR_IV_MpiRank
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB
@@ -105,7 +106,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
           IR_IfCondition(IR_IV_IsValidForDomain(d) AndAnd isPointInsideDomain(offsetPos, domains(d)),
             (if (Knowledge.domain_canHaveRemoteNeighs) {
               if (Knowledge.domain_canHaveLocalNeighs)
-                IR_IfCondition(IR_EqEqExpression("mpiRank", owningRankForPoint(offsetPos, domains(d))),
+                IR_IfCondition(IR_EqEqExpression(IR_IV_MpiRank(), owningRankForPoint(offsetPos, domains(d))),
                   connectLocalElement(IR_LoopOverFragments.defIt, localFragmentIdForPoint(offsetPos), neigh.index, d),
                   connectRemoteElement(IR_LoopOverFragments.defIt, localFragmentIdForPoint(offsetPos), owningRankForPoint(offsetPos, domains(d)), neigh.index, d))
               else

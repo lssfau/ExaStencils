@@ -17,8 +17,8 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         globals.variables += IR_VariableDeclaration("CUdevice", "cudaDevice")
       }
       if (Knowledge.mpi_enabled) {
+        // FIXME: introduce iv's
         globals.variables += IR_VariableDeclaration("MPI_Comm", "mpiCommunicator")
-        globals.variables += IR_VariableDeclaration(IR_IntegerDatatype, "mpiRank")
         globals.variables += IR_VariableDeclaration(IR_IntegerDatatype, "mpiSize")
       }
       globals

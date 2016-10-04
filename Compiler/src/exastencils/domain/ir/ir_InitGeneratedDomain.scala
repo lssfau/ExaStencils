@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.iv
 import exastencils.knowledge.{ Knowledge, _ }
+import exastencils.mpi.ir.IR_IV_MpiRank
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB
 
@@ -17,7 +18,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
   override def name = "initDomain"
 
   // FIXME: introduce dedicated iv
-  def mpiRank = if (Knowledge.mpi_enabled) IR_VariableAccess("mpiRank", IR_IntegerDatatype) else IR_IntegerConstant(0)
+  def mpiRank = if (Knowledge.mpi_enabled) IR_IV_MpiRank() else IR_IntegerConstant(0)
 
   def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
   def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
