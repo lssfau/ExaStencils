@@ -36,7 +36,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
           * (0 until dim).map(Knowledge.domain_rect_numBlocksAsVec(_)).product : IR_Expression).reduce(_ + _))
   }
 
-  def localFragmentIdForPoint(position : (Int => IR_Expression)) = {
+  def localFragmentIdxForPoint(position : (Int => IR_Expression)) = {
     Knowledge.dimensions.map(dim =>
       (IR_ToInt((position(dim) - globalSize.lower(dim)) / fragWidth(dim)) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim))
         * (0 until dim).map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product : IR_Expression).reduce(_ + _)
@@ -97,25 +97,36 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
           statements += IR_VariableDeclaration(offsetPos(dim), IR_IV_FragmentPosition(dim) + neigh.dir(dim) * fragWidth(dim))
           if (Knowledge.domain_rect_periodicAsVec(dim)) {
             // implement simple wrap-around for periodic domains
-            statements += IR_IfCondition(IR_GreaterExpression(offsetPos(dim), globalSize.upper(dim)), IR_Assignment(offsetPos(dim), globalSize.upper(dim) - globalSize.lower(dim), "-="))
-            statements += IR_IfCondition(IR_LowerExpression(offsetPos(dim), globalSize.lower(dim)), IR_Assignment(offsetPos(dim), globalSize.upper(dim) - globalSize.lower(dim), "+="))
+            statements += IR_IfCondition(IR_GreaterExpression(offsetPos(dim), globalSize.upper(dim)),
+              IR_Assignment(offsetPos(dim), globalSize.upper(dim) - globalSize.lower(dim), "-="))
+            statements += IR_IfCondition(IR_LowerExpression(offsetPos(dim), globalSize.lower(dim)),
+              IR_Assignment(offsetPos(dim), globalSize.upper(dim) - globalSize.lower(dim), "+="))
           }
         }
 
-        statements ++= domains.indices.map(d =>
-          IR_IfCondition(IR_IV_IsValidForDomain(d) AndAnd isPointInsideDomain(offsetPos, domains(d)),
-            (if (Knowledge.domain_canHaveRemoteNeighs) {
-              if (Knowledge.domain_canHaveLocalNeighs)
-                IR_IfCondition(IR_EqEqExpression(IR_IV_MpiRank(), owningRankForPoint(offsetPos, domains(d))),
-                  connectLocalElement(IR_LoopOverFragments.defIt, localFragmentIdForPoint(offsetPos), neigh.index, d),
-                  connectRemoteElement(IR_LoopOverFragments.defIt, localFragmentIdForPoint(offsetPos), owningRankForPoint(offsetPos, domains(d)), neigh.index, d))
-              else
-                IR_Scope(connectRemoteElement(IR_LoopOverFragments.defIt, localFragmentIdForPoint(offsetPos), owningRankForPoint(offsetPos, domains(d)), neigh.index, d))
-            } else {
-              // FIXME: Scope
-              IR_Scope(connectLocalElement(IR_LoopOverFragments.defIt, localFragmentIdForPoint(offsetPos), neigh.index, d))
-            }) : IR_Statement))
+        // compile connect calls
 
+        def localConnect(domainIdx : Int) =
+          connectLocalElement(IR_LoopOverFragments.defIt, localFragmentIdxForPoint(offsetPos), neigh.index, domainIdx)
+        def remoteConnect(domainIdx : Int) =
+          connectRemoteElement(IR_LoopOverFragments.defIt, localFragmentIdxForPoint(offsetPos), owningRankForPoint(offsetPos, domains(domainIdx)), neigh.index, domainIdx)
+
+        for (d <- domains.indices) {
+          // for each domain: check if original point and neighbor point are valid and if true connect according to possible configurations
+          statements += IR_IfCondition(IR_IV_IsValidForDomain(d) AndAnd isPointInsideDomain(offsetPos, domains(d)),
+            if (Knowledge.domain_canHaveRemoteNeighs && Knowledge.domain_canHaveLocalNeighs)
+              ListBuffer[IR_Statement](
+                IR_IfCondition(IR_EqEqExpression(IR_IV_MpiRank(), owningRankForPoint(offsetPos, domains(d))),
+                  localConnect(d), remoteConnect(d)))
+            else if (Knowledge.domain_canHaveRemoteNeighs)
+              remoteConnect(d)
+            else if (Knowledge.domain_canHaveLocalNeighs)
+              localConnect(d)
+            else
+              ListBuffer[IR_Statement]())
+        }
+
+        // wrap in scope due to local variable declarations
         body += IR_Scope(statements)
       }
     }
