@@ -128,10 +128,8 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
           IR_Case("7", Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), IR_ArrayAccess("vertPos", dim)) : IR_Statement).to[ListBuffer]))),
       // FIXME: Constructor?
       // s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
-      IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "fragPos", IR_FunctionCall("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0)),
-      (if (Knowledge.dimensionality == 2) IR_Assignment("fragPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
-      (if (Knowledge.dimensionality == 3) IR_Assignment("fragPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
-      IR_Assignment(IR_IV_FragmentPosition(), s"fragPos") //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
+      IR_Scope(Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPosition(dim), ReadValueFrom(IR_RealDatatype, "data")) : IR_Statement).to[ListBuffer])
+      //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
     )
     for (d <- 0 until IR_DomainCollection.objects.size) {
       body += IR_ForLoop("int location = 0", s" location < ${ FragmentCollection.getNumberOfNeighbors() } ", "++location",

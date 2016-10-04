@@ -80,11 +80,10 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
     val neighbors = exastencils.knowledge.Fragment.neighbors
     val domains = IR_DomainCollection.objects
     for (d <- domains.indices) {
-      if (Knowledge.domain_rect_generate) {
+      if (Knowledge.domain_rect_generate)
         body += IR_Assignment(IR_IV_IsValidForDomain(d), isPointInsideDomain(IR_IV_FragmentPosition(_), domains(d)))
-      } else {
+      else
         body += IR_Assignment(IR_IV_IsValidForDomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
-      }
     }
 
     if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {
