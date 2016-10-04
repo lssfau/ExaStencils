@@ -7,6 +7,7 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures.ir.iv
 import exastencils.datastructures.{ ir => _, _ }
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
@@ -60,7 +61,7 @@ case class L4_FieldAccess(
     }
 
     val field = target.getProgressedObject
-    IR_FieldAccess(FieldSelection(field, IR_IntegerConstant(field.level), L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
+    IR_FieldAccess(IR_FieldSelection(field, IR_IntegerConstant(field.level), L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
   }
 }
 

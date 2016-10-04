@@ -9,6 +9,7 @@ import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
@@ -878,7 +879,7 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterFieldAccess(fSel : FieldSelection, index : IR_ExpressionIndex) : Unit = {
+  private def enterFieldAccess(fSel : IR_FieldSelection, index : IR_ExpressionIndex) : Unit = {
     val name = new StringBuilder("field")
     name.append('_').append(fSel.field.identifier).append(fSel.field.index).append('_').append(fSel.field.level)
     name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex)

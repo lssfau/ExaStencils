@@ -11,6 +11,7 @@ import exastencils.core.collectors._
 import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -94,7 +95,7 @@ object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
       case access : IR_StencilFieldAccess => {
         var index = Duplicate(access.index)
         index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
-        new IR_FieldAccess(FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
+        new IR_FieldAccess(IR_FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
       }
       case _                              => {
         Logger.warn("diag with unknown arg " + args(0))

@@ -12,6 +12,7 @@ import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -814,7 +815,7 @@ object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gat
   }
 
   this += new Transformation("Searching", {
-    case stmt @ IR_Assignment(access @ IR_LinearizedFieldAccess(fieldSelection : FieldSelection, index : IR_Expression), _, _) =>
+    case stmt @ IR_Assignment(access @ IR_LinearizedFieldAccess(fieldSelection : IR_FieldSelection, index : IR_Expression), _, _) =>
       mapFieldAccess(access)
       stmt
   })

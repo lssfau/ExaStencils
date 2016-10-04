@@ -9,6 +9,7 @@ import exastencils.boundary.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid._
@@ -19,7 +20,7 @@ import exastencils.omp._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting._
 
-case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends IR_Statement with IR_Expandable {
+case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
@@ -63,7 +64,7 @@ case class HandleBoundaries(var field : FieldSelection, var neighbors : ListBuff
     // FIXME: this works for now, but users may want to specify bc's per vector element
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
     var index = IR_LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
-    var fieldSel = new FieldSelection(field.field, field.level, field.slot, None, field.fragIdx) // TODO: check
+    var fieldSel = new IR_FieldSelection(field.field, field.level, field.slot, None, field.fragIdx) // TODO: check
 
     def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
     def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))

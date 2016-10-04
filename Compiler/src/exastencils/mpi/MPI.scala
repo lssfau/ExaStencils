@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.datastructures.Transformation._
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi.ir.IR_IV_MpiRank
@@ -112,7 +113,7 @@ case class MPI_Barrier() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
 
-case class MPI_DataType(var field : FieldSelection, var indexRange : IndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
+case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi = generateName
 

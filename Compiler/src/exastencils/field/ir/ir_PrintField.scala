@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.core.Settings
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.GridGeometry
 import exastencils.knowledge._
@@ -25,13 +26,13 @@ object IR_PrintField {
   }
 }
 
-case class IR_PrintField(var filename : IR_Expression, var field : FieldSelection, var condition : IR_Expression = true) extends IR_Statement with IR_Expandable {
+case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelection, var condition : IR_Expression = true) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
 
-  def getPos(field : FieldSelection, dim : Int) : IR_Expression = {
+  def getPos(field : IR_FieldSelection, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
     field.field.discretization match {
       case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)

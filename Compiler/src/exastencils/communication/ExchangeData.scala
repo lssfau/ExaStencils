@@ -8,6 +8,7 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.knowledge._
 import exastencils.multiGrid._
 import exastencils.prettyprinting._
@@ -15,11 +16,11 @@ import exastencils.prettyprinting._
 // FIXME: Think about moving all of this index information to some other source. Maybe some kind of ... DSL ... or even Layer4
 
 abstract class FieldBoundaryFunction() extends IR_AbstractFunction with IR_Expandable {
-  var fieldSelection : FieldSelection
+  var fieldSelection : IR_FieldSelection
   def insideFragLoop : Boolean
 
   def compileName : String
-  def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[IR_Statement]
+  def compileBody(updatedFieldSelection : IR_FieldSelection) : ListBuffer[IR_Statement]
 
   def resolveIndex(indexId : String, dim : Int) : IR_Expression = {
     if (Knowledge.experimental_useLevelIndepFcts) {
@@ -55,7 +56,7 @@ abstract class FieldBoundaryFunction() extends IR_AbstractFunction with IR_Expan
   }
 }
 
-case class ApplyBCsFunction(var name : String, override var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
+case class ApplyBCsFunction(var name : String, override var fieldSelection : IR_FieldSelection, var neighbors : ListBuffer[NeighborInfo],
     var insideFragLoop : Boolean) extends FieldBoundaryFunction {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl = prettyprint
@@ -107,7 +108,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
   }
 
   override def compileName : String = name
-  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[IR_Statement] = {
+  override def compileBody(updatedFieldSelection : IR_FieldSelection) : ListBuffer[IR_Statement] = {
     var body = new ListBuffer[IR_Statement]
 
     val boundaryNeighs = neighbors.filter(neigh => (1 == neigh.dir.map(i => if (0 != i) 1 else 0).reduce(_ + _))) // exactly one non-zero entry
@@ -117,7 +118,7 @@ case class ApplyBCsFunction(var name : String, override var fieldSelection : Fie
   }
 }
 
-case class ExchangeDataFunction(var name : String, override var fieldSelection : FieldSelection, var neighbors : ListBuffer[NeighborInfo],
+case class ExchangeDataFunction(var name : String, override var fieldSelection : IR_FieldSelection, var neighbors : ListBuffer[NeighborInfo],
     var begin : Boolean, var finish : Boolean,
     var dupLayerExch : Boolean, var dupLayerBegin : IR_ExpressionIndex, var dupLayerEnd : IR_ExpressionIndex,
     var ghostLayerExch : Boolean, var ghostLayerBegin : IR_ExpressionIndex, var ghostLayerEnd : IR_ExpressionIndex,
@@ -435,7 +436,7 @@ case class ExchangeDataFunction(var name : String, override var fieldSelection :
   }
 
   override def compileName : String = name
-  override def compileBody(updatedFieldSelection : FieldSelection) : ListBuffer[IR_Statement] = {
+  override def compileBody(updatedFieldSelection : IR_FieldSelection) : ListBuffer[IR_Statement] = {
     var body = new ListBuffer[IR_Statement]
     val field = updatedFieldSelection.field
 

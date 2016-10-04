@@ -5,6 +5,7 @@ import exastencils.base.l4.L4_ExpressionIndex
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
+import exastencils.deprecated.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.l4._
 import exastencils.knowledge._
@@ -67,10 +68,10 @@ case class L4_StencilFieldAccess(
     }
 
     if (accessIndex < 0)
-      IR_StencilFieldAccess(StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), L4_FieldAccess.resolveSlot(stencilField.field, slot), None),
+      IR_StencilFieldAccess(IR_StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), L4_FieldAccess.resolveSlot(stencilField.field, slot), None),
         multiIndex)
     else
-      IR_FieldAccess(FieldSelection(stencilField.field, IR_IntegerConstant(stencilField.field.level), L4_FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
+      IR_FieldAccess(IR_FieldSelection(stencilField.field, IR_IntegerConstant(stencilField.field.level), L4_FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
         multiIndex)
   }
 }

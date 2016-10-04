@@ -5,13 +5,14 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 
 /// IR_Communicate
 
 case class IR_Communicate(
-    var field : FieldSelection,
+    var field : IR_FieldSelection,
     var op : String,
     var targets : ListBuffer[IR_CommunicateTarget],
     var condition : Option[IR_Expression]) extends IR_Statement {

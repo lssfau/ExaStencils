@@ -4,35 +4,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.stencil.ir._
 import exastencils.util._
-
-@deprecated("to be integrated into IR_StencilFieldAccess and/or replaced by the new accessor classes", "04.10.16")
-case class StencilFieldSelection(
-    var stencilField : IR_StencilField,
-    var level : IR_Expression,
-    var slot : IR_Expression,
-    var arrayIndex : Option[Int],
-    var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends Node {
-
-  def toFieldSelection = {
-    FieldSelection(field, level, slot, arrayIndex, fragIdx)
-  }
-
-  // shortcuts to stencilField members
-  def field = stencilField.field
-  def stencil = stencilField.stencil
-
-  // shortcuts to Field members
-  def codeName = field.codeName
-  def fieldLayout = field.fieldLayout
-  def referenceOffset = field.referenceOffset
-}
 
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   var changed : Boolean = false

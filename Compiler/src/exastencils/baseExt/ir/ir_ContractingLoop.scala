@@ -9,6 +9,7 @@ import exastencils.data._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.knowledge._
@@ -93,7 +94,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   private def updateSlots(stmts : ListBuffer[IR_Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends QuietDefaultStrategy("Adapt field slots") {
       this += new Transformation("now", {
-        case fs @ FieldSelection(field, level, SlotAccess(slot, offset), _, _) =>
+        case fs @ IR_FieldSelection(field, level, SlotAccess(slot, offset), _, _) =>
           fs.slot = SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
           fs
       })
