@@ -17,12 +17,12 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_StencilStencilConvolution
 
-case class IR_StencilStencilConvolution(var stencilLeft : Stencil, var stencilRight : Stencil) extends IR_Expression with IR_Expandable {
+case class IR_StencilStencilConvolution(var stencilLeft : IR_Stencil, var stencilRight : IR_Stencil) extends IR_Expression with IR_Expandable {
   override def datatype = IR_ResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_StencilAccess] = {
-    var entries : ListBuffer[StencilEntry] = ListBuffer()
+    var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
       for (le <- stencilLeft.entries) {
@@ -49,22 +49,22 @@ case class IR_StencilStencilConvolution(var stencilLeft : Stencil, var stencilRi
           combCoeff += addToEntry.get.coefficient
           SimplifyStrategy.doUntilDoneStandalone(combCoeff)
           addToEntry.get.coefficient = combCoeff
-        } else entries += new StencilEntry(combOff, combCoeff)
+        } else entries += new IR_StencilEntry(combOff, combCoeff)
       }
     }
 
-    IR_StencilAccess(Stencil(stencilLeft.identifier + "_" + stencilRight.identifier, stencilLeft.level, entries))
+    IR_StencilAccess(IR_Stencil(stencilLeft.identifier + "_" + stencilRight.identifier, stencilLeft.level, entries))
   }
 }
 
 /// IR_StencilFieldStencilConvolution
 
-case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAccess, var stencilRight : Stencil) extends IR_Expression with IR_Expandable {
+case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAccess, var stencilRight : IR_Stencil) extends IR_Expression with IR_Expandable {
   override def datatype = IR_ResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_StencilAccess] = {
-    var entries : ListBuffer[StencilEntry] = ListBuffer()
+    var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
       for (e <- stencilLeft.stencilFieldSelection.stencil.entries.indices) {
@@ -101,10 +101,10 @@ case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAc
           combCoeff += addToEntry.get.coefficient
           SimplifyStrategy.doUntilDoneStandalone(combCoeff)
           addToEntry.get.coefficient = combCoeff
-        } else entries += StencilEntry(combOff, combCoeff)
+        } else entries += IR_StencilEntry(combOff, combCoeff)
       }
     }
 
-    IR_StencilAccess(Stencil(stencilLeft.stencilFieldSelection.stencil.identifier + "_" + stencilRight.identifier, stencilLeft.stencilFieldSelection.stencil.level, entries))
+    IR_StencilAccess(IR_Stencil(stencilLeft.stencilFieldSelection.stencil.identifier + "_" + stencilRight.identifier, stencilLeft.stencilFieldSelection.stencil.level, entries))
   }
 }

@@ -1,10 +1,10 @@
 package exastencils.stencil.l4
 
 import exastencils.field.l4.L4_Field
-import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
+import exastencils.stencil.ir.IR_StencilField
 
 /// L4_StencilField
 
@@ -25,11 +25,11 @@ case class L4_StencilField(
   }
 
   override def progress = {
-    progressed = Some(StencilField(identifier, field.getProgressedObject, stencil.getProgressedObject))
+    progressed = Some(IR_StencilField(identifier, level, field.getProgressedObject, stencil.getProgressedObject))
     progressed.get
   }
 
-  var progressed : Option[StencilField] = None
+  var progressed : Option[IR_StencilField] = None
   override def getProgressedObject = {
     if (progressed.isEmpty)
       Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ identifier }")

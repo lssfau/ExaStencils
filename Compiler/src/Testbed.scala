@@ -8,7 +8,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
-import exastencils.stencil.ir.IR_StencilStencilConvolution
+import exastencils.stencil.ir._
 import exastencils.strategies._
 
 object Testbed {
@@ -48,7 +48,7 @@ object Testbed {
     }
   }
 
-  def rap(R : Stencil, A : Stencil, P : Stencil) : Stencil = {
+  def rap(R : IR_Stencil, A : IR_Stencil, P : IR_Stencil) : IR_Stencil = {
 
     var RAP = IR_StencilStencilConvolution(A, R).expand.inner.stencil
     //    for (e <- RAP.entries)
@@ -137,50 +137,50 @@ object Testbed {
   def main(args : Array[String]) : Unit = {
     Knowledge.dimensionality = 2
 
-    var A : Stencil = new Stencil("A", 5,
+    var A : IR_Stencil = new IR_Stencil("A", 5,
       if (false) {
         ListBuffer(
-          new StencilEntry(IR_ExpressionIndex(0, 0, 0), 3.0),
-          new StencilEntry(IR_ExpressionIndex(-1, 0, 0), -0.5),
-          new StencilEntry(IR_ExpressionIndex(1, 0, 0), -0.5),
-          new StencilEntry(IR_ExpressionIndex(0, -1, 0), -0.5),
-          new StencilEntry(IR_ExpressionIndex(0, 1, 0), -0.5),
-          new StencilEntry(IR_ExpressionIndex(-1, -1, 0), -0.25),
-          new StencilEntry(IR_ExpressionIndex(-1, 1, 0), -0.25),
-          new StencilEntry(IR_ExpressionIndex(1, -1, 0), -0.25),
-          new StencilEntry(IR_ExpressionIndex(1, 1, 0), -0.25))
+          new IR_StencilEntry(IR_ExpressionIndex(0, 0, 0), 3.0),
+          new IR_StencilEntry(IR_ExpressionIndex(-1, 0, 0), -0.5),
+          new IR_StencilEntry(IR_ExpressionIndex(1, 0, 0), -0.5),
+          new IR_StencilEntry(IR_ExpressionIndex(0, -1, 0), -0.5),
+          new IR_StencilEntry(IR_ExpressionIndex(0, 1, 0), -0.5),
+          new IR_StencilEntry(IR_ExpressionIndex(-1, -1, 0), -0.25),
+          new IR_StencilEntry(IR_ExpressionIndex(-1, 1, 0), -0.25),
+          new IR_StencilEntry(IR_ExpressionIndex(1, -1, 0), -0.25),
+          new IR_StencilEntry(IR_ExpressionIndex(1, 1, 0), -0.25))
       } else if (true) {
         ListBuffer(
-          new StencilEntry(IR_ExpressionIndex(0, 0, 0), 4.0),
-          new StencilEntry(IR_ExpressionIndex(-1, 0, 0), -1.0),
-          new StencilEntry(IR_ExpressionIndex(1, 0, 0), -1.0),
-          new StencilEntry(IR_ExpressionIndex(0, -1, 0), -1.0),
-          new StencilEntry(IR_ExpressionIndex(0, 1, 0), -1.0))
+          new IR_StencilEntry(IR_ExpressionIndex(0, 0, 0), 4.0),
+          new IR_StencilEntry(IR_ExpressionIndex(-1, 0, 0), -1.0),
+          new IR_StencilEntry(IR_ExpressionIndex(1, 0, 0), -1.0),
+          new IR_StencilEntry(IR_ExpressionIndex(0, -1, 0), -1.0),
+          new IR_StencilEntry(IR_ExpressionIndex(0, 1, 0), -1.0))
       } else {
         ListBuffer(
-          new StencilEntry(IR_ExpressionIndex(0, 0, 0), "C"),
-          new StencilEntry(IR_ExpressionIndex(-1, 0, 0), "W"),
-          new StencilEntry(IR_ExpressionIndex(1, 0, 0), "E"),
-          new StencilEntry(IR_ExpressionIndex(0, -1, 0), "S"),
-          new StencilEntry(IR_ExpressionIndex(0, 1, 0), "N"))
+          new IR_StencilEntry(IR_ExpressionIndex(0, 0, 0), "C"),
+          new IR_StencilEntry(IR_ExpressionIndex(-1, 0, 0), "W"),
+          new IR_StencilEntry(IR_ExpressionIndex(1, 0, 0), "E"),
+          new IR_StencilEntry(IR_ExpressionIndex(0, -1, 0), "S"),
+          new IR_StencilEntry(IR_ExpressionIndex(0, 1, 0), "N"))
       })
 
-    var R : Stencil = new Stencil("R", 4, ListBuffer(
-      new StencilEntry(IR_ExpressionIndex(0, 0, 0), 1.0),
-      new StencilEntry(IR_ExpressionIndex(-1, 0, 0), 0.5),
-      new StencilEntry(IR_ExpressionIndex(1, 0, 0), 0.5),
-      new StencilEntry(IR_ExpressionIndex(0, -1, 0), 0.5),
-      new StencilEntry(IR_ExpressionIndex(0, 1, 0), 0.5),
-      new StencilEntry(IR_ExpressionIndex(-1, -1, 0), 0.25),
-      new StencilEntry(IR_ExpressionIndex(-1, 1, 0), 0.25),
-      new StencilEntry(IR_ExpressionIndex(1, -1, 0), 0.25),
-      new StencilEntry(IR_ExpressionIndex(1, 1, 0), 0.25)))
+    var R : IR_Stencil = new IR_Stencil("R", 4, ListBuffer(
+      new IR_StencilEntry(IR_ExpressionIndex(0, 0, 0), 1.0),
+      new IR_StencilEntry(IR_ExpressionIndex(-1, 0, 0), 0.5),
+      new IR_StencilEntry(IR_ExpressionIndex(1, 0, 0), 0.5),
+      new IR_StencilEntry(IR_ExpressionIndex(0, -1, 0), 0.5),
+      new IR_StencilEntry(IR_ExpressionIndex(0, 1, 0), 0.5),
+      new IR_StencilEntry(IR_ExpressionIndex(-1, -1, 0), 0.25),
+      new IR_StencilEntry(IR_ExpressionIndex(-1, 1, 0), 0.25),
+      new IR_StencilEntry(IR_ExpressionIndex(1, -1, 0), 0.25),
+      new IR_StencilEntry(IR_ExpressionIndex(1, 1, 0), 0.25)))
 
-    var P : Stencil = new Stencil("P", 4, ListBuffer(
-      new StencilEntry(IR_ExpressionIndex(0, 0, 0), 0.25),
-      new StencilEntry(IR_ExpressionIndex("x" Mod 2, 0, 0), 0.25),
-      new StencilEntry(IR_ExpressionIndex(0, "y" Mod 2, 0), 0.25),
-      new StencilEntry(IR_ExpressionIndex("x" Mod 2, "y" Mod 2, 0), 0.25)))
+    var P : IR_Stencil = new IR_Stencil("P", 4, ListBuffer(
+      new IR_StencilEntry(IR_ExpressionIndex(0, 0, 0), 0.25),
+      new IR_StencilEntry(IR_ExpressionIndex("x" Mod 2, 0, 0), 0.25),
+      new IR_StencilEntry(IR_ExpressionIndex(0, "y" Mod 2, 0), 0.25),
+      new IR_StencilEntry(IR_ExpressionIndex("x" Mod 2, "y" Mod 2, 0), 0.25)))
 
     println(R.printStencilToStr)
     println(A.printStencilToStr)

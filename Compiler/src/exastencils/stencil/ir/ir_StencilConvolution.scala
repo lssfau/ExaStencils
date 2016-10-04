@@ -15,7 +15,7 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_StencilConvolution
 
-case class IR_StencilConvolution(var stencil : Stencil, var fieldAccess : IR_FieldAccess) extends IR_Expression with IR_Expandable {
+case class IR_StencilConvolution(var stencil : IR_Stencil, var fieldAccess : IR_FieldAccess) extends IR_Expression with IR_Expandable {
   override def datatype = IR_ResultingDatatype(stencil.datatype, fieldAccess.datatype)
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 

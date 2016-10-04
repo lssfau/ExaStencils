@@ -9,113 +9,19 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
-import exastencils.knowledge.ir.IR_KnowledgeObject
-import exastencils.logger._
 import exastencils.stencil.ir._
 import exastencils.util._
-import exastencils.util.ir.IR_ResultingDatatype
 
-case class StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Expression) {
-  def datatype : IR_Datatype = coefficient.datatype
-}
-
-case class Stencil(var identifier : String, var level : Int, var entries : ListBuffer[StencilEntry] = new ListBuffer) extends IR_KnowledgeObject {
-  def datatype = {
-    var ret = entries(0).datatype
-    entries.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
-    ret
-  }
-  def getReach(dim : Int) : Int = {
-    var reach : Int = 0
-    // get max reach
-    for (e <- entries) {
-      reach = reach max SimplifyExpression.evalIntegral(e.offset(dim)).toInt
-    }
-    reach
-  }
-
-  def findStencilEntry(offset : IR_ExpressionIndex) : Option[StencilEntry] = {
-    val index = findStencilEntryIndex(offset)
-    if (index.isDefined)
-      Some(entries(index.get))
-    else
-      None
-  }
-
-  def findStencilEntryIndex(offset : IR_ExpressionIndex) : Option[Int] = {
-    for (i <- 0 until entries.size) {
-      var ret = true
-      for (dim <- 0 until Knowledge.dimensionality)
-        ret &= (offset(dim) == entries(i).offset(dim))
-
-      if (ret) return Some(i)
-    }
-
-    Logger.warn(s"Trying to find stencil entry for invalid offset ${ offset.prettyprint() } in stencil:\n" +
-      entries.map(e => s"\t${ e.offset.prettyprint : String } -> ${ e.coefficient.prettyprint : String }").mkString("\n"))
-
-    None
-  }
-
-  def printStencilToStr() : String = {
-    var s : String = ""
-
-    s += s"Stencil $identifier:\n\n"
-
-    for (z <- -getReach(2) to getReach(2)) {
-      for (y <- -getReach(1) to getReach(1)) {
-        for (x <- -getReach(0) to getReach(0))
-          s += "\t" +
-            entries.find(
-              e => e.offset match {
-                case index : IR_ExpressionIndex if index.length >= 3 => (
-                  (index(0) match { case IR_IntegerConstant(xOff) if x == xOff => true; case _ => false })
-                    && (index(1) match { case IR_IntegerConstant(yOff) if y == yOff => true; case _ => false })
-                    && (index(2) match { case IR_IntegerConstant(zOff) if z == zOff => true; case _ => false }))
-                case _                                               => false
-              }).getOrElse(StencilEntry(IR_ExpressionIndex(), 0)).coefficient.prettyprint
-        s += "\n"
-      }
-      s += "\n\n"
-    }
-
-    s
-  }
-}
-
-object StencilCollection {
-  var stencils : ListBuffer[Stencil] = ListBuffer()
-
-  def getStencilByIdentifier(identifier : String, level : Int) : Option[Stencil] = {
-    val ret = stencils.find(s => s.identifier == identifier && s.level == level)
-    if (ret.isEmpty) Logger.warn(s"Stencil $identifier on level $level was not found")
-    ret
-  }
-}
-
-case class StencilField(var identifier : String, var field : IR_Field, var stencil : Stencil) extends IR_KnowledgeObject {
-  // TODO: add level
-}
-
-object StencilFieldCollection {
-  var stencilFields : ListBuffer[StencilField] = ListBuffer()
-
-  def getStencilFieldByIdentifier(identifier : String, level : Int) : Option[StencilField] = {
-    val ret = stencilFields.find(s => s.identifier == identifier && s.field.level == level)
-    if (ret.isEmpty) Logger.warn(s"StencilField $identifier on level $level was not found")
-    ret
-  }
-}
-
+@deprecated("to be integrated into IR_StencilFieldAccess and/or replaced by the new accessor classes", "04.10.16")
 case class StencilFieldSelection(
-    var stencilField : StencilField,
+    var stencilField : IR_StencilField,
     var level : IR_Expression,
     var slot : IR_Expression,
     var arrayIndex : Option[Int],
     var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends Node {
 
   def toFieldSelection = {
-    new FieldSelection(field, level, slot, arrayIndex, fragIdx)
+    FieldSelection(field, level, slot, arrayIndex, fragIdx)
   }
 
   // shortcuts to stencilField members

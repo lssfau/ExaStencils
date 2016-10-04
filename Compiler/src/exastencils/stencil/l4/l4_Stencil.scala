@@ -3,17 +3,17 @@ package exastencils.stencil.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.knowledge._
 import exastencils.knowledge.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
+import exastencils.stencil.ir._
 
 /// L4_StencilEntry
 
 case class L4_StencilEntry(var offset : L4_ExpressionIndex, var coefficient : L4_Expression) extends L4_Node with PrettyPrintable {
   // TODO: split into const/var => offset : L4_ConstIndex
   override def prettyprint(out : PpStream) = out << offset << " => " << coefficient
-  def progress = StencilEntry(offset.progress, coefficient.progress)
+  def progress = IR_StencilEntry(offset.progress, coefficient.progress)
 }
 
 /// L4_Stencil
@@ -34,11 +34,11 @@ case class L4_Stencil(
   }
 
   def progress = {
-    progressed = Some(Stencil(identifier, level, entries.map(_.progress)))
+    progressed = Some(IR_Stencil(identifier, level, entries.map(_.progress)))
     progressed.get
   }
 
-  var progressed : Option[Stencil] = None
+  var progressed : Option[IR_Stencil] = None
   override def getProgressedObject = {
     if (progressed.isEmpty)
       Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ identifier }")
