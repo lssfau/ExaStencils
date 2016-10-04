@@ -88,7 +88,7 @@ object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions"
       val newMult = transformMultiplication(exp)
       newMult.factors.size match {
         case 0 => IR_NullExpression
-        case 1 => newMult.factors(0)
+        case 1 => newMult.factors.head
         case _ => newMult
       }
     }
@@ -105,16 +105,16 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
 
       val flipEntries = false
 
-      for (idx <- 0 until stencilLeft.entries.size) {
-        var fieldSelection = stencilFieldAccess.stencilFieldSelection.toFieldSelection
+      for (idx <- stencilLeft.entries.indices) {
+        val fieldSelection = stencilFieldAccess.stencilFieldSelection.toFieldSelection
         fieldSelection.arrayIndex = Some(idx)
-        var fieldIndex = Duplicate(stencilFieldAccess.index)
+        val fieldIndex = Duplicate(stencilFieldAccess.index)
         fieldIndex(Knowledge.dimensionality) = idx
         var coeff : IR_Expression = 0
         for (e <- stencilRight.entries) {
           if (flipEntries) {
             if ((0 until Knowledge.dimensionality).map(dim =>
-              (SimplifyExpression.evalIntegral(e.offset(dim)) == -SimplifyExpression.evalIntegral(stencilLeft.entries(idx).offset(dim))))
+              SimplifyExpression.evalIntegral(e.offset(dim)) == -SimplifyExpression.evalIntegral(stencilLeft.entries(idx).offset(dim)))
               .reduceLeft((a, b) => a && b))
               coeff += e.coefficient
           } else {
@@ -127,7 +127,7 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
           for (dim <- 0 until Knowledge.dimensionality)
             fieldIndex(dim) -= stencilLeft.entries(idx).offset(dim)
 
-        statements += new IR_Assignment(new IR_FieldAccess(fieldSelection, fieldIndex), coeff, op)
+        statements += IR_Assignment(IR_FieldAccess(fieldSelection, fieldIndex), coeff, op)
       }
 
       statements
