@@ -6,12 +6,13 @@ import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.globals._
+import exastencils.mpi.ir.IR_IV_MpiRank
 
 object RemoveMPIReferences extends DefaultStrategy("RemoveMPIReferences") {
   this += new Transformation("CleaningFunctions", {
     // TODO: think about replacing reduce, gather, etc. with copy operations
-    case _ : MPI_Statement => List()
-
+    case _ : MPI_Statement  => List()
+    case _ : IR_IV_MpiRank  => IR_IntegerConstant(0)
     case _ : MPI_IsRootProc => IR_BooleanConstant(true)
   })
 }

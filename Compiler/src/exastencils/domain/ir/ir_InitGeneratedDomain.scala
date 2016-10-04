@@ -17,15 +17,12 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
   override def prettyprint_decl() = prettyprint
   override def name = "initDomain"
 
-  // FIXME: introduce dedicated iv
-  def mpiRank = if (Knowledge.mpi_enabled) IR_IV_MpiRank() else IR_IntegerConstant(0)
-
   def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
   def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
   def setupFragmentPosition() = {
     def localFragIndex(dim : Int) = (IR_LoopOverFragments.defIt / (0 until dim).map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)
-    def rankIndex(dim : Int) = (mpiRank / (0 until dim).map(dim => Knowledge.domain_rect_numBlocksAsVec(dim)).product) Mod Knowledge.domain_rect_numBlocksAsVec(dim)
+    def rankIndex(dim : Int) = (IR_IV_MpiRank() / (0 until dim).map(dim => Knowledge.domain_rect_numBlocksAsVec(dim)).product) Mod Knowledge.domain_rect_numBlocksAsVec(dim)
 
     Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPosition(dim),
