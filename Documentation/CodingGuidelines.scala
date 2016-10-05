@@ -12,3 +12,5 @@
 
 // avoid using new keyword / avoid overloading the this() operator
 // -> overload apply method of companion objects instead
+
+
