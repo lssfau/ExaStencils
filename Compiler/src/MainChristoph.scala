@@ -20,6 +20,7 @@ import exastencils.logger._
 import exastencils.mpi.ir._
 import exastencils.multiGrid._
 import exastencils.omp._
+import exastencils.omp.ir._
 import exastencils.optimization._
 import exastencils.parsers.l4._
 import exastencils.parsers.settings._
@@ -349,8 +350,11 @@ object MainChristoph {
     if (Knowledge.mpi_enabled)
       MPI_AddDatatypeSetup.apply()
 
-    if (Knowledge.omp_enabled)
+    if (Knowledge.omp_enabled) {
       AddOMPPragmas.apply()
+      OMP_HandleParallelSections.apply()
+      OMP_HandleCriticalSections.apply()
+    }
 
     // one last time
     if (Knowledge.useFasterExpand)

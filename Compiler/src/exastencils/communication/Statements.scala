@@ -11,9 +11,9 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
-import exastencils.mpi._
 import exastencils.mpi.ir._
 import exastencils.omp._
+import exastencils.omp.ir.OMP_PotentiallyCritical
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting._
 import exastencils.util._
@@ -409,9 +409,9 @@ case class RemoteSend(var field : IR_FieldSelection, var neighbor : NeighborInfo
 
   override def expand : Output[StatementList] = {
     ListBuffer[IR_Statement](
-      new MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
+      OMP_PotentiallyCritical(MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
         GeneratedMPITag(iv.CommId(), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), neighbor.index, concurrencyId),
-        iv.MpiRequest(field.field, s"Send_${ concurrencyId }", neighbor.index)) with OMP_PotentiallyCritical,
+        iv.MpiRequest(field.field, s"Send_${ concurrencyId }", neighbor.index))),
       IR_Assignment(iv.RemoteReqOutstanding(field.field, s"Send_${ concurrencyId }", neighbor.index), true))
   }
 }
@@ -421,10 +421,10 @@ case class RemoteRecv(var field : IR_FieldSelection, var neighbor : NeighborInfo
 
   override def expand : Output[StatementList] = {
     ListBuffer[IR_Statement](
-      new MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
+      OMP_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
         GeneratedMPITag(IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), iv.CommId(),
           Fragment.getOpposingNeigh(neighbor.index).index, concurrencyId),
-        iv.MpiRequest(field.field, s"Recv_${ concurrencyId }", neighbor.index)) with OMP_PotentiallyCritical,
+        iv.MpiRequest(field.field, s"Recv_${ concurrencyId }", neighbor.index))),
       IR_Assignment(iv.RemoteReqOutstanding(field.field, s"Recv_${ concurrencyId }", neighbor.index), true))
   }
 }

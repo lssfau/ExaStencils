@@ -7,7 +7,7 @@ import exastencils.base.ir.{ IR_Function, _ }
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.datastructures.Transformation.Output
 import exastencils.knowledge.Knowledge
-import exastencils.omp.OMP_PotentiallyCritical
+import exastencils.omp.ir.OMP_PotentiallyCritical
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_RawPrint
 
@@ -49,11 +49,11 @@ case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
       // busy wait => generate while loop polling through MPI_Test
       fct.body += IR_VariableDeclaration(flag, 0)
       fct.body += IR_WhileLoop(0 EqEq flag,
-        new IR_Assignment(result, IR_FunctionCall("MPI_Test",
-          request, IR_AddressofExpression(flag), IR_AddressofExpression(stat))) with OMP_PotentiallyCritical,
+        OMP_PotentiallyCritical(IR_Assignment(result, IR_FunctionCall("MPI_Test",
+          request, IR_AddressofExpression(flag), IR_AddressofExpression(stat)))),
         checkError)
     } else {
-      fct.body += new IR_Assignment(result, IR_FunctionCall("MPI_Wait", request, IR_AddressofExpression(stat))) with OMP_PotentiallyCritical
+      fct.body += OMP_PotentiallyCritical(IR_Assignment(result, IR_FunctionCall("MPI_Wait", request, IR_AddressofExpression(stat))))
       fct.body += checkError
     }
     fct.body += IR_Assignment(IR_DerefAccess(request), IR_FunctionCall("MPI_Request"))

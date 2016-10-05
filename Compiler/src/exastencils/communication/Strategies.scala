@@ -15,7 +15,7 @@ import exastencils.datastructures._
 import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.mpi.ir.MPI_WaitForRequest
-import exastencils.omp._
+import exastencils.omp.ir.OMP_WaitForFlag
 
 object SetupCommunication extends DefaultStrategy("Setting up communication") {
   var commFunctions : CommunicationFunctions = CommunicationFunctions()
@@ -35,7 +35,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
         commFunctions.functions += MPI_WaitForRequest
       if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
-        commFunctions.functions += new OMP_WaitForFlag
+        commFunctions.functions += OMP_WaitForFlag
     }
 
     super.apply(node)

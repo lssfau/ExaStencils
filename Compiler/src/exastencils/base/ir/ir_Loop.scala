@@ -14,7 +14,8 @@ object IR_ForLoop {
 
 }
 
-case class IR_ForLoop(var begin : IR_Statement,
+case class IR_ForLoop(
+    var begin : IR_Statement,
     var end : IR_Expression,
     var inc : IR_Statement,
     var body : ListBuffer[IR_Statement],

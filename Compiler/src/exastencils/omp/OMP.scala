@@ -3,13 +3,7 @@ package exastencils.omp
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.datastructures.Node
-import exastencils.datastructures.Transformation._
-import exastencils.knowledge._
-import exastencils.prettyprinting._
-
-@deprecated("to be extracted to a separate statement", "05.10.2016")
-trait OMP_PotentiallyCritical
+import exastencils.omp.ir.OMP_Clause
 
 @deprecated("to be integrated with loop annotations/ loop member holding optimization and parallelization information", "15.09.2016")
 trait OMP_PotentiallyParallel {
@@ -18,94 +12,3 @@ trait OMP_PotentiallyParallel {
   var collapse = 1
 }
 
-case class OMP_Barrier() extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "#pragma omp barrier"
-}
-
-case class OMP_Critical(var body : IR_Scope) extends IR_Statement {
-
-  import OMP_Critical._
-
-  def this(body : IR_Statement) = this(IR_Scope(body))
-  def this(body : ListBuffer[IR_Statement]) = this(IR_Scope(body))
-
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "#pragma omp critical"
-    if (Knowledge.omp_nameCriticalSections) {
-      out << s" (section_$counter)"
-      counter += 1
-    }
-    out << "\n" << body
-  }
-}
-
-case object OMP_Critical {
-  var counter = 0
-}
-
-case class OMP_ParallelFor(var body : IR_ForLoop, var additionalOMPClauses : ListBuffer[OMP_Clause], var collapse : Int = 1) extends IR_Statement {
-
-  /**
-    * Computes the actual omp collapse level,
-    * which is the largest possible less or equal to `collapse` for the current `body`.
-    */
-  private def getCollapseLvl() : Int = {
-    var res : Int = 1
-    var stmts : ListBuffer[IR_Statement] = body.body
-    while (res < collapse) {
-      val filtered = stmts.filterNot(s => s.isInstanceOf[IR_Comment] || s == IR_NullStatement)
-      if (filtered.length != 1)
-        return res // no more than one statement allowed: not perfectly nested anymore, return last valid collapse level
-      stmts =
-        filtered(0) match {
-          case s : IR_Scope   => s.body
-          case l : IR_ForLoop => { res += 1; l.body }
-          case _              => return res // any other statement: not perfectly nested anymore, return last valid collapse level
-        }
-    }
-
-    res // res == collapse now
-  }
-
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "#pragma omp parallel for schedule(static) num_threads(" << Knowledge.omp_numThreads << ')'
-    if (!additionalOMPClauses.isEmpty)
-      out << ' ' <<< (additionalOMPClauses, " ")
-    if (collapse > 1 && Platform.omp_version >= 3 && Knowledge.omp_useCollapse)
-      out << " collapse(" << getCollapseLvl() << ')'
-    out << '\n' << body
-  }
-}
-
-case class OMP_WaitForFlag() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-  override def prettyprint_decl : String = prettyprint
-  override def name = "waitForFlag"
-
-  override def expand : Output[IR_Function] = {
-    def flag = IR_VariableAccess("flag", IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype)))
-
-    IR_Function(IR_UnitDatatype, name, ListBuffer(IR_FunctionArgument(flag.name, flag.innerDatatype.get)),
-      ListBuffer[IR_Statement](
-        new IR_WhileLoop(IR_NegationExpression(IR_DerefAccess(flag)), ListBuffer[IR_Statement]()),
-        new IR_Assignment(IR_DerefAccess(flag), IR_BooleanConstant(false))),
-      false)
-  }
-}
-
-abstract class OMP_Clause extends Node with PrettyPrintable
-
-case class OMP_Reduction(var op : String, var target : IR_VariableAccess) extends OMP_Clause {
-  def this(red : IR_Reduction) = this(red.op, red.target)
-  override def prettyprint(out : PpStream) : Unit = out << "reduction(" << op << " : " << target << ')'
-}
-
-case class OMP_Lastprivate(var vars : ListBuffer[IR_VariableAccess]) extends OMP_Clause {
-  def this(v : IR_VariableAccess) = this(ListBuffer(v))
-  override def prettyprint(out : PpStream) : Unit = out << "lastprivate(" <<< (vars, ", ") << ')'
-}
-
-case class OMP_Private(var vars : ListBuffer[IR_VariableAccess]) extends OMP_Clause {
-  def this(v : IR_VariableAccess) = this(ListBuffer(v))
-  override def prettyprint(out : PpStream) : Unit = out << "private(" <<< (vars, ", ") << ')'
-}
