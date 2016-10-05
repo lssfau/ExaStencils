@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.knowledge._
-import exastencils.mpi.MPI_Allreduce
+import exastencils.mpi.ir.MPI_AllReduce
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.ReplaceStringConstantsStrategy
@@ -95,7 +95,7 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
     }
 
     if (Knowledge.mpi_enabled && reduction.isDefined) {
-      statements += new MPI_Allreduce(IR_AddressofExpression(reduction.get.target), IR_RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
+      statements += MPI_AllReduce(IR_AddressofExpression(reduction.get.target), IR_RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
     }
 
     statements

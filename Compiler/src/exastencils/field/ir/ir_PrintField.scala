@@ -12,7 +12,7 @@ import exastencils.deprecated.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.GridGeometry
 import exastencils.knowledge._
-import exastencils.mpi._
+import exastencils.mpi.ir._
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_Print
 

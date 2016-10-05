@@ -12,6 +12,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
 import exastencils.mpi._
+import exastencils.mpi.ir._
 import exastencils.omp._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting._

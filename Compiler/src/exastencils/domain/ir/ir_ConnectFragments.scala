@@ -10,7 +10,7 @@ import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain._
 import exastencils.knowledge
 import exastencils.knowledge._
-import exastencils.mpi.ir.IR_IV_MpiRank
+import exastencils.mpi.ir.MPI_IV_MpiRank
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB
@@ -116,7 +116,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
           statements += IR_IfCondition(IR_IV_IsValidForDomain(d) AndAnd isPointInsideDomain(offsetPos, domains(d)),
             if (Knowledge.domain_canHaveRemoteNeighs && Knowledge.domain_canHaveLocalNeighs)
               ListBuffer[IR_Statement](
-                IR_IfCondition(IR_EqEqExpression(IR_IV_MpiRank(), owningRankForPoint(offsetPos, domains(d))),
+                IR_IfCondition(IR_EqEqExpression(MPI_IV_MpiRank, owningRankForPoint(offsetPos, domains(d))),
                   localConnect(d), remoteConnect(d)))
             else if (Knowledge.domain_canHaveRemoteNeighs)
               remoteConnect(d)

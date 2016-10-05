@@ -10,7 +10,7 @@ import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.grid._
 import exastencils.knowledge._
-import exastencils.mpi._
+import exastencils.mpi.ir.MPI_Send
 import exastencils.prettyprinting._
 
 //TODO specific expression for reading from fragment data file

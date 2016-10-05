@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.iv
 import exastencils.knowledge.{ Knowledge, _ }
-import exastencils.mpi.ir.IR_IV_MpiRank
+import exastencils.mpi.ir.MPI_IV_MpiRank
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB
 
@@ -22,7 +22,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
 
   def setupFragmentPosition() = {
     def localFragIndex(dim : Int) = (IR_LoopOverFragments.defIt / (0 until dim).map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product) Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)
-    def rankIndex(dim : Int) = (IR_IV_MpiRank() / (0 until dim).map(dim => Knowledge.domain_rect_numBlocksAsVec(dim)).product) Mod Knowledge.domain_rect_numBlocksAsVec(dim)
+    def rankIndex(dim : Int) = (MPI_IV_MpiRank / (0 until dim).map(dim => Knowledge.domain_rect_numBlocksAsVec(dim)).product) Mod Knowledge.domain_rect_numBlocksAsVec(dim)
 
     Knowledge.dimensions.map(dim =>
       IR_Assignment(IR_IV_FragmentPosition(dim),

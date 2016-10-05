@@ -14,6 +14,11 @@ abstract class IR_AbstractFunction(var isHeaderOnly : Boolean = false) extends I
 
 /// IR_FunctionArgument
 
+object IR_FunctionArgument {
+  // generate declaration corresponding to given access
+  def apply(access : IR_VariableAccess) = new IR_FunctionArgument(access.name, access.datatype)
+}
+
 case class IR_FunctionArgument(var name : String, var datatype : IR_Datatype) extends IR_Node with PrettyPrintable {
   override def prettyprint(out : PpStream) = out << datatype << ' ' << name
 

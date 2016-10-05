@@ -5,10 +5,10 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.knowledge._
 import exastencils.prettyprinting._
 
+@deprecated("to be extracted to a separate statement", "05.10.2016")
 trait OMP_PotentiallyCritical
 
 @deprecated("to be integrated with loop annotations/ loop member holding optimization and parallelization information", "15.09.2016")

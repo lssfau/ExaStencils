@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.{ IR_VariableAccess, _ }
 import exastencils.datastructures.Transformation.Output
 import exastencils.knowledge.Knowledge
-import exastencils.mpi.MPI_IsRootProc
+import exastencils.mpi.ir.MPI_IsRootProc
 import exastencils.prettyprinting.PpStream
 
 /// IR_Print

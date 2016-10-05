@@ -15,7 +15,7 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.logger._
-import exastencils.mpi._
+import exastencils.mpi.ir._
 import exastencils.stencil.ir._
 import exastencils.strategies.ReplaceStringConstantsStrategy
 import exastencils.util._
@@ -198,8 +198,8 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
         func.body.append(new CUDA_Finalize)
       }
       if (Knowledge.mpi_enabled) {
-        func.body.prepend(new MPI_Init)
-        func.body.append(new MPI_Finalize)
+        func.body.prepend(MPI_Init)
+        func.body.append(MPI_Finalize)
       }
       func.body.append(new IR_Return(Some(new IR_IntegerConstant(0))))
       func

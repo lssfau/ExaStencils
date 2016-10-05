@@ -21,7 +21,7 @@ import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
-import exastencils.mpi._
+import exastencils.mpi.ir._
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.optimization._
@@ -401,7 +401,7 @@ object Main {
       ExpandStrategy.doUntilDone()
 
     if (!Knowledge.mpi_enabled)
-      RemoveMPIReferences.apply()
+      MPI_RemoveMPI.apply()
 
     SimplifyStrategy.doUntilDone()
 
@@ -431,7 +431,7 @@ object Main {
       ExpandStrategy.doUntilDone()
 
     if (Knowledge.mpi_enabled)
-      AddMPIDatatypes.apply()
+      MPI_AddDatatypeSetup.apply()
 
     if (Knowledge.omp_enabled)
       AddOMPPragmas.apply()

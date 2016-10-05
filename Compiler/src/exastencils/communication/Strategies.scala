@@ -14,7 +14,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.knowledge._
 import exastencils.logger._
-import exastencils.mpi._
+import exastencils.mpi.ir.MPI_WaitForRequest
 import exastencils.omp._
 
 object SetupCommunication extends DefaultStrategy("Setting up communication") {
@@ -33,7 +33,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
       addedFunctions.clear
 
       if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
-        commFunctions.functions += new MPI_WaitForRequest
+        commFunctions.functions += MPI_WaitForRequest
       if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
         commFunctions.functions += new OMP_WaitForFlag
     }

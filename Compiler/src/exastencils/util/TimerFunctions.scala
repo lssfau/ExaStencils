@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.knowledge._
-import exastencils.mpi._
+import exastencils.mpi.ir._
 import exastencils.prettyprinting._
 import exastencils.timing.ir.IR_IV_Timer
 import exastencils.util.ir._
@@ -207,7 +207,7 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with IR_Expan
     statements += IR_VariableDeclaration(IR_DoubleDatatype, "timerValue", IR_FunctionCall(timeToPrint, timer.resolveName))
 
     if (Knowledge.mpi_enabled) {
-      statements += new MPI_Allreduce("&timerValue", IR_DoubleDatatype, 1, "+")
+      statements += MPI_AllReduce("&timerValue", IR_DoubleDatatype, 1, "+")
       statements += IR_Assignment("timerValue", "mpiSize", "/=")
     }
 
@@ -295,7 +295,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
           ListBuffer[IR_Statement](
             IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, Knowledge.mpi_numThreads * 2 * timers.size), "timesToPrint"))
             ++ genDataCollect(timers)
-            ++ ListBuffer[IR_Statement](new MPI_Gather("timesToPrint", IR_DoubleDatatype, 2 * timers.size))
+            ++ ListBuffer[IR_Statement](MPI_Gather("timesToPrint", IR_DoubleDatatype, 2 * timers.size))
             ++ genPrint(timers),
           ListBuffer[IR_Statement](IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint"))
             ++ genDataCollect(timers)
@@ -303,7 +303,7 @@ case class TimerFct_PrintAllTimersToFile() extends AbstractTimerFunction with IR
       } else {
         statements += IR_VariableDeclaration(IR_ArrayDatatype(IR_DoubleDatatype, 2 * timers.size), "timesToPrint")
         statements ++= genDataCollect(timers)
-        statements += new MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
+        statements += MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
         def timerId = IR_VariableAccess("timerId", IR_IntegerDatatype)
         statements += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
           IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
