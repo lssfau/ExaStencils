@@ -8,7 +8,6 @@ import exastencils.base.ir._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.knowledge.Knowledge
 import exastencils.logger._
 
@@ -59,7 +58,7 @@ object Inlining extends CustomStrategy("Function inlining") {
     for ((func, funcStmt) <- analyzer.functions) {
       // some heuristics to identify which functions to inline
       val stmts : Buffer[IR_Statement] = analyzer.flatFunctionBody(func)
-      var inline : Boolean = stmts.length <= Knowledge.ir_maxInliningSize
+      var inline : Boolean = stmts.length <= Knowledge.opt_maxInliningSize
       if (heuristics_prepareCSE) {
         var singleRet : Boolean = false
         for (stmt <- stmts) stmt match {

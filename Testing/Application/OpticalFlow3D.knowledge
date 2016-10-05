@@ -10,7 +10,7 @@ minLevel							= 1
 maxLevel							= 7
 
 l3tmp_generateL4					= false
-ir_maxInliningSize					= 4
+opt_maxInliningSize					= 4
 mpi_enabled							= false
 
 omp_enabled							= true

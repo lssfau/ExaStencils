@@ -309,7 +309,7 @@ object MainJeremias {
       ExpandStrategy.doUntilDone()
     SimplifyStrategy.doUntilDone()
 
-    if (Knowledge.ir_maxInliningSize > 0)
+    if (Knowledge.opt_maxInliningSize > 0)
       Inlining.apply()
     CleanUnusedStuff.apply()
 

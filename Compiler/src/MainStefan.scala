@@ -214,7 +214,7 @@ object MainStefan {
 
     L4_ProcessKnowledgeDeclarations.apply()
 
-    if (Knowledge.ir_genSepLayoutsPerField)
+    if (Knowledge.l4_genSepLayoutsPerField)
       L4_DuplicateFieldLayoutsForFields.apply()
 
     L4_ResolveFieldAccesses.apply()
@@ -330,7 +330,7 @@ object MainStefan {
       AnalyzeIterationDistance.apply()
     }
 
-    if (Knowledge.kerncraftExport) {
+    if (Knowledge.experimental_kerncraftExport) {
       KerncraftExport.apply()
     }
 
@@ -441,7 +441,7 @@ object MainStefan {
 
     exastencils.workaround.Compiler.apply()
 
-    if (Knowledge.ir_maxInliningSize > 0)
+    if (Knowledge.opt_maxInliningSize > 0)
       Inlining.apply()
     CleanUnusedStuff.apply()
 
