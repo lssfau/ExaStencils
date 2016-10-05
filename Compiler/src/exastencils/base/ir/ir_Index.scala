@@ -6,6 +6,13 @@ import exastencils.prettyprinting.PpStream
 trait IR_Index extends IR_Expression {
   // to be implemented by inheriting from IR_ArrayBasedIndex
   def length() : Int
+
+  // conversion to expression index
+  def toExpressionIndex : IR_ExpressionIndex
+
+  // index arithmetic
+  def +(that : IR_Index) : IR_Index
+  def -(that : IR_Index) : IR_Index
 }
 
 trait IR_ArrayBasedIndex[T] extends Iterable[T] {
@@ -39,24 +46,24 @@ case class IR_ExpressionIndex(var indices : Array[IR_Expression]) extends IR_Ind
     })
   }
 
-  override def datatype = IR_UnitDatatype
   // FIXME
-  override def prettyprint(out : PpStream) : Unit = {
-    out << '[' <<< (this, ", ") << ']'
-  }
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << '[' <<< (this, ", ") << ']'
 
-  def +(that : IR_Index) = {
+  override def +(that : IR_Index) : IR_ExpressionIndex = {
     that match {
       case that : IR_ExpressionIndex => IR_ExpressionIndex(this, that, _ + _)
       case that : IR_ConstIndex      => IR_ExpressionIndex(this, that.toExpressionIndex, _ + _)
     }
   }
-  def -(that : IR_Index) = {
+  override def -(that : IR_Index) : IR_ExpressionIndex = {
     that match {
       case that : IR_ExpressionIndex => IR_ExpressionIndex(this, that, _ - _)
       case that : IR_ConstIndex      => IR_ExpressionIndex(this, that.toExpressionIndex, _ - _)
     }
   }
+
+  override def toExpressionIndex = this
 
   override def equals(other : Any) : Boolean = {
     if (this eq other.asInstanceOf[AnyRef])
@@ -81,17 +88,22 @@ object IR_ConstIndex {
 }
 
 case class IR_ConstIndex(var indices : Array[Int]) extends IR_Index with IR_ArrayBasedIndex[Int] {
-  override def datatype = IR_UnitDatatype
   // FIXME
-  override def prettyprint(out : PpStream) : Unit = {
-    out << '[' << indices.mkString(", ") << ']'
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << '[' << indices.mkString(", ") << ']'
+
+  override def +(that : IR_Index) = {
+    that match {
+      case that : IR_ConstIndex      => IR_ConstIndex(this, that, _ + _)
+      case that : IR_ExpressionIndex => IR_ExpressionIndex(this.toExpressionIndex, that, _ + _)
+    }
   }
-
-  def +(that : IR_ConstIndex) = IR_ConstIndex(this, that, _ + _)
-  def -(that : IR_ConstIndex) = IR_ConstIndex(this, that, _ - _)
-
-  def +(that : IR_ExpressionIndex) = IR_ExpressionIndex(this.toExpressionIndex, that, _ + _)
-  def -(that : IR_ExpressionIndex) = IR_ExpressionIndex(this.toExpressionIndex, that, _ - _)
+  override def -(that : IR_Index) = {
+    that match {
+      case that : IR_ConstIndex      => IR_ConstIndex(this, that, _ - _)
+      case that : IR_ExpressionIndex => IR_ExpressionIndex(this.toExpressionIndex, that, _ - _)
+    }
+  }
 
   def toExpressionIndex = IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
 }

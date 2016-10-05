@@ -7,6 +7,7 @@ import exastencils.communication._
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures._
+import exastencils.deprecated.ir.CreateGeomCoordinates
 import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.{ l4 => _, _ }

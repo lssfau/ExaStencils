@@ -8,6 +8,7 @@ import exastencils.communication.ir.IR_Communicate
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.knowledge._
@@ -98,7 +99,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       }
     }
 
-    val indexRange = IndexRange(start, stop)
+    val indexRange = IR_ExpressionIndexRange(start, stop)
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
     // fix iteration space for reduction operations if required
@@ -110,7 +111,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
         || ("face_x" == field.fieldLayout.discretization && 0 == dim)
         || ("face_y" == field.fieldLayout.discretization && 1 == dim)
         || ("face_z" == field.fieldLayout.discretization && 2 == dim))*/
-          condition = Some(IR_AndAndExpression(condition.get, IR_GreaterEqualExpression(IR_VariableAccess(dimToString(dim), IR_IntegerDatatype), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
+          condition = Some(IR_AndAndExpression(condition.get, IR_GreaterEqualExpression(IR_VariableAccess(IR_DimToString(dim), IR_IntegerDatatype), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
     }
 
     var loop : IR_LoopOverDimensions = {

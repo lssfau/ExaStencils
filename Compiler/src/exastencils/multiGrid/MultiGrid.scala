@@ -28,7 +28,7 @@ case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
       val numDims = field.fieldLayout.numDimsData
       val index = IR_LoopOverDimensions.defIt(numDims)
 
-      val loopOverDims = new IR_LoopOverDimensions(numDims, new IndexRange(
+      val loopOverDims = new IR_LoopOverDimensions(numDims, new IR_ExpressionIndexRange(
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>

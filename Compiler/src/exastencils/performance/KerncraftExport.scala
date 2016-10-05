@@ -12,8 +12,8 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
+import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
-import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.strategies.SimplifyStrategy
 
@@ -173,8 +173,8 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     def buildRec(d : Integer, outer : Option[IR_ForLoop]) : Option[IR_ForLoop] = {
       if (d < loop.numDimensions) {
 
-        def it = IR_VariableAccess(dimToString(d), Some(IR_IntegerDatatype))
-        val decl = IR_VariableDeclaration(IR_IntegerDatatype, dimToString(d), Some(IR_IntegerConstant(begin(d))))
+        def it = IR_VariableAccess(IR_DimToString(d), Some(IR_IntegerDatatype))
+        val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(IR_IntegerConstant(begin(d))))
         val cond = IR_LowerExpression(it, IR_IntegerConstant(end(d)))
         val incr = IR_Assignment(it, loop.stepSize(d), "+=")
 

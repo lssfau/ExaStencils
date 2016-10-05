@@ -2,6 +2,7 @@ package exastencils.field.ir
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_Linearization
 import exastencils.datastructures.ir.iv
 import exastencils.knowledge._
 import exastencils.knowledge.ir._
@@ -82,6 +83,10 @@ case class IR_FieldLayout(
     referenceOffset = IR_ExpressionIndex(Array.fill(layoutsPerDim.length)(0))
     for (dim <- 0 until layoutsPerDim.length)
       referenceOffset(dim) = IR_IntegerConstant(layoutsPerDim(dim).numPadLayersLeft + layoutsPerDim(dim).numGhostLayersLeft)
+  }
+
+  def linearizeIndex(index : IR_Index) : IR_Expression = {
+    IR_Linearization.linearizeIndex(index, IR_ExpressionIndex((0 until math.min(numDimsData, index.length())).map(idxById("TOT", _)).toArray))
   }
 }
 

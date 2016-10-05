@@ -69,7 +69,7 @@ case class GetFromExternalField(var src : IR_Field, var dest : IR_ExternalField)
     new IR_Function(IR_UnitDatatype, name,
       ListBuffer(IR_FunctionArgument("dest", externalDT), IR_FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
-        new IR_LoopOverDimensions(loopDim, IndexRange(
+        new IR_LoopOverDimensions(loopDim, IR_ExpressionIndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
           ListBuffer[IR_Statement](IR_Assignment(IR_ExternalFieldAccess("dest", dest, multiIndex + offsetForExtField),
@@ -118,7 +118,7 @@ case class SetFromExternalField(var dest : IR_Field, var src : IR_ExternalField)
     new IR_Function(IR_UnitDatatype, name,
       ListBuffer(IR_FunctionArgument("src", externalDT), IR_FunctionArgument("slot", IR_IntegerDatatype)),
       ListBuffer[IR_Statement](
-        new IR_LoopOverDimensions(loopDim, IndexRange(
+        new IR_LoopOverDimensions(loopDim, IR_ExpressionIndexRange(
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
           IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
           ListBuffer[IR_Statement](IR_Assignment(IR_DirectFieldAccess(IR_FieldSelection(dest, dest.level, "slot"), multiIndex),

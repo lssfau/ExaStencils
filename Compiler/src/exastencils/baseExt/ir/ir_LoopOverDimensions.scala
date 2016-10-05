@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core.Duplicate
+import exastencils.deprecated.ir.IR_DimToString
 import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
@@ -15,17 +16,17 @@ import exastencils.util._
 
 // FIXME: refactor
 object IR_LoopOverDimensions {
-  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction], condition : Option[IR_Expression]) =
+  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction], condition : Option[IR_Expression]) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction, condition)
-  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction]) =
+  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction]) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction)
-  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex) =
+  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize)
-  def apply(numDimensions : Int, indices : IndexRange, body : IR_Statement) =
+  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body))
 
   def defIt(numDims : Int) = IR_ExpressionIndex((0 until numDims).map(dim => defItForDim(dim) : IR_Expression).toArray)
-  def defItForDim(dim : Int) = IR_VariableAccess(dimToString(dim), IR_IntegerDatatype)
+  def defItForDim(dim : Int) = IR_VariableAccess(IR_DimToString(dim), IR_IntegerDatatype)
 
   val threadIdxName : String = "threadIdx"
 
@@ -76,7 +77,7 @@ object IR_LoopOverDimensions {
 }
 
 case class IR_LoopOverDimensions(var numDimensions : Int,
-    var indices : IndexRange,
+    var indices : IR_ExpressionIndexRange,
     var body : ListBuffer[IR_Statement],
     var stepSize : IR_ExpressionIndex = null, // actual default set in constructor
     var reduction : Option[IR_Reduction] = None,
@@ -101,7 +102,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
     var end : Array[Long] = null
 
     indices match {
-      case indexRange : IndexRange =>
+      case indexRange : IR_ExpressionIndexRange =>
         indexRange.begin match {
           case startIndex : IR_ExpressionIndex => start = evalMinIndex(startIndex, numDimensions, false)
           case _                               => Logger.warn("Loop index range begin is not a MultiIndex")
@@ -110,7 +111,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
           case endIndex : IR_ExpressionIndex => end = evalMaxIndex(endIndex, numDimensions, false)
           case _                             => Logger.warn("Loop index range end is not a MultiIndex")
         }
-      case _                       => Logger.warn("Loop indices are not of type IndexRange")
+      case _                                    => Logger.warn("Loop indices are not of type IndexRange")
     }
 
     if (null == start && null != end) {
@@ -155,7 +156,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
     // add conditions for first iteration
     for (d <- 0 until numDimensions)
       if (at1stIt(d)._1.nonEmpty) {
-        val cond = IR_IfCondition(IR_EqEqExpression(IR_VariableAccess(dimToString(d), IR_IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
+        val cond = IR_IfCondition(IR_EqEqExpression(IR_VariableAccess(IR_DimToString(d), IR_IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
         for ((annotId, value) <- at1stIt(d)._2)
           cond.annotate(annotId, value)
         conds += cond
@@ -172,7 +173,7 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
     SimplifyExpression.simplifyIntegralExpr(oldEnd - oldBegin + inc).isInstanceOf[IR_IntegerConstant]
   }
 
-  lazy val ompIndices : IndexRange = {
+  lazy val ompIndices : IR_ExpressionIndexRange = {
     val nju = Duplicate(indices)
     // update outermost loop according to: begin --> begin + (((end-start+inc-1)/inc * threadIdx) / nrThreads) * inc and end is start for threadIdx+1
     val outer = numDimensions - 1
@@ -204,8 +205,8 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
     val inds = if (explParLoop) ompIndices else indices
     // compile loop(s)
     for (d <- 0 until numDimensions) {
-      def it = IR_VariableAccess(dimToString(d), IR_IntegerDatatype)
-      val decl = IR_VariableDeclaration(IR_IntegerDatatype, dimToString(d), Some(inds.begin(d)))
+      def it = IR_VariableAccess(IR_DimToString(d), IR_IntegerDatatype)
+      val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(inds.begin(d)))
       val cond = IR_LowerExpression(it, inds.end(d))
       val incr = IR_Assignment(it, stepSize(d), "+=")
       val compiledLoop : IR_ForLoop with OptimizationHint =

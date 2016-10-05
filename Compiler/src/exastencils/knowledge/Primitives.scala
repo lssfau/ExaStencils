@@ -2,10 +2,11 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger._
 
 class NeighborInfo(var dir : Array[Int], var index : Int) {
-  var label : String = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => dimToString(i).toUpperCase + dirToString(dir(i))).mkString("_")
+  var label : String = (Knowledge.dimensionality - 1 to 0 by -1).toList.map(i => IR_DimToString(i).toUpperCase + dirToString(dir(i))).mkString("_")
 }
 
 object dirToString extends (Int => String) {
@@ -41,7 +42,7 @@ object Fragment {
     neighbors.clear
 
     Knowledge.comm_strategyFragment match {
-      case 6 => {
+      case 6  => {
         var neighIndex = 0
         for (dim <- 0 until Knowledge.dimensionality) {
           neighbors += new NeighborInfo(Array.fill(dim)(0) ++ Array(-1) ++ Array.fill(Knowledge.dimensionality - dim - 1)(0), neighIndex)

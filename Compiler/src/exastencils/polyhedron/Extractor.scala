@@ -9,7 +9,7 @@ import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
@@ -655,7 +655,7 @@ class Extractor extends Collector {
     do {
       bool |= extractConstraints(begin(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append("<=")
-      constrs.append(ScopNameMapping.expr2id(IR_VariableAccess(dimToString(i), IR_IntegerDatatype)))
+      constrs.append(ScopNameMapping.expr2id(IR_VariableAccess(IR_DimToString(i), IR_IntegerDatatype)))
       constrs.append('<')
       bool |= extractConstraints(end(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append(" and ")

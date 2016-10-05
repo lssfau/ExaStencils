@@ -17,7 +17,7 @@ case class IR_DirectFieldAccess(var fieldSelection : IR_FieldSelection, var inde
   override def datatype = fieldSelection.fieldLayout.datatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  def linearize = IR_LinearizedFieldAccess(fieldSelection, Mapping.resolveMultiIdx(fieldSelection.fieldLayout, index))
+  def linearize = IR_LinearizedFieldAccess(fieldSelection, fieldSelection.fieldLayout.linearizeIndex(index))
 }
 
 /// IR_FieldAccess

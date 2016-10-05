@@ -42,13 +42,13 @@ abstract class LocalTransfers extends IR_Statement with IR_Expandable {
 }
 
 case class StartLocalComm(var field : IR_FieldSelection,
-    var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
-    var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
+    var sendNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
+    var recvNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
     var insideFragLoop : Boolean, var cond : Option[IR_Expression]) extends LocalTransfers {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  def setLocalCommReady(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[IR_Statement] = {
+  def setLocalCommReady(neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)]) : ListBuffer[IR_Statement] = {
     wrapFragLoop(
       neighbors.map(neighbor =>
         IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor._1.index)
@@ -87,13 +87,13 @@ case class StartLocalComm(var field : IR_FieldSelection,
 }
 
 case class FinishLocalComm(var field : IR_FieldSelection,
-    var sendNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
-    var recvNeighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)],
+    var sendNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
+    var recvNeighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)],
     var insideFragLoop : Boolean, var cond : Option[IR_Expression]) extends LocalTransfers {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  def waitForLocalComm(neighbors : ListBuffer[(NeighborInfo, IndexRange, IndexRange)]) : ListBuffer[IR_Statement] = {
+  def waitForLocalComm(neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)]) : ListBuffer[IR_Statement] = {
     wrapFragLoop(
       neighbors.map(neighbor =>
         IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor._1.index)
@@ -121,7 +121,7 @@ case class FinishLocalComm(var field : IR_FieldSelection,
   }
 }
 
-case class LocalSend(var field : IR_FieldSelection, var neighbor : NeighborInfo, var dest : IndexRange, var src : IndexRange,
+case class LocalSend(var field : IR_FieldSelection, var neighbor : NeighborInfo, var dest : IR_ExpressionIndexRange, var src : IR_ExpressionIndexRange,
     var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
@@ -147,7 +147,7 @@ case class LocalSend(var field : IR_FieldSelection, var neighbor : NeighborInfo,
   }
 }
 
-case class LocalRecv(var field : IR_FieldSelection, var neighbor : NeighborInfo, var dest : IndexRange, var src : IndexRange,
+case class LocalRecv(var field : IR_FieldSelection, var neighbor : NeighborInfo, var dest : IR_ExpressionIndexRange, var src : IR_ExpressionIndexRange,
     var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
@@ -177,12 +177,12 @@ case class LocalRecv(var field : IR_FieldSelection, var neighbor : NeighborInfo,
 
 abstract class RemoteTransfers extends IR_Statement with IR_Expandable {
   def field : IR_FieldSelection
-  def neighbors : ListBuffer[(NeighborInfo, IndexRange)]
+  def neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]
 
   def insideFragLoop : Boolean
 
-  def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : IR_Statement
-  def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : IR_Statement
+  def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement
+  def genTransfer(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement
 
   def wrapCond(neighbor : NeighborInfo, body : ListBuffer[IR_Statement]) : IR_Statement = {
     IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index),
@@ -199,12 +199,12 @@ abstract class RemoteTransfers extends IR_Statement with IR_Expandable {
   }
 }
 
-case class RemoteSends(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean,
+case class RemoteSends(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)], var start : Boolean, var end : Boolean,
     var concurrencyId : Int, var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends RemoteTransfers {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  override def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : IR_Statement = {
+  override def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
     if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
       var body = CopyToSendBuffer(field, neighbor, indices, concurrencyId, condition)
       if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body
@@ -213,7 +213,7 @@ case class RemoteSends(var field : IR_FieldSelection, var neighbors : ListBuffer
     }
   }
 
-  override def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : IR_Statement = {
+  override def genTransfer(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
     var body = {
       val maxCnt = indices.getTotalSize
       val cnt = (if (condition.isDefined)
@@ -267,12 +267,12 @@ case class RemoteSends(var field : IR_FieldSelection, var neighbors : ListBuffer
   }
 }
 
-case class RemoteRecvs(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)], var start : Boolean, var end : Boolean,
+case class RemoteRecvs(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)], var start : Boolean, var end : Boolean,
     var concurrencyId : Int, var insideFragLoop : Boolean, var condition : Option[IR_Expression]) extends RemoteTransfers {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  override def genCopy(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : IR_Statement = {
+  override def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
     if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
       var body = CopyFromRecvBuffer(field, neighbor, indices, concurrencyId, condition)
       if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body
@@ -281,7 +281,7 @@ case class RemoteRecvs(var field : IR_FieldSelection, var neighbors : ListBuffer
     }
   }
 
-  override def genTransfer(neighbor : NeighborInfo, indices : IndexRange, addCondition : Boolean) : IR_Statement = {
+  override def genTransfer(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
     var body = {
       val maxCnt = indices.getTotalSize
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
@@ -332,7 +332,7 @@ case class RemoteRecvs(var field : IR_FieldSelection, var neighbors : ListBuffer
   }
 }
 
-case class CopyToSendBuffer(var field : IR_FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange,
+case class CopyToSendBuffer(var field : IR_FieldSelection, var neighbor : NeighborInfo, var indices : IR_ExpressionIndexRange,
     var concurrencyId : Int, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
@@ -367,7 +367,7 @@ case class CopyToSendBuffer(var field : IR_FieldSelection, var neighbor : Neighb
   }
 }
 
-case class CopyFromRecvBuffer(var field : IR_FieldSelection, var neighbor : NeighborInfo, var indices : IndexRange,
+case class CopyFromRecvBuffer(var field : IR_FieldSelection, var neighbor : NeighborInfo, var indices : IR_ExpressionIndexRange,
     var concurrencyId : Int, var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"

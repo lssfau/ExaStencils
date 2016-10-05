@@ -20,7 +20,7 @@ import exastencils.omp._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting._
 
-case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IndexRange)]) extends IR_Statement with IR_Expandable {
+case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
@@ -122,7 +122,7 @@ case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListB
     new IR_LoopOverFragments(
       ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
         neighbors.map({ neigh =>
-          var adaptedIndexRange = IndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
+          var adaptedIndexRange = IR_ExpressionIndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
           // TODO: assumes equal bc's for all components
           adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : IR_Expression)
           adaptedIndexRange.end.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => layout.idxById("TOT", dim))

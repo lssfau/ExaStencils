@@ -2,7 +2,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_LoopOverDimensions
+import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -270,13 +270,13 @@ object Testbed {
             // 196-15 = 181 Flops
       """
 
-    var aabb = IndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(4, 4, 4))
+    var aabb = IR_ExpressionIndexRange(IR_ExpressionIndex(0, 0, 0), IR_ExpressionIndex(4, 4, 4))
     var k : IR_Expression = "k_el"
     for (group <- 0 to 5) {
       for (position <- 0 to 3) {
         statements += IR_Assignment(k, "k_tc_mn + k_mc_me")
         for (i <- 0 to 4) {
-          statements += IR_Assignment(IR_ArrayAccess("stencil", "tet_mc"), k * IR_ArrayAccess("c", Mapping.resolveMultiIdx(IR_ExpressionIndex(i, position, group), aabb)), "+=")
+          statements += IR_Assignment(IR_ArrayAccess("stencil", "tet_mc"), k * IR_ArrayAccess("c", aabb.linearizeIndex(IR_ExpressionIndex(i, position, group))), "+=")
         }
       }
     }

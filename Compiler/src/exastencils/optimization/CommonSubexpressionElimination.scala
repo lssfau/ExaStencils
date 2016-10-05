@@ -12,6 +12,7 @@ import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
 import exastencils.logger.Logger
@@ -43,7 +44,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       case l : IR_LoopOverDimensions =>
         val incr = (0 until l.stepSize.length - Knowledge.opt_loopCarriedCSE_skipOuter).view.map { d =>
           l.stepSize(d) match {
-            case IR_IntegerConstant(i) if (i > 0) => (dimToString(d), l.indices.begin(d), l.indices.end(d), i)
+            case IR_IntegerConstant(i) if (i > 0) => (IR_DimToString(d), l.indices.begin(d), l.indices.end(d), i)
             case _                                => null
           }
         }.toArray
@@ -649,6 +650,6 @@ case class IR_LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var
     if (buffer.dimSizes.isEmpty)
       IR_ArrayAccess(buffer, IR_IntegerConstant(0), Knowledge.data_alignFieldPointers)
     else
-      IR_ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
+      IR_ArrayAccess(buffer, IR_Linearization.linearizeIndex(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
   }
 }

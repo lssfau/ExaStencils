@@ -21,6 +21,6 @@ case class IR_ExternalFieldAccess(var name : IR_Expression, var field : IR_Exter
         ret = IR_ArrayAccess(ret, it(dim), alignedAccessPossible)
       ret.asInstanceOf[IR_ArrayAccess]
     } else
-      IR_ArrayAccess(name, Mapping.resolveMultiIdx(field.fieldLayout, index), alignedAccessPossible)
+      IR_ArrayAccess(name, field.fieldLayout.linearizeIndex(index), alignedAccessPossible)
   }
 }

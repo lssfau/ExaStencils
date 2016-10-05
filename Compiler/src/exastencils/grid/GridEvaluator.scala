@@ -6,6 +6,7 @@ import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge._
@@ -93,7 +94,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         }
         case "face_x" | "face_y" | "face_z" => {
           if (stagDim.isDefined) {
-            if (s"face_${ dimToString(faceDim) }" == field.discretization) {
+            if (s"face_${ IR_DimToString(faceDim) }" == field.discretization) {
               // interpolation weights are always 0.5 due to geometric construction
               a0 = (() => { 0.5 })
               a1 = (() => { 0.5 })
@@ -192,23 +193,23 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           if (stagDim.isDefined) {
             val curStagDim = stagDim.get
             discr match {
-              case "cell" if curStagDim == faceDim                                                                       => fieldAccess // direct sampling
-              case "cell" if curStagDim != faceDim                                                                       => addPIntAnnot(EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), faceDim, stagDim)) // interpolation with offset, piecewiseIntegration
-              case fieldDiscr @ ("face_x" | "face_y" | "face_z") if (s"face_${ dimToString(curStagDim) }" == fieldDiscr) => // field discretization matches CV
+              case "cell" if curStagDim == faceDim                                                                          => fieldAccess // direct sampling
+              case "cell" if curStagDim != faceDim                                                                          => addPIntAnnot(EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), faceDim, stagDim)) // interpolation with offset, piecewiseIntegration
+              case fieldDiscr @ ("face_x" | "face_y" | "face_z") if (s"face_${ IR_DimToString(curStagDim) }" == fieldDiscr) => // field discretization matches CV
                 EvalAtRFace(fieldAccess, faceDim, stagDim) // interpolation
-              case "face_x" if 0 != curStagDim                                                                           => // -1 in CV's stag dim and +1 in field discretization's stag dim
+              case "face_x" if 0 != curStagDim                                                                              => // -1 in CV's stag dim and +1 in field discretization's stag dim
                 addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), 1, 0)) // direct sampling with offset, piecewiseIntegration
-              case "face_y" if 1 != curStagDim                                                                           => // -1 in CV's stag dim and +1 in field discretization's stag dim
+              case "face_y" if 1 != curStagDim                                                                              => // -1 in CV's stag dim and +1 in field discretization's stag dim
                 addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), 1, 1)) // direct sampling with offset, piecewiseIntegration
-              case "face_z" if 2 != curStagDim                                                                           => // -1 in CV's stag dim and +1 in field discretization's stag dim
+              case "face_z" if 2 != curStagDim                                                                              => // -1 in CV's stag dim and +1 in field discretization's stag dim
                 addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), 1, 2)) // direct sampling with offset, piecewiseIntegration
-              case _                                                                                                     => Logger.error(s"Unknown or unsupported discretization $discr for field $fieldAccess in staggered integration")
+              case _                                                                                                        => Logger.error(s"Unknown or unsupported discretization $discr for field $fieldAccess in staggered integration")
             }
           } else {
             discr match {
               case "cell"                         => EvalAtRFace(fieldAccess, faceDim, stagDim) // interpolation
               case "face_x" | "face_y" | "face_z" => {
-                if (s"face_${ dimToString(faceDim) }" == discr)
+                if (s"face_${ IR_DimToString(faceDim) }" == discr)
                   GridUtil.offsetAccess(fieldAccess, 1, faceDim) // direct sampling with offset
                 else
                   addPIntAnnot(EvalAtRFace(fieldAccess, faceDim, stagDim)) // interpolation, piecewiseIntegration
@@ -229,25 +230,25 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           if (stagDim.isDefined) {
             val curStagDim = stagDim.get
             discr match {
-              case "cell" if curStagDim == faceDim                                                                       => eval.fieldAccess // direct sampling
-              case "cell" if curStagDim != faceDim                                                                       =>
+              case "cell" if curStagDim == faceDim                                                                          => eval.fieldAccess // direct sampling
+              case "cell" if curStagDim != faceDim                                                                          =>
                 eval.fieldAccess = GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim)
                 addPIntAnnot(eval) // interpolation with offset, piecewiseIntegration
-              case fieldDiscr @ ("face_x" | "face_y" | "face_z") if (s"face_${ dimToString(curStagDim) }" == fieldDiscr) => // field discretization matches CV
+              case fieldDiscr @ ("face_x" | "face_y" | "face_z") if (s"face_${ IR_DimToString(curStagDim) }" == fieldDiscr) => // field discretization matches CV
                 eval // orig eval is fine
-              case "face_x" if 0 != curStagDim                                                                           => // -1 in CV's stag dim and +1 in field discretization's stag dim => ignore eval as direct sampling is possible
+              case "face_x" if 0 != curStagDim                                                                              => // -1 in CV's stag dim and +1 in field discretization's stag dim => ignore eval as direct sampling is possible
                 addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim), 1, 0)) // direct sampling with offset, piecewiseIntegration
-              case "face_y" if 1 != curStagDim                                                                           =>
+              case "face_y" if 1 != curStagDim                                                                              =>
                 addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim), 1, 1))
-              case "face_z" if 2 != curStagDim                                                                           =>
+              case "face_z" if 2 != curStagDim                                                                              =>
                 addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim), 1, 2))
-              case _                                                                                                     => Logger.error(s"Unknown or unsupported discretization $discr for field ${ eval.fieldAccess } in staggered integration")
+              case _                                                                                                        => Logger.error(s"Unknown or unsupported discretization $discr for field ${ eval.fieldAccess } in staggered integration")
             }
           } else {
             discr match {
               case "cell"                         => eval // interpolation
               case "face_x" | "face_y" | "face_z" => {
-                if (s"face_${ dimToString(faceDim) }" == discr) {
+                if (s"face_${ IR_DimToString(faceDim) }" == discr) {
                   eval.fieldAccess = GridUtil.offsetAccess(eval.fieldAccess, 1, faceDim)
                   eval // direct sampling with offset
                 } else
@@ -304,9 +305,9 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         ShiftFieldAccessIndices_.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
         ShiftFieldAccessIndices_.applyStandalone(IR_ExpressionStatement(offsetExp))
 
-        (IR_VirtualFieldAccess(s"vf_cellWidth_${ dimToString(compDim) }", level, index) *
-          (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ dimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp
-            + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ dimToString(curStagDim) }", level, index) * offsetExp))
+        (IR_VirtualFieldAccess(s"vf_cellWidth_${ IR_DimToString(compDim) }", level, index) *
+          (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp
+            + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, index) * offsetExp))
       } else {
         Logger.error("piecewise integration on non-staggered cell interfaces is not supported")
       }

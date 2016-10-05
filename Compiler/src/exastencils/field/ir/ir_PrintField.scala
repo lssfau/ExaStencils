@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.core.Settings
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.deprecated.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.GridGeometry
 import exastencils.knowledge._
@@ -38,7 +38,7 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
       case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
       case "cell"                                   => GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
       case discr @ ("face_x" | "face_y" | "face_z") => {
-        if (s"face_${ dimToString(dim) }" == discr)
+        if (s"face_${ IR_DimToString(dim) }" == discr)
           GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
         else
           GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
@@ -77,7 +77,7 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
       fileHeader,
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
-          IR_LoopOverDimensions(numDimsData, IndexRange(
+          IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) : IR_Expression)),
             IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) : IR_Expression))),
             IR_IfCondition(condition,

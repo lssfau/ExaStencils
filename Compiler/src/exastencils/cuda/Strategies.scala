@@ -13,6 +13,7 @@ import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
 import exastencils.knowledge._
 import exastencils.logger._
@@ -182,11 +183,11 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
           val bodyWithoutComments = trueBody.filterNot(x => x.isInstanceOf[IR_Comment])
           bodyWithoutComments match {
             case ListBuffer(loop : IR_LoopOverDimensions) => loop
-            case _                                        => IR_LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
+            case _                                        => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
           }
         case Some(loop : IR_LoopOverDimensions)                                            =>
           loop
-        case None                                                                          => IR_LoopOverDimensions(0, IndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
+        case None                                                                          => IR_LoopOverDimensions(0, IR_ExpressionIndexRange(IR_ExpressionIndex(), IR_ExpressionIndex()), ListBuffer[IR_Statement]())
       }
 
       // every LoopOverDimensions statement is potentially worse to transform in CUDA code
@@ -523,7 +524,7 @@ object AdaptKernelDimensionalities extends DefaultStrategy("Reduce kernel dimens
   this += new Transformation("Process kernel nodes", {
     case kernel : Kernel =>
       while (kernel.parallelDims > Platform.hw_cuda_maxNumDimsBlock) {
-        def it = IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(kernel.parallelDims - 1), IR_IntegerDatatype)
+        def it = IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + IR_DimToString(kernel.parallelDims - 1), IR_IntegerDatatype)
         kernel.body = ListBuffer[IR_Statement](IR_ForLoop(
           IR_VariableDeclaration(it, kernel.lowerBounds.last),
           IR_LowerExpression(it, kernel.upperBounds.last),
@@ -540,7 +541,7 @@ object HandleKernelReductions extends DefaultStrategy("Handle reductions in devi
     case kernel : Kernel if kernel.reduction.isDefined =>
       // update assignments according to reduction clauses
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
-        IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + dimToString(dim), IR_IntegerDatatype) : IR_Expression).toArray)
+        IR_VariableAccess(Kernel.KernelVariablePrefix + Kernel.KernelGlobalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype) : IR_Expression).toArray)
 
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_SubtractionExpression(x, y) : IR_Expression)
 
@@ -610,7 +611,7 @@ object GatherLocalVariableAccesses extends QuietDefaultStrategy("Gathering local
 
   def clear() = {
     accesses = mutable.HashMap[String, IR_VariableAccess]()
-    ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */).map(dim => dimToString(dim)).to[mutable.SortedSet]
+    ignoredAccesses = (0 to Knowledge.dimensionality + 2 /* FIXME: find a way to determine max dimensionality */).map(dim => IR_DimToString(dim)).to[mutable.SortedSet]
   }
 
   this += new Transformation("Searching", {

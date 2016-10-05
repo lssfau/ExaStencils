@@ -4,6 +4,7 @@ import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_Linearization
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_MultiDimFieldAccess
@@ -216,7 +217,7 @@ case class CUDA_SharedArrayAccess(base : IR_Expression, indices : ListBuffer[IR_
   }
 
   def linearizeAccess() : IR_Expression = {
-    Mapping.resolveMultiIdx(IR_ExpressionIndex(indices.toArray.reverse), strides : IR_ExpressionIndex)
+    IR_Linearization.linearizeIndex(IR_ExpressionIndex(indices.toArray.reverse), strides : IR_ExpressionIndex)
   }
 }
 

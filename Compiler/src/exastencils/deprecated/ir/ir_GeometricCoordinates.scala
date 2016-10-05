@@ -1,76 +1,23 @@
-package exastencils.knowledge
+package exastencils.deprecated.ir
 
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
-import exastencils.core._
-import exastencils.datastructures.Transformation._
+import exastencils.baseExt.ir.IR_LoopOverPointsInOneFragment
+import exastencils.core.StateManager
+import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.datastructures.ir.{ StatementList, _ }
+import exastencils.datastructures.ir.{ iv, _ }
 import exastencils.domain.ir._
-import exastencils.field.ir._
-import exastencils.logger._
-import exastencils.prettyprinting._
-import exastencils.strategies._
-import exastencils.util._
+import exastencils.field.ir.IR_Field
+import exastencils.knowledge.Knowledge
+import exastencils.logger.Logger
+import exastencils.prettyprinting.PpStream
 
-case class IndexRange(var begin : IR_ExpressionIndex, var end : IR_ExpressionIndex) extends Node {
-  def size = math.min(begin.size, end.size)
+/// InitGeomCoords
 
-  def getTotalSize : IR_Expression = {
-    var totalSize = (end - begin).reduce(_ * _)
-    SimplifyStrategy.doUntilDoneStandalone(totalSize)
-    totalSize
-  }
-
-  def print : String = {
-    s"${ begin.prettyprint() } to ${ end.prettyprint() }"
-  }
-}
-
-object Mapping {
-  def resolveMultiIdx(layout : IR_FieldLayout, index : IR_ExpressionIndex) : IR_Expression = {
-    if (layout.numDimsData != index.length)
-      Logger.warn(s"Index with dimensionality ${ index.length } does not match layout with dimensionality ${ layout.numDimsData }")
-
-    val ret = (0 until math.min(layout.numDimsData, index.length)).map(dim => {
-      val stride = ((0 until dim).map(d3 => layout.idxById("TOT", d3)).fold(1 : IR_Expression)(_ * _))
-      index(dim) * stride
-    }).fold(0 : IR_Expression)(_ + _)
-
-    SimplifyExpression.simplifyIntegralExpr(ret)
-  }
-
-  def resolveMultiIdx(index : IR_ExpressionIndex, aabb : IndexRange) : IR_Expression = resolveMultiIdx(index, IR_ExpressionIndex(aabb.end, aabb.begin, _ - _))
-  def resolveMultiIdx(index : IR_ExpressionIndex, strides : IR_ExpressionIndex) : IR_Expression = {
-    if (strides.length != index.length) Logger.warn(s"Index with dimensionality ${ index.length } does not match strides with dimensionality ${ strides.length }")
-
-    val ret = (0 until math.min(strides.length, index.length)).map(dim => {
-      val stride = ((0 until dim).map(d3 => strides(d3)).fold(1 : IR_Expression)(_ * _))
-      index(dim) * stride
-    }).fold(0 : IR_Expression)(_ + _)
-
-    SimplifyExpression.simplifyIntegralExpr(ret)
-  }
-}
-
-object dimToString extends (Int => String) {
-  // FIXME: this is named inappropriately; move this to a global variable manager as it becomes available; rename to i_x after checking where x, etc are used explicitly
-  override def apply(dim : Int) : String = {
-    return dim match {
-      case 0 => "x"
-      case 1 => "y"
-      case 2 => "z"
-      case 3 => "w"
-      case 4 => "v"
-      case 5 => "u"
-      case _ => "UNKNOWN"
-    }
-  }
-}
-
+@deprecated("to be integrated into the new grid class family", "05.10.16")
 case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0, 0) /* was float index before */) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
@@ -139,38 +86,9 @@ case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var 
   }
 }
 
-object ResolveCoordinates extends DefaultStrategy("ResolveCoordinates") {
-  var replacement : IR_ExpressionIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
+/// CreateGeomCoordinates
 
-  def doUntilDone(node : Option[Node] = None) = {
-    do { apply(node) }
-    while (results.last._2.matches > 0) // FIXME: cleaner code
-  }
-
-  def doUntilDoneStandalone(node : Node) = {
-    val oldLvl = Logger.getLevel
-    Logger.setLevel(Logger.WARNING)
-    do { applyStandalone(node) }
-    while (results.last._2.matches > 0) // FIXME: cleaner code
-    Logger.setLevel(oldLvl)
-  }
-
-  Knowledge.dimensionality match { // TODO: update and extend -> arbitrary dimensionality, VariableAccesses and name of indices
-    case 1 => this += new Transformation("SearchAndReplace", {
-      case IR_StringLiteral("x") => replacement(0)
-    })
-    case 2 => this += new Transformation("SearchAndReplace", {
-      case IR_StringLiteral("x") => replacement(0)
-      case IR_StringLiteral("y") => replacement(1)
-    })
-    case 3 => this += new Transformation("SearchAndReplace", {
-      case IR_StringLiteral("x") => replacement(0)
-      case IR_StringLiteral("y") => replacement(1)
-      case IR_StringLiteral("z") => replacement(2)
-    })
-  }
-}
-
+@deprecated("to be integrated into the new grid class family", "05.10.16")
 object CreateGeomCoordinates extends DefaultStrategy("Add geometric coordinate calculations") {
   this += new Transformation("Search and extend", {
     case loop : IR_LoopOverPointsInOneFragment =>
@@ -179,7 +97,7 @@ object CreateGeomCoordinates extends DefaultStrategy("Add geometric coordinate c
         case IR_VariableAccess("xPos", _) | IR_VariableAccess("yPos", _) | IR_VariableAccess("zPos", _) => true
         case _                                                                                          => false
       }, loop).isDefined) {
-        loop.body.prepend(new InitGeomCoords(loop.field, false))
+        loop.body.prepend(InitGeomCoords(loop.field, false))
       }
 
       loop

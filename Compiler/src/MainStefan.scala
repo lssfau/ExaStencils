@@ -9,6 +9,7 @@ import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
 import exastencils.datastructures._
+import exastencils.deprecated.ir.CreateGeomCoordinates
 import exastencils.deprecated.l3Generate
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir._

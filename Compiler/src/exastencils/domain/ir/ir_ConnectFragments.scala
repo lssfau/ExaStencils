@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures.Transformation.Output
+import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain._
 import exastencils.knowledge
 import exastencils.knowledge._
@@ -91,7 +92,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
         var statements = ListBuffer[IR_Statement]()
 
         // store offset position to allow for implementation of periodic domains
-        def offsetPos(dim : Int) = IR_VariableAccess(s"offsetPos_${ dimToString(dim) }", IR_RealDatatype)
+        def offsetPos(dim : Int) = IR_VariableAccess(s"offsetPos_${ IR_DimToString(dim) }", IR_RealDatatype)
         for (dim <- Knowledge.dimensions) {
           statements += IR_VariableDeclaration(offsetPos(dim), IR_IV_FragmentPosition(dim) + neigh.dir(dim) * fragWidth(dim))
           if (Knowledge.domain_rect_periodicAsVec(dim)) {

@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.knowledge._
@@ -113,7 +113,7 @@ case class MPI_Barrier() extends MPI_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
 
-case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
+case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IR_ExpressionIndexRange, var condition : Option[IR_Expression]) extends IR_Datatype {
   override def prettyprint(out : PpStream) : Unit = out << generateName
   override def prettyprint_mpi = generateName
 
@@ -134,7 +134,7 @@ case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IndexRan
   var strideExp : IR_Expression = field.fieldLayout(0).total
 
   var done = false
-  for (dim <- 1 until indexRange.size; if !done) {
+  for (dim <- 1 until indexRange.length; if !done) {
     if (1 == SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
       strideExp *= field.fieldLayout.defIdxById("TOT", dim)
     } else {
@@ -170,13 +170,13 @@ case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IndexRan
 }
 
 object MPI_DataType {
-  def shouldBeUsed(indexRange : IndexRange, condition : Option[IR_Expression]) : Boolean = {
+  def shouldBeUsed(indexRange : IR_ExpressionIndexRange, condition : Option[IR_Expression]) : Boolean = {
     if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
       false
     else if (condition.isDefined) // skip communication steps with conditions for now
       false
     else {
-      val numNonDummyDims = (1 until indexRange.size).map(dim => // size in the zero dimension is irrelevant
+      val numNonDummyDims = (1 until indexRange.length).map(dim => // size in the zero dimension is irrelevant
         if (SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim)) > 1) 1 else 0).reduce(_ + _)
       return (numNonDummyDims <= 1) // avoid nested data types for now
     }
