@@ -5,6 +5,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
+import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._
@@ -269,7 +270,7 @@ object Main {
     StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
       // FunctionCollections
       DomainFunctions(),
-      CommunicationFunctions(),
+      IR_CommunicationFunctions(),
 
       // Util
       Stopwatch(),

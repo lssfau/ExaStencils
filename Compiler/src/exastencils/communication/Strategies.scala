@@ -18,7 +18,7 @@ import exastencils.mpi.ir.MPI_WaitForRequest
 import exastencils.omp.ir.OMP_WaitForFlag
 
 object SetupCommunication extends DefaultStrategy("Setting up communication") {
-  var commFunctions : CommunicationFunctions = CommunicationFunctions()
+  var commFunctions = IR_CommunicationFunctions()
   var addedFunctions : ListBuffer[String] = ListBuffer()
 
   var firstCall = true
@@ -29,7 +29,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
   override def apply(node : Option[Node] = None) = {
     if (firstCall) {
-      commFunctions = StateManager.findFirst[CommunicationFunctions]().get
+      commFunctions = StateManager.findFirst[IR_CommunicationFunctions]().get
       addedFunctions.clear
 
       if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)

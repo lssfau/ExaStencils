@@ -1,7 +1,7 @@
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
-import exastencils.communication._
+import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures._
@@ -63,8 +63,8 @@ object MainAlex {
     // Setup tree
     StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
       // FunctionCollections
-      new DomainFunctions,
-      new CommunicationFunctions,
+      DomainFunctions(),
+      IR_CommunicationFunctions(),
 
       // Util
       new Stopwatch,
