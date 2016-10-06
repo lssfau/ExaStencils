@@ -105,6 +105,7 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
         case loop : IR_LoopOverDimensions => curLoop = null
           println("============================================")
           println("loop in function " + curFun.name)
+          println("loop range %s -> %s".format(loop.indices.begin.prettyprint(), loop.indices.end.prettyprint()))
           println("loop stepSize "+ loop.stepSize.prettyprint())
         case _                            =>
       }

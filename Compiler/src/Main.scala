@@ -332,7 +332,8 @@ object Main {
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
     if (Knowledge.experimental_memoryDistanceAnalysis) {
-      AnalyzeIterationDistance.apply()
+      //AnalyzeIterationDistance.apply()
+      KernelSubscriptAnalysis.apply()
     }
 
     if (Knowledge.experimental_kerncraftExport) {
