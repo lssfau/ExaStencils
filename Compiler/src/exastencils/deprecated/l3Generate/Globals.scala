@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Globals {
   def addGlobals(printer : java.io.PrintWriter) = {

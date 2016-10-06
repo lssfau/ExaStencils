@@ -6,9 +6,9 @@ import exastencils.base.ir.IR_IntegerConstant
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
+import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.grid.ir.IR_VirtualFieldAccess
-import exastencils.knowledge
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
@@ -20,7 +20,7 @@ case class L4_VirtualFieldAccess(var name : String, var level : L4_AccessLevelSp
   }
 
   def progress : IR_VirtualFieldAccess = {
-    var numDims = knowledge.Knowledge.dimensionality // TODO: resolve field info
+    var numDims = Knowledge.dimensionality // TODO: resolve field info
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
     var multiIndex = IR_LoopOverDimensions.defIt(numDims)
     if (arrayIndex.isDefined)

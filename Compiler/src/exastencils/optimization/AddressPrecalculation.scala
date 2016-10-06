@@ -5,6 +5,7 @@ import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_InternalVariable
+import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._

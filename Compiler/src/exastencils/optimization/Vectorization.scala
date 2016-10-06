@@ -8,7 +8,7 @@ import exastencils.cuda
 import exastencils.cuda.CudaStrategiesUtils
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.logger.Logger
 import exastencils.performance.SIMD_MathFunctions
 import exastencils.simd._

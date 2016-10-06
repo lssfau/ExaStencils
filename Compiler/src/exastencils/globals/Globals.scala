@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.core._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.prettyprinting._
 
 case class Globals(var variables : ListBuffer[IR_VariableDeclaration] = new ListBuffer) extends IR_FunctionCollection("Globals/Globals",

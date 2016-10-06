@@ -1,20 +1,31 @@
-package exastencils.knowledge
+package exastencils.config
 
 import exastencils.constraints._
 import exastencils.logger._
 
 object Platform {
   /// target environment
-  var targetOS : String = "Windows" // the target operating system: "Linux", "Windows", "OSX"
-  var targetCompiler : String = "MSVC" // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
-  var targetCompilerVersion : Int = 0 // major version of the target compiler
-  var targetCompilerVersionMinor : Int = 0 // minor version of the target compiler
 
-  var targetHardware : String = "CPU" // target hw platform; may be "CPU" or "ARM"
+  // the target operating system: "Linux", "Windows", "OSX"
+  var targetOS : String = "Windows"
 
-  var targetCudaCompiler : String = "NVCC" // target cuda compiler;
+  // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
+  var targetCompiler : String = "MSVC"
 
-  def supports_initializerList = { // indicates if the compiler supports initializer lists (e.g. for std::min)
+  // major version of the target compiler
+  var targetCompilerVersion : Int = 0
+
+  // minor version of the target compiler
+  var targetCompilerVersionMinor : Int = 0
+
+  // target hw platform; may be "CPU" or "ARM"
+  var targetHardware : String = "CPU"
+
+  // target cuda compiler
+  var targetCudaCompiler : String = "NVCC"
+
+  // indicates if the compiler supports initializer lists (e.g. for std::min)
+  def supports_initializerList = {
     targetCompiler match {
       case "MSVC"            => targetCompilerVersion >= 12
       case "GCC"             => targetCompilerVersion > 4 || (targetCompilerVersion == 4 && targetCompilerVersionMinor >= 5)
@@ -26,8 +37,12 @@ object Platform {
   }
 
   /// SIMD
-  var simd_instructionSet : String = "AVX" // currently allowed: "SSE3", "AVX", "AVX2", "AVX512", "IMCI", "QPX", "NEON"
-  def simd_vectorSize : Int = { // number of vector elements for SIMD instructions (currently only double precision)
+
+  // currently allowed: "SSE3", "AVX", "AVX2", "AVX512", "IMCI", "QPX", "NEON"
+  var simd_instructionSet : String = "AVX"
+
+  // number of vector elements for SIMD instructions (currently only double precision)
+  def simd_vectorSize : Int = {
     val double : Int = if (Knowledge.useDblPrecision) 1 else 2
     simd_instructionSet match {
       case "SSE3"            => 2 * double
@@ -37,14 +52,18 @@ object Platform {
       case "NEON"            => 2 * double // TODO: check if double is supported
     }
   }
-  def simd_header : String = { // header for vector intrinsics
+
+  // header for vector intrinsics
+  def simd_header : String = {
     simd_instructionSet match {
       case "SSE3" | "AVX" | "AVX2" | "AVX512" | "IMCI" => "immintrin.h"
       case "NEON"                                      => "arm_neon.h"
       case "QPX"                                       => null
     }
   }
-  var simd_mathLibrary : String = "none" // currently allowed: "none", "svml", "vecmathlib", "vectorclass", "mass_simd"; ensure the libraries are installed system-wide, or set Settings.{pathsInc|pathsLib} accordingly
+
+  // currently allowed: "none", "svml", "vecmathlib", "vectorclass", "mass_simd"; ensure the libraries are installed system-wide, or set Settings.{pathsInc|pathsLib} accordingly
+  var simd_mathLibrary : String = "none"
   def simd_mathLibHeader : Seq[String] = {
     simd_mathLibrary match {
       case "none" | "svml" => null
@@ -54,7 +73,9 @@ object Platform {
   }
 
   /// OMP
-  def omp_version : Double = { // the maximum version of omp supported by the chosen compiler
+
+  // the maximum version of omp supported by the chosen compiler
+  def omp_version : Double = {
     targetCompiler match {
       case "MSVC"            => 2.0
       case "GCC"             => 4.0
@@ -65,7 +86,8 @@ object Platform {
     }
   }
 
-  def omp_requiresCriticalSections : Boolean = { // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
+  // true if the chosen compiler / mpi version requires critical sections to be marked explicitly
+  def omp_requiresCriticalSections : Boolean = {
     targetCompiler match {
       case "MSVC"            => true
       case "GCC"             => true
@@ -78,39 +100,54 @@ object Platform {
 
   /// hardware options
 
-  var hw_numNodesAvailable : Int = 1 // available resources
-  var hw_numNodes : Int = 1 // actually used resources
+  // available resources
+  var hw_numNodesAvailable : Int = 1
+  // actually used resources
+  var hw_numNodes : Int = 1
 
-  var hw_numThreadsPerNode : Int = 64 // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
+  // specifies the total number of ranks (OMP and MPI) to be used when generating job scripts
+  var hw_numThreadsPerNode : Int = 64
   def hw_numCoresPerNode : Int = hw_cpu_numCoresPerCPU * hw_cpu_numCPUs
   def hw_numHWThreadsPerNode : Int = hw_cpu_numHWThreads * hw_cpu_numCPUs
 
   var hw_cpu_name : String = "Intel Xeon E5620"
   var hw_cpu_numCoresPerCPU : Int = 4
-  var hw_cpu_numHWThreads : Int = 8 // number of hardware threads per cpu
+  // number of hardware threads per cpu
+  var hw_cpu_numHWThreads : Int = 8
   var hw_cpu_numCPUs : Int = 2
-  var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024 // in B/s
-  var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000 // in Hz
-  var hw_cpu_numCyclesPerDiv : Double = 24 // arbitrary value -> to be benchmarked later
-  var hw_64bit : Boolean = true // true if 64 bit addresses are used
-  var hw_cacheLineSize : Int = 512 // in B
+  // in B/s
+  var hw_cpu_bandwidth : Double = 25.6 * 1024 * 1024 * 1024
+  // in Hz
+  var hw_cpu_frequency : Double = 2.4 * 1000 * 1000 * 1000
+  // arbitrary value -> to be benchmarked later
+  var hw_cpu_numCyclesPerDiv : Double = 24
+  // true if 64 bit addresses are used
+  var hw_64bit : Boolean = true
+  // in B
+  var hw_cacheLineSize : Int = 512
   var hw_gpu_name : String = "NVidia Quadro 4000"
   var hw_gpu_numDevices : Int = 2
-  var hw_gpu_bandwidth : Double = 89.6 * 1024 * 1024 * 1024 // in B/s
-  var hw_gpu_frequency : Double = 0.475 * 1000 * 1000 * 1000 // in Hz
+  // in B/s
+  var hw_gpu_bandwidth : Double = 89.6 * 1024 * 1024 * 1024
+  // in Hz
+  var hw_gpu_frequency : Double = 0.475 * 1000 * 1000 * 1000
   var hw_gpu_numCores : Int = 256
   var hw_cuda_capability : Int = 2
   var hw_cuda_capabilityMinor : Int = 0
-  var hw_cuda_sharedMemory : Int = 49152 // amount of shared memory in byte
-  var hw_cuda_cacheMemory : Int = 16384 // cache size in byte
+  // amount of shared memory in byte
+  var hw_cuda_sharedMemory : Int = 49152
+  // cache size in byte
+  var hw_cuda_cacheMemory : Int = 16384
 
-  def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3 // 3 seems to be max; checked for versions up to 5.3
+  // 3 seems to be max; checked for versions up to 5.3
+  def hw_cuda_maxNumDimsBlock : Int = if (hw_cuda_capability < 2) 2 else 3
 
   /// software options
 
   var sw_cuda_version : Int = 7
   var sw_cuda_versionMinor : Int = 5
-  var sw_cuda_kernelCallOverhead : Double = 3.5 * 0.001 // in s
+  // in s
+  var sw_cuda_kernelCallOverhead : Double = 3.5 * 0.001
 
   /// resolve functions
 
@@ -121,16 +158,16 @@ object Platform {
         if (Knowledge.omp_enabled) base + "_r" else base
       case "IBMXL" =>
         if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
-      case "GCC" =>
+      case "GCC"   =>
         if ("ARM" == targetHardware)
           "arm-linux-gnueabihf-g++"
         else if (Knowledge.mpi_enabled)
           "mpicxx"
         else
           "g++"
-      case "MSVC" =>
+      case "MSVC"  =>
         "" // nothing to do
-      case "ICC" =>
+      case "ICC"   =>
         if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
       case "CLANG" =>
         "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
@@ -147,8 +184,8 @@ object Platform {
     var flags : String = ""
 
     targetCudaCompiler match {
-      // -arch=sm_35 tells nvcc that it is compiling for the real architecture Kepler GK110 (NVIDIA Titan Black)
       case "NVCC" =>
+        // -arch=sm_35 tells nvcc that it is compiling for the real architecture Kepler GK110 (NVIDIA Titan Black)
         flags += " -std=c++11 -O3 -DNDEBUG -lineinfo -arch=sm_35"
 
         // this is required since latest Ubuntu update
@@ -165,7 +202,7 @@ object Platform {
       case "IBMBG" | "IBMXL" =>
         flags += " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
         if (Knowledge.omp_enabled) flags += " -qsmp=omp"
-      case "GCC" =>
+      case "GCC"             =>
         flags += " -O3 -DNDEBUG -std=c++11"
 
         if (Knowledge.omp_enabled) flags += " -fopenmp"
@@ -184,8 +221,8 @@ object Platform {
         if ("ARM" == targetHardware) {
           flags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations -static"
         }
-      case "MSVC" => // nothing to do
-      case "ICC" =>
+      case "MSVC"            => // nothing to do
+      case "ICC"             =>
         flags += " -O3 -std=c++11"
 
         if (Knowledge.omp_enabled) {
@@ -204,7 +241,7 @@ object Platform {
             case "IMCI"   => flags += " -march=knc" // TODO: verify flag
           }
         }
-      case "CLANG" =>
+      case "CLANG"           =>
         flags += " -O3 -std=c++11"
 
         if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
@@ -237,18 +274,18 @@ object Platform {
       case "IBMBG" | "IBMXL" =>
         flags += " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
         if (Knowledge.omp_enabled) flags += " -qsmp=omp"
-      case "GCC" =>
+      case "GCC"             =>
         if ("ARM" == targetHardware) flags += " -static"
         if (Knowledge.omp_enabled) flags += " -fopenmp"
-      case "MSVC" => // nothing to do
-      case "ICC" =>
+      case "MSVC"            => // nothing to do
+      case "ICC"             =>
         if (Knowledge.omp_enabled) {
           if (targetCompilerVersion >= 15)
             flags += " -qopenmp"
           else
             flags += " -openmp"
         }
-      case "CLANG" =>
+      case "CLANG"           =>
         if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
     }
 

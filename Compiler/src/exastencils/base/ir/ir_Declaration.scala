@@ -1,7 +1,7 @@
 package exastencils.base.ir
 
 import exastencils.baseExt.ir._
-import exastencils.knowledge.Platform
+import exastencils.config.Platform
 import exastencils.prettyprinting.PpStream
 
 object IR_VariableDeclaration {

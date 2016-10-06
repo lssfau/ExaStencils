@@ -1,6 +1,6 @@
 package exastencils.base.ir
 
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 

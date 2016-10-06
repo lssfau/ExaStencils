@@ -5,11 +5,11 @@ import scala.collection.mutable.{ ArrayBuffer, ListBuffer }
 import scala.util.control._
 
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._

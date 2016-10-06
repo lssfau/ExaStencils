@@ -4,9 +4,10 @@ import scala.collection.mutable.HashMap
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldCollection
-import exastencils.knowledge._
+import exastencils.knowledge.Fragment
 import exastencils.prettyprinting._
 
 /// IR_InternalVariable

@@ -8,7 +8,7 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.l4._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream

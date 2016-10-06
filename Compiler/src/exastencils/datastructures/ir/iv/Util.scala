@@ -5,9 +5,9 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.globals._
-import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._

@@ -1,7 +1,7 @@
 package exastencils.simd
 
 import exastencils.base.ir._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
 

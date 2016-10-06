@@ -2,7 +2,7 @@ package exastencils.interfacing.ir
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.prettyprinting.PpStream
 
 case class IR_ExternalFieldAccess(var name : IR_Expression, var field : IR_ExternalField, var index : IR_ExpressionIndex) extends IR_Expression {

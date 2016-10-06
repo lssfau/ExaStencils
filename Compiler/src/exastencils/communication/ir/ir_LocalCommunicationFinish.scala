@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.{ iv, _ }
 import exastencils.deprecated.ir.IR_FieldSelection

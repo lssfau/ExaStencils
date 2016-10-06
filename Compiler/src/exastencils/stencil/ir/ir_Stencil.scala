@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.knowledge.ir.IR_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
 import exastencils.util.SimplifyExpression

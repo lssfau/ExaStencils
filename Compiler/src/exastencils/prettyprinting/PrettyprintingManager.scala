@@ -1,11 +1,8 @@
 package exastencils.prettyprinting
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Stack
-import scala.collection.mutable.TreeSet
+import scala.collection.mutable.{ HashMap, ListBuffer, Stack, TreeSet }
 
-import exastencils.core._
+import exastencils.config.Settings
 import exastencils.logger._
 
 object PrettyprintingManager {
@@ -24,8 +21,8 @@ object PrettyprintingManager {
   }
 
   def finish() = {
-    printers.values.foreach(f => f.finish)
-    Settings.parseBuildfileGenerators.foreach(gen => gen.write )
+    printers.values.foreach(f => f.finish())
+    BuildfileGenerator.parseGenerators(Settings.buildfileGenerators).foreach(gen => gen.write())
     JobScriptGenerator.write
 
     printers.clear()
@@ -33,6 +30,7 @@ object PrettyprintingManager {
   }
 
   protected class Prettyprinter(val filename : String, val path : String) extends java.io.StringWriter {
+
     import Prettyprinter._
 
     protected var internalDependencies_ = new TreeSet[Prettyprinter]()(Ordering.by(_.filename))
@@ -42,7 +40,8 @@ object PrettyprintingManager {
     def removeInternalDependency(filename : String) = { internalDependencies_ -= getPrinter(filename) }
     def internalDependencies = internalDependencies_.toList
 
-    protected var externalDependencies_ = new ListBuffer[String]() // preserve input ordering!
+    protected var externalDependencies_ = new ListBuffer[String]()
+    // preserve input ordering!
     def addExternalDependency(filename : String) : Unit = { externalDependencies_ += filename }
     def removeExternalDependency(filename : String) : Unit = { externalDependencies_ = externalDependencies_.distinct -= filename }
     def externalDependencies() : Seq[String] = {
@@ -142,5 +141,6 @@ object PrettyprintingManager {
       foundDependencies
     }
   }
+
 }
 

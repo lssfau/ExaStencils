@@ -4,11 +4,11 @@ import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Queue }
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
-import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.prettyprinting._
 import exastencils.util.ir.IR_ResultingDatatype

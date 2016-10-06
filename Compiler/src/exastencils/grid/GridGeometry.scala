@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.boundary.l4.L4_NoBC
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._

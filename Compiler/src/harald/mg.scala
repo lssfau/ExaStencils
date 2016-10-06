@@ -1,29 +1,22 @@
-import Array._
-import scala.math
-import java.io._
-import harald.dsl._
-import harald.Continuous._
-import scala.util.parsing.combinator._
-import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
-import java.lang.reflect.ParameterizedType
-import scala.util.parsing.combinator.syntactical.StandardTokenParsers
+
+import java.io._
+
+import exastencils.config.Settings
+import harald.Generate._
 import harald.Parser
 import harald.Parser._
-import harald.Generate._
 import harald.ast._
+import harald.dsl._
 import harald.expert._
 import harald.pretty._
-import scala.sys.process._
-import harald.Discrete._
-import exastencils.core._
 
 object mg {
 
-  def main(args: Array[String]): Unit = {
+  def main(args : Array[String]) : Unit = {
 
     val basicpath = Settings.basePathPrefix + "/Compiler/src/harald/"
-      
+
     // DOC: set paths
 
     //  val mainDSLpath = "e:/Harald/workspace/ExaGrid/src/testDSL/"
@@ -72,23 +65,23 @@ object mg {
     var problem = ""
     var outputfile = ""
 
-    var domainstr: ListBuffer[String] = ListBuffer("UnitSquare", "UnitCube")
-    var problemstr: ListBuffer[String] = ListBuffer("Laplacian", "ComplexDiffusion", "Stokes", "OpticalFlow")
-    var bcstr: ListBuffer[String] = ListBuffer("zero", "dn", "zero", "zero")
-  //  var sizeval : ListBuffer[Int] = ListBuffer(9,8)
-    var sizeval: ListBuffer[Int] = ListBuffer(4, 8)
+    var domainstr : ListBuffer[String] = ListBuffer("UnitSquare", "UnitCube")
+    var problemstr : ListBuffer[String] = ListBuffer("Laplacian", "ComplexDiffusion", "Stokes", "OpticalFlow")
+    var bcstr : ListBuffer[String] = ListBuffer("zero", "dn", "zero", "zero")
+    //  var sizeval : ListBuffer[Int] = ListBuffer(9,8)
+    var sizeval : ListBuffer[Int] = ListBuffer(4, 8)
     //     var sizeval : ListBuffer[Int] = ListBuffer(4,4)
-    var threadsval: ListBuffer[Int] = ListBuffer(1, 8)
+    var threadsval : ListBuffer[Int] = ListBuffer(1, 8)
 
-    var smootherstr: ListBuffer[String] = ListBuffer("Jacobi", "GaussSeidel")
-    var omegaval: ListBuffer[Double] = ListBuffer(0.8, 1.0)
-    var smoothval: ListBuffer[Int] = ListBuffer(1, 2)
+    var smootherstr : ListBuffer[String] = ListBuffer("Jacobi", "GaussSeidel")
+    var omegaval : ListBuffer[Double] = ListBuffer(0.8, 1.0)
+    var smoothval : ListBuffer[Int] = ListBuffer(1, 2)
 
-    var cyclestr: ListBuffer[String] = ListBuffer("VCycle", "FMGVCycle", "FASVCycle", "FMGFASVCycle")
-    var hwstr: ListBuffer[String] = ListBuffer("cpu", "gpu")
-    var dtstr: ListBuffer[String] = ListBuffer("Double", "Float", "ComplexDouble", "ComplexFloat")
-    var locstr: ListBuffer[String] = ListBuffer("nodes", "cells", "nodes", "nodes")
-    var disstr: ListBuffer[String] = ListBuffer("FD", "FE")
+    var cyclestr : ListBuffer[String] = ListBuffer("VCycle", "FMGVCycle", "FASVCycle", "FMGFASVCycle")
+    var hwstr : ListBuffer[String] = ListBuffer("cpu", "gpu")
+    var dtstr : ListBuffer[String] = ListBuffer("Double", "Float", "ComplexDouble", "ComplexFloat")
+    var locstr : ListBuffer[String] = ListBuffer("nodes", "cells", "nodes", "nodes")
+    var disstr : ListBuffer[String] = ListBuffer("FD", "FE")
 
     var ntry = 0
 
@@ -101,16 +94,16 @@ object mg {
     DomainKnowledge.use_Windows = true
 
 //            DomainKnowledge.outputpath = "e:/Harald/Studio/testmg/testmg/"
-           DomainKnowledge.outputpath = "e:/Harald/Studio/testmgcuda/testcuda/testcuda/"      
-  //  DomainKnowledge.outputpath = "////i10home/home-staff/koestler/Code/"
+    DomainKnowledge.outputpath = "e:/Harald/Studio/testmgcuda/testcuda/testcuda/"
+    //  DomainKnowledge.outputpath = "////i10home/home-staff/koestler/Code/"
     //      DomainKnowledge.outputpath =  "E:/cygwin/home/harald/Code/"
 //    DomainKnowledge.outputpath = "C:/SVN/flow/ExaScala/Studio/testmg/testmg/"
     //      DomainKnowledge.outputpath =  "c:/cygwin64/home/koestler/Code/"
     //       DomainKnowledge.outputpath = "C:/SVN/flow/ExaScala/Studio/CPU/testCPU/testCPU/"
 
     val h = 1 //4096
-    val x : Array[Double] = Array(-2.0/h,-1.0/h, 0,1.0/h,2.0/h)
-//    val x : Array[Double] = Array(-1.0/h, 0,1.0/h)
+    val x : Array[Double] = Array(-2.0 / h, -1.0 / h, 0, 1.0 / h, 2.0 / h)
+    //    val x : Array[Double] = Array(-1.0/h, 0,1.0/h)
     val erg = DomainKnowledge.fornberg(0, x, 4)
     /*
     println(erg)
@@ -122,33 +115,33 @@ object mg {
       }
     */
     val no = 3
-    val x2 : Array[Double]= Array.ofDim(erg(no).length-1)
-    val xh : Array[Double]= Array.ofDim(erg(no).length-1)
-    for (i <- 1 to erg(no).length-1)
-      x2(i-1) = erg(no)(i)
-    xh((erg(no).length-1)/2) = 1
-    
-    val xerg : Array[Array[Array[Double]]]= Array.ofDim[Double](x2.length+1,x2.length+2,x2.length)
-    
+    val x2 : Array[Double] = Array.ofDim(erg(no).length - 1)
+    val xh : Array[Double] = Array.ofDim(erg(no).length - 1)
+    for (i <- 1 to erg(no).length - 1)
+      x2(i - 1) = erg(no)(i)
+    xh((erg(no).length - 1) / 2) = 1
+
+    val xerg : Array[Array[Array[Double]]] = Array.ofDim[Double](x2.length + 1, x2.length + 2, x2.length)
+
     println("next" + x2.length + " " + xerg(0).size);
 //    exit
-    
+
     // tensor product for stencils
-    for (i <- 0 to x2.length-1) {
-       for ( j <- 0 to x2.length-1) {
-       for ( k <- 0 to x2.length-1) {
+    for (i <- 0 to x2.length - 1) {
+      for (j <- 0 to x2.length - 1) {
+        for (k <- 0 to x2.length - 1) {
 
           xerg(i)(j)(k) += x2(k) * xh(j) * xh(i)
           //print(" " + xerg(i)(j)(k));
-         
-       }
+
+        }
 //    println()
+      }
+      //   println()
+      //   println()
     }
- //   println()
- //   println()
-    }
-    
-   DomainKnowledge.debugmode = true;
+
+    DomainKnowledge.debugmode = true;
 
     /*
     exit
@@ -224,9 +217,9 @@ object mg {
                       problem = probname // "testDSL"
                     //       outputfile = "main.cpp"        
                     if (hwtry == 0)
-                      outputfile = s"main${ntry}.cpp"
+                      outputfile = s"main${ ntry }.cpp"
                     else
-                      outputfile = s"main${ntry}.cu"
+                      outputfile = s"main${ ntry }.cu"
                     outputfile = "kernel.cu"
 
                     DomainKnowledge.clearData
@@ -240,7 +233,7 @@ object mg {
                       sys.exit(0)
                     }
 
-                    val DSLHW: String = scala.io.Source.fromFile(DSLpath + problem + "levHW.mg").getLines.reduceLeft(_ + '\n' + _)
+                    val DSLHW : String = scala.io.Source.fromFile(DSLpath + problem + "levHW.mg").getLines.reduceLeft(_ + '\n' + _)
                     if (DomainKnowledge.debugmode)
                       println(DSLHW)
 
@@ -256,7 +249,7 @@ object mg {
 
                     if (DomainKnowledge.debugmode)
                       println("read PDE")
-                    val DSLl1: String = scala.io.Source.fromFile(DSLpath + problem + "lev1.mg").getLines.reduceLeft(_ + '\n' + _)
+                    val DSLl1 : String = scala.io.Source.fromFile(DSLpath + problem + "lev1.mg").getLines.reduceLeft(_ + '\n' + _)
                     if (DomainKnowledge.debugmode)
                       println(DSLl1)
 
@@ -264,34 +257,34 @@ object mg {
                     //parserl1.parseAll(parserl1.exastencilsL1, DSLl1)
                     //ContDescription.setup
 
-//                    val DSLl1a: String = scala.io.Source.fromFile(DSLpath + problem + "lev1.mg").getLines.reduceLeft(_ + '\n' + _)
-                   // if (DomainKnowledge.debugmode)
-                   val parserl1a = new Parser.ParserL1a()
-                   parserl1a.parse(DSLl1)
-                   DomainKnowledge.setglobalobjects_L1
+                    //                    val DSLl1a: String = scala.io.Source.fromFile(DSLpath + problem + "lev1.mg").getLines.reduceLeft(_ + '\n' + _)
+                    // if (DomainKnowledge.debugmode)
+                    val parserl1a = new Parser.ParserL1a()
+                    parserl1a.parse(DSLl1)
+                    DomainKnowledge.setglobalobjects_L1
 
-                   DomainKnowledge.initfragments
+                    DomainKnowledge.initfragments
 
-          for (i <- DomainKnowledge.cont_functions)
-    println(s"${i}")
-    for (i <- DomainKnowledge.cont_operators)
-    println(s"${i}")
-    for (i <- DomainKnowledge.cont_equations)
-      println(s"${i}")
-    for (i <- DomainKnowledge.cont_consts)
-      println(s"${i}")
-    for (i <- DomainKnowledge.cont_domains)
-      println(s"${i}")
-      
+                    for (i <- DomainKnowledge.cont_functions)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.cont_operators)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.cont_equations)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.cont_consts)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.cont_domains)
+                      println(s"${ i }")
+
                     if (useoptimizer)
                       GenerateL2.transformL1toL2opt(DSLpath + problem + "lev2.mg", optL2)
 
                     if (!new java.io.File(DSLpath + problem + "lev2.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
                       GenerateL2.transformL1toL2(DSLpath + problem + "lev2.mg")
-            
+
                     if (DomainKnowledge.debugmode)
                       println("read discretization")
-                    val DSLl2: String = scala.io.Source.fromFile(DSLpath + problem + "lev2.mg").getLines.reduceLeft(_ + _)
+                    val DSLl2 : String = scala.io.Source.fromFile(DSLpath + problem + "lev2.mg").getLines.reduceLeft(_ + _)
                     if (DomainKnowledge.debugmode)
                       println(DSLl2)
 
@@ -300,17 +293,17 @@ object mg {
                     //TreeManager.tree.exaFields.foreach(println)
                     //TreeManager.tree.exaOperators.foreach(println)
 
-    for (i <- DomainKnowledge.discr_functions)
-    println(s"${i}")
-    for (i <- DomainKnowledge.discr_operators)
-    println(s"${i}")
-    for (i <- DomainKnowledge.discr_consts)
-    println(s"${i}")
-    for (i <- DomainKnowledge.discr_equations)
-    println(s"${i}")
+                    for (i <- DomainKnowledge.discr_functions)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.discr_operators)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.discr_consts)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.discr_equations)
+                      println(s"${ i }")
 
                     DomainKnowledge.initarraysizes
-            
+
                     val genL3 = new GenerateL3(TreeManager.tree)
 
                     if (useoptimizer) {
@@ -321,36 +314,36 @@ object mg {
                     if (!new java.io.File(DSLpath + problem + "lev3.mg").exists || DomainKnowledge.generate_L1.getOrElse(1) == 1)
                       genL3.transformL2toL3(DSLpath + problem + "lev3.mg")
 
-                    val DSLl3: String = scala.io.Source.fromFile(DSLpath + problem + "lev3.mg").getLines.reduceLeft(_ + _)
+                    val DSLl3 : String = scala.io.Source.fromFile(DSLpath + problem + "lev3.mg").getLines.reduceLeft(_ + _)
                     if (DomainKnowledge.debugmode)
                       println(DSLl3)
 
                     val parserl3 = new ParserL3
                     parserl3.parseAll(parserl3.exastencilsL3, DSLl3)
-                    
-                    val DSLl3a: String = scala.io.Source.fromFile(DSLpath + problem + "lev3a.mg").getLines.reduceLeft(_ + _)
+
+                    val DSLl3a : String = scala.io.Source.fromFile(DSLpath + problem + "lev3a.mg").getLines.reduceLeft(_ + _)
                     if (DomainKnowledge.debugmode)
                       println(DSLl3a)
                     val parserl3a = new ParserL3a(TreeManager.tree)
                     parserl3a.parse(DSLl3a)
 
-    for (i <- DomainKnowledge.discr_functions) {
-      println(s"${i}")
-      TreeManager.tree.exaFields += i.transform
-    }
-    for (i <- DomainKnowledge.discr_operators)
-    println(s"${i}")
-    for (i <- DomainKnowledge.discr_consts)
-    println(s"${i}")
-    for (i <- DomainKnowledge.discr_equations)
-    println(s"${i}")
-    for (i <- DomainKnowledge.discr_sets)
-    println(s"${i}")
-    for (i <- DomainKnowledge.discr_iterations) {
-     println(s"${i}")
-     println(i.printtoDSL4)
-    }
-    
+                    for (i <- DomainKnowledge.discr_functions) {
+                      println(s"${ i }")
+                      TreeManager.tree.exaFields += i.transform
+                    }
+                    for (i <- DomainKnowledge.discr_operators)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.discr_consts)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.discr_equations)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.discr_sets)
+                      println(s"${ i }")
+                    for (i <- DomainKnowledge.discr_iterations) {
+                      println(s"${ i }")
+                      println(i.printtoDSL4)
+                    }
+
 
                     val genL4 = new GenerateL4(TreeManager.tree)
 
@@ -361,17 +354,17 @@ object mg {
                       genL4.transformL3toL4(DSLpath + problem + "lev4.mg")
                       //println("generate L4" + DomainKnowledge.generate_L1.getOrElse(1))
                     }
-                    val DSLl4: String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
+                    val DSLl4 : String = scala.io.Source.fromFile(DSLpath + problem + "lev4.mg").getLines.reduceLeft(_ + _)
                     if (DomainKnowledge.debugmode)
                       println(DSLl4)
 
-sys.exit(0)
+                    sys.exit(0)
 
                     val parserl4 = new Parser.ParserL4(TreeManager.tree)
                     parserl4.parse(DSLl4)
                     //TransformL4.prettyprintfunctions.foreach(println)
 
-println("finished parsing")
+                    println("finished parsing")
 
                     TreeManager.tree.transformFields
                     TreeManager.tree.transformStencils
@@ -401,17 +394,17 @@ println("finished parsing")
 
                     val writer = new FileWriter(new File(DomainKnowledge.outputpath + "compile.bat"), true)
                     if (hwtry == 0)
-                      writer.write(s"g++ -O3 -fopenmp ${outputfile} -o main${ntry} \n")
+                      writer.write(s"g++ -O3 -fopenmp ${ outputfile } -o main${ ntry } \n")
                     else
-                      writer.write(s"nvcc -O3 ${outputfile} -arch compute_20 -o main${ntry} \n")
+                      writer.write(s"nvcc -O3 ${ outputfile } -arch compute_20 -o main${ ntry } \n")
                     writer.write("sleep 1 \n")
                     writer.close
 
                     val writer2 = new FileWriter(new File(DomainKnowledge.outputpath + "execute.bat"), true)
                     if (DomainKnowledge.use_Windows)
-                      writer2.write(s"main${ntry}.exe \n")
+                      writer2.write(s"main${ ntry }.exe \n")
                     else
-                      writer2.write(s"./main${ntry} \n")
+                      writer2.write(s"./main${ ntry } \n")
 
                     writer2.write("sleep 2 \n")
                     writer2.close
@@ -453,8 +446,7 @@ println("finished parsing")
     var FLOPcycle = esttimeGS._2 + esttimeRes._2 + esttimeRestr._2 + esttimeIntCorr._2
     println(s"VCycle: Estimated time: IO = ${IOcycle} ms FLOP = ${FLOPcycle} ms")
 */
-    
-   
+
 //     TODO: code for read source write scala
 /*        val DSLHW2 = scala.io.Source.fromFile(DSLpath + "myDSL1lev3a.mg").getLines
         val writer4 = new FileWriter(new File(DSLpath + "test.mg"))
@@ -463,7 +455,7 @@ println("finished parsing")
          println("writer.write(\""+s"${s}"+"\"\n);")
        }
         writer4.close
-*/         
-        
+*/
+
   }
 }

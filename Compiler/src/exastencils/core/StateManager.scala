@@ -4,6 +4,7 @@ import scala.collection.mutable.{ HashMap, ListBuffer, Stack }
 import scala.language.existentials
 import scala.reflect.ClassTag
 
+import exastencils.config.Settings
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.{ Traverser, _ }
 import exastencils.logger._

@@ -1,6 +1,6 @@
 package exastencils.boundary.ir
 
-import exastencils.knowledge.Knowledge
+import exastencils.config.Knowledge
 
 /// IR_NeumannBC
 

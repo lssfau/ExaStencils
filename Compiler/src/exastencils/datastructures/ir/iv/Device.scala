@@ -5,9 +5,9 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.cuda._
 import exastencils.field.ir.IR_Field
-import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 /// general variables and flags

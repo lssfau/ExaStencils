@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 // NOTE: this is currently obsolete and only kept for reference
 

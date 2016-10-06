@@ -2,7 +2,7 @@ package exastencils.deprecated.l3Generate
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Functions {
   def solFunction(boundary : Boolean) : String = {

@@ -5,13 +5,14 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.communication.ir.IR_Communicate
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
-import exastencils.knowledge._
+import exastencils.knowledge.Fragment
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.polyhedron.PolyhedronAccessible

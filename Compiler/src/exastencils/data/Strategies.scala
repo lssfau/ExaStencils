@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
+import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.cuda._
@@ -17,7 +18,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.globals._
 import exastencils.interfacing.ir._
-import exastencils.knowledge._
+import exastencils.knowledge.Fragment
 import exastencils.logger._
 import exastencils.multiGrid._
 import exastencils.omp._

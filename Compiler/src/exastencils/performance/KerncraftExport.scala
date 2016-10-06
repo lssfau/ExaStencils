@@ -9,6 +9,7 @@ import java.util.function._
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._

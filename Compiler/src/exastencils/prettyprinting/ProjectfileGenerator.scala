@@ -1,8 +1,6 @@
 package exastencils.prettyprinting
 
-import exastencils.core._
-import exastencils.knowledge._
-import scala.collection.mutable.ListBuffer
+import exastencils.config._
 
 object ProjectfileGenerator extends BuildfileGenerator {
   override def write : Unit = {
@@ -32,7 +30,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t<PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='Release|x64'\" Label=\"Configuration\">"
     projectPrinter <<< "\t\t<ConfigurationType>Application</ConfigurationType>"
     projectPrinter <<< "\t\t<UseDebugLibraries>false</UseDebugLibraries>"
-    projectPrinter <<< s"\t\t<PlatformToolset>v${Platform.targetCompilerVersion}${Platform.targetCompilerVersionMinor}</PlatformToolset>"
+    projectPrinter <<< s"\t\t<PlatformToolset>v${ Platform.targetCompilerVersion }${ Platform.targetCompilerVersionMinor }</PlatformToolset>"
     projectPrinter <<< "\t\t<WholeProgramOptimization>false</WholeProgramOptimization>"
     projectPrinter <<< "\t\t<CharacterSet>MultiByte</CharacterSet>"
     projectPrinter <<< "\t</PropertyGroup>"
@@ -50,7 +48,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // extensions
     projectPrinter <<< "\t<ImportGroup Label=\"ExtensionSettings\">"
     if (Knowledge.cuda_enabled) {
-      val cudaString = s"CUDA ${Platform.sw_cuda_version}.${Platform.sw_cuda_versionMinor}"
+      val cudaString = s"CUDA ${ Platform.sw_cuda_version }.${ Platform.sw_cuda_versionMinor }"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".props\" />"
       projectPrinter <<< "\t\t<Import Project=\"$(VCTargetsPath)\\BuildCustomizations\\" + cudaString + ".targets\" />"
     }
@@ -80,7 +78,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     projectPrinter <<< "\t\t\t<WarningLevel>Level3</WarningLevel>"
     projectPrinter <<< "\t\t\t<Optimization>MaxSpeed</Optimization>"
     projectPrinter <<< "\t\t\t<IntrinsicFunctions>true</IntrinsicFunctions>"
-    projectPrinter <<< s"\t\t\t<PreprocessorDefinitions>${Settings.additionalDefines.mkString(";")};WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>"
+    projectPrinter <<< s"\t\t\t<PreprocessorDefinitions>${ Settings.additionalDefines.mkString(";") };WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>"
     projectPrinter <<< "\t\t\t<MultiProcessorCompilation>true</MultiProcessorCompilation>"
     if (Knowledge.omp_enabled)
       projectPrinter <<< "\t\t\t<OpenMPSupport>true</OpenMPSupport>"
@@ -95,7 +93,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     if (Knowledge.cuda_enabled) {
       projectPrinter <<< "\t\t<CudaCompile>"
       projectPrinter <<< "\t\t\t<TargetMachinePlatform>64</TargetMachinePlatform>"
-      projectPrinter <<< s"\t\t\t<CodeGeneration>compute_${Platform.hw_cuda_capability}${Platform.hw_cuda_capabilityMinor},sm_${Platform.hw_cuda_capability}${Platform.hw_cuda_capabilityMinor}</CodeGeneration>"
+      projectPrinter <<< s"\t\t\t<CodeGeneration>compute_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor },sm_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }</CodeGeneration>"
       projectPrinter <<< "\t\t\t<FastMath>true</FastMath>"
       projectPrinter <<< "\t\t</CudaCompile>"
     }
@@ -103,7 +101,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // link step
     projectPrinter <<< "\t\t<Link>"
     projectPrinter <<< "\t\t\t<SubSystem>Console</SubSystem>"
-    projectPrinter <<< s"\t\t\t<AdditionalDependencies>${Settings.additionalLibs.mkString(";")};%(AdditionalDependencies)</AdditionalDependencies>"
+    projectPrinter <<< s"\t\t\t<AdditionalDependencies>${ Settings.additionalLibs.mkString(";") };%(AdditionalDependencies)</AdditionalDependencies>"
     projectPrinter <<< "\t\t</Link>"
 
     // post build step
@@ -120,20 +118,20 @@ object ProjectfileGenerator extends BuildfileGenerator {
     // header files
     projectPrinter <<< "\t<ItemGroup>"
     for (filename <- hFileNames)
-      projectPrinter <<< s"""\t\t<ClInclude Include=\"${filename.replace('/', '\\')}\" />"""
+      projectPrinter <<< s"""\t\t<ClInclude Include=\"${ filename.replace('/', '\\') }\" />"""
     projectPrinter <<< "\t</ItemGroup>"
 
     // source files
     projectPrinter <<< "\t<ItemGroup>"
     for (filename <- cppFileNames)
-      projectPrinter <<< s"""\t\t<ClCompile Include=\"${filename.replace('/', '\\')}\" />"""
+      projectPrinter <<< s"""\t\t<ClCompile Include=\"${ filename.replace('/', '\\') }\" />"""
     projectPrinter <<< "\t</ItemGroup>"
 
     // cuda kernels
     if (Knowledge.cuda_enabled) {
       projectPrinter <<< "\t<ItemGroup>"
       for (filename <- cuFileNames)
-        projectPrinter <<< s"""\t\t<CudaCompile Include=\"${filename.replace('/', '\\')}\" />"""
+        projectPrinter <<< s"""\t\t<CudaCompile Include=\"${ filename.replace('/', '\\') }\" />"""
       projectPrinter <<< "\t</ItemGroup>"
     }
 

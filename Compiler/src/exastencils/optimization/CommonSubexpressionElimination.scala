@@ -8,13 +8,13 @@ import scala.util.Sorting
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
+import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._

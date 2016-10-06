@@ -5,10 +5,10 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
 import exastencils.interfacing.ir.IR_ExternalFieldCollection
-import exastencils.knowledge._
 import exastencils.prettyprinting._
 
 /// variables and flags

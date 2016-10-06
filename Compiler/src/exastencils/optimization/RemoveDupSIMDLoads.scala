@@ -3,6 +3,7 @@ package exastencils.optimization
 import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.base.ir._
+import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation._

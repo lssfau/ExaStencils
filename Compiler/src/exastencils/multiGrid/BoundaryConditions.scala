@@ -14,7 +14,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid._
 import exastencils.grid.ir.IR_VirtualFieldAccess
-import exastencils.knowledge._
+import exastencils.knowledge.NeighborInfo
 import exastencils.logger._
 import exastencils.omp._
 import exastencils.polyhedron.PolyhedronAccessible

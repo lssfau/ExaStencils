@@ -4,6 +4,7 @@ import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.communication.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures._

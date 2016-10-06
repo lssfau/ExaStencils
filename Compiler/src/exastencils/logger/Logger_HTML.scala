@@ -1,6 +1,6 @@
 package exastencils.logger
 
-import exastencils.core._
+import exastencils.config.Settings
 
 object Logger_HTML {
   var isInit : Boolean = false

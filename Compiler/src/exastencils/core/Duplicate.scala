@@ -2,6 +2,8 @@ package exastencils.core
 
 import scala.collection.immutable.Nil
 
+import exastencils.config.Settings
+
 object Duplicate {
   private val cloner = new com.rits.cloning.Cloner
   cloner.setDumpClonedClasses(Settings.printClonedObjects)

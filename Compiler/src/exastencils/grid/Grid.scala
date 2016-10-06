@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core._
 import exastencils.datastructures.ir._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.logger._
 
 // helper object/method to branch grid types

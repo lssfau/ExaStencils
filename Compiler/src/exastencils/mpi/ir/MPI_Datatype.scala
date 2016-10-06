@@ -5,10 +5,10 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
+import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.globals.Globals
-import exastencils.knowledge.Knowledge
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.SimplifyExpression

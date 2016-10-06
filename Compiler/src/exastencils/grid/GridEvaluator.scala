@@ -9,7 +9,7 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir.IR_VirtualFieldAccess
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.logger._
 import exastencils.prettyprinting._
 

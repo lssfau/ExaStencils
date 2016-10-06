@@ -2,8 +2,9 @@ package exastencils.domain
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.config._
 import exastencils.domain.ir.IR_DomainCollection
-import exastencils.knowledge._
+import exastencils.knowledge.RectangularDomain
 import exastencils.logger._
 import exastencils.util._
 

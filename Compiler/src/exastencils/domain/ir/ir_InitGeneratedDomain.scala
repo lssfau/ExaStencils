@@ -5,9 +5,10 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.iv
-import exastencils.knowledge.{ Knowledge, _ }
+import exastencils.knowledge._
 import exastencils.mpi.ir.MPI_IV_MpiRank
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB

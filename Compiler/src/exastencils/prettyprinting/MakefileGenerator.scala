@@ -1,9 +1,8 @@
 package exastencils.prettyprinting
 
-import exastencils.core._
-import exastencils.knowledge._
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.config._
 
 object MakefileGenerator extends BuildfileGenerator {
   override def write : Unit = {
@@ -40,7 +39,7 @@ object MakefileGenerator extends BuildfileGenerator {
         Settings.pathsInc.map(path => s"-I$path"),
         "-I."
       )
-    printer <<<  mkStringTrimFlat(
+    printer <<< mkStringTrimFlat(
       "LDFLAGS =",
       Platform.resolveLdFlags,
       Settings.makefile_additionalLDFlags,
@@ -79,7 +78,7 @@ object MakefileGenerator extends BuildfileGenerator {
 
     printer <<< mkStringTrimFlat("${BINARY}:", "${ALL_OBJ}")
     printer <<< "\t" + mkStringTrimFlat(
-      "${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}",  Settings.additionalLibs.map(lib => s"-l$lib")
+      "${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}", Settings.additionalLibs.map(lib => s"-l$lib")
     )
     printer <<< ""
 
@@ -133,15 +132,15 @@ object MakefileGenerator extends BuildfileGenerator {
     * String arguments are trimmed, Seq[String] arguments are mkString(" ")'ed.
     * White-space only strings are dropped.
     *
-    * @param args  variable number of String or Seq[String]
+    * @param args variable number of String or Seq[String]
     */
-  private def mkStringTrimFlat(args : Any*): String = {
-  args.map( e =>
-    e match {
-      case s : String => s.trim
-      case c : Iterable[Any] => c.mkString(" ")
-      case x => throw new Exception("unexpected object " + x.getClass.getCanonicalName)
+  private def mkStringTrimFlat(args : Any*) : String = {
+    args.map(e =>
+      e match {
+        case s : String        => s.trim
+        case c : Iterable[Any] => c.mkString(" ")
+        case x                 => throw new Exception("unexpected object " + x.getClass.getCanonicalName)
 
-    }).filter(s => !s.isEmpty).mkString(" ")
+      }).filter(s => !s.isEmpty).mkString(" ")
   }
 }

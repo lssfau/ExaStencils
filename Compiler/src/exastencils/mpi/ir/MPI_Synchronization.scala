@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation.Output
-import exastencils.knowledge.Knowledge
+import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
 /// MPI_Barrier

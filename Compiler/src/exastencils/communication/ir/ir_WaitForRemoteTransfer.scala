@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
-import exastencils.knowledge._
+import exastencils.knowledge.NeighborInfo
 import exastencils.prettyprinting._
 
 /// local communication operations

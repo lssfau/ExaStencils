@@ -3,7 +3,7 @@ package test.core
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.strategies._
 
 object Simplification {

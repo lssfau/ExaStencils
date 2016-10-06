@@ -1,9 +1,9 @@
 package exastencils.field.ir
 
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
-import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 
 trait IR_MultiDimFieldAccess extends IR_Expression {

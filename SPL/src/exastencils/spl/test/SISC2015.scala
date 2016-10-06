@@ -1,18 +1,14 @@
 package exastencils.spl.test
 
-import exastencils.spl._
-import exastencils.spl.util._
-import scala.util.Random
-import exastencils.spl.samplingStrategies.doe.PlackettBurmanDesign
-import exastencils.spl.samplingStrategies.heuristics.FWHeuristic
-import exastencils.spl.samplingStrategies.heuristics.PWHeuristic
-import java.io.FileWriter
 import java.io._
+
+import exastencils.config._
 import exastencils.prettyprinting.JobScriptGenerator
-import exastencils.knowledge.Knowledge
-import exastencils.knowledge.Platform
-import exastencils.spl.samplingStrategies.doe.RandomDesign
+import exastencils.spl._
 import exastencils.spl.learning._
+import exastencils.spl.samplingStrategies.doe._
+import exastencils.spl.samplingStrategies.heuristics._
+import exastencils.spl.util._
 
 object SISC2015 {
 
@@ -22,10 +18,11 @@ object SISC2015 {
   var num_points_per_dim3D = 1024
   var num_points_per_dim = 0
 
-  var dimToConsider = 2 //2 3
+  var dimToConsider = 2
+  //2 3
   var ccVSvc = "cc" // cc vc
 
-  import exastencils.core.Settings
+  import exastencils.config.Settings
 
   var baseCaseStudyDir = "E:" + File.separator + "Fallstudien" + File.separator + "SISC_Paper" + File.separator
   var generationTargetDir = "E:" + File.separator + "ScalaExaStencil" + File.separator + "configsSiSC" + File.separator
@@ -164,65 +161,62 @@ object SISC2015 {
     var models : scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
     var ffss : scala.collection.mutable.Map[String, Tuple2[ForwardFeatureSelection, Tuple2[Jama.Matrix, Array[FFS_Expression]]]] = scala.collection.mutable.Map()
 
-    toConsider.par.foreach { x =>
-      {
+    toConsider.par.foreach { x => {
 
-        var ffs : ForwardFeatureSelection = new ForwardFeatureSelection(features, 20, configs, x)
-        println(x)
+      var ffs : ForwardFeatureSelection = new ForwardFeatureSelection(features, 20, configs, x)
+      println(x)
 
-        ffs.apply(false)
+      ffs.apply(false)
 
-        //        ffs.setValidationSet(configsValidation)
-        ffs.perform()
+      //        ffs.setValidationSet(configsValidation)
+      ffs.perform()
 
-        var orgExpressions = ffs.solutionSet;
-        var y = ffs.getModelWithConstants(orgExpressions.toArray[FFS_Expression])
+      var orgExpressions = ffs.solutionSet;
+      var y = ffs.getModelWithConstants(orgExpressions.toArray[FFS_Expression])
 
-        var learnedModel = ffs.printModelWithConstants(y._1, y._2)
+      var learnedModel = ffs.printModelWithConstants(y._1, y._2)
 
-        models.put(x, learnedModel)
-        ffss.put(x, new Tuple2(ffs, y))
+      models.put(x, learnedModel)
+      ffss.put(x, new Tuple2(ffs, y))
 
-        println("error model " + ffs.computeErrorForCombination(y._2, configs))
+      println("error model " + ffs.computeErrorForCombination(y._2, configs))
 
-        //
-        var resultFile = baseCaseStudyDir + dimToConsider + "_" + ccVSvc + "_ModelAndPredictionFor_" + x + ".csv"
-        var writer = new PrintWriter(new File(resultFile))
-        var sb : StringBuilder = new StringBuilder()
+      //
+      var resultFile = baseCaseStudyDir + dimToConsider + "_" + ccVSvc + "_ModelAndPredictionFor_" + x + ".csv"
+      var writer = new PrintWriter(new File(resultFile))
+      var sb : StringBuilder = new StringBuilder()
 
-        println("MODEL for " + x)
-        sb.append(ffs.printModelWithConstants(y._1, y._2) + " \n")
-        sb.append("measured;predicted;name;LFATimeMeasured;PredictedTimesMeasured;measuredIterations;LFAIterations\n")
-        configs.foreach { conf =>
-          {
-            var iterations : Int = conf.getLFAConfig(lfaConfigsCaseStudy).iterationsNeeded
-            var newMatrix = new Jama.Matrix(y._2.size, 1)
-            for (i <- 0 to y._2.size - 1) {
-              var value = y._1.get(i, 0)
-              newMatrix.set(i, 0, value * iterations)
-            }
-            sb.append(conf.nfpValues(x) + ";" + ffs.predictConfig(y._1, y._2, conf) + ";" + conf.measurementName + ";" + iterations * conf.nfpValues(x) + ";" + ffs.predictConfig(newMatrix, y._2, conf) + ";" + conf.nfpValues("NumIterations") + ";" + iterations + "\n")
-          }
+      println("MODEL for " + x)
+      sb.append(ffs.printModelWithConstants(y._1, y._2) + " \n")
+      sb.append("measured;predicted;name;LFATimeMeasured;PredictedTimesMeasured;measuredIterations;LFAIterations\n")
+      configs.foreach { conf => {
+        var iterations : Int = conf.getLFAConfig(lfaConfigsCaseStudy).iterationsNeeded
+        var newMatrix = new Jama.Matrix(y._2.size, 1)
+        for (i <- 0 to y._2.size - 1) {
+          var value = y._1.get(i, 0)
+          newMatrix.set(i, 0, value * iterations)
         }
-        if (configsValidation != null) {
-          configsValidation.foreach { conf =>
-            {
-              var iterations : Int = conf.getLFAConfig(lfaConfigsCaseStudy).iterationsNeeded
-              var newMatrix = new Jama.Matrix(y._2.size, 1)
-              for (i <- 0 to y._2.size - 1) {
-                var value = y._1.get(i, 0)
-                newMatrix.set(i, 0, value * iterations)
-              }
-
-              sb.append(conf.nfpValues(x) + ";" + ffs.predictConfig(y._1, y._2, conf) + ";" + conf.measurementName + ";" + iterations * conf.nfpValues(x) + ";" + ffs.predictConfig(newMatrix, y._2, conf) + ";" + conf.nfpValues("NumIterations") + ";" + iterations + "\n")
-            }
-          }
-        }
-        writer.append(sb.toString())
-        writer.flush()
-        writer.close()
-
+        sb.append(conf.nfpValues(x) + ";" + ffs.predictConfig(y._1, y._2, conf) + ";" + conf.measurementName + ";" + iterations * conf.nfpValues(x) + ";" + ffs.predictConfig(newMatrix, y._2, conf) + ";" + conf.nfpValues("NumIterations") + ";" + iterations + "\n")
       }
+      }
+      if (configsValidation != null) {
+        configsValidation.foreach { conf => {
+          var iterations : Int = conf.getLFAConfig(lfaConfigsCaseStudy).iterationsNeeded
+          var newMatrix = new Jama.Matrix(y._2.size, 1)
+          for (i <- 0 to y._2.size - 1) {
+            var value = y._1.get(i, 0)
+            newMatrix.set(i, 0, value * iterations)
+          }
+
+          sb.append(conf.nfpValues(x) + ";" + ffs.predictConfig(y._1, y._2, conf) + ";" + conf.measurementName + ";" + iterations * conf.nfpValues(x) + ";" + ffs.predictConfig(newMatrix, y._2, conf) + ";" + conf.nfpValues("NumIterations") + ";" + iterations + "\n")
+        }
+        }
+      }
+      writer.append(sb.toString())
+      writer.flush()
+      writer.close()
+
+    }
     }
 
     //     generating the model for the whole problem based on the models for the different parts
@@ -287,7 +281,7 @@ object SISC2015 {
     ffs.apply(false)
 
     if (dimToConsider == 2 && ccVSvc.equals("cc"))
-      //      learnedModel = "-0.0064394757097425586 * domain_fragmentLength_y * maxLevel + -0.004560257721061133 * l3tmp_numPost + -13.2126718663305725 * maxLevel +-0.008528945840465041 * Jac * domain_rect_numFragsPerBlock_y + -0.03328437545956467 * poly_optLevel_fine * minLevel + -0.854715884099006 * l3tmp_numRecCycleCalls * minLevel + -0.009586647036392825 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -0.050558898392768975 * poly_optLevel_fine * domain_rect_numFragsPerBlock_y + -0.013129280512490205 * opt_useAddressPrecalc + -55.517712095487373 * 1 + -0.3676108446596291 * l3tmp_numRecCycleCalls * maxLevel + -0.06749139660287894 * domain_fragmentLength_x * domain_rect_numFragsPerBlock_x + -0.07543094123475347 * domain_fragmentLength_y * minLevel * domain_fragmentLength_x + -0.06696492508953497 * opt_vectorize * domain_fragmentLength_x + -0.010878746310418214 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * maxLevel + -11.880296564311788 * l3tmp_numPost * minLevel + -2.467508096254454 * Jac * minLevel * l3tmp_numPost * domain_rect_numFragsPerBlock_y + -0.10841560691455333 * domain_fragmentLength_y * RBGS * l3tmp_numPost * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * maxLevel + -3.1394728651733486 * domain_rect_numFragsPerBlock_y * l3tmp_numPost + -22.258384105581424 * l3tmp_numRecCycleCalls + -1.235078187301263 * RBGS * l3tmp_numPost * maxLevel + -0.03285389023851206 * mpi_useCustomDatatypes * l3tmp_numPost * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -3.0806189910770523 * domain_rect_numFragsPerBlock_y * l3tmp_numPre + -1.522668021839599 * l3tmp_useSlotsForJac + -23.477816009352015 * l3tmp_numRecCycleCalls + -2.2038793634551954 * Jac * minLevel * l3tmp_numPre * domain_rect_numFragsPerBlock_y + -0.08817599420458942 * poly_optLevel_fine * l3tmp_numPre * minLevel * domain_rect_numFragsPerBlock_x + -11.083562597795163 * l3tmp_numPre * minLevel + -1.134838312447672 * RBGS * l3tmp_numPre * maxLevel + -0.9304377836025013 * domain_fragmentLength_y * RBGS * l3tmp_numPre * l3tmp_numRecCycleCalls * domain_rect_numFragsPerBlock_y + -0.011561652800814939 * domain_fragmentLength_y * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * domain_fragmentLength_x * maxLevel + -12.7843982489679058 * minLevel + -0.7825257384886356 * domain_fragmentLength_x + -0.01828358548009792 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * domain_fragmentLength_y * maxLevel + -0.10942136448727624 * domain_rect_numFragsPerBlock_x + -9.696997790735045 * l3tmp_numRecCycleCalls * minLevel + -0.29237588074632226 * l3tmp_numPost * RBGS * poly_optLevel_fine * minLevel + -5.1094697785167861 * comm_useFragmentLoopsForEachOp + -0.01966492411798817 * mpi_useCustomDatatypes * domain_rect_numFragsPerBlock_x + -0.013805416554945587 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -0.011998083001936896 * l3tmp_numPre * poly_optLevel_fine * maxLevel + -0.006796431037699057 * l3tmp_numPost * domain_fragmentLength_y + -0.53047694288809 * l3tmp_numRecCycleCalls * maxLevel + -0.005382118168399348 * opt_unroll * maxLevel * l3tmp_numRecCycleCalls + -1.3947987734237583E-4 * poly_optLevel_fine * poly_tileSize_x * maxLevel + -0.08729778090514007 * domain_fragmentLength_y * l3tmp_numRecCycleCalls + -0.14979872814703596 * domain_fragmentLength_x * minLevel + -0.0024628079401805285 * minLevel * domain_rect_numFragsPerBlock_x"
+    //      learnedModel = "-0.0064394757097425586 * domain_fragmentLength_y * maxLevel + -0.004560257721061133 * l3tmp_numPost + -13.2126718663305725 * maxLevel +-0.008528945840465041 * Jac * domain_rect_numFragsPerBlock_y + -0.03328437545956467 * poly_optLevel_fine * minLevel + -0.854715884099006 * l3tmp_numRecCycleCalls * minLevel + -0.009586647036392825 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -0.050558898392768975 * poly_optLevel_fine * domain_rect_numFragsPerBlock_y + -0.013129280512490205 * opt_useAddressPrecalc + -55.517712095487373 * 1 + -0.3676108446596291 * l3tmp_numRecCycleCalls * maxLevel + -0.06749139660287894 * domain_fragmentLength_x * domain_rect_numFragsPerBlock_x + -0.07543094123475347 * domain_fragmentLength_y * minLevel * domain_fragmentLength_x + -0.06696492508953497 * opt_vectorize * domain_fragmentLength_x + -0.010878746310418214 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * maxLevel + -11.880296564311788 * l3tmp_numPost * minLevel + -2.467508096254454 * Jac * minLevel * l3tmp_numPost * domain_rect_numFragsPerBlock_y + -0.10841560691455333 * domain_fragmentLength_y * RBGS * l3tmp_numPost * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * maxLevel + -3.1394728651733486 * domain_rect_numFragsPerBlock_y * l3tmp_numPost + -22.258384105581424 * l3tmp_numRecCycleCalls + -1.235078187301263 * RBGS * l3tmp_numPost * maxLevel + -0.03285389023851206 * mpi_useCustomDatatypes * l3tmp_numPost * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -3.0806189910770523 * domain_rect_numFragsPerBlock_y * l3tmp_numPre + -1.522668021839599 * l3tmp_useSlotsForJac + -23.477816009352015 * l3tmp_numRecCycleCalls + -2.2038793634551954 * Jac * minLevel * l3tmp_numPre * domain_rect_numFragsPerBlock_y + -0.08817599420458942 * poly_optLevel_fine * l3tmp_numPre * minLevel * domain_rect_numFragsPerBlock_x + -11.083562597795163 * l3tmp_numPre * minLevel + -1.134838312447672 * RBGS * l3tmp_numPre * maxLevel + -0.9304377836025013 * domain_fragmentLength_y * RBGS * l3tmp_numPre * l3tmp_numRecCycleCalls * domain_rect_numFragsPerBlock_y + -0.011561652800814939 * domain_fragmentLength_y * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * domain_fragmentLength_x * maxLevel + -12.7843982489679058 * minLevel + -0.7825257384886356 * domain_fragmentLength_x + -0.01828358548009792 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * domain_fragmentLength_y * maxLevel + -0.10942136448727624 * domain_rect_numFragsPerBlock_x + -9.696997790735045 * l3tmp_numRecCycleCalls * minLevel + -0.29237588074632226 * l3tmp_numPost * RBGS * poly_optLevel_fine * minLevel + -5.1094697785167861 * comm_useFragmentLoopsForEachOp + -0.01966492411798817 * mpi_useCustomDatatypes * domain_rect_numFragsPerBlock_x + -0.013805416554945587 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -0.011998083001936896 * l3tmp_numPre * poly_optLevel_fine * maxLevel + -0.006796431037699057 * l3tmp_numPost * domain_fragmentLength_y + -0.53047694288809 * l3tmp_numRecCycleCalls * maxLevel + -0.005382118168399348 * opt_unroll * maxLevel * l3tmp_numRecCycleCalls + -1.3947987734237583E-4 * poly_optLevel_fine * poly_tileSize_x * maxLevel + -0.08729778090514007 * domain_fragmentLength_y * l3tmp_numRecCycleCalls + -0.14979872814703596 * domain_fragmentLength_x * minLevel + -0.0024628079401805285 * minLevel * domain_rect_numFragsPerBlock_x"
       learnedModel = "0.0064394757097425586 * domain_fragmentLength_y * maxLevel + 0.004560257721061133 * l3tmp_numPost + 13.2126718663305725 * maxLevel +-0.008528945840465041 * Jac * domain_rect_numFragsPerBlock_y + 0.03328437545956467 * poly_optLevel_fine * minLevel + -0.854715884099006 * l3tmp_numRecCycleCalls * minLevel + 0.009586647036392825 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + 0.050558898392768975 * poly_optLevel_fine * domain_rect_numFragsPerBlock_y + 0.013129280512490205 * opt_useAddressPrecalc + -55.517712095487373 * 1 + -0.3676108446596291 * l3tmp_numRecCycleCalls * maxLevel + -0.06749139660287894 * domain_fragmentLength_x * domain_rect_numFragsPerBlock_x + 0.07543094123475347 * domain_fragmentLength_y * minLevel * domain_fragmentLength_x + 0.06696492508953497 * opt_vectorize * domain_fragmentLength_x + 0.010878746310418214 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * maxLevel + 11.880296564311788 * l3tmp_numPost * minLevel + -2.467508096254454 * Jac * minLevel * l3tmp_numPost * domain_rect_numFragsPerBlock_y + -0.10841560691455333 * domain_fragmentLength_y * RBGS * l3tmp_numPost * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * maxLevel + 3.1394728651733486 * domain_rect_numFragsPerBlock_y * l3tmp_numPost + -22.258384105581424 * l3tmp_numRecCycleCalls + 1.235078187301263 * RBGS * l3tmp_numPost * maxLevel + 0.03285389023851206 * mpi_useCustomDatatypes * l3tmp_numPost * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + 3.0806189910770523 * domain_rect_numFragsPerBlock_y * l3tmp_numPre + -1.522668021839599 * l3tmp_useSlotsForJac + -23.477816009352015 * l3tmp_numRecCycleCalls + -2.2038793634551954 * Jac * minLevel * l3tmp_numPre * domain_rect_numFragsPerBlock_y + 0.08817599420458942 * poly_optLevel_fine * l3tmp_numPre * minLevel * domain_rect_numFragsPerBlock_x + 11.083562597795163 * l3tmp_numPre * minLevel + 1.134838312447672 * RBGS * l3tmp_numPre * maxLevel + -0.9304377836025013 * domain_fragmentLength_y * RBGS * l3tmp_numPre * l3tmp_numRecCycleCalls * domain_rect_numFragsPerBlock_y + -0.011561652800814939 * domain_fragmentLength_y * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * domain_fragmentLength_x * maxLevel + 12.7843982489679058 * minLevel + 0.7825257384886356 * domain_fragmentLength_x + 0.01828358548009792 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * domain_fragmentLength_y * maxLevel + -0.10942136448727624 * domain_rect_numFragsPerBlock_x + -9.696997790735045 * l3tmp_numRecCycleCalls * minLevel + 0.29237588074632226 * l3tmp_numPost * RBGS * poly_optLevel_fine * minLevel + -5.1094697785167861 * comm_useFragmentLoopsForEachOp + 0.01966492411798817 * mpi_useCustomDatatypes * domain_rect_numFragsPerBlock_x + 0.013805416554945587 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + 0.011998083001936896 * l3tmp_numPre * poly_optLevel_fine * maxLevel + -0.006796431037699057 * l3tmp_numPost * domain_fragmentLength_y + -0.53047694288809 * l3tmp_numRecCycleCalls * maxLevel + -0.005382118168399348 * opt_unroll * maxLevel * l3tmp_numRecCycleCalls + 1.3947987734237583E-4 * poly_optLevel_fine * poly_tileSize_x * maxLevel + 0.08729778090514007 * domain_fragmentLength_y * l3tmp_numRecCycleCalls + 0.14979872814703596 * domain_fragmentLength_x * minLevel + 0.0024628079401805285 * minLevel * domain_rect_numFragsPerBlock_x"
     //      learnedModel = "0.0026598580417355982 * domain_fragmentLength_x * maxLevel + 0.0037796176680069604 * domain_fragmentLength_y * maxLevel + 0.004560257721061133 * l3tmp_numPost + 0.8652450803851031 * maxLevel + 0.762071560955187 * minLevel + -0.008528945840465041 * Jac * domain_rect_numFragsPerBlock_y + 0.03328437545956467 * poly_optLevel_fine * minLevel + -0.854715884099006 * l3tmp_numRecCycleCalls * minLevel + 0.009586647036392825 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + -8.01330503146351 * 1 + 0.050558898392768975 * poly_optLevel_fine * domain_rect_numFragsPerBlock_y + 0.013129280512490205 * opt_useAddressPrecalc + -14.96313827766639 * 1 + -0.3676108446596291 * l3tmp_numRecCycleCalls * maxLevel + -0.06749139660287894 * domain_fragmentLength_x * domain_rect_numFragsPerBlock_x + 0.6067769811810128 * minLevel + 0.07543094123475347 * domain_fragmentLength_y * minLevel * domain_fragmentLength_x + 0.06696492508953497 * opt_vectorize * domain_fragmentLength_x + 0.010878746310418214 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * maxLevel + 2.2439422650090224 * maxLevel + 11.880296564311788 * l3tmp_numPost * minLevel + -2.467508096254454 * Jac * minLevel * l3tmp_numPost * domain_rect_numFragsPerBlock_y + -0.10841560691455333 * domain_fragmentLength_y * RBGS * l3tmp_numPost * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * maxLevel + 22.384219592112647 * 1 + 3.1394728651733486 * domain_rect_numFragsPerBlock_y * l3tmp_numPost + -22.258384105581424 * l3tmp_numRecCycleCalls + 1.235078187301263 * RBGS * l3tmp_numPost * maxLevel + 0.03285389023851206 * mpi_useCustomDatatypes * l3tmp_numPost * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + 3.0806189910770523 * domain_rect_numFragsPerBlock_y * l3tmp_numPre + -1.522668021839599 * l3tmp_useSlotsForJac + -23.477816009352015 * l3tmp_numRecCycleCalls + -2.2038793634551954 * Jac * minLevel * l3tmp_numPre * domain_rect_numFragsPerBlock_y + 0.08817599420458942 * poly_optLevel_fine * l3tmp_numPre * minLevel * domain_rect_numFragsPerBlock_x + 11.083562597795163 * l3tmp_numPre * minLevel + 1.134838312447672 * RBGS * l3tmp_numPre * maxLevel + -0.9304377836025013 * domain_fragmentLength_y * RBGS * l3tmp_numPre * l3tmp_numRecCycleCalls * domain_rect_numFragsPerBlock_y + 27.56747433295817 * 1 + -0.011561652800814939 * domain_fragmentLength_y * domain_rect_numFragsPerBlock_y * l3tmp_numRecCycleCalls * domain_fragmentLength_x * maxLevel + -43.75616953340436 * 1 + 0.7825257384886356 * domain_fragmentLength_x + 0.01828358548009792 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x * domain_fragmentLength_y * maxLevel + -0.10942136448727624 * domain_rect_numFragsPerBlock_x + -9.696997790735045 * l3tmp_numRecCycleCalls * minLevel + 5.124355062632224 * maxLevel + 0.29237588074632226 * l3tmp_numPost * RBGS * poly_optLevel_fine * minLevel + -0.1094697785167861 * comm_useFragmentLoopsForEachOp + 11.415549706831706 * minLevel + 0.01966492411798817 * mpi_useCustomDatatypes * domain_rect_numFragsPerBlock_x + 0.013805416554945587 * domain_rect_numFragsPerBlock_y * domain_rect_numFragsPerBlock_x + 0.011998083001936896 * l3tmp_numPre * poly_optLevel_fine * maxLevel + -0.006796431037699057 * l3tmp_numPost * domain_fragmentLength_y + -0.53047694288809 * l3tmp_numRecCycleCalls * maxLevel + -0.005382118168399348 * opt_unroll * maxLevel * l3tmp_numRecCycleCalls + -1.3947987734237583 * poly_optLevel_fine * poly_tileSize_x * maxLevel + 0.08729778090514007 * domain_fragmentLength_y * l3tmp_numRecCycleCalls + 0.14979872814703596 * domain_fragmentLength_x * minLevel + 0.0024628079401805285 * minLevel * domain_rect_numFragsPerBlock_x + -38.73679317802393 * 1 + 4.979129458304223 * maxLevel"
 
@@ -351,57 +345,56 @@ object SISC2015 {
     // if part 3 == 4 <= aspectRatioOffset
 
     for (ifPart <- 1 to 3) {
-      lfaConfigsCaseStudy.foreach { currLFA =>
-        {
-          var currModel = currLFA.iterationsNeeded + " * " + learnedModel.replace("+", "+ " + currLFA.iterationsNeeded + " * ")
+      lfaConfigsCaseStudy.foreach { currLFA => {
+        var currModel = currLFA.iterationsNeeded + " * " + learnedModel.replace("+", "+ " + currLFA.iterationsNeeded + " * ")
 
-          var identifier = ""
+        var identifier = ""
 
-          identifier = dimToConsider + "_" + ccVSvc + "_" + currLFA.numPre + "_" + currLFA.numPost + "_JAC-" + currLFA.Smoother.equals("Jac") + "_ifPart-" + ifPart
+        identifier = dimToConsider + "_" + ccVSvc + "_" + currLFA.numPre + "_" + currLFA.numPost + "_JAC-" + currLFA.Smoother.equals("Jac") + "_ifPart-" + ifPart
 
-          // replace variables considered in lfa with values
-          currModel = currModel.replace(" l3tmp_numPost ", "" + currLFA.numPost)
-          currModel = currModel.replace(" l3tmp_numPre ", "" + currLFA.numPre)
-          if (currLFA.Smoother.equals("\"Jac\"")) {
-            currModel = currModel.replace(" Jac ", "" + 1)
-            currModel = currModel.replace(" RBGS ", "" + 0)
-          } else {
-            //              currModel = currModel.replace(" l3tmp_useSlotsForJac ", "" + 0)
-            currModel = currModel.replace(" Jac ", "" + 0)
-            currModel = currModel.replace(" RBGS ", "" + 1)
-          }
-
-          var allExpr : FFS_Expression = new FFS_Expression(ffs.featuresOfDomain, currModel)
-          var stringBuild : StringBuilder = new StringBuilder()
-
-          printOSiLSyntax(ffs, allExpr, ifPart, identifier, derivedDomainPart)
-
-          //        printGAMSSyntax(ffs, allExpr, 3)
-
-          //            printGAMSSyntax(allExpr, 3)
-
-          var result = startOptimizer(identifier)
-
-          //        var result = optimium - 1
-
-          numbers += 1
-
-          println("round nr " + numbers)
-
-          var featuresDefined = getOptimalKnowledgeFile(currLFA, result, "" + numbers)
-
-          val objvar = getObjVar(result)
-
-          if (objvar < bestValue) {
-            bestValue = objvar
-            bestIdentifier = identifier
-          }
-
-          identifierAndTime.append(identifier + ";" + objvar + "\n")
-
-          printOptimalKnowledgeFile(currLFA, featuresDefined, identifier, currModel)
-          print("")
+        // replace variables considered in lfa with values
+        currModel = currModel.replace(" l3tmp_numPost ", "" + currLFA.numPost)
+        currModel = currModel.replace(" l3tmp_numPre ", "" + currLFA.numPre)
+        if (currLFA.Smoother.equals("\"Jac\"")) {
+          currModel = currModel.replace(" Jac ", "" + 1)
+          currModel = currModel.replace(" RBGS ", "" + 0)
+        } else {
+          //              currModel = currModel.replace(" l3tmp_useSlotsForJac ", "" + 0)
+          currModel = currModel.replace(" Jac ", "" + 0)
+          currModel = currModel.replace(" RBGS ", "" + 1)
         }
+
+        var allExpr : FFS_Expression = new FFS_Expression(ffs.featuresOfDomain, currModel)
+        var stringBuild : StringBuilder = new StringBuilder()
+
+        printOSiLSyntax(ffs, allExpr, ifPart, identifier, derivedDomainPart)
+
+        //        printGAMSSyntax(ffs, allExpr, 3)
+
+        //            printGAMSSyntax(allExpr, 3)
+
+        var result = startOptimizer(identifier)
+
+        //        var result = optimium - 1
+
+        numbers += 1
+
+        println("round nr " + numbers)
+
+        var featuresDefined = getOptimalKnowledgeFile(currLFA, result, "" + numbers)
+
+        val objvar = getObjVar(result)
+
+        if (objvar < bestValue) {
+          bestValue = objvar
+          bestIdentifier = identifier
+        }
+
+        identifierAndTime.append(identifier + ";" + objvar + "\n")
+
+        printOptimalKnowledgeFile(currLFA, featuresDefined, identifier, currModel)
+        print("")
+      }
       }
     }
     println(identifierAndTime.toString())
@@ -410,18 +403,17 @@ object SISC2015 {
   }
 
   def getObjVar(optimumContent : scala.collection.mutable.Set[String]) : Double = {
-    optimumContent.foreach { x =>
-      {
-        var content = x.split(" ")
-        if ((content(0).equals("objvar"))) {
-          val name = (content(0))
-          for (a <- 1 to content.length - 1) {
-            if (content(a).length() > 0) {
-              return content(a).toDouble
-            }
+    optimumContent.foreach { x => {
+      var content = x.split(" ")
+      if ((content(0).equals("objvar"))) {
+        val name = (content(0))
+        for (a <- 1 to content.length - 1) {
+          if (content(a).length() > 0) {
+            return content(a).toDouble
           }
         }
       }
+    }
     }
     return 0.0
   }
@@ -443,31 +435,30 @@ object SISC2015 {
     featureMap.put("l3tmp_smoother", lfaConfig.Smoother)
     features.remove("l3tmp_smoother")
 
-    optimumContent.foreach { x =>
-      {
-        var content = x.split(" ")
-        if (featuresToConsider.contains(content(0))) {
-          val name = (content(0))
-          var notPrinted = true
-          for (a <- 1 to content.length - 1) {
-            if (content(a).length() > 0 && notPrinted) {
-              if (!FeatureModel.get(name).isNumerical) {
-                if (content(a).equals("1")) {
-                  featureMap.put(name, "true")
-                } else {
-                  featureMap.put(name, "false")
-                }
-                features.remove(name)
-
+    optimumContent.foreach { x => {
+      var content = x.split(" ")
+      if (featuresToConsider.contains(content(0))) {
+        val name = (content(0))
+        var notPrinted = true
+        for (a <- 1 to content.length - 1) {
+          if (content(a).length() > 0 && notPrinted) {
+            if (!FeatureModel.get(name).isNumerical) {
+              if (content(a).equals("1")) {
+                featureMap.put(name, "true")
               } else {
-                featureMap.put(name, Math.round(content(a).toDouble).toString())
-                features.remove(name)
+                featureMap.put(name, "false")
               }
-              notPrinted = false
+              features.remove(name)
+
+            } else {
+              featureMap.put(name, Math.round(content(a).toDouble).toString())
+              features.remove(name)
             }
+            notPrinted = false
           }
         }
       }
+    }
     }
 
     return featureMap
@@ -493,26 +484,25 @@ object SISC2015 {
     features.remove("l3tmp_smoother")
     featuresDefined.remove("l3tmp_smoother")
 
-    featuresDefined.foreach { x =>
-      {
-        var name = x._1
-        if (featuresToConsider.contains(name)) {
-          val value = x._2
-          if (!FeatureModel.get(name).isNumerical) {
-            if (value.equals("true")) {
-              definedFeatureMap.put(name, "true")
-            } else {
-              definedFeatureMap.put(name, "false")
-            }
-            features.remove(name)
-
+    featuresDefined.foreach { x => {
+      var name = x._1
+      if (featuresToConsider.contains(name)) {
+        val value = x._2
+        if (!FeatureModel.get(name).isNumerical) {
+          if (value.equals("true")) {
+            definedFeatureMap.put(name, "true")
           } else {
-            definedFeatureMap.put(name, Math.round(value.toInt).toString())
-            features.remove(name)
+            definedFeatureMap.put(name, "false")
           }
+          features.remove(name)
 
+        } else {
+          definedFeatureMap.put(name, Math.round(value.toInt).toString())
+          features.remove(name)
         }
+
       }
+    }
     }
 
     // definedFeatureMap = definedNonSelectedFeatures(definedFeatureMap, features, model)
@@ -717,20 +707,19 @@ object SISC2015 {
     var numericOptionsFirstSampling : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     var numericOptionsSecondSampling : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     var numericOptionsThirdSampling : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
-    featuresNumeric.foreach(x =>
-      {
-        if (x.identifier.startsWith("domain") || x.identifier.equals("sisc2015_numNodes") // || x.identifier.startsWith("numOMP_")
-          || x.identifier.equals("sisc2015_ranksPerNode") || x.identifier.startsWith("aro_")) {
-          numericOptionsFirstSampling.add(x)
-          println("1: " + x)
-        } else if (x.identifier.startsWith("sisc2015_numOMP_") || x.identifier.startsWith("opt_unroll") || x.identifier.startsWith("l3tmp") || x.identifier.startsWith("minLevel") || x.identifier.startsWith("poly_tileSize_x")) {
-          numericOptionsThirdSampling.add(x)
-          println("3: " + x)
-        } else {
-          numericOptionsSecondSampling.add(x)
-          println("2: " + x)
-        }
-      })
+    featuresNumeric.foreach(x => {
+      if (x.identifier.startsWith("domain") || x.identifier.equals("sisc2015_numNodes") // || x.identifier.startsWith("numOMP_")
+        || x.identifier.equals("sisc2015_ranksPerNode") || x.identifier.startsWith("aro_")) {
+        numericOptionsFirstSampling.add(x)
+        println("1: " + x)
+      } else if (x.identifier.startsWith("sisc2015_numOMP_") || x.identifier.startsWith("opt_unroll") || x.identifier.startsWith("l3tmp") || x.identifier.startsWith("minLevel") || x.identifier.startsWith("poly_tileSize_x")) {
+        numericOptionsThirdSampling.add(x)
+        println("3: " + x)
+      } else {
+        numericOptionsSecondSampling.add(x)
+        println("2: " + x)
+      }
+    })
     println("Numeric First  Set size " + numericOptionsFirstSampling.size)
     println("Numeric Second Set size " + numericOptionsSecondSampling.size)
 
@@ -768,19 +757,18 @@ object SISC2015 {
     println("configsBeforeFiltering " + configurationsPreFiltered.size)
     //
     var configurationsFiltered : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
-    configurationsPreFiltered.foreach(x =>
-      {
-        if (dimToConsider == 2 && ccVSvc.equals("cc"))
-          problemDefinition2D_ConstCoeff(x.partialBaseConfig)
-        if (dimToConsider == 2 && ccVSvc.equals("vc"))
-          problemDefinition2D_VarCoeff(x.partialBaseConfig)
-        if (dimToConsider == 3 && ccVSvc.equals("cc"))
-          problemDefinition3D_ConstCoeff(x.partialBaseConfig)
-        if (dimToConsider == 3 && ccVSvc.equals("vc"))
-          problemDefinition3D_VarCoeff(x.partialBaseConfig)
+    configurationsPreFiltered.foreach(x => {
+      if (dimToConsider == 2 && ccVSvc.equals("cc"))
+        problemDefinition2D_ConstCoeff(x.partialBaseConfig)
+      if (dimToConsider == 2 && ccVSvc.equals("vc"))
+        problemDefinition2D_VarCoeff(x.partialBaseConfig)
+      if (dimToConsider == 3 && ccVSvc.equals("cc"))
+        problemDefinition3D_ConstCoeff(x.partialBaseConfig)
+      if (dimToConsider == 3 && ccVSvc.equals("vc"))
+        problemDefinition3D_VarCoeff(x.partialBaseConfig)
 
-        configurationsFiltered.add(x)
-      })
+      configurationsFiltered.add(x)
+    })
 
     println("configsAfterFiltering  " + configurationsFiltered.size)
 
@@ -793,16 +781,15 @@ object SISC2015 {
     numericSamplings = pbd.getPoints()
 
     var configurationsWithSecondSampling : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
-    configurationsFiltered.foreach { x =>
-      {
-        numericSamplings.foreach(y => {
-          var configCopy = x.copy();
-          configCopy.addNumericOptions(y)
-          configurationsWithSecondSampling.add(configCopy)
+    configurationsFiltered.foreach { x => {
+      numericSamplings.foreach(y => {
+        var configCopy = x.copy();
+        configCopy.addNumericOptions(y)
+        configurationsWithSecondSampling.add(configCopy)
 
-        })
+      })
 
-      }
+    }
     }
 
     pbd = new PlackettBurmanDesign(numericOptionsThirdSampling)
@@ -816,17 +803,16 @@ object SISC2015 {
     println("second sampling combinations " + numericSamplings.size)
 
     var configurationsWiththirdSampling : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
-    configurationsWithSecondSampling.foreach { x =>
-      {
-        numericSamplings.foreach(y => {
-          var configCopy = x.copy();
-          configCopy.addNumericOptions(y)
-          if (this.derivedParameters(configCopy)) {
-            configurationsWiththirdSampling.add(configCopy)
-          }
-        })
+    configurationsWithSecondSampling.foreach { x => {
+      numericSamplings.foreach(y => {
+        var configCopy = x.copy();
+        configCopy.addNumericOptions(y)
+        if (this.derivedParameters(configCopy)) {
+          configurationsWiththirdSampling.add(configCopy)
+        }
+      })
 
-      }
+    }
     }
     println("configsCombined  " + configurationsWiththirdSampling.size)
 
@@ -849,19 +835,18 @@ object SISC2015 {
     println("configsBeforeFiltering " + configurationsPreFiltered.size)
     //
     configurationsFiltered = scala.collection.mutable.Set()
-    configurationsPreFiltered.foreach(x =>
-      {
-        if (dimToConsider == 2 && ccVSvc.equals("cc"))
-          problemDefinition2D_ConstCoeff(x.partialBaseConfig)
-        if (dimToConsider == 2 && ccVSvc.equals("vc"))
-          problemDefinition2D_VarCoeff(x.partialBaseConfig)
-        if (dimToConsider == 3 && ccVSvc.equals("cc"))
-          problemDefinition3D_ConstCoeff(x.partialBaseConfig)
-        if (dimToConsider == 3 && ccVSvc.equals("vc"))
-          problemDefinition3D_VarCoeff(x.partialBaseConfig)
+    configurationsPreFiltered.foreach(x => {
+      if (dimToConsider == 2 && ccVSvc.equals("cc"))
+        problemDefinition2D_ConstCoeff(x.partialBaseConfig)
+      if (dimToConsider == 2 && ccVSvc.equals("vc"))
+        problemDefinition2D_VarCoeff(x.partialBaseConfig)
+      if (dimToConsider == 3 && ccVSvc.equals("cc"))
+        problemDefinition3D_ConstCoeff(x.partialBaseConfig)
+      if (dimToConsider == 3 && ccVSvc.equals("vc"))
+        problemDefinition3D_VarCoeff(x.partialBaseConfig)
 
-        configurationsFiltered.add(x)
-      })
+      configurationsFiltered.add(x)
+    })
 
     println("configsAfterFiltering  " + configurationsFiltered.size)
 
@@ -875,16 +860,15 @@ object SISC2015 {
     println("second sampling combinations " + numericSamplings.size)
 
     var configurationsWithSecondSamplingPW : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
-    configurationsFiltered.foreach { x =>
-      {
-        numericSamplings.foreach(y => {
-          var configCopy = x.copy();
-          configCopy.addNumericOptions(y)
-          configurationsWithSecondSamplingPW.add(configCopy)
+    configurationsFiltered.foreach { x => {
+      numericSamplings.foreach(y => {
+        var configCopy = x.copy();
+        configCopy.addNumericOptions(y)
+        configurationsWithSecondSamplingPW.add(configCopy)
 
-        })
+      })
 
-      }
+    }
     }
 
     pbd = new PlackettBurmanDesign(numericOptionsThirdSampling)
@@ -897,17 +881,16 @@ object SISC2015 {
     println("second sampling combinations " + numericSamplings.size)
 
     var configurationsWithThirdSamplingPW : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
-    configurationsWithSecondSamplingPW.foreach { x =>
-      {
-        numericSamplings.foreach(y => {
-          var configCopy = x.copy();
-          configCopy.addNumericOptions(y)
-          if (this.derivedParameters(configCopy)) {
-            configurationsWithThirdSamplingPW.add(configCopy)
-          }
-        })
+    configurationsWithSecondSamplingPW.foreach { x => {
+      numericSamplings.foreach(y => {
+        var configCopy = x.copy();
+        configCopy.addNumericOptions(y)
+        if (this.derivedParameters(configCopy)) {
+          configurationsWithThirdSamplingPW.add(configCopy)
+        }
+      })
 
-      }
+    }
     }
 
     println("configsCombined PW  " + configurationsWithThirdSamplingPW.size)
@@ -931,20 +914,19 @@ object SISC2015 {
     println("configsBeforeFiltering " + configurationsPreFiltered.size)
     //
     configurationsFiltered = scala.collection.mutable.Set()
-    configurationsPreFiltered.foreach(x =>
-      {
-        if (dimToConsider == 2 && ccVSvc.equals("cc"))
-          problemDefinition2D_ConstCoeff(x.partialBaseConfig)
-        if (dimToConsider == 2 && ccVSvc.equals("vc"))
-          problemDefinition2D_VarCoeff(x.partialBaseConfig)
-        if (dimToConsider == 3 && ccVSvc.equals("cc"))
-          problemDefinition3D_ConstCoeff(x.partialBaseConfig)
-        if (dimToConsider == 3 && ccVSvc.equals("vc"))
-          problemDefinition3D_VarCoeff(x.partialBaseConfig)
+    configurationsPreFiltered.foreach(x => {
+      if (dimToConsider == 2 && ccVSvc.equals("cc"))
+        problemDefinition2D_ConstCoeff(x.partialBaseConfig)
+      if (dimToConsider == 2 && ccVSvc.equals("vc"))
+        problemDefinition2D_VarCoeff(x.partialBaseConfig)
+      if (dimToConsider == 3 && ccVSvc.equals("cc"))
+        problemDefinition3D_ConstCoeff(x.partialBaseConfig)
+      if (dimToConsider == 3 && ccVSvc.equals("vc"))
+        problemDefinition3D_VarCoeff(x.partialBaseConfig)
 
-        configurationsFiltered.add(x)
+      configurationsFiltered.add(x)
 
-      })
+    })
 
     println("configsAfterFiltering  " + configurationsFiltered.size)
 
@@ -954,16 +936,15 @@ object SISC2015 {
     println("second sampling combinations " + numericSamplings.size)
 
     var configurationsWithSecondSamplingRandom : scala.collection.mutable.Set[Configuration] = scala.collection.mutable.Set()
-    configurationsFiltered.foreach { x =>
-      {
-        numericSamplings.foreach(y => {
-          var configCopy = x.copy();
-          configCopy.addNumericOptions(y)
-          if (this.derivedParameters(configCopy))
-            configurationsWithSecondSamplingRandom.add(configCopy)
-        })
+    configurationsFiltered.foreach { x => {
+      numericSamplings.foreach(y => {
+        var configCopy = x.copy();
+        configCopy.addNumericOptions(y)
+        if (this.derivedParameters(configCopy))
+          configurationsWithSecondSamplingRandom.add(configCopy)
+      })
 
-      }
+    }
     }
 
     println("random configurations: " + configurationsWithSecondSamplingRandom.size)
@@ -1275,30 +1256,28 @@ object SISC2015 {
       var config = 0
       var index = 0
 
-      configs.foreach { x =>
-        {
+      configs.foreach { x => {
 
-          sourcePathes(index) = ("config_" + mpiOmpRanksKey + "_" + (config + 1))
-          config += 1
-          index += 1
-          if (index == 20) {
-            JobScriptGenerator.write(mpi_numThreads, omp_numThreads, ranksPerNode, sourcePathes, number, suffix)
-            index = 0;
-            number += 1
-            sourcePathes = new Array(20)
-          }
+        sourcePathes(index) = ("config_" + mpiOmpRanksKey + "_" + (config + 1))
+        config += 1
+        index += 1
+        if (index == 20) {
+          JobScriptGenerator.write(mpi_numThreads, omp_numThreads, ranksPerNode, sourcePathes, number, suffix)
+          index = 0;
+          number += 1
+          sourcePathes = new Array(20)
         }
+      }
       }
       JobScriptGenerator.write(mpi_numThreads, omp_numThreads, ranksPerNode, sourcePathes, number, suffix)
 
     } else {
       var sourcePathes : Array[String] = new Array(configs.size)
       var index = 0
-      configs.foreach { x =>
-        {
-          sourcePathes(index) = ("config_" + mpiOmpRanksKey + "_" + (index + 1))
-          index += 1
-        }
+      configs.foreach { x => {
+        sourcePathes(index) = ("config_" + mpiOmpRanksKey + "_" + (index + 1))
+        index += 1
+      }
       }
       JobScriptGenerator.write(mpi_numThreads, omp_numThreads, ranksPerNode, sourcePathes, number, suffix)
     }
@@ -1897,14 +1876,13 @@ object SISC2015 {
   def getPartialBaseOptions(configs : Array[Configuration]) : scala.collection.mutable.Set[String] = {
     var partBaseOptions : scala.collection.mutable.Set[String] = scala.collection.mutable.Set()
 
-    configs.foreach { x =>
-      {
-        x.partialBaseConfig.foreach(f => {
-          if (!partBaseOptions.contains(f._1)) {
-            partBaseOptions.add(f._1)
-          }
-        })
-      }
+    configs.foreach { x => {
+      x.partialBaseConfig.foreach(f => {
+        if (!partBaseOptions.contains(f._1)) {
+          partBaseOptions.add(f._1)
+        }
+      })
+    }
     }
     return partBaseOptions
   }

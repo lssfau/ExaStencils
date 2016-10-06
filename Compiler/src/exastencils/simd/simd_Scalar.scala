@@ -2,7 +2,7 @@ package exastencils.simd
 
 import exastencils.base.ir.IR_Expression
 import exastencils.baseExt.ir.IR_VectorDatatype
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 

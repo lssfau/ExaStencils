@@ -3,8 +3,8 @@ package exastencils.field.ir
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_Linearization
+import exastencils.config._
 import exastencils.datastructures.ir.iv
-import exastencils.knowledge._
 import exastencils.knowledge.ir._
 
 /// IR_FieldLayout

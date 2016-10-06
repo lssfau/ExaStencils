@@ -6,12 +6,12 @@ import java.io.PrintWriter
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.core.Settings
+import exastencils.config.Settings
 import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir.IR_MultiDimFieldAccess
-import exastencils.knowledge._
+import exastencils.config._
 
 /// util classes
 

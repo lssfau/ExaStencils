@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Layouts {
   def genSet(mapping : (Int => Int)) = { (0 until Knowledge.dimensionality).toArray.map(mapping).mkString(", ") }

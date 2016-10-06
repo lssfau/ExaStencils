@@ -5,13 +5,12 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.core.Settings
+import exastencils.config.{ Settings, _ }
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.GridGeometry
-import exastencils.knowledge._
 import exastencils.mpi.ir._
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_Print

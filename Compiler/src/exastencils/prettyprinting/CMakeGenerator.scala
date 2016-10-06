@@ -1,6 +1,6 @@
 package exastencils.prettyprinting
 
-import exastencils.core.Settings
+import exastencils.config.Settings
 import exastencils.logger.Logger
 
 /** Rudimentary generator for cmake / CMakeLists.txt.
@@ -23,7 +23,7 @@ object CMakeGenerator extends BuildfileGenerator {
     printer <<< ""
     printer <<< "SET(SOURCES"
     cppFileNames.foreach(file => {
-      printer <<< s"\t${file}"
+      printer <<< s"\t${ file }"
     })
     printer <<< ")"
     printer <<< ""

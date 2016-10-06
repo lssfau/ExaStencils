@@ -3,8 +3,8 @@ package exastencils.omp.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.datastructures._
-import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 
 /// OMP_Critical

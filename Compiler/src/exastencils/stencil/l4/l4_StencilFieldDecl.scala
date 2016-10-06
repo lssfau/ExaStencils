@@ -1,9 +1,9 @@
 package exastencils.stencil.l4
 
 import exastencils.base.l4._
+import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.field.l4.L4_FieldCollection
-import exastencils.knowledge.Knowledge
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.prettyprinting.PpStream
 

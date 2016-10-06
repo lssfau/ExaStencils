@@ -5,6 +5,7 @@ import scala.collection.mutable.Stack
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.input.PagedSeqReader
 
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.logger._
 import exastencils.parsers._
@@ -38,10 +39,10 @@ class ParserKnowledge extends ExaParser {
 
   def setParameter[T](ident : String, value : T) = {
     try {
-      UniversalSetter(exastencils.knowledge.Knowledge, ident, value)
+      UniversalSetter(Knowledge, ident, value)
     } catch {
-      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Knowledge.${ident} to ${value} but this parameter is undefined")
-      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ident} to ${value} but data types are incompatible")
+      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Knowledge.${ ident } to ${ value } but this parameter is undefined")
+      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ ident } to ${ value } but data types are incompatible")
     }
   }
 

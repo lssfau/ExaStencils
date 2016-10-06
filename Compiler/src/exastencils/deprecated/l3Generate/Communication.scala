@@ -2,7 +2,7 @@ package exastencils.deprecated.l3Generate
 
 import scala.collection.mutable.HashMap
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Communication {
   var commTimerNames = HashMap[String, String]() // TimerName -> label

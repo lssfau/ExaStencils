@@ -5,13 +5,13 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverPointsInOneFragment
+import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir.{ iv, _ }
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
-import exastencils.knowledge.Knowledge
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 

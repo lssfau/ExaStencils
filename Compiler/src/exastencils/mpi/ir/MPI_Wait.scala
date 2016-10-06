@@ -5,8 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir.{ IR_Function, _ }
 import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
-import exastencils.knowledge.Knowledge
 import exastencils.omp.ir.OMP_PotentiallyCritical
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_RawPrint

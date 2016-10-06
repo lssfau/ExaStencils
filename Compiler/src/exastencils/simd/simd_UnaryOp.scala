@@ -1,7 +1,7 @@
 package exastencils.simd
 
 import exastencils.base.ir.IR_Expression
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.prettyprinting.PpStream
 
 /// IR_SIMD_Negate

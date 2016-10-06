@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Cycle {
   def printBody(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean, numCycleCalls : Int) = {

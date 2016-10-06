@@ -5,12 +5,12 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.SimplifyStrategy

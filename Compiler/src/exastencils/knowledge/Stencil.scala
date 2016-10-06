@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._

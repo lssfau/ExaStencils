@@ -4,7 +4,7 @@ import exastencils.base.ir._
 import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.omp.ir._
 import exastencils.optimization.OptimizationHint
 

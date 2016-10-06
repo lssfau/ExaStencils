@@ -3,7 +3,7 @@ package exastencils.communication.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.baseExt.ir.IR_FunctionCollection
-import exastencils.knowledge._
+import exastencils.config._
 
 case class IR_CommunicationFunctions() extends IR_FunctionCollection("CommFunctions/CommFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default

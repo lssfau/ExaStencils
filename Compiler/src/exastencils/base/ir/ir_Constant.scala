@@ -1,6 +1,6 @@
 package exastencils.base.ir
 
-import exastencils.knowledge.Knowledge
+import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
 trait IR_ConstantExpression extends IR_Expression

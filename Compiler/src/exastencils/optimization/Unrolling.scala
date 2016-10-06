@@ -3,9 +3,9 @@ package exastencils.optimization
 import scala.collection.mutable.{ Node => _, _ }
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.knowledge.Knowledge
 import exastencils.logger.Logger
 import exastencils.util.SimplifyExpression
 

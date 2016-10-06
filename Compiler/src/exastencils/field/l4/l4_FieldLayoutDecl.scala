@@ -3,8 +3,8 @@ package exastencils.field.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
+import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.knowledge.Knowledge
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.prettyprinting._
 

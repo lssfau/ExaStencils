@@ -5,6 +5,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.cuda._
 import exastencils.data._

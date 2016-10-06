@@ -1,6 +1,6 @@
 package exastencils.field.ir
 
-import exastencils.knowledge._
+import exastencils.config.Platform
 
 /// IR_AddPaddingToFieldLayouts
 

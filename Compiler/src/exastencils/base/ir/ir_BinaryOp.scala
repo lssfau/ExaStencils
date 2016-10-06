@@ -2,7 +2,7 @@ package exastencils.base.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.knowledge.Platform
+import exastencils.config.Platform
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 import exastencils.util.ir.IR_ResultingDatatype

@@ -1,10 +1,10 @@
 package exastencils.util
 
 import scala.io.Source
+
+import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.prettyprinting._
-import exastencils.knowledge.Knowledge
 
 case class CImg() extends Node with FilePrettyPrintable {
   override def printToFile : Unit = {

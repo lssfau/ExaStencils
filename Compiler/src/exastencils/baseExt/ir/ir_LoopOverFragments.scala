@@ -4,9 +4,9 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.knowledge._
 import exastencils.mpi.ir.MPI_AllReduce
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PpStream

@@ -5,11 +5,12 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain._
 import exastencils.knowledge
-import exastencils.knowledge._
+import exastencils.knowledge.RectangularDomain
 import exastencils.mpi.ir.MPI_IV_MpiRank
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PpStream

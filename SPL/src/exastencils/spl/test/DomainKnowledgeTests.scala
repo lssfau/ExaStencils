@@ -8,7 +8,7 @@ import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.mpi._
 import exastencils.multiGrid._
 import exastencils.omp._

@@ -7,9 +7,9 @@ package exastencils.logger
   *
   */
 object Logger {
-  import scala.reflect.macros._
-  import scala.reflect.runtime.universe._
+
   import scala.language.experimental.macros
+  import scala.reflect.macros._
 
   // Level 1: Warn
   // Level 2: Debug
@@ -93,7 +93,7 @@ object Logger {
 
       //q"""if (exastencils.logger.Logger.getLevel >= 0) {
       q"""{
-        if (exastencils.core.Settings.produceHtmlLog) {
+        if (exastencils.config.Settings.produceHtmlLog) {
           exastencils.logger.Logger_HTML.printErr($fileName, $line, $s)
           exastencils.logger.Logger_HTML.finish
         }
@@ -113,7 +113,7 @@ object Logger {
 
       q"""if (exastencils.logger.Logger.getLevel >= 1) {
         println("WARN:  " + $s)
-        if (exastencils.core.Settings.produceHtmlLog)
+        if (exastencils.config.Settings.produceHtmlLog)
           exastencils.logger.Logger_HTML.printWarn($fileName, $line, $s)
       }
     """
@@ -129,7 +129,7 @@ object Logger {
 
       q"""if (exastencils.logger.Logger.getLevel >= 2) {
         println("DBG:   " + $s)
-        if (exastencils.core.Settings.produceHtmlLog)
+        if (exastencils.config.Settings.produceHtmlLog)
           exastencils.logger.Logger_HTML.printDbg($fileName, $line, $s)
       }
     """
@@ -145,7 +145,7 @@ object Logger {
 
       q"""if (exastencils.logger.Logger.getLevel >= 4) {
         println("INFO:  " + $s)
-        if (exastencils.core.Settings.produceHtmlLog)
+        if (exastencils.config.Settings.produceHtmlLog)
           exastencils.logger.Logger_HTML.printInfo($fileName, $line, $s)
       }
     """

@@ -1,16 +1,15 @@
 package exastencils.util
 
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.prettyprinting._
-import exastencils.knowledge.Knowledge
 
 case class Matrix() extends Node with FilePrettyPrintable {
   override def printToFile = {
     val writer = PrettyprintingManager.getPrinter(s"Util/Matrix.h");
 
     writer.addExternalDependency("cmath")
-    writer << """
+    writer <<
+      """
 //      ______            _____ _                  _ _
 //      |  ____|          / ____| |                (_) |
 //      | |__  __  ____ _| (___ | |_ ___ _ __   ___ _| |___
@@ -888,6 +887,6 @@ T dotProduct ( const Matrix<T, 1, M>& a, const Matrix<T, M, 1>& b )
     return out;
 }
 
-"""
+      """
   }
 }

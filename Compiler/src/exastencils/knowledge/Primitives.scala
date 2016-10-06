@@ -2,6 +2,7 @@ package exastencils.knowledge
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.config.Knowledge
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger._
 

@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.mpi.ir._
 import exastencils.prettyprinting._
 import exastencils.timing.ir.IR_IV_Timer

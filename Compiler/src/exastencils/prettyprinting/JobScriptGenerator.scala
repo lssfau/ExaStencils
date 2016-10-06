@@ -1,7 +1,7 @@
 package exastencils.prettyprinting
 
 import exastencils.core._
-import exastencils.knowledge._
+import exastencils.config._
 
 object JobScriptGenerator {
   def write : Unit = {

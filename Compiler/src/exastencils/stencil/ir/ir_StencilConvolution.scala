@@ -2,10 +2,10 @@ package exastencils.stencil.ir
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util.ir.IR_ResultingDatatype

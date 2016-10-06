@@ -3,8 +3,8 @@ package exastencils.util.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.{ IR_VariableAccess, _ }
+import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
-import exastencils.knowledge.Knowledge
 import exastencils.mpi.ir.MPI_IsRootProc
 import exastencils.prettyprinting.PpStream
 

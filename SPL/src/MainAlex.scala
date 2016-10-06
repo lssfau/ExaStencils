@@ -2,12 +2,13 @@ import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.communication.ir.IR_CommunicationFunctions
+import exastencils.config._
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.globals._
-import exastencils.knowledge._
+import exastencils.knowledge.FindStencilConvolutions
 import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
 import exastencils.mpi.ir.MPI_RemoveMPI
 import exastencils.multiGrid._

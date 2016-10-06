@@ -3,7 +3,7 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.knowledge.Platform
+import exastencils.config.Platform
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
 

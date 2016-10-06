@@ -4,9 +4,8 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
-import exastencils.core.Settings
+import exastencils.config._
 import exastencils.datastructures._
-import exastencils.knowledge
 import exastencils.logger.Logger
 
 object L4_ResolveKnowledgeParameterAccess extends DefaultStrategy("Resolve accesses to knowledge, settings and platform parameters") {
@@ -23,10 +22,10 @@ object L4_ResolveKnowledgeParameterAccess extends DefaultStrategy("Resolve acces
   this += new Transformation("special functions and constants", {
     // get knowledge/settings/platform
     case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getKnowledge" == access.name =>
-      resolveParameterToConstant(knowledge.Knowledge, ident)
+      resolveParameterToConstant(Knowledge, ident)
     case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getSetting" == access.name   =>
       resolveParameterToConstant(Settings, ident)
     case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getPlatform" == access.name  =>
-      resolveParameterToConstant(knowledge.Platform, ident)
+      resolveParameterToConstant(Platform, ident)
   })
 }

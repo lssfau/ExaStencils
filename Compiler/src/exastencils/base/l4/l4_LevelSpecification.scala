@@ -1,8 +1,8 @@
 package exastencils.base.l4
 
+import exastencils.config.Knowledge
 import exastencils.core.collectors.L4LevelCollector
 import exastencils.datastructures._
-import exastencils.knowledge.Knowledge
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 

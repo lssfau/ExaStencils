@@ -5,6 +5,7 @@ import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
+import exastencils.config._
 import exastencils.core.collectors._
 import exastencils.data._
 import exastencils.datastructures._
@@ -12,7 +13,6 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.knowledge._
 import exastencils.logger._
 import exastencils.optimization.IR_LoopCarriedCSBufferAccess
 import exastencils.util.ir.IR_MathFunctions

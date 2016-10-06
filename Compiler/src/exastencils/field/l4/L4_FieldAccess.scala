@@ -9,7 +9,7 @@ import exastencils.datastructures.ir.iv
 import exastencils.datastructures.{ ir => _, _ }
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream

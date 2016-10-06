@@ -1,11 +1,11 @@
 package exastencils.parsers.settings
 
 import scala.collection.immutable.PagedSeq
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Stack
+import scala.collection.mutable._
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.input.PagedSeqReader
 
+import exastencils.config.Settings
 import exastencils.core._
 import exastencils.logger._
 import exastencils.parsers._
@@ -39,19 +39,19 @@ class ParserSettings extends ExaParser {
 
   def setParameter[T](ident : String, value : T) = {
     try {
-      UniversalSetter(exastencils.core.Settings, ident, value)
+      UniversalSetter(Settings, ident, value)
     } catch {
-      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Settings.${ident} to ${value} but this parameter is undefined")
-      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Settings.${ident} to ${value} but data types are incompatible")
+      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Settings.${ ident } to ${ value } but this parameter is undefined")
+      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Settings.${ ident } to ${ value } but data types are incompatible")
     }
   }
 
   def addParameter[T](ident : String, value : T) = {
     try {
-      UniversalSetter.addToListBuffer(exastencils.core.Settings, ident, value)
+      UniversalSetter.addToListBuffer(Settings, ident, value)
     } catch {
-      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Settings.${ident} to ${value} but this parameter is undefined")
-      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Settings.${ident} to ${value} but data types are incompatible")
+      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Settings.${ ident } to ${ value } but this parameter is undefined")
+      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Settings.${ ident } to ${ value } but data types are incompatible")
     }
   }
 

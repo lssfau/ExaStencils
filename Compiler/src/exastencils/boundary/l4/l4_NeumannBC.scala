@@ -1,7 +1,7 @@
 package exastencils.boundary.l4
 
 import exastencils.boundary.ir.IR_NeumannBC
-import exastencils.knowledge.Knowledge
+import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
 /// L4_NeumannBC

@@ -4,9 +4,9 @@ import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_DimToString
-import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.optimization.OptimizationHint

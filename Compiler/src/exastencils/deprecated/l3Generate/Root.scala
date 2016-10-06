@@ -1,8 +1,7 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.core._
+import exastencils.config._
 import exastencils.datastructures._
-import exastencils.knowledge._
 import exastencils.polyhedron._
 
 case class Root() extends Node {

@@ -1,4 +1,4 @@
-package exastencils.knowledge
+package exastencils.config
 
 import exastencils.constraints._
 

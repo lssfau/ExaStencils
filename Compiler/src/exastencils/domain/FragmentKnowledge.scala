@@ -5,9 +5,9 @@ import scala.collection.mutable._
 import java.io._
 
 import exastencils.base.ir._
-import exastencils.core._
+import exastencils.config._
 import exastencils.domain.ir.IR_DomainCollection
-import exastencils.knowledge._
+import exastencils.knowledge.FileInputDomain
 
 object FragmentKnowledge {
 

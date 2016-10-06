@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors._
 import exastencils.cuda._
@@ -13,7 +14,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
-import exastencils.knowledge._
+import exastencils.knowledge.Fragment
 import exastencils.logger._
 import exastencils.mpi.ir._
 import exastencils.stencil.ir._

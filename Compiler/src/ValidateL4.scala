@@ -1,8 +1,6 @@
-import exastencils.core.Settings
+import exastencils.config._
 import exastencils.core.StateManager
-import exastencils.knowledge.Knowledge
-import exastencils.parsers.l4.ParserL4
-import exastencils.parsers.l4.ValidationL4
+import exastencils.parsers.l4._
 import exastencils.util.InputReader
 
 object ValidateL4 {

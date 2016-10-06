@@ -4,7 +4,7 @@ import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
 import exastencils.datastructures._
-import exastencils.knowledge._
+import exastencils.config._
 
 class ExaParser extends StandardTokenParsers with PackratParsers {
   val IntRegEx = """[+-]?(\d+)""".r

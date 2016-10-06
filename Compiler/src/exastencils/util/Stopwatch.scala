@@ -1,7 +1,7 @@
 package exastencils.util
 
 import exastencils.datastructures._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.prettyprinting._
 
 case class Stopwatch() extends Node with FilePrettyPrintable {

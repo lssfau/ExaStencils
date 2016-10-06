@@ -5,10 +5,10 @@ import scala.collection.mutable.{ ArrayBuffer, Buffer, ListBuffer, Map, Set }
 import java.util.IdentityHashMap
 
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
-import exastencils.knowledge.Knowledge
 import exastencils.logger._
 
 private final class Renamer(reserved : Set[String], inUse : Set[String]) {

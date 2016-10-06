@@ -1,6 +1,6 @@
 package exastencils.domain
 
-import exastencils.knowledge._
+import exastencils.config._
 
 import scala.collection.mutable._
 

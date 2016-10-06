@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Error {
   def addReductionFunction(printer : java.io.PrintWriter, postfix : String) = {

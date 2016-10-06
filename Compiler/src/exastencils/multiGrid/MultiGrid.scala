@@ -5,11 +5,11 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.datastructures.Transformation._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
-import exastencils.knowledge._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.performance._
 import exastencils.polyhedron.PolyhedronAccessible

@@ -2,7 +2,7 @@ package exastencils.domain
 
 import exastencils.constraints._
 import exastencils.domain.ir.IR_DomainCollection
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.prettyprinting._
 
 object DomainFileHeader {

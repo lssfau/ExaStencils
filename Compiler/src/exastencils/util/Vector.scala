@@ -1,7 +1,7 @@
 package exastencils.util
 
+import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.knowledge.Knowledge
 import exastencils.prettyprinting._
 
 case class Vector() extends Node with FilePrettyPrintable {

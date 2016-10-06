@@ -3,7 +3,7 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.knowledge.Knowledge
+import exastencils.config.Knowledge
 import exastencils.prettyprinting._
 
 abstract class IR_FunctionCollection(var baseName : String,

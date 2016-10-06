@@ -2,8 +2,8 @@ package exastencils.field.l4
 
 import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
+import exastencils.config._
 import exastencils.field.ir._
-import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
 import exastencils.prettyprinting._

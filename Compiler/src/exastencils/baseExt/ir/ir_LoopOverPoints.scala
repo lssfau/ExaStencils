@@ -4,11 +4,11 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.communication.ir.IR_Communicate
+import exastencils.config._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_Field
-import exastencils.knowledge._
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PpStream

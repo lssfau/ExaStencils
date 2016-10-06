@@ -15,7 +15,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.logger._
 import exastencils.omp._
 import exastencils.optimization._
