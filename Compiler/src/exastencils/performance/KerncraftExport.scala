@@ -27,7 +27,7 @@ import exastencils.strategies.SimplifyStrategy
 object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft") {
   //  override def apply(applyAtNode : Option[Node] = None) : Unit = {
 
-  val verbose = false
+  val verbose = true
   // Skip kernels with IR constructs that cannot be transformed to kerncraft.
   // E.g. IR_InternalVariable
   val skipUntransformable = true
@@ -86,7 +86,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
       }
 
       // transform kernel to for-loop nest
-      val forLoop = buildForLoopRec(clone)
+      val forLoop = buildForLoopNest(clone)
       TransformKernel.applyStandalone(forLoop)
       if (TransformKernel.hasInternalVariables) {
         val skippedNote = if (skipUntransformable) ", skipped" else ", will not be parsed by kerncraft"
@@ -163,49 +163,35 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     ).toList
   }
 
-  def buildForLoopRec(loop : IR_LoopOverDimensions) : IR_ForLoop = {
+  def buildForLoopNest(loop : IR_LoopOverDimensions) : IR_ForLoop = {
 
     val begin = IR_LoopOverDimensions.evalMinIndex(loop.indices.begin, loop.numDimensions, true)
     val end = IR_LoopOverDimensions.evalMaxIndex(loop.indices.end, loop.numDimensions, true)
 
-    //logVerbose(begin.map(x => x.toString).toList)
-    //logVerbose(end.map(x => x.toString).toList)
+    def createForLoop(d : Int, body: ListBuffer[IR_Statement]) : IR_ForLoop = {
+      def it = IR_VariableAccess(IR_DimToString(d), Some(IR_IntegerDatatype))
+      val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(IR_IntegerConstant(begin(d))))
+      val cond = IR_LowerExpression(it, IR_IntegerConstant(end(d)))
+      val incr = IR_Assignment(it, loop.stepSize(d), "+=")
 
-    def buildRec(d : Integer, outer : Option[IR_ForLoop]) : Option[IR_ForLoop] = {
-      if (d < loop.numDimensions) {
-
-        def it = IR_VariableAccess(IR_DimToString(d), Some(IR_IntegerDatatype))
-        val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(IR_IntegerConstant(begin(d))))
-        val cond = IR_LowerExpression(it, IR_IntegerConstant(end(d)))
-        val incr = IR_Assignment(it, loop.stepSize(d), "+=")
-
-        val forloop = IR_ForLoop(decl, cond, incr, ListBuffer[IR_Statement]())
-
-        outer match {
-          case Some(outer) => outer.body.append(forloop)
-          case _           =>
-        }
-
-        buildRec(d + 1, Some(forloop))
-
-        Some(forloop)
-      } else {
-        outer.get.body = loop.body
-        None
-      }
+      val forloop = IR_ForLoop(decl, cond, incr, ListBuffer[IR_Statement]())
+      forloop.body = body
+      return forloop
     }
 
-    //    val begin = VariableDeclarationStatement(IntegerDatatype, "i", Some(IntegerConstant(0)))
-    //    val end = LowerExpression(new IR_VariableAccess(begin), IntegerConstant(0))
-    //    val inc = ExpressionStatement(PreIncrementExpression(new IR_VariableAccess(begin)))
-    //
-    //    val forLoop = IR_ForLoop(begin, end, inc, ListBuffer[Statement]())
-    //    logVerbose("*****")
+    var forLoop : Option[IR_ForLoop] = None
+    (0 to loop.numDimensions-1).foreach {d =>
+      if (d == 0) {
+        forLoop = Some(createForLoop(d, loop.body))
+      } else {
+        val outer = createForLoop(d, ListBuffer(forLoop.get))
+        forLoop = Some(outer)
+      }
+    }
+    //logVerbose("buildForLoopRec() loop:")
+    //logVerbose("%s".format(forLoop.get.prettyprint()))
+    return  forLoop.get
 
-    //      val forLoop = new IR_ForLoop(/**/,0,0,null)
-    //    forLoop
-
-    buildRec(0, None).get
   }
 
   def setupExportDirectory() : Unit = {
