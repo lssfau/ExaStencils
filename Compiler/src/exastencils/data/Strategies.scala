@@ -456,16 +456,6 @@ object AddInternalVariables extends DefaultStrategy("Adding internal variables")
 
   this += new Transformation("Extending SetupBuffers function", {
     case func @ IR_Function(_, "setupBuffers", _, _, _, _, _) => {
-      if (Knowledge.experimental_useLevelIndepFcts) {
-        val s = new DefaultStrategy("Replacing level specifications")
-        s += new Transformation("Search and replace", {
-          case IR_StringLiteral("level")     => Knowledge.maxLevel : IR_Expression
-          case IR_VariableAccess("level", _) => Knowledge.maxLevel : IR_Expression
-        })
-        for (buf <- bufferSizes)
-          s.applyStandalone(buf._2)
-      }
-
       for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
         if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += IR_Scope(genericAlloc._2)

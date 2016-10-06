@@ -88,17 +88,11 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         ghostEnd = target.end.getOrElse(IR_ExpressionIndex((0 until numDims).toArray.map(dim => communicateStatement.field.fieldLayout(dim).numGhostLayersLeft)))
       }
 
-      var functionName = (if (Knowledge.experimental_useLevelIndepFcts)
-        communicateStatement.op match {
-          case "begin"  => s"beginExch${ communicateStatement.field.field.identifier }"
-          case "finish" => s"finishExch${ communicateStatement.field.field.identifier }"
-          case "both"   => s"exch${ communicateStatement.field.field.identifier }"
-        }
-      else communicateStatement.op match {
+      var functionName = communicateStatement.op match {
         case "begin"  => s"beginExch${ communicateStatement.field.codeName }"
         case "finish" => s"finishExch${ communicateStatement.field.codeName }"
         case "both"   => s"exch${ communicateStatement.field.codeName }"
-      })
+      }
       functionName += s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +
         communicateStatement.targets.map(t => s"${ t.target }_${
           val begin : IR_ExpressionIndex = t.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)("a" : IR_Expression)))
@@ -136,8 +130,6 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
       fctArgs += communicateStatement.field.slot
-      if (Knowledge.experimental_useLevelIndepFcts)
-        fctArgs += communicateStatement.field.level
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
@@ -151,10 +143,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         insideFragLoop = false
       }
 
-      var functionName = (if (Knowledge.experimental_useLevelIndepFcts)
-        s"applyBCs${ applyBCsStatement.field.field.identifier }"
-      else
-        s"applyBCs${ applyBCsStatement.field.codeName }")
+      var functionName = s"applyBCs${ applyBCsStatement.field.codeName }"
       if (insideFragLoop) functionName += "_ifl"
 
       if (!addedFunctions.contains(functionName)) {
@@ -171,8 +160,6 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
       fctArgs += applyBCsStatement.field.slot
-      if (Knowledge.experimental_useLevelIndepFcts)
-        fctArgs += applyBCsStatement.field.level
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 

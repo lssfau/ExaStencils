@@ -5,9 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.knowledge._
 import exastencils.multiGrid._
@@ -22,37 +20,17 @@ abstract class FieldBoundaryFunction() extends IR_AbstractFunction with IR_Expan
   def compileName : String
   def compileBody(updatedFieldSelection : IR_FieldSelection) : ListBuffer[IR_Statement]
 
-  def resolveIndex(indexId : String, dim : Int) : IR_Expression = {
-    if (Knowledge.experimental_useLevelIndepFcts) {
-      // FIXME
-      ??? //ArrayAccess(iv.IndexFromField(fieldSelection.field.identifier, "level", indexId), dim)
-
-    } else {
-      fieldSelection.field.fieldLayout.idxById(indexId, dim)
-    }
-  }
+  def resolveIndex(indexId : String, dim : Int) = fieldSelection.field.fieldLayout.idxById(indexId, dim)
 
   override def expand : Output[IR_Function] = {
     var body = new ListBuffer[IR_Statement]
 
-    val updatedFieldSelection = if (Knowledge.experimental_useLevelIndepFcts) {
-      val updatedFieldSelection = Duplicate(fieldSelection)
-      for (dim <- 0 until Knowledge.dimensionality)
-        updatedFieldSelection.field.fieldLayout(dim).total = iv.IndexFromField(fieldSelection.field.identifier, "level", "TOT", dim)
-      updatedFieldSelection.level = "level"
-      updatedFieldSelection
-    } else {
-      fieldSelection
-    }
-
     var fctArgs : ListBuffer[IR_FunctionArgument] = ListBuffer()
     fctArgs += IR_FunctionArgument("slot", IR_SpecialDatatype("unsigned int"))
-    if (Knowledge.experimental_useLevelIndepFcts)
-      IR_FunctionArgument("level", IR_SpecialDatatype("unsigned int"))
     if (insideFragLoop)
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt, IR_IntegerDatatype)
 
-    IR_Function(IR_UnitDatatype, compileName, fctArgs, compileBody(updatedFieldSelection))
+    IR_Function(IR_UnitDatatype, compileName, fctArgs, compileBody(fieldSelection))
   }
 }
 
