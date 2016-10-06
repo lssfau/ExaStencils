@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.IsValidPoint
+import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
@@ -167,7 +167,7 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
 
       // check if current unknown is on/ beyond boundary
       stmts += IR_IfCondition(
-        IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
+        IR_IsValidComputationPoint(unknowns(i).fieldSelection, unknowns(i).index),
         innerStmts,
         boundaryStmts)
     }
@@ -178,7 +178,7 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
     // write back results
     for (i <- unknowns.indices)
       stmts += IR_IfCondition(// don't write back result on boundaries
-        IsValidPoint(unknowns(i).fieldSelection, unknowns(i).index),
+        IR_IsValidComputationPoint(unknowns(i).fieldSelection, unknowns(i).index),
         IR_Assignment(unknowns(i), IR_HackVecComponentAccess(u, i)))
 
     IR_Scope(stmts)
