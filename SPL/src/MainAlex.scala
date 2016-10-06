@@ -9,7 +9,7 @@ import exastencils.domain._
 import exastencils.globals._
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
-import exastencils.mpi._
+import exastencils.mpi.ir.MPI_RemoveMPI
 import exastencils.multiGrid._
 import exastencils.omp._
 import exastencils.parsers.l4._
@@ -182,7 +182,7 @@ object MainAlex {
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
     if (!Knowledge.mpi_enabled) {
-      RemoveMPIReferences.apply()
+      MPI_RemoveMPI.apply()
     }
 
     do { SimplifyStrategy.apply() }

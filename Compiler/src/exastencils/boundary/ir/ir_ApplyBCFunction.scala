@@ -83,7 +83,6 @@ case class IR_ApplyBCFunction(
   override def expand() : Output[IR_Function] = {
     // compile function arguments
     var fctArgs = ListBuffer[IR_FunctionArgument]()
-    // FIXME: why is the field slot given as argument here?
     fctArgs += IR_FunctionArgument("slot", IR_IntegerDatatype)
     if (insideFragLoop)
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt, IR_IntegerDatatype)

@@ -391,7 +391,7 @@ object Main {
     LinearizeFieldAccesses.apply() // before converting kernel functions -> requires linearized accesses
 
     if (Knowledge.cuda_enabled)
-      StateManager.findFirst[KernelFunctions]().get.convertToFunctions
+      StateManager.findFirst[KernelFunctions]().get.convertToFunctions()
 
     ResolveBoundedExpressions.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
     ResolveSlotOperationsStrategy.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
@@ -436,9 +436,9 @@ object Main {
 
     if (Knowledge.omp_enabled) {
       AddOMPPragmas.apply()
-      OMP_HandleParallelSections.apply()
-      OMP_HandleCriticalSections.apply()
     }
+    OMP_ResolveParallelSections.apply()
+    OMP_ResolveCriticalSections.apply()
 
     // one last time
     if (Knowledge.useFasterExpand)

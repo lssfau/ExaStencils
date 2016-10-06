@@ -51,7 +51,7 @@ case class OMP_ParallelFor(
 /// OMP_PotentiallyParallel
 
 object OMP_PotentiallyParallel {
-  def apply(body : IR_Statement*) = new OMP_PotentiallyCritical(body.to[ListBuffer])
+  def apply(body : IR_Statement*) = new OMP_PotentiallyParallel(body.to[ListBuffer])
 }
 
 case class OMP_PotentiallyParallel(var body : ListBuffer[IR_Statement], var collapse : Int = 1) extends IR_Statement {
@@ -60,9 +60,12 @@ case class OMP_PotentiallyParallel(var body : ListBuffer[IR_Statement], var coll
 
 /// OMP_HandleParallelSections
 
-object OMP_HandleParallelSections extends DefaultStrategy("Handle potentially critical omp sections") {
-  this += new Transformation("Adding OMP critical pragmas", {
-    case target : OMP_PotentiallyParallel =>
+object OMP_ResolveParallelSections extends DefaultStrategy("Handle potentially parallel omp sections") {
+  this += new Transformation("Adding OMP parallel pragmas", {
+    case target : OMP_PotentiallyParallel if !Knowledge.omp_enabled =>
+      // no omp => simply return body
+      target.body
+    case target : OMP_PotentiallyParallel                           =>
       // filter target body => ignore comments and null statements
       val filtered = target.body.filterNot(s => s.isInstanceOf[IR_Comment] || s == IR_NullStatement)
 

@@ -418,7 +418,6 @@ case class IR_CommunicateFunction(
 
   override def expand() : Output[IR_Function] = {
     var fctArgs : ListBuffer[IR_FunctionArgument] = ListBuffer()
-    // FIXME: why is the field slot given as argument here?
     fctArgs += IR_FunctionArgument("slot", IR_SpecialDatatype("unsigned int"))
     if (insideFragLoop)
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt, IR_IntegerDatatype)

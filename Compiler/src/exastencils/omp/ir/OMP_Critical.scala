@@ -43,10 +43,10 @@ case class OMP_PotentiallyCritical(var body : ListBuffer[IR_Statement]) extends 
 
 /// OMP_HandleCriticalSections
 
-object OMP_HandleCriticalSections extends DefaultStrategy("Handle potentially critical omp sections") {
+object OMP_ResolveCriticalSections extends DefaultStrategy("Resolve potentially critical omp sections") {
   this += new Transformation("Adding OMP critical pragmas", {
     case target : OMP_PotentiallyCritical =>
-      if (Platform.omp_requiresCriticalSections)
+      if (Knowledge.omp_enabled && Platform.omp_requiresCriticalSections)
         OMP_Critical(target.body)
       else
         target.body

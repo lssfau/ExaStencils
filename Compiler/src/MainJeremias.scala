@@ -303,9 +303,9 @@ object MainJeremias {
 
     if (Knowledge.omp_enabled) {
       AddOMPPragmas.apply()
-      OMP_HandleParallelSections.apply()
-      OMP_HandleCriticalSections.apply()
     }
+    OMP_ResolveParallelSections.apply()
+    OMP_ResolveCriticalSections.apply()
 
     // one last time
     if (Knowledge.useFasterExpand)
