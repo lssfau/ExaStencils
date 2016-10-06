@@ -42,9 +42,9 @@ case class IR_MultiDimArrayAccess(var base : IR_Expression, var index : IR_Expre
   override def datatype = ???
   override def prettyprint(out : PpStream) : Unit = {
     out << base
-    index.foreach({ ix =>
+    index.indices.reverse.foreach { ix =>
       out << '[' << ix << ']'
-    })
+    }
   }
 
   def expandSpecial = {
