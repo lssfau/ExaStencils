@@ -5,8 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.boundary.ir.IR_ApplyBC
-import exastencils.communication.ir.IR_Communicate
+import exastencils.boundary.ir._
+import exastencils.communication.ir._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.data._
@@ -113,7 +113,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         addedFunctions += functionName
         var fieldSelection = Duplicate(communicateStatement.field)
         fieldSelection.slot = "slot"
-        commFunctions.functions += ExchangeDataFunction(functionName,
+        commFunctions.functions += IR_CommunicateFunction(functionName,
           fieldSelection, Fragment.neighbors,
           "begin" == communicateStatement.op || "both" == communicateStatement.op,
           "finish" == communicateStatement.op || "both" == communicateStatement.op,
@@ -150,7 +150,7 @@ object SetupCommunication extends DefaultStrategy("Setting up communication") {
         addedFunctions += functionName
         var fieldSelection = Duplicate(applyBCsStatement.field)
         fieldSelection.slot = "slot"
-        commFunctions.functions += ApplyBCsFunction(functionName, fieldSelection, Fragment.neighbors, insideFragLoop)
+        commFunctions.functions += IR_ApplyBCFunction(functionName, fieldSelection, Fragment.neighbors, insideFragLoop)
       }
 
       applyBCsStatement.field.slot match {
