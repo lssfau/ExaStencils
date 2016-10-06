@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain.ir._
 import exastencils.grid._
 import exastencils.mpi.ir.MPI_Send
@@ -116,18 +117,14 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
       IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, "i", 0),
         IR_LowerExpression(IR_VariableAccess("i", IR_IntegerDatatype), math.pow(2, Knowledge.dimensionality)),
         IR_PreIncrementExpression(IR_VariableAccess("i", IR_IntegerDatatype)),
-        // FIXME: Constructor?
-        // s"Vec3 vertPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
-        IR_VariableDeclaration(IR_SpecialDatatype("Vec3"), "vertPos", IR_FunctionCall("Vec3", ReadValueFrom(IR_RealDatatype, "data"), 0, 0)),
-        (if (Knowledge.dimensionality == 2) IR_Assignment("vertPos.y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
-        (if (Knowledge.dimensionality == 3) IR_Assignment("vertPos.z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement),
+        IR_VariableDeclaration(IR_RealDatatype, "vertPos_x", ReadValueFrom(IR_RealDatatype, "data")),
+        if (Knowledge.dimensionality == 2) IR_VariableDeclaration(IR_RealDatatype, "vertPos_y", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement,
+        if (Knowledge.dimensionality == 3) IR_VariableDeclaration(IR_RealDatatype, "vertPos_z", ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement,
         IR_Switch("i",
-          IR_Case("0", Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionBegin(dim), IR_ArrayAccess("vertPos", dim)) : IR_Statement).to[ListBuffer]),
-          IR_Case("1", Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), IR_ArrayAccess("vertPos", dim)) : IR_Statement).to[ListBuffer]),
-          IR_Case("3", Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), IR_ArrayAccess("vertPos", dim)) : IR_Statement).to[ListBuffer]),
-          IR_Case("7", Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), IR_ArrayAccess("vertPos", dim)) : IR_Statement).to[ListBuffer]))),
-      // FIXME: Constructor?
-      // s"Vec3 fragPos(" ~ ReadValueFrom(RealDatatype, "data") ~ ",0,0)",
+          IR_Case("0", Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionBegin(dim), s"vertPos_${ IR_DimToString(dim) }") : IR_Statement).to[ListBuffer]),
+          IR_Case("1", Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), s"vertPos_${ IR_DimToString(dim) }") : IR_Statement).to[ListBuffer]),
+          IR_Case("3", Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), s"vertPos_${ IR_DimToString(dim) }") : IR_Statement).to[ListBuffer]),
+          IR_Case("7", Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPositionEnd(dim), s"vertPos_${ IR_DimToString(dim) }") : IR_Statement).to[ListBuffer]))),
       IR_Scope(Knowledge.dimensions.map(dim => IR_Assignment(IR_IV_FragmentPosition(dim), ReadValueFrom(IR_RealDatatype, "data")) : IR_Statement).to[ListBuffer])
       //                  VariableDeclarationStatement(IR_IntegerDatatype,"numNeigbours",Some(FunctionCallExpression("readValue<int>",ListBuffer("data")))),
     )
@@ -160,7 +157,7 @@ case class SetValues() extends IR_AbstractFunction with IR_Expandable {
 case class DomainFunctions() extends IR_FunctionCollection(
   "Domains/DomainGenerated",
   ListBuffer(),
-  ListBuffer("Globals/Globals.h", "Util/Vector.h", "CommFunctions/CommFunctions.h")) {
+  ListBuffer("Globals/Globals.h", "CommFunctions/CommFunctions.h")) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"

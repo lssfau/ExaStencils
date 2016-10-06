@@ -649,14 +649,9 @@ case class Kernel(var identifier : String,
       })
     }
 
-    for (ivAccess <- ivAccesses) {
-      val access = Duplicate(ivAccess._2)
-      // Hack for Vec3 -> TODO: split Vec3 iv's into separate real iv's
-      access.resolveDatatype match {
-        case IR_SpecialDatatype("Vec3") => callArgs += IR_FunctionCall("make_double3", (0 until 3).map(dim => IR_ArrayAccess(ivAccess._2, dim) : IR_Expression).to[ListBuffer])
-        case _                          => callArgs += ivAccess._2
-      }
-    }
+    for (ivAccess <- ivAccesses)
+      callArgs += Duplicate(ivAccess._2)
+
 
     for (variableAccess <- passThroughArgs) {
       callArgs += variableAccess.access
@@ -720,12 +715,7 @@ case class Kernel(var identifier : String,
       val access = IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype)
       val datatype = ivAccess._2.resolveDatatype
 
-      datatype match {
-        case IR_SpecialDatatype("Vec3") =>
-          access.innerDatatype = Some(IR_SpecialDatatype("double3"))
-          fctParams += IR_FunctionArgument(access.name, access.innerDatatype.get)
-        case _                          => fctParams += IR_FunctionArgument(ivAccess._1, datatype)
-      }
+      fctParams += IR_FunctionArgument(ivAccess._1, datatype)
     }
 
     for (variableAccess <- passThroughArgs) {

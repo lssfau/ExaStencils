@@ -215,7 +215,6 @@ object MainChristoph {
       // Util
       Stopwatch(),
       TimerFunctions(),
-      Vector(),
       Matrix(), // TODO: only if required
       CImg() // TODO: only if required
     )

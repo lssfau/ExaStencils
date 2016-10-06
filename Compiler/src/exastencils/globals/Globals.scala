@@ -4,13 +4,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
-import exastencils.core._
 import exastencils.config._
 import exastencils.prettyprinting._
 
 case class Globals(var variables : ListBuffer[IR_VariableDeclaration] = new ListBuffer) extends IR_FunctionCollection("Globals/Globals",
   ListBuffer("algorithm"), // provides commonly used functions like min/max
-  ListBuffer("Util/Vector.h", "Util/Matrix.h") /*
+  ListBuffer("Util/Matrix.h") /*
     ++ Settings.additionalIncludes*/ ,
   ListBuffer(
     new IR_Function(IR_UnitDatatype, "initGlobals", new ListBuffer[IR_FunctionArgument], new ListBuffer[IR_Statement]),

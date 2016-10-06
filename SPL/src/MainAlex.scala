@@ -69,7 +69,6 @@ object MainAlex {
 
       // Util
       new Stopwatch,
-      new Vector,
 
       // Globals
       new Globals)

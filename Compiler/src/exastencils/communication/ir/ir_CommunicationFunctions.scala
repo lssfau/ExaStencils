@@ -7,7 +7,7 @@ import exastencils.config._
 
 case class IR_CommunicationFunctions() extends IR_FunctionCollection("CommFunctions/CommFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "Util/Vector.h", "Util/Matrix.h", "MultiGrid/MultiGrid.h")) {
+  ListBuffer("Globals/Globals.h", "Util/Matrix.h", "MultiGrid/MultiGrid.h")) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"

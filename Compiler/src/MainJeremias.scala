@@ -214,7 +214,6 @@ object MainJeremias {
       // Util
       Stopwatch(),
       TimerFunctions(),
-      Vector(),
       Matrix())
 
     // apply strategies
