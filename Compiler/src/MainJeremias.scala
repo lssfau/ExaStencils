@@ -3,8 +3,7 @@ import java.util.Locale
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
-import exastencils.communication._
-import exastencils.communication.ir.IR_CommunicationFunctions
+import exastencils.communication.ir._
 import exastencils.core._
 import exastencils.data._
 import exastencils.datastructures._
@@ -224,7 +223,7 @@ object MainJeremias {
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
     SetupDataStructures.apply()
-    SetupCommunication.apply()
+    IR_SetupCommunication.apply()
 
     ResolveSpecialFunctionsAndConstants.apply()
 

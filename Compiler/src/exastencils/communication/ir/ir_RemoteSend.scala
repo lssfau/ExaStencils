@@ -12,7 +12,7 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge.NeighborInfo
-import exastencils.mpi.ir.MPI_Send
+import exastencils.mpi.ir._
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.omp.ir.OMP_PotentiallyCritical
 import exastencils.polyhedron.PolyhedronAccessible
@@ -31,7 +31,7 @@ case class IR_RemoteSend(
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
       OMP_PotentiallyCritical(MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
-        GeneratedMPITag(iv.CommId(), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), neighbor.index, concurrencyId),
+        MPI_GeneratedTag(iv.CommId(), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), neighbor.index, concurrencyId),
         iv.MpiRequest(field.field, s"Send_${ concurrencyId }", neighbor.index))),
       IR_Assignment(iv.RemoteReqOutstanding(field.field, s"Send_${ concurrencyId }", neighbor.index), true))
   }
