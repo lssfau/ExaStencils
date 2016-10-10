@@ -221,16 +221,20 @@ trait GridGeometry_nonUniform extends GridGeometry {
           2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim))))
 
     // compile final loop
+    val innerLoop = IR_LoopOverPoints(field, None,
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
+      IR_ExpressionIndex(1, 1, 1),
+      ListBuffer[IR_Statement](
+        innerItDecl,
+        IR_Assignment(Duplicate(baseAccess),
+          domainBounds.lower(dim) - innerIt * cellWidth))
+    )
+    innerLoop.parallelization.potentiallyParallel = false
+
     ListBuffer[IR_Statement](
       IR_LoopOverFragments(ListBuffer[IR_Statement](
-        IR_LoopOverPoints(field, None, true,
-          GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
-          GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
-          IR_ExpressionIndex(1, 1, 1),
-          ListBuffer[IR_Statement](
-            innerItDecl,
-            IR_Assignment(Duplicate(baseAccess),
-              domainBounds.lower(dim) - innerIt * cellWidth))),
+        innerLoop,
         leftBoundaryUpdate,
         rightBoundaryUpdate)))
   }
@@ -316,24 +320,27 @@ trait GridGeometry_nonUniform extends GridGeometry {
           2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim))))
 
     // compile final loop
+    val innerLoop = IR_LoopOverPoints(field, None,
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
+      IR_ExpressionIndex(1, 1, 1),
+      ListBuffer[IR_Statement](
+        innerItDecl,
+        IR_IfCondition(IR_LowerEqualExpression(innerIt, xf + 1),
+          IR_Assignment(Duplicate(baseAccess),
+            domainBounds.lower(dim) + 0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
+          IR_IfCondition(IR_LowerEqualExpression(innerIt, xs + 1),
+            IR_Assignment(Duplicate(baseAccess),
+              domainBounds.lower(dim) - 0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
+            IR_Assignment(Duplicate(baseAccess),
+              domainBounds.lower(dim) - 0.5 * alpha * innerIt * innerIt
+                + (alpha * xf + alpha * xs + 0.5 * alpha + beta) * innerIt
+                - 0.5 * alpha * (xf * xf + xf + xs * xs + xs))))))
+    innerLoop.parallelization.potentiallyParallel = false
+
     ListBuffer[IR_Statement](
       IR_LoopOverFragments(ListBuffer[IR_Statement](
-        IR_LoopOverPoints(field, None, true,
-          GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
-          GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
-          IR_ExpressionIndex(1, 1, 1),
-          ListBuffer[IR_Statement](
-            innerItDecl,
-            IR_IfCondition(IR_LowerEqualExpression(innerIt, xf + 1),
-              IR_Assignment(Duplicate(baseAccess),
-                domainBounds.lower(dim) + 0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
-              IR_IfCondition(IR_LowerEqualExpression(innerIt, xs + 1),
-                IR_Assignment(Duplicate(baseAccess),
-                  domainBounds.lower(dim) - 0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
-                IR_Assignment(Duplicate(baseAccess),
-                  domainBounds.lower(dim) - 0.5 * alpha * innerIt * innerIt
-                    + (alpha * xf + alpha * xs + 0.5 * alpha + beta) * innerIt
-                    - 0.5 * alpha * (xf * xf + xf + xs * xs + xs)))))),
+        innerLoop,
         leftBoundaryUpdate,
         rightBoundaryUpdate)))
   }
@@ -465,27 +472,30 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
 
+    val innerLoop = IR_LoopOverPoints(field, None,
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      IR_ExpressionIndex(1, 1, 1),
+      ListBuffer[IR_Statement](
+        IR_IfCondition(IR_LowerEqualExpression(innerIt, 0),
+          IR_Assignment(Duplicate(baseAccess), 0.0),
+          IR_IfCondition(IR_LowerEqualExpression(innerIt, 1 * zoneSize),
+            IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
+              + zoneLength * IR_FunctionCall("pow", ListBuffer[IR_Expression](step * (IR_LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
+            IR_IfCondition(IR_LowerEqualExpression(innerIt, 2 * zoneSize),
+              IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
+                + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
+              IR_IfCondition(IR_LowerEqualExpression(innerIt, 3 * zoneSize),
+                IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
+                  + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
+                IR_IfCondition(IR_LowerEqualExpression(innerIt, 4 * zoneSize),
+                  IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
+                    + zoneLength * (1.0 - IR_FunctionCall("pow", ListBuffer[IR_Expression](1.0 - step * (IR_LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
+                  IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim)))))))))
+    innerLoop.parallelization.potentiallyParallel = false
+
     ListBuffer(
-      IR_LoopOverPoints(field, None, true,
-        GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-        GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-        IR_ExpressionIndex(1, 1, 1),
-        ListBuffer[IR_Statement](
-          IR_IfCondition(IR_LowerEqualExpression(innerIt, 0),
-            IR_Assignment(Duplicate(baseAccess), 0.0),
-            IR_IfCondition(IR_LowerEqualExpression(innerIt, 1 * zoneSize),
-              IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
-                + zoneLength * IR_FunctionCall("pow", ListBuffer[IR_Expression](step * (IR_LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
-              IR_IfCondition(IR_LowerEqualExpression(innerIt, 2 * zoneSize),
-                IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
-                  + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
-                IR_IfCondition(IR_LowerEqualExpression(innerIt, 3 * zoneSize),
-                  IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
-                    + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
-                  IR_IfCondition(IR_LowerEqualExpression(innerIt, 4 * zoneSize),
-                    IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
-                      + zoneLength * (1.0 - IR_FunctionCall("pow", ListBuffer[IR_Expression](1.0 - step * (IR_LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
-                    IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))),
+      innerLoop,
       IR_Assignment(Duplicate(leftGhostAccess),
         2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
       IR_Assignment(Duplicate(rightGhostAccess),
@@ -522,24 +532,27 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
 
+    val innerLoop = IR_LoopOverPoints(field, None,
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      IR_ExpressionIndex(1, 1, 1),
+      ListBuffer[IR_Statement](
+        IR_IfCondition(IR_LowerEqualExpression(innerIt, 0),
+          IR_Assignment(Duplicate(baseAccess), 0.0),
+          IR_IfCondition(IR_LowerEqualExpression(innerIt, zoneSize_1),
+            IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt, dim)
+              + zoneLength_1 * IR_FunctionCall("pow", ListBuffer[IR_Expression](step_1 * (IR_LoopOverDimensions.defItForDim(dim)), expo))),
+            IR_IfCondition(IR_LowerEqualExpression(innerIt, (zoneSize_1 + zoneSize_2)),
+              IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + zoneSize_1, dim)
+                + zoneLength_2 * step_2 * (IR_LoopOverDimensions.defItForDim(dim) - zoneSize_1)),
+              IR_IfCondition(IR_LowerEqualExpression(innerIt, innerIt + (zoneSize_1 + zoneSize_2 + zoneSize_3)),
+                IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + (zoneSize_1 + zoneSize_2), dim)
+                  + zoneLength_3 * step_3 * (IR_LoopOverDimensions.defItForDim(dim) - (zoneSize_1 + zoneSize_2))),
+                IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))
+    innerLoop.parallelization.potentiallyParallel = false
+
     ListBuffer(
-      IR_LoopOverPoints(field, None, true,
-        GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-        GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-        IR_ExpressionIndex(1, 1, 1),
-        ListBuffer[IR_Statement](
-          IR_IfCondition(IR_LowerEqualExpression(innerIt, 0),
-            IR_Assignment(Duplicate(baseAccess), 0.0),
-            IR_IfCondition(IR_LowerEqualExpression(innerIt, zoneSize_1),
-              IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt, dim)
-                + zoneLength_1 * IR_FunctionCall("pow", ListBuffer[IR_Expression](step_1 * (IR_LoopOverDimensions.defItForDim(dim)), expo))),
-              IR_IfCondition(IR_LowerEqualExpression(innerIt, (zoneSize_1 + zoneSize_2)),
-                IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + zoneSize_1, dim)
-                  + zoneLength_2 * step_2 * (IR_LoopOverDimensions.defItForDim(dim) - zoneSize_1)),
-                IR_IfCondition(IR_LowerEqualExpression(innerIt, innerIt + (zoneSize_1 + zoneSize_2 + zoneSize_3)),
-                  IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + (zoneSize_1 + zoneSize_2), dim)
-                    + zoneLength_3 * step_3 * (IR_LoopOverDimensions.defItForDim(dim) - (zoneSize_1 + zoneSize_2))),
-                  IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim)))))))),
+      innerLoop,
       IR_Assignment(Duplicate(leftGhostAccess),
         2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
       IR_Assignment(Duplicate(rightGhostAccess),
@@ -599,25 +612,28 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_Assignment(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim))))
 
     // compile final loop
+    val innerLoop = IR_LoopOverPoints(field, None,
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      IR_ExpressionIndex(1, 1, 1),
+      ListBuffer[IR_Statement](
+        innerItDecl,
+        IR_IfCondition(IR_EqEqExpression(0, innerIt),
+          IR_Assignment(Duplicate(baseAccess),
+            0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
+              - Duplicate(npBaseAccess)),
+          IR_IfCondition(IR_EqEqExpression(numCellsTotal, innerIt),
+            IR_Assignment(Duplicate(baseAccess),
+              Duplicate(npBaseAccess)
+                - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),
+            IR_Assignment(Duplicate(baseAccess),
+              0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
+                - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess)))))))
+    innerLoop.parallelization.potentiallyParallel = false
+
     ListBuffer[IR_Statement](
       IR_LoopOverFragments(ListBuffer[IR_Statement](
-        IR_LoopOverPoints(field, None, true,
-          GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-          GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-          IR_ExpressionIndex(1, 1, 1),
-          ListBuffer[IR_Statement](
-            innerItDecl,
-            IR_IfCondition(IR_EqEqExpression(0, innerIt),
-              IR_Assignment(Duplicate(baseAccess),
-                0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
-                  - Duplicate(npBaseAccess)),
-              IR_IfCondition(IR_EqEqExpression(numCellsTotal, innerIt),
-                IR_Assignment(Duplicate(baseAccess),
-                  Duplicate(npBaseAccess)
-                    - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),
-                IR_Assignment(Duplicate(baseAccess),
-                  0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
-                    - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))))))),
+        innerLoop,
         leftBoundaryUpdate,
         rightBoundaryUpdate)))
   }

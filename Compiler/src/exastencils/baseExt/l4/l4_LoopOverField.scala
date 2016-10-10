@@ -86,11 +86,11 @@ case class L4_LoopOverField(
 
     // TODO: introduce L4_ParallelizationInfo
     val parallelization = IR_ParallelizationInfo()
+    parallelization.potentiallyParallel = !seq
     parallelization.reduction = reduction.map(_.progress)
 
     val loop = IR_LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progress) else None,
-      seq,
       procStartOffset,
       procEndOffset,
       procIncrement,

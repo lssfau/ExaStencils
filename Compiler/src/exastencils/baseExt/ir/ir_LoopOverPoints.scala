@@ -24,7 +24,6 @@ case class IR_RegionSpecification(var region : String, var dir : IR_ConstIndex, 
 case class IR_LoopOverPoints(
     var field : IR_Field,
     var region : Option[IR_RegionSpecification],
-    var seq : Boolean, // FIXME: seq HACK
     var startOffset : IR_ExpressionIndex,
     var endOffset : IR_ExpressionIndex,
     var increment : IR_ExpressionIndex,
@@ -40,15 +39,15 @@ case class IR_LoopOverPoints(
     val insideFragLoop = collector.stack.map({ case loop : IR_LoopOverFragments => true; case _ => false }).reduce((left, right) => left || right)
     val innerLoop =
       if (Knowledge.experimental_splitLoopsForAsyncComm)
-        IR_LoopOverPointsInOneFragment(field.domain.index, field, region, seq, startOffset, endOffset, increment, body, preComms, postComms, parallelization, condition)
+        IR_LoopOverPointsInOneFragment(field.domain.index, field, region, startOffset, endOffset, increment, body, preComms, postComms, parallelization, condition)
       else
-        IR_LoopOverPointsInOneFragment(field.domain.index, field, region, seq, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), parallelization, condition)
+        IR_LoopOverPointsInOneFragment(field.domain.index, field, region, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), parallelization, condition)
 
     var stmts = ListBuffer[IR_Statement]()
     stmts += innerLoop
 
     if (!insideFragLoop)
-      if (seq)
+      if (!parallelization.potentiallyParallel)
         stmts = ListBuffer(new IR_LoopOverFragments(stmts, parallelization))
       else
         stmts = ListBuffer(new IR_LoopOverFragments(stmts, parallelization) with OMP_PotentiallyParallel)

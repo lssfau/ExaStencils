@@ -25,14 +25,13 @@ import exastencils.strategies._
 case class IR_LoopOverPointsInOneFragment(var domain : Int,
     var field : IR_Field,
     var region : Option[IR_RegionSpecification],
-    var seq : Boolean, // FIXME: seq HACK
     var startOffset : IR_ExpressionIndex,
     var endOffset : IR_ExpressionIndex,
     var increment : IR_ExpressionIndex,
     var body : ListBuffer[IR_Statement],
     var preComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var postComms : ListBuffer[IR_Communicate] = ListBuffer(),
-    var reduction : IR_ParallelizationInfo = IR_ParallelizationInfo(),
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
     var condition : Option[IR_Expression] = None) extends IR_Statement {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
@@ -106,7 +105,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
     // fix iteration space for reduction operations if required
-    if (Knowledge.experimental_trimBoundsForReductionLoops && reduction.reduction.isDefined && !region.isDefined) {
+    if (Knowledge.experimental_trimBoundsForReductionLoops && parallelization.reduction.isDefined && !region.isDefined) {
       if (!condition.isDefined) condition = Some(IR_BooleanConstant(true))
       for (dim <- 0 until numDims)
         if (field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft > 0)
@@ -118,10 +117,10 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     }
 
     var loop : IR_LoopOverDimensions = {
-      if (seq)
-        IR_LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition)
+      if (!parallelization.potentiallyParallel)
+        IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition)
       else {
-        val ret = new IR_LoopOverDimensions(numDims, indexRange, body, increment, reduction, condition) with OMP_PotentiallyParallel with PolyhedronAccessible
+        val ret = new IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition) with OMP_PotentiallyParallel with PolyhedronAccessible
         ret.optLevel =
           if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
             Knowledge.poly_optLevel_fine
