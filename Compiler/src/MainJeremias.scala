@@ -23,7 +23,6 @@ import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
 import exastencils.mpi.ir._
 import exastencils.multiGrid._
-import exastencils.omp._
 import exastencils.omp.ir._
 import exastencils.optimization._
 import exastencils.parsers.l4._
@@ -316,9 +315,8 @@ object MainJeremias {
       MPI_AddDatatypeSetup.apply()
 
     if (Knowledge.omp_enabled) {
-      AddOMPPragmas.apply()
+      OMP_AddParallelSections.apply()
     }
-    OMP_ResolveParallelSections.apply()
     OMP_ResolveCriticalSections.apply()
 
     // one last time

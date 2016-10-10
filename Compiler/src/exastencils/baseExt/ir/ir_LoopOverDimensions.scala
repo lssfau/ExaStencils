@@ -9,7 +9,6 @@ import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger.Logger
-import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.optimization.OptimizationHint
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
@@ -18,12 +17,8 @@ import exastencils.util._
 
 // FIXME: refactor
 object IR_LoopOverDimensions {
-  //  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction], condition : Option[IR_Expression]) =
-//    new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction, condition)
-//  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction]) =
-//    new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction)
-def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex) =
-new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize)
+  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex) =
+    new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize)
   def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body))
 
@@ -137,7 +132,7 @@ case class IR_LoopOverDimensions(
     totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads
   }
 
-  def explParLoop = lcCSEApplied && this.isInstanceOf[OMP_PotentiallyParallel] &&
+  def explParLoop = lcCSEApplied && parallelization.potentiallyParallel &&
     Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverDimensions &&
     parallelizationIsReasonable && parDims.isEmpty
 
@@ -146,9 +141,7 @@ case class IR_LoopOverDimensions(
       val begin = IR_VariableDeclaration(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
       val end = IR_LowerExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype)))
-      val parallelization = IR_ParallelizationInfo()
-      parallelization.potentiallyParallel = true
-      val loop = new IR_ForLoop(begin, end, inc, body, parallelization) with OMP_PotentiallyParallel
+      val loop = new IR_ForLoop(begin, end, inc, body, IR_ParallelizationInfo.PotentiallyParallel())
       ListBuffer(loop)
     } else {
       body
@@ -195,7 +188,7 @@ case class IR_LoopOverDimensions(
   }
 
   def expandSpecial : ListBuffer[IR_Statement] = {
-    def parallelizable(d : Int) = this.isInstanceOf[OMP_PotentiallyParallel] && parDims.contains(d)
+    def parallelizable(d : Int) = parallelization.potentiallyParallel && parDims.contains(d)
     def parallelize(d : Int) = parallelizable(d) && Knowledge.omp_parallelizeLoopOverDimensions && parallelizationIsReasonable
 
     // TODO: check interaction between at1stIt and condition (see also: TODO in polyhedron.Extractor.enterLoop)
@@ -218,11 +211,10 @@ case class IR_LoopOverDimensions(
       val compiledLoop =
         if (parallelize(d) && d == outerPar) {
           anyPar = true
-          val adoptParallelization = Duplicate(parallelization)
-          adoptParallelization.potentiallyParallel = true
-          val omp = new IR_ForLoop(decl, cond, incr, wrappedBody, adoptParallelization) with OptimizationHint with OMP_PotentiallyParallel
-          omp.collapse = numDimensions
-          omp
+          val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, Duplicate(parallelization)) with OptimizationHint
+          loop.parallelization.potentiallyParallel = true
+          loop.parallelization.collapseDepth = numDimensions
+          loop
         } else {
           val adoptParallelization = Duplicate(parallelization)
           adoptParallelization.potentiallyParallel = false

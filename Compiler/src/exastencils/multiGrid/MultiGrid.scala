@@ -10,7 +10,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
-import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.performance._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
@@ -34,13 +34,13 @@ case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           IR_Assignment(
             IR_DirectFieldAccess(IR_FieldSelection(field, field.level, slot), index),
-            0.0) : IR_Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
+            0.0) : IR_Statement)) with PolyhedronAccessible
       loopOverDims.parallelization.potentiallyParallel = true
       loopOverDims.optLevel = 1
 
-      val wrapped = new IR_LoopOverFragments(
-        ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), loopOverDims))) with OMP_PotentiallyParallel
-      wrapped.parallelization.potentiallyParallel = true
+      val wrapped = IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), loopOverDims),
+        IR_ParallelizationInfo.PotentiallyParallel())
 
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         statements += IR_Scope(wrapped)

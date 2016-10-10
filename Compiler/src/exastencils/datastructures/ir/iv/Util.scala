@@ -9,7 +9,7 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.globals._
 import exastencils.logger._
-import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting._
 
 object VecShiftIndexStaticInit {
@@ -67,9 +67,9 @@ abstract class AbstractLoopCarriedCSBuffer(private var identifier : Int, private
       val begin = IR_VariableDeclaration(IR_IntegerDatatype, IR_LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
       val end = IR_LowerExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = IR_PreIncrementExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
-      wrappedBody = new IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody)) with OMP_PotentiallyParallel
+      wrappedBody = IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody), IR_ParallelizationInfo.PotentiallyParallel())
     }
-    return wrappedBody
+    wrappedBody
   }
 
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {

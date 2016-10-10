@@ -12,7 +12,7 @@ import exastencils.domain._
 import exastencils.knowledge
 import exastencils.knowledge.RectangularDomain
 import exastencils.mpi.ir.MPI_IV_MpiRank
-import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB
 
@@ -132,9 +132,6 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
       }
     }
 
-    val loop = new IR_LoopOverFragments(body) with OMP_PotentiallyParallel
-    loop.parallelization.potentiallyParallel = true
-
-    loop
+    IR_LoopOverFragments(body, IR_ParallelizationInfo.PotentiallyParallel())
   }
 }

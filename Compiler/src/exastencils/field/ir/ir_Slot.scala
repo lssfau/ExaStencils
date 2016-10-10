@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
-import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 
 /// IR_IV_ActiveSlot
@@ -65,6 +65,6 @@ object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial
       else
-        new IR_LoopOverFragments(ListBuffer[IR_Statement](advanceSlot.expandSpecial)) with OMP_PotentiallyParallel // TODO: parallelization will probably be quite slow -> SPL?
+        IR_LoopOverFragments(ListBuffer[IR_Statement](advanceSlot.expandSpecial), IR_ParallelizationInfo.PotentiallyParallel())
   })
 }

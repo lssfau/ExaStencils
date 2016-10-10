@@ -8,14 +8,13 @@ import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.mpi.ir.MPI_AllReduce
-import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.ReplaceStringConstantsStrategy
 
 object IR_LoopOverFragments {
-  //def apply(body : IR_Statement, reduction : Option[IR_Reduction]) = new IR_LoopOverFragments(ListBuffer(body), reduction)
   def apply(body : IR_Statement*) = new IR_LoopOverFragments(body.to[ListBuffer])
+  def apply(body : IR_Statement, parallelization : IR_ParallelizationInfo) = new IR_LoopOverFragments(ListBuffer(body), parallelization)
 
   // TODO: VariableAccess
   def defIt = "fragmentIdx"
@@ -30,20 +29,12 @@ case class IR_LoopOverFragments(
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def generateBasicLoop() = {
-    val loop = if (parallelization.potentiallyParallel)
-      new IR_ForLoop(
-        IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
-        IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
-        IR_PreIncrementExpression(defIt),
-        body,
-        parallelization) with OMP_PotentiallyParallel
-    else
-      IR_ForLoop(
-        IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
-        IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
-        IR_PreIncrementExpression(defIt),
-        body,
-        parallelization)
+    val loop = IR_ForLoop(
+      IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
+      IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
+      IR_PreIncrementExpression(defIt),
+      body,
+      parallelization)
     loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)
     loop
   }

@@ -9,7 +9,6 @@ import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
-import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 
@@ -57,10 +56,11 @@ case class IR_CopyToExternalField(var src : IR_Field, var dest : IR_ExternalFiel
     def loopBody = IR_Assignment(destAccess, srcAccess)
 
     // compile loop
-    def loop = new IR_LoopOverDimensions(loopDim, IR_ExpressionIndexRange(
+    val loop = new IR_LoopOverDimensions(loopDim, IR_ExpressionIndexRange(
       IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
       IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
-      ListBuffer[IR_Statement](loopBody)) with OMP_PotentiallyParallel with PolyhedronAccessible
+      ListBuffer[IR_Statement](loopBody)) with PolyhedronAccessible
+    loop.parallelization.potentiallyParallel = true
 
     // compile final function
     val fct = IR_Function(IR_UnitDatatype, name,

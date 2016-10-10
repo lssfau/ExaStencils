@@ -16,7 +16,7 @@ import exastencils.grid._
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.knowledge.NeighborInfo
 import exastencils.logger._
-import exastencils.omp._
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting._
 
@@ -119,7 +119,7 @@ case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListB
   def constructLoops = {
     val layout = field.field.fieldLayout
 
-    val fragLoop = new IR_LoopOverFragments(
+    IR_LoopOverFragments(
       ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
         neighbors.map({ neigh =>
           val adaptedIndexRange = IR_ExpressionIndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
@@ -129,13 +129,11 @@ case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListB
           val loopOverDims = new IR_LoopOverDimensions(
             field.fieldLayout.numDimsData,
             adaptedIndexRange,
-            setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
+            setupFieldUpdate(neigh._1)) with PolyhedronAccessible
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.optLevel = 1
           IR_IfCondition(IR_NegationExpression(IR_IV_NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
-        })))) with OMP_PotentiallyParallel
-    fragLoop.parallelization.potentiallyParallel = true
-    fragLoop
+        }))), IR_ParallelizationInfo.PotentiallyParallel())
   }
 
   override def expand() : Output[IR_Statement] = {

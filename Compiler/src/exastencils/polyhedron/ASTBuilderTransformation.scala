@@ -9,7 +9,6 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.logger._
-import exastencils.omp._
 import exastencils.optimization._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import isl.Conversions._
@@ -205,11 +204,8 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
 
           val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
-          val loop : IR_ForLoop with OptimizationHint =
-          if (parOMP)
-            new IR_ForLoop(init, cond, incr, body, parallelization) with OptimizationHint with OMP_PotentiallyParallel
-          else
-            new IR_ForLoop(init, cond, incr, body, parallelization) with OptimizationHint
+          val loop = new IR_ForLoop(init, cond, incr, body, parallelization) with OptimizationHint
+          loop.parallelization.potentiallyParallel = parOMP
           loop.isParallel = parDims != null && parDims.contains(itStr)
           loop.isVectorizable = vecDims != null && vecDims.contains(itStr)
           loop.privateVars ++= privateVars

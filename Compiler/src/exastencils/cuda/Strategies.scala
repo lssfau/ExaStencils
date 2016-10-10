@@ -16,7 +16,6 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
 import exastencils.logger._
-import exastencils.omp._
 import exastencils.optimization._
 import exastencils.polyhedron._
 import exastencils.util._
@@ -194,7 +193,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       // 1. this loop is a special one and cannot be optimized in polyhedral model
       // 2. this loop has no parallel potential
       // use the host for dealing with the two exceptional cases
-      val isParallel = containedLoop.isInstanceOf[PolyhedronAccessible] && containedLoop.isInstanceOf[OMP_PotentiallyParallel]
+      val isParallel = containedLoop.isInstanceOf[PolyhedronAccessible] && containedLoop.parallelization.potentiallyParallel
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop, isParallel)
@@ -264,7 +263,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       // 1. this loop is a special one and cannot be optimized in polyhedral model
       // 2. this loop has no parallel potential
       // use the host for dealing with the two exceptional cases
-      val isParallel = loop.isInstanceOf[PolyhedronAccessible] && loop.isInstanceOf[OMP_PotentiallyParallel]
+      val isParallel = loop.isInstanceOf[PolyhedronAccessible] && loop.parallelization.potentiallyParallel
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop, isParallel)

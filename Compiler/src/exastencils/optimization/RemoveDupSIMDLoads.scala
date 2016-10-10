@@ -9,7 +9,6 @@ import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
-import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.simd._
 import exastencils.util._
 
@@ -102,7 +101,7 @@ private[optimization] final class Analyze extends StackCollector {
   override def enter(node : Node) : Unit = {
     super.enter(node)
     node match {
-      case IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, lVar, Some(start)),
+      case loop @ IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, lVar, Some(start)),
       IR_LowerExpression(IR_VariableAccess(lVar3, _), end),
       IR_Assignment(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
       _, _) if (lVar == lVar2 && lVar2 == lVar3) //
@@ -115,7 +114,7 @@ private[optimization] final class Analyze extends StackCollector {
           concShifts = new HashMap[IR_SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
           replaceAcc = new HashMap[String, String]()
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
-          hasOMPPragma = node.isInstanceOf[OMP_PotentiallyParallel]
+          hasOMPPragma = loop.parallelization.potentiallyParallel
         }
 
       case decl @ IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp,

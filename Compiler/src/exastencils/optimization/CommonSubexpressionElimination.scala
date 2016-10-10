@@ -16,7 +16,6 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.logger.Logger
-import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting._
 import exastencils.strategies.SimplifyStrategy
 import exastencils.util._
@@ -269,7 +268,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           nextUpdates ++=:
           loop.body
         njuScopes += stmts
-        if (loop.parDims.contains(dim) && loop.isInstanceOf[OMP_PotentiallyParallel])
+        if (loop.parDims.contains(dim) && loop.parallelization.potentiallyParallel)
           loop.isVectorizable = true
         loop.parDims -= dim
         loop.lcCSEApplied = true

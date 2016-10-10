@@ -17,7 +17,7 @@ import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
 import exastencils.mpi.ir.MPI_RemoveMPI
 import exastencils.multiGrid._
-import exastencils.omp._
+import exastencils.omp.ir._
 import exastencils.optimization.IR_LinearizeLoopCarriedCSBufferAccess
 import exastencils.parsers.l4._
 import exastencils.prettyprinting._
@@ -204,8 +204,9 @@ object MainAlex {
     IR_AddInternalVariables.apply()
 
     if (Knowledge.omp_enabled) {
-      AddOMPPragmas.apply()
+      OMP_AddParallelSections.apply()
     }
+    OMP_ResolveCriticalSections.apply()
 
     PrintStrategy.apply()
     PrettyprintingManager.finish

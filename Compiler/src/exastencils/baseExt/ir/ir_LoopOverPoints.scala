@@ -12,7 +12,6 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
-import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 
@@ -39,27 +38,16 @@ case class IR_LoopOverPoints(
   def expandSpecial(collector : StackCollector) : Output[StatementList] = {
     val insideFragLoop = collector.stack.exists(_.isInstanceOf[IR_LoopOverFragments])
     val innerLoop =
-      if (Knowledge.experimental_splitLoopsForAsyncComm) {
-        if (parallelization.potentiallyParallel)
-          new IR_LoopOverPointsInOneFragment(field.domain.index, field, region, startOffset, endOffset, increment, body, preComms, postComms, Duplicate(parallelization), condition) with OMP_PotentiallyParallel
-        else
-          IR_LoopOverPointsInOneFragment(field.domain.index, field, region, startOffset, endOffset, increment, body, preComms, postComms, Duplicate(parallelization), condition)
-      }
-      else {
-        if (parallelization.potentiallyParallel)
-          new IR_LoopOverPointsInOneFragment(field.domain.index, field, region, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), Duplicate(parallelization), condition) with OMP_PotentiallyParallel
-        else
-          IR_LoopOverPointsInOneFragment(field.domain.index, field, region, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), Duplicate(parallelization), condition)
-      }
+      if (Knowledge.experimental_splitLoopsForAsyncComm)
+        IR_LoopOverPointsInOneFragment(field.domain.index, field, region, startOffset, endOffset, increment, body, preComms, postComms, Duplicate(parallelization), condition)
+      else
+        IR_LoopOverPointsInOneFragment(field.domain.index, field, region, startOffset, endOffset, increment, body, ListBuffer(), ListBuffer(), Duplicate(parallelization), condition)
 
     var stmts = ListBuffer[IR_Statement]()
     stmts += innerLoop
 
     if (!insideFragLoop)
-      if (parallelization.potentiallyParallel)
-        stmts = ListBuffer(new IR_LoopOverFragments(stmts, Duplicate(parallelization)) with OMP_PotentiallyParallel)
-      else
-        stmts = ListBuffer(new IR_LoopOverFragments(stmts, Duplicate(parallelization)))
+      stmts = ListBuffer(IR_LoopOverFragments(stmts, Duplicate(parallelization)))
 
     if (Knowledge.experimental_splitLoopsForAsyncComm)
       stmts

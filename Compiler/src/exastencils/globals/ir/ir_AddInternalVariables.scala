@@ -13,7 +13,7 @@ import exastencils.datastructures.ir.iv
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.globals.Globals
 import exastencils.logger.Logger
-import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util._
 
 /// IR_AddInternalVariables
@@ -95,8 +95,9 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       else
         statements ++= innerStmts
 
-      fieldAllocs += (cleanedField.prettyprint() -> new IR_LoopOverFragments(
-        ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), statements))) with OMP_PotentiallyParallel)
+      fieldAllocs += (cleanedField.prettyprint() -> IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), statements),
+        IR_ParallelizationInfo.PotentiallyParallel()))
 
       field
     }
@@ -124,8 +125,9 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       else
         statements ++= innerStmts
 
-      deviceFieldAllocs += (cleanedField.prettyprint() -> new IR_LoopOverFragments(
-        ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), statements))) with OMP_PotentiallyParallel)
+      deviceFieldAllocs += (cleanedField.prettyprint() -> IR_LoopOverFragments(
+        IR_IfCondition(IR_IV_IsValidForDomain(field.field.domain.index), statements),
+        IR_ParallelizationInfo.PotentiallyParallel()))
 
       field
     }
@@ -167,15 +169,16 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
       if (Knowledge.data_alignTmpBufferPointers) {
         counter += 1
-        bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](
+        bufferAllocs += (id -> IR_LoopOverFragments(ListBuffer[IR_Statement](
           IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
           IR_ArrayAllocation(buf.basePtr, IR_RealDatatype, size + Platform.simd_vectorSize - 1),
           IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
             Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
-          IR_Assignment(buf, buf.basePtr + s"offset_$counter"))) with OMP_PotentiallyParallel)
+          IR_Assignment(buf, buf.basePtr + s"offset_$counter")),
+          IR_ParallelizationInfo.PotentiallyParallel()))
       } else {
-        bufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](IR_ArrayAllocation(buf, IR_RealDatatype, size))) with OMP_PotentiallyParallel)
+        bufferAllocs += (id -> IR_LoopOverFragments(IR_ArrayAllocation(buf, IR_RealDatatype, size), IR_ParallelizationInfo.PotentiallyParallel()))
       }
 
       buf
@@ -184,7 +187,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> new IR_LoopOverFragments(ListBuffer[IR_Statement](CUDA_AllocateStatement(buf, size, IR_RealDatatype /*FIXME*/))) with OMP_PotentiallyParallel)
+      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_AllocateStatement(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo.PotentiallyParallel()))
 
       buf
 

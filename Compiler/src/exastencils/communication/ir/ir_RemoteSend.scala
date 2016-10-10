@@ -13,7 +13,6 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge.NeighborInfo
 import exastencils.mpi.ir._
-import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.omp.ir.OMP_PotentiallyCritical
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
@@ -72,7 +71,7 @@ case class IR_CopyToSendBuffer(
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))
 
-      val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(tmpBufAccess, fieldAccess))) with OMP_PotentiallyParallel with PolyhedronAccessible
+      val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(tmpBufAccess, fieldAccess))) with PolyhedronAccessible
       loop.parallelization.potentiallyParallel = true
       ret += loop
     }

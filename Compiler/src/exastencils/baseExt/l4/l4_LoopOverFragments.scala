@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverFragments
-import exastencils.omp
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 
@@ -28,8 +27,10 @@ case class L4_LoopOverFragments(
   override def progress = {
     // TODO: introduce L4_ParallelizationInfo
     val parallelization = IR_ParallelizationInfo()
+    // assume parallelizabilty by default
+    parallelization.potentiallyParallel = true
     parallelization.reduction = reduction.map(_.progress)
 
-    new IR_LoopOverFragments(statements.map(_.progress), parallelization) with omp.OMP_PotentiallyParallel
+    new IR_LoopOverFragments(statements.map(_.progress), parallelization)
   }
 }

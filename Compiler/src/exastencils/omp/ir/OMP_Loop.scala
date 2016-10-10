@@ -6,7 +6,6 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.cuda.CudaStrategiesUtils
 import exastencils.datastructures._
-import exastencils.logger.Logger
 import exastencils.optimization.OptimizationHint
 import exastencils.prettyprinting.PpStream
 
@@ -48,64 +47,24 @@ case class OMP_ParallelFor(
   }
 }
 
-/// OMP_PotentiallyParallel
+/// OMP_AddParallelSections
 
-object OMP_PotentiallyParallel {
-  def apply(body : IR_Statement*) = new OMP_PotentiallyParallel(body.to[ListBuffer])
-}
+object OMP_AddParallelSections extends DefaultStrategy("Handle potentially parallel omp sections") {
+  this += new Transformation("Adding OMP parallel for pragmas", {
+    case target : IR_ForLoop if target.parallelization.potentiallyParallel && !target.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) =>
+      val additionalOMPClauses = ListBuffer[OMP_Clause]()
 
-case class OMP_PotentiallyParallel(var body : ListBuffer[IR_Statement], var collapse : Int = 1) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-}
+      if (target.parallelization.reduction.isDefined)
+        if (!(Platform.omp_version < 3.1 && ("min" == target.parallelization.reduction.get.op || "max" == target.parallelization.reduction.get.op)))
+          additionalOMPClauses += OMP_Reduction(target.parallelization.reduction.get)
 
-/// OMP_HandleParallelSections
-
-object OMP_ResolveParallelSections extends DefaultStrategy("Handle potentially parallel omp sections") {
-  this += new Transformation("Adding OMP parallel pragmas", {
-    case target : OMP_PotentiallyParallel if !Knowledge.omp_enabled =>
-      // no omp => simply return body
-      target.body
-    case target : OMP_PotentiallyParallel                           =>
-      // filter target body => ignore comments and null statements
-      val filtered = target.body.filterNot(s => s.isInstanceOf[IR_Comment] || s == IR_NullStatement)
-
-      if (0 == filtered.length)
-      // empty => just return body
-        target.body
-      else if (filtered.length > 1) {
-        // more than one statement - not supported
-        Logger.warn("Found OMP_PotentiallyParallel with more than one statement - not supported: " + filtered.map(_.prettyprint()).mkString(" ; "))
-        target.body
+      target match {
+        case l : OptimizationHint =>
+          if (l.privateVars.nonEmpty)
+            additionalOMPClauses += OMP_Private(l.privateVars.clone())
+        case _                    =>
       }
-      else {
-        // exactly one hit => handle loop
-        filtered.head match {
-          // ignore loops with CUDA_LOOP_ANNOTATION
-          case loop : IR_ForLoop if loop.hasAnnotation(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION) =>
-            None
 
-          // plain loop => wrap
-          case loop : IR_ForLoop =>
-            val additionalClauses = ListBuffer[OMP_Clause]()
-
-            // handle reduction
-            if (loop.parallelization.reduction.isDefined)
-              if (!(Platform.omp_version < 3.1 && ("min" == loop.parallelization.reduction.get.op || "max" == loop.parallelization.reduction.get.op)))
-                additionalClauses += OMP_Reduction(loop.parallelization.reduction.get)
-            // FIXME: else?
-
-            // TODO: integrate OptimizationHint
-            loop match {
-              case l : OptimizationHint => if (l.privateVars.nonEmpty) additionalClauses += OMP_Private(l.privateVars.clone())
-              case _                    =>
-            }
-
-            if (target.body.count(_.isInstanceOf[IR_Comment]) > 0)
-              Logger.warn("Removing comments in omp parallel for section")
-
-            OMP_ParallelFor(IR_ForLoop(loop.begin, loop.end, loop.inc, loop.body, loop.parallelization),
-              additionalClauses, target.collapse)
-        }
-      }
-  }, false)
+      OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
+  }, false) // switch off recursion due to wrapping mechanism
 }

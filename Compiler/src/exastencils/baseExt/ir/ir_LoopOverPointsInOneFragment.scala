@@ -15,7 +15,6 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.knowledge.Fragment
 import exastencils.logger.Logger
-import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
@@ -120,7 +119,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       if (!parallelization.potentiallyParallel)
         IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition)
       else {
-        val ret = new IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition) with OMP_PotentiallyParallel with PolyhedronAccessible
+        val ret = new IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition) with PolyhedronAccessible
         ret.optLevel =
           if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
             Knowledge.poly_optLevel_fine

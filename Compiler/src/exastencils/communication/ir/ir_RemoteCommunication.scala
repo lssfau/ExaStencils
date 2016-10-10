@@ -8,7 +8,6 @@ import exastencils.baseExt.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.knowledge.NeighborInfo
-import exastencils.omp.OMP_PotentiallyParallel
 
 /// IR_RemoteCommunication
 
@@ -27,13 +26,12 @@ abstract class IR_RemoteCommunication extends IR_Statement with IR_Expandable {
   }
 
   def wrapFragLoop(toWrap : IR_Statement, parallel : Boolean) : IR_Statement = {
-    if (insideFragLoop)
+    if (insideFragLoop) {
       toWrap
-    else if (parallel) {
-      val loop = new IR_LoopOverFragments(ListBuffer[IR_Statement](toWrap)) with OMP_PotentiallyParallel
-      loop.parallelization.potentiallyParallel = true
+    } else {
+      val loop = IR_LoopOverFragments(toWrap)
+      loop.parallelization.potentiallyParallel = parallel
       loop
-    } else
-      IR_LoopOverFragments(toWrap)
+    }
   }
 }
