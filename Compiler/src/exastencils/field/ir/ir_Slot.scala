@@ -1,13 +1,70 @@
 package exastencils.field.ir
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.datastructures.ir.iv
+import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
+import exastencils.core.collectors.StackCollector
+import exastencils.datastructures._
+import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PpStream
 
-case class IR_AdvanceSlot(var slot : iv.CurrentSlot) extends IR_Statement {
+/// IR_IV_ActiveSlot
+
+case class IR_IV_ActiveSlot(var field : IR_Field, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
+
+  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
+
+  override def resolveName = s"currentSlot" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
+  override def resolveDatatype = "int"
+  override def resolveDefValue = Some(IR_IntegerConstant(0))
+}
+
+/// IR_SlotAccess
+
+case class IR_SlotAccess(var slot : IR_IV_ActiveSlot, var offset : Int) extends IR_Expression {
+  // ensure: 0 <= offset < slot.field.numSlots
+  offset %= slot.field.numSlots
+  if (offset < 0)
+    offset += slot.field.numSlots
+
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
+
+  // offset is always positive -> Mod is safe
+  def expandSpecial : IR_Expression = (slot + offset) Mod slot.field.numSlots
+}
+
+/// IR_AdvanceSlot
+
+case class IR_AdvanceSlot(var slot : IR_IV_ActiveSlot) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   // slot never contains negative values (currently)
   def expandSpecial = IR_Assignment(slot, (slot + 1) Mod slot.field.numSlots)
+}
+
+/// IR_ResolveSlotOperations
+
+object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations") {
+  var collector = new StackCollector
+  this.register(collector)
+
+  this += new Transformation("Resolve", {
+    case slotAccess : IR_SlotAccess => slotAccess.expandSpecial
+
+    case advanceSlot : IR_AdvanceSlot =>
+      // check if already inside a fragment loop - if not wrap the expanded statement
+      if (collector.stack.map {
+        case _ : IR_LoopOverFragments                                                                     => true
+        case IR_ForLoop(IR_VariableDeclaration(_, it, _), _, _, _, _) if IR_LoopOverFragments.defIt == it => true
+        case _                                                                                            => false
+      }.fold(false)((a, b) => a || b))
+        advanceSlot.expandSpecial
+      else
+        new IR_LoopOverFragments(ListBuffer[IR_Statement](advanceSlot.expandSpecial)) with OMP_PotentiallyParallel // TODO: parallelization will probably be quite slow -> SPL?
+  })
 }

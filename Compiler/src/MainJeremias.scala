@@ -1,18 +1,23 @@
 import java.util.Locale
 
-import exastencils.base.ir.IR_Root
+import exastencils.base.ir._
 import exastencils.base.l4._
+import exastencils.baseExt.ir._
 import exastencils.baseExt.l4._
+import exastencils.communication.IR_LinearizeTempBufferAccess
 import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
-import exastencils.data._
+import exastencils.cuda.IR_LinearizeReductionDeviceDataAccess
 import exastencils.datastructures._
 import exastencils.deprecated.ir.CreateGeomCoordinates
 import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.{ l4 => _, _ }
+import exastencils.field.ir._
 import exastencils.globals._
+import exastencils.globals.ir._
+import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
@@ -222,12 +227,15 @@ object MainJeremias {
 
     SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
-    SetupDataStructures.apply()
+    Fragment.setupNeighbors()
+    StateManager.findFirst[Globals]().get.functions += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
+    StateManager.findFirst[MultiGridFunctions]().get.functions ++= IR_ExternalFieldCollection.generateCopyFunction()
+
     IR_SetupCommunication.apply()
 
     ResolveSpecialFunctionsAndConstants.apply()
 
-    ResolveLoopOverPoints.apply()
+    IR_ResolveLoopOverPoints.apply()
     ResolveIntergridIndices.apply()
 
     var convChanged = false
@@ -243,11 +251,11 @@ object MainJeremias {
 
     ResolveDiagFunction.apply()
     CreateGeomCoordinates.apply()
-    ResolveLoopOverPointsInOneFragment.apply()
-    ResolveContractingLoop.apply()
+    IR_ResolveLoopOverPointsInOneFragment.apply()
+    IR_ResolveContractingLoop.apply()
 
     MapStencilAssignments.apply()
-    ResolveFieldAccess.apply()
+    IR_ResolveFieldAccess.apply()
 
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
@@ -257,16 +265,22 @@ object MainJeremias {
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()
-    ResolveLoopOverDimensions.apply()
+    IR_ResolveLoopOverDimensions.apply()
 
     TypeInference.apply()
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
 
-    ResolveSlotOperationsStrategy.apply()
-    ResolveBoundedExpressions.apply()
-    LinearizeFieldAccesses.apply()
+    IR_ResolveSlotOperations.apply()
+    IR_ResolveBoundedScalar.apply()
+
+    // before converting kernel functions -> requires linearized accesses
+    IR_LinearizeDirectFieldAccess.apply()
+    IR_LinearizeExternalFieldAccess.apply()
+    IR_LinearizeTempBufferAccess.apply()
+    IR_LinearizeReductionDeviceDataAccess.apply()
+    IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
@@ -292,7 +306,7 @@ object MainJeremias {
     if (Knowledge.opt_vectorize)
       RemoveDupSIMDLoads.apply()
 
-    AddInternalVariables.apply()
+    IR_AddInternalVariables.apply()
     if (Knowledge.useFasterExpand)
       ExpandOnePassStrategy.apply()
     else

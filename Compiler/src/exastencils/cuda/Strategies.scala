@@ -7,15 +7,14 @@ import scala.collection.{ Set, SortedSet => _, _ }
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors._
-import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
-import exastencils.config._
 import exastencils.logger._
 import exastencils.omp._
 import exastencils.optimization._
@@ -207,7 +206,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
       for (i <- 1 to cl.number)
         for (stmt <- cl.body)
           stmt match {
-            case IR_AdvanceSlot(iv.CurrentSlot(field, fragment)) =>
+            case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment)) =>
               val fKey = (field.identifier, field.level)
               fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
               fields(fKey) = field
@@ -252,7 +251,7 @@ object PrepareCudaRelevantCode extends DefaultStrategy("Prepare CUDA relevant co
 
       for ((fKey, offset) <- fieldOffset) {
         val field = fields(fKey)
-        res += IR_Assignment(iv.CurrentSlot(field), (iv.CurrentSlot(field) + offset) Mod field.numSlots)
+        res += IR_Assignment(IR_IV_ActiveSlot(field), (IR_IV_ActiveSlot(field) + offset) Mod field.numSlots)
       }
 
       res
@@ -581,7 +580,7 @@ object GatherLocalFieldAccess extends QuietDefaultStrategy("Gathering local Fiel
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }

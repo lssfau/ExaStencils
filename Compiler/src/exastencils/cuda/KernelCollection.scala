@@ -9,7 +9,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core._
-import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
@@ -308,7 +307,7 @@ case class Kernel(var identifier : String,
       // 2.4 consider this field for shared memory if all conditions are met
       if (!writtenFields.contains(name) && fieldAccesses.size > 1 && requiredMemoryInByte < availableSharedMemory && (leftDeviationFromBaseIndex.head > 0 || rightDeviationFromBaseIndex.head > 0)) {
         val access = IR_DirectFieldAccess(fieldAccesses.head.fieldSelection, IR_ExpressionIndex(baseIndex))
-        access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
+        access.allowLinearization = true
         fieldNames += name
         fieldBaseIndex(name) = IR_ExpressionIndex(baseIndex)
         fieldForSharedMemory(name) = access
@@ -328,7 +327,7 @@ case class Kernel(var identifier : String,
 
     // 3. remove annotation from all fields that will not be stored in shared memory
     fieldToFieldAccesses.retain((key, value) => !fieldNames.contains(key))
-    fieldToFieldAccesses.foreach(fa => fa._2.foreach(a => a.removeAnnotation(LinearizeFieldAccesses.NO_LINEARIZATION)))
+    fieldToFieldAccesses.foreach(fa => fa._2.foreach(a => a.allowLinearization = false))
 
     // 4. ensure correct executionDim if no appropriate field was found
     if (!foundSomeAppropriateField) {
@@ -743,7 +742,7 @@ object GatherLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gathering 
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
@@ -769,7 +768,7 @@ object ReplacingLocalLinearizedFieldAccess extends QuietDefaultStrategy("Replaci
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
@@ -795,7 +794,7 @@ object GatherWrittenLocalLinearizedFieldAccess extends QuietDefaultStrategy("Gat
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
@@ -824,7 +823,7 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
 
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
@@ -861,7 +860,7 @@ object GatherLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy("G
       })
 
       if (suitableForSharedMemory) {
-        access.annotate(LinearizeFieldAccesses.NO_LINEARIZATION)
+        access.allowLinearization = true
         fieldAccesses(identifier) ::= access
         fieldIndicesConstantPart(identifier) ::= indexConstantPart
       }
@@ -885,7 +884,7 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
     // TODO: array fields
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }

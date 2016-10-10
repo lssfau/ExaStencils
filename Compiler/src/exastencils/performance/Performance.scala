@@ -6,12 +6,10 @@ import java.io.PrintWriter
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.config.Settings
-import exastencils.data._
+import exastencils.config.{ Settings, _ }
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_MultiDimFieldAccess
-import exastencils.config._
+import exastencils.field.ir._
 
 /// util classes
 
@@ -259,7 +257,7 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
 
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }

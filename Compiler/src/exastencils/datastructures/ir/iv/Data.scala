@@ -13,16 +13,6 @@ import exastencils.prettyprinting._
 
 /// variables and flags
 
-case class CurrentSlot(var field : IR_Field, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, field.level, IR_NullExpression)
-
-  override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
-
-  override def resolveName = s"currentSlot" + resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, field.level.toString, "")
-  override def resolveDatatype = "int"
-  override def resolveDefValue = Some(IR_IntegerConstant(0))
-}
-
 case class IndexFromField(var layoutIdentifier : String, var level : IR_Expression, var indexId : String, var dim : Int, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, true, true, false) {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, layoutIdentifier, level, IR_NullExpression)
 

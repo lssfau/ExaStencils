@@ -642,6 +642,8 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
   }
 }
 
+/// IR_LoopCarriedCSBufferAccess
+
 case class IR_LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access {
   override def datatype = buffer.datatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
@@ -652,4 +654,12 @@ case class IR_LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var
     else
       IR_ArrayAccess(buffer, IR_Linearization.linearizeIndex(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
   }
+}
+
+/// IR_LinearizeLoopCarriedCSBufferAccess
+
+object IR_LinearizeLoopCarriedCSBufferAccess extends DefaultStrategy("Linearize LoopCarriedCSBufferAccess nodes") {
+  this += new Transformation("Linearize", {
+    case access : IR_LoopCarriedCSBufferAccess => access.linearize
+  })
 }

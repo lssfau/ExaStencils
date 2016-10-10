@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
+import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
@@ -76,7 +77,8 @@ object IR_LoopOverDimensions {
   }
 }
 
-case class IR_LoopOverDimensions(var numDimensions : Int,
+case class IR_LoopOverDimensions(
+    var numDimensions : Int,
     var indices : IR_ExpressionIndexRange,
     var body : ListBuffer[IR_Statement],
     var stepSize : IR_ExpressionIndex = null, // actual default set in constructor
@@ -262,4 +264,12 @@ case class IR_LoopOverDimensions(var numDimensions : Int,
 
     retStmts
   }
+}
+
+/// IR_ResolveLoopOverDimensions
+
+object IR_ResolveLoopOverDimensions extends DefaultStrategy("Resolve LoopOverDimensions nodes") {
+  this += new Transformation("Resolve", {
+    case loop : IR_LoopOverDimensions => loop.expandSpecial
+  })
 }

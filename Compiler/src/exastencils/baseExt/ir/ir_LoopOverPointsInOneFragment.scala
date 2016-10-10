@@ -8,6 +8,7 @@ import exastencils.communication.ir.IR_Communicate
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain.ir._
@@ -293,4 +294,12 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
 
     stmts
   }
+}
+
+/// IR_ResolveLoopOverPointsInOneFragment
+
+object IR_ResolveLoopOverPointsInOneFragment extends DefaultStrategy("Resole LoopOverPointsInOneFragment nodes") {
+  this += new Transformation("Resolve", {
+    case loop : IR_LoopOverPointsInOneFragment => loop.expandSpecial
+  })
 }

@@ -9,9 +9,9 @@ import exastencils.boundary.ir._
 import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
-import exastencils.data._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.field.ir.IR_SlotAccess
 import exastencils.knowledge.Fragment
 import exastencils.logger._
 import exastencils.mpi.ir.MPI_WaitForRequest
@@ -127,8 +127,8 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       }
 
       communicateStatement.field.slot match {
-        case SlotAccess(slot, _) if IR_StringLiteral(IR_LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _                                                                                       =>
+        case IR_SlotAccess(slot, _) if IR_StringLiteral(IR_LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _                                                                                          =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
@@ -156,8 +156,8 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       }
 
       applyBCsStatement.field.slot match {
-        case SlotAccess(slot, _) if IR_StringLiteral(IR_LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _                                                                                       =>
+        case IR_SlotAccess(slot, _) if IR_StringLiteral(IR_LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _                                                                                          =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()

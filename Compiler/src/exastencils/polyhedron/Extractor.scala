@@ -7,12 +7,11 @@ import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
 import exastencils.config._
 import exastencils.core.collectors._
-import exastencils.data._
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
-import exastencils.field.ir.IR_DirectFieldAccess
+import exastencils.field.ir._
 import exastencils.logger._
 import exastencils.optimization.IR_LoopCarriedCSBufferAccess
 import exastencils.util.ir.IR_MathFunctions
@@ -885,8 +884,8 @@ class Extractor extends Collector {
     name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex)
     name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
-      case SlotAccess(_, offset) => name.append('s').append(offset)
-      case s                     => name.append(s.prettyprint())
+      case IR_SlotAccess(_, offset) => name.append('s').append(offset)
+      case s                        => name.append(s.prettyprint())
     }
     enterArrayAccess(replaceSpecial(name.toString()), index)
   }

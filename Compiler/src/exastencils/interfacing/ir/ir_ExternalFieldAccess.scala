@@ -3,7 +3,10 @@ package exastencils.interfacing.ir
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config._
+import exastencils.datastructures._
 import exastencils.prettyprinting.PpStream
+
+/// IR_ExternalFieldAccess
 
 case class IR_ExternalFieldAccess(var name : IR_Expression, var field : IR_ExternalField, var index : IR_ExpressionIndex) extends IR_Expression {
   // TODO: var index : IR_Index
@@ -24,3 +27,12 @@ case class IR_ExternalFieldAccess(var name : IR_Expression, var field : IR_Exter
       IR_ArrayAccess(name, field.fieldLayout.linearizeIndex(index), alignedAccessPossible)
   }
 }
+
+/// IR_LinearizeExternalFieldAccess
+
+object IR_LinearizeExternalFieldAccess extends DefaultStrategy("Linearize ExternalFieldAccess nodes") {
+  this += new Transformation("Linearize", {
+    case access : IR_ExternalFieldAccess => access.linearize
+  })
+}
+

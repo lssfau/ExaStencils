@@ -155,7 +155,7 @@ class ParserDomainFile extends ExaParser {
         tmpDomains.filter(f => f._2.asInstanceOf[List[String]].contains(blockIdent)).contains(domFil.identifier)
       }
       .map(m => m.index).to[ListBuffer]
-    FragmentCollection.fragments += new Fragment(localId, globalId, domainIds, faces, edges, vertices.toSeq.distinct.to[ListBuffer], ListBuffer.fill(FragmentCollection.getNumberOfNeighbors)(-1), blockIdent.drop(1).toInt)
+    FragmentCollection.fragments += new DummyFragment(localId, globalId, domainIds, faces, edges, vertices.toSeq.distinct.to[ListBuffer], ListBuffer.fill(FragmentCollection.getNumberOfNeighbors)(-1), blockIdent.drop(1).toInt)
   }
 
   def setTrafoParameter[T](ident : String, value : T) = {

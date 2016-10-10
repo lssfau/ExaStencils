@@ -1,15 +1,13 @@
 package exastencils.field.l4
 
-import exastencils._
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
-import exastencils.datastructures.ir.iv
+import exastencils.config._
 import exastencils.datastructures.{ ir => _, _ }
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
-import exastencils.config._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -23,9 +21,9 @@ object L4_FieldAccess {
   def resolveSlot(field : IR_Field, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)
     else slot match {
-      case L4_ActiveSlot       => data.SlotAccess(iv.CurrentSlot(field), 0)
-      case L4_NextSlot         => data.SlotAccess(iv.CurrentSlot(field), 1)
-      case L4_PreviousSlot     => data.SlotAccess(iv.CurrentSlot(field), -1)
+      case L4_ActiveSlot       => IR_SlotAccess(IR_IV_ActiveSlot(field), 0)
+      case L4_NextSlot         => IR_SlotAccess(IR_IV_ActiveSlot(field), 1)
+      case L4_PreviousSlot     => IR_SlotAccess(IR_IV_ActiveSlot(field), -1)
       case x : L4_ConstantSlot => IR_IntegerConstant(x.number)
       case _                   => Logger.error("Unknown slot modifier " + slot)
     }

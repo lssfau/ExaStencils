@@ -1,18 +1,24 @@
 import exastencils.base.ir.IR_Root
 import exastencils.base.l4._
+import exastencils.baseExt.ir.IR_ResolveLoopOverDimensions
 import exastencils.baseExt.l4._
+import exastencils.communication.IR_LinearizeTempBufferAccess
 import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.config._
 import exastencils.core._
-import exastencils.data._
+import exastencils.cuda.IR_LinearizeReductionDeviceDataAccess
 import exastencils.datastructures._
 import exastencils.domain._
+import exastencils.field.ir._
 import exastencils.globals._
-import exastencils.knowledge.FindStencilConvolutions
+import exastencils.globals.ir._
+import exastencils.interfacing.ir._
+import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
 import exastencils.mpi.ir.MPI_RemoveMPI
 import exastencils.multiGrid._
 import exastencils.omp._
+import exastencils.optimization.IR_LinearizeLoopCarriedCSBufferAccess
 import exastencils.parsers.l4._
 import exastencils.prettyprinting._
 import exastencils.strategies._
@@ -164,7 +170,9 @@ object MainAlex {
 
     ResolveSpecialFunctionsAndConstants.apply()
 
-    SetupDataStructures.apply()
+    Fragment.setupNeighbors()
+    StateManager.findFirst[Globals]().get.functions += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
+    StateManager.findFirst[MultiGridFunctions]().get.functions ++= IR_ExternalFieldCollection.generateCopyFunction()
 
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
@@ -174,9 +182,14 @@ object MainAlex {
 
     //    PolyOpt.apply()
 
-    ResolveLoopOverDimensions.apply()
+    IR_ResolveLoopOverDimensions.apply()
 
-    LinearizeFieldAccesses.apply()
+    // before converting kernel functions -> requires linearized accesses
+    IR_LinearizeDirectFieldAccess.apply()
+    IR_LinearizeExternalFieldAccess.apply()
+    IR_LinearizeTempBufferAccess.apply()
+    IR_LinearizeReductionDeviceDataAccess.apply()
+    IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     do { ExpandStrategy.apply() }
     while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
@@ -188,7 +201,7 @@ object MainAlex {
     do { SimplifyStrategy.apply() }
     while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
 
-    AddInternalVariables.apply()
+    IR_AddInternalVariables.apply()
 
     if (Knowledge.omp_enabled) {
       AddOMPPragmas.apply()

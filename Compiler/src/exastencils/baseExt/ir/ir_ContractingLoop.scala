@@ -6,10 +6,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
-import exastencils.data._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir._
@@ -94,8 +92,8 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   private def updateSlots(stmts : ListBuffer[IR_Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends QuietDefaultStrategy("Adapt field slots") {
       this += new Transformation("now", {
-        case fs @ IR_FieldSelection(field, level, SlotAccess(slot, offset), _, _) =>
-          fs.slot = SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
+        case fs @ IR_FieldSelection(field, level, IR_SlotAccess(slot, offset), _, _) =>
+          fs.slot = IR_SlotAccess(slot, offset + fieldOffset.getOrElse(FieldKey(field), 0))
           fs
       })
     }
@@ -120,7 +118,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
     for (i <- 1 to number)
       for (stmt <- body)
         stmt match {
-          case IR_AdvanceSlot(iv.CurrentSlot(field, fragment)) =>
+          case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment)) =>
             val fKey = FieldKey(field)
             fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
             fields(fKey) = field
@@ -145,9 +143,18 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
 
     for ((fKey, offset) <- fieldOffset) {
       val field = fields(fKey)
-      res += IR_Assignment(iv.CurrentSlot(field), (iv.CurrentSlot(field) + offset) Mod field.numSlots)
+      res += IR_Assignment(IR_IV_ActiveSlot(field), (IR_IV_ActiveSlot(field) + offset) Mod field.numSlots)
     }
 
     res
   }
+}
+
+/// IR_ResolveContractingLoop
+
+// Note: Must run after IR_ResolveLoopOverPointsInOneFragment
+object IR_ResolveContractingLoop extends DefaultStrategy("Resolve ContractingLoop nodes") {
+  this += new Transformation("Resolve", {
+    case loop : IR_ContractingLoop => loop.expandSpecial
+  })
 }

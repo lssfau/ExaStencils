@@ -1,12 +1,12 @@
 package exastencils.domain
 
-import exastencils.config._
-
 import scala.collection.mutable._
 
-class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face], e : ListBuffer[Edge],
+import exastencils.config._
+
+class DummyFragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face], e : ListBuffer[Edge],
     v : ListBuffer[Vertex], n : ListBuffer[Int], r : Int, t : ListBuffer[Double] = ListBuffer(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)) {
-  import Direction._
+
   val faces = f
   val edges = e
   val vertices = v
@@ -27,7 +27,7 @@ class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face]
   override def toString : String = {
 
     var str = s"Fragment : [\n"
-    str += s"\tdomainIds : ${domainIds.mkString(",")}\n"
+    str += s"\tdomainIds : ${ domainIds.mkString(",") }\n"
     str += s"\tglobalId : $globalId\n"
     str += s"\tlocalId : $localId\n"
     if (Knowledge.mpi_enabled) str += s"\tmpiRank : $rank\n"
@@ -37,9 +37,9 @@ class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face]
     })
     str += "\t]\n"
     str += "\tPosition : [\n"
-    str += s"\t\t(${vertices(0).Coords(0) + (vertices.last.Coords(0) - vertices(0).Coords(0)) / 2.0}"
-    if (Knowledge.dimensionality == 2) str += s",${vertices(0).Coords(1) + (vertices.last.Coords(1) - vertices(0).Coords(1)) / 2.0}"
-    if (Knowledge.dimensionality == 3) str += s",${vertices(0).Coords(2) + (vertices.last.Coords(2) - vertices(0).Coords(2)) / 2.0}"
+    str += s"\t\t(${ vertices(0).Coords(0) + (vertices.last.Coords(0) - vertices(0).Coords(0)) / 2.0 }"
+    if (Knowledge.dimensionality == 2) str += s",${ vertices(0).Coords(1) + (vertices.last.Coords(1) - vertices(0).Coords(1)) / 2.0 }"
+    if (Knowledge.dimensionality == 3) str += s",${ vertices(0).Coords(2) + (vertices.last.Coords(2) - vertices(0).Coords(2)) / 2.0 }"
     str += ")\n"
     str += "\t]\n"
     if (neighborIDs.nonEmpty) {
@@ -48,15 +48,15 @@ class Fragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face]
         neighborIDs.zipWithIndex.foreach { case (n, i) => str += s"\t\tn$i : $n" + " \n" }
 
       } else {
-        str += s"\t\tleft: ${neighborIDs(Direction.Left.id)}" + " \n"
-        str += s"\t\tright:${neighborIDs(Direction.Right.id)}" + " \n"
+        str += s"\t\tleft: ${ neighborIDs(Direction.Left.id) }" + " \n"
+        str += s"\t\tright:${ neighborIDs(Direction.Right.id) }" + " \n"
         if (Knowledge.dimensionality >= 2) {
-          str += s"\t\tbottom:${neighborIDs(Direction.Bottom.id)}" + " \n"
-          str += s"\t\ttop:${neighborIDs(Direction.Top.id)}" + " \n"
+          str += s"\t\tbottom:${ neighborIDs(Direction.Bottom.id) }" + " \n"
+          str += s"\t\ttop:${ neighborIDs(Direction.Top.id) }" + " \n"
         }
         if (Knowledge.dimensionality >= 3) {
-          str += s"\t\tfront:${neighborIDs(Direction.Front.id)}" + " \n"
-          str += s"\t\tback:${neighborIDs(Direction.Back.id)}" + " \n"
+          str += s"\t\tfront:${ neighborIDs(Direction.Front.id) }" + " \n"
+          str += s"\t\tback:${ neighborIDs(Direction.Back.id) }" + " \n"
         }
       }
       str += "\t]\n"
@@ -97,7 +97,7 @@ class Vertex(coords : ListBuffer[Double]) extends Primitives {
           (if (Knowledge.dimensionality >= 3) o.Coords(2) == Coords(2) else true)
 
       }
-      case _ => false
+      case _          => false
     }
   }
   override def hashCode() = {
@@ -118,7 +118,7 @@ class Edge(v1 : Vertex, v2 : Vertex) extends Primitives {
         (vertex1 == o.vertex1 && vertex2 == o.vertex2) ||
           (vertex2 == o.vertex1 && vertex1 == o.vertex2)
       }
-      case _ => false
+      case _        => false
     }
   }
 
@@ -147,7 +147,9 @@ class Edge(v1 : Vertex, v2 : Vertex) extends Primitives {
 }
 
 class Face(edges : ListBuffer[Edge], vertices : ListBuffer[Vertex]) extends Primitives {
+
   import Direction._
+
   val Edges = edges
   val Vertices = vertices
 

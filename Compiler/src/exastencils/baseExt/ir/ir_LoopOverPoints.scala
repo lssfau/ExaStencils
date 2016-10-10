@@ -7,6 +7,7 @@ import exastencils.communication.ir.IR_Communicate
 import exastencils.config._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation.Output
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
@@ -19,7 +20,8 @@ case class IR_RegionSpecification(var region : String, var dir : IR_ConstIndex, 
 
 /// IR_LoopOverPoints
 
-case class IR_LoopOverPoints(var field : IR_Field,
+case class IR_LoopOverPoints(
+    var field : IR_Field,
     var region : Option[IR_RegionSpecification],
     var seq : Boolean, // FIXME: seq HACK
     var startOffset : IR_ExpressionIndex,
@@ -57,4 +59,15 @@ case class IR_LoopOverPoints(var field : IR_Field,
       preComms ++ stmts ++ postComms
     }
   }
+}
+
+/// IR_ResolveLoopOverPoints
+
+object IR_ResolveLoopOverPoints extends DefaultStrategy("Resolve LoopOverPoints nodes") {
+  val collector = new StackCollector
+  this.register(collector)
+
+  this += new Transformation("Resolve", {
+    case loop : IR_LoopOverPoints => loop.expandSpecial(collector)
+  })
 }

@@ -10,6 +10,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain.ir._
+import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.grid._
 import exastencils.mpi.ir.MPI_Send
 import exastencils.prettyprinting._
@@ -72,7 +73,7 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
           "MPI_Barrier(MPI_COMM_WORLD)",
           "MPI_File_close(&fh)",
           "setValues(buf,numFragments)",
-          IR_FunctionCall("setupBuffers"))
+          IR_FunctionCall(IR_AllocateDataFunction.fctName))
       } else {
         ListBuffer(
           IR_VariableDeclaration(IR_IntegerDatatype, "numFragments", 0),
@@ -95,7 +96,7 @@ case class InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expa
           "fileFrags.read (buf, bufsize)",
           "fileFrags.close()",
           "setValues(buf,numFragments)",
-          IR_FunctionCall("setupBuffers"))
+          IR_FunctionCall(IR_AllocateDataFunction.fctName))
       })
 
   }

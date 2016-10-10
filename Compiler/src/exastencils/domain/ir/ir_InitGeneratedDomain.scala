@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.iv
+import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.knowledge._
 import exastencils.mpi.ir.MPI_IV_MpiRank
 import exastencils.prettyprinting.PpStream
@@ -83,7 +84,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
     body += IR_ConnectFragments()
 
     // FIXME: move to app
-    body += IR_FunctionCall("setupBuffers")
+    body += IR_FunctionCall(IR_AllocateDataFunction.fctName)
 
     IR_Function(IR_UnitDatatype, name, body)
   }

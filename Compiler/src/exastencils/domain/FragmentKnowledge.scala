@@ -92,7 +92,7 @@ object FragmentKnowledge {
 }
 
 object FragmentCollection {
-  var fragments : ListBuffer[Fragment] = ListBuffer()
+  var fragments : ListBuffer[DummyFragment] = ListBuffer()
 
   def getLocalFragId(globalId : Int) : Int = {
     fragments.find(f => f.globalId == globalId) match {
@@ -157,8 +157,8 @@ object FragmentCollection {
       case Some(n) => {
         n.neighborIDs.contains(neighborId) &&
           (fragments.find { nf => nf.globalId == neighborId && nf.rank >= 0 }.get match {
-            case m : Fragment => m.domainIds.contains(domain) && (getMpiRank(globalId) != getMpiRank(neighborId))
-            case _            => false
+            case m : DummyFragment => m.domainIds.contains(domain) && (getMpiRank(globalId) != getMpiRank(neighborId))
+            case _                 => false
           })
       }
       case None    => false
@@ -172,7 +172,7 @@ object FragmentCollection {
     new Vertex(position)
   }
 
-  def getNeighborIndex(fragment : Fragment, neighbor : Fragment) : Int = {
+  def getNeighborIndex(fragment : DummyFragment, neighbor : DummyFragment) : Int = {
     val fragPos = getFragPos(fragment.vertices)
     val neiPos = getFragPos(neighbor.vertices)
     val i = (if (neiPos.Coords(0) < fragPos.Coords(0)) -1 else if (neiPos.Coords(0) > fragPos.Coords(0)) 1 else 0)

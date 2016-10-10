@@ -15,4 +15,10 @@ object IR_ExternalFieldCollection extends IR_KnowledgeCollection[IR_ExternalFiel
     if (!suppressError && ret.isEmpty) Logger.warn(s"External field with layout $identifier on level $level was not found")
     ret
   }
+
+  def generateCopyFunction() = {
+    sortedObjects.flatMap(extField =>
+      List(IR_CopyToExternalField(extField.targetField, extField),
+        IR_CopyFromExternalField(extField.targetField, extField)))
+  }
 }
