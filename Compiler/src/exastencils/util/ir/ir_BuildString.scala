@@ -3,6 +3,7 @@ package exastencils.util.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.config.Settings
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.prettyprinting.PpStream
@@ -21,6 +22,10 @@ case class IR_BuildString(var stringName : IR_Expression, var toPrint : ListBuff
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[StatementList] = {
+    // TODO: only add to the containing source file, function or function collection
+    if (!Settings.additionalIncludes.contains("sstream"))
+      Settings.additionalIncludes += "sstream"
+
     val streamName = IR_BuildString.getNewName()
     def streamType = IR_SpecialDatatype("std::ostringstream")
     def stream = IR_VariableAccess(streamName, streamType)
