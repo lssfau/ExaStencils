@@ -7,6 +7,7 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.SimplifyExpression
 
 object Unrolling extends DefaultStrategy("Loop unrolling") {
@@ -22,7 +23,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   private[optimization] def endVarAcc = IR_VariableAccess(endVar, IR_IntegerDatatype)
 
   private[optimization] def getBoundsDeclAndPostLoop(itVar : String, start : IR_Expression, endExcl : IR_Expression, oldIncr : Long,
-      body : ListBuffer[IR_Statement], reduction : Option[IR_Reduction]) : (ListBuffer[IR_Statement], IR_Statement) = {
+      body : ListBuffer[IR_Statement], parallelization : IR_ParallelizationInfo) : (ListBuffer[IR_Statement], IR_Statement) = {
 
     def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
 
@@ -34,7 +35,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
     val postEnd = new IR_LowerExpression(itVarAcc, endVarAcc)
     val postIncr = new IR_Assignment(itVarAcc, IR_IntegerConstant(oldIncr), "+=")
 
-    val postLoop = new IR_ForLoop(postBegin, postEnd, postIncr, body, reduction)
+    val postLoop = new IR_ForLoop(postBegin, postEnd, postIncr, body, parallelization)
 
     return (boundsDecls, postLoop)
   }
@@ -150,7 +151,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       intermDecl.initialValue = Some(Unrolling.getIntermExpr(newStride))
     } else {
       val (boundsDecls, postLoop_) : (ListBuffer[IR_Statement], IR_Statement) =
-        Unrolling.getBoundsDeclAndPostLoop(itVar, start, endExcl, oldStride, oldBody, Duplicate(loop.reduction))
+        Unrolling.getBoundsDeclAndPostLoop(itVar, start, endExcl, oldStride, oldBody, Duplicate(loop.parallelization))
       postLoop = postLoop_
       intermDecl = Unrolling.getIntermDecl(newStride)
       res = boundsDecls += intermDecl

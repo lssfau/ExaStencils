@@ -242,7 +242,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.schedule = insertCst(scop.schedule, i)
     while (toMerge != null) {
       i += 1
-      if (scop.root.reduction != toMerge.root.reduction) {
+      if (scop.root.parallelization != toMerge.root.parallelization) {
         Logger.warn("[PolyOpt]  cannot merge two loops with different reduction clauses (maybe a bug in previous generation?)")
         scop.nextMerge = null
         return
@@ -381,10 +381,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def handleReduction(scop : Scop) : Unit = {
-    if (scop.root.reduction.isEmpty)
+    if (scop.root.parallelization.reduction.isEmpty)
       return
 
-    val name : String = Extractor.replaceSpecial(scop.root.reduction.get.target.prettyprint())
+    val name : String = Extractor.replaceSpecial(scop.root.parallelization.reduction.get.target.prettyprint())
     val stmts = mutable.Set[String]()
     scop.writes.foreachMap({ map : isl.Map =>
       if (map.getTupleName(T_OUT) == name)

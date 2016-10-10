@@ -11,18 +11,19 @@ import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.optimization.OptimizationHint
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.ReplaceStringConstantsStrategy
 import exastencils.util._
 
 // FIXME: refactor
 object IR_LoopOverDimensions {
-  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction], condition : Option[IR_Expression]) =
-    new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction, condition)
-  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction]) =
-    new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction)
-  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex) =
-    new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize)
+  //  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction], condition : Option[IR_Expression]) =
+//    new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction, condition)
+//  def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex, reduction : Option[IR_Reduction]) =
+//    new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize, reduction)
+def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement, stepSize : IR_ExpressionIndex) =
+new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body), stepSize)
   def apply(numDimensions : Int, indices : IR_ExpressionIndexRange, body : IR_Statement) =
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body))
 
@@ -82,7 +83,7 @@ case class IR_LoopOverDimensions(
     var indices : IR_ExpressionIndexRange,
     var body : ListBuffer[IR_Statement],
     var stepSize : IR_ExpressionIndex = null, // actual default set in constructor
-    var reduction : Option[IR_Reduction] = None,
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
     var condition : Option[IR_Expression] = None,
     var genOMPThreadLoop : Boolean = false) extends IR_Statement {
 
@@ -214,11 +215,11 @@ case class IR_LoopOverDimensions(
       val compiledLoop : IR_ForLoop with OptimizationHint =
         if (parallelize(d) && d == outerPar) {
           anyPar = true
-          val omp = new IR_ForLoop(decl, cond, incr, wrappedBody, reduction) with OptimizationHint with OMP_PotentiallyParallel
+          val omp = new IR_ForLoop(decl, cond, incr, wrappedBody, parallelization) with OptimizationHint with OMP_PotentiallyParallel
           omp.collapse = numDimensions
           omp
         } else
-          new IR_ForLoop(decl, cond, incr, wrappedBody, reduction) with OptimizationHint
+          new IR_ForLoop(decl, cond, incr, wrappedBody, parallelization) with OptimizationHint
       wrappedBody = ListBuffer[IR_Statement](compiledLoop)
       // set optimization hints
       compiledLoop.isInnermost = d == 0
@@ -235,14 +236,14 @@ case class IR_LoopOverDimensions(
       anyPar
         && Knowledge.omp_enabled
         && Platform.omp_version < 3.1
-        && reduction.isDefined
-        && ("min" == reduction.get.op || "max" == reduction.get.op))
+        && parallelization.reduction.isDefined
+        && ("min" == parallelization.reduction.get.op || "max" == parallelization.reduction.get.op))
     if (!resolveOmpReduction) {
       retStmts = wrappedBody
     } else {
       // resolve max reductions
-      val redOp = reduction.get.op
-      val redExpName = reduction.get.target.name
+      val redOp = parallelization.reduction.get.op
+      val redExpName = parallelization.reduction.get.target.name
       val redDatatype = None // FIXME: reduction.get.target.datatype
       def redExp = IR_VariableAccess(redExpName, redDatatype)
       val redExpLocalName = redExpName + "_red"

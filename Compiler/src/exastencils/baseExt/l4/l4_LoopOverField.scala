@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.l4.L4_Communicate
 import exastencils.logger.Logger
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting._
 import exastencils.stencil.l4.L4_StencilFieldAccess
 
@@ -83,6 +84,10 @@ case class L4_LoopOverField(
       for (i <- 0 until Math.min(numDims, newIncrement.length)) procIncrement(i) = newIncrement(i)
     }
 
+    // TODO: introduce L4_ParallelizationInfo
+    val parallelization = IR_ParallelizationInfo()
+    parallelization.reduction = reduction.map(_.progress)
+
     val loop = IR_LoopOverPoints(resolvedField,
       if (region.isDefined) Some(region.get.progress) else None,
       seq,
@@ -92,7 +97,7 @@ case class L4_LoopOverField(
       statements.map(_.progress),
       preComms.map(_.progress),
       postComms.map(_.progress),
-      reduction.map(_.progress),
+      parallelization,
       L4_ProgressOption(condition)(_.progress))
 
     loop.annotate("l4_fromDSL") // experimental annotation -> if successful and performance impacts are ok annotate all l4 statements

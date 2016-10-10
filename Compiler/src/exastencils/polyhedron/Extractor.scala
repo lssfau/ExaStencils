@@ -467,8 +467,8 @@ class Extractor extends Collector {
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
               loop.condition.get.annotate(SKIP_ANNOT)
-            if (loop.reduction.isDefined)
-              loop.reduction.get.annotate(SKIP_ANNOT)
+            if (loop.parallelization.reduction.isDefined)
+              loop.parallelization.reduction.get.annotate(SKIP_ANNOT)
             // loop.at1stIt is a list of tuple, StateManager does not handle these, so a skip annotation is not required
             if (loop.parallelizationIsReasonable && loop.optLevel >= 1)
               enterLoop(loop, merge)

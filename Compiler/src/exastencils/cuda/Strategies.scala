@@ -500,14 +500,14 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
         Duplicate(upperBounds),
         Duplicate(stepSize),
         Duplicate(kernelBody),
-        Duplicate(loop.reduction),
+        Duplicate(loop.parallelization.reduction),
         Duplicate(extremaMap))
 
       kernelFunctions.addKernel(Duplicate(kernel))
 
       // process return value of kernel wrapper call if reduction is required
-      if (loop.reduction.isDefined) {
-        val red = loop.reduction.get
+      if (loop.parallelization.reduction.isDefined) {
+        val red = loop.parallelization.reduction.get
         deviceStatements += IR_Assignment(red.target,
           IR_BinaryOperators.createExpression(red.op, red.target,
             IR_FunctionCall(kernel.getWrapperFctName, variableAccesses.map(_.asInstanceOf[IR_Expression]))))

@@ -16,6 +16,7 @@ import exastencils.field.ir.IR_Field
 import exastencils.knowledge.Fragment
 import exastencils.logger.Logger
 import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies._
@@ -31,7 +32,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     var body : ListBuffer[IR_Statement],
     var preComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var postComms : ListBuffer[IR_Communicate] = ListBuffer(),
-    var reduction : Option[IR_Reduction] = None,
+    var reduction : IR_ParallelizationInfo = IR_ParallelizationInfo(),
     var condition : Option[IR_Expression] = None) extends IR_Statement {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
@@ -105,7 +106,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     SimplifyStrategy.doUntilDoneStandalone(indexRange)
 
     // fix iteration space for reduction operations if required
-    if (Knowledge.experimental_trimBoundsForReductionLoops && reduction.isDefined && !region.isDefined) {
+    if (Knowledge.experimental_trimBoundsForReductionLoops && reduction.reduction.isDefined && !region.isDefined) {
       if (!condition.isDefined) condition = Some(IR_BooleanConstant(true))
       for (dim <- 0 until numDims)
         if (field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft > 0)

@@ -9,18 +9,21 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.mpi.ir.MPI_AllReduce
 import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.ReplaceStringConstantsStrategy
 
 object IR_LoopOverFragments {
-  def apply(body : IR_Statement, reduction : Option[IR_Reduction]) = new IR_LoopOverFragments(ListBuffer(body), reduction)
+  //def apply(body : IR_Statement, reduction : Option[IR_Reduction]) = new IR_LoopOverFragments(ListBuffer(body), reduction)
   def apply(body : IR_Statement*) = new IR_LoopOverFragments(body.to[ListBuffer])
 
   // TODO: VariableAccess
   def defIt = "fragmentIdx"
 }
 
-case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reduction : Option[IR_Reduction] = None) extends IR_Statement with IR_Expandable {
+case class IR_LoopOverFragments(
+    var body : ListBuffer[IR_Statement],
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_Expandable {
 
   import IR_LoopOverFragments._
 
@@ -33,20 +36,22 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
         IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         IR_PreIncrementExpression(defIt),
         body,
-        reduction) with OMP_PotentiallyParallel
+        parallelization) with OMP_PotentiallyParallel
     else
       IR_ForLoop(
         IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
         IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
         IR_PreIncrementExpression(defIt),
         body,
-        reduction)
+        parallelization)
     loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)
     loop
   }
 
   override def expand() : Output[StatementList] = {
     var statements = new ListBuffer[IR_Statement]
+
+    // TODO: move reduction resolution to separate strategy - when to insert this? multiple times?
 
     if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
       // eliminate fragment loops in case of only one fragment per block
@@ -61,8 +66,8 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
       val resolveOmpReduction = (
         parallelize
           && Platform.omp_version < 3.1
-          && reduction.isDefined
-          && ("min" == reduction.get.op || "max" == reduction.get.op))
+          && parallelization.reduction.isDefined
+          && ("min" == parallelization.reduction.get.op || "max" == parallelization.reduction.get.op))
 
       // basic loop
 
@@ -70,8 +75,8 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
         statements += generateBasicLoop(parallelize)
       } else {
         // resolve max reductions
-        val redOp = reduction.get.op
-        val redExpName = reduction.get.target.name
+        val redOp = parallelization.reduction.get.op
+        val redExpName = parallelization.reduction.get.target.name
         val redDatatype = None // FIXME: reduction.get.target.datatype
         def redExp = IR_VariableAccess(redExpName, redDatatype)
         val redExpLocalName = redExpName + "_red"
@@ -94,8 +99,9 @@ case class IR_LoopOverFragments(var body : ListBuffer[IR_Statement], var reducti
       }
     }
 
-    if (Knowledge.mpi_enabled && reduction.isDefined) {
-      statements += MPI_AllReduce(IR_AddressofExpression(reduction.get.target), IR_RealDatatype, 1, reduction.get.op) // FIXME: get dt and cnt from reduction
+    if (Knowledge.mpi_enabled && parallelization.reduction.isDefined) {
+      // FIXME: get dt and cnt from reduction
+      statements += MPI_AllReduce(IR_AddressofExpression(parallelization.reduction.get.target), IR_RealDatatype, 1, parallelization.reduction.get.op)
     }
 
     statements

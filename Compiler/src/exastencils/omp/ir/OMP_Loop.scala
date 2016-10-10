@@ -89,9 +89,9 @@ object OMP_ResolveParallelSections extends DefaultStrategy("Handle potentially p
             val additionalClauses = ListBuffer[OMP_Clause]()
 
             // handle reduction
-            if (loop.reduction.isDefined)
-              if (!(Platform.omp_version < 3.1 && ("min" == loop.reduction.get.op || "max" == loop.reduction.get.op)))
-                additionalClauses += OMP_Reduction(loop.reduction.get)
+            if (loop.parallelization.reduction.isDefined)
+              if (!(Platform.omp_version < 3.1 && ("min" == loop.parallelization.reduction.get.op || "max" == loop.parallelization.reduction.get.op)))
+                additionalClauses += OMP_Reduction(loop.parallelization.reduction.get)
             // FIXME: else?
 
             // TODO: integrate OptimizationHint
@@ -103,7 +103,7 @@ object OMP_ResolveParallelSections extends DefaultStrategy("Handle potentially p
             if (target.body.count(_.isInstanceOf[IR_Comment]) > 0)
               Logger.warn("Removing comments in omp parallel for section")
 
-            OMP_ParallelFor(IR_ForLoop(loop.begin, loop.end, loop.inc, loop.body, loop.reduction),
+            OMP_ParallelFor(IR_ForLoop(loop.begin, loop.end, loop.inc, loop.body, loop.parallelization),
               additionalClauses, target.collapse)
         }
       }

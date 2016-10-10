@@ -38,8 +38,7 @@ case class L4_ForLoop(
       begin,
       IR_LowerExpression(loopVar, IR_IntegerConstant(number)),
       IR_Assignment(loopVar, IR_IntegerConstant(1), "+="),
-      body.map(_.progress),
-      None)
+      body.map(_.progress))
 
     ret.annotate("numLoopIterations", number)
 

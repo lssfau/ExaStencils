@@ -11,6 +11,7 @@ import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.logger._
 import exastencils.omp._
 import exastencils.optimization._
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import isl.Conversions._
 
 class ASTBuilderTransformation(replaceCallback : (Map[String, IR_Expression], Node) => Unit)
@@ -28,7 +29,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
   private var parDims : Set[String] = null
   private var vecDims : Set[String] = null
   private var parallelize_omp : Boolean = false
-  private var reduction : Option[IR_Reduction] = None
+  private var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()
   private var privateVars : ListBuffer[IR_VariableAccess] = null
   private var condition : IR_Expression = null
 
@@ -53,7 +54,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
       return IR_NullStatement
-    reduction = scop.root.reduction
+    parallelization = scop.root.parallelization
     condition = scop.root.condition.orNull
 
     // find all sequential loops
@@ -206,9 +207,9 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           parallelize_omp |= parOMP // restore overall parallelization level
           val loop : IR_ForLoop with OptimizationHint =
           if (parOMP)
-            new IR_ForLoop(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
+            new IR_ForLoop(init, cond, incr, body, parallelization) with OptimizationHint with OMP_PotentiallyParallel
           else
-            new IR_ForLoop(init, cond, incr, body, reduction) with OptimizationHint
+            new IR_ForLoop(init, cond, incr, body, parallelization) with OptimizationHint
           loop.isParallel = parDims != null && parDims.contains(itStr)
           loop.isVectorizable = vecDims != null && vecDims.contains(itStr)
           loop.privateVars ++= privateVars
