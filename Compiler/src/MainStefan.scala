@@ -443,8 +443,9 @@ object MainStefan {
 
     if (Knowledge.omp_enabled) {
       OMP_AddParallelSections.apply()
+      if (Platform.omp_requiresCriticalSections)
+        OMP_AddCriticalSections.apply()
     }
-    OMP_ResolveCriticalSections.apply()
 
     // one last time
     if (Knowledge.useFasterExpand)

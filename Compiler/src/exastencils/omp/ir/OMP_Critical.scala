@@ -1,21 +1,18 @@
 package exastencils.omp.ir
 
-import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.datastructures._
+import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.prettyprinting.PpStream
 
 /// OMP_Critical
 
 object OMP_Critical {
-  def apply(body : IR_Statement*) = new OMP_Critical(body.to[ListBuffer])
-
   var counter = 0
 }
 
-case class OMP_Critical(var body : ListBuffer[IR_Statement]) extends IR_Statement {
+case class OMP_Critical(var body : IR_PotentiallyCritical) extends IR_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     import OMP_Critical.counter
 
@@ -25,30 +22,14 @@ case class OMP_Critical(var body : ListBuffer[IR_Statement]) extends IR_Statemen
       counter += 1
     }
 
-    out << '\n' << '{' << '\n'
-    out <<< (body, "\n") << '\n'
-    out << '}'
+    out << '\n' << body
   }
 }
 
-/// OMP_PotentiallyCritical
+/// OMP_AddCriticalSections
 
-object OMP_PotentiallyCritical {
-  def apply(body : IR_Statement*) = new OMP_PotentiallyCritical(body.to[ListBuffer])
-}
-
-case class OMP_PotentiallyCritical(var body : ListBuffer[IR_Statement]) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-}
-
-/// OMP_HandleCriticalSections
-
-object OMP_ResolveCriticalSections extends DefaultStrategy("Resolve potentially critical omp sections") {
+object OMP_AddCriticalSections extends DefaultStrategy("Resolve potentially critical omp sections") {
   this += new Transformation("Adding OMP critical pragmas", {
-    case target : OMP_PotentiallyCritical =>
-      if (Knowledge.omp_enabled && Platform.omp_requiresCriticalSections)
-        OMP_Critical(target.body)
-      else
-        target.body
-  }, false)
+    case target : IR_PotentiallyCritical => OMP_Critical(target)
+  }, false) // turn off recursion due to wrapping mechanism
 }

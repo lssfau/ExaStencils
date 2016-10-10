@@ -13,7 +13,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge._
 import exastencils.mpi.ir._
-import exastencils.omp.ir.OMP_PotentiallyCritical
+import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 
@@ -31,7 +31,7 @@ case class IR_RemoteRecv(
 
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
-      OMP_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
+      IR_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
         MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), iv.CommId(),
           Fragment.getOpposingNeigh(neighbor.index).index, concurrencyId),
         iv.MpiRequest(field.field, s"Recv_${ concurrencyId }", neighbor.index))),
