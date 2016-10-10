@@ -1,32 +1,15 @@
 package exastencils.spl.test
 
-import scala.io.Source
 import scala.util.Random
-import exastencils.communication._
-import exastencils.core._
-import exastencils.data._
-import exastencils.datastructures._
-import exastencils.domain._
-import exastencils.globals._
-import exastencils.config._
-import exastencils.mpi._
-import exastencils.multiGrid._
-import exastencils.omp._
-import exastencils.parsers.l4._
-import exastencils.prettyprinting._
-import exastencils.strategies._
-import exastencils.util._
-import exastencils.spl.samplingStrategies._
-import exastencils.spl.samplingStrategies.doe._
+
 import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardOpenOption
-import exastencils.spl.Configuration
-import exastencils.spl.Feature
-import exastencils.spl.FeatureModel
+import java.nio.file._
+
+import exastencils.config._
+import exastencils.core._
+import exastencils.spl._
 import exastencils.spl.learning._
-import exastencils.spl.NonFunctionalProperties
+import exastencils.spl.samplingStrategies.doe._
 
 object DomainKnowledgeTests {
 
@@ -56,10 +39,9 @@ object DomainKnowledgeTests {
 
     pTest.readFile(locationMeasurements, nfps)
     var allConfigs = pTest.allConfigs
-    allConfigs.foreach { x =>
-      {
-        x.boolFeatures.put(FeatureModel.get("cgs"), true)
-      }
+    allConfigs.foreach { x => {
+      x.boolFeatures.put(FeatureModel.get("cgs"), true)
+    }
     }
 
     var t = allConfigs.toArray[Configuration]
@@ -284,10 +266,9 @@ object DomainKnowledgeTests {
     pTest.readFile(locationMeasurements, nfps)
     var allConfigs = pTest.allConfigs
 
-    allConfigs.foreach { x =>
-      {
-        x.boolFeatures.put(FeatureModel.get("cgs"), true)
-      }
+    allConfigs.foreach { x => {
+      x.boolFeatures.put(FeatureModel.get("cgs"), true)
+    }
     }
 
     println("-----------------------------# of Iterations Model for Smoother Pre Post-------")
@@ -458,11 +439,10 @@ object DomainKnowledgeTests {
 
     var cgsFeatures : scala.collection.mutable.Set[Feature] = scala.collection.mutable.Set()
     var cgsFeaturesWithName : scala.collection.mutable.Map[String, Feature] = scala.collection.mutable.Map()
-    FeatureModel.parentChildRelationships(FeatureModel.allFeatures("cgs")).foreach(x =>
-      {
-        cgsFeatures.add(x)
-        cgsFeaturesWithName.put(x.identifier, x)
-      })
+    FeatureModel.parentChildRelationships(FeatureModel.allFeatures("cgs")).foreach(x => {
+      cgsFeatures.add(x)
+      cgsFeaturesWithName.put(x.identifier, x)
+    })
 
     var selectedNumFeatures : scala.collection.mutable.Map[Feature, Double] = scala.collection.mutable.Map()
     selectedNumFeatures.put(FeatureModel.getSpecificFeatureDkPaperTest("pre"), 0)
