@@ -14,18 +14,22 @@ abstract class IR_LocalCommunication extends IR_Statement with IR_Expandable {
   def wrapFragLoop(toWrap : IR_Statement, parallel : Boolean) : IR_Statement = {
     if (insideFragLoop)
       toWrap
-    else if (parallel)
-      new IR_LoopOverFragments(ListBuffer[IR_Statement](toWrap)) with OMP_PotentiallyParallel
-    else
+    else if (parallel) {
+      val loop = new IR_LoopOverFragments(ListBuffer[IR_Statement](toWrap)) with OMP_PotentiallyParallel
+      loop.parallelization.potentiallyParallel = true
+      loop
+    } else
       IR_LoopOverFragments(toWrap)
   }
 
   def wrapFragLoop(toWrap : ListBuffer[IR_Statement], parallel : Boolean) : ListBuffer[IR_Statement] = {
     if (insideFragLoop)
       toWrap
-    else if (parallel)
-      ListBuffer[IR_Statement](new IR_LoopOverFragments(toWrap) with OMP_PotentiallyParallel)
-    else
+    else if (parallel) {
+      val loop = new IR_LoopOverFragments(toWrap) with OMP_PotentiallyParallel
+      loop.parallelization.potentiallyParallel = true
+      ListBuffer[IR_Statement](loop)
+    } else
       ListBuffer[IR_Statement](IR_LoopOverFragments(toWrap))
   }
 }

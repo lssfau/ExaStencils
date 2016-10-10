@@ -29,8 +29,8 @@ case class IR_LoopOverFragments(
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  def generateBasicLoop(parallelize : Boolean) = {
-    val loop = if (parallelize)
+  def generateBasicLoop() = {
+    val loop = if (parallelization.potentiallyParallel)
       new IR_ForLoop(
         IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
         IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
@@ -62,9 +62,11 @@ case class IR_LoopOverFragments(
       ReplaceStringConstantsStrategy.replacement = IR_IntegerConstant(0)
       ReplaceStringConstantsStrategy.applyStandalone(statements)
     } else {
-      val parallelize = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && this.isInstanceOf[OMP_PotentiallyParallel]
+      // TODO: extract
+      //parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && this.isInstanceOf[OMP_PotentiallyParallel]
+      parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
       val resolveOmpReduction = (
-        parallelize
+        parallelization.potentiallyParallel
           && Platform.omp_version < 3.1
           && parallelization.reduction.isDefined
           && ("min" == parallelization.reduction.get.op || "max" == parallelization.reduction.get.op))
@@ -72,7 +74,7 @@ case class IR_LoopOverFragments(
       // basic loop
 
       if (!resolveOmpReduction) {
-        statements += generateBasicLoop(parallelize)
+        statements += generateBasicLoop()
       } else {
         // resolve max reductions
         val redOp = parallelization.reduction.get.op
@@ -95,7 +97,7 @@ case class IR_LoopOverFragments(
 
         statements += IR_Scope(ListBuffer[IR_Statement](decl)
           ++ init
-          ++ ListBuffer[IR_Statement](generateBasicLoop(parallelize), red))
+          ++ ListBuffer[IR_Statement](generateBasicLoop(), red))
       }
     }
 

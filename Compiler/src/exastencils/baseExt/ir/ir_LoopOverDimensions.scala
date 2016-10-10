@@ -134,7 +134,7 @@ case class IR_LoopOverDimensions(
     var totalNumPoints : Long = 1
     for (i <- maxItCount)
       totalNumPoints *= i
-    (totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads)
+    totalNumPoints > Knowledge.omp_minWorkItemsPerThread * Knowledge.omp_numThreads
   }
 
   def explParLoop = lcCSEApplied && this.isInstanceOf[OMP_PotentiallyParallel] &&
@@ -146,7 +146,10 @@ case class IR_LoopOverDimensions(
       val begin = IR_VariableDeclaration(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
       val end = IR_LowerExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
       val inc = IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype)))
-      ListBuffer(new IR_ForLoop(begin, end, inc, body) with OMP_PotentiallyParallel)
+      val parallelization = IR_ParallelizationInfo()
+      parallelization.potentiallyParallel = true
+      val loop = new IR_ForLoop(begin, end, inc, body, parallelization) with OMP_PotentiallyParallel
+      ListBuffer(loop)
     } else {
       body
     }
@@ -212,14 +215,20 @@ case class IR_LoopOverDimensions(
       val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(inds.begin(d)))
       val cond = IR_LowerExpression(it, inds.end(d))
       val incr = IR_Assignment(it, stepSize(d), "+=")
-      val compiledLoop : IR_ForLoop with OptimizationHint =
+      val compiledLoop =
         if (parallelize(d) && d == outerPar) {
           anyPar = true
-          val omp = new IR_ForLoop(decl, cond, incr, wrappedBody, parallelization) with OptimizationHint with OMP_PotentiallyParallel
+          val adoptParallelization = Duplicate(parallelization)
+          adoptParallelization.potentiallyParallel = true
+          val omp = new IR_ForLoop(decl, cond, incr, wrappedBody, adoptParallelization) with OptimizationHint with OMP_PotentiallyParallel
           omp.collapse = numDimensions
           omp
-        } else
-          new IR_ForLoop(decl, cond, incr, wrappedBody, parallelization) with OptimizationHint
+        } else {
+          val adoptParallelization = Duplicate(parallelization)
+          adoptParallelization.potentiallyParallel = false
+          val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, adoptParallelization) with OptimizationHint
+          loop
+        }
       wrappedBody = ListBuffer[IR_Statement](compiledLoop)
       // set optimization hints
       compiledLoop.isInnermost = d == 0

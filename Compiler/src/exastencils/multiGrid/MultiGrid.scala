@@ -28,17 +28,19 @@ case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
       val numDims = field.fieldLayout.numDimsData
       val index = IR_LoopOverDimensions.defIt(numDims)
 
-      val loopOverDims = new IR_LoopOverDimensions(numDims, new IR_ExpressionIndexRange(
+      val loopOverDims = new IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GLB", dim))),
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           IR_Assignment(
             IR_DirectFieldAccess(IR_FieldSelection(field, field.level, slot), index),
             0.0) : IR_Statement)) with OMP_PotentiallyParallel with PolyhedronAccessible
+      loopOverDims.parallelization.potentiallyParallel = true
       loopOverDims.optLevel = 1
 
       val wrapped = new IR_LoopOverFragments(
         ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), loopOverDims))) with OMP_PotentiallyParallel
+      wrapped.parallelization.potentiallyParallel = true
 
       if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
         statements += IR_Scope(wrapped)
@@ -46,7 +48,7 @@ case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
         statements += wrapped
     }
 
-    new IR_Function(IR_UnitDatatype, name, ListBuffer[IR_FunctionArgument](), statements)
+    IR_Function(IR_UnitDatatype, name, statements)
   }
 }
 
@@ -75,5 +77,5 @@ case class MultiGridFunctions() extends IR_FunctionCollection("MultiGrid/MultiGr
       externalDependencies ++= mathLibHeader
   }
   if (Knowledge.data_initAllFieldsWithZero)
-    functions += new InitFieldsWithZero()
+    functions += InitFieldsWithZero()
 }

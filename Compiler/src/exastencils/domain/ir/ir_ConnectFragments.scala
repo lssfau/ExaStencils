@@ -132,6 +132,9 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
       }
     }
 
-    new IR_LoopOverFragments(body) with OMP_PotentiallyParallel
+    val loop = new IR_LoopOverFragments(body) with OMP_PotentiallyParallel
+    loop.parallelization.potentiallyParallel = true
+
+    loop
   }
 }

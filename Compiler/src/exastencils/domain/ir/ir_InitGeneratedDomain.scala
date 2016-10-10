@@ -11,6 +11,7 @@ import exastencils.datastructures.ir.iv
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.knowledge._
 import exastencils.mpi.ir.MPI_IV_MpiRank
+import exastencils.omp.OMP_PotentiallyParallel
 import exastencils.prettyprinting.PpStream
 import exastencils.util.AABB
 
@@ -78,8 +79,9 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
     fragStatements += setupCommId()
     fragStatements ++= setupFragmentPosBeginAndEnd()
 
-    // TODO: omp parallelization?
-    body += IR_LoopOverFragments(fragStatements)
+    val fragLoop = new IR_LoopOverFragments(fragStatements) with OMP_PotentiallyParallel
+    fragLoop.parallelization.potentiallyParallel = true
+    body += fragLoop
 
     body += IR_ConnectFragments()
 

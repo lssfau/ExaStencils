@@ -2,6 +2,7 @@ package exastencils.omp
 
 import exastencils.base.ir._
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -21,7 +22,9 @@ object AddOMPPragmas extends DefaultStrategy("Adding OMP pragmas") {
             target.additionalOMPClauses += OMP_Private(l.privateVars.clone())
         case _                    =>
       }
-      OMP_ParallelFor(IR_ForLoop(target.begin, target.end, target.inc, target.body, target.parallelization),
+      val adoptParallelization = Duplicate(target.parallelization)
+      // TODO: consume?   adoptParallelization.potentiallyParallel = false
+      OMP_ParallelFor(IR_ForLoop(target.begin, target.end, target.inc, target.body, adoptParallelization),
         target.additionalOMPClauses, target.collapse)
   })
 }

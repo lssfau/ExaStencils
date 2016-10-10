@@ -75,7 +75,9 @@ case class IR_CopyFromRecvBuffer(
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))
 
-      ret += new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(fieldAccess, tmpBufAccess))) with OMP_PotentiallyParallel with PolyhedronAccessible
+      val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(fieldAccess, tmpBufAccess))) with OMP_PotentiallyParallel with PolyhedronAccessible
+      loop.parallelization.potentiallyParallel = true
+      ret += loop
     }
 
     ret

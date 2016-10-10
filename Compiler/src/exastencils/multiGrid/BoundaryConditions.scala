@@ -119,10 +119,10 @@ case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListB
   def constructLoops = {
     val layout = field.field.fieldLayout
 
-    new IR_LoopOverFragments(
+    val fragLoop = new IR_LoopOverFragments(
       ListBuffer[IR_Statement](IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
         neighbors.map({ neigh =>
-          var adaptedIndexRange = IR_ExpressionIndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
+          val adaptedIndexRange = IR_ExpressionIndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
           // TODO: assumes equal bc's for all components
           adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : IR_Expression)
           adaptedIndexRange.end.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => layout.idxById("TOT", dim))
@@ -130,9 +130,12 @@ case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListB
             field.fieldLayout.numDimsData,
             adaptedIndexRange,
             setupFieldUpdate(neigh._1)) with OMP_PotentiallyParallel with PolyhedronAccessible
+          loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.optLevel = 1
           IR_IfCondition(IR_NegationExpression(IR_IV_NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
         })))) with OMP_PotentiallyParallel
+    fragLoop.parallelization.potentiallyParallel = true
+    fragLoop
   }
 
   override def expand() : Output[IR_Statement] = {
