@@ -22,9 +22,7 @@ handle_signal() {
 SCALAEXASTENCIL_HOME=$(dirname "$0")
 SCALAEXASTENCIL_HOME=$(readlink -f "$SCALAEXASTENCIL_HOME/..")
 
-if ! . "$SCALAEXASTENCIL_HOME/util/lib.sh" ; then
-	echo "Failed to source utility shell code."
-fi
+. "$SCALAEXASTENCIL_HOME/util/lib.sh"
 
 # sanity check
 if [ ! -d Compiler/src/exastencils ] ||
