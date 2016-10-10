@@ -1,18 +1,3 @@
-#!/bin/sh
-
-# Generate scaladoc from ScalaExaStencil sources.
-# author: Georg Altmann <georg.altmann@fau.de>
-#
-# usage:
-# Execute in ScalaExaStencil source root, e.g. "sh util/gen-scaladoc.sh".
-# scaladoc HTML files are generated in "doc".
-
-# Output directory for scaladoc
-DOC_DIR="doc"
-
-cleanup() {
-  rm -f .scaladocargs
-}
 
 # no cleanup!
 die() {
@@ -20,13 +5,8 @@ die() {
   exit 1
 }
 
-handle_signal() {
-  cleanup
-  exit 2
-}
-
 ### LOCATE JDK ############################################################### 
-# The following is adapted from jetbrains idea.sh
+# The following code to locate a JDK is adapted from jetbrains idea.sh
 
 UNAME=`which uname`
 GREP=`which egrep`
@@ -95,9 +75,9 @@ if [ ! -x "$JAVA_BIN" ]; then
 fi
 
 if [ -z "$JDK" ] || [ ! -x "$JAVA_BIN" ]; then
-  echo "No JDK found. Please validate either JDK_HOME or JAVA_HOME environment variable points to valid JDK installation or java binary is in PATH."
-  exit 1
+  die "No JDK found. Please validate either JDK_HOME or JAVA_HOME environment variable points to valid JDK installation or java binary is in PATH."
 fi
+
 ### END LOCATE JDK ########################################################### 
 
 ### LOCATE SCALA #############################################################
@@ -143,38 +123,21 @@ fi
 
 ### END LOCATE SCALA #########################################################
 
+if [ -z "$SCALAEXASTENCIL_HOME" ] ; then
+	die "lib.sh: SCALAEXASTENCIL_HOME not set by sourcing script."
+fi
 
-# setup class path
-SCALADOC_CP="Compiler/bin"
-SCALADOC_CP="$SCALADOC_CP:Compiler/lib/*"
-SCALADOC_CP="$SCALADOC_CP:Compiler/lib"
-SCALADOC_CP="$SCALADOC_CP:CompilerMacros/bin"
+# setup ScalaExaStencil class path
+TOOL_CP="$SCALAEXASTENCIL_HOME/Compiler/bin"
+TOOL_CP="$TOOL_CP:$SCALAEXASTENCIL_HOME/Compiler/lib/*"
+TOOL_CP="$TOOL_CP:$SCALAEXASTENCIL_HOME/Compiler/lib"
+TOOL_CP="$TOOL_CP:$SCALAEXASTENCIL_HOME/CompilerMacros/bin"
 
-SCALADOC_CP="$SCALADOC_CP:$SCALA_LIB/*"
-SCALADOC_CP="$SCALADOC_CP:$JDK/lib/*"
+TOOL_CP="$TOOL_CP:$SCALA_LIB/*"
+TOOL_CP="$TOOL_CP:$JDK/lib/*"
 
 if false ; then
-  echo "SCALADOC_CP: $SCALADOC_CP"
+  echo "TOOL_CP: $TOOL_CP"
   exit 0
 fi
 
-# sanity check
-if [ ! -d Compiler/src/exastencils ] ||
-  [ ! -d CompilerMacros/src/exastencils ] ; then
-die "ScalaExaStencil sources not found. Is the current directory the ScalaExaStencil sources root directory?"
-fi
-
-if [ ! -d "$DOC_DIR" ] ; then mkdir "$DOC_DIR" || die "Failed to make scaladoc output directory: $DOC_DIR" ; fi
-rm -f .scaladocargs
-
-trap handle_signal 1 2 3 6 15
-
-echo "-classpath \"$SCALADOC_CP\"" >> .scaladocargs
-echo "-d \"$DOC_DIR\" " >> .scaladocargs
-find Compiler/src/exastencils \
-  CompilerMacros/src/exastencils \
-  -name '*.scala' >> .scaladocargs
-
-"$SCALADOC_BIN" @.scaladocargs
-cleanup
-exit 0
