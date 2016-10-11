@@ -21,6 +21,7 @@ object PrintStrategy extends DefaultStrategy("Pretty-Print") {
   })
 }
 
+// TODO: replace with IR_VariableAccess => eliminate IR_StringLiteral occurrences
 object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace something with something else") {
   var toReplace : String = ""
   var replacement : Node = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten

@@ -366,6 +366,8 @@ object Main {
     else
       ExpandStrategy.doUntilDone()
 
+    IR_ResolveLoopOverFragments.apply()
+
     // resolve constant IVs before applying poly opt
     IR_ResolveConstIVs.apply()
     SimplifyStrategy.doUntilDone()
@@ -433,6 +435,7 @@ object Main {
 
     if (Knowledge.data_genVariableFieldSizes)
       IR_GenerateIndexManipFcts.apply()
+
     IR_AddInternalVariables.apply()
     // resolve possibly newly added constant IVs
     IR_ResolveConstIVs.apply()
@@ -441,6 +444,9 @@ object Main {
       ExpandOnePassStrategy.apply()
     else
       ExpandStrategy.doUntilDone()
+
+    // resolve newly added fragment loops
+    IR_ResolveLoopOverFragments.apply()
 
     if (Knowledge.mpi_enabled) {
       MPI_AddDatatypeSetup.apply()

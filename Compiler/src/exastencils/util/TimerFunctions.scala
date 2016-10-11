@@ -5,9 +5,9 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
-import exastencils.config._
 import exastencils.mpi.ir._
 import exastencils.prettyprinting._
 import exastencils.timing.ir.IR_IV_Timer
@@ -204,11 +204,12 @@ case class TimerFct_PrintAllTimers() extends AbstractTimerFunction with IR_Expan
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
     val timeToPrint = "getTotalTime"
-    statements += IR_VariableDeclaration(IR_DoubleDatatype, "timerValue", IR_FunctionCall(timeToPrint, timer.resolveName))
+    def timerValue = IR_VariableAccess("timerValue", IR_DoubleDatatype)
+    statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(timeToPrint, timer.resolveName))
 
     if (Knowledge.mpi_enabled) {
-      statements += MPI_AllReduce("&timerValue", IR_DoubleDatatype, 1, "+")
-      statements += IR_Assignment("timerValue", "mpiSize", "/=")
+      statements += MPI_AllReduce(IR_AddressofExpression(timerValue), timerValue.datatype, 1, "+")
+      statements += IR_Assignment(timerValue, "mpiSize", "/=")
     }
 
     statements += IR_RawPrint("\"Mean mean total time for Timer " + timer.name + ":\"", "timerValue")

@@ -3,9 +3,10 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir._
+import exastencils.base.ir.{ IR_Scope, _ }
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
+import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.parallelization.ir._
 import exastencils.prettyprinting.PpStream
@@ -21,7 +22,7 @@ object IR_LoopOverFragments {
 
 case class IR_LoopOverFragments(
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_Expandable with IR_HasParallelizationInfo {
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_HasParallelizationInfo {
 
   import IR_LoopOverFragments._
 
@@ -38,12 +39,12 @@ case class IR_LoopOverFragments(
     loop
   }
 
-  override def expand() : Output[StatementList] = {
+  def expandSpecial() : Output[StatementList] = {
     var statements = new ListBuffer[IR_Statement]
 
     // TODO: move reduction resolution to separate strategy - when to insert this? multiple times?
 
-    if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
+    if (false && Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
       // eliminate fragment loops in case of only one fragment per block
       statements = ListBuffer(IR_Scope(body))
 
@@ -61,4 +62,36 @@ case class IR_LoopOverFragments(
 
     statements
   }
+}
+
+/// IR_ResolveLoopOverFragments
+
+object IR_ResolveLoopOverFragments extends DefaultStrategy("Resolve LoopOverFragments nodes") {
+  this += new Transformation("Resolve", {
+    case loop : IR_LoopOverFragments =>
+      if (Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
+        // eliminate fragment loops in case of only one fragment per block
+        val scope = IR_Scope(loop.body)
+
+        // replace references to old loop iterator
+        ReplaceStringConstantsStrategy.toReplace = IR_LoopOverFragments.defIt
+        ReplaceStringConstantsStrategy.replacement = IR_IntegerConstant(0)
+        ReplaceStringConstantsStrategy.applyStandalone(scope)
+
+        // check if scoping is necessary
+        var scoping = false
+        scope.body.foreach {
+          case _ : IR_VariableDeclaration => scoping = true
+          case _                          =>
+        }
+
+        if (scoping)
+          scope
+        else
+          scope.body
+      } else {
+        // no elimination - simple expand
+        loop.expandSpecial()
+      }
+  })
 }
