@@ -25,7 +25,7 @@ trait LogVerbose {
 
   def logVerbose(s : AnyRef) : Unit = {
     if (verbose) {
-      Logger.debug(s)
+      println(s)
     }
   }
 }
@@ -117,8 +117,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
       val skipKernel = TransformKernel.hasInternalVariables && skipUntransformable
       if (!skipKernel) {
         // extract field accesses to build array declarations, e.g. "double fieldx[1000][1000][1000];"
-        val fieldAccesses = TransformKernel.fields.distinct
-        val fieldDecls = buildFieldDeclarations(TransformKernel.fields.toSet, false)
+        val fieldDecls = buildFieldDeclarations(TransformKernel.fields, true)
 
         fieldDecls.foreach(d => logVerbose(d))
         logVerbose(forLoop.prettyprint())
@@ -145,43 +144,39 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     }
   })
 
-  def buildFieldDeclarations(fieldAccesses : Set[FieldWithSlotId], placeHolderDim : Boolean) : List[String] = {
-    val dimSizeConst = Array[String]("R", "S", "M", "N")
+  def buildFieldDeclarations(fieldAccesses : Seq[FieldWithSlotId], placeHolderDim : Boolean) : Seq[String] = {
+    val dimSizeConst = Array[String]("K", "L", "M", "N")
     var declidx = 0
-    fieldAccesses.map(fieldWithSlotId => {
-      val scalarDataType = fieldWithSlotId.field.resolveBaseDatatype
-      val idname = fieldWithSlotId.identifierName
-      //      val size = (0 until dim).map(dim => field.fieldSelection.field.fieldLayout.idxById("TOT", dim))
+    var seen = Set[String]()
+    val decls = ListBuffer[String]()
+    fieldAccesses.foreach(fieldWithSlotId => {
+      if (!seen(fieldWithSlotId.identifierName)) {
+        seen += fieldWithSlotId.identifierName
+        val scalarDataType = fieldWithSlotId.field.resolveBaseDatatype
+        val idname = fieldWithSlotId.identifierName
+        //      val size = (0 until dim).map(dim => field.fieldSelection.field.fieldLayout.idxById("TOT", dim))
 
-      val dimLayout = fieldWithSlotId.field.fieldLayout.layoutsPerDim
+        val ndims = fieldWithSlotId.field.fieldLayout.numDimsData
+        val dimsz = {d:Int => fieldWithSlotId.field.fieldLayout.defTotal(d)}
 
-      val declBuf = new StringBuilder()
-      declBuf.append(scalarDataType.prettyprint())
-      declBuf.append(" ")
-      declBuf.append(idname)
+        val declBuf = new ListBuffer[String]
+        declBuf +=(scalarDataType.prettyprint(), " ", idname)
+        val literalSizeDecl = (0 until ndims).reverse.flatMap(d => List("[", dimsz(d).toString, "]"))
 
-
-      (0 until dimLayout.length).foreach(d => {
-        val dimsz = fieldWithSlotId.field.fieldLayout.defTotal(d)
-        declBuf.append("[")
+        (0 until ndims).reverse.foreach(d => {
+          if (placeHolderDim) declBuf += ("[", dimSizeConst(d), declidx.toString, "]")
+          else declBuf ++= literalSizeDecl
+        })
+        declBuf += ";"
         if (placeHolderDim) {
-          val placeHolderIdx = dimSizeConst.length - dimLayout.length + d
-          declBuf.append(dimSizeConst(placeHolderIdx))
-          declBuf.append(declidx.toString)
+          declBuf += " // " + idname
+          declBuf ++= literalSizeDecl
         }
-        else
-          declBuf.append(dimsz)
-        declBuf.append("]")
-        //        logVerbose(s"field layout ${idname}[$d]: ${ dimsz}")
-      })
-      declBuf.append(";")
-
-      declidx += 1
-
-      declBuf.toString()
-    }
-
-    ).toList
+        declidx += 1
+        decls += declBuf.mkString("")
+      }
+    })
+    decls
   }
 
   def buildForLoopNest(loop : IR_LoopOverDimensions) : IR_ForLoop = {
@@ -265,7 +260,7 @@ private object TransformKernel
     super.applyStandalone(node)
   }
 
-  this += new Transformation("Transforming kernels", {
+  val trafo : PartialFunction[Node, Transformation.OutputType] = {
     case fa : IR_MultiDimFieldAccess =>
 
       val slotId : Int =
@@ -300,10 +295,12 @@ private object TransformKernel
       Logger.warning("KerncraftExport: IR_InternalVariable in kernel: " + va.prettyprint())
       hasInternalVariables = true
       va
-    case x                        =>
-      //      logVerbose("xxxxx not handled: " + x.toString())
-      x
 
-  })
+    case x                        =>
+      //logVerbose("XXXXX not handled: " + x.toString())
+      x
+  }
+
+  this += new Transformation("Transforming kernels", trafo, true)
 
 }
