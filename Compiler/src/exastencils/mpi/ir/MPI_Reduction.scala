@@ -1,7 +1,10 @@
 package exastencils.mpi.ir
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
@@ -69,4 +72,17 @@ case class MPI_AllReduce(var sendbuf : IR_Expression, var recvbuf : IR_Expressio
   override def prettyprint(out : PpStream) : Unit = {
     out << "MPI_Allreduce(" << sendbuf << ", " << recvbuf << ", " << count << ", " << datatype.prettyprint_mpi << ", " << op << ", mpiCommunicator);"
   }
+}
+
+/// MPI_AddReductions
+
+object MPI_AddReductions extends DefaultStrategy("Add mpi reductions") {
+  this += new Transformation("Resolve", {
+    case loop : IR_ForLoop if loop.parallelization.reduction.isDefined =>
+      val reduction = loop.parallelization.reduction.get
+      val stmts = ListBuffer[IR_Statement]()
+      stmts += loop
+      stmts += MPI_AllReduce(IR_AddressofExpression(reduction.target), reduction.target.datatype, 1, reduction.op)
+      stmts
+  }, false) // switch off recursion due to wrapping mechanism
 }

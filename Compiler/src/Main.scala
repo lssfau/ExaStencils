@@ -442,8 +442,10 @@ object Main {
     else
       ExpandStrategy.doUntilDone()
 
-    if (Knowledge.mpi_enabled)
+    if (Knowledge.mpi_enabled) {
       MPI_AddDatatypeSetup.apply()
+      MPI_AddReductions.apply()
+    }
 
     if (Knowledge.omp_enabled) {
       OMP_AddParallelSections.apply()

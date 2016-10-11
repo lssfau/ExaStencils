@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.mpi.ir.MPI_AllReduce
 import exastencils.parallelization.ir._
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.ReplaceStringConstantsStrategy
@@ -58,11 +57,6 @@ case class IR_LoopOverFragments(
 
       // basic loop
       statements += generateBasicLoop()
-    }
-
-    if (Knowledge.mpi_enabled && parallelization.reduction.isDefined) {
-      // FIXME: get dt and cnt from reduction
-      statements += MPI_AllReduce(IR_AddressofExpression(parallelization.reduction.get.target), IR_RealDatatype, 1, parallelization.reduction.get.op)
     }
 
     statements

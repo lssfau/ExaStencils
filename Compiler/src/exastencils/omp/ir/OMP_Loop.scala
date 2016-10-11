@@ -72,7 +72,7 @@ object OMP_AddParallelSections extends DefaultStrategy("Handle potentially paral
 }
 
 object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and max reductions") {
-  this += new Transformation("Resolve ... ", {
+  this += new Transformation("Resolve", {
     case ompSection : OMP_ParallelFor =>
       var hasApplicableReduction = false
       var prependStmts = ListBuffer[IR_Statement]()
