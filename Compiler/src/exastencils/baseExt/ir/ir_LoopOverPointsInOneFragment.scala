@@ -15,7 +15,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.knowledge.Fragment
 import exastencils.logger.Logger
-import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.parallelization.ir._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies._
@@ -31,7 +31,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     var preComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var postComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
-    var condition : Option[IR_Expression] = None) extends IR_Statement {
+    var condition : Option[IR_Expression] = None) extends IR_Statement with IR_HasParallelizationInfo {
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 

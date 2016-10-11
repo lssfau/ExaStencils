@@ -8,7 +8,7 @@ import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.mpi.ir.MPI_AllReduce
-import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.parallelization.ir._
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.ReplaceStringConstantsStrategy
 
@@ -22,7 +22,7 @@ object IR_LoopOverFragments {
 
 case class IR_LoopOverFragments(
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_Expandable {
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_Expandable with IR_HasParallelizationInfo {
 
   import IR_LoopOverFragments._
 

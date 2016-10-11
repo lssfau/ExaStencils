@@ -10,7 +10,7 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger.Logger
 import exastencils.optimization.OptimizationHint
-import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.parallelization.ir._
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.ReplaceStringConstantsStrategy
 import exastencils.util._
@@ -80,7 +80,7 @@ case class IR_LoopOverDimensions(
     var stepSize : IR_ExpressionIndex = null, // actual default set in constructor
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
     var condition : Option[IR_Expression] = None,
-    var genOMPThreadLoop : Boolean = false) extends IR_Statement {
+    var genOMPThreadLoop : Boolean = false) extends IR_Statement with IR_HasParallelizationInfo {
 
   import IR_LoopOverDimensions._
 

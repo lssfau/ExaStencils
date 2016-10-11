@@ -18,6 +18,10 @@ case class IR_ParallelizationInfo(
     var potentiallyParallel : Boolean,
     var collapseDepth : Int,
     var reduction : Option[IR_Reduction]
-) extends IR_Node {
+) extends IR_Node {}
 
+/// IR_HasParallelizationInfo
+
+trait IR_HasParallelizationInfo {
+  var parallelization : IR_ParallelizationInfo
 }

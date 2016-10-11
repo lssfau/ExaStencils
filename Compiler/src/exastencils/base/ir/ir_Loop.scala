@@ -2,7 +2,7 @@ package exastencils.base.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.parallelization.ir._
 import exastencils.prettyprinting.PpStream
 
 /// IR_ForLoop
@@ -17,7 +17,7 @@ case class IR_ForLoop(
     var end : IR_Expression,
     var inc : IR_Statement,
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement {
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_HasParallelizationInfo {
 
   def maxIterationCount() = {
     if (hasAnnotation("numLoopIterations"))
