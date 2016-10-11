@@ -81,7 +81,7 @@ object Main {
     Platform.update()
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.getOutputPath)).exists()) {
+      if (new java.io.File(Settings.getOutputPath).exists()) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
@@ -456,7 +456,7 @@ object Main {
     if (Knowledge.omp_enabled) {
       OMP_AddParallelSections.apply()
 
-      // resolve min/max reductions if omp version does not support them inherently
+      // resolve min/max reductions for omp versions not supporting them inherently
       if (Platform.omp_version < 3.1)
         OMP_ResolveMinMaxReduction.apply()
 
@@ -482,7 +482,7 @@ object Main {
   }
 
   def print() = {
-    Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
+    Logger.dbg("Prettyprinting to folder " + new java.io.File(Settings.getOutputPath).getAbsolutePath)
     PrintStrategy.apply()
     PrettyprintingManager.finish()
   }
@@ -504,7 +504,7 @@ object Main {
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    (new CountingStrategy("number of printed nodes")).apply()
+    new CountingStrategy("number of printed nodes").apply()
 
     shutdown()
   }
