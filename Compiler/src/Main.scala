@@ -447,6 +447,11 @@ object Main {
 
     if (Knowledge.omp_enabled) {
       OMP_AddParallelSections.apply()
+
+      // resolve min/max reductions if omp version does not support them inherently
+      if (Platform.omp_version < 3.1)
+        OMP_ResolveMinMaxReduction.apply()
+
       if (Platform.omp_requiresCriticalSections)
         OMP_AddCriticalSections.apply()
     }

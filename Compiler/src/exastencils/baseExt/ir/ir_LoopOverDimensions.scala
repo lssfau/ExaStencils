@@ -12,7 +12,6 @@ import exastencils.logger.Logger
 import exastencils.optimization.OptimizationHint
 import exastencils.parallelization.ir._
 import exastencils.prettyprinting.PpStream
-import exastencils.strategies.ReplaceStringConstantsStrategy
 import exastencils.util._
 
 // FIXME: refactor
@@ -225,41 +224,7 @@ case class IR_LoopOverDimensions(
 
     wrappedBody = createOMPThreadsWrapper(wrappedBody)
 
-    var retStmts : ListBuffer[IR_Statement] = null
-
-    // resolve omp reduction if necessary
-    val resolveOmpReduction = (
-      anyPar
-        && Knowledge.omp_enabled
-        && Platform.omp_version < 3.1
-        && parallelization.reduction.isDefined
-        && ("min" == parallelization.reduction.get.op || "max" == parallelization.reduction.get.op))
-    if (!resolveOmpReduction) {
-      retStmts = wrappedBody
-    } else {
-      // resolve max reductions
-      val redOp = parallelization.reduction.get.op
-      val redExpName = parallelization.reduction.get.target.name
-      val redDatatype = None // FIXME: reduction.get.target.datatype
-      def redExp = IR_VariableAccess(redExpName, redDatatype)
-      val redExpLocalName = redExpName + "_red"
-      def redExpLocal = IR_VariableAccess(redExpLocalName, redDatatype)
-
-      // FIXME: this assumes real data types -> data type should be determined according to redExp
-      val decl = IR_VariableDeclaration(IR_ArrayDatatype(IR_RealDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
-      val init = (0 until Knowledge.omp_numThreads).map(fragIdx => IR_Assignment(IR_ArrayAccess(redExpLocal, fragIdx), redExp))
-      val redOperands = ListBuffer[IR_Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
-      val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
-
-      ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-      ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
-      ReplaceStringConstantsStrategy.applyStandalone(body)
-      body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
-
-      retStmts = ListBuffer(IR_Scope(decl +=: init ++=: wrappedBody += red))
-    }
-
-    retStmts
+    wrappedBody
   }
 }
 

@@ -2,12 +2,15 @@ package exastencils.omp.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config._
 import exastencils.cuda.CudaStrategiesUtils
 import exastencils.datastructures._
 import exastencils.optimization.OptimizationHint
 import exastencils.prettyprinting.PpStream
+import exastencils.strategies.ReplaceStringConstantsStrategy
 
 case class OMP_ParallelFor(
     var loop : IR_ForLoop,
@@ -55,8 +58,7 @@ object OMP_AddParallelSections extends DefaultStrategy("Handle potentially paral
       val additionalOMPClauses = ListBuffer[OMP_Clause]()
 
       if (target.parallelization.reduction.isDefined)
-        if (!(Platform.omp_version < 3.1 && ("min" == target.parallelization.reduction.get.op || "max" == target.parallelization.reduction.get.op)))
-          additionalOMPClauses += OMP_Reduction(target.parallelization.reduction.get)
+        additionalOMPClauses += OMP_Reduction(target.parallelization.reduction.get)
 
       target match {
         case l : OptimizationHint =>
@@ -66,5 +68,49 @@ object OMP_AddParallelSections extends DefaultStrategy("Handle potentially paral
       }
 
       OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
+  }, false) // switch off recursion due to wrapping mechanism
+}
+
+object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and max reductions") {
+  this += new Transformation("Resolve ... ", {
+    case ompSection : OMP_ParallelFor =>
+      var hasApplicableReduction = false
+      var prependStmts = ListBuffer[IR_Statement]()
+      var appendStmts = ListBuffer[IR_Statement]()
+
+      ompSection.additionalOMPClauses.map {
+        case reduction : OMP_Reduction if "min" == reduction.op || "max" == reduction.op =>
+          hasApplicableReduction = true
+
+          // resolve max reductions
+          val redOp = reduction.op
+          val redExpName = reduction.target.name
+          val redDatatype = reduction.target.datatype
+          def redExp = IR_VariableAccess(redExpName, redDatatype)
+          val redExpLocalName = redExpName + "_red"
+          def redExpLocal = IR_VariableAccess(redExpLocalName, redDatatype)
+
+          val decl = IR_VariableDeclaration(IR_ArrayDatatype(redDatatype, Knowledge.omp_numThreads), redExpLocalName, None)
+          val init = (0 until Knowledge.omp_numThreads).map(fragIdx => IR_Assignment(IR_ArrayAccess(redExpLocal, fragIdx), redExp))
+          val redOperands = ListBuffer[IR_Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
+          val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
+
+          ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
+          ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
+          ReplaceStringConstantsStrategy.applyStandalone(ompSection.loop)
+
+          prependStmts += decl
+          prependStmts ++= init
+          appendStmts += red
+
+        case _ =>
+      }
+
+      if (hasApplicableReduction) {
+        ompSection.loop.body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
+        IR_Scope((prependStmts :+ ompSection) ++ appendStmts)
+      } else {
+        ompSection
+      }
   }, false) // switch off recursion due to wrapping mechanism
 }
