@@ -7,7 +7,6 @@ import exastencils.base.ir.{ IR_Scope, _ }
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.parallelization.ir._
 import exastencils.prettyprinting.PpStream
 import exastencils.strategies.ReplaceStringConstantsStrategy
@@ -24,11 +23,14 @@ case class IR_LoopOverFragments(
     var body : ListBuffer[IR_Statement],
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_HasParallelizationInfo {
 
-  import IR_LoopOverFragments._
+  import IR_LoopOverFragments.defIt
 
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
-  def generateBasicLoop() = {
+  def expandSpecial() : Output[IR_ForLoop] = {
+    // TODO: separate omp and potentiallyParallel
+    parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
+
     val loop = IR_ForLoop(
       IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
       IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
@@ -37,30 +39,6 @@ case class IR_LoopOverFragments(
       parallelization)
     loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)
     loop
-  }
-
-  def expandSpecial() : Output[StatementList] = {
-    var statements = new ListBuffer[IR_Statement]
-
-    // TODO: move reduction resolution to separate strategy - when to insert this? multiple times?
-
-    if (false && Knowledge.experimental_resolveUnreqFragmentLoops && Knowledge.domain_numFragmentsPerBlock <= 1) {
-      // eliminate fragment loops in case of only one fragment per block
-      statements = ListBuffer(IR_Scope(body))
-
-      // replace references to old loop iterator
-      ReplaceStringConstantsStrategy.toReplace = defIt
-      ReplaceStringConstantsStrategy.replacement = IR_IntegerConstant(0)
-      ReplaceStringConstantsStrategy.applyStandalone(statements)
-    } else {
-      // TODO: extract
-      parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
-
-      // basic loop
-      statements += generateBasicLoop()
-    }
-
-    statements
   }
 }
 
