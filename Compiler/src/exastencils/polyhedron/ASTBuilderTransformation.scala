@@ -196,6 +196,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
           val itStr : String = islIt.getId().getName()
           val parOMP : Boolean = parallelize_omp && parDims.contains(itStr)
+          // TODO: is parallelize_omp still required?
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
           val it : IR_VariableAccess = IR_VariableAccess(itStr, IR_IntegerDatatype)
           val init : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
@@ -205,9 +206,8 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
           val loop = new IR_ForLoop(init, cond, incr, body, parallelization) with OptimizationHint
-          loop.parallelization.potentiallyParallel = parOMP
-          loop.isParallel = parDims != null && parDims.contains(itStr)
-          loop.isVectorizable = vecDims != null && vecDims.contains(itStr)
+          loop.parallelization.potentiallyParallel = parDims != null && parDims.contains(itStr)
+          loop.parallelization.isVectorizable = vecDims != null && vecDims.contains(itStr)
           loop.privateVars ++= privateVars
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
           ListBuffer[IR_Statement](loop)

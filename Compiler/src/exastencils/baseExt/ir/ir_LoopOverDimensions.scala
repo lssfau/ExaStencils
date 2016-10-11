@@ -208,24 +208,19 @@ case class IR_LoopOverDimensions(
       val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(inds.begin(d)))
       val cond = IR_LowerExpression(it, inds.end(d))
       val incr = IR_Assignment(it, stepSize(d), "+=")
-      val compiledLoop =
-        if (parallelize(d) && d == outerPar) {
-          anyPar = true
-          val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, Duplicate(parallelization)) with OptimizationHint
-          loop.parallelization.potentiallyParallel = true
-          loop.parallelization.collapseDepth = numDimensions
-          loop
-        } else {
-          val adoptParallelization = Duplicate(parallelization)
-          adoptParallelization.potentiallyParallel = false
-          val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, adoptParallelization) with OptimizationHint
-          loop
-        }
-      wrappedBody = ListBuffer[IR_Statement](compiledLoop)
+      val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, Duplicate(parallelization)) with OptimizationHint
+      if (parallelize(d) && d == outerPar) {
+        // FIXME: set depth for inner dimensions?
+        // FIXME: set depth depending on parallelizability of inner dimensions?
+        loop.parallelization.collapseDepth = numDimensions
+      }
+
       // set optimization hints
-      compiledLoop.isInnermost = d == 0
-      compiledLoop.isParallel = parallelizable(d)
-      compiledLoop.isVectorizable = isVectorizable
+      loop.isInnermost = d == 0
+      loop.parallelization.potentiallyParallel = parallelizable(d)
+      loop.parallelization.isVectorizable = isVectorizable
+
+      wrappedBody = ListBuffer[IR_Statement](loop)
     }
 
     wrappedBody = createOMPThreadsWrapper(wrappedBody)

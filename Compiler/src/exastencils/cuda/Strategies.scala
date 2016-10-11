@@ -16,7 +16,7 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
 import exastencils.logger._
-import exastencils.optimization._
+import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.polyhedron._
 import exastencils.util._
 
@@ -51,7 +51,7 @@ object CudaStrategiesUtils {
   def verifyCudaLoopParallel(loop : IR_ForLoop) : Boolean = {
     loop.inc.isInstanceOf[IR_Assignment] &&
       loop.inc.asInstanceOf[IR_Assignment].src.isInstanceOf[IR_IntegerConstant] &&
-      loop.isInstanceOf[OptimizationHint] && loop.asInstanceOf[OptimizationHint].isParallel
+      loop.isInstanceOf[IR_HasParallelizationInfo] && loop.asInstanceOf[IR_HasParallelizationInfo].parallelization.potentiallyParallel
   }
 
   /**
