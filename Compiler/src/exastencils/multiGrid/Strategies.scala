@@ -12,7 +12,6 @@ import exastencils.core.collectors._
 import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 import exastencils.knowledge.Fragment
 import exastencils.logger._
@@ -81,29 +80,6 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
       stencilFieldAccess
     }
   }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */)
-}
-
-object ResolveDiagFunction extends DefaultStrategy("ResolveDiagFunction") {
-  var collector = new StackCollector
-  this.register(collector)
-
-  this += new Transformation("SearchAndReplace", {
-    // FIXME: IR_UserFunctionAccess
-    case IR_FunctionCall(IR_UserFunctionAccess("diag", _), args) => args(0) match {
-      case access : IR_StencilAccess      =>
-        val centralOffset = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(0))
-        access.stencil.findStencilEntry(centralOffset).get.coefficient
-      case access : IR_StencilFieldAccess => {
-        var index = Duplicate(access.index)
-        index(Knowledge.dimensionality) = 0 // FIXME: this assumes the center entry to be in pos 0
-        new IR_FieldAccess(IR_FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
-      }
-      case _                              => {
-        Logger.warn("diag with unknown arg " + args(0))
-        IR_FunctionCall("diag", args)
-      }
-    }
-  })
 }
 
 object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpecialFunctionsAndConstants") {

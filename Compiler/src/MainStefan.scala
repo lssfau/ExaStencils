@@ -35,6 +35,7 @@ import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
+import exastencils.stencil.ir.IR_ResolveStencilFunction
 import exastencils.stencil.l4._
 import exastencils.strategies._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
@@ -307,7 +308,8 @@ object MainStefan {
         ExpandStrategy.doUntilDone()
     } while (convChanged)
 
-    ResolveDiagFunction.apply()
+    IR_ResolveStencilFunction.apply()
+
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
     if (Knowledge.domain_rect_generate && Knowledge.maxLevel <= 0) {

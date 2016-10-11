@@ -6,6 +6,9 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.stencil.ir.IR_StencilFunctionAccess
+
+/// L4_StencilFunctions
 
 object L4_StencilFunctions {
   val functions = HashSet(
@@ -26,7 +29,9 @@ object L4_StencilFunctionAccess {
     new L4_StencilFunctionAccess(name, Some(level), datatype)
 }
 
-case class L4_StencilFunctionAccess(var name : String, level : Option[Int], var datatype : L4_Datatype) extends L4_FunctionAccess
+case class L4_StencilFunctionAccess(var name : String, level : Option[Int], var datatype : L4_Datatype) extends L4_FunctionAccess {
+  override def progress = IR_StencilFunctionAccess(resolvedName(), datatype.progress)
+}
 
 /// L4_ResolveStencilFunctions
 

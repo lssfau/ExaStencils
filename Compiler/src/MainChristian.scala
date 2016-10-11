@@ -32,6 +32,7 @@ import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
+import exastencils.stencil.ir.IR_ResolveStencilFunction
 import exastencils.stencil.l4.L4_ProcessStencilDeclarations
 import exastencils.strategies._
 import exastencils.util._
@@ -247,7 +248,7 @@ object MainChristian {
         ExpandStrategy.doUntilDone()
     } while (convChanged)
 
-    ResolveDiagFunction.apply()
+    IR_ResolveStencilFunction.apply()
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 

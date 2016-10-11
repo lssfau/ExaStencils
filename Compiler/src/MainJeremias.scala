@@ -28,6 +28,7 @@ import exastencils.optimization._
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
+import exastencils.stencil.ir.IR_ResolveStencilFunction
 import exastencils.stencil.l4.L4_ProcessStencilDeclarations
 import exastencils.strategies._
 import exastencils.util._
@@ -248,7 +249,7 @@ object MainJeremias {
         ExpandStrategy.doUntilDone()
     } while (convChanged)
 
-    ResolveDiagFunction.apply()
+    IR_ResolveStencilFunction.apply()
     CreateGeomCoordinates.apply()
     IR_ResolveLoopOverPointsInOneFragment.apply()
     IR_ResolveContractingLoop.apply()
