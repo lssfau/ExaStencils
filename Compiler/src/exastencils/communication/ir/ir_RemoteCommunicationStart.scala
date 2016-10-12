@@ -13,8 +13,8 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge.NeighborInfo
 import exastencils.mpi.ir.MPI_DataType
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
-import exastencils.util.SimplifyExpression
 
 /// IR_RemoteCommunicationStart
 
@@ -28,7 +28,7 @@ case class IR_RemoteCommunicationStart(
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
-    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
+    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
       val body = IR_CopyToSendBuffer(field, neighbor, indices, concurrencyId, condition)
       if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body
     } else {
@@ -43,7 +43,7 @@ case class IR_RemoteCommunicationStart(
         iv.TmpBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
       else
         maxCnt
-      if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == SimplifyExpression.evalIntegral(cnt))) {
+      if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == IR_SimplifyExpression.evalIntegral(cnt))) {
         IR_RemoteSend(field, neighbor, IR_AddressofExpression(IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
         IR_RemoteSend(field, neighbor, IR_AddressofExpression(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)

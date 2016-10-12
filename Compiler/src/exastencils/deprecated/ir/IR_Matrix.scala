@@ -1,10 +1,13 @@
-package exastencils.util
+package exastencils.deprecated.ir
 
 import exastencils.datastructures._
 import exastencils.prettyprinting._
 
-case class Matrix() extends Node with FilePrettyPrintable {
-  override def printToFile = {
+/// IR_Matrix
+
+@deprecated("to be replaced by internal handling of higher-order datatypes", "12.10.16")
+case class IR_Matrix() extends Node with FilePrettyPrintable {
+  override def printToFile() = {
     val writer = PrettyprintingManager.getPrinter(s"Util/Matrix.h");
 
     writer.addExternalDependency("cmath")

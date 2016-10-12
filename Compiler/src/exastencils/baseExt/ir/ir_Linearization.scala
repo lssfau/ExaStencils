@@ -3,7 +3,7 @@ package exastencils.baseExt.ir
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.logger.Logger
-import exastencils.util.SimplifyExpression
+import exastencils.optimization.ir.IR_SimplifyExpression
 
 object IR_Linearization {
   def linearizeIndex(index : IR_Index, strides : IR_Index) : IR_Expression = {
@@ -14,6 +14,6 @@ object IR_Linearization {
       index.toExpressionIndex(dim) * stride
     }).fold(0 : IR_Expression)(_ + _)
 
-    SimplifyExpression.simplifyIntegralExpr(ret)
+    IR_SimplifyExpression.simplifyIntegralExpr(ret)
   }
 }

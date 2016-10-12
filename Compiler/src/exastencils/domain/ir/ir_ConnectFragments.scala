@@ -14,7 +14,6 @@ import exastencils.knowledge.RectangularDomain
 import exastencils.mpi.ir.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
-import exastencils.util.AABB
 
 case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"

@@ -8,8 +8,7 @@ import exastencils.core.Duplicate
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.field.ir.IR_MultiDimFieldAccess
-import exastencils.optimization.ir.IR_GeneralSimplify
-import exastencils.util.SimplifyExpression
+import exastencils.optimization.ir._
 
 object KernelSubscriptAnalysis extends QuietDefaultStrategy(
   "Analyzing array subscripts of loop kernels") {
@@ -61,7 +60,7 @@ object KernelSubscriptAnalysis extends QuietDefaultStrategy(
     //    IR_ExpressionIndex(diffIndex:_*)
     println("diff : " + diffIndex.prettyprint())
 
-    val diffIndexSimpl = IR_ExpressionIndex(diffIndex.map(x => SimplifyExpression.simplifyIntegralExpr(x)).toSeq : _*)
+    val diffIndexSimpl = IR_ExpressionIndex(diffIndex.map(x => IR_SimplifyExpression.simplifyIntegralExpr(x)).toSeq : _*)
 //    SimplifyExpression.simplifyIntegralExpr(diffIndex)
     IR_GeneralSimplify.doUntilDoneStandalone(diffIndex)
 //    diffIndex.foreach(x => SimplifyStrategy.doUntilDoneStandalone(x))

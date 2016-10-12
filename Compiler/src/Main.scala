@@ -11,7 +11,7 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.cuda._
 import exastencils.datastructures._
-import exastencils.deprecated.ir.CreateGeomCoordinates
+import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir._
@@ -30,6 +30,7 @@ import exastencils.multiGrid._
 import exastencils.omp.ir._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.parsers.InputReader
 import exastencils.parsers.l4._
 import exastencils.parsers.settings._
 import exastencils.performance._
@@ -38,7 +39,7 @@ import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
 import exastencils.stencil.ir.IR_ResolveStencilFunction
 import exastencils.stencil.l4._
-import exastencils.timing.ir.IR_AdaptTimerFunctions
+import exastencils.timing.ir._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
 import exastencils.util.l4._
@@ -279,9 +280,9 @@ object Main {
       IR_CommunicationFunctions(),
 
       // Util
-      Stopwatch(),
-      TimerFunctions(),
-      Matrix(), // TODO: only if required
+      IR_Stopwatch(),
+      IR_TimerFunctions(),
+      IR_Matrix(), // TODO: only if required
       CImg() // TODO: only if required
     )
 
@@ -505,7 +506,7 @@ object Main {
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    new CountingStrategy("number of printed nodes").apply()
+    new CountNodes("number of printed nodes").apply()
 
     shutdown()
   }

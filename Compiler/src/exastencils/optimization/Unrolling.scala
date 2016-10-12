@@ -7,8 +7,8 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.util.SimplifyExpression
 
 object Unrolling extends DefaultStrategy("Loop unrolling") {
 
@@ -217,7 +217,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       val dup = Duplicate(body)
       replaceStrat.offset = i * oldInc
       replaceStrat.applyStandalone(dup)
-      SimplifyExpression.SimplifyIndices.applyStandalone(dup)
+      IR_SimplifyExpression.SimplifyIndices.applyStandalone(dup)
       dups += dup.iterator.filter(s => !s.isInstanceOf[IR_Comment])
     }
 

@@ -16,6 +16,7 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
 import exastencils.logger._
+import exastencils.optimization.ir._
 import exastencils.parallelization.ir.IR_HasParallelizationInfo
 import exastencils.polyhedron._
 import exastencils.util._
@@ -327,8 +328,8 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
           FindSurroundingLoopIteratorUsages.applyStandalone(IR_Scope(IR_ExpressionStatement(upperBounds.head)))
           loopDependsOnSurroundingIterators |= FindSurroundingLoopIteratorUsages.usedLoopIterators.nonEmpty
 
-          extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
-          innerLoop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
+          extremaMap.put(loopVariables.head, (IR_SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, IR_SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
+          innerLoop.annotate(IR_SimplifyExpression.EXTREMA_MAP, extremaMap)
 
           if (loopDependsOnSurroundingIterators) {
             innerLoop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_INNER)
@@ -362,8 +363,8 @@ object CalculateCudaLoopsAnnotations extends DefaultStrategy("Calculate the anno
     if (CudaStrategiesUtils.verifyCudaLoopSuitability(loop)) {
       try {
         val (loopVariables, lowerBounds, upperBounds, _) = CudaStrategiesUtils.extractRelevantLoopInformation(ListBuffer(loop))
-        extremaMap.put(loopVariables.head, (SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
-        loop.annotate(SimplifyExpression.EXTREMA_MAP, extremaMap)
+        extremaMap.put(loopVariables.head, (IR_SimplifyExpression.evalIntegralExtrema(lowerBounds.head, extremaMap)._1, IR_SimplifyExpression.evalIntegralExtrema(upperBounds.head, extremaMap)._2))
+        loop.annotate(IR_SimplifyExpression.EXTREMA_MAP, extremaMap)
 
         if (CudaStrategiesUtils.verifyCudaLoopParallel(loop)) {
           loop.annotate(CudaStrategiesUtils.CUDA_LOOP_ANNOTATION, CudaStrategiesUtils.CUDA_BAND_START)
@@ -486,8 +487,8 @@ object ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUD
 
       var extremaMap = mutable.HashMap[String, (Long, Long)]()
 
-      if (loop.hasAnnotation(SimplifyExpression.EXTREMA_MAP)) {
-        extremaMap = loop.getAnnotation(SimplifyExpression.EXTREMA_MAP).get.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
+      if (loop.hasAnnotation(IR_SimplifyExpression.EXTREMA_MAP)) {
+        extremaMap = loop.getAnnotation(IR_SimplifyExpression.EXTREMA_MAP).get.asInstanceOf[mutable.HashMap[String, (Long, Long)]]
       }
 
       val kernel = Kernel(

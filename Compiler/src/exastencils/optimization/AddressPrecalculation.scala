@@ -12,6 +12,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.datastructures.ir.iv.FieldData
 import exastencils.logger._
+import exastencils.optimization.ir._
 import exastencils.util._
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
@@ -48,7 +49,7 @@ private final class ArrayBases(val arrayName : String) {
   private var idCount = -1
 
   def getName(initVec : HashMap[IR_Expression, Long], base : IR_Expression, al : Boolean) : String = {
-    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new IR_ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
+    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new IR_ArrayAccess(base, IR_SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
   }
 
   def addToDecls(decls : ListBuffer[IR_Statement]) : Unit = {
@@ -110,7 +111,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     // TODO: add support for MultiIndexExpression?
     val inMap : HashMap[IR_Expression, Long] =
     try {
-      SimplifyExpression.extractIntegralSum(ind)
+      IR_SimplifyExpression.extractIntegralSum(ind)
     } catch {
       case ex : EvaluationException =>
         var cause : Throwable = ex
@@ -124,12 +125,12 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
     // constant part should stay inside the loop, as this reduces the number of required pointers outside
     for ((expr, value) <- inMap)
-      if (expr != SimplifyExpression.constName && !containsLoopVar(expr))
+      if (expr != IR_SimplifyExpression.constName && !containsLoopVar(expr))
         outMap.put(expr, value)
     for ((expr, _) <- outMap)
       inMap.remove(expr)
 
-    return (SimplifyExpression.recreateExprFromIntSum(inMap), outMap)
+    return (IR_SimplifyExpression.recreateExprFromIntSum(inMap), outMap)
   }
 
   private final val SKIP_SUBTREE_ANNOT = "APCSST"

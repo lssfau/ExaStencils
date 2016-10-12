@@ -9,6 +9,7 @@ import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.simd._
 import exastencils.util._
 
@@ -71,8 +72,8 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
                 val basePpCmp : Int = x._2.prettyprint() compare y._2.prettyprint()
                 if (basePpCmp != 0)
                   return basePpCmp
-                val indXCst : Long = SimplifyExpression.extractIntegralSum(x._3).getOrElse(SimplifyExpression.constName, 0L)
-                val indYCst : Long = SimplifyExpression.extractIntegralSum(y._3).getOrElse(SimplifyExpression.constName, 0L)
+                val indXCst : Long = IR_SimplifyExpression.extractIntegralSum(x._3).getOrElse(IR_SimplifyExpression.constName, 0L)
+                val indYCst : Long = IR_SimplifyExpression.extractIntegralSum(y._3).getOrElse(IR_SimplifyExpression.constName, 0L)
                 return indXCst compare indYCst
               }
             })
@@ -120,7 +121,7 @@ private[optimization] final class Analyze extends StackCollector {
       case decl @ IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp,
       Some(load @ IR_SIMD_Load(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), aligned))) =>
 
-        val indSum : HashMap[IR_Expression, Long] = SimplifyExpression.extractIntegralSum(index)
+        val indSum : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
 
         if (other.isDefined) {
@@ -133,12 +134,12 @@ private[optimization] final class Analyze extends StackCollector {
 
           // test if the vector can be reused next iteration
           if (!hasOMPPragma) {
-            val indSumNIt : HashMap[IR_Expression, Long] = SimplifyExpression.extractIntegralSum(upLoopVar.updateDup(index))
+            val indSumNIt : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(upLoopVar.updateDup(index))
             val nextIt = loads.get((base, indSumNIt))
             if (nextIt.isDefined) {
               preLoopDecls += IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp,
                 IR_SIMD_Load(IR_AddressofExpression(
-                  IR_ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
+                  IR_ArrayAccess(Duplicate(base), IR_SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
               decl.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), load, "="))
               if (nextIt.get._1.hasAnnotation(REPL_ANNOT))
                 nextIt.get._1.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(nextIt.get._1.name, IR_SIMD_RealDatatype),

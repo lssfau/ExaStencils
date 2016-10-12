@@ -10,8 +10,8 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.globals.Globals
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
-import exastencils.util.SimplifyExpression
 
 /// MPI_DataType
 
@@ -27,7 +27,7 @@ object MPI_DataType {
 
     // count the number of dimensions with more than one entry - size in the zero dimension is irrelevant
     val numNonDummyDims = (1 until indexRange.length).map(dim =>
-      if (SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim)) > 1) 1 else 0).sum
+      if (IR_SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim)) > 1) 1 else 0).sum
 
     // avoid nested data types for now
     return numNonDummyDims <= 1
@@ -56,7 +56,7 @@ case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IR_Expre
 
   var done = false
   for (dim <- 1 until indexRange.length; if !done) {
-    if (1 == SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
+    if (1 == IR_SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim))) {
       strideExp *= field.fieldLayout.defIdxById("TOT", dim)
     } else {
       blockCountExp = indexRange.end(dim) - indexRange.begin(dim)
@@ -64,9 +64,9 @@ case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IR_Expre
     }
   }
 
-  val blockLength = SimplifyExpression.evalIntegral(blockLengthExp)
-  val blockCount = SimplifyExpression.evalIntegral(blockCountExp)
-  val stride = SimplifyExpression.evalIntegral(strideExp)
+  val blockLength = IR_SimplifyExpression.evalIntegral(blockLengthExp)
+  val blockCount = IR_SimplifyExpression.evalIntegral(blockCountExp)
+  val stride = IR_SimplifyExpression.evalIntegral(strideExp)
 
   def generateName : String = s"mpiDatatype_${ blockCount }_${ blockLength }_${ stride }"
   def mpiTypeNameArg : IR_Expression = IR_AddressofExpression(generateName)

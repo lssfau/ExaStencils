@@ -8,12 +8,12 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.iv
+import exastencils.domain.AABB
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.knowledge._
 import exastencils.mpi.ir.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
-import exastencils.util.AABB
 
 case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"

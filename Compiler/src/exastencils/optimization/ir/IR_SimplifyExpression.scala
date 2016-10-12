@@ -1,4 +1,4 @@
-package exastencils.util
+package exastencils.optimization.ir
 
 import scala.collection._
 import scala.collection.mutable.{ HashMap, ListBuffer }
@@ -12,10 +12,12 @@ import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.interfacing.ir._
 import exastencils.logger._
-import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.util.ir.IR_MathFunctions
 
-object SimplifyExpression {
+/// IR_SimplifyExpression
+
+// TODO: refactor -> less (convoluted) code
+object IR_SimplifyExpression {
 
   /**
     * Completely evaluates an integral expression.
@@ -32,7 +34,7 @@ object SimplifyExpression {
     case IR_MinimumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalIntegral(e)).min
     case IR_MaximumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalIntegral(e)).max
     case _                                                              =>
-      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
+      throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
 
   final val EXTREMA_MAP : String = "extremaMap" // associated value must be HashMap[String, (Long,Long)]
@@ -118,7 +120,7 @@ object SimplifyExpression {
       evalIntegralExtrema(IR_DivisionExpression(l, r), extremaLookup)
 
     case _ =>
-      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass)
+      throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
 
   /**
@@ -128,14 +130,14 @@ object SimplifyExpression {
     */
   def evalFloating(expr : IR_Expression) : Double = expr match {
     case IR_RealConstant(v)                                             => v
-    case IR_AdditionExpression(sums : ListBuffer[IR_Expression])        => sums.view.map(s => evalFloating(s)).reduce(_ + _)
+    case IR_AdditionExpression(sums : ListBuffer[IR_Expression])        => sums.view.map(s => evalFloating(s)).sum
     case IR_SubtractionExpression(l : IR_Expression, r : IR_Expression) => evalFloating(l) - evalFloating(r)
-    case IR_MultiplicationExpression(facs : ListBuffer[IR_Expression])  => facs.view.map(s => evalFloating(s)).reduce(_ * _)
+    case IR_MultiplicationExpression(facs : ListBuffer[IR_Expression])  => facs.view.map(s => evalFloating(s)).product
     case IR_DivisionExpression(l : IR_Expression, r : IR_Expression)    => evalFloating(l) / evalFloating(r)
-    case IR_MinimumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalFloating(e)).reduce(_ min _)
-    case IR_MaximumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalFloating(e)).reduce(_ max _)
+    case IR_MinimumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalFloating(e)).min
+    case IR_MaximumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalFloating(e)).max
     case _                                                              =>
-      throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
+      throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
 
   /**
@@ -156,15 +158,15 @@ object SimplifyExpression {
     * Only VariableAccess nodes are used as keys. (NO StringConstant)
     */
   def extractIntegralSum(expr : IR_Expression) : HashMap[IR_Expression, Long] = {
-    return extractIntegralSumRec(expr)
+    extractIntegralSumRec(expr)
   }
 
   private def extractIntegralSumDivision(l : IR_Expression, r : IR_Expression) : HashMap[IR_Expression, Long] = {
     val tmp = extractIntegralSumRec(r)
     if (tmp.isEmpty)
-      throw new EvaluationException("BOOM! (divide by zero)")
+      throw EvaluationException("BOOM! (divide by zero)")
     if (!(tmp.size == 1 && tmp.contains(constName)))
-      throw new EvaluationException("only constant divisor allowed yet")
+      throw EvaluationException("only constant divisor allowed yet")
     val divs : Long = tmp(constName)
     tmp.clear()
     val res = new HashMap[IR_Expression, Long]()
@@ -197,7 +199,7 @@ object SimplifyExpression {
       case divd                                                                                                                                                           => (IR_DivisionExpression(divd, IR_IntegerConstant(divs)), 1L)
     }
     res(name) = res.getOrElse(name, 0L) + update
-    return res
+    res
   }
 
   private def extractIntegralSumRec(expr : IR_Expression) : HashMap[IR_Expression, Long] = {
@@ -241,15 +243,15 @@ object SimplifyExpression {
         for ((ex, coeff) <- res) ex match {
           case divd @ IR_DivisionExpression(x, IR_IntegerConstant(2)) =>
             toOpt.get(x) match {
-              case None                               => toOpt(x) = (divd, null, coeff)
-              case Some((_, modd, c)) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
-              case Some(_)                            => toOpt -= x // coefficient is not matching...
+              case None                             => toOpt(x) = (divd, null, coeff)
+              case Some((_, modd, c)) if c == coeff => toOpt(x) = (divd, modd, coeff)
+              case Some(_)                          => toOpt -= x // coefficient is not matching...
             }
           case modd @ IR_ModuloExpression(x, IR_IntegerConstant(2))   =>
             toOpt.get(x) match {
-              case None                               => toOpt(x) = (null, modd, coeff)
-              case Some((divd, _, c)) if (c == coeff) => toOpt(x) = (divd, modd, coeff)
-              case Some(_)                            => toOpt -= x // coefficient is not matching...
+              case None                             => toOpt(x) = (null, modd, coeff)
+              case Some((divd, _, c)) if c == coeff => toOpt(x) = (divd, modd, coeff)
+              case Some(_)                          => toOpt -= x // coefficient is not matching...
             }
           case _                                                      =>
         }
@@ -302,9 +304,9 @@ object SimplifyExpression {
       case IR_ModuloExpression(l, r) =>
         val tmp = extractIntegralSumRec(r)
         if (tmp.isEmpty)
-          throw new EvaluationException("BOOM! (divide by zero)")
+          throw EvaluationException("BOOM! (divide by zero)")
         if (!(tmp.size == 1 && tmp.contains(constName)))
-          throw new EvaluationException("only constant divisor allowed")
+          throw EvaluationException("only constant divisor allowed")
         val mod : Long = tmp(constName)
         res = new HashMap[IR_Expression, Long]()
         val dividendMap : HashMap[IR_Expression, Long] = extractIntegralSumRec(l).filter(elem => elem._2 % mod != 0L)
@@ -321,9 +323,9 @@ object SimplifyExpression {
         val exprs = new ListBuffer[IR_Expression]
         var min : java.lang.Long = null
         for (arg <- args) simplifyIntegralExpr(arg) match {
-          case IR_IntegerConstant(c)     => min = if (min == null || min > c) c else min
-          case e if (!exprs.contains(e)) => exprs += e
-          case _                         => // we already found a (syntactically) indentical expression, so skip this one
+          case IR_IntegerConstant(c)   => min = if (min == null || min > c) c else min
+          case e if !exprs.contains(e) => exprs += e
+          case _                       => // we already found a (syntactically) indentical expression, so skip this one
         }
         res = new HashMap[IR_Expression, Long]()
         if (exprs.isEmpty)
@@ -338,9 +340,9 @@ object SimplifyExpression {
         val exprs = new ListBuffer[IR_Expression]
         var max : java.lang.Long = null
         for (arg <- args) simplifyIntegralExpr(arg) match {
-          case IR_IntegerConstant(c)     => max = if (max == null || max < c) c else max
-          case e if (!exprs.contains(e)) => exprs += e
-          case _                         => // we already found a (syntactically) indentical expression, so skip this one
+          case IR_IntegerConstant(c)   => max = if (max == null || max < c) c else max
+          case e if !exprs.contains(e) => exprs += e
+          case _                       => // we already found a (syntactically) indentical expression, so skip this one
         }
         res = new HashMap[IR_Expression, Long]()
         if (exprs.isEmpty)
@@ -365,10 +367,10 @@ object SimplifyExpression {
         res(bExpr) = 1L
 
       case _ =>
-        throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass())
+        throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
     }
 
-    return res.filter(e => e._2 != 0L)
+    res.filter(e => e._2 != 0L)
   }
 
   def gcd(x : Long, y : Long) : Long = {
@@ -379,7 +381,7 @@ object SimplifyExpression {
       a = b
       b = h
     }
-    return math.abs(a)
+    math.abs(a)
   }
 
   /**
@@ -422,7 +424,7 @@ object SimplifyExpression {
         else if (nSums.isEmpty)
           posSums += IR_MultiplicationExpression(IR_IntegerConstant(value), toExpr(pSums))
         else
-          posSums += IR_MultiplicationExpression(IR_IntegerConstant(value), new IR_SubtractionExpression(toExpr(pSums), toExpr(nSums)))
+          posSums += IR_MultiplicationExpression(IR_IntegerConstant(value), IR_SubtractionExpression(toExpr(pSums), toExpr(nSums)))
       }
 
     if (const > 0L)
@@ -431,21 +433,21 @@ object SimplifyExpression {
       negSums += IR_IntegerConstant(-const)
 
     if (posSums.isEmpty)
-      return new IR_NegativeExpression(toExpr(negSums))
+      IR_NegativeExpression(toExpr(negSums))
     else if (negSums.isEmpty)
-      return toExpr(posSums)
+      toExpr(posSums)
     else
-      return new IR_SubtractionExpression(toExpr(posSums), toExpr(negSums))
+      IR_SubtractionExpression(toExpr(posSums), toExpr(negSums))
   }
 
   def simplifyIntegralExpr(expr : IR_Expression) : IR_Expression = {
     try {
       val res = IR_ExpressionStatement(recreateExprFromIntSum(extractIntegralSum(expr)))
       IR_GeneralSimplify.doUntilDoneStandalone(res)
-      return res.expression
+      res.expression
     } catch {
       case ex : EvaluationException =>
-        throw new EvaluationException(ex.msg + ";  in " + expr.prettyprint(), ex)
+        throw EvaluationException(ex.msg + ";  in " + expr.prettyprint(), ex)
     }
   }
 
@@ -453,25 +455,25 @@ object SimplifyExpression {
 
     this += new Transformation("now", {
       case a : IR_ArrayAccess =>
-        a.index = SimplifyExpression.simplifyIntegralExpr(a.index)
+        a.index = IR_SimplifyExpression.simplifyIntegralExpr(a.index)
         a
 
       case d : IR_DirectFieldAccess =>
         for (i <- 0 until 4)
           if (d.index(i) != IR_NullExpression)
-            d.index(i) = SimplifyExpression.simplifyIntegralExpr(d.index(i))
+            d.index(i) = IR_SimplifyExpression.simplifyIntegralExpr(d.index(i))
         d
 
       case f : IR_FieldAccess =>
         for (i <- 0 until 4)
           if (f.index(i) != IR_NullExpression)
-            f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))
+            f.index(i) = IR_SimplifyExpression.simplifyIntegralExpr(f.index(i))
         f
 
       case f : IR_ExternalFieldAccess =>
         for (i <- 0 until 4)
           if (f.index(i) != IR_NullExpression)
-            f.index(i) = SimplifyExpression.simplifyIntegralExpr(f.index(i))
+            f.index(i) = IR_SimplifyExpression.simplifyIntegralExpr(f.index(i))
         f
     })
   }
@@ -488,7 +490,7 @@ object SimplifyExpression {
     * Only VariableAccess and ArrayAccess nodes are used as keys. (NO StringConstant)
     */
   def extractFloatingSum(expr : IR_Expression) : HashMap[IR_Expression, Double] = {
-    return extractFloatingSumRec(expr)
+    extractFloatingSumRec(expr)
   }
 
   private def extractFloatingSumRec(expr : IR_Expression) : HashMap[IR_Expression, Double] = {
@@ -511,7 +513,7 @@ object SimplifyExpression {
 
       case IR_StringLiteral(varName) =>
         if (varName.contains("std::rand")) // HACK
-          throw new EvaluationException("don't optimze code containing a call to std::rand")
+          throw EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[IR_Expression, Double]()
         res(IR_VariableAccess(varName, IR_RealDatatype)) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
 
@@ -533,7 +535,7 @@ object SimplifyExpression {
 
       case call : IR_FunctionCall =>
         if (call.name.contains("std::rand")) // HACK
-          throw new EvaluationException("don't optimize code containing a call to std::rand")
+          throw EvaluationException("don't optimize code containing a call to std::rand")
         def simplifyFloatingArgs(pars : Seq[IR_Datatype]) : Unit = {
           call.arguments =
             pars.view.zip(call.arguments).map {
@@ -616,7 +618,7 @@ object SimplifyExpression {
               exprL = inner
             case IR_RealConstant(coef)                                                 =>
               coefL = coef
-              exprL = new IR_RealConstant(1d)
+              exprL = IR_RealConstant(1d)
             case _                                                                     =>
           }
           exprR match {
@@ -625,18 +627,18 @@ object SimplifyExpression {
               exprR = inner
             case IR_RealConstant(coef)                                                 =>
               coefR = coef
-              exprR = new IR_RealConstant(1d)
+              exprR = IR_RealConstant(1d)
             case _                                                                     =>
           }
           res = new HashMap[IR_Expression, Double]()
-          val div = new IR_DivisionExpression(exprL, exprR)
+          val div = IR_DivisionExpression(exprL, exprR)
           res(div) = coefL / coefR
         }
 
       case IR_ModuloExpression(l, r) =>
         val mapR = extractFloatingSumRec(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
-          throw new EvaluationException("only constant divisor allowed yet:  " + l.prettyprint() + "  %  " + r.prettyprint())
+          throw EvaluationException("only constant divisor allowed yet:  " + l.prettyprint() + "  %  " + r.prettyprint())
         val mod : Double = mapR(constName)
         res = extractFloatingSumRec(l)
         for ((name : IR_Expression, value : Double) <- res)
@@ -646,9 +648,9 @@ object SimplifyExpression {
         val exprs = new ListBuffer[IR_Expression]
         var min : java.lang.Double = null
         for (arg <- args) simplifyFloatingExpr(arg) match {
-          case IR_RealConstant(c)        => min = if (min == null || min > c) c else min
-          case e if (!exprs.contains(e)) => exprs += e
-          case _                         => // we already found a (syntactically) indentical expression, so skip this one
+          case IR_RealConstant(c)      => min = if (min == null || min > c) c else min
+          case e if !exprs.contains(e) => exprs += e
+          case _                       => // we already found a (syntactically) indentical expression, so skip this one
         }
         res = new HashMap[IR_Expression, Double]()
         if (exprs.isEmpty)
@@ -663,9 +665,9 @@ object SimplifyExpression {
         val exprs = new ListBuffer[IR_Expression]
         var max : java.lang.Double = null
         for (arg <- args) simplifyFloatingExpr(arg) match {
-          case IR_RealConstant(c)        => max = if (max == null || max < c) c else max
-          case e if (!exprs.contains(e)) => exprs += e
-          case _                         => // we already found a (syntactically) indentical expression, so skip this one
+          case IR_RealConstant(c)      => max = if (max == null || max < c) c else max
+          case e if !exprs.contains(e) => exprs += e
+          case _                       => // we already found a (syntactically) indentical expression, so skip this one
         }
         res = new HashMap[IR_Expression, Double]()
         if (exprs.isEmpty)
@@ -690,19 +692,19 @@ object SimplifyExpression {
           val exp : Double = mapR(constName)
           val expL : Long = exp.toLong
           if (expL.toDouble == exp) expL match {
-            case 0                             => res = HashMap(constName -> 1d)
-            case 1                             => res = mapL
-            case _ if (expL >= 2 && expL <= 6) =>
+            case 0                           => res = HashMap(constName -> 1d)
+            case 1                           => res = mapL
+            case _ if expL >= 2 && expL <= 6 =>
               res = extractFloatingSumRec(IR_MultiplicationExpression(ListBuffer.fill(expL.toInt)(Duplicate(l))))
-            case _                             =>
+            case _                           =>
           }
         }
 
       case _ =>
-        throw new EvaluationException("unknown expression type for evaluation: " + expr.getClass() + " in " + expr.prettyprint())
+        throw EvaluationException("unknown expression type for evaluation: " + expr.getClass + " in " + expr.prettyprint())
     }
 
-    return res.filter(e => e._2 != 0d)
+    res.filter(e => e._2 != 0d)
   }
 
   /**
@@ -745,7 +747,7 @@ object SimplifyExpression {
         else if (nSums.isEmpty)
           posSums += IR_MultiplicationExpression(IR_RealConstant(value), toExpr(pSums))
         else
-          posSums += IR_MultiplicationExpression(IR_RealConstant(value), new IR_SubtractionExpression(toExpr(pSums), toExpr(nSums)))
+          posSums += IR_MultiplicationExpression(IR_RealConstant(value), IR_SubtractionExpression(toExpr(pSums), toExpr(nSums)))
       }
 
     if (const > 0d)
@@ -754,23 +756,26 @@ object SimplifyExpression {
       negSums += IR_RealConstant(-const)
 
     if (posSums.isEmpty)
-      return new IR_NegativeExpression(toExpr(negSums))
+      IR_NegativeExpression(toExpr(negSums))
     else if (negSums.isEmpty)
-      return toExpr(posSums)
+      toExpr(posSums)
     else
-      return new IR_SubtractionExpression(toExpr(posSums), toExpr(negSums))
+      IR_SubtractionExpression(toExpr(posSums), toExpr(negSums))
   }
 
   def simplifyFloatingExpr(expr : IR_Expression) : IR_Expression = {
     try {
       val res = IR_ExpressionStatement(recreateExprFromFloatSum(extractFloatingSum(expr)))
       IR_GeneralSimplify.doUntilDoneStandalone(res)
-      return res.expression
+      res.expression
     } catch {
       case ex : EvaluationException =>
-        throw new EvaluationException(ex.msg + ";  in " + expr.prettyprint(), ex)
+        throw EvaluationException(ex.msg + ";  in " + expr.prettyprint(), ex)
     }
   }
 }
 
+/// EvaluationException
+
+// TODO: move somewhere more reasonable
 case class EvaluationException(msg : String, cause : Throwable = null) extends Exception(msg, cause) {}

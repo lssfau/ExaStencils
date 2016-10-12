@@ -7,7 +7,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger._
-import exastencils.util._
+import exastencils.optimization.ir._
 
 object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expressions") {
 
@@ -50,7 +50,7 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
 
   private final def simplify(expr : IR_Expression) : IR_Expression = {
     try {
-      return SimplifyExpression.simplifyFloatingExpr(expr)
+      return IR_SimplifyExpression.simplifyFloatingExpr(expr)
     } catch {
       case x : EvaluationException =>
         if (DEBUG)

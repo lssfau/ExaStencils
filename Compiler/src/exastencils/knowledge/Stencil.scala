@@ -9,8 +9,8 @@ import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.stencil.ir._
-import exastencils.util._
 
 object FindStencilConvolutions extends DefaultStrategy("FindStencilConvolutions") {
   var changed : Boolean = false
@@ -115,7 +115,7 @@ object MapStencilAssignments extends DefaultStrategy("MapStencilAssignments") {
         for (e <- stencilRight.entries) {
           if (flipEntries) {
             if ((0 until Knowledge.dimensionality).map(dim =>
-              SimplifyExpression.evalIntegral(e.offset(dim)) == -SimplifyExpression.evalIntegral(stencilLeft.entries(idx).offset(dim)))
+              IR_SimplifyExpression.evalIntegral(e.offset(dim)) == -IR_SimplifyExpression.evalIntegral(stencilLeft.entries(idx).offset(dim)))
               .reduceLeft((a, b) => a && b))
               coeff += e.coefficient
           } else {

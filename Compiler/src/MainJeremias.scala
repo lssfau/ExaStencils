@@ -10,7 +10,7 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.cuda.IR_LinearizeReductionDeviceDataAccess
 import exastencils.datastructures._
-import exastencils.deprecated.ir.CreateGeomCoordinates
+import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.{ l4 => _, _ }
@@ -31,6 +31,7 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.stencil.ir.IR_ResolveStencilFunction
 import exastencils.stencil.l4.L4_ProcessStencilDeclarations
+import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.l4.L4_ResolveSpecialConstants
 
@@ -217,9 +218,9 @@ object MainJeremias {
       IR_CommunicationFunctions(),
 
       // Util
-      Stopwatch(),
-      TimerFunctions(),
-      Matrix())
+      IR_Stopwatch(),
+      IR_TimerFunctions(),
+      IR_Matrix())
 
     // apply strategies
 
@@ -346,7 +347,7 @@ object MainJeremias {
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    (new CountingStrategy("number of printed nodes")).apply()
+    (new CountNodes("number of printed nodes")).apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.print

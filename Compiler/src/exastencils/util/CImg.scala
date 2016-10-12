@@ -7,7 +7,7 @@ import exastencils.datastructures._
 import exastencils.prettyprinting._
 
 case class CImg() extends Node with FilePrettyPrintable {
-  override def printToFile : Unit = {
+  override def printToFile() : Unit = {
     if (!Knowledge.library_CImg) {
       return
     }

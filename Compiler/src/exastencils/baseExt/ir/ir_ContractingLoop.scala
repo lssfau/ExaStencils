@@ -11,8 +11,8 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir._
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
-import exastencils.util.SimplifyExpression
 
 /// IR_ContractionSpecification
 
@@ -46,7 +46,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
             x
         }
         add.summands += IR_IntegerConstant(-extent)
-        SimplifyExpression.simplifyIntegralExpr(add)
+        IR_SimplifyExpression.simplifyIntegralExpr(add)
 
       // case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
       //   oInd.maxOffset += extent
@@ -76,7 +76,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
             x
         }
         add.summands += IR_IntegerConstant(extent)
-        SimplifyExpression.simplifyIntegralExpr(add)
+        IR_SimplifyExpression.simplifyIntegralExpr(add)
 
       // case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
       //   oInd.minOffset -= extent

@@ -15,8 +15,8 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
 import exastencils.field.ir._
 import exastencils.logger._
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting._
-import exastencils.util._
 
 case class KernelFunctions() extends IR_FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
@@ -267,13 +267,13 @@ case class Kernel(var identifier : String,
 
       // 2.2 calculate negative and positive deviation from the basic field index
       val leftDeviationFromBaseIndex = fieldIndicesConstantPart(name).foldLeft(Array.fill(parallelDims)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
-        math.min(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(IR_SubtractionExpression(y, z)))
+        math.min(IR_SimplifyExpression.evalIntegral(x), IR_SimplifyExpression.evalIntegral(IR_SubtractionExpression(y, z)))
       })).map(x => math.abs(x))
       var firstDeviation = leftDeviationFromBaseIndex.head
       var isSameRadius = leftDeviationFromBaseIndex.forall(x => firstDeviation.equals(x))
 
       val rightDeviationFromBaseIndex = fieldIndicesConstantPart(name).foldLeft(Array.fill(parallelDims)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
-        math.max(SimplifyExpression.evalIntegral(x), SimplifyExpression.evalIntegral(IR_SubtractionExpression(y, z)))
+        math.max(IR_SimplifyExpression.evalIntegral(x), IR_SimplifyExpression.evalIntegral(IR_SubtractionExpression(y, z)))
       }))
       firstDeviation = rightDeviationFromBaseIndex.head
       isSameRadius &= rightDeviationFromBaseIndex.forall(x => firstDeviation.equals(x))
@@ -898,8 +898,8 @@ object ReplacingLocalFieldAccessLikeForSharedMemory extends QuietDefaultStrategy
       val identifier = extractIdentifier(access)
       val deviation = (IR_ExpressionIndex(access.getAnnotation(Kernel.ConstantIndexPart).get.asInstanceOf[Array[Long]]) - fieldToOffset).indices
 
-      if (applySpatialBlocking && deviation.take(executionDim).forall(x => SimplifyExpression.evalIntegral(x) == 0)) {
-        SimplifyExpression.evalIntegral(deviation(executionDim)) match {
+      if (applySpatialBlocking && deviation.take(executionDim).forall(x => IR_SimplifyExpression.evalIntegral(x) == 0)) {
+        IR_SimplifyExpression.evalIntegral(deviation(executionDim)) match {
           case 0                                                        => IR_VariableAccess("current")
           case x if 0L to offsetForSharedMemoryAccess contains x        => IR_VariableAccess("infront" + x)
           case y if 0L to -offsetForSharedMemoryAccess by -1 contains y => IR_VariableAccess("behind" + math.abs(y))

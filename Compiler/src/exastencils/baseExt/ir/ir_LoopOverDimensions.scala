@@ -10,9 +10,9 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger.Logger
 import exastencils.optimization.OptimizationHint
+import exastencils.optimization.ir._
 import exastencils.parallelization.ir._
 import exastencils.prettyprinting.PpStream
-import exastencils.util._
 
 // FIXME: refactor
 object IR_LoopOverDimensions {
@@ -46,7 +46,7 @@ object IR_LoopOverDimensions {
   def evalMinIndex(startIndex : IR_ExpressionIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
     (0 until numDimensions).map(dim =>
       try {
-        SimplifyExpression.evalIntegralExtrema(startIndex(dim))._1
+        IR_SimplifyExpression.evalIntegralExtrema(startIndex(dim))._1
       } catch {
         case _ : EvaluationException =>
           if (printWarnings) Logger.warn(s"Start index for dimension $dim (${ startIndex(dim) }) could not be evaluated")
@@ -63,7 +63,7 @@ object IR_LoopOverDimensions {
   def evalMaxIndex(endIndex : IR_ExpressionIndex, numDimensions : Int, printWarnings : Boolean = false) : Array[Long] = {
     (0 until numDimensions).map(dim =>
       try {
-        SimplifyExpression.evalIntegralExtrema(endIndex(dim))._2
+        IR_SimplifyExpression.evalIntegralExtrema(endIndex(dim))._2
       } catch {
         case _ : EvaluationException =>
           if (printWarnings) Logger.warn(s"End index for dimension $dim (${ endIndex(dim) }) could not be evaluated")
@@ -168,7 +168,7 @@ case class IR_LoopOverDimensions(
     def oldBegin = Duplicate(indices.begin(outer))
     def oldEnd = Duplicate(indices.end(outer))
     def inc = Duplicate(stepSize(outer))
-    SimplifyExpression.simplifyIntegralExpr(oldEnd - oldBegin + inc).isInstanceOf[IR_IntegerConstant]
+    IR_SimplifyExpression.simplifyIntegralExpr(oldEnd - oldBegin + inc).isInstanceOf[IR_IntegerConstant]
   }
 
   lazy val ompIndices : IR_ExpressionIndexRange = {
@@ -181,8 +181,8 @@ case class IR_LoopOverDimensions(
     def thrId = IR_VariableAccess(threadIdxName, IR_IntegerDatatype)
     val njuBegin = oldBegin + (((oldEnd - oldBegin + inc - 1) * thrId) / Knowledge.omp_numThreads) * inc
     val njuEnd = oldBegin + (((oldEnd - oldBegin + inc - 1) * (thrId + 1)) / Knowledge.omp_numThreads) * inc
-    nju.begin(outer) = SimplifyExpression.simplifyIntegralExpr(njuBegin)
-    nju.end(outer) = SimplifyExpression.simplifyIntegralExpr(njuEnd)
+    nju.begin(outer) = IR_SimplifyExpression.simplifyIntegralExpr(njuBegin)
+    nju.end(outer) = IR_SimplifyExpression.simplifyIntegralExpr(njuEnd)
     nju
   }
 

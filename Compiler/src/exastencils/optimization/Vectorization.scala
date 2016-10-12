@@ -10,10 +10,9 @@ import exastencils.cuda.CudaStrategiesUtils
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.simd._
-import exastencils.util.SimplifyExpression
 
 object Vectorization extends DefaultStrategy("Vectorization") {
 
@@ -271,7 +270,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           case IR_Assignment(acc @ IR_ArrayAccess(_, index, true), _, _) =>
             val annot = acc.getAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
             val ind : IR_Expression = if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index
-            val const : Long = SimplifyExpression.extractIntegralSum(ind).getOrElse(SimplifyExpression.constName, 0L)
+            val const : Long = IR_SimplifyExpression.extractIntegralSum(ind).getOrElse(IR_SimplifyExpression.constName, 0L)
             val residue : Long = (const % vs + vs) % vs
             ctx.setAlignedResidue(residue)
             alignmentExpr = ind
@@ -284,7 +283,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         case acc @ IR_ArrayAccess(_, index, true) =>
           if (containsVarAcc(index, ctx.itName)) {
             val annot = acc.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
-            indexExprs += SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index)
+            indexExprs += IR_SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index)
           }
           acc
       })
@@ -292,10 +291,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
       // no store available, so align as many loads as possible
       if (alignmentExpr == null) {
-        alignmentExpr = SimplifyExpression.recreateExprFromIntSum(indexExprs.head)
+        alignmentExpr = IR_SimplifyExpression.recreateExprFromIntSum(indexExprs.head)
         val counts = new Array[Long](vs)
         for (ind <- indexExprs) {
-          val const : Long = ind.remove(SimplifyExpression.constName).getOrElse(0L)
+          val const : Long = ind.remove(IR_SimplifyExpression.constName).getOrElse(0L)
           val residue : Long = (const % vs + vs) % vs
           counts(residue.toInt) += 1
         }
@@ -307,7 +306,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
       } else
         for (ind <- indexExprs)
-          ind.remove(SimplifyExpression.constName)
+          ind.remove(IR_SimplifyExpression.constName)
 
       // check if index expressions are "good", i.e., all (except the constant summand) have the same residue
       while (!indexExprs.head.isEmpty) {
@@ -474,8 +473,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_ArrayAccess(base, index, alignedBase) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
-          val ind : HashMap[IR_Expression, Long] = SimplifyExpression.extractIntegralSum(index)
-          val const : Option[Long] = ind.remove(SimplifyExpression.constName)
+          val ind : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
+          val const : Option[Long] = ind.remove(IR_SimplifyExpression.constName)
           var access1 : Boolean = true
           for ((expr, value) <- ind)
             expr match {
@@ -685,10 +684,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       // avoid unaligned load
       val vs : Long = Platform.simd_vectorSize
       val lowerConst : Long = indexConst - ((indexConst - ctx.getAlignedResidue()) % vs + vs) % vs
-      index(SimplifyExpression.constName) = lowerConst
-      val lowerExpr = vectorizeExpr(IR_ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
-      index(SimplifyExpression.constName) = lowerConst + vs
-      val upperExpr = vectorizeExpr(IR_ArrayAccess(base, SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
+      index(IR_SimplifyExpression.constName) = lowerConst
+      val lowerExpr = vectorizeExpr(IR_ArrayAccess(base, IR_SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
+      index(IR_SimplifyExpression.constName) = lowerConst + vs
+      val upperExpr = vectorizeExpr(IR_ArrayAccess(base, IR_SimplifyExpression.recreateExprFromIntSum(index), true), ctx).asInstanceOf[IR_VariableAccess]
       return IR_SIMD_ConcShift(lowerExpr, upperExpr, (indexConst - lowerConst).toInt)
     }
   }

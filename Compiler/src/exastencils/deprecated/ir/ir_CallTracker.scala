@@ -1,73 +1,16 @@
-package exastencils.util
+package exastencils.deprecated.ir
 
-import exastencils.datastructures._
-import exastencils.config._
+import exastencils.config.Knowledge
+import exastencils.datastructures.Node
 import exastencils.prettyprinting._
 
-case class Stopwatch() extends Node with FilePrettyPrintable {
-  override def printToFile : Unit = {
-    if (Knowledge.experimental_timerEnableCallStacks) {
-      CallEntity().printToFile()
-      CallTracker().printToFile()
-    }
-
-    val writerHeader = PrettyprintingManager.getPrinter(s"Util/Stopwatch.h")
-    writerHeader.addExternalDependency("string")
-
-    Knowledge.timer_type match {
-      case "Chrono" => writerHeader.addExternalDependency("chrono")
-      case "QPC"    => writerHeader.addExternalDependency("windows.h")
-      case "WIN_TIME" =>
-        writerHeader.addExternalDependency("time.h"); writerHeader.addExternalDependency("sys/types.h")
-      case "UNIX_TIME" =>
-        writerHeader.addExternalDependency("sys/time.h"); writerHeader.addExternalDependency("sys/types.h")
-      case "MPI_TIME"     => writerHeader.addExternalDependency("mpi.h")
-      case "WINDOWS_RDSC" =>
-      case "RDSC"         => writerHeader.addExternalDependency("stdint.h")
-    }
-
-    var timerDurationType = ""
-    var timerTimepointType = ""
-
-    Knowledge.timer_type match {
-      case "Chrono" =>
-        timerDurationType = "std::chrono::nanoseconds"; timerTimepointType = "std::chrono::high_resolution_clock::time_point"
-      case "QPC" =>
-        timerDurationType = "long long"; timerTimepointType = "long long"
-      case "WIN_TIME" =>
-        timerDurationType = "double"; timerTimepointType = "double"
-      case "UNIX_TIME" =>
-        timerDurationType = "double"; timerTimepointType = "double"
-      case "MPI_TIME" =>
-        timerDurationType = "double"; timerTimepointType = "double"
-      case "WINDOWS_RDSC" =>
-        timerDurationType = "long long"; timerTimepointType = "long long"
-      case "RDSC" => timerDurationType = "long long"; timerTimepointType = "long long"
-    }
-
-    writerHeader <<< s"class StopWatch {"
-    writerHeader <<< s"public:"
-    writerHeader <<< s"\tStopWatch()"
-    writerHeader << s"\t\t: numEntries(0), numMeasurements(0), lastTimeMeasured(${TimerDetail_Zero().prettyprint()}), totalTimeMeasured(${TimerDetail_Zero().prettyprint()})\n"
-    writerHeader <<< s"\t{}\n"
-
-    writerHeader <<< s"\tstd::string timerName;\n"
-
-    writerHeader <<< s"\tint numEntries;"
-    writerHeader <<< s"\tint numMeasurements;"
-    writerHeader <<< s"\t$timerTimepointType timerStarted;"
-    writerHeader <<< s"\t$timerTimepointType timerEnded;"
-    writerHeader <<< s"\t$timerDurationType lastTimeMeasured;"
-    writerHeader <<< s"\t$timerDurationType totalTimeMeasured;"
-    writerHeader <<< s"};\n"
-  }
-}
-
-case class CallEntity() extends Node with FilePrettyPrintable {
-  override def printToFile : Unit = {
+@deprecated("to be re-evaluated and, if suitable, integrated", "12.10.16")
+case class IR_CallEntity() extends Node with FilePrettyPrintable {
+  override def printToFile() : Unit = {
     val writer = PrettyprintingManager.getPrinter(s"Util/CallEntity.h")
 
-    writer << ("""
+    writer <<
+      """
 #include "Stopwatch.h"
 #include "CallEntity.h"
 
@@ -119,7 +62,7 @@ public:
 		_childs.push_back(child);
 
 		//erase doubles
-		/*std::sort(_childs.begin(), _childs.end()); 
+		/*std::sort(_childs.begin(), _childs.end());
 		auto last = std::unique(_childs.begin(), _childs.end());
 		_childs.erase(last, _childs.end());
 		*/
@@ -139,18 +82,20 @@ public:
 	CallEntity(CallEntity&);
 	bool _stoped;
 	StopWatch* _binded_timer;
-	
+
 };
-""")
+      """
   }
 }
 
-case class CallTracker() extends Node with FilePrettyPrintable {
-  override def printToFile : Unit = {
+@deprecated("to be re-evaluated and, if suitable, integrated", "12.10.16")
+case class IR_CallTracker() extends Node with FilePrettyPrintable {
+  override def printToFile() : Unit = {
     val writerHeader = PrettyprintingManager.getPrinter(s"Util/CallTracker.h")
     val writerSource = PrettyprintingManager.getPrinter(s"Util/CallTracker.cpp")
 
-    writerHeader << ("""
+    writerHeader <<
+      """
 #include "Stopwatch.h"
 class CallTracker
 {
@@ -163,7 +108,7 @@ public:
 		if ( (*s_head)->CheckHasTimer(timer, &_new_call) )//To have measured every entry separately, comment this "if"
 		{
 			startTimer(*_new_call);
-			*s_head = _new_call; 
+			*s_head = _new_call;
 		}
 		else
 		{
@@ -171,13 +116,13 @@ public:
 			startTimer(*_new_call);
 			(*s_head)->AddChild(_new_call);
 
-			*s_head = _new_call;  
+			*s_head = _new_call;
 		}
-		  
+
 	}
 
 	static void StopTimer( StopWatch* timer )
-	{		
+	{
 		CallEntity** s_head = GetHead();
 		assert(( (*s_head)->_binded_timer) == timer );
 		stopTimer(**s_head);
@@ -242,7 +187,7 @@ public:
 
 	static StopWatch _root_timer;
 	static CallEntity* _root;
-	
+
 	static CallEntity** GetHead()//current timer we are in
 	{
 		static CallEntity** head = &_root;
@@ -274,7 +219,7 @@ public:
 	static std::vector<std::string> GetCallStackAsCSVIntend( int displacement, CallEntity* root )
 	{
 		std::vector<std::string> _data;
-		
+
 		if( root->_stoped )
 		{
 			_data.push_back(to_string(displacement)+";" + root->ToCSV() );
@@ -292,7 +237,7 @@ public:
 		return _data;
 	}
 
-	static std::vector<std::string> GetCallStackAsCSVML( CallEntity* root ) 
+	static std::vector<std::string> GetCallStackAsCSVML( CallEntity* root )
 	{
 		std::vector<std::string> _data;
 		for( int i = 0; i < _root->_childs.size(); i++ )
@@ -300,11 +245,11 @@ public:
 			std::vector<std::string> _l_data = GetCallStackAsCSVIntend( 0, (root->_childs)[i]);
 			_data.insert( _data.end(), _l_data.begin(), _l_data.end() );
 		}
-		
+
 		return _data;
 	}
 
-	static std::string GetCallStackAsCSV( CallEntity* root ) 
+	static std::string GetCallStackAsCSV( CallEntity* root )
 	{
 		std::string _data;
 		for( int i = 0; i < _root->_childs.size(); i++ )
@@ -329,19 +274,21 @@ public:
 		delete root;
 	}
 };
-""")
+      """
 
-    writerSource << ("""
+    writerSource <<
+      """
 StopWatch CallTracker::_root_timer("RootTimer");
 CallEntity* CallTracker::_root = new CallEntity( nullptr, &(CallTracker::_root_timer));
 
 int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
 {
 
-	""")
+      	"""
 
     if (Knowledge.mpi_enabled) {
-      writerSource << ("""	    
+      writerSource <<
+        """
 	int rank, N;
 	MPI_Comm_size(MPI_COMM_WORLD, &N);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -354,20 +301,22 @@ int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
 	}
 	else
 	{
-	   
-		
-	""")
+
+
+        	"""
     }
-    writerSource << ("""
+    writerSource <<
+      """
 
 		//this node:
 		std::string timer_datas = GetCallStackAsCSV(_root);
-		
+
 		out_data.push_back(timer_datas);
 
-	""")
+      	"""
     if (Knowledge.mpi_enabled) {
-      writerSource << ("""
+      writerSource <<
+        """
 
 		//other
 		MPI_Status status;
@@ -385,19 +334,20 @@ int CallTracker::GetCallStackAsCSVGlobal( std::vector<std::string>& out_data)
 			delete[] arr;
 			timer_datas.resize(size);
 
-			out_data.push_back(timer_datas);		
+			out_data.push_back(timer_datas);
 		}
 
 	}
 	return rank;
 }
 
-	    """)
+        	    """
     } else {
-      writerSource << ("""
+      writerSource <<
+        """
     return 0;
 }
-	    """)
+        	    """
     }
   }
 }

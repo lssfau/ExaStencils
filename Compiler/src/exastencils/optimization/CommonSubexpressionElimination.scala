@@ -16,9 +16,8 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.ir._
 import exastencils.prettyprinting._
-import exastencils.util._
 import exastencils.util.ir.IR_Print
 
 object CommonSubexpressionElimination extends CustomStrategy("Common subexpression elimination") {
@@ -239,7 +238,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
             case strLit : IR_StringLiteral if (strLit.value == loopItVar) =>
               IR_AdditionExpression(strLit, IR_IntegerConstant(loopIncr))
           }, false), Some(csNext))
-          csNext = SimplifyExpression.simplifyFloatingExpr(csNext)
+          csNext = IR_SimplifyExpression.simplifyFloatingExpr(csNext)
           val csNextWrap = IR_ExpressionStatement(csNext)
           IR_GeneralSimplify.doUntilDoneStandalone(csNextWrap, true)
           csNext = csNextWrap.expression
@@ -276,13 +275,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
       val loopBeginOpt =
         try {
-          IR_IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopBegin)._1)
+          IR_IntegerConstant(IR_SimplifyExpression.evalIntegralExtrema(loopBegin)._1)
         } catch {
           case ex : EvaluationException => Duplicate(loopBegin)
         }
       val loopEndOpt =
         try {
-          IR_IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopEnd)._2)
+          IR_IntegerConstant(IR_SimplifyExpression.evalIntegralExtrema(loopEnd)._2)
         } catch {
           case ex : EvaluationException => loopEnd // must not be duplicated, since it is not used elsewhere
         }
@@ -296,7 +295,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       tmpBufLen(len) = loopEndOpt - loopBeginOpt
       if (Knowledge.data_alignFieldPointers)
         try {
-          val (_, size : Long) = SimplifyExpression.evalIntegralExtrema(tmpBufLen(len))
+          val (_, size : Long) = IR_SimplifyExpression.evalIntegralExtrema(tmpBufLen(len))
           val vecSize : Long = Platform.simd_vectorSize
           tmpBufLen(len) = IR_IntegerConstant((size + vecSize) & ~(vecSize - 1))
         } catch {

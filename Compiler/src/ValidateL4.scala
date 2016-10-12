@@ -1,7 +1,7 @@
 import exastencils.config._
 import exastencils.core.StateManager
+import exastencils.parsers.InputReader
 import exastencils.parsers.l4._
-import exastencils.util.InputReader
 
 object ValidateL4 {
   def main(args : Array[String]) : Unit = {

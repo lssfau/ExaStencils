@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.knowledge.ir.IR_KnowledgeObjectWithIdentAndLevel
 import exastencils.logger.Logger
-import exastencils.util.SimplifyExpression
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_StencilEntry
@@ -29,7 +29,7 @@ case class IR_Stencil(
 
   def datatype = entries.foldLeft(entries.head.datatype)((dt, entry) => IR_ResultingDatatype(dt, entry.datatype))
 
-  def getReach(dim : Int) = entries.map(entry => SimplifyExpression.evalIntegral(entry.offset(dim)).toInt).max
+  def getReach(dim : Int) = entries.map(entry => IR_SimplifyExpression.evalIntegral(entry.offset(dim)).toInt).max
 
   def findStencilEntry(offset : IR_ExpressionIndex) : Option[IR_StencilEntry] = {
     val index = findStencilEntryIndex(offset)

@@ -7,7 +7,6 @@ import exastencils.domain.ir._
 import exastencils.knowledge
 import exastencils.knowledge.l4.L4_KnowledgeDecl
 import exastencils.prettyprinting.PpStream
-import exastencils.util.AABB
 
 /// L4_DomainDecl
 
@@ -60,7 +59,7 @@ case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) ex
       }
       case (l : L4_ConstVec2D, u : L4_ConstVec2D) => knowledge.RectangularDomain(name, index, RectangularDomainShape(AABB(l.x, u.x, l.y, u.y, 0, 0)))
       case (l : L4_ConstVec3D, u : L4_ConstVec3D) => knowledge.RectangularDomain(name, index, RectangularDomainShape(AABB(l.x, u.x, l.y, u.y, l.z, u.z)))
-      case _                                      => knowledge.RectangularDomain(name, index, RectangularDomainShape(new AABB()))
+      case _                                      => knowledge.RectangularDomain(name, index, RectangularDomainShape(AABB()))
     }
   }
   override def addToKnowledge() = ???

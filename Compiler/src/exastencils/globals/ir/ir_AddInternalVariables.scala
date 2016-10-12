@@ -13,6 +13,7 @@ import exastencils.datastructures.ir.iv
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.globals.Globals
 import exastencils.logger.Logger
+import exastencils.optimization.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util._
 
@@ -55,7 +56,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
         else
           bufferSizes += (id -> IR_MaximumExpression(ListBuffer(Duplicate(buf.size))))
       } else {
-        val size = SimplifyExpression.evalIntegral(buf.size).toLong
+        val size = IR_SimplifyExpression.evalIntegral(buf.size).toLong
         bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
       }
       buf
@@ -140,7 +141,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
         else
           deviceBufferSizes += (id -> IR_MaximumExpression(ListBuffer(Duplicate(buf.size))))
       } else {
-        val size = SimplifyExpression.evalIntegral(buf.size).toLong
+        val size = IR_SimplifyExpression.evalIntegral(buf.size).toLong
         deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
       }
       buf
@@ -195,7 +196,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveName()
       var size = bufferSizes(id)
       try {
-        size = SimplifyExpression.simplifyIntegralExpr(size)
+        size = IR_SimplifyExpression.simplifyIntegralExpr(size)
       } catch {
         case ex : EvaluationException =>
       }

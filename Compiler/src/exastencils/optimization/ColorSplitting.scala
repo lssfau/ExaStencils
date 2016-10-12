@@ -10,6 +10,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.config._
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.polyhedron._
 import exastencils.util._
 
@@ -43,9 +44,9 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
           case _ =>
             return false
         }
-      val accCSum = SimplifyExpression.extractIntegralSum(Duplicate(index).reduce((x, y) => x + y))
-      val cOffset : Long = accCSum.remove(SimplifyExpression.constName).getOrElse(0L)
-      if (accCSum != SimplifyExpression.extractIntegralSum(expr))
+      val accCSum = IR_SimplifyExpression.extractIntegralSum(Duplicate(index).reduce((x, y) => x + y))
+      val cOffset : Long = accCSum.remove(IR_SimplifyExpression.constName).getOrElse(0L)
+      if (accCSum != IR_SimplifyExpression.extractIntegralSum(expr))
         return false
       val color : Long = ((cValue + cOffset) % nrColors + nrColors) % nrColors // mathematical modulo
       index(dim) += IR_IntegerConstant(color * colorOffset)

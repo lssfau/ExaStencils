@@ -1,4 +1,4 @@
-package exastencils.util
+package exastencils.parsers
 
 import scala.util.parsing.json.JSON
 
