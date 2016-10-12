@@ -4,7 +4,7 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.config._
-import exastencils.strategies._
+import exastencils.optimization.ir.IR_GeneralSimplify
 
 object Simplification {
   def main(args : Array[String]) : Unit = {
@@ -19,7 +19,7 @@ object Simplification {
 
     println(node)
 
-    SimplifyStrategy.doUntilDoneStandalone(node)
+    IR_GeneralSimplify.doUntilDoneStandalone(node)
 
     println(node)
   }

@@ -16,9 +16,8 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
 import exastencils.logger.Logger
-import exastencils.strategies.SimplifyStrategy
-import exastencils.strategies.ir.SlotAccessAsConst
-import exastencils.util.SimplifyExpression
+import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.performance.ir.IR_SlotAccessAsConst
 
 trait LogVerbose {
   val verbose = true
@@ -30,11 +29,10 @@ trait LogVerbose {
   }
 }
 
-
 /** Field used in loop kernel with slot mapped to integer constant. */
-private case class FieldWithSlotId(val field:IR_Field, val slotId:Int) {
+private case class FieldWithSlotId(val field : IR_Field, val slotId : Int) {
   def identifierName : String = field.identifier + slotId.toString
-  def multiDimArrayAccess(index:IR_ExpressionIndex) = {
+  def multiDimArrayAccess(index : IR_ExpressionIndex) = {
     val ident = IR_VariableAccess(identifierName, Some(field.resolveBaseDatatype))
     IR_MultiDimArrayAccess(ident, index)
   }
@@ -96,7 +94,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
       logVerbose("======================================================================")
       logVerbose(s"function %s kernel %04d - ${ kernelFilePath.toString }".format(curFun.name, curFunLoopCounter))
       logVerbose(s"loop.numDimensions ${ loop.numDimensions }")
-      SimplifyStrategy.doUntilDoneStandalone(loop.indices)
+      IR_GeneralSimplify.doUntilDoneStandalone(loop.indices)
       if (verbose) {
         val ix = loop.indices
         val ixPairs = ix.begin.zip(ix.end)
@@ -157,10 +155,10 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
         //      val size = (0 until dim).map(dim => field.fieldSelection.field.fieldLayout.idxById("TOT", dim))
 
         val ndims = fieldWithSlotId.field.fieldLayout.numDimsData
-        val dimsz = {d:Int => fieldWithSlotId.field.fieldLayout.defTotal(d)}
+        val dimsz = { d : Int => fieldWithSlotId.field.fieldLayout.defTotal(d) }
 
         val declBuf = new ListBuffer[String]
-        declBuf +=(scalarDataType.prettyprint(), " ", idname)
+        declBuf += (scalarDataType.prettyprint(), " ", idname)
         val literalSizeDecl = (0 until ndims).reverse.flatMap(d => List("[", dimsz(d).toString, "]"))
 
         (0 until ndims).reverse.foreach(d => {
@@ -184,7 +182,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     val begin = IR_LoopOverDimensions.evalMinIndex(loop.indices.begin, loop.numDimensions, true)
     val end = IR_LoopOverDimensions.evalMaxIndex(loop.indices.end, loop.numDimensions, true)
 
-    def createForLoop(d : Int, body: ListBuffer[IR_Statement]) : IR_ForLoop = {
+    def createForLoop(d : Int, body : ListBuffer[IR_Statement]) : IR_ForLoop = {
       def it = IR_VariableAccess(IR_DimToString(d), Some(IR_IntegerDatatype))
       val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(IR_IntegerConstant(begin(d))))
       val cond = IR_LowerExpression(it, IR_IntegerConstant(end(d)))
@@ -196,7 +194,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     }
 
     var forLoop : Option[IR_ForLoop] = None
-    (0 to loop.numDimensions-1).foreach {d =>
+    (0 to loop.numDimensions - 1).foreach { d =>
       if (d == 0) {
         forLoop = Some(createForLoop(d, loop.body))
       } else {
@@ -206,7 +204,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     }
     //logVerbose("buildForLoopRec() loop:")
     //logVerbose("%s".format(forLoop.get.prettyprint()))
-    return  forLoop.get
+    return forLoop.get
 
   }
 
@@ -243,8 +241,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
   */
 private object TransformKernel
   extends DefaultStrategy("Transforming variable/field accesses in loop kernel")
-    with LogVerbose
-{
+    with LogVerbose {
   val fields = ListBuffer[FieldWithSlotId]()
   var hasInternalVariables = false
 
@@ -265,16 +262,16 @@ private object TransformKernel
 
       val slotId : Int =
         fa.fieldSelection.slot match {
-          case sa : IR_SlotAccess =>
-            SlotAccessAsConst(fa) match {
+          case sa : IR_SlotAccess           =>
+            IR_SlotAccessAsConst(fa) match {
               case Some(id) =>
                 logVerbose("XX SlotAccessAsConst: %d".format(id.v))
                 id.v.toInt
-              case _ => throw new Exception("IR_MultiDimFieldAccess wit IR_SlotAccess did not resolve to IR_IntegerConstant")
+              case _        => throw new Exception("IR_MultiDimFieldAccess wit IR_SlotAccess did not resolve to IR_IntegerConstant")
             }
-          case IR_IntegerConstant(v) => v.toInt
+          case IR_IntegerConstant(v)        => v.toInt
           case IR_VariableAccess("slot", _) => 99 // FIXME HACK, do we have some more info on slot variable?
-          case _ =>
+          case _                            =>
             throw new Exception("KerncraftExport: unhandled IR_SlotAccess expression: %s".format(fa.fieldSelection.slot))
         }
 
@@ -296,7 +293,7 @@ private object TransformKernel
       hasInternalVariables = true
       va
 
-    case x                        =>
+    case x =>
       //logVerbose("XXXXX not handled: " + x.toString())
       x
   }

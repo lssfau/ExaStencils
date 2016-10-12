@@ -9,7 +9,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.parallelization.ir._
 import exastencils.prettyprinting.PpStream
-import exastencils.strategies.ReplaceStringConstantsStrategy
+import exastencils.util.ir.IR_ReplaceVariableAccess
 
 object IR_LoopOverFragments {
   def apply(body : IR_Statement*) = new IR_LoopOverFragments(body.to[ListBuffer])
@@ -52,9 +52,9 @@ object IR_ResolveLoopOverFragments extends DefaultStrategy("Resolve LoopOverFrag
         val scope = IR_Scope(loop.body)
 
         // replace references to old loop iterator
-        ReplaceStringConstantsStrategy.toReplace = IR_LoopOverFragments.defIt
-        ReplaceStringConstantsStrategy.replacement = IR_IntegerConstant(0)
-        ReplaceStringConstantsStrategy.applyStandalone(scope)
+        IR_ReplaceVariableAccess.toReplace = IR_LoopOverFragments.defIt
+        IR_ReplaceVariableAccess.replacement = IR_IntegerConstant(0)
+        IR_ReplaceVariableAccess.applyStandalone(scope)
 
         // check if scoping is necessary
         var scoping = false

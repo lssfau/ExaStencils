@@ -10,10 +10,10 @@ import exastencils.cuda.CudaStrategiesUtils
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.performance.SIMD_MathFunctions
 import exastencils.simd._
-import exastencils.strategies.SimplifyStrategy
 import exastencils.util.SimplifyExpression
 
 object Vectorization extends DefaultStrategy("Vectorization") {
@@ -417,8 +417,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           case "-=" => IR_SubtractionExpression(lhsSca, rhsSca)
           case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.prettyprint())
         }))
-        SimplifyStrategy.doUntilDoneStandalone(srcWrap)
-        SimplifyStrategy.doUntilDoneStandalone(lhsSca) // simplify lhsSca too, to ensure identical array accesses have the same AST structure
+        IR_GeneralSimplify.doUntilDoneStandalone(srcWrap)
+        IR_GeneralSimplify.doUntilDoneStandalone(lhsSca) // simplify lhsSca too, to ensure identical array accesses have the same AST structure
       // create rhs before lhs to ensure all loads are created
       val rhsVec = vectorizeExpr(srcWrap.expression, ctx.setLoad())
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
@@ -445,7 +445,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_VariableDeclaration(dataType, name, Some(init)) =>
         ctx.addStmt(new IR_Comment(stmt.prettyprint()))
         val initWrap = new IR_ExpressionStatement(Duplicate(init))
-        SimplifyStrategy.doUntilDoneStandalone(initWrap)
+        IR_GeneralSimplify.doUntilDoneStandalone(initWrap)
         val initVec = vectorizeExpr(initWrap.expression, ctx.setLoad())
         val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, Some(dataType)))
         ctx.addStmt(new IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, Some(initVec)))

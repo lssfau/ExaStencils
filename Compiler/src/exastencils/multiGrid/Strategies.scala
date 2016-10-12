@@ -17,8 +17,8 @@ import exastencils.knowledge.Fragment
 import exastencils.logger._
 import exastencils.mpi.ir._
 import exastencils.stencil.ir._
-import exastencils.strategies.ReplaceStringConstantsStrategy
 import exastencils.util._
+import exastencils.util.ir.IR_ReplaceVariableAccess
 
 object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
   val collector = new IRLevelCollector
@@ -39,10 +39,10 @@ object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices"
         val idxAdaption = fct.arguments(2 + dim)
 
         // insert old index into index adaptation function
-        ReplaceStringConstantsStrategy.toReplace = "i"
-        ReplaceStringConstantsStrategy.replacement = Duplicate(fieldAccess.index(dim))
+        IR_ReplaceVariableAccess.toReplace = "i"
+        IR_ReplaceVariableAccess.replacement = Duplicate(fieldAccess.index(dim))
         var newIdx = Duplicate(idxAdaption)
-        ReplaceStringConstantsStrategy.applyStandalone(newIdx)
+        IR_ReplaceVariableAccess.applyStandalone(newIdx)
 
         // overwrite old index
         fieldAccess.index(dim) = newIdx

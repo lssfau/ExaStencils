@@ -16,8 +16,8 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting._
-import exastencils.strategies.SimplifyStrategy
 import exastencils.util._
 import exastencils.util.ir.IR_Print
 
@@ -143,7 +143,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     }), Some(parent)) // modifications in a list result in a new list created, so work with original parent and not with wrapped body
 
     SimplifyFloatExpressions.applyStandalone(parent)
-    SimplifyStrategy.doUntilDoneStandalone(parent, true)
+    IR_GeneralSimplify.doUntilDoneStandalone(parent, true)
   }
 
   private def loopCarriedCSE(curFunc : String, loop : IR_LoopOverDimensions,
@@ -185,7 +185,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       }, false), Some(prevItBody))
 
       SimplifyFloatExpressions.applyStandalone(prevItBody)
-      SimplifyStrategy.doUntilDoneStandalone(prevItBody, true)
+      IR_GeneralSimplify.doUntilDoneStandalone(prevItBody, true)
 
       val coll = new CollectBaseCSes(curFunc)
       this.register(coll)
@@ -241,7 +241,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           }, false), Some(csNext))
           csNext = SimplifyExpression.simplifyFloatingExpr(csNext)
           val csNextWrap = IR_ExpressionStatement(csNext)
-          SimplifyStrategy.doUntilDoneStandalone(csNextWrap, true)
+          IR_GeneralSimplify.doUntilDoneStandalone(csNextWrap, true)
           csNext = csNextWrap.expression
 
           // FIXME: fix datatypes

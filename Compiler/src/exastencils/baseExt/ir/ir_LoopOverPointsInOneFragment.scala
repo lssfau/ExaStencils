@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.communication.ir.IR_Communicate
+import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
@@ -15,10 +15,10 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.knowledge.Fragment
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.ir._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
-import exastencils.strategies._
 
 // FIXME: refactor: extract functionality, reduce complexity
 case class IR_LoopOverPointsInOneFragment(var domain : Int,
@@ -101,7 +101,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     }
 
     val indexRange = IR_ExpressionIndexRange(start, stop)
-    SimplifyStrategy.doUntilDoneStandalone(indexRange)
+    IR_GeneralSimplify.doUntilDoneStandalone(indexRange)
 
     // fix iteration space for reduction operations if required
     if (Knowledge.experimental_trimBoundsForReductionLoops && parallelization.reduction.isDefined && !region.isDefined) {
@@ -135,12 +135,13 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       Logger.warn("Found unsupported case of a loop with pre and post communication statements - post communication statements will be ignored")
     }
 
+    // TODO: move to communication/ir/IR_SplitLoopsForCommunication
     if (Knowledge.experimental_splitLoopsForAsyncComm && preComms.nonEmpty) {
       if (region.isDefined) Logger.warn("Found region loop with communication step")
 
-      // gather occuring field access offsets - will determine bounds of inner and outer loop
-      GatherFieldAccessOffsets.accesses.clear
-      GatherFieldAccessOffsets.applyStandalone(IR_Scope(body))
+      // gather occurring field access offsets - will determine bounds of inner and outer loop
+      IR_GatherFieldAccessOffsets.accesses.clear
+      IR_GatherFieldAccessOffsets.applyStandalone(IR_Scope(body))
 
       // check dimensionality of involved fields
       val numDims = field.fieldLayout.numDimsGrid
@@ -168,9 +169,9 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       //  optionally enforce a certain number of elements for vectorization/ optimized cache line usage
       for (cs <- preComms) {
         val newLowerBounds = (0 until numDims).map(dim => {
-          var ret : IR_Expression = new IR_MinimumExpression(GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_ (dim)))
+          var ret : IR_Expression = new IR_MinimumExpression(IR_GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_ (dim)))
           ret = 1 - ret
-          SimplifyStrategy.doUntilDoneStandalone(IR_ExpressionStatement(ret))
+          IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(ret))
           start(dim) + ret
         })
 
@@ -179,9 +180,9 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
 
       for (cs <- preComms) {
         val newUpperBounds = (0 until numDims).map(dim => {
-          var ret : IR_Expression = new IR_MaximumExpression(GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_ (dim)))
+          var ret : IR_Expression = new IR_MaximumExpression(IR_GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_ (dim)))
           ret = 1 + ret
-          SimplifyStrategy.doUntilDoneStandalone(IR_ExpressionStatement(ret))
+          IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(ret))
           stop(dim) - ret
         })
 

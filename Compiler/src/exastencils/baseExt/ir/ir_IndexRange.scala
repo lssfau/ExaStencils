@@ -2,7 +2,7 @@ package exastencils.baseExt.ir
 
 import exastencils.base.ir._
 import exastencils.datastructures.Node
-import exastencils.strategies.SimplifyStrategy
+import exastencils.optimization.ir.IR_GeneralSimplify
 
 /// IR_ExpressionIndexRange
 
@@ -16,7 +16,7 @@ case class IR_ExpressionIndexRange(var begin : IR_ExpressionIndex, var end : IR_
   def getTotalSize : IR_Expression = {
     // wrapping due to strategies not being applied to top level nodes
     val totalSize = IR_ExpressionStatement((end - begin).reduce(_ * _))
-    SimplifyStrategy.doUntilDoneStandalone(totalSize)
+    IR_GeneralSimplify.doUntilDoneStandalone(totalSize)
     totalSize.expression
   }
 

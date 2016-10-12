@@ -12,8 +12,8 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
-import exastencils.strategies.SimplifyStrategy
 import exastencils.util.ir.IR_ResultingDatatype
 
 // TODO: is it really necessary to wrap convolutions in separate nodes?
@@ -46,12 +46,12 @@ case class IR_StencilStencilConvolution(var stencilLeft : IR_Stencil, var stenci
         IR_ReplaceIndexOccurrences.doUntilDoneStandalone(combOff)
 
         var combCoeff : IR_Expression = (re.coefficient * le.coefficient)
-        SimplifyStrategy.doUntilDoneStandalone(combOff)
-        SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+        IR_GeneralSimplify.doUntilDoneStandalone(combOff)
+        IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
         val addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
         if (addToEntry.isDefined) {
           combCoeff += addToEntry.get.coefficient
-          SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+          IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
           addToEntry.get.coefficient = combCoeff
         } else entries += IR_StencilEntry(combOff, combCoeff)
       }
@@ -95,15 +95,15 @@ case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAc
         IR_ReplaceIndexOccurrences.doUntilDoneStandalone(combOff)
 
         var combCoeff : IR_Expression = re.coefficient * IR_FieldAccess(fieldSel, stencilFieldIdx)
-        SimplifyStrategy.doUntilDoneStandalone(combOff)
-        SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+        IR_GeneralSimplify.doUntilDoneStandalone(combOff)
+        IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
         val addToEntry = entries.find(e => e.offset match {
           case o if combOff == o => true
           case _                 => false
         })
         if (addToEntry.isDefined) {
           combCoeff += addToEntry.get.coefficient
-          SimplifyStrategy.doUntilDoneStandalone(combCoeff)
+          IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
           addToEntry.get.coefficient = combCoeff
         } else entries += IR_StencilEntry(combOff, combCoeff)
       }

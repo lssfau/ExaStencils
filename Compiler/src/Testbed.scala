@@ -7,9 +7,9 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting._
 import exastencils.stencil.ir._
-import exastencils.strategies._
 
 object Testbed {
   def test : Unit = {
@@ -487,7 +487,7 @@ object Testbed {
 
     StateManager.root_ = root
 
-    SimplifyStrategy.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     Settings.outputPath = "Heap/"
     var printer = PrettyprintingManager.getPrinter("tet_gs_coeff_gen.cc")

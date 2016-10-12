@@ -12,7 +12,7 @@ import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.interfacing.ir._
 import exastencils.logger._
-import exastencils.strategies._
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.util.ir.IR_MathFunctions
 
 object SimplifyExpression {
@@ -441,7 +441,7 @@ object SimplifyExpression {
   def simplifyIntegralExpr(expr : IR_Expression) : IR_Expression = {
     try {
       val res = IR_ExpressionStatement(recreateExprFromIntSum(extractIntegralSum(expr)))
-      SimplifyStrategy.doUntilDoneStandalone(res)
+      IR_GeneralSimplify.doUntilDoneStandalone(res)
       return res.expression
     } catch {
       case ex : EvaluationException =>
@@ -764,7 +764,7 @@ object SimplifyExpression {
   def simplifyFloatingExpr(expr : IR_Expression) : IR_Expression = {
     try {
       val res = IR_ExpressionStatement(recreateExprFromFloatSum(extractFloatingSum(expr)))
-      SimplifyStrategy.doUntilDoneStandalone(res)
+      IR_GeneralSimplify.doUntilDoneStandalone(res)
       return res.expression
     } catch {
       case ex : EvaluationException =>

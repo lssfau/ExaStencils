@@ -1,18 +1,15 @@
 package exastencils.performance
 
+import scala.collection.immutable.HashMap
+
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core.Duplicate
-import exastencils.datastructures._
 import exastencils.core.collectors.Collector
+import exastencils.datastructures._
 import exastencils.field.ir.IR_MultiDimFieldAccess
-import exastencils.prettyprinting.PrettyPrintable
-import exastencils.strategies.SimplifyStrategy
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.util.SimplifyExpression
-
-import scala.collection.immutable.HashMap
-
-
 
 object KernelSubscriptAnalysis extends QuietDefaultStrategy(
   "Analyzing array subscripts of loop kernels") {
@@ -23,12 +20,12 @@ object KernelSubscriptAnalysis extends QuietDefaultStrategy(
   val loopCollector = new Collector {
     override def leave(node : Node) : Unit = {
       node match {
-        case fun : IR_Function => curFun = null
+        case fun : IR_Function            => curFun = null
         case loop : IR_LoopOverDimensions => curLoop = null
           println("============================================")
           println("loop in function " + curFun.name)
           println("loop range %s -> %s".format(loop.indices.begin.prettyprint(), loop.indices.end.prettyprint()))
-          println("loop stepSize "+ loop.stepSize.prettyprint())
+          println("loop stepSize " + loop.stepSize.prettyprint())
           println("loop indices " + loop.indices.print)
         case _                            =>
       }
@@ -36,7 +33,7 @@ object KernelSubscriptAnalysis extends QuietDefaultStrategy(
 
     override def enter(node : Node) : Unit = {
       node match {
-        case fun : IR_Function => curFun = fun
+        case fun : IR_Function            => curFun = fun
         case loop : IR_LoopOverDimensions => curLoop = loop
         case _                            =>
       }
@@ -64,9 +61,9 @@ object KernelSubscriptAnalysis extends QuietDefaultStrategy(
     //    IR_ExpressionIndex(diffIndex:_*)
     println("diff : " + diffIndex.prettyprint())
 
-    val diffIndexSimpl = IR_ExpressionIndex(diffIndex.map(x => SimplifyExpression.simplifyIntegralExpr(x)).toSeq:_*)
+    val diffIndexSimpl = IR_ExpressionIndex(diffIndex.map(x => SimplifyExpression.simplifyIntegralExpr(x)).toSeq : _*)
 //    SimplifyExpression.simplifyIntegralExpr(diffIndex)
-    SimplifyStrategy.doUntilDoneStandalone(diffIndex)
+    IR_GeneralSimplify.doUntilDoneStandalone(diffIndex)
 //    diffIndex.foreach(x => SimplifyStrategy.doUntilDoneStandalone(x))
     println("diff simplified: " + diffIndexSimpl.prettyprint())
 
@@ -87,11 +84,11 @@ object KernelSubscriptAnalysis extends QuietDefaultStrategy(
   * I.e. [y][x] -> [y+1][x+1]
   *
   * Apply to cloned IR_ExpressionIndex of IR_MultiDimFieldAccess. */
-class StepFieldAccesses(val loop: IR_LoopOverDimensions) extends  QuietDefaultStrategy(
+class StepFieldAccesses(val loop : IR_LoopOverDimensions) extends QuietDefaultStrategy(
   "Stepping loop indices in field accesses") {
   val trafo : PartialFunction[Node, Transformation.OutputType] = {
 
-    case va:IR_VariableAccess =>
+    case va : IR_VariableAccess =>
 
       val dimOpt = loopIndexVarDim(va.name)
       // assuming va is not a index variable access if loopIndexVarDim does not return Some[Int]
@@ -99,7 +96,7 @@ class StepFieldAccesses(val loop: IR_LoopOverDimensions) extends  QuietDefaultSt
       if (dimOpt.isDefined) {
         val dim = dimOpt.get
         val stepSize = loop.stepSize(dim)
-//        println("XX stepSize: " + stepSize.prettyprint())
+        //        println("XX stepSize: " + stepSize.prettyprint())
         val steppedIndex = IR_AdditionExpression(va, stepSize)
 //        println("XX steppedIndex: " + steppedIndex.prettyprint())
         steppedIndex
@@ -118,8 +115,8 @@ class StepFieldAccesses(val loop: IR_LoopOverDimensions) extends  QuietDefaultSt
 
   override def applyStandalone(node : Node) : Unit = {
     node match {
-      case x:IR_ExpressionIndex => println("IR_ExpressionIndex: %s".format(x.prettyprint()))
-      case _ =>
+      case x : IR_ExpressionIndex => println("IR_ExpressionIndex: %s".format(x.prettyprint()))
+      case _                      =>
     }
 
     super.applyStandalone(node)

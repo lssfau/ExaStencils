@@ -25,12 +25,12 @@ import exastencils.mpi.ir._
 import exastencils.multiGrid._
 import exastencils.omp.ir._
 import exastencils.optimization._
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.stencil.ir.IR_ResolveStencilFunction
 import exastencils.stencil.l4.L4_ProcessStencilDeclarations
-import exastencils.strategies._
 import exastencils.util._
 import exastencils.util.l4.L4_ResolveSpecialConstants
 
@@ -225,7 +225,7 @@ object MainJeremias {
 
     AddDefaultGlobals.apply()
 
-    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
+    IR_GeneralSimplify.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
     Fragment.setupNeighbors()
     StateManager.findFirst[Globals]().get.functions += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
@@ -244,9 +244,9 @@ object MainJeremias {
       FindStencilConvolutions.apply()
       convChanged = FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
-        ExpandOnePassStrategy.apply()
+        IR_ExpandInOnePass.apply()
       else
-        ExpandStrategy.doUntilDone()
+        IR_Expand.doUntilDone()
     } while (convChanged)
 
     IR_ResolveStencilFunction.apply()
@@ -258,9 +258,9 @@ object MainJeremias {
     IR_ResolveFieldAccess.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
@@ -283,14 +283,14 @@ object MainJeremias {
     IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     if (!Knowledge.mpi_enabled)
       MPI_RemoveMPI.apply()
 
-    SimplifyStrategy.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
@@ -308,9 +308,9 @@ object MainJeremias {
 
     IR_AddInternalVariables.apply()
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     if (Knowledge.mpi_enabled)
       MPI_AddDatatypeSetup.apply()
@@ -328,16 +328,15 @@ object MainJeremias {
 
     // one last time
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
-    SimplifyStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_maxInliningSize > 0)
       Inlining.apply()
-    CleanUnusedStuff.apply()
 
-    PrintStrategy.apply()
+    PrintToFile.apply()
     PrettyprintingManager.finish
     if (!Knowledge.domain_rect_generate) {
       exastencils.domain.FragmentKnowledge.saveFragmentData()

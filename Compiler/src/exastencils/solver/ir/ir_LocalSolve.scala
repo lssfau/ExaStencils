@@ -11,8 +11,8 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
-import exastencils.strategies.SimplifyStrategy
 
 /// IR_ResolveLocalSolve
 
@@ -106,7 +106,7 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
     // preparation: bring all entries to left side and simplify
     val zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : IR_Expression)
     for (eq <- zeroEqs)
-      SimplifyStrategy.doUntilDoneStandalone(eq, true)
+      IR_GeneralSimplify.doUntilDoneStandalone(eq, true)
 
     // scan lhs for constants
     for (eqNumber <- zeroEqs.indices) {

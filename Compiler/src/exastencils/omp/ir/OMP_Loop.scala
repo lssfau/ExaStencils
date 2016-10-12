@@ -10,7 +10,7 @@ import exastencils.cuda.CudaStrategiesUtils
 import exastencils.datastructures._
 import exastencils.optimization.OptimizationHint
 import exastencils.prettyprinting.PpStream
-import exastencils.strategies.ReplaceStringConstantsStrategy
+import exastencils.util.ir.IR_ReplaceVariableAccess
 
 case class OMP_ParallelFor(
     var loop : IR_ForLoop,
@@ -95,9 +95,9 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
           val redOperands = ListBuffer[IR_Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
           val red = IR_Assignment(redExp, if ("min" == redOp) IR_MinimumExpression(redOperands) else IR_MaximumExpression(redOperands))
 
-          ReplaceStringConstantsStrategy.toReplace = redExp.prettyprint
-          ReplaceStringConstantsStrategy.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
-          ReplaceStringConstantsStrategy.applyStandalone(ompSection.loop)
+          IR_ReplaceVariableAccess.toReplace = redExp.prettyprint
+          IR_ReplaceVariableAccess.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
+          IR_ReplaceVariableAccess.applyStandalone(ompSection.loop)
 
           prependStmts += decl
           prependStmts ++= init

@@ -29,6 +29,7 @@ import exastencils.mpi.ir._
 import exastencils.multiGrid._
 import exastencils.omp.ir._
 import exastencils.optimization._
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parsers.l4._
 import exastencils.parsers.settings._
 import exastencils.performance._
@@ -37,7 +38,6 @@ import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveLocalSolve
 import exastencils.stencil.ir.IR_ResolveStencilFunction
 import exastencils.stencil.l4._
-import exastencils.strategies._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
 import exastencils.util.l4._
@@ -288,7 +288,7 @@ object MainStefan {
 
     if (Knowledge.experimental_mergeCommIntoLoops)
       IR_MergeCommunicateAndLoop.apply()
-    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
+    IR_GeneralSimplify.doUntilDone() // removes (conditional) calls to communication functions that are not possible
     IR_SetupCommunication.firstCall = true
     IR_SetupCommunication.apply()
 
@@ -303,9 +303,9 @@ object MainStefan {
       FindStencilConvolutions.apply()
       convChanged = FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
-        ExpandOnePassStrategy.apply()
+        IR_ExpandInOnePass.apply()
       else
-        ExpandStrategy.doUntilDone()
+        IR_Expand.doUntilDone()
     } while (convChanged)
 
     IR_ResolveStencilFunction.apply()
@@ -360,13 +360,13 @@ object MainStefan {
     IR_ResolveFieldAccess.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     // resolve constant IVs before applying poly opt
     IR_ResolveConstIVs.apply()
-    SimplifyStrategy.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
       new DuplicateNodes().apply() // FIXME: only debug
@@ -406,14 +406,14 @@ object MainStefan {
     IR_ResolveSlotOperations.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     if (!Knowledge.mpi_enabled)
       MPI_RemoveMPI.apply()
 
-    SimplifyStrategy.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
@@ -436,9 +436,9 @@ object MainStefan {
     IR_ResolveConstIVs.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     if (Knowledge.mpi_enabled)
       MPI_AddDatatypeSetup.apply()
@@ -456,24 +456,23 @@ object MainStefan {
 
     // one last time
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
-    SimplifyStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     exastencils.workaround.Compiler.apply()
 
     if (Knowledge.opt_maxInliningSize > 0)
       Inlining.apply()
-    CleanUnusedStuff.apply()
 
     if (Knowledge.generateFortranInterface)
-      Fortranify.apply()
+      IR_Fortranify.apply()
   }
 
   def print() = {
     Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
-    PrintStrategy.apply()
+    PrintToFile.apply()
     PrettyprintingManager.finish()
   }
 

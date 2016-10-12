@@ -6,8 +6,8 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
-import exastencils.strategies.SimplifyStrategy
 import exastencils.util.ir.IR_ResultingDatatype
 
 // TODO: is it really necessary to wrap convolutions in separate nodes?
@@ -30,7 +30,7 @@ case class IR_StencilConvolution(var stencil : IR_Stencil, var fieldAccess : IR_
 
   override def expand() : Output[IR_Expression] = {
     val ret : IR_Expression = stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
-    SimplifyStrategy.doUntilDoneStandalone(ret)
+    IR_GeneralSimplify.doUntilDoneStandalone(ret)
     ret
   }
 }
@@ -56,7 +56,7 @@ case class IR_StencilFieldConvolution(var stencilFieldAccess : IR_StencilFieldAc
 
   override def expand() : Output[IR_Expression] = {
     val ret : IR_Expression = stencilFieldAccess.stencilFieldSelection.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
-    SimplifyStrategy.doUntilDoneStandalone(ret)
+    IR_GeneralSimplify.doUntilDoneStandalone(ret)
     ret
   }
 }

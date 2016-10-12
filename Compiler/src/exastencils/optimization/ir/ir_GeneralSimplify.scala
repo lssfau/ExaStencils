@@ -1,89 +1,17 @@
-package exastencils.strategies
+package exastencils.optimization.ir
 
-import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Queue }
+import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.config._
-import exastencils.core._
-import exastencils.datastructures.Transformation._
+import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir._
-import exastencils.logger._
-import exastencils.prettyprinting._
+import exastencils.logger.Logger
 import exastencils.util.ir.IR_ResultingDatatype
 
-object PrintStrategy extends DefaultStrategy("Pretty-Print") {
-  this += new Transformation("Pretty-Print", {
-    case printable : FilePrettyPrintable =>
-      printable.printToFile
-      printable
-  })
-}
+/// IR_GeneralSimplify
 
-// TODO: replace with IR_VariableAccess => eliminate IR_StringLiteral occurrences
-object ReplaceStringConstantsStrategy extends QuietDefaultStrategy("Replace something with something else") {
-  var toReplace : String = ""
-  var replacement : Node = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // to be overwritten
-
-  this += new Transformation("SearchAndReplace", {
-    case IR_StringLiteral(s) if s == toReplace => Duplicate(replacement)
-  }, false)
-}
-
-object ExpandStrategy extends DefaultStrategy("Expanding") {
-  def doUntilDone(node : Option[Node] = None) = {
-    do { apply(node) }
-    while (results.last._2.matches > 0) // FIXME: cleaner code
-  }
-
-  def doUntilDoneStandalone(node : Node) = {
-    do { applyStandalone(node) }
-    while (results.last._2.matches > 0) // FIXME: cleaner code
-  }
-
-  this += new Transformation("Hoho, expanding all day...", {
-    case expandable : IR_Expandable => expandable.expand
-  })
-}
-
-object ExpandOnePassStrategy extends DefaultStrategy("Expanding") { // TODO: this strategy becomes somewhat obsolete as soon as trafos implement the required behavior directly
-  this += new Transformation("Hoho, expanding all day...", {
-    case expandable : IR_Expandable => {
-      var nodes : ListBuffer[Node] = ListBuffer()
-      nodes += expandable
-      var expandedSth = false
-      do {
-        expandedSth = false
-        for (n <- 0 until nodes.length) {
-          if (!expandedSth) {
-            nodes(n) match {
-              case expandable : IR_Expandable =>
-                val output = expandable.expand
-                output.inner match {
-                  case single : Node   => nodes.update(n, single)
-                  case list : NodeList => {
-                    val split = nodes.splitAt(n)
-                    split._2.remove(0)
-                    nodes = split._1 ++ list.nodes ++ split._2
-                  }
-                }
-                expandedSth = true
-              case _                          =>
-            }
-          }
-        }
-      } while (expandedSth)
-
-      if (nodes.length == 1)
-        nodes(0)
-      else
-        nodes
-    }
-  })
-}
-
-object SimplifyStrategy extends DefaultStrategy("Simplifying") {
+object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions") {
   // hack: since AdditionExpression and MultiplicationExpression lead always to a match, we don't count these if nothing was changed
   private var negMatches : Int = 0
   private var compactAST : Boolean = false
@@ -107,8 +35,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     this.compactAST = false
   }
 
-  this += new Transformation("Improving the quality of some horrid code...", {
-
+  this += new Transformation("Simplify", {
     case add : IR_AdditionExpression =>
       val nju = simplifyAdd(add.summands)
       if (nju == add)
@@ -154,10 +81,10 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case IR_PowerExpression(IR_IntegerConstant(base), IR_RealConstant(exp))    => IR_RealConstant(math.pow(base, exp))
     case IR_PowerExpression(IR_RealConstant(base), IR_RealConstant(exp))       => IR_RealConstant(math.pow(base, exp))
 
-    case IR_PowerExpression(base, IR_IntegerConstant(0))                       => IR_IntegerConstant(1)
-    case IR_PowerExpression(base, IR_IntegerConstant(1))                       => base
-    case IR_PowerExpression(base, IR_IntegerConstant(e)) if (e >= 2 && e <= 6) => IR_MultiplicationExpression(ListBuffer.fill(e.toInt)(Duplicate(base)))
-    case IR_PowerExpression(b, IR_RealConstant(e)) if (e.toLong.toDouble == e) => IR_PowerExpression(b, IR_IntegerConstant(e.toLong))
+    case IR_PowerExpression(base, IR_IntegerConstant(0))                     => IR_IntegerConstant(1)
+    case IR_PowerExpression(base, IR_IntegerConstant(1))                     => base
+    case IR_PowerExpression(base, IR_IntegerConstant(e)) if e >= 2 && e <= 6 => IR_MultiplicationExpression(ListBuffer.fill(e.toInt)(Duplicate(base)))
+    case IR_PowerExpression(b, IR_RealConstant(e)) if e.toLong.toDouble == e => IR_PowerExpression(b, IR_IntegerConstant(e.toLong))
 
     // deal with negatives
     case IR_NegativeExpression(IR_NegativeExpression(expr))           => expr
@@ -216,13 +143,12 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     case IR_OrOrExpression(IR_BooleanConstant(false), expr : IR_Expression) => expr
     case IR_OrOrExpression(expr : IR_Expression, IR_BooleanConstant(false)) => expr
 
-    case IR_IfCondition(IR_BooleanConstant(cond), tBranch, fBranch) => {
+    case IR_IfCondition(IR_BooleanConstant(cond), tBranch, fBranch) =>
       if (cond) {
         if (tBranch.isEmpty) IR_NullStatement else tBranch
       } else {
         if (fBranch.isEmpty) IR_NullStatement else fBranch
       }
-    }
   })
 
   private def simplifyAdd(sum : Seq[IR_Expression]) : IR_Expression = {
@@ -269,7 +195,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
             else
               negSums += e
         }
-      } while (!workQ.isEmpty)
+      } while (workQ.nonEmpty)
     }
 
     // add constant at last position
@@ -293,20 +219,20 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
     if (vecExpr != null) {
       if (posSums.isEmpty && negSums.isEmpty)
-        return vecExpr
+        vecExpr
       else
         Logger.error("Unable to add VectorExpression with other Expression types")
 
     } else if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
-      return (posSums ++= negSums.transform(x => IR_NegativeExpression(x)) += IR_IntegerConstant(0L)).head
+      (posSums ++= negSums.transform(x => IR_NegativeExpression(x)) += IR_IntegerConstant(0L)).head
 
     } else if (posSums.length * negSums.length == 0 || compactAST) { // if compactAST is set do not create any SubtractionExpression
-      return IR_AdditionExpression(posSums ++= negSums.transform(x => IR_NegativeExpression(x)))
+      IR_AdditionExpression(posSums ++= negSums.transform(x => IR_NegativeExpression(x)))
 
     } else {
       val posExpr = if (posSums.length == 1) posSums.head else new IR_AdditionExpression(posSums)
       val negExpr = if (negSums.length == 1) negSums.head else new IR_AdditionExpression(negSums)
-      return IR_SubtractionExpression(posExpr, negExpr)
+      IR_SubtractionExpression(posExpr, negExpr)
     }
   }
 
@@ -343,7 +269,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
           case r : IR_Expression                                 =>
             remA += r
         }
-      } while (!workQ.isEmpty)
+      } while (workQ.nonEmpty)
     }
     val rem = remA.to[ListBuffer]
     var cstDt : Option[IR_Datatype] = None
@@ -352,7 +278,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
     intCst = math.abs(intCst)
     if (floatCst * intCst == 0d) {
       rem.clear()
-      rem += new IR_IntegerConstant(0L) // TODO: fix type
+      rem += IR_IntegerConstant(0L) // TODO: fix type
     } else if (div != null) {
       div.left = IR_RealConstant(floatCst * intCst)
     } else if (floatCst != 1d) {
@@ -375,13 +301,13 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
         var found : Boolean = false
         val coeff : IR_Expression = rem.head // this must be the constant factor (as added a few lines above)
         rem.transform {
-          case v : IR_VectorExpression if (!found) =>
+          case v : IR_VectorExpression if !found =>
             found = true
             IR_VectorExpression(Some(IR_ResultingDatatype(cstDt.get, v.innerDatatype.getOrElse(IR_RealDatatype))), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
-          case m : IR_MatrixExpression if (!found) =>
+          case m : IR_MatrixExpression if !found =>
             found = true
             IR_MatrixExpression(Some(IR_ResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
-          case x                                   =>
+          case x                                 =>
             x
         }
         if (found)
@@ -392,7 +318,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
 
     if (negative)
       result = IR_NegativeExpression(result)
-    return result
+    result
   }
 
   private def simplifyBinMult(le : IR_Expression, ri : IR_Expression) : Seq[IR_Expression] = {
@@ -418,7 +344,7 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       exp >>= 1
       base *= base
     }
-    return res
+    res
   }
 
   private def pow(a : Double, b : Long) : Double = {
@@ -433,89 +359,6 @@ object SimplifyStrategy extends DefaultStrategy("Simplifying") {
       exp >>= 1
       base *= base
     }
-    return res
+    res
   }
-}
-
-object CleanUnusedStuff extends DefaultStrategy("Cleaning up unused stuff") {
-  // TODO: think about inlining
-  // TODO: this currently disregards parameters
-
-  var emptyFunctions = ListBuffer[String]()
-
-  override def apply(node : Option[Node] = None) = {
-    emptyFunctions.clear
-    super.apply(node)
-  }
-
-  this += new Transformation("Looking for deletable objects", {
-    case IR_Function(_, fName, _, ListBuffer(), _, _, _) => {
-      emptyFunctions += fName
-      List()
-    }
-  })
-
-  this += new Transformation("Removing obsolete references", {
-    case IR_FunctionCall(fName, _) if emptyFunctions.contains(fName) => IR_NullExpression
-  })
-
-  this += new Transformation("Removing empty scopes", {
-    case IR_Scope(ListBuffer()) => None
-  })
-
-  //  this += new Transformation("Removing null-statements", {
-  //    case ExpressionStatement(NullExpression) => List()
-  //    case NullStatement                       => List()
-  //  })
-}
-
-object UnifyInnerTypes extends DefaultStrategy("Unify inner types of (constant) vectors and matrices") {
-  var vectors = ListBuffer[IR_VectorExpression]()
-  var matrices = ListBuffer[IR_MatrixExpression]()
-
-  override def apply(applyAtNode : Option[Node]) = {
-    this.execute(new Transformation("Find vectors and matrices", {
-      case x : IR_VectorExpression =>
-        vectors.+=(x); x
-      case x : IR_MatrixExpression => matrices.+=(x); x
-    }))
-
-    vectors.foreach(vector => {
-      if (vector.isConstant) {
-        val reals = vector.expressions.count(_.isInstanceOf[IR_RealConstant])
-        val ints = vector.expressions.count(_.isInstanceOf[IR_IntegerConstant])
-        if (ints > 0 && reals > 0) {
-          vector.expressions = vector.expressions.map(e => if (e.isInstanceOf[IR_RealConstant]) e; else IR_RealConstant(e.asInstanceOf[IR_IntegerConstant].v))
-        }
-      }
-    })
-
-    matrices.foreach(matrix => {
-      if (matrix.isConstant) {
-        val reals = matrix.expressions.flatten[IR_Expression].count(_.isInstanceOf[IR_RealConstant])
-        val ints = matrix.expressions.flatten[IR_Expression].count(_.isInstanceOf[IR_IntegerConstant])
-        if (ints > 0 && reals > 0) {
-          matrix.expressions = matrix.expressions.map(_.map(e => if (e.isInstanceOf[IR_RealConstant]) e; else IR_RealConstant(e.asInstanceOf[IR_IntegerConstant].v)))
-        }
-      }
-    })
-  }
-}
-
-object GatherFieldAccessOffsets extends QuietDefaultStrategy("Gathering field access offsets honoring reference offsets") {
-  var accesses = HashMap[String, ListBuffer[IR_ExpressionIndex]]()
-
-  def addAccess(key : String, index : IR_ExpressionIndex) = {
-    if (!accesses.contains(key)) accesses.put(key, ListBuffer())
-    accesses(key) += index
-  }
-
-  this += new Transformation("TODO", {
-    case fa : IR_FieldAccess        =>
-      addAccess(fa.fieldSelection.field.codeName, fa.index - IR_LoopOverDimensions.defIt(fa.index.length))
-      fa
-    case dfa : IR_DirectFieldAccess =>
-      addAccess(dfa.fieldSelection.field.codeName, dfa.index - dfa.fieldSelection.field.referenceOffset - IR_LoopOverDimensions.defIt(dfa.index.length))
-      dfa
-  })
 }
