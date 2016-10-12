@@ -1,4 +1,4 @@
-package exastencils.performance
+package exastencils.simd
 
 import scala.collection.mutable._
 
@@ -10,27 +10,30 @@ import exastencils.core.StateManager
 import exastencils.logger.Logger
 import exastencils.multiGrid.MultiGridFunctions
 import exastencils.prettyprinting.PpStream
-import exastencils.simd._
 import exastencils.util.ir.IR_MathFunctions
+
+/// SIMD_MathFunctions
 
 object SIMD_MathFunctions {
 
   private val functionNameMapping = new HashMap[String, String]()
-  private lazy val multigridCollection = StateManager.findFirst[MultiGridFunctions].get // there must be a MultiGridFunctions object
+  private lazy val multigridCollection = StateManager.findFirst[MultiGridFunctions]().get // there must be a MultiGridFunctions object
 
   def isAllowed(func : String) : Boolean = {
-    return IR_MathFunctions.signatures.contains(func)
+    IR_MathFunctions.signatures.contains(func)
   }
 
   def addUsage(func : String) : String = {
     val nrArgs = IR_MathFunctions.signatures(func)._1.length // expected fail if !isAllowed(func)
-    return functionNameMapping.getOrElseUpdate(func, {
-      val funcStmt : IR_AbstractFunction = new SIMD_MathFunc(func, nrArgs)
+    functionNameMapping.getOrElseUpdate(func, {
+      val funcStmt : IR_AbstractFunction = SIMD_MathFunc(func, nrArgs)
       multigridCollection.functions += funcStmt
       funcStmt.name
     })
   }
 }
+
+/// SIMD_MathFunc
 
 case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFunction(true) {
   override val name : String = "_simd_" + libmName
@@ -86,9 +89,9 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
     out << ") {\n"
     out << aDecls << '\n'
     for ((arg, i) <- args.view.zipWithIndex)
-      out << new IR_SIMD_Store(aVAcc(i), IR_VariableAccess(arg, IR_SIMD_RealDatatype), true) << '\n'
+      out << IR_SIMD_Store(aVAcc(i), IR_VariableAccess(arg, IR_SIMD_RealDatatype), true) << '\n'
     for (i <- 0 until Platform.simd_vectorSize)
-      out << new IR_Assignment(aSAcc(0, i), IR_FunctionCall(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
+      out << IR_Assignment(aSAcc(0, i), IR_FunctionCall(libmName, (0 until nrArgs).view.map(aSAcc(_, i) : IR_Expression).to[ListBuffer])) << '\n'
     out << IR_Return(IR_SIMD_Load(aVAcc(0), true)) << '\n'
     out << '}'
   }
@@ -98,25 +101,4 @@ case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFun
     out << "#define " << name << '(' << args.mkString(", ") << ")  "
     out << libFunc << '(' << conversion << '(' << args.mkString("), " + conversion + '(') << "))"
   }
-}
-
-case object NEONDivision extends IR_AbstractFunction(true) {
-  override def prettyprint(out : PpStream) : Unit = {
-    out <<
-      s"""static inline float32x4_t ${ name }(const float32x4_t &a, const float32x4_t &b) {
-  // get an initial estimate of 1/b.
-  float32x4_t reciprocal = vrecpeq_f32(b);
-
-  // use a couple Newton-Raphson steps to refine the estimate.  Depending on your
-  // application's accuracy requirements, you may be able to get away with only
-  // one refinement (instead of the two used here).  Be sure to test!
-  reciprocal = vmulq_f32(vrecpsq_f32(b, reciprocal), reciprocal);
-  reciprocal = vmulq_f32(vrecpsq_f32(b, reciprocal), reciprocal);
-
-  // and finally, compute a/b = a*(1/b)
-  return vmulq_f32(a,reciprocal);
-}"""
-  }
-  override def prettyprint_decl() : String = "\n --- NOT VALID ; no prototype for vdivq_f32\n"
-  override def name = "vdivq_f32"
 }

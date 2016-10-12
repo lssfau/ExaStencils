@@ -11,9 +11,9 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.performance._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
+import exastencils.simd.SIMD_NeonDivision
 
 case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
@@ -71,7 +71,7 @@ case class MultiGridFunctions() extends IR_FunctionCollection("MultiGrid/MultiGr
     if (header != null)
       externalDependencies += header
     if (Platform.simd_instructionSet == "NEON")
-      functions += NEONDivision
+      functions += SIMD_NeonDivision
     val mathLibHeader = Platform.simd_mathLibHeader
     if (mathLibHeader != null)
       externalDependencies ++= mathLibHeader

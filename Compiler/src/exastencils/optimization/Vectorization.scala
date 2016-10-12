@@ -12,7 +12,6 @@ import exastencils.datastructures.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.performance.SIMD_MathFunctions
 import exastencils.simd._
 import exastencils.util.SimplifyExpression
 
