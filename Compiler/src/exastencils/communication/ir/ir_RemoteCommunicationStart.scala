@@ -12,8 +12,8 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.knowledge.NeighborInfo
-import exastencils.mpi.ir.MPI_DataType
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.parallelization.api.mpi.MPI_DataType
 import exastencils.prettyprinting.PpStream
 
 /// IR_RemoteCommunicationStart

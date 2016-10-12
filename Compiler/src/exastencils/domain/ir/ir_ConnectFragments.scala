@@ -11,7 +11,7 @@ import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain._
 import exastencils.knowledge
 import exastencils.knowledge.RectangularDomain
-import exastencils.mpi.ir.MPI_IV_MpiRank
+import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 

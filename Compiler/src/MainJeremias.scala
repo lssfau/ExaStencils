@@ -8,7 +8,6 @@ import exastencils.communication.IR_LinearizeTempBufferAccess
 import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
-import exastencils.cuda.IR_LinearizeReductionDeviceDataAccess
 import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
@@ -21,11 +20,12 @@ import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
-import exastencils.mpi.ir._
 import exastencils.multiGrid._
-import exastencils.omp.ir._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
+import exastencils.parallelization.api.mpi._
+import exastencils.parallelization.api.omp._
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
@@ -280,7 +280,7 @@ object MainJeremias {
     IR_LinearizeDirectFieldAccess.apply()
     IR_LinearizeExternalFieldAccess.apply()
     IR_LinearizeTempBufferAccess.apply()
-    IR_LinearizeReductionDeviceDataAccess.apply()
+    CUDA_LinearizeReductionDeviceDataAccess.apply()
     IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.useFasterExpand)

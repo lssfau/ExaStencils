@@ -12,7 +12,7 @@ import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain.ir._
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.grid._
-import exastencils.mpi.ir.MPI_Send
+import exastencils.parallelization.api.mpi.MPI_Send
 import exastencils.prettyprinting._
 
 //TODO specific expression for reading from fragment data file

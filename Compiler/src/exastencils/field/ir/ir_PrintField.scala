@@ -11,7 +11,7 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.GridGeometry
-import exastencils.mpi.ir._
+import exastencils.parallelization.api.mpi._
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_Print
 

@@ -14,8 +14,8 @@ import exastencils.datastructures._
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.knowledge.Fragment
 import exastencils.logger._
-import exastencils.mpi.ir.MPI_WaitForRequest
-import exastencils.omp.ir.OMP_WaitForFlag
+import exastencils.parallelization.api.mpi.MPI_WaitForRequest
+import exastencils.parallelization.api.omp.OMP_WaitForFlag
 
 /// IR_SetupCommunication
 

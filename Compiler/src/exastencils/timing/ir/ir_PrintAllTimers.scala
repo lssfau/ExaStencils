@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.datastructures.Transformation.Output
-import exastencils.mpi.ir.MPI_AllReduce
+import exastencils.parallelization.api.mpi.MPI_AllReduce
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_RawPrint
 

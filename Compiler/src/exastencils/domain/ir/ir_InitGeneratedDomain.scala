@@ -11,7 +11,7 @@ import exastencils.datastructures.ir.iv
 import exastencils.domain.AABB
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.knowledge._
-import exastencils.mpi.ir.MPI_IV_MpiRank
+import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
 

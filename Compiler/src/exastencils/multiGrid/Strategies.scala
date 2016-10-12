@@ -9,14 +9,14 @@ import exastencils.boundary.ir._
 import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors._
-import exastencils.cuda._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.knowledge.Fragment
 import exastencils.logger._
-import exastencils.mpi.ir._
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.parallelization.api.cuda._
+import exastencils.parallelization.api.mpi._
 import exastencils.stencil.ir._
 import exastencils.util.ir.IR_ReplaceVariableAccess
 

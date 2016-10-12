@@ -8,7 +8,7 @@ import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config._
 import exastencils.core.StateManager
 import exastencils.datastructures.Transformation.Output
-import exastencils.mpi.ir._
+import exastencils.parallelization.api.mpi._
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir._
 

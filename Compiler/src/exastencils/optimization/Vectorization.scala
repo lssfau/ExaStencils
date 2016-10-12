@@ -5,12 +5,11 @@ import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Queue }
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
-import exastencils.cuda
-import exastencils.cuda.CudaStrategiesUtils
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
+import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.simd._
 
@@ -33,10 +32,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   override def isDefinedAt(node : Node) : Boolean = {
     // do not vectorize device code!
-    val cuAnn = CudaStrategiesUtils.CUDA_LOOP_ANNOTATION
+    val cuAnn = CUDA_Util.CUDA_LOOP_ANNOTATION
     node match {
       case n if (n.hasAnnotation(cuAnn)) => skipSubTree = true
-      case _ : cuda.Kernel               => skipSubTree = true
+      case _ : CUDA_Kernel               => skipSubTree = true
       case _ : IR_AbstractFunction       => skipSubTree = false
       case _                             => // no change in skipSubTree
     }

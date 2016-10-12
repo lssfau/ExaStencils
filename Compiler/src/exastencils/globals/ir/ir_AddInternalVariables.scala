@@ -7,15 +7,14 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
-import exastencils.cuda.CUDA_AllocateStatement
 import exastencils.datastructures._
 import exastencils.datastructures.ir.iv
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.globals.Globals
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
+import exastencils.parallelization.api.cuda.CUDA_Allocate
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.util._
 
 /// IR_AddInternalVariables
 
@@ -115,7 +114,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       newFieldData.slot = if (field.field.numSlots > 1) "slot" else 0
 
       var innerStmts = ListBuffer[IR_Statement](
-        CUDA_AllocateStatement(newFieldData, numDataPoints, field.field.resolveBaseDatatype))
+        CUDA_Allocate(newFieldData, numDataPoints, field.field.resolveBaseDatatype))
 
       if (field.field.numSlots > 1)
         statements += new IR_ForLoop(
@@ -188,7 +187,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
-      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_AllocateStatement(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo.PotentiallyParallel()))
+      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo.PotentiallyParallel()))
 
       buf
 

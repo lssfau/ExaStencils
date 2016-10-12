@@ -9,7 +9,6 @@ import exastencils.communication.IR_LinearizeTempBufferAccess
 import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
-import exastencils.cuda._
 import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
@@ -22,11 +21,12 @@ import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
-import exastencils.mpi.ir._
 import exastencils.multiGrid._
-import exastencils.omp.ir._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.parallelization.api.cuda._
+import exastencils.parallelization.api.mpi._
+import exastencils.parallelization.api.omp._
 import exastencils.parsers.InputReader
 import exastencils.parsers.l4._
 import exastencils.parsers.settings._
@@ -229,7 +229,7 @@ object MainChristoph {
     )
 
     if (Knowledge.cuda_enabled)
-      StateManager.root_.asInstanceOf[IR_Root].nodes += KernelFunctions()
+      StateManager.root_.asInstanceOf[IR_Root].nodes += CUDA_KernelFunctions()
 
     if (Knowledge.experimental_mergeCommIntoLoops)
       IR_MergeCommunicateAndLoop.apply()
@@ -270,7 +270,7 @@ object MainChristoph {
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
     if (Knowledge.cuda_enabled) {
-      PrepareCudaRelevantCode.apply()
+      CUDA_PrepareHostCode.apply()
     }
 
     IR_ResolveContractingLoop.apply()
@@ -304,10 +304,10 @@ object MainChristoph {
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
     if (Knowledge.cuda_enabled) {
-      CalculateCudaLoopsAnnotations.apply()
-      ExtractHostAndDeviceCode.apply()
-      AdaptKernelDimensionalities.apply()
-      HandleKernelReductions.apply()
+      CUDA_AnnotateLoop.apply()
+      CUDA_ExtractHostAndDeviceCode.apply()
+      CUDA_AdaptKernelDimensionality.apply()
+      CUDA_HandleReductions.apply()
     }
 
     if (Knowledge.opt_useColorSplitting)
@@ -317,11 +317,11 @@ object MainChristoph {
     IR_LinearizeDirectFieldAccess.apply()
     IR_LinearizeExternalFieldAccess.apply()
     IR_LinearizeTempBufferAccess.apply()
-    IR_LinearizeReductionDeviceDataAccess.apply()
+    CUDA_LinearizeReductionDeviceDataAccess.apply()
     IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.cuda_enabled)
-      StateManager.findFirst[KernelFunctions]().get.convertToFunctions()
+      StateManager.findFirst[CUDA_KernelFunctions]().get.convertToFunctions()
 
     IR_ResolveBoundedScalar.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
     IR_ResolveSlotOperations.apply() // after converting kernel functions -> relies on (unresolved) slot accesses

@@ -6,8 +6,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
-import exastencils.cuda._
 import exastencils.field.ir.IR_Field
+import exastencils.parallelization.api.cuda.CUDA_Free
 import exastencils.prettyprinting._
 
 /// general variables and flags
@@ -81,7 +81,7 @@ case class FieldDeviceData(override var field : IR_Field, override var level : I
     val ret = Some(wrapInLoops(
       IR_IfCondition(access,
         ListBuffer[IR_Statement](
-          CUDA_FreeStatement(access),
+          CUDA_Free(access),
           new IR_Assignment(access, 0)))))
     slot = origSlot
     ret
@@ -97,7 +97,7 @@ case class ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Ex
     var access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
     Some(IR_IfCondition(access,
       ListBuffer[IR_Statement](
-        CUDA_FreeStatement(access),
+        CUDA_Free(access),
         new IR_Assignment(access, 0))))
   }
 }
