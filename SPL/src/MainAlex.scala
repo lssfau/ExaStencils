@@ -1,4 +1,4 @@
-import exastencils.base.ir.IR_Root
+import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_ResolveLoopOverDimensions
 import exastencils.baseExt.l4._
@@ -6,7 +6,6 @@ import exastencils.communication.IR_LinearizeTempBufferAccess
 import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.config._
 import exastencils.core._
-import exastencils.cuda.IR_LinearizeReductionDeviceDataAccess
 import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.field.ir._
@@ -15,14 +14,15 @@ import exastencils.globals.ir._
 import exastencils.interfacing.ir._
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
-import exastencils.mpi.ir.MPI_RemoveMPI
 import exastencils.multiGrid._
-import exastencils.omp.ir._
 import exastencils.optimization.IR_LinearizeLoopCarriedCSBufferAccess
+import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
+import exastencils.parallelization.api.mpi.MPI_RemoveMPI
+import exastencils.parallelization.api.omp._
 import exastencils.parsers.l4._
 import exastencils.prettyprinting._
-import exastencils.strategies._
-import exastencils.util._
+import exastencils.timing.ir.IR_Stopwatch
 
 object MainAlex {
   def main(args : Array[String]) : Unit = {
@@ -74,7 +74,7 @@ object MainAlex {
       IR_CommunicationFunctions(),
 
       // Util
-      new Stopwatch,
+      new IR_Stopwatch,
 
       // Globals
       new Globals)
@@ -174,11 +174,11 @@ object MainAlex {
     StateManager.findFirst[Globals]().get.functions += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
     StateManager.findFirst[MultiGridFunctions]().get.functions ++= IR_ExternalFieldCollection.generateCopyFunction()
 
-    do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    do { IR_Expand.apply() }
+    while (IR_Expand.results.last._2.matches > 0) // FIXME: cleaner code
 
-    do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    do { IR_Expand.apply() }
+    while (IR_Expand.results.last._2.matches > 0) // FIXME: cleaner code
 
     //    PolyOpt.apply()
 
@@ -188,18 +188,18 @@ object MainAlex {
     IR_LinearizeDirectFieldAccess.apply()
     IR_LinearizeExternalFieldAccess.apply()
     IR_LinearizeTempBufferAccess.apply()
-    IR_LinearizeReductionDeviceDataAccess.apply()
+    CUDA_LinearizeReductionDeviceDataAccess.apply()
     IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
-    do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    do { IR_Expand.apply() }
+    while (IR_Expand.results.last._2.matches > 0) // FIXME: cleaner code
 
     if (!Knowledge.mpi_enabled) {
       MPI_RemoveMPI.apply()
     }
 
-    do { SimplifyStrategy.apply() }
-    while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    do { IR_GeneralSimplify.apply() }
+    while (IR_GeneralSimplify.results.last._2.matches > 0) // FIXME: cleaner code
 
     IR_AddInternalVariables.apply()
 
@@ -209,7 +209,7 @@ object MainAlex {
         OMP_AddCriticalSections.apply()
     }
 
-    PrintStrategy.apply()
+    PrintToFile.apply()
     PrettyprintingManager.finish
 
     println("Done!")
