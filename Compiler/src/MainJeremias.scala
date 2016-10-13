@@ -8,6 +8,7 @@ import exastencils.communication.IR_LinearizeTempBufferAccess
 import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
+import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate

@@ -1,4 +1,4 @@
-package exastencils.logger
+package exastencils.core.logger
 
 import exastencils.config.Settings
 
