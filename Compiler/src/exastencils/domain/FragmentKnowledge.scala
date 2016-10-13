@@ -7,7 +7,6 @@ import java.io._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.domain.ir.IR_DomainCollection
-import exastencils.knowledge.FileInputDomain
 
 object FragmentKnowledge {
 
