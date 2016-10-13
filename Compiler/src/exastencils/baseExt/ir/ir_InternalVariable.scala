@@ -4,10 +4,10 @@ import scala.collection.mutable.HashMap
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_FieldCollection
-import exastencils.knowledge.Fragment
 import exastencils.prettyprinting._
 
 /// IR_InternalVariable
@@ -44,8 +44,8 @@ abstract class IR_InternalVariable(
       datatype = IR_ArrayDatatype(datatype, IR_FieldCollection.objects.size)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
       datatype = IR_ArrayDatatype(datatype, Knowledge.numLevels)
-    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
-      datatype = IR_ArrayDatatype(datatype, Fragment.neighbors.size)
+    if (canBePerNeighbor && usesNeighborArrays && DefaultNeighbors.neighbors.size > 1)
+      datatype = IR_ArrayDatatype(datatype, DefaultNeighbors.neighbors.size)
 
     new IR_VariableDeclaration(datatype, resolveName)
   }
@@ -61,7 +61,7 @@ abstract class IR_InternalVariable(
       wrappedBody = IR_LoopOverFields(wrappedBody)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1)
       wrappedBody = IR_LoopOverLevels(wrappedBody)
-    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
+    if (canBePerNeighbor && usesNeighborArrays && DefaultNeighbors.neighbors.size > 1)
       wrappedBody = IR_LoopOverNeighbors(wrappedBody)
 
     wrappedBody
@@ -87,7 +87,7 @@ abstract class IR_InternalVariable(
       postfix += "_" + field
     if (canBePerLevel && !usesLevelArrays && Knowledge.numLevels > 1)
       postfix += "_" + level
-    if (canBePerNeighbor && !usesNeighborArrays && Fragment.neighbors.size > 1)
+    if (canBePerNeighbor && !usesNeighborArrays && DefaultNeighbors.neighbors.size > 1)
       postfix += "_" + neigh
 
     postfix
@@ -97,7 +97,7 @@ abstract class IR_InternalVariable(
     var access = baseAccess
 
     // reverse compared to datatype wrapping, since we need to unwrap it "from outer to inner"
-    if (canBePerNeighbor && usesNeighborArrays && Fragment.neighbors.size > 1)
+    if (canBePerNeighbor && usesNeighborArrays && DefaultNeighbors.neighbors.size > 1)
       access = IR_ArrayAccess(access, neigh)
     if (canBePerLevel && usesLevelArrays && Knowledge.numLevels > 1) {
       val simplifiedLevel : IR_Expression =

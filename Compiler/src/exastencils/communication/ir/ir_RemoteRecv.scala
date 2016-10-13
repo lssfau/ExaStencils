@@ -11,7 +11,6 @@ import exastencils.datastructures.ir.{ iv, _ }
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.knowledge._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.polyhedron.PolyhedronAccessible
@@ -33,7 +32,7 @@ case class IR_RemoteRecv(
     ListBuffer[IR_Statement](
       IR_PotentiallyCritical(MPI_Receive(dest, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
         MPI_GeneratedTag(IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), iv.CommId(),
-          Fragment.getOpposingNeigh(neighbor.index).index, concurrencyId),
+          DefaultNeighbors.getOpposingNeigh(neighbor.index).index, concurrencyId),
         iv.MpiRequest(field.field, s"Recv_${ concurrencyId }", neighbor.index))),
       IR_Assignment(iv.RemoteReqOutstanding(field.field, s"Recv_${ concurrencyId }", neighbor.index), true))
   }

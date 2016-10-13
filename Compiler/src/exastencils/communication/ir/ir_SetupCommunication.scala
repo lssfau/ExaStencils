@@ -6,13 +6,13 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
+import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir.IR_SlotAccess
-import exastencils.knowledge.Fragment
 import exastencils.logger._
 import exastencils.parallelization.api.mpi.MPI_WaitForRequest
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
@@ -117,7 +117,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
         val fieldSelection = Duplicate(communicateStatement.field)
         fieldSelection.slot = "slot"
         commFunctions += IR_CommunicateFunction(functionName,
-          fieldSelection, Fragment.neighbors,
+          fieldSelection, DefaultNeighbors.neighbors,
           "begin" == communicateStatement.op || "both" == communicateStatement.op,
           "finish" == communicateStatement.op || "both" == communicateStatement.op,
           commDup, dupBegin, dupEnd,
@@ -152,7 +152,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
         addedFunctions += functionName
         val fieldSelection = Duplicate(applyBCsStatement.field)
         fieldSelection.slot = "slot"
-        commFunctions += IR_ApplyBCFunction(functionName, fieldSelection, Fragment.neighbors, insideFragLoop)
+        commFunctions += IR_ApplyBCFunction(functionName, fieldSelection, DefaultNeighbors.neighbors, insideFragLoop)
       }
 
       applyBCsStatement.field.slot match {

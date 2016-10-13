@@ -2,7 +2,7 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.baseExt.l4._
-import exastencils.communication.IR_LinearizeTempBufferAccess
+import exastencils.communication._
 import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.config._
 import exastencils.core._
@@ -12,7 +12,6 @@ import exastencils.field.ir._
 import exastencils.globals.ir._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
-import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
 import exastencils.optimization.IR_LinearizeLoopCarriedCSBufferAccess
 import exastencils.optimization.ir.IR_GeneralSimplify
@@ -21,6 +20,7 @@ import exastencils.parallelization.api.mpi.MPI_RemoveMPI
 import exastencils.parallelization.api.omp._
 import exastencils.parsers.l4._
 import exastencils.prettyprinting._
+import exastencils.stencil.ir.IR_FindStencilConvolutions
 import exastencils.timing.ir.IR_Stopwatch
 
 object MainAlex {
@@ -165,12 +165,12 @@ object MainAlex {
 
     // Strategies
 
-    FindStencilConvolutions.apply()
+    IR_FindStencilConvolutions.apply()
 
     HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
 
-    Fragment.setupNeighbors()
-    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
+    DefaultNeighbors.setup()
+    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, DefaultNeighbors.neighbors)
     IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
     do { IR_Expand.apply() }

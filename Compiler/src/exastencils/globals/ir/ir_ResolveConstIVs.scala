@@ -1,11 +1,11 @@
 package exastencils.globals.ir
 
 import exastencils.base.ir._
+import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.datastructures.ir.iv
 import exastencils.domain.ir._
-import exastencils.knowledge.Fragment
 
 /// IR_ResolveConstIVs
 
@@ -38,9 +38,9 @@ object IR_ResolveConstIVs extends DefaultStrategy("Resolve constant internal var
         if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1 && !Knowledge.domain_rect_periodicAsVec(dim))
           this.execute(new Transformation(s"Resolve NeighborIsValid in dimension $dim", {
             case IR_Assignment(niv : IR_IV_NeighborIsValid, _, _) if niv.neighIdx.isInstanceOf[IR_IntegerConstant]
-              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_NullStatement
+              && (DefaultNeighbors.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_NullStatement
             case niv : IR_IV_NeighborIsValid if niv.neighIdx.isInstanceOf[IR_IntegerConstant]
-              && (Fragment.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_BooleanConstant(false)
+              && (DefaultNeighbors.neighbors(niv.neighIdx.asInstanceOf[IR_IntegerConstant].value.toInt).dir(dim) != 0) => IR_BooleanConstant(false)
           }))
     }
 

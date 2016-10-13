@@ -1,6 +1,5 @@
-package exastencils.knowledge
+package exastencils.domain
 
-import exastencils.domain._
 import exastencils.domain.ir.IR_Domain
 
 case class RectangularDomain(

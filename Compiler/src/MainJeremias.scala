@@ -4,7 +4,7 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.baseExt.l4._
-import exastencils.communication.IR_LinearizeTempBufferAccess
+import exastencils.communication._
 import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
@@ -19,7 +19,7 @@ import exastencils.globals.ir._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
-import exastencils.knowledge.{ l4 => _, _ }
+import exastencils.knowledge.{ l4 => _ }
 import exastencils.logger._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
@@ -30,7 +30,7 @@ import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveIntergridIndices
-import exastencils.stencil.ir.IR_ResolveStencilFunction
+import exastencils.stencil.ir._
 import exastencils.stencil.l4.L4_ProcessStencilDeclarations
 import exastencils.timing.ir._
 import exastencils.util._
@@ -229,8 +229,8 @@ object MainJeremias {
 
     IR_GeneralSimplify.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
-    Fragment.setupNeighbors()
-    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
+    DefaultNeighbors.setup()
+    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, DefaultNeighbors.neighbors)
     IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
     IR_SetupCommunication.apply()
@@ -242,9 +242,9 @@ object MainJeremias {
 
     var convChanged = false
     do {
-      FindStencilConvolutions.changed = false
-      FindStencilConvolutions.apply()
-      convChanged = FindStencilConvolutions.changed
+      IR_FindStencilConvolutions.changed = false
+      IR_FindStencilConvolutions.apply()
+      convChanged = IR_FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
         IR_ExpandInOnePass.apply()
       else
@@ -256,7 +256,7 @@ object MainJeremias {
     IR_ResolveLoopOverPointsInOneFragment.apply()
     IR_ResolveContractingLoop.apply()
 
-    MapStencilAssignments.apply()
+    IR_MapStencilAssignments.apply()
     IR_ResolveFieldAccess.apply()
 
     if (Knowledge.useFasterExpand)

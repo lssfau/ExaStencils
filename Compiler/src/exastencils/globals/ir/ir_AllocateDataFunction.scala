@@ -3,9 +3,9 @@ package exastencils.globals.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.communication.NeighborInfo
 import exastencils.datastructures.Transformation._
 import exastencils.field.ir._
-import exastencils.knowledge.NeighborInfo
 import exastencils.prettyprinting._
 
 /// IR_AllocateDataFunction

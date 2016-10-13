@@ -4,8 +4,8 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.communication.DefaultNeighbors
 import exastencils.datastructures.Transformation.Output
-import exastencils.knowledge.Fragment
 import exastencils.prettyprinting.PpStream
 
 object IR_LoopOverNeighbors {
@@ -23,7 +23,7 @@ case class IR_LoopOverNeighbors(var body : ListBuffer[IR_Statement]) extends IR_
   override def expand() : Output[IR_ForLoop] = {
     IR_ForLoop(
       IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
-      IR_LowerExpression(defIt, Fragment.neighbors.size),
+      IR_LowerExpression(defIt, DefaultNeighbors.neighbors.size),
       IR_PreIncrementExpression(defIt),
       body)
   }

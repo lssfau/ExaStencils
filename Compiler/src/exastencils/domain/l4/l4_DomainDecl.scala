@@ -4,7 +4,6 @@ import exastencils.datastructures._
 import exastencils.deprecated.l4._
 import exastencils.domain._
 import exastencils.domain.ir._
-import exastencils.knowledge
 import exastencils.knowledge.l4.L4_KnowledgeDecl
 import exastencils.prettyprinting.PpStream
 
@@ -41,8 +40,8 @@ case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) ex
 
     (lower, upper) match {
       case (null, null)                           => {
-        knowledge.FileInputGlobalDomain("global", index, DomainFileHeader.domainIdentifier.zipWithIndex.map {
-          case (identifier, index) => knowledge.FileInputDomain(identifier, index, FileInputDomainShape(identifier))
+        FileInputGlobalDomain("global", index, DomainFileHeader.domainIdentifier.zipWithIndex.map {
+          case (identifier, index) => FileInputDomain(identifier, index, FileInputDomainShape(identifier))
         }.toList)
       }
       case (lo : List[_], up : List[_])           => {
@@ -53,13 +52,13 @@ case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) ex
                 case (li : L4_ConstVec2D, ui : L4_ConstVec2D) =>
                   RectangularDomainShape(AABB(li.x, ui.x, li.y, ui.y, 0.0, 0.0))
               }
-            knowledge.ShapedDomain(name, index, ShapedDomainShape(rectUnionDomains))
+            ShapedDomain(name, index, ShapedDomainShape(rectUnionDomains))
           }
         }
       }
-      case (l : L4_ConstVec2D, u : L4_ConstVec2D) => knowledge.RectangularDomain(name, index, RectangularDomainShape(AABB(l.x, u.x, l.y, u.y, 0, 0)))
-      case (l : L4_ConstVec3D, u : L4_ConstVec3D) => knowledge.RectangularDomain(name, index, RectangularDomainShape(AABB(l.x, u.x, l.y, u.y, l.z, u.z)))
-      case _                                      => knowledge.RectangularDomain(name, index, RectangularDomainShape(AABB()))
+      case (l : L4_ConstVec2D, u : L4_ConstVec2D) => RectangularDomain(name, index, RectangularDomainShape(AABB(l.x, u.x, l.y, u.y, 0, 0)))
+      case (l : L4_ConstVec3D, u : L4_ConstVec3D) => RectangularDomain(name, index, RectangularDomainShape(AABB(l.x, u.x, l.y, u.y, l.z, u.z)))
+      case _                                      => RectangularDomain(name, index, RectangularDomainShape(AABB()))
     }
   }
   override def addToKnowledge() = ???

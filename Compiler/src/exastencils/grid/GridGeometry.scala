@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.boundary.l4.L4_NoBC
+import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.deprecated.ir._
@@ -15,10 +16,8 @@ import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir._
 import exastencils.field.l4._
 import exastencils.grid.ir.IR_VirtualFieldAccess
-import exastencils.knowledge
-import exastencils.knowledge.{ l4 => _, _ }
+import exastencils.knowledge.{ l4 => _ }
 import exastencils.logger._
-import exastencils.util._
 
 abstract class GridGeometry() {
   // information always required
@@ -188,11 +187,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
         IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    var leftDir = Array(0, 0, 0);
+    var leftDir = Array(0, 0, 0)
     leftDir(dim) = -1
-    val leftNeighIndex = knowledge.Fragment.getNeigh(leftDir).index
+    val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
 
-    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     leftGhostIndex(dim) = -2
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
@@ -204,11 +203,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
         IR_Assignment(Duplicate(leftGhostAccess),
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
-    var rightDir = Array(0, 0, 0);
+    var rightDir = Array(0, 0, 0)
     rightDir(dim) = 1
-    val rightNeighIndex = knowledge.Fragment.getNeigh(rightDir).index
+    val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
 
-    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
@@ -287,11 +286,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
         IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    var leftDir = Array(0, 0, 0);
+    var leftDir = Array(0, 0, 0)
     leftDir(dim) = -1
-    val leftNeighIndex = knowledge.Fragment.getNeigh(leftDir).index
+    val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
 
-    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     leftGhostIndex(dim) = -2
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
@@ -303,11 +302,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
         IR_Assignment(Duplicate(leftGhostAccess),
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
-    var rightDir = Array(0, 0, 0);
+    var rightDir = Array(0, 0, 0)
     rightDir(dim) = 1
-    val rightNeighIndex = knowledge.Fragment.getNeigh(rightDir).index
+    val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
 
-    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
@@ -463,10 +462,10 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     val innerIt = IR_LoopOverDimensions.defItForDim(dim)
 
-    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     leftGhostIndex(dim) = -1
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
-    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     rightGhostIndex(dim) = numCells + 1
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
@@ -523,10 +522,10 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     val innerIt = IR_LoopOverDimensions.defItForDim(dim)
 
-    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     leftGhostIndex(dim) = -1
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
-    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     rightGhostIndex(dim) = numCells + 1
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
@@ -583,11 +582,11 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    var leftDir = Array(0, 0, 0);
+    var leftDir = Array(0, 0, 0)
     leftDir(dim) = -1
-    val leftNeighIndex = knowledge.Fragment.getNeigh(leftDir).index
+    val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
 
-    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     leftGhostIndex(dim) = -2
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
@@ -597,11 +596,11 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
         IR_Assignment(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
 
-    var rightDir = Array(0, 0, 0);
+    var rightDir = Array(0, 0, 0)
     rightDir(dim) = 1
-    val rightNeighIndex = knowledge.Fragment.getNeigh(rightDir).index
+    val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
 
-    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0);
+    var rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 

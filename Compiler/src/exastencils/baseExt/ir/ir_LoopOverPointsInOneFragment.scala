@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
@@ -13,7 +14,6 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
-import exastencils.knowledge.Fragment
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.ir._
@@ -283,7 +283,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
 
     if (region.isDefined) {
       if (region.get.onlyOnBoundary) {
-        val neighIndex = Fragment.getNeigh(region.get.dir.indices).index
+        val neighIndex = DefaultNeighbors.getNeigh(region.get.dir.indices).index
         stmts = ListBuffer[IR_Statement](IR_IfCondition(IR_NegationExpression(IR_IV_NeighborIsValid(domain, neighIndex)), stmts))
       }
     }

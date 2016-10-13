@@ -5,12 +5,12 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication._
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.{ iv, _ }
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
-import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 
 /// IR_LocalCommunicationFinish
@@ -32,7 +32,7 @@ case class IR_LocalCommunicationFinish(
           ListBuffer[IR_Statement](
             IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommDone(
               field.field,
-              Fragment.getOpposingNeigh(neighbor._1).index,
+              DefaultNeighbors.getOpposingNeigh(neighbor._1).index,
               IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor._1.index))))))),
       true)
   }

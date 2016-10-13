@@ -4,11 +4,11 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.communication._
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_NeighborIsValid
-import exastencils.knowledge._
 import exastencils.prettyprinting.PpStream
 
 /// IR_IsOnBoundary
@@ -18,7 +18,7 @@ case class IR_IsOnBoundary(var field : IR_FieldSelection, var index : IR_Express
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Expression] = {
-    var applicableNeighbors = Fragment.neighbors
+    var applicableNeighbors = DefaultNeighbors.neighbors
     if (Knowledge.experimental_bc_checkOnlyMainAxis)
       applicableNeighbors = applicableNeighbors.filter(n => 1 == n.dir.map(d => math.abs(d)).sum)
 
@@ -59,7 +59,7 @@ case class IR_IsValidComputationPoint(var field : IR_FieldSelection, var index :
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_Expression] = {
-    var applicableNeighbors = Fragment.neighbors
+    var applicableNeighbors = DefaultNeighbors.neighbors
     if (Knowledge.experimental_bc_checkOnlyMainAxis)
       applicableNeighbors = applicableNeighbors.filter(n => 1 == n.dir.map(d => math.abs(d)).sum)
 

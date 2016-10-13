@@ -4,10 +4,10 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.NeighborInfo
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
-import exastencils.knowledge.NeighborInfo
 import exastencils.prettyprinting.PpStream
 
 /// IR_CommunicateFunction

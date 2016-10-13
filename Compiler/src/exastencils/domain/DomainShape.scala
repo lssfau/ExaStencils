@@ -4,9 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.config._
 import exastencils.domain.ir.IR_DomainCollection
-import exastencils.knowledge.RectangularDomain
 import exastencils.logger._
-import exastencils.util._
 
 case class Interval(lower : Double, upper : Double) {
   override def toString = s"[${ lower },${ upper }]"

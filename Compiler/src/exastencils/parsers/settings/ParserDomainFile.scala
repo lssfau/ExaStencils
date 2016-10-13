@@ -110,7 +110,7 @@ class ParserDomainFile extends ExaParser {
 
   def setDomainParameter[T](ident : String, value : T) = {
     IR_DomainCollection.getByIdentifier("global").get
-      .asInstanceOf[exastencils.knowledge.FileInputGlobalDomain].shape.asInstanceOf[List[exastencils.knowledge.FileInputDomain]]
+      .asInstanceOf[FileInputGlobalDomain].shape.asInstanceOf[List[FileInputDomain]]
       .find { d => d.identifier == ident } match {
       case Some(n) => n.shape.asInstanceOf[FileInputDomainShape].blocks = value.asInstanceOf[List[String]]
       case None    => throw new Exception("error when parsing domain file")
@@ -120,7 +120,7 @@ class ParserDomainFile extends ExaParser {
 
   def setBlockParameter[T](ident : String, value : T) = {
     IR_DomainCollection.getByIdentifier("global").get
-      .asInstanceOf[exastencils.knowledge.FileInputGlobalDomain].shape.asInstanceOf[List[exastencils.knowledge.FileInputDomain]]
+      .asInstanceOf[FileInputGlobalDomain].shape.asInstanceOf[List[FileInputDomain]]
       .find { d => d.shape.asInstanceOf[FileInputDomainShape].blocks.contains(ident) } match {
       case Some(n) => n.shape.asInstanceOf[FileInputDomainShape].frags ++= value.asInstanceOf[List[String]]
       case None    => throw new Exception("error when parsing domain file")
@@ -150,7 +150,7 @@ class ParserDomainFile extends ExaParser {
     val globalId = ident.drop(1).toInt
     val blockIdent = tmpBlocks.find(f => f._2.asInstanceOf[List[String]].contains(ident)).get._1
     val domainIds = IR_DomainCollection.getByIdentifier("global").get
-      .asInstanceOf[exastencils.knowledge.FileInputGlobalDomain].shape.asInstanceOf[List[exastencils.knowledge.FileInputDomain]]
+      .asInstanceOf[FileInputGlobalDomain].shape.asInstanceOf[List[FileInputDomain]]
       .filter { domFil =>
         tmpDomains.filter(f => f._2.asInstanceOf[List[String]].contains(blockIdent)).contains(domFil.identifier)
       }

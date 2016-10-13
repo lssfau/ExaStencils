@@ -11,7 +11,6 @@ import exastencils.datastructures.ir.{ iv, _ }
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.knowledge.NeighborInfo
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.polyhedron.PolyhedronAccessible

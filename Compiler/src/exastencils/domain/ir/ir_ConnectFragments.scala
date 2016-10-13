@@ -5,12 +5,11 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain._
-import exastencils.knowledge
-import exastencils.knowledge.RectangularDomain
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
@@ -44,7 +43,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
   }
 
   def setIterationOffset(location : Int, domain : IR_Expression, fragment : IR_Expression) = {
-    val neigh = knowledge.Fragment.neighbors(location)
+    val neigh = DefaultNeighbors.neighbors(location)
     // FIXME: neighbor directions are always 3D vectors
     // invalid directions are not part of the given collection
     neigh.dir match {
@@ -78,7 +77,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
   override def expand : Output[IR_LoopOverFragments] = {
     var body = new ListBuffer[IR_Statement]
 
-    val neighbors = exastencils.knowledge.Fragment.neighbors
+    val neighbors = DefaultNeighbors.neighbors
     val domains = IR_DomainCollection.objects
     for (d <- domains.indices) {
       if (Knowledge.domain_rect_generate)

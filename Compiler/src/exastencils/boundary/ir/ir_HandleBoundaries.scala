@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.NeighborInfo
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -13,7 +14,6 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid._
 import exastencils.grid.ir.IR_VirtualFieldAccess
-import exastencils.knowledge.NeighborInfo
 import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.PolyhedronAccessible

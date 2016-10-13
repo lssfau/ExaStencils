@@ -5,12 +5,12 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.iv
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.knowledge._
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
 
@@ -43,7 +43,7 @@ case class IR_LocalRecv(
     IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be read from is ready for communication
-        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, Fragment.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))),
+        IR_FunctionCall("waitForFlag", IR_AddressofExpression(iv.LocalCommReady(field.field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))),
         loop,
         // signal other threads that the data reading step is completed
         IR_Assignment(iv.LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
