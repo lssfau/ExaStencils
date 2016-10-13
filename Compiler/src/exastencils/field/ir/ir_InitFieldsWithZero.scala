@@ -1,4 +1,4 @@
-package exastencils.multiGrid
+package exastencils.field.ir
 
 import scala.collection.mutable.ListBuffer
 
@@ -9,13 +9,13 @@ import exastencils.config._
 import exastencils.datastructures.Transformation._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.field.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting.PpStream
-import exastencils.simd.SIMD_NeonDivision
 
-case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
+/// IR_InitFieldsWithZero
+
+case class IR_InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "initFieldsWithZero"
@@ -50,32 +50,4 @@ case class InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
 
     IR_Function(IR_UnitDatatype, name, statements)
   }
-}
-
-case class MultiGridFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid",
-  ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "Util/Matrix.h", "Util/TimerFunctions.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
-
-  if (Knowledge.mpi_enabled)
-    externalDependencies += "mpi.h"
-  if (Knowledge.omp_enabled)
-    externalDependencies += "omp.h"
-  if (Knowledge.cuda_enabled) {
-    externalDependencies += "cuda.h"
-    externalDependencies += "cuda_runtime.h"
-
-    internalDependencies += "KernelFunctions/KernelFunctions.h"
-  }
-  if (Knowledge.opt_vectorize) {
-    val header = Platform.simd_header
-    if (header != null)
-      externalDependencies += header
-    if (Platform.simd_instructionSet == "NEON")
-      functions += SIMD_NeonDivision
-    val mathLibHeader = Platform.simd_mathLibHeader
-    if (mathLibHeader != null)
-      externalDependencies ++= mathLibHeader
-  }
-  if (Knowledge.data_initAllFieldsWithZero)
-    functions += InitFieldsWithZero()
 }

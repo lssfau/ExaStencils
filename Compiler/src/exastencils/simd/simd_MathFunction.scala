@@ -4,11 +4,9 @@ import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_ArrayDatatype
+import exastencils.baseExt.ir._
 import exastencils.config._
-import exastencils.core.StateManager
 import exastencils.logger.Logger
-import exastencils.multiGrid.MultiGridFunctions
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_MathFunctions
 
@@ -17,7 +15,7 @@ import exastencils.util.ir.IR_MathFunctions
 object SIMD_MathFunctions {
 
   private val functionNameMapping = new HashMap[String, String]()
-  private lazy val multigridCollection = StateManager.findFirst[MultiGridFunctions]().get // there must be a MultiGridFunctions object
+  private lazy val functions = IR_UserFunctions.get // there must be a IR_UserFunctions object
 
   def isAllowed(func : String) : Boolean = {
     IR_MathFunctions.signatures.contains(func)
@@ -27,7 +25,7 @@ object SIMD_MathFunctions {
     val nrArgs = IR_MathFunctions.signatures(func)._1.length // expected fail if !isAllowed(func)
     functionNameMapping.getOrElseUpdate(func, {
       val funcStmt : IR_AbstractFunction = SIMD_MathFunc(func, nrArgs)
-      multigridCollection.functions += funcStmt
+      functions += funcStmt
       funcStmt.name
     })
   }

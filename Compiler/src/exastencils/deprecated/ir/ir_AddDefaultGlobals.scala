@@ -1,17 +1,19 @@
-package exastencils.globals
+package exastencils.deprecated.ir
 
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.config._
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.util.ir._
 
-object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
+@deprecated("to be split and moved to the corresponding packages", "13.10.16")
+object IR_AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
   this += new Transformation("Adding default global constants and variables", {
-    case globals : Globals => {
+    case globals : IR_GlobalCollection => {
       if (Knowledge.cuda_enabled) {
         globals.variables += IR_VariableDeclaration("CUcontext", "cudaContext")
         globals.variables += IR_VariableDeclaration("CUdevice", "cudaDevice")
@@ -24,7 +26,7 @@ object AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
       globals
     }
 
-    case func : IR_Function if ("initGlobals" == func.name) => {
+    case func : IR_Function if "initGlobals" == func.name => {
       if (Knowledge.cuda_enabled) {
         // init device
         func.body ++= ListBuffer[IR_Statement](

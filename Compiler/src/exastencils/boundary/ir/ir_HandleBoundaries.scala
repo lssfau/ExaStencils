@@ -1,11 +1,10 @@
-package exastencils.multiGrid
+package exastencils.boundary.ir
 
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.boundary.ir._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -20,7 +19,10 @@ import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.PolyhedronAccessible
 import exastencils.prettyprinting._
 
-case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
+/// IR_HandleBoundaries
+
+// TODO: refactor
+case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
@@ -63,8 +65,8 @@ case class HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListB
 
     // FIXME: this works for now, but users may want to specify bc's per vector element
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
-    var index = IR_LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
-    var fieldSel = new IR_FieldSelection(field.field, field.level, field.slot, None, field.fragIdx) // TODO: check
+    val index = IR_LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
+    val fieldSel = IR_FieldSelection(field.field, field.level, field.slot, None, field.fragIdx) // TODO: check
 
     def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
     def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))

@@ -1,6 +1,6 @@
 import exastencils.base.ir._
 import exastencils.base.l4._
-import exastencils.baseExt.ir.IR_ResolveLoopOverDimensions
+import exastencils.baseExt.ir._
 import exastencils.baseExt.l4._
 import exastencils.communication.IR_LinearizeTempBufferAccess
 import exastencils.communication.ir.IR_CommunicationFunctions
@@ -9,12 +9,11 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.domain._
 import exastencils.field.ir._
-import exastencils.globals._
 import exastencils.globals.ir._
+import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
 import exastencils.knowledge._
 import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
-import exastencils.multiGrid._
 import exastencils.optimization.IR_LinearizeLoopCarriedCSBufferAccess
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
@@ -77,7 +76,7 @@ object MainAlex {
       new IR_Stopwatch,
 
       // Globals
-      new Globals)
+      new IR_GlobalCollection)
 
     // FIXME: set fields in L4
     /*var fieldCollection = StateManager.findFirst[FieldCollection]().get
@@ -168,11 +167,11 @@ object MainAlex {
 
     FindStencilConvolutions.apply()
 
-    ResolveSpecialFunctionsAndConstants.apply()
+    HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
 
     Fragment.setupNeighbors()
-    StateManager.findFirst[Globals]().get.functions += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
-    StateManager.findFirst[MultiGridFunctions]().get.functions ++= IR_ExternalFieldCollection.generateCopyFunction()
+    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
+    IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
     do { IR_Expand.apply() }
     while (IR_Expand.results.last._2.matches > 0) // FIXME: cleaner code

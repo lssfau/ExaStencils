@@ -6,6 +6,7 @@ import exastencils.prettyprinting.PpStream
 
 /// CUDA_Init
 
+// TODO: case object
 case class CUDA_Init() extends CUDA_DeviceStatement {
   override def prettyprint(out : PpStream) : Unit = out << "cuInit(0);"
 }

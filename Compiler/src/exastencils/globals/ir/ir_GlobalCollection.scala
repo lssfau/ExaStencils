@@ -1,21 +1,28 @@
-package exastencils.globals
+package exastencils.globals.ir
 
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config._
+import exastencils.core.StateManager
 import exastencils.prettyprinting._
 
-case class Globals(var variables : ListBuffer[IR_VariableDeclaration] = new ListBuffer) extends IR_FunctionCollection("Globals/Globals",
-  ListBuffer("algorithm"), // provides commonly used functions like min/max
-  ListBuffer("Util/Matrix.h") /*
-    ++ Settings.additionalIncludes*/ ,
-  ListBuffer(
-    new IR_Function(IR_UnitDatatype, "initGlobals", new ListBuffer[IR_FunctionArgument], new ListBuffer[IR_Statement]),
-    new IR_Function(IR_UnitDatatype, "destroyGlobals", new ListBuffer[IR_FunctionArgument], new ListBuffer[IR_Statement]))) {
+/// IR_GlobalCollection
 
-  // add conditional dependencies
+object IR_GlobalCollection {
+  // looks itself up starting from the current root
+  def get = StateManager.findFirst[IR_GlobalCollection]().get
+}
+
+case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration] = ListBuffer()) extends IR_FunctionCollection("Globals/Globals",
+  ListBuffer("algorithm"), // provides commonly used functions like min/max
+  ListBuffer("Util/Matrix.h"),
+  ListBuffer(
+    IR_Function(IR_UnitDatatype, "initGlobals"),
+    IR_Function(IR_UnitDatatype, "destroyGlobals"))) {
+
+  // add conditional dependencies - TODO: move to respective packages
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
@@ -30,22 +37,25 @@ case class Globals(var variables : ListBuffer[IR_VariableDeclaration] = new List
   if (Knowledge.library_CImg)
     internalDependencies += "Util/CImg.h"
 
-  override def printHeader = {
-    super.printHeader
+  def initGlobals = functions.find(_.name == "initGlobals").get
+  def destroyGlobals = functions.find(_.name == "destroyGlobals").get
+
+  override def printHeader() = {
+    super.printHeader()
     val writer = PrettyprintingManager.getPrinter(s"${ baseName }.h")
-    for (macroo <- Settings.additionalMacros) writer <<< macroo
-    for (variable <- variables.sortBy(_.name)) writer << s"extern ${ variable.prettyprint_onlyDeclaration }\n"
+    Settings.additionalMacros.foreach(writer <<< _)
+    variables.sortBy(_.name).foreach(variable => writer << s"extern ${ variable.prettyprintDeclaration() }\n")
   }
 
-  override def printSources = {
+  override def printSources() = {
     val writer = PrettyprintingManager.getPrinter(s"${ baseName }_declarations.cpp")
     writer.addInternalDependency(s"${ baseName }.h")
 
-    for (variable <- variables.sortBy(_.name)) writer << s"${ variable.prettyprint() }\n"
+    variables.sortBy(_.name).foreach(variable => writer << s"${ variable.prettyprint() }\n")
 
     // additional include for std::srand
     PrettyprintingManager.getPrinter(s"${ baseName }_initGlobals.cpp").addExternalDependency("cstdlib")
 
-    super.printSources
+    super.printSources()
   }
 }

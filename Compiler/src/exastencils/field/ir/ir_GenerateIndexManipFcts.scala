@@ -5,12 +5,11 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_LoopOverFragments
+import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.datastructures.ir.iv
 import exastencils.deprecated.ir.IR_DimToString
-import exastencils.multiGrid.MultiGridFunctions
 
 /// IR_GenerateIndexManipFcts
 
@@ -40,7 +39,7 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
   })
 
   this += new Transformation("Generate functions", {
-    case multiGrid : MultiGridFunctions =>
+    case functions : IR_UserFunctions =>
       for (layout <- layoutMap) {
         var body = ListBuffer[IR_Statement]()
         def newInnerSize(dim : Integer) = IR_VariableAccess(s"newInnerSize_${ IR_DimToString(dim) }", IR_IntegerDatatype)
@@ -65,7 +64,7 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
         body = ListBuffer[IR_Statement](IR_LoopOverFragments(body))
 
         // set up function
-        multiGrid.functions += IR_Function(
+        functions += IR_Function(
           IR_UnitDatatype,
           s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
           Knowledge.dimensions.map(dim => IR_FunctionArgument(newInnerSize(dim))).to[ListBuffer],
@@ -85,7 +84,7 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
         }
 
         // set up function
-        multiGrid.functions += IR_Function(
+        functions += IR_Function(
           IR_UnitDatatype,
           s"resizeAllInner_${ level.prettyprint() }",
           Knowledge.dimensions.map(dim => IR_FunctionArgument(newInnerSize(dim))).to[ListBuffer],
@@ -94,6 +93,6 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
       }
 
       // return extended collection
-      multiGrid
+      functions
   })
 }

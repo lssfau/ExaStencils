@@ -8,7 +8,7 @@ import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
-import exastencils.globals.Globals
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
@@ -108,7 +108,7 @@ object MPI_AddDatatypeSetup extends DefaultStrategy("Add declaration, initializa
   })
 
   this += new Transformation("Adding declaration and init code", {
-    case globals : Globals                                   =>
+    case globals : IR_GlobalCollection                       =>
       for (dt <- datatypes)
         globals.variables += dt._2.generateDecl
       globals

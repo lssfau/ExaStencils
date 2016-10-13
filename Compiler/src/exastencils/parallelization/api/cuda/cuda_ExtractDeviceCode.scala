@@ -81,7 +81,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       val deviceStatements = ListBuffer[IR_Statement]()
 
       // add kernel and kernel call
-      val kernelFunctions = StateManager.findFirst[CUDA_KernelFunctions]().get
+      val kernelFunctions = CUDA_KernelFunctions.get
 
       // collect local variable accesses because these variables need to be passed to the kernel at call
       CUDA_GatherVariableAccess.clear()

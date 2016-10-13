@@ -15,16 +15,15 @@ import exastencils.deprecated.l3Generate
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir._
 import exastencils.field.l4._
-import exastencils.globals._
 import exastencils.globals.ir._
 import exastencils.grid.l4._
 import exastencils.grid.{ l4 => _, _ }
+import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
-import exastencils.multiGrid._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.api.cuda._
@@ -36,7 +35,7 @@ import exastencils.parsers.settings._
 import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
-import exastencils.solver.ir.IR_ResolveLocalSolve
+import exastencils.solver.ir._
 import exastencils.stencil.ir.IR_ResolveStencilFunction
 import exastencils.stencil.l4._
 import exastencils.timing.ir._
@@ -266,11 +265,11 @@ object MainStefan {
 
   def handleIR() = {
     // add some more nodes
-    AddDefaultGlobals.apply()
+    IR_AddDefaultGlobals.apply()
 
     Fragment.setupNeighbors()
-    StateManager.findFirst[Globals]().get.functions += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
-    StateManager.findFirst[MultiGridFunctions]().get.functions ++= IR_ExternalFieldCollection.generateCopyFunction()
+    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
+    IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
     // add remaining nodes
     StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
@@ -294,10 +293,10 @@ object MainStefan {
     IR_SetupCommunication.firstCall = true
     IR_SetupCommunication.apply()
 
-    ResolveSpecialFunctionsAndConstants.apply()
+    HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
 
     IR_ResolveLoopOverPoints.apply()
-    ResolveIntergridIndices.apply()
+    IR_ResolveIntergridIndices.apply()
 
     var convChanged = false
     do {
@@ -402,7 +401,7 @@ object MainStefan {
     IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.cuda_enabled)
-      StateManager.findFirst[CUDA_KernelFunctions]().get.convertToFunctions
+      CUDA_KernelFunctions.get.convertToFunctions
 
     IR_ResolveBoundedScalar.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
     IR_ResolveSlotOperations.apply() // after converting kernel functions -> relies on (unresolved) slot accesses

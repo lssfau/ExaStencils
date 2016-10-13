@@ -32,13 +32,13 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
 
   override def apply(node : Option[Node] = None) = {
     if (firstCall) {
-      commFunctions = StateManager.findFirst[IR_CommunicationFunctions]().get
+      commFunctions = IR_CommunicationFunctions.get
       addedFunctions.clear
 
       if (Knowledge.mpi_enabled && Knowledge.domain_canHaveRemoteNeighs)
-        commFunctions.functions += MPI_WaitForRequest
+        commFunctions += MPI_WaitForRequest
       if (Knowledge.omp_enabled && Knowledge.domain_canHaveLocalNeighs)
-        commFunctions.functions += OMP_WaitForFlag
+        commFunctions += OMP_WaitForFlag
     }
 
     super.apply(node)
@@ -116,7 +116,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
         addedFunctions += functionName
         val fieldSelection = Duplicate(communicateStatement.field)
         fieldSelection.slot = "slot"
-        commFunctions.functions += IR_CommunicateFunction(functionName,
+        commFunctions += IR_CommunicateFunction(functionName,
           fieldSelection, Fragment.neighbors,
           "begin" == communicateStatement.op || "both" == communicateStatement.op,
           "finish" == communicateStatement.op || "both" == communicateStatement.op,
@@ -152,7 +152,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
         addedFunctions += functionName
         val fieldSelection = Duplicate(applyBCsStatement.field)
         fieldSelection.slot = "slot"
-        commFunctions.functions += IR_ApplyBCFunction(functionName, fieldSelection, Fragment.neighbors, insideFragLoop)
+        commFunctions += IR_ApplyBCFunction(functionName, fieldSelection, Fragment.neighbors, insideFragLoop)
       }
 
       applyBCsStatement.field.slot match {

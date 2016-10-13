@@ -3,8 +3,8 @@ package exastencils.base.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
+import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.logger.Logger
-import exastencils.multiGrid.MultiGridFunctions
 import exastencils.prettyprinting._
 
 object L4_Root {
@@ -24,15 +24,15 @@ case class L4_Root(var nodes : ListBuffer[L4_Node]) extends L4_Node with L4_Prog
   override def progress : IR_Root = {
     var newRoot = IR_Root()
 
-    val functions = MultiGridFunctions()
+    val functions = IR_UserFunctions()
 
     nodes.foreach {
-      case fct : L4_Function      => functions.functions += fct.progress
+      case fct : L4_Function      => functions += fct.progress
       case node : L4_Progressable => newRoot += node.progress
       case node                   => Logger.warn("Found unprogressable L4 node " + node)
     }
 
-    newRoot += functions // FIXME: think about how to manage (MG/other) functions
+    newRoot += functions
 
     newRoot
   }

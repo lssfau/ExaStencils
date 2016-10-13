@@ -8,7 +8,6 @@ import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.knowledge.NeighborInfo
-import exastencils.multiGrid.HandleBoundaries
 import exastencils.prettyprinting.PpStream
 
 /// IR_ApplyBCFunction
@@ -75,7 +74,7 @@ case class IR_ApplyBCFunction(
     var body = ListBuffer[IR_Statement]()
 
     val boundaryNeighs = neighbors.filter(neigh => 1 == neigh.dir.count(_ != 0)) // exactly one non-zero entry
-    body += HandleBoundaries(fieldSelection, genIndicesBoundaryHandling(boundaryNeighs))
+    body += IR_HandleBoundaries(fieldSelection, genIndicesBoundaryHandling(boundaryNeighs))
 
     body
   }

@@ -7,10 +7,15 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
-import exastencils.core.Duplicate
+import exastencils.core._
 import exastencils.prettyprinting._
 
 /// CUDA_KernelFunctions
+
+object CUDA_KernelFunctions {
+  // looks itself up starting from the current root
+  def get = StateManager.findFirst[CUDA_KernelFunctions]().get
+}
 
 case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions/KernelFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default

@@ -6,10 +6,18 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.prettyprinting._
 
+/// IR_FunctionCollection
+
 abstract class IR_FunctionCollection(var baseName : String,
     var externalDependencies : ListBuffer[String],
     var internalDependencies : ListBuffer[String],
     var functions : ListBuffer[IR_AbstractFunction] = ListBuffer()) extends IR_Node with FilePrettyPrintable {
+
+  /// add a function to the function collection
+  def +=(fct : IR_AbstractFunction) = {
+    functions += fct
+    this
+  }
 
   def printHeader() = {
     val writer = PrettyprintingManager.getPrinter(s"$baseName.h")

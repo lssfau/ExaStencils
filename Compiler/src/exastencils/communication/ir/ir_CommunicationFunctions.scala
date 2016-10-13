@@ -4,6 +4,14 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config._
+import exastencils.core.StateManager
+
+/// IR_CommunicationFunctions
+
+object IR_CommunicationFunctions {
+  // looks itself up starting from the current root
+  def get = StateManager.findFirst[IR_CommunicationFunctions]().get
+}
 
 case class IR_CommunicationFunctions() extends IR_FunctionCollection("CommFunctions/CommFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default

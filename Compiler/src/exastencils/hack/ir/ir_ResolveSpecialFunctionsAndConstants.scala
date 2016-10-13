@@ -1,4 +1,4 @@
-package exastencils.multiGrid
+package exastencils.hack.ir
 
 import scala.collection.mutable.ListBuffer
 
@@ -6,83 +6,18 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
-import exastencils.config._
-import exastencils.core._
-import exastencils.core.collectors._
-import exastencils.datastructures.Transformation._
+import exastencils.config.Knowledge
+import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
-import exastencils.field.ir._
+import exastencils.field.ir.IR_FieldAccess
 import exastencils.knowledge.Fragment
-import exastencils.logger._
-import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
-import exastencils.stencil.ir._
-import exastencils.util.ir.IR_ReplaceVariableAccess
+/// HACK_IR_ResolveSpecialFunctionsAndConstants
 
-object ResolveIntergridIndices extends DefaultStrategy("ResolveIntergridIndices") {
-  val collector = new IRLevelCollector
-  this.register(collector)
-
-  // TODO: checking for being inside a valid level scope is currently required for setting up geometric information of grids with varying cell sizes
-  // TODO: think about if this case (access outside of a loop) should be supported
-
-  this += new Transformation("ModifyIndices", {
-    case fct : IR_FunctionCall if "changeLvlAndIndices" == fct.name => {
-      // extract information from special function call
-      val fieldAccess = fct.arguments(0).asInstanceOf[IR_FieldAccess]
-      Logger.warn("Performing index adaptation for " + fieldAccess.fieldSelection.field.codeName)
-      val newLevel = fct.arguments(1)
-
-      // adapt per dimension / (n+1)d is reserved
-      for (dim <- 0 until Knowledge.dimensionality) {
-        val idxAdaption = fct.arguments(2 + dim)
-
-        // insert old index into index adaptation function
-        IR_ReplaceVariableAccess.toReplace = "i"
-        IR_ReplaceVariableAccess.replacement = Duplicate(fieldAccess.index(dim))
-        var newIdx = Duplicate(idxAdaption)
-        IR_ReplaceVariableAccess.applyStandalone(newIdx)
-
-        // overwrite old index
-        fieldAccess.index(dim) = newIdx
-      }
-
-      fieldAccess
-    }
-
-    case access : IR_FieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel        => {
-      var fieldAccess = Duplicate(access)
-      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-        fieldAccess.index(i) = fieldAccess.index(i) / 2
-      fieldAccess
-    }
-    case access : IR_FieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel        => {
-      var fieldAccess = Duplicate(access)
-      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-        fieldAccess.index(i) = 2 * fieldAccess.index(i)
-      fieldAccess
-    }
-    case access : IR_StencilFieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) < collector.getCurrentLevel => {
-      var stencilFieldAccess = Duplicate(access)
-      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-        stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
-      stencilFieldAccess
-    }
-    case access : IR_StencilFieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) > collector.getCurrentLevel => {
-      var stencilFieldAccess = Duplicate(access)
-      for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
-        stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
-      stencilFieldAccess
-    }
-  }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */)
-}
-
-object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpecialFunctionsAndConstants") {
+// TODO: split according to functionality and move to appropriate packages
+object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpecialFunctionsAndConstants") {
   var collector = new StackCollector
   this.register(collector)
 
@@ -93,7 +28,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     case IR_FunctionCall(IR_UserFunctionAccess("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
 
     // Vector functions
-    case f : IR_FunctionCall if (f.name == "cross" || f.name == "crossproduct") => {
+    case f : IR_FunctionCall if f.name == "cross" || f.name == "crossproduct" => {
       f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[IR_VectorExpression] || f.arguments(0).isInstanceOf[IR_VectorExpression])
         && a.getClass != f.arguments(0).getClass) Logger.error("Must have matching types!"))
       f.arguments.foreach(a => if (a.asInstanceOf[IR_VectorExpression].length != f.arguments(0).asInstanceOf[IR_VectorExpression].length) Logger.error("Vectors must have matching lengths"))
@@ -115,34 +50,34 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     case x : IR_FunctionCall if x.name == "inverse" => {
       if (x.arguments.size == 1) {
         if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
-          var m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
+          val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
           if (m.rows == 2 && m.columns == 2) {
-            var a = m.expressions(0)(0)
-            var b = m.expressions(0)(1)
-            var c = m.expressions(1)(0)
-            var d = m.expressions(1)(1)
-            var det = 1.0 / (a * d - b * c)
+            val a = m.expressions(0)(0)
+            val b = m.expressions(0)(1)
+            val c = m.expressions(1)(0)
+            val d = m.expressions(1)(1)
+            val det = 1.0 / (a * d - b * c)
             IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
           } else if (m.rows == 3 && m.columns == 3) {
-            var a = m.expressions(0)(0)
-            var b = m.expressions(0)(1)
-            var c = m.expressions(0)(2)
-            var d = m.expressions(1)(0)
-            var e = m.expressions(1)(1)
-            var f = m.expressions(1)(2)
-            var g = m.expressions(2)(0)
-            var h = m.expressions(2)(1)
-            var i = m.expressions(2)(2)
-            var A = e * i - f * h
-            var B = -1 * (d * i - f * g)
-            var C = d * h - e * g
-            var D = -1 * (b * i - c * h)
-            var E = a * i - c * g
-            var F = -1 * (a * h - b * g)
-            var G = (b * f - c * e)
-            var H = -1 * (a * f - c * d)
-            var I = (a * e - b * d)
-            var det = a * A + b * B + c * C
+            val a = m.expressions(0)(0)
+            val b = m.expressions(0)(1)
+            val c = m.expressions(0)(2)
+            val d = m.expressions(1)(0)
+            val e = m.expressions(1)(1)
+            val f = m.expressions(1)(2)
+            val g = m.expressions(2)(0)
+            val h = m.expressions(2)(1)
+            val i = m.expressions(2)(2)
+            val A = e * i - f * h
+            val B = -1 * (d * i - f * g)
+            val C = d * h - e * g
+            val D = -1 * (b * i - c * h)
+            val E = a * i - c * g
+            val F = -1 * (a * h - b * g)
+            val G = b * f - c * e
+            val H = -1 * (a * f - c * d)
+            val I = a * e - b * d
+            val det = a * A + b * B + c * C
             IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
           } else {
             x
@@ -156,7 +91,7 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
     }
 
     // FIXME: HACK to realize application functionality
-    case func : IR_Function if ("Application" == func.name) => {
+    case func : IR_Function if "Application" == func.name => {
       func.returntype = IR_IntegerDatatype
       func.name = "main"
       func.parameters = ListBuffer(IR_FunctionArgument("argc", IR_IntegerDatatype), IR_FunctionArgument("argv", IR_SpecialDatatype("char**"))) ++ func.parameters
@@ -171,49 +106,47 @@ object ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpeci
       //#endif""")
       //}
       if (Knowledge.cuda_enabled) {
-        func.body.prepend(new CUDA_Init)
-        func.body.append(new CUDA_Finalize)
+        func.body.prepend(CUDA_Init())
+        func.body.append(CUDA_Finalize())
       }
       if (Knowledge.mpi_enabled) {
         func.body.prepend(MPI_Init)
         func.body.append(MPI_Finalize)
       }
-      func.body.append(new IR_Return(Some(new IR_IntegerConstant(0))))
+      func.body.append(IR_Return(0))
       func
     }
 
     // FIXME: IR_UserFunctionAccess's
 
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnBoundaryOf", _), args) => {
+    case IR_FunctionCall(IR_UserFunctionAccess("isOnBoundaryOf", _), args) =>
       IR_IsOnBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
-    }
 
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnEastBoundaryOf", _), args)   => {
+    case IR_FunctionCall(IR_UserFunctionAccess("isOnEastBoundaryOf", _), args) =>
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(1, 0, 0)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
-    }
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnWestBoundaryOf", _), args)   => {
+
+    case IR_FunctionCall(IR_UserFunctionAccess("isOnWestBoundaryOf", _), args) =>
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(-1, 0, 0)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
-    }
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnNorthBoundaryOf", _), args)  => {
+
+    case IR_FunctionCall(IR_UserFunctionAccess("isOnNorthBoundaryOf", _), args) =>
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 1, 0)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
-    }
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnSouthBoundaryOf", _), args)  => {
+
+    case IR_FunctionCall(IR_UserFunctionAccess("isOnSouthBoundaryOf", _), args) =>
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, -1, 0)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
-    }
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnTopBoundaryOf", _), args)    => {
+
+    case IR_FunctionCall(IR_UserFunctionAccess("isOnTopBoundaryOf", _), args) =>
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, 1)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
-    }
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnBottomBoundaryOf", _), args) => {
+
+    case IR_FunctionCall(IR_UserFunctionAccess("isOnBottomBoundaryOf", _), args) =>
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, Fragment.getNeigh(Array(0, 0, -1)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
-    }
-
+      
     case IR_ElementwiseAdditionExpression(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
     case IR_ElementwiseSubtractionExpression(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
     case IR_ElementwiseMultiplicationExpression(left, right) => IR_FunctionCall("elementwiseMul", ListBuffer(left, right))

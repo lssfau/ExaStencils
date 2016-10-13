@@ -529,7 +529,7 @@ case class CUDA_Kernel(var identifier : String,
       body += IR_Return(Some(IR_FunctionCall(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
         ListBuffer[IR_Expression](bufAccess, bufSize))))
 
-      StateManager.findFirst[CUDA_KernelFunctions]().get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
+      CUDA_KernelFunctions.get.requiredRedKernels += reduction.get.op // request reduction kernel and wrapper
     } else {
       body += CUDA_FunctionCallExperimental(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
     }

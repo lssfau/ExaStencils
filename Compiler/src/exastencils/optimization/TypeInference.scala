@@ -4,11 +4,10 @@ import scala.collection.mutable.Map
 
 import exastencils.base.ir._
 import exastencils.config.Settings
-import exastencils.core._
 import exastencils.core.collectors.ScopeCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.globals.Globals
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger._
 
 object TypeInference extends CustomStrategy("Type inference") {
@@ -25,7 +24,7 @@ object TypeInference extends CustomStrategy("Type inference") {
 
     val annotate = new AnnotateStringConstants()
     this.register(annotate)
-    this.execute(new Transformation("load global declarations first", PartialFunction.empty), StateManager.findFirst[Globals]())
+    this.execute(new Transformation("load global declarations first", PartialFunction.empty), Some(IR_GlobalCollection.get))
     this.execute(new Transformation("infer types", PartialFunction.empty))
     this.unregister(annotate)
 

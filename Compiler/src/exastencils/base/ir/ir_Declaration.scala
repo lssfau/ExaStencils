@@ -19,23 +19,23 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
   override def prettyprint(out : PpStream) : Unit = {
     // TODO: extract specialized behavior
     datatype match {
-      case x : IR_VectorDatatype => {
+      case x : IR_VectorDatatype =>
         out << x << ' ' << name
         if (initialValue.isDefined) {
           out << "("
           initialValue.get.asInstanceOf[IR_VectorExpression].prettyprintInner(out)
           out << ")"
         }
-      }
-      case x : IR_MatrixDatatype => {
+
+      case x : IR_MatrixDatatype =>
         out << x << ' ' << name
         if (initialValue.isDefined) {
           out << "("
           initialValue.get.asInstanceOf[IR_MatrixExpression].prettyprintInner(out)
           out << ")"
         }
-      }
-      case _                     => {
+
+      case _ =>
         if (alignment > 1 && "MSVC" == Platform.targetCompiler)
           out << "__declspec(align(" << alignment * 8 << ")) "
         out << datatype.resolveDeclType << ' ' << name << datatype.resolveDeclPostscript
@@ -43,11 +43,11 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
           out << " __attribute__((aligned(" << alignment * 8 << ")))"
         if (initialValue.isDefined)
           out << " = " << initialValue.get
-      }
     }
 
     out << ';'
   }
 
-  def prettyprint_onlyDeclaration() : String = IR_VariableDeclaration(datatype, name, None).prettyprint()
+  /// prints only the declaration, ie omits (potential) initialization
+  def prettyprintDeclaration() : String = IR_VariableDeclaration(datatype, name, None).prettyprint()
 }

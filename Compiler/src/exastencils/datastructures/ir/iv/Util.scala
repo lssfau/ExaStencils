@@ -6,8 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
-import exastencils.core._
-import exastencils.globals._
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting._
@@ -15,7 +14,7 @@ import exastencils.prettyprinting._
 object VecShiftIndexStaticInit {
   val header = Platform.simd_header
   if (header != null)
-    StateManager.findFirst[Globals].get.externalDependencies += header
+    IR_GlobalCollection.get.externalDependencies += header
 }
 
 case class VecShiftIndex(val offset : Int) extends IR_UnduplicatedVariable {

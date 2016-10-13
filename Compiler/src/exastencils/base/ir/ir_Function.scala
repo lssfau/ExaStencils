@@ -28,6 +28,10 @@ case class IR_FunctionArgument(var name : String, var datatype : IR_Datatype) ex
 /// IR_Function
 
 object IR_Function {
+  // empty function
+  def apply(returntype : IR_Datatype, name : String) =
+  new IR_Function(returntype, name, ListBuffer(), ListBuffer())
+
   // no function arguments
   def apply(returntype : IR_Datatype, name : String, body : ListBuffer[IR_Statement]) =
   new IR_Function(returntype, name, ListBuffer(), body)

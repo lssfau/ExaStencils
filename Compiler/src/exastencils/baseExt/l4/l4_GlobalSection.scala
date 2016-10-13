@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.globals.Globals
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.prettyprinting._
 
 /// L4_GlobalSection
@@ -37,7 +37,7 @@ case class L4_GlobalSection(
   }
 
   // FIXME: unify multiple global sections
-  override def progress = Globals(variableDeclarations.map(_.progress) ++ valueDeclarations.map(_.progress))
+  override def progress = IR_GlobalCollection(variableDeclarations.map(_.progress) ++ valueDeclarations.map(_.progress))
 }
 
 /// L4_UnifyGlobalSections

@@ -14,13 +14,12 @@ import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.domain.{ l4 => _, _ }
 import exastencils.field.ir._
-import exastencils.globals._
 import exastencils.globals.ir._
+import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
 import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
-import exastencils.multiGrid._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
@@ -29,6 +28,7 @@ import exastencils.parallelization.api.omp._
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
+import exastencils.solver.ir.IR_ResolveIntergridIndices
 import exastencils.stencil.ir.IR_ResolveStencilFunction
 import exastencils.stencil.l4.L4_ProcessStencilDeclarations
 import exastencils.timing.ir._
@@ -224,20 +224,20 @@ object MainJeremias {
 
     // apply strategies
 
-    AddDefaultGlobals.apply()
+    IR_AddDefaultGlobals.apply()
 
     IR_GeneralSimplify.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
     Fragment.setupNeighbors()
-    StateManager.findFirst[Globals]().get.functions += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
-    StateManager.findFirst[MultiGridFunctions]().get.functions ++= IR_ExternalFieldCollection.generateCopyFunction()
+    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, Fragment.neighbors)
+    IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
     IR_SetupCommunication.apply()
 
-    ResolveSpecialFunctionsAndConstants.apply()
+    HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
 
     IR_ResolveLoopOverPoints.apply()
-    ResolveIntergridIndices.apply()
+    IR_ResolveIntergridIndices.apply()
 
     var convChanged = false
     do {

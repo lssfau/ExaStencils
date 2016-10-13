@@ -10,7 +10,6 @@ import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.datastructures.ir.iv
 import exastencils.domain.ir.IR_IV_IsValidForDomain
-import exastencils.globals.Globals
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda.CUDA_Allocate
@@ -231,7 +230,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   })
 
   this += new Transformation("Add to globals", {
-    case globals : Globals                                   =>
+    case globals : IR_GlobalCollection                       =>
       globals.variables ++= declarationMap.toSeq.sortBy(_._1).map(_._2)
       globals
     case func : IR_Function if "initGlobals" == func.name    =>
