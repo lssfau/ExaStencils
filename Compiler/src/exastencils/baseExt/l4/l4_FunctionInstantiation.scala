@@ -5,7 +5,6 @@ import scala.collection.mutable._
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.languageprocessing.l4.ReplaceExpressions
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -33,8 +32,8 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
       val template = templateOpt.get
       val instantiated = Duplicate(L4_Function(functionInst.targetFct, template.returntype, template.functionArgs, template.statements))
 
-      ReplaceExpressions.replacements = Map() ++ (template.templateArgs zip functionInst.args).toMap[String, L4_Expression]
-      ReplaceExpressions.applyStandalone(instantiated)
+      L4_ReplaceUnresolvedAccess.replacements = Map() ++ (template.templateArgs zip functionInst.args).toMap[String, L4_Expression]
+      L4_ReplaceUnresolvedAccess.applyStandalone(instantiated)
 
       instantiated // replace instantiation with function declaration
     }
@@ -43,4 +42,49 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
   this += new Transformation("Remove function templates", {
     case functionTemplate : L4_FunctionTemplate => None
   })
+
+  object L4_ReplaceUnresolvedAccess extends DefaultStrategy("Replace something with something else") {
+    var replacements : Map[String, L4_Expression] = Map()
+
+    override def applyStandalone(node : Node) = {
+      val oldLvl = Logger.getLevel
+      Logger.setLevel(Logger.WARNING)
+      super.applyStandalone(node)
+      Logger.setLevel(oldLvl)
+    }
+
+    this += new Transformation("Search and replace", {
+      case origAccess : L4_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
+        // includes accesses used as identifiers in function calls
+        val newAccess = Duplicate(replacements(origAccess.name))
+        newAccess match {
+          case newAccess : L4_UnresolvedAccess => {
+            if (origAccess.slot.isDefined) {
+              if (newAccess.slot.isDefined) Logger.warn("Overriding slot on access in function instantiation")
+              newAccess.slot = origAccess.slot
+            }
+            if (origAccess.level.isDefined) {
+              if (newAccess.level.isDefined) Logger.warn("Overriding level on access in function instantiation")
+              newAccess.level = origAccess.level
+            }
+            if (origAccess.offset.isDefined) {
+              if (newAccess.offset.isDefined) Logger.warn("Overriding offset on access in function instantiation")
+              newAccess.offset = origAccess.offset
+            }
+            if (origAccess.arrayIndex.isDefined) {
+              if (newAccess.arrayIndex.isDefined) Logger.warn("Overriding array index on access in function instantiation")
+              newAccess.arrayIndex = origAccess.arrayIndex
+            }
+            if (origAccess.dirAccess.isDefined) {
+              if (newAccess.dirAccess.isDefined) Logger.warn("Overriding direction access on access in function instantiation")
+              newAccess.dirAccess = origAccess.dirAccess
+            }
+          }
+          case _                               =>
+        }
+        newAccess
+      }
+    })
+  }
+
 }
