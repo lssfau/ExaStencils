@@ -88,7 +88,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
 
     val scops : Seq[Scop] = time(extractPolyModel(), "po:extractPolyModel")
+    var i : Int = 0
     for (scop <- scops if !scop.remove) {
+      i += 1
       time(mergeLocalScalars(scop), "po:mergeLocalScalars")
       time(mergeScops(scop), "po:mergeScops")
       time(simplifyModel(scop), "po:simplifyModel")
@@ -100,6 +102,19 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
       if (scop.optLevel >= 2)
         time(optimize(scop, confID), "po:optimize")
+
+      if (Knowledge.poly_printDebug) {
+        Logger.debug("SCoP " + i)
+        Logger.debug("  domain:   " + scop.domain)
+        Logger.debug("  context:  " + scop.getContext())
+        Logger.debug("  reads:    " + scop.reads)
+        Logger.debug("  writes:   " + scop.writes)
+        Logger.debug("  dependences")
+        Logger.debug("    flow:   " + scop.deps.flow)
+        Logger.debug("    valid:  " + scop.deps.validity())
+        Logger.debug("    input:  " + scop.deps.input)
+        Logger.debug("  schedule: " + scop.schedule)
+      }
     }
     time(recreateAndInsertAST(), "po:recreateAndInsertAST")
 

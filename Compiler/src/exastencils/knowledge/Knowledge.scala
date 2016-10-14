@@ -265,6 +265,7 @@ object Knowledge {
   var poly_maxConstantTerm : Int = -1
   // [(-1)~inf] // enforces that the constant coefficients in the calculated schedule are not larger than the maximal constant term (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
   var poly_maxCoefficient : Int = -1 // [(-1)~inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
+  var poly_printDebug : Boolean = false
 
   // --- Other Optimizations ---
   var opt_useAddressPrecalc : Boolean = false
