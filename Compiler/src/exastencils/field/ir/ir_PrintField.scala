@@ -36,12 +36,11 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
     field.field.discretization match {
       case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
       case "cell"                                   => GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
-      case discr @ ("face_x" | "face_y" | "face_z") => {
+      case discr @ ("face_x" | "face_y" | "face_z") =>
         if (s"face_${ IR_DimToString(dim) }" == discr)
           GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
         else
           GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
-      }
     }
   }
 

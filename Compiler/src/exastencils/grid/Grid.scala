@@ -1,11 +1,8 @@
 package exastencils.grid
 
-import scala.collection.mutable.ListBuffer
+import exastencils.grid.ir._
 
-import exastencils.core._
-import exastencils.datastructures.ir._
-import exastencils.config._
-import exastencils.logger._
+/// Grid
 
 // helper object/method to branch grid types
 object Grid {
@@ -15,12 +12,12 @@ object Grid {
 
   // strategies
   def applyStrategies() = {
-    PrepareShiftedEvaluationFunctions.apply() // workaround
+    IR_PrepareShiftedEvaluationFunctions.apply() // workaround
 
-    ResolveEvaluationFunctions.apply()
-    ResolveIntegrationFunctions.apply()
-    ExpandEvaluationFunctions.apply()
+    IR_ResolveEvalFunction.apply()
+    IR_ResolveIntegrateFunction.apply()
+    IR_ExpandEvalFunction.apply()
 
-    ResolveVirtualFields.apply()
+    IR_ResolveVirtualFieldAccess.apply()
   }
 }
