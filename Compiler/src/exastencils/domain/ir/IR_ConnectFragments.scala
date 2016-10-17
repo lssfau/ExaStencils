@@ -14,11 +14,8 @@ import exastencils.deprecated.ir._
 import exastencils.domain._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.prettyprinting.PpStream
 
 case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
   def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
@@ -31,7 +28,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
   }
 
   def owningRankForPoint(position : (Int => IR_Expression), domain : IR_Domain) = {
-    IR_TernaryCondition(IR_NegationExpression(isPointInsideDomain(position, domain)),
+    IR_TernaryCondition(IR_Negation(isPointInsideDomain(position, domain)),
       s"MPI_PROC_NULL",
       Knowledge.dimensions.map(dim =>
         IR_ToInt(((position(dim) - globalSize.lower(dim)) / fragWidth(dim)) / Knowledge.domain_rect_numFragsPerBlockAsVec(dim))
@@ -98,9 +95,9 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
           statements += IR_VariableDeclaration(offsetPos(dim), IR_IV_FragmentPosition(dim) + neigh.dir(dim) * fragWidth(dim))
           if (Knowledge.domain_rect_periodicAsVec(dim)) {
             // implement simple wrap-around for periodic domains
-            statements += IR_IfCondition(IR_GreaterExpression(offsetPos(dim), globalSize.upper(dim)),
+            statements += IR_IfCondition(IR_Greater(offsetPos(dim), globalSize.upper(dim)),
               IR_Assignment(offsetPos(dim), globalSize.upper(dim) - globalSize.lower(dim), "-="))
-            statements += IR_IfCondition(IR_LowerExpression(offsetPos(dim), globalSize.lower(dim)),
+            statements += IR_IfCondition(IR_Lower(offsetPos(dim), globalSize.lower(dim)),
               IR_Assignment(offsetPos(dim), globalSize.upper(dim) - globalSize.lower(dim), "+="))
           }
         }
@@ -117,7 +114,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
           statements += IR_IfCondition(IR_IV_IsValidForDomain(d) AndAnd isPointInsideDomain(offsetPos, domains(d)),
             if (Knowledge.domain_canHaveRemoteNeighs && Knowledge.domain_canHaveLocalNeighs)
               ListBuffer[IR_Statement](
-                IR_IfCondition(IR_EqEqExpression(MPI_IV_MpiRank, owningRankForPoint(offsetPos, domains(d))),
+                IR_IfCondition(IR_EqEq(MPI_IV_MpiRank, owningRankForPoint(offsetPos, domains(d))),
                   localConnect(d), remoteConnect(d)))
             else if (Knowledge.domain_canHaveRemoteNeighs)
               remoteConnect(d)

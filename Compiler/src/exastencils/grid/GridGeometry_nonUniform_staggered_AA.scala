@@ -51,14 +51,14 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     Knowledge.grid_spacingModel match {
       case "diego"     =>
-        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Diego(dim, Knowledge.maxLevel)) ++
-          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+        Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_Diego(dim, Knowledge.maxLevel)) ++
+          Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
       case "diego2"    =>
-        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Diego2(dim, Knowledge.maxLevel)) ++
-          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+        Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_Diego2(dim, Knowledge.maxLevel)) ++
+          Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
       case "linearFct" =>
-        (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel)) ++
-          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+        Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel)) ++
+          Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
     }
   }
 
@@ -90,18 +90,18 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
       GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
-        IR_IfCondition(IR_LowerEqualExpression(innerIt, 0),
+        IR_IfCondition(IR_LowerEqual(innerIt, 0),
           IR_Assignment(Duplicate(baseAccess), 0.0),
-          IR_IfCondition(IR_LowerEqualExpression(innerIt, 1 * zoneSize),
+          IR_IfCondition(IR_LowerEqual(innerIt, 1 * zoneSize),
             IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
               + zoneLength * IR_FunctionCall("pow", ListBuffer[IR_Expression](step * (IR_LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
-            IR_IfCondition(IR_LowerEqualExpression(innerIt, 2 * zoneSize),
+            IR_IfCondition(IR_LowerEqual(innerIt, 2 * zoneSize),
               IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
                 + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
-              IR_IfCondition(IR_LowerEqualExpression(innerIt, 3 * zoneSize),
+              IR_IfCondition(IR_LowerEqual(innerIt, 3 * zoneSize),
                 IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 2 * zoneSize, dim)
                   + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
-                IR_IfCondition(IR_LowerEqualExpression(innerIt, 4 * zoneSize),
+                IR_IfCondition(IR_LowerEqual(innerIt, 4 * zoneSize),
                   IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
                     + zoneLength * (1.0 - IR_FunctionCall("pow", ListBuffer[IR_Expression](1.0 - step * (IR_LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
                   IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim)))))))))
@@ -150,15 +150,15 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
       GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
-        IR_IfCondition(IR_LowerEqualExpression(innerIt, 0),
+        IR_IfCondition(IR_LowerEqual(innerIt, 0),
           IR_Assignment(Duplicate(baseAccess), 0.0),
-          IR_IfCondition(IR_LowerEqualExpression(innerIt, zoneSize_1),
+          IR_IfCondition(IR_LowerEqual(innerIt, zoneSize_1),
             IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt, dim)
               + zoneLength_1 * IR_FunctionCall("pow", ListBuffer[IR_Expression](step_1 * IR_LoopOverDimensions.defItForDim(dim), expo))),
-            IR_IfCondition(IR_LowerEqualExpression(innerIt, zoneSize_1 + zoneSize_2),
+            IR_IfCondition(IR_LowerEqual(innerIt, zoneSize_1 + zoneSize_2),
               IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + zoneSize_1, dim)
                 + zoneLength_2 * step_2 * (IR_LoopOverDimensions.defItForDim(dim) - zoneSize_1)),
-              IR_IfCondition(IR_LowerEqualExpression(innerIt, innerIt + (zoneSize_1 + zoneSize_2 + zoneSize_3)),
+              IR_IfCondition(IR_LowerEqual(innerIt, innerIt + (zoneSize_1 + zoneSize_2 + zoneSize_3)),
                 IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + (zoneSize_1 + zoneSize_2), dim)
                   + zoneLength_3 * step_3 * (IR_LoopOverDimensions.defItForDim(dim) - (zoneSize_1 + zoneSize_2))),
                 IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim))))))))
@@ -205,7 +205,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
         IR_Assignment(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
@@ -219,7 +219,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim), GridUtil.offsetAccess(rightGhostAccess, -2, dim)),
         IR_Assignment(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim))))
@@ -231,11 +231,11 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         innerItDecl,
-        IR_IfCondition(IR_EqEqExpression(0, innerIt),
+        IR_IfCondition(IR_EqEq(0, innerIt),
           IR_Assignment(Duplicate(baseAccess),
             0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
               - Duplicate(npBaseAccess)),
-          IR_IfCondition(IR_EqEqExpression(numCellsTotal, innerIt),
+          IR_IfCondition(IR_EqEq(numCellsTotal, innerIt),
             IR_Assignment(Duplicate(baseAccess),
               Duplicate(npBaseAccess)
                 - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),

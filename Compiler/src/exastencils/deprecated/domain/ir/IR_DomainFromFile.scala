@@ -18,7 +18,6 @@ import exastencils.prettyprinting.PpStream
 
 @deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 case class IR_InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() = prettyprint
   override def name = "initDomain"
 
@@ -29,7 +28,7 @@ case class IR_InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_E
           IR_VariableDeclaration(IR_IntegerDatatype, "numFragments", 0),
           IR_VariableDeclaration(IR_IntegerDatatype, "bufsize", 0),
           IR_VariableDeclaration(IR_IntegerDatatype, "fileOffset", 0),
-          IR_Assert(IR_EqEqExpression("mpiSize", Knowledge.mpi_numThreads),
+          IR_Assert(IR_EqEq("mpiSize", Knowledge.mpi_numThreads),
             ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.domain_numBlocks),
             "return"),
           IR_IfCondition("mpiRank == 0",
@@ -54,7 +53,7 @@ case class IR_InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_E
                       MPI_Send("&n", "1", IR_IntegerDatatype, "i", 0, "mpiRequest_Send_0[i][0]"),
                       MPI_Send("&fileOffset", "1", IR_IntegerDatatype, "i", 1, "mpiRequest_Send_0[i][1]"),
                       MPI_Send("&b", "1", IR_IntegerDatatype, "i", 2, "mpiRequest_Send_0[i][2]"),
-                      IR_Assignment("fileOffset", IR_AdditionExpression("fileOffset", "b")))
+                      IR_Assignment("fileOffset", IR_Addition("fileOffset", "b")))
                   } else IR_NullStatement,
                   "file.close()"), ListBuffer[IR_Statement]()),
               IR_Assignment("fileOffset", 0)),
@@ -110,7 +109,6 @@ case class IR_ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expressio
 
 @deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 case class IR_SetValues() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() = prettyprint
   override def name = "setValues"
 
@@ -123,8 +121,8 @@ case class IR_SetValues() extends IR_AbstractFunction with IR_Expandable {
       IR_Assignment(IR_IV_FragmentId(), IR_ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_Assignment(IR_IV_CommunicationId(), IR_ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, "i", 0),
-        IR_LowerExpression(IR_VariableAccess("i", IR_IntegerDatatype), math.pow(2, Knowledge.dimensionality)),
-        IR_PreIncrementExpression(IR_VariableAccess("i", IR_IntegerDatatype)),
+        IR_Lower(IR_VariableAccess("i", IR_IntegerDatatype), math.pow(2, Knowledge.dimensionality)),
+        IR_PreIncrement(IR_VariableAccess("i", IR_IntegerDatatype)),
         IR_VariableDeclaration(IR_RealDatatype, "vertPos_x", IR_ReadValueFrom(IR_RealDatatype, "data")),
         if (Knowledge.dimensionality == 2) IR_VariableDeclaration(IR_RealDatatype, "vertPos_y", IR_ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement,
         if (Knowledge.dimensionality == 3) IR_VariableDeclaration(IR_RealDatatype, "vertPos_z", IR_ReadValueFrom(IR_RealDatatype, "data")) else IR_NullStatement,

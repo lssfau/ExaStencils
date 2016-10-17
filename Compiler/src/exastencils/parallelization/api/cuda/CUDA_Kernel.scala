@@ -125,17 +125,17 @@ case class CUDA_Kernel(var identifier : String,
       // 2.1 colllect some basic informations required for further calculations
       var requiredMemoryInByte = 0L
       val offset = fieldAccesses.head.fieldSelection.fieldLayout.referenceOffset
-      val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => IR_AdditionExpression(IR_VariableAccess(x), y)).toArray[IR_Expression]
+      val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => IR_Addition(IR_VariableAccess(x), y)).toArray[IR_Expression]
 
       // 2.2 calculate negative and positive deviation from the basic field index
       val leftDeviationFromBaseIndex = fieldIndicesConstantPart(name).foldLeft(Array.fill(parallelDims)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
-        math.min(IR_SimplifyExpression.evalIntegral(x), IR_SimplifyExpression.evalIntegral(IR_SubtractionExpression(y, z)))
+        math.min(IR_SimplifyExpression.evalIntegral(x), IR_SimplifyExpression.evalIntegral(IR_Subtraction(y, z)))
       })).map(x => math.abs(x))
       var firstDeviation = leftDeviationFromBaseIndex.head
       var isSameRadius = leftDeviationFromBaseIndex.forall(x => firstDeviation.equals(x))
 
       val rightDeviationFromBaseIndex = fieldIndicesConstantPart(name).foldLeft(Array.fill(parallelDims)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
-        math.max(IR_SimplifyExpression.evalIntegral(x), IR_SimplifyExpression.evalIntegral(IR_SubtractionExpression(y, z)))
+        math.max(IR_SimplifyExpression.evalIntegral(x), IR_SimplifyExpression.evalIntegral(IR_Subtraction(y, z)))
       }))
       firstDeviation = rightDeviationFromBaseIndex.head
       isSameRadius &= rightDeviationFromBaseIndex.forall(x => firstDeviation.equals(x))
@@ -317,13 +317,13 @@ case class CUDA_Kernel(var identifier : String,
     // add index bounds conditions
     val conditionParts = (0 until executionDim).map(dim => {
       val variableAccess = IR_VariableAccess(KernelVariablePrefix + KernelGlobalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype)
-      IR_AndAndExpression(
-        IR_GreaterEqualExpression(variableAccess, s"${ KernelVariablePrefix }begin_$dim"), IR_LowerExpression(variableAccess, s"${ KernelVariablePrefix }end_$dim"))
+      IR_AndAnd(
+        IR_GreaterEqual(variableAccess, s"${ KernelVariablePrefix }begin_$dim"), IR_Lower(variableAccess, s"${ KernelVariablePrefix }end_$dim"))
     })
 
     val condition = IR_VariableDeclaration(IR_BooleanDatatype, KernelVariablePrefix + "condition",
-      Some(conditionParts.reduceLeft[IR_AndAndExpression] { (acc, n) =>
-        IR_AndAndExpression(acc, n)
+      Some(conditionParts.reduceLeft[IR_AndAnd] { (acc, n) =>
+        IR_AndAnd(acc, n)
       }))
     val conditionAccess = IR_VariableAccess(KernelVariablePrefix + "condition", IR_BooleanDatatype)
     statements += condition
@@ -390,16 +390,16 @@ case class CUDA_Kernel(var identifier : String,
           val it = IR_DimToString(dim)
 
           // 7.1 Check if current thread resides on the left border in any dimension
-          val condition = IR_OrOrExpression(IR_LowerExpression(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it), leftDeviations(field)(dim)), IR_EqEqExpression(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
+          val condition = IR_OrOr(IR_Lower(IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it), leftDeviations(field)(dim)), IR_EqEq(globalThreadId(dim), s"${ KernelVariablePrefix }begin_$dim"))
           val conditionBody = ListBuffer[IR_Statement]()
 
           // 7.2 Calculate the offset from the left to the right border of the actual field
           val localFieldOffsetName : String = "localFieldOffset"
           conditionBody += IR_VariableDeclaration(IR_IntegerDatatype, localFieldOffsetName, Some(
-            CUDA_MinimumExpression(
-              IR_SubtractionExpression(IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it),
+            CUDA_Minimum(
+              IR_Subtraction(IR_MemberAccess(IR_VariableAccess("blockDim", IR_SpecialDatatype("dim3")), it),
                 IR_MemberAccess(IR_VariableAccess("threadIdx", IR_SpecialDatatype("dim3")), it)),
-              IR_SubtractionExpression(s"${ KernelVariablePrefix }end_$dim", globalThreadId(dim)))))
+              IR_Subtraction(s"${ KernelVariablePrefix }end_$dim", globalThreadId(dim)))))
           val localFieldOffset = IR_VariableAccess(localFieldOffsetName, IR_IntegerDatatype)
 
           // 7.3 Calculate the indices for writing into the shared memory and loading from the global memory
@@ -407,17 +407,17 @@ case class CUDA_Kernel(var identifier : String,
           // on the right border of the actual field
           (1L to leftDeviations(field)(dim)).foreach(x => {
             val localLeftIndex = Duplicate(localThreadId)
-            localLeftIndex(dim) = IR_SubtractionExpression(localLeftIndex(dim), x)
+            localLeftIndex(dim) = IR_Subtraction(localLeftIndex(dim), x)
             val globalLeftIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
-            globalLeftIndex(dim) = IR_SubtractionExpression(globalLeftIndex(dim), x)
+            globalLeftIndex(dim) = IR_Subtraction(globalLeftIndex(dim), x)
 
             conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localLeftIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalLeftIndex).linearize)
           })
           (0L until rightDeviations(field)(dim)).foreach(x => {
             val localRightIndex = Duplicate(localThreadId)
-            localRightIndex(dim) = IR_AdditionExpression(IR_AdditionExpression(localRightIndex(dim), localFieldOffset), x)
+            localRightIndex(dim) = IR_Addition(IR_Addition(localRightIndex(dim), localFieldOffset), x)
             val globalRightIndex = IR_ExpressionIndex(Duplicate(globalThreadId)) + fieldOffset(field)
-            globalRightIndex(dim) = IR_AdditionExpression(IR_AdditionExpression(globalRightIndex(dim), localFieldOffset), x)
+            globalRightIndex(dim) = IR_Addition(IR_Addition(globalRightIndex(dim), localFieldOffset), x)
 
             conditionBody += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localRightIndex.reverse, sharedArrayStrides), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, globalRightIndex).linearize)
           })
@@ -432,7 +432,7 @@ case class CUDA_Kernel(var identifier : String,
           zDimLoopBody += IR_IfCondition(conditionAccess, body)
           zDimLoopBody += CUDA_SyncThreads()
 
-          statements += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_LowerExpression(IR_VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), IR_Assignment(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
+          statements += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_Lower(IR_VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), IR_Assignment(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
 
           // 9. Remove the used loop variable to avoid later complications in loop variable substitution
           loopVariables.remove(executionDim)

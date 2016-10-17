@@ -92,12 +92,12 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
 
       // add index bounds conditions
       fctBody += IR_IfCondition(
-        IR_OrOrExpression(IR_LowerExpression(it, 0), IR_GreaterEqualExpression(it, numElements.access)),
+        IR_OrOr(IR_Lower(it, 0), IR_GreaterEqual(it, numElements.access)),
         IR_Return())
 
       // add values with stride
       fctBody += IR_IfCondition(
-        IR_LowerExpression(it + stride.access, numElements.access),
+        IR_Lower(it + stride.access, numElements.access),
         IR_Assignment(IR_ArrayAccess(data.access, it), IR_BinaryOperators.createExpression(op, IR_ArrayAccess(data.access, it), IR_ArrayAccess(data.access, it + stride.access))))
 
       // compile final kernel function
@@ -126,18 +126,18 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
       def blocks = IR_VariableAccess("blocks", IR_SpecialDatatype("size_t"))
       var loopBody = ListBuffer[IR_Statement]()
       loopBody += IR_VariableDeclaration(blocks, (numElements.access + (blockSize * stride - 1)) / (blockSize * stride))
-      loopBody += IR_IfCondition(IR_EqEqExpression(0, blocks), IR_Assignment(blocks, 1))
+      loopBody += IR_IfCondition(IR_EqEq(0, blocks), IR_Assignment(blocks, 1))
       loopBody += CUDA_FunctionCall(kernelName, ListBuffer[IR_Expression](data.access, numElements.access, stride),
         Array[IR_Expression](blocks * blockSize /*FIXME: avoid x*BS/BS */), Array[IR_Expression](blockSize))
 
       fctBody += IR_ForLoop(
         IR_VariableDeclaration(stride, 1),
-        IR_LowerExpression(stride, numElements.access),
+        IR_Lower(stride, numElements.access),
         IR_Assignment(stride, 2, "*="),
         loopBody)
 
       fctBody += IR_VariableDeclaration(ret)
-      fctBody += CUDA_Memcpy(IR_AddressofExpression(ret), data.access, IR_SizeOf(IR_RealDatatype), "cudaMemcpyDeviceToHost")
+      fctBody += CUDA_Memcpy(IR_AddressOf(ret), data.access, IR_SizeOf(IR_RealDatatype), "cudaMemcpyDeviceToHost")
 
       fctBody += IR_Return(Some(ret))
 

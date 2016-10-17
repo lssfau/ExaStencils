@@ -69,7 +69,7 @@ case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IR_Expre
   val stride = IR_SimplifyExpression.evalIntegral(strideExp)
 
   def generateName : String = s"mpiDatatype_${ blockCount }_${ blockLength }_${ stride }"
-  def mpiTypeNameArg : IR_Expression = IR_AddressofExpression(generateName)
+  def mpiTypeNameArg : IR_Expression = IR_AddressOf(generateName)
 
   def generateDecl : IR_VariableDeclaration = {
     IR_VariableDeclaration("MPI_Datatype", generateName)

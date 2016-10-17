@@ -1,7 +1,5 @@
 package exastencils.field.ir
 
-import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -25,26 +23,23 @@ case class IR_IV_ActiveSlot(var field : IR_Field, var fragmentIdx : IR_Expressio
 
 /// IR_SlotAccess
 
-case class IR_SlotAccess(var slot : IR_IV_ActiveSlot, var offset : Int) extends IR_Expression {
+case class IR_SlotAccess(var slot : IR_IV_ActiveSlot, var offset : Int) extends IR_Expression with IR_SpecialExpandable {
   // ensure: 0 <= offset < slot.field.numSlots
   offset %= slot.field.numSlots
   if (offset < 0)
     offset += slot.field.numSlots
 
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   // offset is always positive -> Mod is safe
-  def expandSpecial : IR_Expression = (slot + offset) Mod slot.field.numSlots
+  def expandSpecial() = (slot + offset) Mod slot.field.numSlots
 }
 
 /// IR_AdvanceSlot
 
-case class IR_AdvanceSlot(var slot : IR_IV_ActiveSlot) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
+case class IR_AdvanceSlot(var slot : IR_IV_ActiveSlot) extends IR_Statement with IR_SpecialExpandable {
   // slot never contains negative values (currently)
-  def expandSpecial = IR_Assignment(slot, (slot + 1) Mod slot.field.numSlots)
+  def expandSpecial() = IR_Assignment(slot, (slot + 1) Mod slot.field.numSlots)
 }
 
 /// IR_ResolveSlotOperations
@@ -54,7 +49,7 @@ object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations
   this.register(collector)
 
   this += new Transformation("Resolve", {
-    case slotAccess : IR_SlotAccess => slotAccess.expandSpecial
+    case slotAccess : IR_SlotAccess => slotAccess.expandSpecial()
 
     case advanceSlot : IR_AdvanceSlot =>
       // check if already inside a fragment loop - if not wrap the expanded statement
@@ -63,8 +58,8 @@ object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations
         case IR_ForLoop(IR_VariableDeclaration(_, it, _), _, _, _, _) if IR_LoopOverFragments.defIt == it => true
         case _                                                                                            => false
       }.fold(false)((a, b) => a || b))
-        advanceSlot.expandSpecial
+        advanceSlot.expandSpecial()
       else
-        IR_LoopOverFragments(ListBuffer[IR_Statement](advanceSlot.expandSpecial), IR_ParallelizationInfo.PotentiallyParallel())
+        IR_LoopOverFragments(advanceSlot.expandSpecial(), IR_ParallelizationInfo.PotentiallyParallel())
   })
 }

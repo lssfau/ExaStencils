@@ -208,12 +208,12 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
 
   def apply() : IndexOffset = {
     ssExpr match {
-      case IR_AdditionExpression(summands) => summands.map(s => addTerm(s, true)).reduce(_ + _)
+      case IR_Addition(summands) => summands.map(s => addTerm(s, true)).reduce(_ + _)
 
-      case IR_SubtractionExpression(left, right) => addTerm(left, true) + addTerm(right, false)
+      case IR_Subtraction(left, right) => addTerm(left, true) + addTerm(right, false)
 
-      case _ : IR_MultiplicationExpression => InfiniteIndexOffset()
-      case _ : IR_DivisionExpression       => InfiniteIndexOffset()
+      case _ : IR_Multiplication => InfiniteIndexOffset()
+      case _ : IR_Division       => InfiniteIndexOffset()
       case va : IR_VariableAccess          => addTerm(va, true)
 
     }
@@ -230,7 +230,7 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
     */
   def addTerm(t : IR_Expression, sign : Boolean) : IndexOffset = {
     t match {
-      case IR_VariableAccess(id, _)                              =>
+      case IR_VariableAccess(id, _)                    =>
         val loopVarDimOpt = loopIndexVarDim(id)
         loopVarDimOpt match {
           case Some(loopVarDim) =>
@@ -243,15 +243,15 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
             // Non-loop index variable.
             InfiniteIndexOffset()
         }
-      case IR_NegativeExpression(IR_VariableAccess(name, dType)) => addTerm(IR_VariableAccess(name, dType), !sign)
-      case IR_IntegerConstant(x)                                 => signedConstantIndexOffset(x, sign)
-      case IR_NegativeExpression(IR_IntegerConstant(x))          => signedConstantIndexOffset(x, !sign)
+      case IR_Negative(IR_VariableAccess(name, dType)) => addTerm(IR_VariableAccess(name, dType), !sign)
+      case IR_IntegerConstant(x)                       => signedConstantIndexOffset(x, sign)
+      case IR_Negative(IR_IntegerConstant(x))          => signedConstantIndexOffset(x, !sign)
 
       // nested expressions -> not simplfied to (a * x + b) -> non-constant offset
-      case ex : IR_AdditionExpression       => InfiniteIndexOffset()
-      case ex : IR_MultiplicationExpression => InfiniteIndexOffset()
-      case ex : IR_DivisionExpression       => InfiniteIndexOffset()
-      case IR_ModuloExpression(left, right) =>
+      case ex : IR_Addition       => InfiniteIndexOffset()
+      case ex : IR_Multiplication => InfiniteIndexOffset()
+      case ex : IR_Division       => InfiniteIndexOffset()
+      case IR_Modulo(left, right) =>
         right match {
           case IR_IntegerConstant(v) =>
             val c = math.signum(v) * (math.abs(v) - 1)

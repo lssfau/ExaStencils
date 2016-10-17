@@ -8,7 +8,6 @@ import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.ir.IR_PotentiallyCritical
-import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_RawPrint
 
 /// MPI_WaitForRequest
@@ -16,7 +15,6 @@ import exastencils.util.ir.IR_RawPrint
 case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl : String = prettyprint
   override def name = "waitForMPIReq"
 
@@ -33,7 +31,7 @@ case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
       IR_VariableDeclaration(msg),
       IR_VariableDeclaration(len),
       IR_FunctionCall(MPI_FunctionAccess("MPI_Error_string", IR_IntegerDatatype),
-        IR_MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressofExpression(len)),
+        IR_MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressOf(len)),
       IR_RawPrint("\"MPI Error encountered (\"", msg, "\")\"")))
   }
 
@@ -50,10 +48,10 @@ case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
       fct.body += IR_VariableDeclaration(flag, 0)
       fct.body += IR_WhileLoop(0 EqEq flag,
         IR_PotentiallyCritical(IR_Assignment(result, IR_FunctionCall("MPI_Test",
-          request, IR_AddressofExpression(flag), IR_AddressofExpression(stat)))),
+          request, IR_AddressOf(flag), IR_AddressOf(stat)))),
         checkError)
     } else {
-      fct.body += IR_PotentiallyCritical(IR_Assignment(result, IR_FunctionCall("MPI_Wait", request, IR_AddressofExpression(stat))))
+      fct.body += IR_PotentiallyCritical(IR_Assignment(result, IR_FunctionCall("MPI_Wait", request, IR_AddressOf(stat))))
       fct.body += checkError
     }
     fct.body += IR_Assignment(IR_DerefAccess(request), IR_FunctionCall("MPI_Request"))

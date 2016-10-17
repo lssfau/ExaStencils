@@ -292,16 +292,16 @@ object EvaluatePerformanceEstimates_Ops extends QuietDefaultStrategy("Evaluating
   }
 
   this += new Transformation("Searching", {
-    case exp : IR_AdditionExpression       =>
+    case exp : IR_Addition       =>
       numAdd += 1
       exp
-    case exp : IR_SubtractionExpression    =>
+    case exp : IR_Subtraction    =>
       numAdd += 1
       exp
-    case exp : IR_MultiplicationExpression =>
+    case exp : IR_Multiplication =>
       numMul += 1
       exp
-    case exp : IR_DivisionExpression       =>
+    case exp : IR_Division       =>
       if (exp.right.isInstanceOf[IR_IntegerConstant])
         numMul += 0 // ignore integer divs for now
       else if (exp.right.isInstanceOf[IR_RealConstant]) // TODO: replace with eval float exp?

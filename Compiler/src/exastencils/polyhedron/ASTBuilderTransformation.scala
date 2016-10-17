@@ -274,30 +274,30 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
       case isl.AstOpType.OpEq if n == 2 && args(0).isInstanceOf[IR_IV_NeighborIsValid] =>
         args(1) match {
           case IR_IntegerConstant(1) => args(0)
-          case IR_IntegerConstant(0) => new IR_NegationExpression(args(0))
+          case IR_IntegerConstant(0) => new IR_Negation(args(0))
         }
 
-      case isl.AstOpType.OpAndThen if n == 2 => IR_AndAndExpression(args(0), args(1))
-      case isl.AstOpType.OpAnd if n == 2     => IR_AndAndExpression(args(0), args(1))
-      case isl.AstOpType.OpOrElse if n == 2  => IR_OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpOr if n == 2      => IR_OrOrExpression(args(0), args(1))
-      case isl.AstOpType.OpMinus if n == 1   => IR_NegativeExpression(args(0))
-      case isl.AstOpType.OpAdd if n == 2     => IR_AdditionExpression(args(0), args(1))
-      case isl.AstOpType.OpSub if n == 2     => IR_SubtractionExpression(args(0), args(1))
-      case isl.AstOpType.OpMul if n == 2     => IR_MultiplicationExpression(args(0), args(1))
-      case isl.AstOpType.OpDiv if n == 2     => IR_DivisionExpression(args(0), args(1))
+      case isl.AstOpType.OpAndThen if n == 2 => IR_AndAnd(args(0), args(1))
+      case isl.AstOpType.OpAnd if n == 2     => IR_AndAnd(args(0), args(1))
+      case isl.AstOpType.OpOrElse if n == 2  => IR_OrOr(args(0), args(1))
+      case isl.AstOpType.OpOr if n == 2      => IR_OrOr(args(0), args(1))
+      case isl.AstOpType.OpMinus if n == 1   => IR_Negative(args(0))
+      case isl.AstOpType.OpAdd if n == 2     => IR_Addition(args(0), args(1))
+      case isl.AstOpType.OpSub if n == 2     => IR_Subtraction(args(0), args(1))
+      case isl.AstOpType.OpMul if n == 2     => IR_Multiplication(args(0), args(1))
+      case isl.AstOpType.OpDiv if n == 2     => IR_Division(args(0), args(1))
       case isl.AstOpType.OpFdivQ if n == 2   => IR_FunctionCall("floord", args(0), args(1)) // TODO: ensure integer division
-      case isl.AstOpType.OpPdivQ if n == 2   => IR_DivisionExpression(args(0), args(1)) // TODO: ensure integer division
-      case isl.AstOpType.OpPdivR if n == 2   => IR_ModuloExpression(args(0), args(1))
-      case isl.AstOpType.OpZdivR if n == 2   => IR_ModuloExpression(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
+      case isl.AstOpType.OpPdivQ if n == 2   => IR_Division(args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.OpPdivR if n == 2   => IR_Modulo(args(0), args(1))
+      case isl.AstOpType.OpZdivR if n == 2   => IR_Modulo(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
       case isl.AstOpType.OpCond if n == 3    => IR_TernaryCondition(args(0), args(1), args(2))
-      case isl.AstOpType.OpEq if n == 2      => IR_EqEqExpression(args(0), args(1))
-      case isl.AstOpType.OpLe if n == 2      => IR_LowerEqualExpression(args(0), args(1))
-      case isl.AstOpType.OpLt if n == 2      => IR_LowerExpression(args(0), args(1))
-      case isl.AstOpType.OpGe if n == 2      => IR_GreaterEqualExpression(args(0), args(1))
-      case isl.AstOpType.OpGt if n == 2      => IR_GreaterExpression(args(0), args(1))
-      case isl.AstOpType.OpMax if n >= 2     => IR_MaximumExpression(args : _*)
-      case isl.AstOpType.OpMin if n >= 2     => IR_MinimumExpression(args : _*)
+      case isl.AstOpType.OpEq if n == 2      => IR_EqEq(args(0), args(1))
+      case isl.AstOpType.OpLe if n == 2      => IR_LowerEqual(args(0), args(1))
+      case isl.AstOpType.OpLt if n == 2      => IR_Lower(args(0), args(1))
+      case isl.AstOpType.OpGe if n == 2      => IR_GreaterEqual(args(0), args(1))
+      case isl.AstOpType.OpGt if n == 2      => IR_Greater(args(0), args(1))
+      case isl.AstOpType.OpMax if n >= 2     => IR_Maximum(args : _*)
+      case isl.AstOpType.OpMin if n >= 2     => IR_Minimum(args : _*)
       case isl.AstOpType.OpSelect if n == 3  => IR_TernaryCondition(args(0), args(1), args(2))
 
       case isl.AstOpType.OpCall if n >= 1 =>

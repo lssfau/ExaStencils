@@ -102,13 +102,13 @@ object IR_Fortranify extends DefaultStrategy("Prepare functions for fortran inte
           fct.arguments(paramIdx) match {
             // variable accesses are simple
             case va : IR_VariableAccess =>
-              fct.arguments(paramIdx) = IR_AddressofExpression(fct.arguments(paramIdx))
+              fct.arguments(paramIdx) = IR_AddressOf(fct.arguments(paramIdx))
             // otherwise temp variables have to be created
             case _ =>
               var newName = s"callByValReplacement_${ fct.name }_${ paramIdx.toString }"
               while (callByValReplacements.contains(newName)) newName += "0"
               callByValReplacements += (newName -> IR_VariableDeclaration(Duplicate(datatype), newName, Some(fct.arguments(paramIdx))))
-              fct.arguments(paramIdx) = IR_AddressofExpression(IR_VariableAccess(newName, Duplicate(datatype)))
+              fct.arguments(paramIdx) = IR_AddressOf(IR_VariableAccess(newName, Duplicate(datatype)))
           }
         }
 

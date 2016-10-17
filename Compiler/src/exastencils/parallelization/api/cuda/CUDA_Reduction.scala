@@ -8,13 +8,11 @@ import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
-import exastencils.prettyprinting.PpStream
 
 /// CUDA_ReductionDeviceDataAccess
 
-case class CUDA_ReductionDeviceDataAccess(var data : CUDA_ReductionDeviceData, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression {
+case class CUDA_ReductionDeviceDataAccess(var data : CUDA_ReductionDeviceData, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression with IR_SpecialExpandable {
   override def datatype = data.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def linearize = IR_ArrayAccess(data, IR_Linearization.linearizeIndex(index, strides), alignedAccessPossible = false)
 }
@@ -52,10 +50,10 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       val index = IR_ExpressionIndex((0 until kernel.parallelDims).map(dim =>
         IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + IR_DimToString(dim), IR_IntegerDatatype) : IR_Expression).toArray)
 
-      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_SubtractionExpression(x, y) : IR_Expression)
+      val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_Subtraction(x, y) : IR_Expression)
 
       CUDA_ReplaceReductionAssignments.redTarget = kernel.reduction.get.target.name
-      CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
+      CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(IR_Multiplication(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
       kernel
   })

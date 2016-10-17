@@ -11,7 +11,6 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.polyhedron.PolyhedronAccessible
-import exastencils.prettyprinting.PpStream
 
 /// IR_LocalRecv
 
@@ -22,8 +21,6 @@ case class IR_LocalRecv(
     var src : IR_ExpressionIndexRange,
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDims = field.field.fieldLayout.numDimsData
 
@@ -39,10 +36,10 @@ case class IR_LocalRecv(
     val loop = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt)) with PolyhedronAccessible
     loop.parallelization.potentiallyParallel = true
 
-    IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_NegationExpression(IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index)),
+    IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be read from is ready for communication
-        IR_FunctionCall("waitForFlag", IR_AddressofExpression(IR_IV_LocalCommReady(field.field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))),
+        IR_FunctionCall("waitForFlag", IR_AddressOf(IR_IV_LocalCommReady(field.field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))),
         loop,
         // signal other threads that the data reading step is completed
         IR_Assignment(IR_IV_LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))

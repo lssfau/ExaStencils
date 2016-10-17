@@ -47,33 +47,33 @@ object L4_BinaryOperators extends Enumeration {
 
   def createExpression(op : String, left : L4_Expression, right : L4_Expression) : L4_Expression = createExpression(withName(op), left, right)
   def createExpression(op : Value, left : L4_Expression, right : L4_Expression) : L4_Expression = op match {
-    case Addition       => L4_AdditionExpression(left, right)
-    case Subtraction    => L4_SubtractionExpression(left, right)
-    case Multiplication => L4_MultiplicationExpression(left, right)
-    case Division       => L4_DivisionExpression(left, right)
-    case Power          => L4_PowerExpression(left, right)
-    case Power_Alt      => L4_PowerExpression(left, right)
-    case Modulo         => L4_ModuloExpression(left, right)
+    case Addition       => L4_Addition(left, right)
+    case Subtraction    => L4_Subtraction(left, right)
+    case Multiplication => L4_Multiplication(left, right)
+    case Division       => L4_Division(left, right)
+    case Power          => L4_Power(left, right)
+    case Power_Alt      => L4_Power(left, right)
+    case Modulo         => L4_Modulo(left, right)
 
-    case ElementwiseAddition       => L4_ElementwiseAdditionExpression(left, right)
-    case ElementwiseSubtraction    => L4_ElementwiseSubtractionExpression(left, right)
-    case ElementwiseMultiplication => L4_ElementwiseMultiplicationExpression(left, right)
-    case ElementwiseDivision       => L4_ElementwiseDivisionExpression(left, right)
-    case ElementwisePower          => L4_ElementwisePowerExpression(left, right)
-    case ElementwiseModulo         => L4_ElementwiseModuloExpression(left, right)
+    case ElementwiseAddition       => L4_ElementwiseAddition(left, right)
+    case ElementwiseSubtraction    => L4_ElementwiseSubtraction(left, right)
+    case ElementwiseMultiplication => L4_ElementwiseMultiplication(left, right)
+    case ElementwiseDivision       => L4_ElementwiseDivision(left, right)
+    case ElementwisePower          => L4_ElementwisePower(left, right)
+    case ElementwiseModulo         => L4_ElementwiseModulo(left, right)
 
-    case AndAnd | AndAndWritten => L4_AndAndExpression(left, right)
-    case OrOr | OrOrWritten     => L4_OrOrExpression(left, right)
-    case Negation               => L4_NegationExpression(left)
-    case EqEq                   => L4_EqEqExpression(left, right)
-    case Neq                    => L4_NeqExpression(left, right)
-    case Lower                  => L4_LowerExpression(left, right)
-    case LowerEqual             => L4_LowerEqualExpression(left, right)
-    case Greater                => L4_GreaterExpression(left, right)
-    case GreaterEqual           => L4_GreaterEqualExpression(left, right)
+    case AndAnd | AndAndWritten => L4_AndAnd(left, right)
+    case OrOr | OrOrWritten     => L4_OrOr(left, right)
+    case Negation               => L4_Negation(left)
+    case EqEq                   => L4_EqEq(left, right)
+    case Neq                    => L4_Neq(left, right)
+    case Lower                  => L4_Lower(left, right)
+    case LowerEqual             => L4_LowerEqual(left, right)
+    case Greater                => L4_Greater(left, right)
+    case GreaterEqual           => L4_GreaterEqual(left, right)
 
-    case Maximum => L4_MaximumExpression(left, right)
-    case Minimum => L4_MinimumExpression(left, right)
+    case Maximum => L4_Maximum(left, right)
+    case Minimum => L4_Minimum(left, right)
   }
 
   def progress(op : Value) : IR_BinaryOperators.BinaryOperators = {
@@ -84,138 +84,138 @@ object L4_BinaryOperators extends Enumeration {
 
 /// (scalar) arithmetic operations
 
-object L4_AdditionExpression {
-  def apply(varargs : L4_Expression*) = new L4_AdditionExpression(varargs.to[ListBuffer])
+object L4_Addition {
+  def apply(varargs : L4_Expression*) = new L4_Addition(varargs.to[ListBuffer])
 }
 
-case class L4_AdditionExpression(var summands : ListBuffer[L4_Expression]) extends L4_Expression {
+case class L4_Addition(var summands : ListBuffer[L4_Expression]) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' <<< (summands, "+") << ')'
-  override def progress = IR_AdditionExpression(summands.map(_.progress))
+  override def progress = IR_Addition(summands.map(_.progress))
 }
 
-case class L4_SubtractionExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_Subtraction(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '-' << right << ')'
-  override def progress = IR_SubtractionExpression(left.progress, right.progress)
+  override def progress = IR_Subtraction(left.progress, right.progress)
 }
 
-object L4_MultiplicationExpression {
-  def apply(varargs : L4_Expression*) = new L4_MultiplicationExpression(varargs.to[ListBuffer])
+object L4_Multiplication {
+  def apply(varargs : L4_Expression*) = new L4_Multiplication(varargs.to[ListBuffer])
 }
 
-case class L4_MultiplicationExpression(var factors : ListBuffer[L4_Expression]) extends L4_Expression {
+case class L4_Multiplication(var factors : ListBuffer[L4_Expression]) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' <<< (factors, "*") << ')'
-  override def progress = IR_MultiplicationExpression(factors.map(_.progress))
+  override def progress = IR_Multiplication(factors.map(_.progress))
 }
 
-case class L4_DivisionExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_Division(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '/' << right << ')'
-  override def progress = IR_DivisionExpression(left.progress, right.progress)
+  override def progress = IR_Division(left.progress, right.progress)
 }
 
-case class L4_ModuloExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_Modulo(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   // assumes "left >= 0"   if not, generate something like "(left%right + right) % right"
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '%' << right << ')'
-  override def progress = IR_ModuloExpression(left.progress, right.progress)
+  override def progress = IR_Modulo(left.progress, right.progress)
 }
 
-case class L4_PowerExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_Power(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << left << "**" << right
-  override def progress = IR_PowerExpression(left.progress, right.progress)
+  override def progress = IR_Power(left.progress, right.progress)
 }
 
 /// element-wise arithmetic operations
 
-case class L4_ElementwiseAdditionExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_ElementwiseAddition(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
-  override def progress = IR_ElementwiseAdditionExpression(left.progress, right.progress)
+  override def progress = IR_ElementwiseAddition(left.progress, right.progress)
 }
 
-case class L4_ElementwiseSubtractionExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_ElementwiseSubtraction(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
-  override def progress = IR_ElementwiseSubtractionExpression(left.progress, right.progress)
+  override def progress = IR_ElementwiseSubtraction(left.progress, right.progress)
 }
 
-case class L4_ElementwiseMultiplicationExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_ElementwiseMultiplication(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '*' << right << ')'
-  override def progress = IR_ElementwiseMultiplicationExpression(left.progress, right.progress)
+  override def progress = IR_ElementwiseMultiplication(left.progress, right.progress)
 }
 
-case class L4_ElementwiseDivisionExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_ElementwiseDivision(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '/' << right << ')'
-  override def progress = IR_ElementwiseDivisionExpression(left.progress, right.progress)
+  override def progress = IR_ElementwiseDivision(left.progress, right.progress)
 }
 
-case class L4_ElementwiseModuloExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_ElementwiseModulo(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '%' << right << ')'
-  override def progress = IR_ElementwiseModuloExpression(left.progress, right.progress)
+  override def progress = IR_ElementwiseModulo(left.progress, right.progress)
 }
 
-case class L4_ElementwisePowerExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_ElementwisePower(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "dotpow(" << left << ", " << right << ')'
   // FIXME: check for integer constant => use pown
-  override def progress = IR_ElementwisePowerExpression(left.progress, right.progress)
+  override def progress = IR_ElementwisePower(left.progress, right.progress)
 }
 
 /// logical comparison operations
 
-case class L4_EqEqExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_EqEq(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "==" << right << ')'
-  override def progress = IR_EqEqExpression(left.progress, right.progress)
+  override def progress = IR_EqEq(left.progress, right.progress)
 }
 
-case class L4_NeqExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_Neq(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "!=" << right << ')'
-  override def progress = IR_NeqExpression(left.progress, right.progress)
+  override def progress = IR_Neq(left.progress, right.progress)
 }
 
-case class L4_LowerExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_Lower(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '<' << right << ')'
-  override def progress = IR_LowerExpression(left.progress, right.progress)
+  override def progress = IR_Lower(left.progress, right.progress)
 }
 
-case class L4_GreaterExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_Greater(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << '>' << right << ')'
-  override def progress = IR_GreaterExpression(left.progress, right.progress)
+  override def progress = IR_Greater(left.progress, right.progress)
 }
 
-case class L4_LowerEqualExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_LowerEqual(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<=" << right << ')'
-  override def progress = IR_LowerEqualExpression(left.progress, right.progress)
+  override def progress = IR_LowerEqual(left.progress, right.progress)
 }
 
-case class L4_GreaterEqualExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_GreaterEqual(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << ">=" << right << ')'
-  override def progress = IR_GreaterEqualExpression(left.progress, right.progress)
+  override def progress = IR_GreaterEqual(left.progress, right.progress)
 }
 
 /// (scalar) logical operations
 
-case class L4_AndAndExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_AndAnd(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "&&" << right << ')'
-  override def progress = IR_AndAndExpression(left.progress, right.progress)
+  override def progress = IR_AndAnd(left.progress, right.progress)
 }
 
-case class L4_OrOrExpression(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
+case class L4_OrOr(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
-  override def progress = IR_OrOrExpression(left.progress, right.progress)
+  override def progress = IR_OrOr(left.progress, right.progress)
 }
 
 /// min/max operations
 
-object L4_MinimumExpression {
-  def apply(varargs : L4_Expression*) = new L4_MinimumExpression(varargs.to[ListBuffer])
+object L4_Minimum {
+  def apply(varargs : L4_Expression*) = new L4_Minimum(varargs.to[ListBuffer])
 }
 
-case class L4_MinimumExpression(var args : ListBuffer[L4_Expression]) extends L4_Expression {
+case class L4_Minimum(var args : ListBuffer[L4_Expression]) extends L4_Expression {
   override def prettyprint(out : PpStream) = out << "min (" <<< (args, ", ") << ')'
-  override def progress = IR_MinimumExpression(args.map(_.progress))
+  override def progress = IR_Minimum(args.map(_.progress))
 }
 
-object L4_MaximumExpression {
-  def apply(varargs : L4_Expression*) = new L4_MaximumExpression(varargs.to[ListBuffer])
+object L4_Maximum {
+  def apply(varargs : L4_Expression*) = new L4_Maximum(varargs.to[ListBuffer])
 }
 
-case class L4_MaximumExpression(var args : ListBuffer[L4_Expression]) extends L4_Expression {
+case class L4_Maximum(var args : ListBuffer[L4_Expression]) extends L4_Expression {
   override def prettyprint(out : PpStream) = out << "max (" <<< (args, ", ") << ')'
-  override def progress = IR_MaximumExpression(args.map(_.progress))
+  override def progress = IR_Maximum(args.map(_.progress))
 }

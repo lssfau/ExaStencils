@@ -13,14 +13,11 @@ import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
-import exastencils.prettyprinting.PpStream
 
 /// InitGeomCoords
 
 @deprecated("to be integrated into the new grid class family", "05.10.16")
 case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0, 0) /* was float index before */) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   override def expand : Output[StatementList] = {
     if (Knowledge.domain_fragmentTransformation) {
       // TODO: integrate into the new grid class family

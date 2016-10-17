@@ -8,13 +8,11 @@ import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.api.mpi.MPI_AllReduce
-import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_RawPrint
 
 /// IR_PrintAllTimers
 
 case class IR_PrintAllTimers() extends IR_TimerFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "printAllTimers"
 
@@ -26,7 +24,7 @@ case class IR_PrintAllTimers() extends IR_TimerFunction with IR_Expandable {
     statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(timeToPrint, timer.resolveName))
 
     if (Knowledge.mpi_enabled) {
-      statements += MPI_AllReduce(IR_AddressofExpression(timerValue), timerValue.datatype, 1, "+")
+      statements += MPI_AllReduce(IR_AddressOf(timerValue), timerValue.datatype, 1, "+")
       statements += IR_Assignment(timerValue, "mpiSize", "/=")
     }
 

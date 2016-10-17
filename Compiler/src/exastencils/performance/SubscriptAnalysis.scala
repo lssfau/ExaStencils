@@ -96,7 +96,7 @@ class StepFieldAccesses(val loop : IR_LoopOverDimensions) extends QuietDefaultSt
         val dim = dimOpt.get
         val stepSize = loop.stepSize(dim)
         //        println("XX stepSize: " + stepSize.prettyprint())
-        val steppedIndex = IR_AdditionExpression(va, stepSize)
+        val steppedIndex = IR_Addition(va, stepSize)
 //        println("XX steppedIndex: " + steppedIndex.prettyprint())
         steppedIndex
       } else {

@@ -6,7 +6,6 @@ import exastencils.base.ir._
 import exastencils.config.Settings
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
-import exastencils.prettyprinting.PpStream
 
 /// IR_BuildString
 
@@ -19,8 +18,6 @@ object IR_BuildString {
 }
 
 case class IR_BuildString(var stringName : IR_Expression, var toPrint : ListBuffer[IR_Expression]) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   override def expand() : Output[StatementList] = {
     // TODO: only add to the containing source file, function or function collection
     if (!Settings.additionalIncludes.contains("sstream"))

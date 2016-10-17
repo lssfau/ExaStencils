@@ -13,10 +13,8 @@ import exastencils.domain._
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.prettyprinting.PpStream
 
 case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() = prettyprint
   override def name = "initDomain"
 
@@ -66,7 +64,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
 
     // TODO: move to main application
     if (Knowledge.mpi_enabled)
-      body += IR_Assert(IR_EqEqExpression(s"mpiSize", Knowledge.domain_numBlocks),
+      body += IR_Assert(IR_EqEq(s"mpiSize", Knowledge.domain_numBlocks),
         ListBuffer("\"Invalid number of MPI processes (\"", "mpiSize", "\") should be \"", Knowledge.mpi_numThreads),
         IR_FunctionCall("exit", 1))
 

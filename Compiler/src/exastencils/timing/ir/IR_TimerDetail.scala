@@ -11,19 +11,17 @@ import exastencils.prettyprinting.PpStream
 /// IR_AssignNowToTimer
 
 case class IR_AssignNowToTimer(var lhs : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
       case "Chrono"       => IR_Assignment(lhs, IR_FunctionCall("std::chrono::high_resolution_clock::now"))
       case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         IR_VariableDeclaration(IR_SpecialDatatype("LARGE_INTEGER"), "now"),
-        IR_FunctionCall("QueryPerformanceCounter", IR_AddressofExpression("now")),
+        IR_FunctionCall("QueryPerformanceCounter", IR_AddressOf("now")),
         IR_Assignment(lhs, IR_MemberAccess(IR_VariableAccess("now"), "QuadPart"))))
       case "WIN_TIME"     => IR_Assignment(lhs, IR_Cast(IR_DoubleDatatype, IR_FunctionCall("clock")) / "CLOCKS_PER_SEC")
       case "UNIX_TIME"    => IR_Scope(ListBuffer[IR_Statement](
         IR_VariableDeclaration(IR_SpecialDatatype("timeval"), "timePoint"),
-        IR_FunctionCall("gettimeofday", IR_AddressofExpression("timePoint"), "NULL"),
+        IR_FunctionCall("gettimeofday", IR_AddressOf("timePoint"), "NULL"),
         IR_Assignment(lhs,
           IR_Cast(IR_DoubleDatatype, IR_MemberAccess(IR_VariableAccess("timePoint"), "tv_sec") * 1e3
             + IR_Cast(IR_DoubleDatatype, IR_MemberAccess(IR_VariableAccess("timePoint"), "tv_usec") * 1e-3)))))
@@ -54,14 +52,12 @@ case class IR_ZeroTimerValue() extends IR_Expression {
 /// IR_ReturnConvertToMS
 
 case class IR_ReturnConvertToMS(var time : IR_Expression) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   override def expand() : Output[IR_Statement] = {
     Knowledge.timer_type match {
       case "Chrono"       => IR_Return(Some(IR_MemberFunctionCall(IR_FunctionCall("std::chrono::duration_cast<std::chrono::nanoseconds>", time), "count") * 1e-6))
       case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
         IR_VariableDeclaration(IR_SpecialDatatype("static LARGE_INTEGER"), "s_frequency"),
-        IR_VariableDeclaration(IR_SpecialDatatype("static BOOL"), "s_use_qpc", IR_FunctionCall("QueryPerformanceFrequency", IR_AddressofExpression("s_frequency"))),
+        IR_VariableDeclaration(IR_SpecialDatatype("static BOOL"), "s_use_qpc", IR_FunctionCall("QueryPerformanceFrequency", IR_AddressOf("s_frequency"))),
         IR_Return(Some(time / ("s_frequency.QuadPart" / 1000.0)))))
       case "WIN_TIME"     => IR_Return(Some(time * 1e3))
       case "UNIX_TIME"    => IR_Return(Some(time))

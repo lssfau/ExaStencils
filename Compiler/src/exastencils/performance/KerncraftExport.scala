@@ -185,7 +185,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     def createForLoop(d : Int, body : ListBuffer[IR_Statement]) : IR_ForLoop = {
       def it = IR_VariableAccess(IR_DimToString(d), Some(IR_IntegerDatatype))
       val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(IR_IntegerConstant(begin(d))))
-      val cond = IR_LowerExpression(it, IR_IntegerConstant(end(d)))
+      val cond = IR_Lower(it, IR_IntegerConstant(end(d)))
       val incr = IR_Assignment(it, loop.stepSize(d), "+=")
 
       val forloop = IR_ForLoop(decl, cond, incr, ListBuffer[IR_Statement]())

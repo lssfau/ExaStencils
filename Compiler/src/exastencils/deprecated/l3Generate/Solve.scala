@@ -44,7 +44,7 @@ object Solve {
         printer.println(s"\t\tloop over Solution[currentSlot]@current where x > 0 && y > 0 with reduction( + : integral ) {")
       printer.println(s"\t\t\tintegral += Solution[currentSlot]@current")
       printer.println(s"\t\t}")
-      val numPoints : Double = (0 until Knowledge.dimensionality).map(dim =>
+      val numPoints : Double = Knowledge.dimensions.map(dim =>
         Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << Knowledge.maxLevel) + (if (Knowledge.l3tmp_genCellBasedDiscr) 0 else -1))
         .reduce((a, b) => a * b)
       printer.println(s"\t\tintegral /= $numPoints")

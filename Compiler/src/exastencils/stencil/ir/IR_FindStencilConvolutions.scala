@@ -12,7 +12,7 @@ import exastencils.field.ir._
 object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil-stencil and stencil-field convolutions") {
   var changed : Boolean = false
 
-  def transformMultiplication(exp : IR_MultiplicationExpression) : IR_MultiplicationExpression = {
+  def transformMultiplication(exp : IR_Multiplication) : IR_Multiplication = {
     val facts : ListBuffer[IR_Expression] = exp.factors
     var result = new ListBuffer[IR_Expression]()
     var prev : IR_Expression = null
@@ -36,7 +36,7 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
       result += prev
     changed |= facts.length != result.length
     if (facts.length != result.length)
-      return IR_MultiplicationExpression(result)
+      return IR_Multiplication(result)
 
     // check for StencilLike * Stencil
     result = ListBuffer[IR_Expression]()
@@ -57,7 +57,7 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
       result += prev
     changed |= facts.length != result.length
     if (facts.length != result.length)
-      return IR_MultiplicationExpression(result)
+      return IR_Multiplication(result)
 
     // check for other convolutions
     result = ListBuffer[IR_Expression]()
@@ -76,13 +76,13 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
       result += prev
     changed |= facts.length != result.length
     if (facts.length != result.length)
-      return IR_MultiplicationExpression(result)
+      return IR_Multiplication(result)
 
     exp
   }
 
   this += new Transformation("SearchAndMark", {
-    case exp : IR_MultiplicationExpression => {
+    case exp : IR_Multiplication => {
       val newMult = transformMultiplication(exp)
       newMult.factors.size match {
         case 0 => IR_NullExpression

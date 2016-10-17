@@ -33,11 +33,11 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
         return false
       val (expr, cValue) : (IR_Expression, Long) =
         cond match {
-          case IR_EqEqExpression(IR_IntegerConstant(c),
-          IR_ModuloExpression(sum, IR_IntegerConstant(nrColors2))) if (nrColors == nrColors2) =>
+          case IR_EqEq(IR_IntegerConstant(c),
+          IR_Modulo(sum, IR_IntegerConstant(nrColors2))) if (nrColors == nrColors2) =>
             (sum, c)
 
-          case IR_EqEqExpression(IR_ModuloExpression(sum, IR_IntegerConstant(nrColors2)),
+          case IR_EqEq(IR_Modulo(sum, IR_IntegerConstant(nrColors2)),
           IR_IntegerConstant(c)) if (nrColors == nrColors2) =>
             (sum, c)
 
@@ -87,13 +87,13 @@ object ColorCondCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case loop : IR_LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEqExpression]) =>
+      case loop : IR_LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEq]) =>
         cond = loop.condition.get
-      case IR_IfCondition(c : IR_EqEqExpression, _, fB) if (fB.isEmpty)                                                     =>
+      case IR_IfCondition(c : IR_EqEq, _, fB) if (fB.isEmpty)                                                     =>
         cond = c
       case _                                                                                                                =>
         val annot : Option[Any] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
-        if (annot.isDefined && annot.get.isInstanceOf[IR_EqEqExpression])
+        if (annot.isDefined && annot.get.isInstanceOf[IR_EqEq])
           cond = annot.get.asInstanceOf[IR_Expression]
     }
   }

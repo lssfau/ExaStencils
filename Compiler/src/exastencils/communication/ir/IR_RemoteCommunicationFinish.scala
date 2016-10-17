@@ -14,7 +14,6 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.api.mpi.MPI_DataType
-import exastencils.prettyprinting.PpStream
 
 /// IR_RemoteCommunicationFinish
 
@@ -25,8 +24,6 @@ case class IR_RemoteCommunicationFinish(
     var concurrencyId : Int,
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_RemoteCommunication {
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
     if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
@@ -42,9 +39,9 @@ case class IR_RemoteCommunicationFinish(
       val maxCnt = indices.getTotalSize
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
       if (!Knowledge.data_genVariableFieldSizes && 1 == IR_SimplifyExpression.evalIntegral(cnt)) {
-        IR_RemoteRecv(field, neighbor, IR_AddressofExpression(IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
+        IR_RemoteRecv(field, neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
-        IR_RemoteRecv(field, neighbor, IR_AddressofExpression(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
+        IR_RemoteRecv(field, neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
         IR_RemoteRecv(field, neighbor, IR_IV_CommBuffer(field.field, s"Recv_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }

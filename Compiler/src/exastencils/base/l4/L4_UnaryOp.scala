@@ -14,21 +14,21 @@ object L4_UnaryOperators extends Enumeration {
 
   def createExpression(op : String, exp : L4_Expression) : L4_Expression = createExpression(withName(op), exp)
   def createExpression(op : Value, exp : L4_Expression) : L4_Expression = op match {
-    case Negative => L4_NegativeExpression(exp)
-    case Not      => L4_NegationExpression(exp)
+    case Negative => L4_Negative(exp)
+    case Not      => L4_Negation(exp)
   }
 }
 
 /// arithmetic operations
 
-case class L4_NegativeExpression(var left : L4_Expression) extends L4_Expression {
+case class L4_Negative(var left : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "(-" << left << ')'
-  override def progress = IR_NegativeExpression(left.progress)
+  override def progress = IR_Negative(left.progress)
 }
 
 /// logical operations
 
-case class L4_NegationExpression(var left : L4_Expression) extends L4_Expression {
+case class L4_Negation(var left : L4_Expression) extends L4_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '!' << '(' << left << ')'
-  override def progress = IR_NegationExpression(left.progress)
+  override def progress = IR_Negation(left.progress)
 }

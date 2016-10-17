@@ -53,7 +53,7 @@ private final class ArrayBases(val arrayName : String) {
 
   def addToDecls(decls : ListBuffer[IR_Statement]) : Unit = {
     for ((name : String, init : IR_Expression) <- inits.values.toArray.sortBy(_._1))
-      decls += IR_VariableDeclaration(IR_ConstPointerDatatype(IR_RealDatatype), name, IR_AddressofExpression(init))
+      decls += IR_VariableDeclaration(IR_ConstPointerDatatype(IR_RealDatatype), name, IR_AddressOf(init))
   }
 }
 
@@ -153,34 +153,34 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         }
         val d = new HashMap[String, ArrayBases]()
         l.inc match { // TODO: remove StringLiteral
-          case IR_Assignment(IR_VariableAccess(name, _), _, _)                                =>
+          case IR_Assignment(IR_VariableAccess(name, _), _, _)                               =>
             decls = d
             inVars = Set(name)
-          case IR_Assignment(IR_StringLiteral(name), _, _)                                    =>
+          case IR_Assignment(IR_StringLiteral(name), _, _)                                   =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(name, _)))  =>
+          case IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(name, _)))           =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreIncrementExpression(IR_StringLiteral(name)))      =>
+          case IR_ExpressionStatement(IR_PreIncrement(IR_StringLiteral(name)))               =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostIncrementExpression(IR_VariableAccess(name, _))) =>
+          case IR_ExpressionStatement(IR_PostIncrement(IR_VariableAccess(name, _)))          =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostIncrementExpression(IR_StringLiteral(name)))     =>
+          case IR_ExpressionStatement(IR_PostIncrement(IR_StringLiteral(name)))              =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreDecrementExpression(IR_VariableAccess(name, _)))  =>
+          case IR_ExpressionStatement(IR_PreDecrement(IR_VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreDecrementExpression(IR_StringLiteral(name)))      =>
+          case IR_ExpressionStatement(IR_PreDecrement(IR_StringLiteral(name)))      =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostDecrementExpression(IR_VariableAccess(name, _))) =>
+          case IR_ExpressionStatement(IR_PostDecrement(IR_VariableAccess(name, _))) =>
             decls = d
             inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostDecrementExpression(IR_StringLiteral(name)))     =>
+          case IR_ExpressionStatement(IR_PostDecrement(IR_StringLiteral(name)))     =>
             decls = d
             inVars = Set(name)
           case _                                                                              =>

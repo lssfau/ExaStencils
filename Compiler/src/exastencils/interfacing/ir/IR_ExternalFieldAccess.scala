@@ -4,14 +4,12 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config._
 import exastencils.datastructures._
-import exastencils.prettyprinting.PpStream
 
 /// IR_ExternalFieldAccess
 
-case class IR_ExternalFieldAccess(var name : IR_Expression, var field : IR_ExternalField, var index : IR_ExpressionIndex) extends IR_Expression {
+case class IR_ExternalFieldAccess(var name : IR_Expression, var field : IR_ExternalField, var index : IR_ExpressionIndex) extends IR_Expression with IR_SpecialExpandable {
   // TODO: var index : IR_Index
   override def datatype = field.fieldLayout.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   val alignedAccessPossible = false
 

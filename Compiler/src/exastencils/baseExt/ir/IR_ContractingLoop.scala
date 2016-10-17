@@ -12,7 +12,6 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.optimization.ir.IR_SimplifyExpression
-import exastencils.prettyprinting.PpStream
 
 /// IR_ContractionSpecification
 
@@ -21,10 +20,9 @@ case class IR_ContractionSpecification(var posExt : IR_ConstIndex, var negExt : 
 /// IR_ContractingLoop
 
 case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Expression], var body : ListBuffer[IR_Statement],
-    var spec : IR_ContractionSpecification) extends IR_Statement {
+    var spec : IR_ContractionSpecification) extends IR_Statement with IR_SpecialExpandable {
   // FIXME: iterator is not used?!
   // TODO: validate spec
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
   private def extendBoundsBegin(expr : IR_Expression, extent : Int) : IR_Expression = {
@@ -38,7 +36,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
       case bOff @ IR_BoundedScalar(_, _, _ : IR_IV_IterationOffsetBegin) =>
         (bOff * (extent + 1)) - extent
 
-      case add : IR_AdditionExpression =>
+      case add : IR_Addition =>
         add.summands.transform {
           case bOff @ IR_BoundedScalar(_, _, _ : IR_IV_IterationOffsetBegin) =>
             bOff * (extent + 1)
@@ -68,7 +66,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
       case bOff @ IR_BoundedScalar(_, _, _ : IR_IV_IterationOffsetEnd) =>
         (bOff * (extent + 1)) + extent
 
-      case add : IR_AdditionExpression =>
+      case add : IR_Addition =>
         add.summands.transform {
           case bOff @ IR_BoundedScalar(_, _, _ : IR_IV_IterationOffsetEnd) =>
             bOff * (extent + 1)

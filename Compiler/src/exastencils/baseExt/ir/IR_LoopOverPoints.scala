@@ -13,7 +13,6 @@ import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
 import exastencils.parallelization.ir._
-import exastencils.prettyprinting.PpStream
 
 /// IR_RegionSpecification
 
@@ -31,9 +30,7 @@ case class IR_LoopOverPoints(
     var preComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var postComms : ListBuffer[IR_Communicate] = ListBuffer(),
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
-    var condition : Option[IR_Expression] = None) extends IR_Statement with IR_HasParallelizationInfo {
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
+    var condition : Option[IR_Expression] = None) extends IR_Statement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
   def expandSpecial(collector : StackCollector) : Output[StatementList] = {
     val insideFragLoop = collector.stack.exists(_.isInstanceOf[IR_LoopOverFragments])

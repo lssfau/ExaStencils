@@ -9,14 +9,11 @@ import exastencils.config._
 import exastencils.core.StateManager
 import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.api.mpi._
-import exastencils.prettyprinting.PpStream
 import exastencils.util.ir._
 
 /// IR_PrintAllTimersToFile
 
 case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_Expandable {
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "printAllTimersToFile"
 
@@ -55,8 +52,8 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_Expandable
       statements = ListBuffer[IR_Statement](
         IR_ForLoop(
           IR_VariableDeclaration(IR_IntegerDatatype, stride.prettyprint, 0),
-          IR_LowerExpression(stride, Knowledge.mpi_numThreads),
-          IR_PreIncrementExpression(stride),
+          IR_Lower(stride, Knowledge.mpi_numThreads),
+          IR_PreIncrement(stride),
           statements))
     }
 
@@ -89,7 +86,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_Expandable
         body ++= genDataCollect(timers)
         body += MPI_Reduce(0, "timesToPrint", IR_DoubleDatatype, 2 * timers.size, "+")
         def timerId = IR_VariableAccess("timerId", IR_IntegerDatatype)
-        body += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_LowerExpression(timerId, 2 * timers.size), IR_PreIncrementExpression(timerId),
+        body += IR_ForLoop(IR_VariableDeclaration(timerId, 0), IR_Lower(timerId, 2 * timers.size), IR_PreIncrement(timerId),
           IR_Assignment(IR_ArrayAccess("timesToPrint", timerId), Knowledge.mpi_numThreads, "/="))
         body += IR_IfCondition(MPI_IsRootProc(), genPrint(timers))
       }

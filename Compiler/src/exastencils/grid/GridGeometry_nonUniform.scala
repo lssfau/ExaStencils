@@ -107,7 +107,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
@@ -123,7 +123,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
@@ -204,7 +204,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
           2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
@@ -220,7 +220,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
-      IR_NegationExpression(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
+      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
       ListBuffer[IR_Statement](
         IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
           2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
@@ -234,10 +234,10 @@ trait GridGeometry_nonUniform extends GridGeometry {
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         innerItDecl,
-        IR_IfCondition(IR_LowerEqualExpression(innerIt, xf + 1),
+        IR_IfCondition(IR_LowerEqual(innerIt, xf + 1),
           IR_Assignment(Duplicate(baseAccess),
             domainBounds.lower(dim) + 0.5 * alpha * innerIt * innerIt + (beta - 0.5 * alpha) * innerIt),
-          IR_IfCondition(IR_LowerEqualExpression(innerIt, xs + 1),
+          IR_IfCondition(IR_LowerEqual(innerIt, xs + 1),
             IR_Assignment(Duplicate(baseAccess),
               domainBounds.lower(dim) - 0.5 * alpha * (xf * xf + xf) + (beta + alpha * xf) * innerIt),
             IR_Assignment(Duplicate(baseAccess),

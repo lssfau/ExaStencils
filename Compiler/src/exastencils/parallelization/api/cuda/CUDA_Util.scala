@@ -25,7 +25,7 @@ object CUDA_Util {
     */
   def verifyCudaLoopSuitability(loop : IR_ForLoop) : Boolean = {
     loop.begin.isInstanceOf[IR_VariableDeclaration] &&
-      (loop.end.isInstanceOf[IR_LowerExpression] || loop.end.isInstanceOf[IR_LowerEqualExpression]) &&
+      (loop.end.isInstanceOf[IR_Lower] || loop.end.isInstanceOf[IR_LowerEqual]) &&
       loop.inc.isInstanceOf[IR_Assignment]
   }
 
@@ -58,10 +58,10 @@ object CUDA_Util {
       loopVariables += loopDeclaration.name
       lowerBounds += loopDeclaration.initialValue.get
       upperBounds += (loop.end match {
-        case l : IR_LowerExpression      =>
+        case l : IR_Lower      =>
           l.right
-        case e : IR_LowerEqualExpression =>
-          IR_AdditionExpression(e.right, IR_IntegerConstant(1))
+        case e : IR_LowerEqual =>
+          IR_Addition(e.right, IR_IntegerConstant(1))
         case o                           => o
       })
       stepSize += (loop.inc match {

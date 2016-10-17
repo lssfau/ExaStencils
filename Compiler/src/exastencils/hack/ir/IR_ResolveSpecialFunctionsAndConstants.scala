@@ -147,11 +147,11 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
 
-    case IR_ElementwiseAdditionExpression(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
-    case IR_ElementwiseSubtractionExpression(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
-    case IR_ElementwiseMultiplicationExpression(left, right) => IR_FunctionCall("elementwiseMul", ListBuffer(left, right))
-    case IR_ElementwiseDivisionExpression(left, right)       => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
-    case IR_ElementwiseModuloExpression(left, right)         => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
+    case IR_ElementwiseAddition(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
+    case IR_ElementwiseSubtraction(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
+    case IR_ElementwiseMultiplication(left, right) => IR_FunctionCall("elementwiseMul", ListBuffer(left, right))
+    case IR_ElementwiseDivision(left, right)       => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
+    case IR_ElementwiseModulo(left, right)         => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
     // FIXME: IR_UserFunctionAccess
     case IR_FunctionCall(IR_UserFunctionAccess("dot", _), args) => IR_FunctionCall("dotProduct", args)
   })

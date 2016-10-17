@@ -36,7 +36,7 @@ case class L4_ForLoop(
 
     val ret = IR_ForLoop(
       begin,
-      IR_LowerExpression(loopVar, IR_IntegerConstant(number)),
+      IR_Lower(loopVar, IR_IntegerConstant(number)),
       IR_Assignment(loopVar, IR_IntegerConstant(1), "+="),
       body.map(_.progress))
 
@@ -76,7 +76,7 @@ case class L4_UntilLoop(var comparison : L4_Expression, var body : ListBuffer[L4
   }
 
   // TODO: internally process L4_UntilLoops to L4_WhileLoops and remove progress
-  override def progress : IR_WhileLoop = IR_WhileLoop(IR_NegationExpression(comparison.progress), body.map(_.progress))
+  override def progress : IR_WhileLoop = IR_WhileLoop(IR_Negation(comparison.progress), body.map(_.progress))
 }
 
 /// L4_Break

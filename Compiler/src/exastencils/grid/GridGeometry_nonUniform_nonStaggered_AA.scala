@@ -12,12 +12,12 @@ object GridGeometry_nonUniform_nonStaggered_AA extends GridGeometry_nonUniform {
     Knowledge.grid_spacingModel match {
       case "uniform"   =>
         (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
-          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_Uniform(dim, level)))
+          Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_Uniform(dim, level)))
           .reduceLeft(_ ++ _)
       case "linearFct" =>
         Logger.warn("LinearFct spacing model is currently not recommended for GridGeometry_nonUniform_nonStaggered_AA since grid point positions won't match across levels")
         (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
-          (0 until Knowledge.dimensionality).to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, level)))
+          Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, level)))
           .reduceLeft(_ ++ _)
     }
   }

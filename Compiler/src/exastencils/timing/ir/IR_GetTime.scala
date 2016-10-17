@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation.Output
-import exastencils.prettyprinting.PpStream
 
 /// IR_GetTotalTime
 
@@ -14,7 +13,6 @@ case class IR_GetTotalTime() extends IR_TimerFunction with IR_Expandable {
 
   import IR_TimerFunction._
 
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "getTotalTime"
 
@@ -33,13 +31,12 @@ case class IR_GetMeanTime() extends IR_TimerFunction with IR_Expandable {
 
   import IR_TimerFunction._
 
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "getMeanTime"
 
   override def expand() : Output[IR_Function] = {
     val body = IR_Return(IR_TernaryCondition(
-      IR_GreaterExpression(accessMember("numMeasurements"), 0),
+      IR_Greater(accessMember("numMeasurements"), 0),
       IR_FunctionCall("getTotalTime", "stopWatch") / accessMember("numMeasurements"),
       0.0))
 
@@ -56,7 +53,6 @@ case class IR_GetLastTime() extends IR_TimerFunction with IR_Expandable {
 
   import IR_TimerFunction._
 
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "getLastTime"
 

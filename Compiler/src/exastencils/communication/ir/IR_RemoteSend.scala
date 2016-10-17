@@ -14,7 +14,6 @@ import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.polyhedron.PolyhedronAccessible
-import exastencils.prettyprinting.PpStream
 
 case class IR_RemoteSend(
     var field : IR_FieldSelection,
@@ -23,8 +22,6 @@ case class IR_RemoteSend(
     var numDataPoints : IR_Expression,
     var datatype : IR_Datatype,
     var concurrencyId : Int) extends IR_Statement with IR_Expandable {
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
@@ -43,8 +40,6 @@ case class IR_CopyToSendBuffer(
     var indices : IR_ExpressionIndexRange,
     var concurrencyId : Int,
     var condition : Option[IR_Expression]) extends IR_Statement with IR_Expandable {
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def numDims = field.field.fieldLayout.numDimsData
 

@@ -11,12 +11,10 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.PolyhedronAccessible
-import exastencils.prettyprinting.PpStream
 
 /// IR_InitFieldsWithZero
 
 case class IR_InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "initFieldsWithZero"
 

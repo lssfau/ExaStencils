@@ -8,7 +8,6 @@ import exastencils.communication.NeighborInfo
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
-import exastencils.prettyprinting.PpStream
 
 /// IR_CommunicateFunction
 
@@ -24,7 +23,6 @@ case class IR_CommunicateFunction(
     var insideFragLoop : Boolean,
     var condition : Option[IR_Expression]) extends IR_AbstractFunction with IR_Expandable {
 
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() = prettyprint
 
   def numDimsGrid = fieldSelection.field.fieldLayout.numDimsGrid

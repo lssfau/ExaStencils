@@ -12,21 +12,21 @@ object L2_UnaryOperators extends Enumeration {
 
   def createExpression(op : String, exp : L2_Expression) : L2_Expression = createExpression(withName(op), exp)
   def createExpression(op : Value, exp : L2_Expression) : L2_Expression = op match {
-    case Negative => L2_NegativeExpression(exp)
-    case Not      => L2_NegationExpression(exp)
+    case Negative => L2_Negative(exp)
+    case Not      => L2_Negation(exp)
   }
 }
 
 /// arithmetic operations
 
-case class L2_NegativeExpression(var left : L2_Expression) extends L2_Expression {
+case class L2_Negative(var left : L2_Expression) extends L2_Expression {
   override def prettyprint(out : PpStream) : Unit = out << "(-" << left << ')'
-  override def progress = L3_NegativeExpression(left.progress)
+  override def progress = L3_Negative(left.progress)
 }
 
 /// logical operations
 
-case class L2_NegationExpression(var left : L2_Expression) extends L2_Expression {
+case class L2_Negation(var left : L2_Expression) extends L2_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '!' << '(' << left << ')'
-  override def progress = L3_NegationExpression(left.progress)
+  override def progress = L3_Negation(left.progress)
 }

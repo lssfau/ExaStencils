@@ -25,15 +25,15 @@ object IR_SimplifyExpression {
     * Other scalar constants or variable accesses lead to an EvaluationException.
     */
   def evalIntegral(expr : IR_Expression) : Long = expr match {
-    case IR_IntegerConstant(v)                                          => v
-    case IR_AdditionExpression(sums : ListBuffer[IR_Expression])        => sums.view.map(s => evalIntegral(s)).sum
-    case IR_SubtractionExpression(l : IR_Expression, r : IR_Expression) => evalIntegral(l) - evalIntegral(r)
-    case IR_MultiplicationExpression(facs : ListBuffer[IR_Expression])  => facs.view.map(s => evalIntegral(s)).product
-    case IR_DivisionExpression(l : IR_Expression, r : IR_Expression)    => evalIntegral(l) / evalIntegral(r)
-    case IR_ModuloExpression(l : IR_Expression, r : IR_Expression)      => evalIntegral(l) % evalIntegral(r)
-    case IR_MinimumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalIntegral(e)).min
-    case IR_MaximumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalIntegral(e)).max
-    case _                                                              =>
+    case IR_IntegerConstant(v)                                => v
+    case IR_Addition(sums : ListBuffer[IR_Expression])        => sums.view.map(s => evalIntegral(s)).sum
+    case IR_Subtraction(l : IR_Expression, r : IR_Expression) => evalIntegral(l) - evalIntegral(r)
+    case IR_Multiplication(facs : ListBuffer[IR_Expression])  => facs.view.map(s => evalIntegral(s)).product
+    case IR_Division(l : IR_Expression, r : IR_Expression)    => evalIntegral(l) / evalIntegral(r)
+    case IR_Modulo(l : IR_Expression, r : IR_Expression)      => evalIntegral(l) % evalIntegral(r)
+    case IR_Minimum(l : ListBuffer[IR_Expression])            => l.view.map(e => evalIntegral(e)).min
+    case IR_Maximum(l : ListBuffer[IR_Expression])            => l.view.map(e => evalIntegral(e)).max
+    case _                                                    =>
       throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
 
@@ -62,17 +62,17 @@ object IR_SimplifyExpression {
     case IR_VariableAccess(name, dType) if extremaLookup.contains(name) =>
       extremaLookup(name)
 
-    case IR_AdditionExpression(sums : ListBuffer[IR_Expression]) =>
+    case IR_Addition(sums : ListBuffer[IR_Expression]) =>
       sums.view.map(s => evalIntegralExtrema(s, extremaLookup)).reduce { (x, y) =>
         (x._1 + y._1, x._2 + y._2)
       }
 
-    case IR_SubtractionExpression(l : IR_Expression, r : IR_Expression) =>
+    case IR_Subtraction(l : IR_Expression, r : IR_Expression) =>
       val x = evalIntegralExtrema(l, extremaLookup)
       val y = evalIntegralExtrema(r, extremaLookup)
       (x._1 - y._2, x._2 - y._1)
 
-    case IR_MultiplicationExpression(facs : ListBuffer[IR_Expression]) =>
+    case IR_Multiplication(facs : ListBuffer[IR_Expression]) =>
       facs.view.map(s => evalIntegralExtrema(s, extremaLookup)).reduce { (x, y) =>
         val a = x._1 * y._1
         val b = x._1 * y._2
@@ -81,7 +81,7 @@ object IR_SimplifyExpression {
         (a min b min c min d, a max b max c max d)
       }
 
-    case IR_DivisionExpression(l : IR_Expression, r : IR_Expression) =>
+    case IR_Division(l : IR_Expression, r : IR_Expression) =>
       val x = evalIntegralExtrema(l, extremaLookup)
       val y = evalIntegralExtrema(r, extremaLookup)
       val a = x._1 / y._1
@@ -90,7 +90,7 @@ object IR_SimplifyExpression {
       val d = x._2 / y._2
       (a min b min c min d, a max b max c max d)
 
-    case IR_ModuloExpression(l : IR_Expression, r : IR_Expression) =>
+    case IR_Modulo(l : IR_Expression, r : IR_Expression) =>
       val x = evalIntegralExtrema(l, extremaLookup)
       val y = evalIntegralExtrema(r, extremaLookup)
       val a = x._1 % y._1
@@ -99,17 +99,17 @@ object IR_SimplifyExpression {
       val d = x._2 % y._2
       (a min b min c min d, a max b max c max d)
 
-    case IR_MinimumExpression(l : ListBuffer[IR_Expression]) =>
+    case IR_Minimum(l : ListBuffer[IR_Expression]) =>
       l.view.map(e => evalIntegralExtrema(e, extremaLookup)).reduce { (x, y) =>
         (x._1 min y._1, x._2 min y._2)
       }
 
-    case IR_MaximumExpression(l : ListBuffer[IR_Expression]) =>
+    case IR_Maximum(l : ListBuffer[IR_Expression]) =>
       l.view.map(e => evalIntegralExtrema(e, extremaLookup)).reduce { (x, y) =>
         (x._1 max y._1, x._2 max y._2)
       }
 
-    case IR_NegativeExpression(left : IR_Expression) =>
+    case IR_Negative(left : IR_Expression) =>
       val (min, max) = evalIntegralExtrema(left, extremaLookup)
       (-max, -min)
 
@@ -117,7 +117,7 @@ object IR_SimplifyExpression {
       (min, max)
 
     case IR_FunctionCall(function, ListBuffer(l : IR_Expression, r : IR_Expression)) if "floord" == function.name =>
-      evalIntegralExtrema(IR_DivisionExpression(l, r), extremaLookup)
+      evalIntegralExtrema(IR_Division(l, r), extremaLookup)
 
     case _ =>
       throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
@@ -129,14 +129,14 @@ object IR_SimplifyExpression {
     * Other scalar constants or variable accesses lead to an EvaluationException.
     */
   def evalFloating(expr : IR_Expression) : Double = expr match {
-    case IR_RealConstant(v)                                             => v
-    case IR_AdditionExpression(sums : ListBuffer[IR_Expression])        => sums.view.map(s => evalFloating(s)).sum
-    case IR_SubtractionExpression(l : IR_Expression, r : IR_Expression) => evalFloating(l) - evalFloating(r)
-    case IR_MultiplicationExpression(facs : ListBuffer[IR_Expression])  => facs.view.map(s => evalFloating(s)).product
-    case IR_DivisionExpression(l : IR_Expression, r : IR_Expression)    => evalFloating(l) / evalFloating(r)
-    case IR_MinimumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalFloating(e)).min
-    case IR_MaximumExpression(l : ListBuffer[IR_Expression])            => l.view.map(e => evalFloating(e)).max
-    case _                                                              =>
+    case IR_RealConstant(v)                                   => v
+    case IR_Addition(sums : ListBuffer[IR_Expression])        => sums.view.map(s => evalFloating(s)).sum
+    case IR_Subtraction(l : IR_Expression, r : IR_Expression) => evalFloating(l) - evalFloating(r)
+    case IR_Multiplication(facs : ListBuffer[IR_Expression])  => facs.view.map(s => evalFloating(s)).product
+    case IR_Division(l : IR_Expression, r : IR_Expression)    => evalFloating(l) / evalFloating(r)
+    case IR_Minimum(l : ListBuffer[IR_Expression])            => l.view.map(e => evalFloating(e)).min
+    case IR_Maximum(l : ListBuffer[IR_Expression])            => l.view.map(e => evalFloating(e)).max
+    case _                                                    =>
       throw EvaluationException("unknown expression type for evaluation: " + expr.getClass)
   }
 
@@ -184,19 +184,19 @@ object IR_SimplifyExpression {
     }
     val dividend = recreateExprFromIntSum(tmp)
     val (name, update) : (IR_Expression, Long) = dividend match {
-      case IR_IntegerConstant(x)                                                                                                                                          => (constName, x / divs)
-      case IR_DivisionExpression(x, IR_IntegerConstant(divs2))                                                                                                            => (IR_DivisionExpression(x, IR_IntegerConstant(divs * divs2)), 1L)
-      case IR_AdditionExpression(ListBuffer(IR_DivisionExpression(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const)))                                              =>
-        (simplifyIntegralExpr(IR_DivisionExpression(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_AdditionExpression(ListBuffer(IR_IntegerConstant(const), IR_DivisionExpression(x, IR_IntegerConstant(divs2))))                                              =>
-        (simplifyIntegralExpr(IR_DivisionExpression(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))) if "floord" == function.name                                                               =>
+      case IR_IntegerConstant(x)                                                                                                                                => (constName, x / divs)
+      case IR_Division(x, IR_IntegerConstant(divs2))                                                                                                            => (IR_Division(x, IR_IntegerConstant(divs * divs2)), 1L)
+      case IR_Addition(ListBuffer(IR_Division(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const)))                                                        =>
+        (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_Division(x, IR_IntegerConstant(divs2))))                                                        =>
+        (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+      case IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))) if "floord" == function.name                                                     =>
         (IR_FunctionCall("floord", ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_AdditionExpression(ListBuffer(IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) if "floord" == function.name =>
+      case IR_Addition(ListBuffer(IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) if "floord" == function.name =>
         (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_AdditionExpression(ListBuffer(IR_IntegerConstant(const), IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))))) if "floord" == function.name =>
+      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))))) if "floord" == function.name =>
         (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case divd                                                                                                                                                           => (IR_DivisionExpression(divd, IR_IntegerConstant(divs)), 1L)
+      case divd                                                                                                                                                 => (IR_Division(divd, IR_IntegerConstant(divs)), 1L)
     }
     res(name) = res.getOrElse(name, 0L) + update
     res
@@ -228,32 +228,32 @@ object IR_SimplifyExpression {
         res = new HashMap[IR_Expression, Long]()
         res(acc) = 1L
 
-      case IR_NegativeExpression(neg) =>
+      case IR_Negative(neg) =>
         res = extractIntegralSumRec(neg)
         for ((name : IR_Expression, value : Long) <- res)
           res(name) = -value
 
-      case IR_AdditionExpression(summands) =>
+      case IR_Addition(summands) =>
         res = new HashMap[IR_Expression, Long]()
         for (s <- summands)
           for ((name : IR_Expression, value : Long) <- extractIntegralSumRec(s))
             res(name) = res.getOrElse(name, 0L) + value
         // opt:  (x/2) + (x%2)  ==>  (x+1)/2
-        val toOpt = new HashMap[IR_Expression, (IR_DivisionExpression, IR_ModuloExpression, Long)]()
+        val toOpt = new HashMap[IR_Expression, (IR_Division, IR_Modulo, Long)]()
         for ((ex, coeff) <- res) ex match {
-          case divd @ IR_DivisionExpression(x, IR_IntegerConstant(2)) =>
+          case divd @ IR_Division(x, IR_IntegerConstant(2)) =>
             toOpt.get(x) match {
               case None                             => toOpt(x) = (divd, null, coeff)
               case Some((_, modd, c)) if c == coeff => toOpt(x) = (divd, modd, coeff)
               case Some(_)                          => toOpt -= x // coefficient is not matching...
             }
-          case modd @ IR_ModuloExpression(x, IR_IntegerConstant(2))   =>
+          case modd @ IR_Modulo(x, IR_IntegerConstant(2))   =>
             toOpt.get(x) match {
               case None                             => toOpt(x) = (null, modd, coeff)
               case Some((divd, _, c)) if c == coeff => toOpt(x) = (divd, modd, coeff)
               case Some(_)                          => toOpt -= x // coefficient is not matching...
             }
-          case _                                                      =>
+          case _                                            =>
         }
         for ((x, (div, mod, coeff)) <- toOpt) if (div != null && mod != null) {
           // ensure resulting map only contains normalized version created by recreateExprFromIntSum
@@ -262,12 +262,12 @@ object IR_SimplifyExpression {
           res(nju) = coeff + res.getOrElse(nju, 0L)
         }
 
-      case IR_SubtractionExpression(l, r) =>
+      case IR_Subtraction(l, r) =>
         res = extractIntegralSumRec(l)
         for ((name : IR_Expression, value : Long) <- extractIntegralSumRec(r))
           res(name) = res.getOrElse(name, 0L) - value
 
-      case IR_MultiplicationExpression(facs) =>
+      case IR_Multiplication(facs) =>
         var coeff : Long = 1L
         val nonCst = new ListBuffer[IR_Expression]()
         var nonCstMap : HashMap[IR_Expression, Long] = null
@@ -293,15 +293,15 @@ object IR_SimplifyExpression {
           for ((name : IR_Expression, value : Long) <- nonCstMap)
             res(name) = value * coeff
         else
-          res(IR_MultiplicationExpression(nonCst.sortBy(_.prettyprint()))) = coeff
+          res(IR_Multiplication(nonCst.sortBy(_.prettyprint()))) = coeff
 
-      case IR_DivisionExpression(l, r) =>
+      case IR_Division(l, r) =>
         res = extractIntegralSumDivision(l, r)
 
       case IR_FunctionCall(function, ListBuffer(l, r)) if "floord" == function.name =>
         res = extractIntegralSumDivision(l, r)
 
-      case IR_ModuloExpression(l, r) =>
+      case IR_Modulo(l, r) =>
         val tmp = extractIntegralSumRec(r)
         if (tmp.isEmpty)
           throw EvaluationException("BOOM! (divide by zero)")
@@ -316,10 +316,10 @@ object IR_SimplifyExpression {
       val dividend : IR_Expression = recreateExprFromIntSum(dividendMap)
         dividend match {
           case IR_IntegerConstant(x) => res(constName) = x // const part is already result of modulo
-          case _                     => res(IR_ModuloExpression(dividend, IR_IntegerConstant(mod))) = 1L
+          case _                     => res(IR_Modulo(dividend, IR_IntegerConstant(mod))) = 1L
         }
 
-      case IR_MinimumExpression(args : ListBuffer[IR_Expression]) =>
+      case IR_Minimum(args : ListBuffer[IR_Expression]) =>
         val exprs = new ListBuffer[IR_Expression]
         var min : java.lang.Long = null
         for (arg <- args) simplifyIntegralExpr(arg) match {
@@ -333,10 +333,10 @@ object IR_SimplifyExpression {
         else {
           if (min != null)
             exprs += IR_IntegerConstant(min)
-          res(IR_MinimumExpression(exprs)) = 1L
+          res(IR_Minimum(exprs)) = 1L
         }
 
-      case IR_MaximumExpression(args : ListBuffer[IR_Expression]) =>
+      case IR_Maximum(args : ListBuffer[IR_Expression]) =>
         val exprs = new ListBuffer[IR_Expression]
         var max : java.lang.Long = null
         for (arg <- args) simplifyIntegralExpr(arg) match {
@@ -350,7 +350,7 @@ object IR_SimplifyExpression {
         else {
           if (max != null)
             exprs += IR_IntegerConstant(max)
-          res(IR_MinimumExpression(exprs)) = 1L
+          res(IR_Minimum(exprs)) = 1L
         }
 
       case scalarIV : IR_InternalVariable if scalarIV.resolveDatatype.isInstanceOf[IR_ScalarDatatype] =>
@@ -413,18 +413,18 @@ object IR_SimplifyExpression {
     val posSums = new ListBuffer[IR_Expression]()
     val negSums = new ListBuffer[IR_Expression]()
 
-    def toExpr(sum : ListBuffer[IR_Expression]) = if (sum.length == 1) sum.head else new IR_AdditionExpression(sum)
+    def toExpr(sum : ListBuffer[IR_Expression]) = if (sum.length == 1) sum.head else new IR_Addition(sum)
     for ((value : Long, (pSums : ListBuffer[IR_Expression], nSums : ListBuffer[IR_Expression])) <- reverse.toSeq.sortBy(t => t._1).reverse)
       if (value == 1L) {
         posSums ++= pSums
         negSums ++= nSums
       } else {
         if (pSums.isEmpty)
-          negSums += IR_MultiplicationExpression(IR_IntegerConstant(value), toExpr(nSums))
+          negSums += IR_Multiplication(IR_IntegerConstant(value), toExpr(nSums))
         else if (nSums.isEmpty)
-          posSums += IR_MultiplicationExpression(IR_IntegerConstant(value), toExpr(pSums))
+          posSums += IR_Multiplication(IR_IntegerConstant(value), toExpr(pSums))
         else
-          posSums += IR_MultiplicationExpression(IR_IntegerConstant(value), IR_SubtractionExpression(toExpr(pSums), toExpr(nSums)))
+          posSums += IR_Multiplication(IR_IntegerConstant(value), IR_Subtraction(toExpr(pSums), toExpr(nSums)))
       }
 
     if (const > 0L)
@@ -433,11 +433,11 @@ object IR_SimplifyExpression {
       negSums += IR_IntegerConstant(-const)
 
     if (posSums.isEmpty)
-      IR_NegativeExpression(toExpr(negSums))
+      IR_Negative(toExpr(negSums))
     else if (negSums.isEmpty)
       toExpr(posSums)
     else
-      IR_SubtractionExpression(toExpr(posSums), toExpr(negSums))
+      IR_Subtraction(toExpr(posSums), toExpr(negSums))
   }
 
   def simplifyIntegralExpr(expr : IR_Expression) : IR_Expression = {
@@ -552,23 +552,23 @@ object IR_SimplifyExpression {
         res = new HashMap[IR_Expression, Double]()
         res(call) = 1d
 
-      case IR_NegativeExpression(neg) =>
+      case IR_Negative(neg) =>
         res = extractFloatingSumRec(neg)
         for ((name : IR_Expression, value : Double) <- res)
           res(name) = -value
 
-      case IR_AdditionExpression(summands) =>
+      case IR_Addition(summands) =>
         res = new HashMap[IR_Expression, Double]()
         for (s <- summands)
           for ((name : IR_Expression, value : Double) <- extractFloatingSumRec(s))
             res(name) = res.getOrElse(name, 0d) + value
 
-      case IR_SubtractionExpression(l, r) =>
+      case IR_Subtraction(l, r) =>
         res = extractFloatingSumRec(l)
         for ((name : IR_Expression, value : Double) <- extractFloatingSumRec(r))
           res(name) = res.getOrElse(name, 0d) - value
 
-      case IR_MultiplicationExpression(facs) =>
+      case IR_Multiplication(facs) =>
         var coeff : Double = 1d
         val nonCst = new ListBuffer[HashMap[IR_Expression, Double]]()
         for (f <- facs) {
@@ -596,10 +596,10 @@ object IR_SimplifyExpression {
               nC.transform((expr, d) => d / v)
             }
           }
-          res(IR_MultiplicationExpression(nonCst.map { sum => recreateExprFromFloatSum(sum) })) = coeff
+          res(IR_Multiplication(nonCst.map { sum => recreateExprFromFloatSum(sum) })) = coeff
         }
 
-      case IR_DivisionExpression(l, r) =>
+      case IR_Division(l, r) =>
         val mapL = extractFloatingSumRec(l)
         val mapR = extractFloatingSumRec(r)
         if (mapR.size == 1 && mapR.contains(constName)) {
@@ -613,29 +613,29 @@ object IR_SimplifyExpression {
           var coefR : Double = 1d
           var exprR = recreateExprFromFloatSum(mapR)
           exprL match {
-            case IR_MultiplicationExpression(ListBuffer(IR_RealConstant(coef), inner)) =>
+            case IR_Multiplication(ListBuffer(IR_RealConstant(coef), inner)) =>
               coefL = coef
               exprL = inner
-            case IR_RealConstant(coef)                                                 =>
+            case IR_RealConstant(coef)                                       =>
               coefL = coef
               exprL = IR_RealConstant(1d)
-            case _                                                                     =>
+            case _                                                           =>
           }
           exprR match {
-            case IR_MultiplicationExpression(ListBuffer(IR_RealConstant(coef), inner)) =>
+            case IR_Multiplication(ListBuffer(IR_RealConstant(coef), inner)) =>
               coefR = coef
               exprR = inner
-            case IR_RealConstant(coef)                                                 =>
+            case IR_RealConstant(coef)                                       =>
               coefR = coef
               exprR = IR_RealConstant(1d)
-            case _                                                                     =>
+            case _                                                           =>
           }
           res = new HashMap[IR_Expression, Double]()
-          val div = IR_DivisionExpression(exprL, exprR)
+          val div = IR_Division(exprL, exprR)
           res(div) = coefL / coefR
         }
 
-      case IR_ModuloExpression(l, r) =>
+      case IR_Modulo(l, r) =>
         val mapR = extractFloatingSumRec(r)
         if (!(mapR.size == 1 && mapR.contains(constName)))
           throw EvaluationException("only constant divisor allowed yet:  " + l.prettyprint() + "  %  " + r.prettyprint())
@@ -644,7 +644,7 @@ object IR_SimplifyExpression {
         for ((name : IR_Expression, value : Double) <- res)
           res(name) = value % mod
 
-      case IR_MinimumExpression(args : ListBuffer[IR_Expression]) =>
+      case IR_Minimum(args : ListBuffer[IR_Expression]) =>
         val exprs = new ListBuffer[IR_Expression]
         var min : java.lang.Double = null
         for (arg <- args) simplifyFloatingExpr(arg) match {
@@ -658,10 +658,10 @@ object IR_SimplifyExpression {
         else {
           if (min != null)
             exprs += IR_RealConstant(min)
-          res(IR_MinimumExpression(exprs)) = 1d
+          res(IR_Minimum(exprs)) = 1d
         }
 
-      case IR_MaximumExpression(args : ListBuffer[IR_Expression]) =>
+      case IR_Maximum(args : ListBuffer[IR_Expression]) =>
         val exprs = new ListBuffer[IR_Expression]
         var max : java.lang.Double = null
         for (arg <- args) simplifyFloatingExpr(arg) match {
@@ -675,15 +675,15 @@ object IR_SimplifyExpression {
         else {
           if (max != null)
             exprs += IR_RealConstant(max)
-          res(IR_MaximumExpression(exprs)) = 1d
+          res(IR_Maximum(exprs)) = 1d
         }
 
-      case IR_PowerExpression(l, r) =>
+      case IR_Power(l, r) =>
         val mapL = extractFloatingSumRec(l)
         val mapR = extractFloatingSumRec(r)
         // trivial solution, if no better one is found later on
         res = new HashMap[IR_Expression, Double]()
-        res(IR_PowerExpression(recreateExprFromFloatSum(mapL), recreateExprFromFloatSum(mapR))) = 1d
+        res(IR_Power(recreateExprFromFloatSum(mapL), recreateExprFromFloatSum(mapR))) = 1d
         val isLCst = mapL.size == 1 && mapL.contains(constName)
         val isRCst = mapR.size == 1 && mapR.contains(constName)
         if (isLCst && isRCst)
@@ -695,7 +695,7 @@ object IR_SimplifyExpression {
             case 0                           => res = HashMap(constName -> 1d)
             case 1                           => res = mapL
             case _ if expL >= 2 && expL <= 6 =>
-              res = extractFloatingSumRec(IR_MultiplicationExpression(ListBuffer.fill(expL.toInt)(Duplicate(l))))
+              res = extractFloatingSumRec(IR_Multiplication(ListBuffer.fill(expL.toInt)(Duplicate(l))))
             case _                           =>
           }
         }
@@ -736,18 +736,18 @@ object IR_SimplifyExpression {
     val posSums = new ListBuffer[IR_Expression]()
     val negSums = new ListBuffer[IR_Expression]()
 
-    def toExpr(sum : ListBuffer[IR_Expression]) = if (sum.length == 1) sum.head else new IR_AdditionExpression(sum)
+    def toExpr(sum : ListBuffer[IR_Expression]) = if (sum.length == 1) sum.head else new IR_Addition(sum)
     for ((value : Double, (pSums : ListBuffer[IR_Expression], nSums : ListBuffer[IR_Expression])) <- reverse.toSeq.sortBy(t => t._1).reverse)
       if (value == 1d) {
         posSums ++= pSums
         negSums ++= nSums
       } else {
         if (pSums.isEmpty)
-          negSums += IR_MultiplicationExpression(IR_RealConstant(value), toExpr(nSums))
+          negSums += IR_Multiplication(IR_RealConstant(value), toExpr(nSums))
         else if (nSums.isEmpty)
-          posSums += IR_MultiplicationExpression(IR_RealConstant(value), toExpr(pSums))
+          posSums += IR_Multiplication(IR_RealConstant(value), toExpr(pSums))
         else
-          posSums += IR_MultiplicationExpression(IR_RealConstant(value), IR_SubtractionExpression(toExpr(pSums), toExpr(nSums)))
+          posSums += IR_Multiplication(IR_RealConstant(value), IR_Subtraction(toExpr(pSums), toExpr(nSums)))
       }
 
     if (const > 0d)
@@ -756,11 +756,11 @@ object IR_SimplifyExpression {
       negSums += IR_RealConstant(-const)
 
     if (posSums.isEmpty)
-      IR_NegativeExpression(toExpr(negSums))
+      IR_Negative(toExpr(negSums))
     else if (negSums.isEmpty)
       toExpr(posSums)
     else
-      IR_SubtractionExpression(toExpr(posSums), toExpr(negSums))
+      IR_Subtraction(toExpr(posSums), toExpr(negSums))
   }
 
   def simplifyFloatingExpr(expr : IR_Expression) : IR_Expression = {

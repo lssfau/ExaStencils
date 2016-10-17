@@ -12,7 +12,6 @@ import exastencils.logger.Logger
 import exastencils.optimization.OptimizationHint
 import exastencils.optimization.ir._
 import exastencils.parallelization.ir._
-import exastencils.prettyprinting.PpStream
 
 // FIXME: refactor
 object IR_LoopOverDimensions {
@@ -79,7 +78,7 @@ case class IR_LoopOverDimensions(
     var stepSize : IR_ExpressionIndex = null, // actual default set in constructor
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
     var condition : Option[IR_Expression] = None,
-    var genOMPThreadLoop : Boolean = false) extends IR_Statement with IR_HasParallelizationInfo {
+    var genOMPThreadLoop : Boolean = false) extends IR_Statement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
   import IR_LoopOverDimensions._
 
@@ -91,8 +90,6 @@ case class IR_LoopOverDimensions(
 
   if (stepSize == null)
     stepSize = IR_ExpressionIndex(Array.fill(numDimensions)(1))
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def maxIterationCount() : Array[Long] = {
     var start : Array[Long] = null
@@ -138,8 +135,8 @@ case class IR_LoopOverDimensions(
   def createOMPThreadsWrapper(body : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
     if (explParLoop) {
       val begin = IR_VariableDeclaration(IR_IntegerDatatype, threadIdxName, IR_IntegerConstant(0))
-      val end = IR_LowerExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
-      val inc = IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(threadIdxName, IR_IntegerDatatype)))
+      val end = IR_Lower(IR_VariableAccess(threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
+      val inc = IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(threadIdxName, IR_IntegerDatatype)))
       val loop = new IR_ForLoop(begin, end, inc, body, IR_ParallelizationInfo.PotentiallyParallel())
       ListBuffer(loop)
     } else {
@@ -154,7 +151,7 @@ case class IR_LoopOverDimensions(
     // add conditions for first iteration
     for (d <- 0 until numDimensions)
       if (at1stIt(d)._1.nonEmpty) {
-        val cond = IR_IfCondition(IR_EqEqExpression(IR_VariableAccess(IR_DimToString(d), IR_IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
+        val cond = IR_IfCondition(IR_EqEq(IR_VariableAccess(IR_DimToString(d), IR_IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
         for ((annotId, value) <- at1stIt(d)._2)
           cond.annotate(annotId, value)
         conds += cond
@@ -186,7 +183,7 @@ case class IR_LoopOverDimensions(
     nju
   }
 
-  def expandSpecial : ListBuffer[IR_Statement] = {
+  def expandSpecial() : ListBuffer[IR_Statement] = {
     def parallelizable(d : Int) = parallelization.potentiallyParallel && parDims.contains(d)
     def parallelize(d : Int) = parallelizable(d) && Knowledge.omp_parallelizeLoopOverDimensions && parallelizationIsReasonable
 
@@ -205,7 +202,7 @@ case class IR_LoopOverDimensions(
     for (d <- 0 until numDimensions) {
       def it = IR_VariableAccess(IR_DimToString(d), IR_IntegerDatatype)
       val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(inds.begin(d)))
-      val cond = IR_LowerExpression(it, inds.end(d))
+      val cond = IR_Lower(it, inds.end(d))
       val incr = IR_Assignment(it, stepSize(d), "+=")
       val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, Duplicate(parallelization)) with OptimizationHint
       if (parallelize(d) && d == outerPar) {

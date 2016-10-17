@@ -47,7 +47,7 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
       for (s <- l.body) {
         s match {
           case IR_VariableDeclaration(SIMD_RealDatatype, _,
-          Some(SIMD_Load(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), _))) //
+          Some(SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), _))) //
           =>
             toSort += ((s, base, index))
 
@@ -102,7 +102,7 @@ private[optimization] final class Analyze extends StackCollector {
     super.enter(node)
     node match {
       case loop @ IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, lVar, Some(start)),
-      IR_LowerExpression(IR_VariableAccess(lVar3, _), end),
+      IR_Lower(IR_VariableAccess(lVar3, _), end),
       IR_Assignment(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
       _, _) if (lVar == lVar2 && lVar2 == lVar3) //
       =>
@@ -118,7 +118,7 @@ private[optimization] final class Analyze extends StackCollector {
         }
 
       case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
-      Some(load @ SIMD_Load(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), aligned))) =>
+      Some(load @ SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), aligned))) =>
 
         val indSum : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
@@ -137,7 +137,7 @@ private[optimization] final class Analyze extends StackCollector {
             val nextIt = loads.get((base, indSumNIt))
             if (nextIt.isDefined) {
               preLoopDecls += IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
-                SIMD_Load(IR_AddressofExpression(
+                SIMD_Load(IR_AddressOf(
                   IR_ArrayAccess(Duplicate(base), IR_SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
               decl.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
               if (nextIt.get._1.hasAnnotation(REPL_ANNOT))
@@ -239,10 +239,10 @@ private[optimization] final class Analyze extends StackCollector {
     this += new Transformation("apply", {
       case vAcc @ IR_VariableAccess(v, Some(IR_IntegerDatatype)) if (v == itName) =>
         if (replace)
-          IR_SubtractionExpression(Duplicate(nju), IR_IntegerConstant(offset))
+          IR_Subtraction(Duplicate(nju), IR_IntegerConstant(offset))
         else if (!vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
           vAcc.annotate(SKIP_ANNOT) // already done
-          IR_SubtractionExpression(vAcc, IR_IntegerConstant(offset))
+          IR_Subtraction(vAcc, IR_IntegerConstant(offset))
         } else
           vAcc
     })

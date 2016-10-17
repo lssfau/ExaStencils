@@ -10,12 +10,10 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 import exastencils.polyhedron.PolyhedronAccessible
-import exastencils.prettyprinting.PpStream
 
 /// IR_CopyFromExternalField
 
 case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalField) extends IR_AbstractFunction with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   override def prettyprint_decl() : String = prettyprint
   override def name = "set" + src.identifier
 
@@ -45,9 +43,9 @@ case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalFi
     def numGhostInternalRight(dim : Integer) = internal.idxById("GRE", dim) - internal.idxById("DRE", dim)
     def numGhostExternalRight(dim : Integer) = external.idxById("GRE", dim) - external.idxById("DRE", dim)
     def idxBegin(dim : Integer) : IR_Expression =
-      internal.idxById("DLB", dim) - IR_MinimumExpression(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
+      internal.idxById("DLB", dim) - IR_Minimum(numGhostInternalLeft(dim), numGhostExternalLeft(dim))
     def idxEnd(dim : Integer) : IR_Expression =
-      internal.idxById("DRE", dim) + IR_MinimumExpression(numGhostInternalRight(dim), numGhostExternalRight(dim))
+      internal.idxById("DRE", dim) + IR_Minimum(numGhostInternalRight(dim), numGhostExternalRight(dim))
     def offsetForExtField = IR_ExpressionIndex((0 until loopDim).map(dim => numGhostExternalLeft(dim) - numGhostInternalLeft(dim) : IR_Expression).toArray)
 
     // compile loop body

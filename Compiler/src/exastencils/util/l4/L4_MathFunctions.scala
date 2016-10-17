@@ -53,11 +53,11 @@ object L4_ResolveMathFunctions extends DefaultStrategy("Resolve math function ac
   this += new Transformation("Resolve function accesses", {
     case L4_FunctionCall(L4_UnresolvedAccess("min", _, level, _, _, _), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
-      L4_MinimumExpression(args)
+      L4_Minimum(args)
 
     case L4_FunctionCall(L4_UnresolvedAccess("max", _, level, _, _, _), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
-      L4_MaximumExpression(args)
+      L4_Maximum(args)
 
     case access @ L4_UnresolvedAccess(accessName, _, level, _, _, _) if L4_MathFunctions.exists(accessName) =>
       if (level.isDefined) Logger.warn(s"Found leveled math function $accessName with level ${ level.get }; level is ignored")

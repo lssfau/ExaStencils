@@ -11,7 +11,6 @@ import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid.ir._
 import exastencils.logger._
-import exastencils.prettyprinting._
 
 /// GridEvaluator_AxisAligned
 
@@ -50,9 +49,8 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
   def evalAtLFace(fieldAccess : IR_FieldAccess, faceDim : Int, stagDim : Option[Int], interpolation : String = "default") =
     EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, faceDim), faceDim, stagDim, interpolation)
 
-  case class EvalAtRFace(var fieldAccess : IR_FieldAccess, var faceDim : Int, var stagDim : Option[Int], var interpolation : String = "default") extends IR_Expression {
+  case class EvalAtRFace(var fieldAccess : IR_FieldAccess, var faceDim : Int, var stagDim : Option[Int], var interpolation : String = "default") extends IR_Expression with IR_SpecialExpandable {
     override def datatype = IR_UnitDatatype
-    override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
     def expandSpecial : Output[IR_Expression] = {
       val field = fieldAccess.fieldSelection.field

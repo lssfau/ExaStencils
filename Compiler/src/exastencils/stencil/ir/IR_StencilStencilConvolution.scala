@@ -13,7 +13,6 @@ import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
-import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
 
 // TODO: is it really necessary to wrap convolutions in separate nodes?
@@ -23,7 +22,6 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 case class IR_StencilStencilConvolution(var stencilLeft : IR_Stencil, var stencilRight : IR_Stencil) extends IR_Expression with IR_Expandable {
   override def datatype = IR_ResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_StencilAccess] = {
     var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
@@ -65,7 +63,6 @@ case class IR_StencilStencilConvolution(var stencilLeft : IR_Stencil, var stenci
 
 case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAccess, var stencilRight : IR_Stencil) extends IR_Expression with IR_Expandable {
   override def datatype = IR_ResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_StencilAccess] = {
     var entries : ListBuffer[IR_StencilEntry] = ListBuffer()

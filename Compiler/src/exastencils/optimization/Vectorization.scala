@@ -70,25 +70,25 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
         val uBoundExcl : IR_Expression =
           condExpr match {
-            case IR_LowerExpression(IR_VariableAccess(bName, Some(IR_IntegerDatatype)), upperBoundExcl) if (itName == bName)      =>
+            case IR_Lower(IR_VariableAccess(bName, Some(IR_IntegerDatatype)), upperBoundExcl) if (itName == bName)      =>
               upperBoundExcl
-            case IR_LowerEqualExpression(IR_VariableAccess(bName, Some(IR_IntegerDatatype)), upperBoundIncl) if (itName == bName) =>
-              IR_AdditionExpression(upperBoundIncl, IR_IntegerConstant(1))
+            case IR_LowerEqual(IR_VariableAccess(bName, Some(IR_IntegerDatatype)), upperBoundIncl) if (itName == bName) =>
+              IR_Addition(upperBoundIncl, IR_IntegerConstant(1))
             case _                                                                                                                => throw new VectorizationException("no upper bound")
           }
 
         val incr : Long =
           incrExpr match {
-            case IR_ExpressionStatement(IR_PreIncrementExpression(IR_VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n)  => 1L
-            case IR_ExpressionStatement(IR_PostIncrementExpression(IR_VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n) => 1L
+            case IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n)  => 1L
+            case IR_ExpressionStatement(IR_PostIncrement(IR_VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n) => 1L
             case IR_Assignment(IR_VariableAccess(n, Some(IR_IntegerDatatype)),
             IR_IntegerConstant(i),
-            "+=") if (itName == n)                                                                                                   => i
+            "+=") if (itName == n)                                                                                         => i
             case IR_Assignment(IR_VariableAccess(n1, Some(IR_IntegerDatatype)),
-            IR_AdditionExpression(ListBuffer(IR_IntegerConstant(i), IR_VariableAccess(n2, Some(IR_IntegerDatatype)))),
-            "=") if (itName == n1 && itName == n2)                                                                                   => i
+            IR_Addition(ListBuffer(IR_IntegerConstant(i), IR_VariableAccess(n2, Some(IR_IntegerDatatype)))),
+            "=") if (itName == n1 && itName == n2)                                                                         => i
             case IR_Assignment(IR_VariableAccess(n1, Some(IR_IntegerDatatype)),
-            IR_AdditionExpression(ListBuffer(IR_VariableAccess(n2, Some(IR_IntegerDatatype)), IR_IntegerConstant(i))),
+            IR_Addition(ListBuffer(IR_VariableAccess(n2, Some(IR_IntegerDatatype)), IR_IntegerConstant(i))),
             "=") if (itName == n1 && itName == n2)                                                                                   => i
             case _                                                                                                                   => throw new VectorizationException("loop increment must be constant or cannot be extracted:  " + incrExpr)
           }
@@ -333,7 +333,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     val newIncr : Long = incr * vs
 
     oldLoop.begin = IR_VariableDeclaration(IR_IntegerDatatype, itVar, Unrolling.startVarAcc)
-    oldLoop.end = new IR_LowerExpression(itVarAcc, Unrolling.intermVarAcc)
+    oldLoop.end = new IR_Lower(itVarAcc, Unrolling.intermVarAcc)
     oldLoop.inc = new IR_Assignment(itVarAcc, IR_IntegerConstant(newIncr), "+=")
     oldLoop.body = ctx.popScope()
 
@@ -364,12 +364,12 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       })
       // ensure node itself is found, too
       replItVar.applyStandalone(wrappedAlignExpr)
-      val preEndExpr = IR_MinimumExpression(Unrolling.endVarAcc,
+      val preEndExpr = IR_Minimum(Unrolling.endVarAcc,
         Unrolling.startVarAcc + ((IR_IntegerConstant(vs) - (wrappedAlignExpr.expression Mod IR_IntegerConstant(vs))) Mod IR_IntegerConstant(vs)))
       res += IR_VariableDeclaration(IR_IntegerDatatype, preEndVar, preEndExpr)
 
       res += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, itVar, Unrolling.startVarAcc),
-        IR_LowerExpression(itVarAcc, preEndVarAcc),
+        IR_Lower(itVarAcc, preEndVarAcc),
         IR_Assignment(itVarAcc, IR_IntegerConstant(incr), "+="),
         Duplicate(body))
 
@@ -384,7 +384,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       res += intermDecl
     }
 
-    val emptyLoopGuard = IR_IfCondition(IR_LowerExpression(Unrolling.startVarAcc, Unrolling.intermVarAcc), new ListBuffer[IR_Statement]())
+    val emptyLoopGuard = IR_IfCondition(IR_Lower(Unrolling.startVarAcc, Unrolling.intermVarAcc), new ListBuffer[IR_Statement]())
     emptyLoopGuard.trueBody ++= ctx.getPreLoopStmts()
     emptyLoopGuard.trueBody += oldLoop
     emptyLoopGuard.trueBody ++= ctx.getPostLoopStmts()
@@ -410,8 +410,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         ctx.addStmt(new IR_Comment(stmt.prettyprint()))
         val srcWrap = new IR_ExpressionStatement(Duplicate(assOp match {
           case "="  => rhsSca
-          case "+=" => IR_AdditionExpression(lhsSca, rhsSca)
-          case "-=" => IR_SubtractionExpression(lhsSca, rhsSca)
+          case "+=" => IR_Addition(lhsSca, rhsSca)
+          case "-=" => IR_Subtraction(lhsSca, rhsSca)
           case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.prettyprint())
         }))
         IR_GeneralSimplify.doUntilDoneStandalone(srcWrap)
@@ -484,7 +484,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                   access1 = false
                 }
 
-              case IR_DivisionExpression(
+              case IR_Division(
               IR_VariableAccess(name, Some(IR_IntegerDatatype)),
               IR_IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
@@ -493,8 +493,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                   access1 = false
                 }
 
-              case IR_DivisionExpression(
-              IR_AdditionExpression(ListBuffer(IR_VariableAccess(name, Some(IR_IntegerDatatype)), IR_IntegerConstant(_))),
+              case IR_Division(
+              IR_Addition(ListBuffer(IR_VariableAccess(name, Some(IR_IntegerDatatype)), IR_IntegerConstant(_))),
               IR_IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs)
@@ -502,8 +502,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                   access1 = false
                 }
 
-              case IR_DivisionExpression(
-              IR_AdditionExpression(ListBuffer(IR_IntegerConstant(_), IR_VariableAccess(name, Some(IR_IntegerDatatype)))),
+              case IR_Division(
+              IR_Addition(ListBuffer(IR_IntegerConstant(_), IR_VariableAccess(name, Some(IR_IntegerDatatype)))),
               IR_IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs)
@@ -547,7 +547,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
               throw new VectorizationException("cannot vectorize store: array is not aligned, but unaligned accesses should be avoided")
             if (ctx.storesTmp != null)
               Logger.debug("[vect] Error? More than one store in a single statement?!")
-            ctx.storesTmp = new SIMD_Store(IR_AddressofExpression(expr),
+            ctx.storesTmp = new SIMD_Store(IR_AddressOf(expr),
               IR_VariableAccess(vecTmp, SIMD_RealDatatype), aligned)
           }
         }
@@ -598,13 +598,13 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           ctx.addStmtPreLoop(IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, new SIMD_Scalar2Vector(IR_RealConstant(value))), expr)
         IR_VariableAccess(vecTmp, SIMD_RealDatatype)
 
-      case IR_NegativeExpression(nExpr) =>
+      case IR_Negative(nExpr) =>
         SIMD_Negate(vectorizeExpr(nExpr, ctx))
 
-      case IR_AdditionExpression(sums) =>
+      case IR_Addition(sums) =>
         if (sums.isEmpty)
           Logger.error("empty sum not allowed")
-        val (muls, other) = sums.partition(_.isInstanceOf[IR_MultiplicationExpression])
+        val (muls, other) = sums.partition(_.isInstanceOf[IR_Multiplication])
         val mulsIt = muls.iterator
         val vecSumds = new Queue[IR_Expression]()
         vecSumds.enqueue(other.view.map { x => vectorizeExpr(x, ctx) } : _*)
@@ -618,10 +618,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           vecSumds.enqueue(SIMD_Addition(vecSumds.dequeue(), vecSumds.dequeue()))
         vecSumds.dequeue()
 
-      case IR_SubtractionExpression(left, right) =>
+      case IR_Subtraction(left, right) =>
         SIMD_Subtraction(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
-      case IR_MultiplicationExpression(facs) =>
+      case IR_Multiplication(facs) =>
         if (facs.isEmpty)
           Logger.error("empty product not allowed")
         val exprs = new Queue[IR_Expression]()
@@ -630,10 +630,10 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           exprs.enqueue(SIMD_Multiplication(exprs.dequeue(), exprs.dequeue()))
         exprs.dequeue()
 
-      case IR_DivisionExpression(left, right) =>
+      case IR_Division(left, right) =>
         SIMD_Division(vectorizeExpr(left, ctx), vectorizeExpr(right, ctx))
 
-      case IR_MinimumExpression(args) =>
+      case IR_Minimum(args) =>
         if (args.isEmpty)
           Logger.error("empty minimum not allowed")
         val exprs = new Queue[IR_Expression]()
@@ -642,7 +642,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           exprs.enqueue(SIMD_Minimum(exprs.dequeue(), exprs.dequeue()))
         exprs.dequeue()
 
-      case IR_MaximumExpression(args) =>
+      case IR_Maximum(args) =>
         if (args.isEmpty)
           Logger.error("empty minimum not allowed")
         val exprs = new Queue[IR_Expression]()
@@ -655,7 +655,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_FunctionCall(function, args) if (SIMD_MathFunctions.isAllowed(function.name)) =>
         IR_FunctionCall(SIMD_MathFunctions.addUsage(function.name), args.map { arg => vectorizeExpr(arg, ctx) })
 
-      case IR_PowerExpression(base, exp) if (SIMD_MathFunctions.isAllowed("pow")) =>
+      case IR_Power(base, exp) if (SIMD_MathFunctions.isAllowed("pow")) =>
         IR_FunctionCall(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))
 
       case mAcc : IR_MemberAccess =>
@@ -676,7 +676,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     if (access1)
       return SIMD_Scalar2Vector(oldExpr)
     else if (aligned || !Knowledge.simd_avoidUnaligned)
-      return SIMD_Load(IR_AddressofExpression(oldExpr), aligned)
+      return SIMD_Load(IR_AddressOf(oldExpr), aligned)
     else if (!alignedBase)
       throw new VectorizationException("cannot vectorize load: array is not aligned, but unaligned accesses should be avoided")
     else {

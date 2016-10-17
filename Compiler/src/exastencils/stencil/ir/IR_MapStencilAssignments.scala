@@ -31,7 +31,7 @@ object IR_MapStencilAssignments extends DefaultStrategy("Map assignments to sten
         var coeff : IR_Expression = 0
         for (e <- stencilRight.entries) {
           if (flipEntries) {
-            if ((0 until Knowledge.dimensionality).map(dim =>
+            if (Knowledge.dimensions.map(dim =>
               IR_SimplifyExpression.evalIntegral(e.offset(dim)) == -IR_SimplifyExpression.evalIntegral(stencilLeft.entries(idx).offset(dim)))
               .reduceLeft((a, b) => a && b))
               coeff += e.coefficient

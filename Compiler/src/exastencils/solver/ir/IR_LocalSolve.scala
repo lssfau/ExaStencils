@@ -12,7 +12,6 @@ import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
-import exastencils.prettyprinting.PpStream
 
 /// IR_ResolveLocalSolve
 
@@ -29,11 +28,9 @@ case class IR_Equation(var lhs : IR_Expression, var rhs : IR_Expression) extends
 
 /// IR_LocalSolve
 
-case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[IR_Equation]) extends IR_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
-  var fVals = ListBuffer[IR_AdditionExpression]()
-  var AVals = ListBuffer[ListBuffer[IR_AdditionExpression]]()
+case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[IR_Equation]) extends IR_Statement with IR_SpecialExpandable {
+  var fVals = ListBuffer[IR_Addition]()
+  var AVals = ListBuffer[ListBuffer[IR_Addition]]()
 
   def validate() = {
     // TODO
@@ -50,47 +47,47 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
 
   def processExpression(pos : Int, ex : IR_Expression, switchSign : Boolean) : Unit = {
     ex match {
-      case const : IR_Number => fVals(pos).summands += (if (switchSign) const else IR_NegativeExpression(const))
+      case const : IR_Number => fVals(pos).summands += (if (switchSign) const else IR_Negative(const))
 
-      case IR_NegativeExpression(exp) => processExpression(pos, exp, !switchSign)
+      case IR_Negative(exp) => processExpression(pos, exp, !switchSign)
 
       case access : IR_FieldAccess => {
         val uPos = matchUnknowns(access)
         if (uPos < 0)
-          fVals(pos).summands += (if (switchSign) access else IR_NegativeExpression(access)) // no match -> rhs
+          fVals(pos).summands += (if (switchSign) access else IR_Negative(access)) // no match -> rhs
         else
           AVals(pos)(uPos).summands += IR_RealConstant(if (switchSign) -1 else 1) // match -> matrix
       }
 
-      case multEx @ IR_MultiplicationExpression(factors) => {
+      case multEx @ IR_Multiplication(factors) => {
         // split into known and unknown
         var localFactors = ListBuffer[IR_Expression]()
         var localUnknowns = ListBuffer[IR_FieldAccess]()
         for (ex <- factors) {
           ex match {
-            case access : IR_FieldAccess         =>
+            case access : IR_FieldAccess =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
               else localUnknowns += access
-            case e : IR_MultiplicationExpression =>
+            case e : IR_Multiplication   =>
               Logger.warn(s"Nested multiplication expressions are currently unsupported: $e")
               localFactors += e
-            case e : IR_AdditionExpression       =>
+            case e : IR_Addition         =>
               Logger.warn(s"Nested addition expressions are currently unsupported: $e")
               localFactors += e
-            case e : IR_Expression               => localFactors += e
+            case e : IR_Expression       => localFactors += e
           }
         }
         if (localUnknowns.size > 1)
           Logger.warn("Non-linear equations are currently unsupported")
         if (localUnknowns.isEmpty) // no unknowns -> add to rhs
-          fVals(pos).summands += (if (switchSign) multEx else IR_NegativeExpression(multEx))
+          fVals(pos).summands += (if (switchSign) multEx else IR_Negative(multEx))
         else // unknowns detected -> add to matrix
           AVals(pos)(matchUnknowns(localUnknowns.head)).summands += (
             if (switchSign)
-              IR_NegativeExpression(IR_MultiplicationExpression(localFactors))
+              IR_Negative(IR_Multiplication(localFactors))
             else
-              IR_MultiplicationExpression(localFactors))
+              IR_Multiplication(localFactors))
       }
 
       case _ => Logger.warn(s"Found unsupported node type ${ ex.getClass.getName }: $ex")
@@ -111,17 +108,17 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
     // scan lhs for constants
     for (eqNumber <- zeroEqs.indices) {
       zeroEqs(eqNumber) match {
-        case IR_AdditionExpression(adds)        => processEqSummands(eqNumber, adds)
-        case IR_SubtractionExpression(pos, neg) =>
+        case IR_Addition(adds)        => processEqSummands(eqNumber, adds)
+        case IR_Subtraction(pos, neg) =>
           pos match {
-            case IR_AdditionExpression(adds) => processEqSummands(eqNumber, adds)
-            case e : IR_Expression           => processEqSummands(eqNumber, ListBuffer(e))
+            case IR_Addition(adds) => processEqSummands(eqNumber, adds)
+            case e : IR_Expression => processEqSummands(eqNumber, ListBuffer(e))
           }
           neg match {
-            case IR_AdditionExpression(adds) => processEqSummands(eqNumber, adds, true)
-            case e : IR_Expression           => processEqSummands(eqNumber, ListBuffer(e), true)
+            case IR_Addition(adds) => processEqSummands(eqNumber, adds, true)
+            case e : IR_Expression => processEqSummands(eqNumber, ListBuffer(e), true)
           }
-        case _                                  => Logger.warn(s"Equation doesn't hold enough information (${ zeroEqs(eqNumber).getClass.getName })")
+        case _                        => Logger.warn(s"Equation doesn't hold enough information (${ zeroEqs(eqNumber).getClass.getName })")
       }
     }
 
@@ -130,8 +127,8 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
   }
 
   def expandSpecial : Output[IR_Scope] = {
-    fVals = ListBuffer.fill(unknowns.length)(IR_AdditionExpression())
-    AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(IR_AdditionExpression()))
+    fVals = ListBuffer.fill(unknowns.length)(IR_Addition())
+    AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(IR_Addition()))
 
     validate()
     sortEquations()
@@ -173,7 +170,7 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
     }
 
     // solve local system - TODO: replace inverse function call with internal function
-    stmts += IR_Assignment(u, IR_MultiplicationExpression(IR_MemberFunctionCall(A, "inverse"), f))
+    stmts += IR_Assignment(u, IR_Multiplication(IR_MemberFunctionCall(A, "inverse"), f))
 
     // write back results
     for (i <- unknowns.indices)

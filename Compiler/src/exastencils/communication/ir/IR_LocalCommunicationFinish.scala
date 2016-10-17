@@ -11,7 +11,6 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
-import exastencils.prettyprinting.PpStream
 
 /// IR_LocalCommunicationFinish
 
@@ -22,15 +21,13 @@ case class IR_LocalCommunicationFinish(
     var insideFragLoop : Boolean,
     var cond : Option[IR_Expression]) extends IR_LocalCommunication {
 
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   def waitForLocalComm(neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange, IR_ExpressionIndexRange)]) : ListBuffer[IR_Statement] = {
     wrapFragLoop(
       neighbors.map(neighbor =>
         IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor._1.index)
-          AndAnd IR_NegationExpression(IR_IV_NeighborIsRemote(field.domainIndex, neighbor._1.index)),
+          AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domainIndex, neighbor._1.index)),
           ListBuffer[IR_Statement](
-            IR_FunctionCall("waitForFlag", IR_AddressofExpression(IR_IV_LocalCommDone(
+            IR_FunctionCall("waitForFlag", IR_AddressOf(IR_IV_LocalCommDone(
               field.field,
               DefaultNeighbors.getOpposingNeigh(neighbor._1).index,
               IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor._1.index))))))),

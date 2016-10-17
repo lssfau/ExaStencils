@@ -15,7 +15,7 @@ object DefaultNeighbors {
   def getNeigh(dir : Array[Int]) : NeighborInfo = {
     if (dir.length >= Knowledge.dimensionality) {
       for (neigh <- neighbors) {
-        if ((0 until Knowledge.dimensionality).map(i => dir(i) == neigh.dir(i)).reduce((a, b) => a && b))
+        if (Knowledge.dimensions.map(i => dir(i) == neigh.dir(i)).reduce((a, b) => a && b))
           return neigh
       }
     }

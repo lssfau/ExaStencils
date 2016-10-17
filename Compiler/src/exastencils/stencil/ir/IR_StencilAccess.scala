@@ -7,20 +7,17 @@ import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_StencilFieldSelection
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.prettyprinting.PpStream
 
 /// IR_StencilAccess
 
-case class IR_StencilAccess(var stencil : IR_Stencil) extends IR_Expression {
+case class IR_StencilAccess(var stencil : IR_Stencil) extends IR_Expression with IR_SpecialExpandable {
   override def datatype = stencil.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 }
 
 /// IR_StencilFieldAccess
 
-case class IR_StencilFieldAccess(var stencilFieldSelection : IR_StencilFieldSelection, var index : IR_ExpressionIndex) extends IR_Expression {
+case class IR_StencilFieldAccess(var stencilFieldSelection : IR_StencilFieldSelection, var index : IR_ExpressionIndex) extends IR_Expression with IR_SpecialExpandable {
   override def datatype = stencilFieldSelection.stencilField.stencil.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def buildStencil : IR_Stencil = {
     var entries : ListBuffer[IR_StencilEntry] = ListBuffer()

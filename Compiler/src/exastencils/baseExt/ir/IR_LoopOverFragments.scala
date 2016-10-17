@@ -8,7 +8,6 @@ import exastencils.config._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.parallelization.ir._
-import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ReplaceVariableAccess
 
 object IR_LoopOverFragments {
@@ -21,11 +20,9 @@ object IR_LoopOverFragments {
 
 case class IR_LoopOverFragments(
     var body : ListBuffer[IR_Statement],
-    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_HasParallelizationInfo {
+    var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()) extends IR_Statement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
   import IR_LoopOverFragments.defIt
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def expandSpecial() : Output[IR_ForLoop] = {
     // TODO: separate omp and potentiallyParallel
@@ -33,8 +30,8 @@ case class IR_LoopOverFragments(
 
     val loop = IR_ForLoop(
       IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
-      IR_LowerExpression(defIt, Knowledge.domain_numFragmentsPerBlock),
-      IR_PreIncrementExpression(defIt),
+      IR_Lower(defIt, Knowledge.domain_numFragmentsPerBlock),
+      IR_PreIncrement(defIt),
       body,
       parallelization)
     loop.annotate("numLoopIterations", Knowledge.domain_numFragmentsPerBlock)

@@ -52,9 +52,9 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (bufferSizes.contains(id))
-          bufferSizes(id).asInstanceOf[IR_MaximumExpression].args += Duplicate(buf.size)
+          bufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
         else
-          bufferSizes += (id -> IR_MaximumExpression(ListBuffer(Duplicate(buf.size))))
+          bufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
       } else {
         val size = IR_SimplifyExpression.evalIntegral(buf.size).toLong
         bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
@@ -90,8 +90,8 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       if (field.field.numSlots > 1)
         statements += new IR_ForLoop(
           IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
-          IR_LowerExpression("slot", field.field.numSlots),
-          IR_PreIncrementExpression("slot"),
+          IR_Lower("slot", field.field.numSlots),
+          IR_PreIncrement("slot"),
           innerStmts)
       else
         statements ++= innerStmts
@@ -120,8 +120,8 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       if (field.field.numSlots > 1)
         statements += new IR_ForLoop(
           IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
-          IR_LowerExpression("slot", field.field.numSlots),
-          IR_PreIncrementExpression("slot"),
+          IR_Lower("slot", field.field.numSlots),
+          IR_PreIncrement("slot"),
           innerStmts)
       else
         statements ++= innerStmts
@@ -137,9 +137,9 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (deviceBufferSizes.contains(id))
-          deviceBufferSizes(id).asInstanceOf[IR_MaximumExpression].args += Duplicate(buf.size)
+          deviceBufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
         else
-          deviceBufferSizes += (id -> IR_MaximumExpression(ListBuffer(Duplicate(buf.size))))
+          deviceBufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
       } else {
         val size = IR_SimplifyExpression.evalIntegral(buf.size).toLong
         deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
@@ -155,8 +155,8 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
         else
           Duplicate(buf.dimSizes.reduce(_ * _))
       bufferSizes.get(id) match {
-        case Some(IR_MaximumExpression(maxList)) => maxList += size
-        case None                                => bufferSizes += (id -> IR_MaximumExpression(ListBuffer(size)))
+        case Some(IR_Maximum(maxList)) => maxList += size
+        case None                                => bufferSizes += (id -> IR_Maximum(ListBuffer(size)))
         case _                                   => Logger.error("should not happen...")
       }
       buf

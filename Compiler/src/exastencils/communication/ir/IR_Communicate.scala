@@ -6,7 +6,6 @@ import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.deprecated.ir._
-import exastencils.prettyprinting.PpStream
 
 /// IR_Communicate
 
@@ -14,13 +13,11 @@ case class IR_Communicate(
     var field : IR_FieldSelection,
     var op : String,
     var targets : ListBuffer[IR_CommunicateTarget],
-    var condition : Option[IR_Expression]) extends IR_Statement {
+    var condition : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
 
   // shift all index accesses in condition as later functions will generate direct field accesses and according loop bounds
   // TODO: extract to separate transformation
   if (condition.isDefined) ShiftIndexAccesses.applyStandalone(IR_ExpressionStatement(condition.get))
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   // TODO: extract strategy - field package?
   object ShiftIndexAccesses extends QuietDefaultStrategy("Shifting index accesses") {

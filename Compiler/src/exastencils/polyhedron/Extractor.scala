@@ -115,13 +115,13 @@ object Extractor {
       //       lParConstr.append("<=").append(max).append(')')
       //       lParConstr.append(" and ")
       //
-      //     case MultiplicationExpression(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
+      //     case Multiplication(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
       //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
       //       lParConstr.append(ScopNameMapping.expr2id(arr))
       //       lParConstr.append("<=").append(max).append(')')
       //       lParConstr.append(" and ")
       //
-      //     case MultiplicationExpression(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
+      //     case Multiplication(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
       //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
       //       lParConstr.append(ScopNameMapping.expr2id(arr))
       //       lParConstr.append("<=").append(max).append(')')
@@ -140,7 +140,7 @@ object Extractor {
           gParConstr.append(" and ")
         }
 
-      case IR_AdditionExpression(sums) =>
+      case IR_Addition(sums) =>
         constraints.append('(')
         for (s <- sums) {
           bool |= extractConstraints(s, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -148,14 +148,14 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last '+'
 
-      case IR_SubtractionExpression(l, r) =>
+      case IR_Subtraction(l, r) =>
         constraints.append('(')
         bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('-')
         bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case IR_MultiplicationExpression(facs) =>
+      case IR_Multiplication(facs) =>
         constraints.append('(')
         for (s <- facs) {
           bool |= extractConstraints(s, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -163,14 +163,14 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last '*'
 
-      case IR_DivisionExpression(l, r) =>
+      case IR_Division(l, r) =>
         constraints.append("floord(")
         bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(',')
         bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case IR_ModuloExpression(l, r) =>
+      case IR_Modulo(l, r) =>
         constraints.append('(')
         bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('%')
@@ -179,7 +179,7 @@ object Extractor {
         bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case IR_MinimumExpression(es) =>
+      case IR_Minimum(es) =>
         constraints.append("min(")
         for (e <- es) {
           bool |= extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -187,7 +187,7 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last ','
 
-      case IR_MaximumExpression(es) =>
+      case IR_Maximum(es) =>
         constraints.append("max(")
         for (e <- es) {
           bool |= extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -195,13 +195,13 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last ','
 
-      case IR_NegationExpression(e) =>
+      case IR_Negation(e) =>
         constraints.append("!(")
         extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
-      case IR_LowerExpression(l, r) =>
+      case IR_Lower(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('<')
@@ -209,7 +209,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_LowerEqualExpression(l, r) =>
+      case IR_LowerEqual(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append("<=")
@@ -217,7 +217,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_GreaterEqualExpression(l, r) =>
+      case IR_GreaterEqual(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(">=")
@@ -225,7 +225,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_GreaterExpression(l, r) =>
+      case IR_Greater(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('>')
@@ -233,7 +233,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_EqEqExpression(l, r) =>
+      case IR_EqEq(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('=')
@@ -241,7 +241,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_NeqExpression(l, r) =>
+      case IR_Neq(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append("!=")
@@ -249,7 +249,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_AndAndExpression(l, r) =>
+      case IR_AndAnd(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(" and ")
@@ -257,7 +257,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_OrOrExpression(l, r) =>
+      case IR_OrOr(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(" or ")
@@ -547,18 +547,18 @@ class Extractor extends Collector {
           case _ : IR_IntegerConstant
                | _ : IR_RealConstant
                | _ : IR_BooleanConstant
-               | _ : IR_NegativeExpression
-               | _ : IR_NegationExpression
-               | _ : IR_AddressofExpression
+               | _ : IR_Negative
+               | _ : IR_Negation
+               | _ : IR_AddressOf
                | _ : IR_DerefAccess
-               | _ : IR_AdditionExpression
-               | _ : IR_SubtractionExpression
-               | _ : IR_MultiplicationExpression
-               | _ : IR_DivisionExpression
-               | _ : IR_ModuloExpression
-               | _ : IR_PowerExpression
-               | _ : IR_MinimumExpression
-               | _ : IR_MaximumExpression
+               | _ : IR_Addition
+               | _ : IR_Subtraction
+               | _ : IR_Multiplication
+               | _ : IR_Division
+               | _ : IR_Modulo
+               | _ : IR_Power
+               | _ : IR_Minimum
+               | _ : IR_Maximum
                | _ : IR_Comment
                | IR_NullStatement => // nothing to do for all of them...
 

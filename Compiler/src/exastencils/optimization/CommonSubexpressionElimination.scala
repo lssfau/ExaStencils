@@ -95,28 +95,28 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         usageIn(vName).clear()
         assignTo = vName
         ass
-      case inc @ IR_PreDecrementExpression(IR_VariableAccess(vName, _))            =>
+      case inc @ IR_PreDecrement(IR_VariableAccess(vName, _))                      =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PreIncrementExpression(IR_VariableAccess(vName, _))            =>
+      case inc @ IR_PreIncrement(IR_VariableAccess(vName, _))                      =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostIncrementExpression(IR_VariableAccess(vName, _))           =>
+      case inc @ IR_PostIncrement(IR_VariableAccess(vName, _))                     =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostDecrementExpression(IR_VariableAccess(vName, _))           =>
+      case inc @ IR_PostDecrement(IR_VariableAccess(vName, _))                     =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
@@ -179,9 +179,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       val prevItBody = IR_Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
       this.execute(new Transformation("create previous iteration body", {
         case varAcc : IR_VariableAccess if (varAcc.name == loopItVar) =>
-          IR_SubtractionExpression(varAcc, IR_IntegerConstant(loopIncr))
+          IR_Subtraction(varAcc, IR_IntegerConstant(loopIncr))
         case strLit : IR_StringLiteral if (strLit.value == loopItVar) =>
-          IR_SubtractionExpression(strLit, IR_IntegerConstant(loopIncr))
+          IR_Subtraction(strLit, IR_IntegerConstant(loopIncr))
       }, false), Some(prevItBody))
 
       SimplifyFloatExpressions.applyStandalone(prevItBody)
@@ -235,9 +235,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           var csNext : IR_Expression = Duplicate(commonExp.witness)
           this.execute(new Transformation("create subsequent iteration body", {
             case varAcc : IR_VariableAccess if (varAcc.name == loopItVar) =>
-              IR_AdditionExpression(varAcc, IR_IntegerConstant(loopIncr))
+              IR_Addition(varAcc, IR_IntegerConstant(loopIncr))
             case strLit : IR_StringLiteral if (strLit.value == loopItVar) =>
-              IR_AdditionExpression(strLit, IR_IntegerConstant(loopIncr))
+              IR_Addition(strLit, IR_IntegerConstant(loopIncr))
           }, false), Some(csNext))
           csNext = IR_SimplifyExpression.simplifyFloatingExpr(csNext)
           val csNextWrap = IR_ExpressionStatement(csNext)
@@ -643,9 +643,8 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
 
 /// IR_LoopCarriedCSBufferAccess
 
-case class IR_LoopCarriedCSBufferAccess(var buffer : IR_IV_LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access {
+case class IR_LoopCarriedCSBufferAccess(var buffer : IR_IV_LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access with IR_SpecialExpandable {
   override def datatype = buffer.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def linearize : IR_ArrayAccess = {
     if (buffer.dimSizes.isEmpty)
@@ -681,8 +680,8 @@ abstract class IR_IV_AbstractLoopCarriedCSBuffer(var namePostfix : String, var f
     var wrappedBody = super.wrapInLoops(body)
     if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
       val begin = IR_VariableDeclaration(IR_IntegerDatatype, IR_LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
-      val end = IR_LowerExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
-      val inc = IR_PreIncrementExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
+      val end = IR_Lower(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
+      val inc = IR_PreIncrement(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
       wrappedBody = IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody), IR_ParallelizationInfo.PotentiallyParallel())
     }
     wrappedBody

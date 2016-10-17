@@ -28,8 +28,6 @@ object IR_RawPrint {
 
 // FIXME: name
 case class IR_RawPrint(var toPrint : ListBuffer[IR_Expression], var stream : IR_VariableAccess = IR_VariableAccess("std::cout")) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   override def expand() : Output[IR_Statement] = {
     if (toPrint.isEmpty) {
       IR_NullStatement

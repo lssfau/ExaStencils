@@ -32,7 +32,7 @@ object IR_AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         func.body ++= ListBuffer[IR_Statement](
           IR_VariableDeclaration(IR_IntegerDatatype, "deviceCount", 0),
           "cuDeviceGetCount(&deviceCount)",
-          IR_Assert(IR_LowerExpression(Knowledge.cuda_deviceId, "deviceCount"),
+          IR_Assert(IR_Lower(Knowledge.cuda_deviceId, "deviceCount"),
             ListBuffer("\"Invalid device id (\"", Knowledge.cuda_deviceId, "\") must be smaller than the number of devices (\"", "deviceCount", "\")\""),
             IR_FunctionCall("exit", 1)),
           s"cuDeviceGet(&cudaDevice, ${ Knowledge.cuda_deviceId })")

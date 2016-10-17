@@ -12,7 +12,6 @@ import exastencils.deprecated.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.GridGeometry
 import exastencils.parallelization.api.mpi._
-import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_Print
 
 /// IR_PrintField
@@ -26,8 +25,6 @@ object IR_PrintField {
 }
 
 case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelection, var condition : IR_Expression = true) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   def numDimsGrid = field.fieldLayout.numDimsGrid
   def numDimsData = field.fieldLayout.numDimsData
 

@@ -368,15 +368,15 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   lazy val factor = (
     "(" ~> binaryexpression <~ ")"
-      ||| ("-" ~ "(") ~> binaryexpression <~ ")" ^^ { L4_NegativeExpression(_) }
+      ||| ("-" ~ "(") ~> binaryexpression <~ ")" ^^ { L4_Negative(_) }
       ||| rowVectorExpression
       ||| columnVectorExpression
       ||| matrixExpression
       ||| locationize(stringLit ^^ { case s => L4_StringConstant(s) })
       ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L4_IntegerConstant((s.getOrElse("") + n).toInt) else L4_RealConstant((s.getOrElse("") + n).toDouble) })
-      ||| locationize("-" ~> functionCall ^^ { L4_NegativeExpression(_) })
+      ||| locationize("-" ~> functionCall ^^ { L4_Negative(_) })
       ||| functionCall
-      ||| locationize("-" ~> genericAccess ^^ { L4_NegativeExpression(_) })
+      ||| locationize("-" ~> genericAccess ^^ { L4_Negative(_) })
       ||| genericAccess
       ||| locationize(booleanLit ^^ { case s => L4_BooleanConstant(s) }))
 

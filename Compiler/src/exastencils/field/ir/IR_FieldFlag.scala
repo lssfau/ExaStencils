@@ -28,8 +28,8 @@ abstract class IR_IV_FieldFlag extends IR_InternalVariable(true, false, true, tr
     if (field.numSlots > 1)
       wrappedBody = IR_ForLoop(
         IR_VariableDeclaration(IR_IntegerDatatype, "slot", 0),
-        IR_LowerExpression("slot", field.numSlots),
-        IR_PreIncrementExpression("slot"),
+        IR_Lower("slot", field.numSlots),
+        IR_PreIncrement("slot"),
         wrappedBody)
     wrappedBody
   }

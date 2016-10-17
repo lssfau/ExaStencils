@@ -22,7 +22,7 @@ case class L4_ColorLoops(var colors : ListBuffer[L4_Expression], var loop : L4_L
     val loops = colors.map(color => {
       val newLoop = Duplicate(loop)
       if (newLoop.condition.isDefined)
-        newLoop.condition = Some(L4_AndAndExpression(newLoop.condition.get, color))
+        newLoop.condition = Some(L4_AndAnd(newLoop.condition.get, color))
       else
         newLoop.condition = Some(color)
       newLoop

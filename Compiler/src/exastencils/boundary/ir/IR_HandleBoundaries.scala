@@ -17,14 +17,11 @@ import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.PolyhedronAccessible
-import exastencils.prettyprinting._
 
 /// IR_HandleBoundaries
 
 // TODO: refactor
 case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -134,7 +131,7 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
             setupFieldUpdate(neigh._1)) with PolyhedronAccessible
           loopOverDims.parallelization.potentiallyParallel = true
           loopOverDims.optLevel = 1
-          IR_IfCondition(IR_NegationExpression(IR_IV_NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
+          IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
         }))), IR_ParallelizationInfo.PotentiallyParallel())
   }
 

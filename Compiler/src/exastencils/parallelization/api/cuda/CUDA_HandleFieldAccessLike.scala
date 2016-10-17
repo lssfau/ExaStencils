@@ -49,7 +49,7 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
 
       accessIndices.indices.foreach(i => {
         accessIndices(i) match {
-          case IR_AdditionExpression(ListBuffer(va @ IR_VariableAccess(name : String, _), IR_IntegerConstant(v : Long))) =>
+          case IR_Addition(ListBuffer(va @ IR_VariableAccess(name : String, _), IR_IntegerConstant(v : Long))) =>
             suitableForSharedMemory &= loopVariables.contains(name)
             indexConstantPart(i) = v
           case va @ IR_VariableAccess(name : String, _)                                                                  =>

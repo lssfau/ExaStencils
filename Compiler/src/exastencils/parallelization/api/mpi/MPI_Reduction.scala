@@ -42,7 +42,7 @@ case class MPI_Reduce(var root : IR_Expression, var sendbuf : IR_Expression, var
     sendbuf match {
       // TODO: possible to extract to strategy/ specialized constructors?
       case IR_StringLiteral("MPI_IN_PLACE") => // special handling for MPI_IN_PLACE required
-        out << "if (" << IR_EqEqExpression(root, MPI_IV_MpiRank) << ") {\n"
+        out << "if (" << IR_EqEq(root, MPI_IV_MpiRank) << ") {\n"
         MPI_Reduce(root, sendbuf, recvbuf, datatype, count, op).reallyPrint(out) // MPI_IN_PLACE for root proc
         out << "\n} else {\n"
         MPI_Reduce(root, recvbuf, recvbuf, datatype, count, op).reallyPrint(out) // same behavior, different call required on all other procs -.-
@@ -82,7 +82,7 @@ object MPI_AddReductions extends DefaultStrategy("Add mpi reductions") {
       val reduction = loop.parallelization.reduction.get
       val stmts = ListBuffer[IR_Statement]()
       stmts += loop
-      stmts += MPI_AllReduce(IR_AddressofExpression(reduction.target), reduction.target.datatype, 1, reduction.op)
+      stmts += MPI_AllReduce(IR_AddressOf(reduction.target), reduction.target.datatype, 1, reduction.op)
       stmts
   }, false) // switch off recursion due to wrapping mechanism
 }

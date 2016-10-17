@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object Layouts {
-  def genSet(mapping : (Int => Int)) = { (0 until Knowledge.dimensionality).toArray.map(mapping).mkString(", ") }
+  def genSet(mapping : (Int => Int)) = { Knowledge.dimensions.map(mapping).mkString(", ") }
 
   def addLayouts(printer : java.io.PrintWriter) = {
     var fieldDatatype = (if (Knowledge.l3tmp_genVectorFields) s"Array<Real><${ Knowledge.l3tmp_numVecDims }>" else "Real") +

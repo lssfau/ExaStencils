@@ -5,14 +5,11 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir._
-import exastencils.prettyprinting.PpStream
 
 /// CUDA_UpdateHostData
 
 case class CUDA_UpdateHostData(var fieldAccess : IR_MultiDimFieldAccess) extends CUDA_HostStatement with IR_Expandable {
   // TODO: allow targeting of specific index ranges
-
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   override def expand() : Output[IR_IfCondition] = {
     val fieldSelection = fieldAccess.fieldSelection
@@ -33,8 +30,6 @@ case class CUDA_UpdateHostData(var fieldAccess : IR_MultiDimFieldAccess) extends
 /// CUDA_UpdateDeviceData
 
 case class CUDA_UpdateDeviceData(var fieldAccess : IR_MultiDimFieldAccess) extends CUDA_HostStatement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   override def expand() : Output[IR_IfCondition] = {
     val fieldSelection = fieldAccess.fieldSelection
     val field = fieldSelection.field

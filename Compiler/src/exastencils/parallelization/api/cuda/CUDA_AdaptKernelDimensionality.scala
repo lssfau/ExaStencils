@@ -16,7 +16,7 @@ object CUDA_AdaptKernelDimensionality extends DefaultStrategy("Reduce kernel dim
         def it = IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + CUDA_Kernel.KernelGlobalIndexPrefix + IR_DimToString(kernel.parallelDims - 1), IR_IntegerDatatype)
         kernel.body = ListBuffer[IR_Statement](IR_ForLoop(
           IR_VariableDeclaration(it, kernel.lowerBounds.last),
-          IR_LowerExpression(it, kernel.upperBounds.last),
+          IR_Lower(it, kernel.upperBounds.last),
           IR_Assignment(it, kernel.stepSize.last, "+="),
           kernel.body))
         kernel.parallelDims -= 1

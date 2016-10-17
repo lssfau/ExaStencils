@@ -3,11 +3,19 @@ package exastencils.base.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.datastructures._
+import exastencils.prettyprinting.PpStream
 
 /// IR_Expandable
 
 trait IR_Expandable {
+  def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
   def expand() : Transformation.OutputType
+}
+
+/// IR_SpecialExpandable
+
+trait IR_SpecialExpandable {
+  def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 }
 
 /// IR_Expand

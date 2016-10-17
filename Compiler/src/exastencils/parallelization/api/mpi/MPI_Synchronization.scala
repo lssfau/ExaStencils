@@ -21,15 +21,13 @@ object MPI_Sequential {
 }
 
 case class MPI_Sequential(var body : ListBuffer[IR_Statement]) extends IR_Statement with IR_Expandable {
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
-
   override def expand() : Output[IR_ForLoop] = {
     IR_ForLoop(
       IR_VariableDeclaration(IR_IntegerDatatype, "curRank", 0),
-      IR_LowerExpression("curRank", Knowledge.mpi_numThreads),
-      IR_PreIncrementExpression("curRank"),
+      IR_Lower("curRank", Knowledge.mpi_numThreads),
+      IR_PreIncrement("curRank"),
       ListBuffer[IR_Statement](
         MPI_Barrier,
-        IR_IfCondition(IR_EqEqExpression(MPI_IV_MpiRank, "curRank"), body)))
+        IR_IfCondition(IR_EqEq(MPI_IV_MpiRank, "curRank"), body)))
   }
 }
