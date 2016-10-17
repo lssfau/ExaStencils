@@ -6,9 +6,9 @@ import exastencils.config._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
-/// IR_SIMD_ExtractScalar
+/// SIMD_ExtractScalar
 
-case class IR_SIMD_ExtractScalar(var expr : IR_Expression, var index : Int) extends IR_SIMD_Expression {
+case class SIMD_ExtractScalar(var expr : IR_Expression, var index : Int) extends SIMD_Expression {
   override def datatype = expr.datatype
   override def prettyprint(out : PpStream) : Unit = {
     out << expr
@@ -24,9 +24,9 @@ case class IR_SIMD_ExtractScalar(var expr : IR_Expression, var index : Int) exte
   }
 }
 
-/// IR_SIMD_Scalar2Vector
+/// SIMD_Scalar2Vector
 
-case class IR_SIMD_Scalar2Vector(var scalar : IR_Expression) extends IR_SIMD_Expression {
+case class SIMD_Scalar2Vector(var scalar : IR_Expression) extends SIMD_Expression {
   override def datatype = IR_VectorDatatype(scalar.datatype, 1)
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'

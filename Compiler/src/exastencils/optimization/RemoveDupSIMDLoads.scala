@@ -11,7 +11,6 @@ import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.simd._
-import exastencils.util._
 
 object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") {
 
@@ -47,27 +46,27 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
       val toSort = new ArrayBuffer[(IR_Statement, IR_Expression, IR_Expression)]()
       for (s <- l.body) {
         s match {
-          case IR_VariableDeclaration(IR_SIMD_RealDatatype, _,
-          Some(IR_SIMD_Load(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), _))) //
+          case IR_VariableDeclaration(SIMD_RealDatatype, _,
+          Some(SIMD_Load(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), _))) //
           =>
             toSort += ((s, base, index))
 
-          case IR_VariableDeclaration(IR_SIMD_RealDatatype, _,
-          Some(IR_SIMD_Scalar2Vector(IR_ArrayAccess(base, index, _)))) //
+          case IR_VariableDeclaration(SIMD_RealDatatype, _,
+          Some(SIMD_Scalar2Vector(IR_ArrayAccess(base, index, _)))) //
           =>
             toSort += ((s, base, index))
 
-          case IR_VariableDeclaration(IR_SIMD_RealDatatype, _, Some(sh : IR_SIMD_ConcShift)) =>
+          case IR_VariableDeclaration(SIMD_RealDatatype, _, Some(sh : SIMD_ConcShift)) =>
             toSort += ((s, sh, null))
 
           case _ =>
             val sorted = toSort.sorted(new Ordering[(IR_Statement, IR_Expression, IR_Expression)]() {
               def compare(x : (IR_Statement, IR_Expression, IR_Expression), y : (IR_Statement, IR_Expression, IR_Expression)) : Int = {
                 (x._2, y._2) match {
-                  case (a : IR_SIMD_ConcShift, b : IR_SIMD_ConcShift) => return a.prettyprint() compare b.prettyprint()
-                  case (a : IR_SIMD_ConcShift, _)                     => return 1
-                  case (_, b : IR_SIMD_ConcShift)                     => return -1
-                  case _                                              =>
+                  case (a : SIMD_ConcShift, b : SIMD_ConcShift) => return a.prettyprint() compare b.prettyprint()
+                  case (a : SIMD_ConcShift, _)                  => return 1
+                  case (_, b : SIMD_ConcShift)                  => return -1
+                  case _                                        =>
                 }
                 val basePpCmp : Int = x._2.prettyprint() compare y._2.prettyprint()
                 if (basePpCmp != 0)
@@ -93,8 +92,8 @@ private[optimization] final class Analyze extends StackCollector {
 
   private var preLoopDecls : ListBuffer[IR_Statement] = null
   private var loads : HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (IR_VariableDeclaration, Buffer[List[Node]])] = null
-  private var load1s : HashMap[IR_SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])] = null
-  private var concShifts : HashMap[IR_SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])] = null
+  private var load1s : HashMap[SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])] = null
+  private var concShifts : HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])] = null
   private var replaceAcc : HashMap[String, String] = null
   private var upLoopVar : UpdateLoopVar = null
   private var hasOMPPragma : Boolean = false
@@ -111,15 +110,15 @@ private[optimization] final class Analyze extends StackCollector {
           preLoopDecls = new ListBuffer[IR_Statement]
           node.annotate(ADD_BEFORE_ANNOT, preLoopDecls)
           loads = new HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (IR_VariableDeclaration, Buffer[List[Node]])]()
-          load1s = new HashMap[IR_SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])]()
-          concShifts = new HashMap[IR_SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
+          load1s = new HashMap[SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])]()
+          concShifts = new HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
           replaceAcc = new HashMap[String, String]()
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
           hasOMPPragma = loop.parallelization.potentiallyParallel
         }
 
-      case decl @ IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp,
-      Some(load @ IR_SIMD_Load(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), aligned))) =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
+      Some(load @ SIMD_Load(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), aligned))) =>
 
         val indSum : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
@@ -137,21 +136,21 @@ private[optimization] final class Analyze extends StackCollector {
             val indSumNIt : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(upLoopVar.updateDup(index))
             val nextIt = loads.get((base, indSumNIt))
             if (nextIt.isDefined) {
-              preLoopDecls += IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp,
-                IR_SIMD_Load(IR_AddressofExpression(
+              preLoopDecls += IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
+                SIMD_Load(IR_AddressofExpression(
                   IR_ArrayAccess(Duplicate(base), IR_SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
-              decl.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), load, "="))
+              decl.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
               if (nextIt.get._1.hasAnnotation(REPL_ANNOT))
-                nextIt.get._1.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(nextIt.get._1.name, IR_SIMD_RealDatatype),
-                  IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
+                nextIt.get._1.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(nextIt.get._1.name, SIMD_RealDatatype),
+                  IR_VariableAccess(vecTmp, SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
               else
-                nextIt.get._1.annotate(REPL_ANNOT, IR_VariableDeclaration(IR_SIMD_RealDatatype, nextIt.get._1.name,
-                  IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)))
+                nextIt.get._1.annotate(REPL_ANNOT, IR_VariableDeclaration(SIMD_RealDatatype, nextIt.get._1.name,
+                  IR_VariableAccess(vecTmp, SIMD_RealDatatype)))
             }
           }
         }
 
-      case decl @ IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, Some(load : IR_SIMD_Scalar2Vector)) if (load1s != null) =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(load : SIMD_Scalar2Vector)) if (load1s != null) =>
         val other = load1s.get(load)
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
@@ -160,7 +159,7 @@ private[optimization] final class Analyze extends StackCollector {
         } else
           load1s(load) = (decl, ArrayBuffer(stack.elems)) // super.stack
 
-      case vAcc @ IR_VariableAccess(vecTmp, Some(IR_SIMD_RealDatatype)) if (replaceAcc != null) =>
+      case vAcc @ IR_VariableAccess(vecTmp, Some(SIMD_RealDatatype)) if (replaceAcc != null) =>
         val nju = replaceAcc.get(vecTmp)
         if (nju.isDefined)
           vAcc.name = nju.get
@@ -172,7 +171,7 @@ private[optimization] final class Analyze extends StackCollector {
   override def leave(node : Node) : Unit = {
     node match {
       // search for duplicate SIMD_ConcShift AFTER VariableAccesses in the subtree are replaced
-      case decl @ IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, Some(cShift : IR_SIMD_ConcShift)) =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(cShift : SIMD_ConcShift)) =>
         val other = concShifts.get(cShift)
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name

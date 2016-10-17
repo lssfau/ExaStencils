@@ -4,9 +4,9 @@ import exastencils.base.ir.IR_Expression
 import exastencils.config._
 import exastencils.prettyprinting.PpStream
 
-/// IR_SIMD_Negate
+/// SIMD_Negate
 
-case class IR_SIMD_Negate(var vect : IR_Expression) extends IR_SIMD_Expression {
+case class SIMD_Negate(var vect : IR_Expression) extends SIMD_Expression {
   override def datatype = vect.datatype
   override def prettyprint(out : PpStream) : Unit = {
     val (prec, ts) = if (Knowledge.useDblPrecision) ('d', "d") else ('s', "")

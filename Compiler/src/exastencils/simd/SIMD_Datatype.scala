@@ -4,7 +4,7 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.prettyprinting.PpStream
 
-trait IR_SIMD_Datatype extends IR_Datatype {
+trait SIMD_Datatype extends IR_Datatype {
   def datatype : IR_ScalarDatatype
 
   // TODO: currently treated similar to a vector - correct?
@@ -18,7 +18,7 @@ trait IR_SIMD_Datatype extends IR_Datatype {
   override def typicalByteSize = Platform.simd_vectorSize * datatype.typicalByteSize
 }
 
-case object IR_SIMD_RealDatatype extends IR_SIMD_Datatype {
+case object SIMD_RealDatatype extends SIMD_Datatype {
   exastencils.core.Duplicate.registerConstant(this)
 
   override def datatype : IR_ScalarDatatype = IR_RealDatatype

@@ -4,9 +4,9 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.prettyprinting.PpStream
 
-/// IR_SIMD_HorizontalPrinterHelper
+/// SIMD_HorizontalPrinterHelper
 
-private object IR_SIMD_HorizontalPrinterHelper {
+private object SIMD_HorizontalPrinterHelper {
   def prettyprint(out : PpStream, dest : IR_Expression, src : IR_Expression, redName : String, assOp : String, redFunc : String = null) : Unit = {
     out << "{\n"
     Platform.simd_instructionSet match {
@@ -62,9 +62,9 @@ private object IR_SIMD_HorizontalPrinterHelper {
   }
 }
 
-/// IR_SIMD_FusedPrinterHelper
+/// SIMD_FusedPrinterHelper
 
-private object IR_SIMD_FusedPrinterHelper {
+private object SIMD_FusedPrinterHelper {
   def prettyprint(out : PpStream, factor1 : IR_Expression, factor2 : IR_Expression, summand : IR_Expression, addSub : String) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     Platform.simd_instructionSet match {

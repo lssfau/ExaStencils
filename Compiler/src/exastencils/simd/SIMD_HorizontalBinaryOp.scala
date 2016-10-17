@@ -4,9 +4,9 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.prettyprinting.PpStream
 
-/// IR_SIMD_HorizontalAdd
+/// SIMD_HorizontalAdd
 
-case class IR_SIMD_HorizontalAdd(var dest : IR_Expression, var src : IR_Expression) extends IR_SIMD_Statement {
+case class SIMD_HorizontalAdd(var dest : IR_Expression, var src : IR_Expression) extends SIMD_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     Platform.simd_instructionSet match {
       case "SSE3" =>
@@ -36,35 +36,35 @@ case class IR_SIMD_HorizontalAdd(var dest : IR_Expression, var src : IR_Expressi
         out << '}'
 
       case _ =>
-        IR_SIMD_HorizontalPrinterHelper.prettyprint(out, dest, src, "add", "+=")
+        SIMD_HorizontalPrinterHelper.prettyprint(out, dest, src, "add", "+=")
     }
   }
 }
 
-/// IR_SIMD_HorizontalMul
+/// SIMD_HorizontalMul
 
-case class IR_SIMD_HorizontalMul(var dest : IR_Expression, var src : IR_Expression) extends IR_SIMD_Statement {
-  override def prettyprint(out : PpStream) : Unit = IR_SIMD_HorizontalPrinterHelper.prettyprint(out, dest, src, "mul", "*=")
+case class SIMD_HorizontalMul(var dest : IR_Expression, var src : IR_Expression) extends SIMD_Statement {
+  override def prettyprint(out : PpStream) : Unit = SIMD_HorizontalPrinterHelper.prettyprint(out, dest, src, "mul", "*=")
 }
 
-/// IR_SIMD_HorizontalMin
+/// SIMD_HorizontalMin
 
-case class IR_SIMD_HorizontalMin(var dest : IR_Expression, var src : IR_Expression) extends IR_SIMD_Statement {
+case class SIMD_HorizontalMin(var dest : IR_Expression, var src : IR_Expression) extends SIMD_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX")
       out << "\n --- NOT VALID ; vec_min not available on BG/Q\n" // FIXME: cmp and sel!
     else
-      IR_SIMD_HorizontalPrinterHelper.prettyprint(out, dest, src, "min", "=", "std::min")
+      SIMD_HorizontalPrinterHelper.prettyprint(out, dest, src, "min", "=", "std::min")
   }
 }
 
-/// IR_SIMD_HorizontalMax
+/// SIMD_HorizontalMax
 
-case class IR_SIMD_HorizontalMax(var dest : IR_Expression, var src : IR_Expression) extends IR_SIMD_Statement {
+case class SIMD_HorizontalMax(var dest : IR_Expression, var src : IR_Expression) extends SIMD_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     if (Platform.simd_instructionSet == "QPX")
       out << "\n --- NOT VALID ; vec_max not available on BG/Q\n" // FIXME: cmp and sel!
     else
-      IR_SIMD_HorizontalPrinterHelper.prettyprint(out, dest, src, "max", "=", "std::max")
+      SIMD_HorizontalPrinterHelper.prettyprint(out, dest, src, "max", "=", "std::max")
   }
 }

@@ -4,10 +4,10 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.prettyprinting.PpStream
 
-/// IR_SIMD_Load
+/// SIMD_Load
 
 // TODO: why is aligned val?
-case class IR_SIMD_Load(var mem : IR_Expression, val aligned : Boolean) extends IR_SIMD_Expression {
+case class SIMD_Load(var mem : IR_Expression, val aligned : Boolean) extends SIMD_Expression {
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
@@ -24,9 +24,9 @@ case class IR_SIMD_Load(var mem : IR_Expression, val aligned : Boolean) extends 
   }
 }
 
-/// IR_SIMD_Store
+/// SIMD_Store
 
-case class IR_SIMD_Store(var mem : IR_Expression, var value : IR_Expression, var aligned : Boolean) extends IR_SIMD_Statement {
+case class SIMD_Store(var mem : IR_Expression, var value : IR_Expression, var aligned : Boolean) extends SIMD_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     val prec = if (Knowledge.useDblPrecision) 'd' else 's'
     val alig = if (aligned) "" else "u"

@@ -1,14 +1,14 @@
 package exastencils.simd
 
 import exastencils.base.ir._
-import exastencils.datastructures.ir.iv
 import exastencils.config._
+import exastencils.datastructures.ir.iv
 import exastencils.prettyprinting.PpStream
 
-/// IR_SIMD_ConcShift
+/// SIMD_ConcShift
 
 // TODO: why is offset val?
-case class IR_SIMD_ConcShift(var left : IR_VariableAccess, var right : IR_VariableAccess, val offset : Int) extends IR_SIMD_Expression {
+case class SIMD_ConcShift(var left : IR_VariableAccess, var right : IR_VariableAccess, val offset : Int) extends SIMD_Expression {
   private var shiftIV : iv.VecShiftIndex = null
 
   Platform.simd_instructionSet match {
