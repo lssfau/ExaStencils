@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir.iv
+import exastencils.deprecated.domain.RectangularDomain
 import exastencils.domain._
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank

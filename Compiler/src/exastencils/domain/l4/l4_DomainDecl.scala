@@ -1,6 +1,7 @@
 package exastencils.domain.l4
 
 import exastencils.datastructures._
+import exastencils.deprecated.domain._
 import exastencils.deprecated.l4._
 import exastencils.domain._
 import exastencils.domain.ir._

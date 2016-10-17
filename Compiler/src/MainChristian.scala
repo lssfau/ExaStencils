@@ -13,7 +13,8 @@ import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
-import exastencils.domain.{ l4 => _, _ }
+import exastencils.domain.ir.IR_DomainFunctions
+import exastencils.domain.{ l4 => _ }
 import exastencils.field.ir._
 import exastencils.globals.ir._
 import exastencils.grid.{ l4 => _, _ }
@@ -215,7 +216,7 @@ object MainChristian {
     // add remaining nodes
     StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
       // FunctionCollections
-      DomainFunctions(),
+      IR_DomainFunctions(),
       IR_CommunicationFunctions(),
 
       // Util

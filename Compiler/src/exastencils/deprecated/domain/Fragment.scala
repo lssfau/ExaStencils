@@ -1,9 +1,10 @@
-package exastencils.domain
+package exastencils.deprecated.domain
 
 import scala.collection.mutable._
 
 import exastencils.config._
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 class DummyFragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[Face], e : ListBuffer[Edge],
     v : ListBuffer[Vertex], n : ListBuffer[Int], r : Int, t : ListBuffer[Double] = ListBuffer(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)) {
 
@@ -67,16 +68,19 @@ class DummyFragment(lId : Int, gId : Int, dId : ListBuffer[Int], f : ListBuffer[
 
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 class Primitives() {
   val eta = 0.0005
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 trait Coord {
   var X : Double
   var Y : Double
   var Z : Double
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 class Vertex(coords : ListBuffer[Double]) extends Primitives {
 
   val Coords = coords
@@ -105,6 +109,7 @@ class Vertex(coords : ListBuffer[Double]) extends Primitives {
   }
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 class Edge(v1 : Vertex, v2 : Vertex) extends Primitives {
   val vertex1 = v1
   val vertex2 = v2
@@ -146,6 +151,7 @@ class Edge(v1 : Vertex, v2 : Vertex) extends Primitives {
 
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 class Face(edges : ListBuffer[Edge], vertices : ListBuffer[Vertex]) extends Primitives {
 
   import Direction._
@@ -188,6 +194,7 @@ class Face(edges : ListBuffer[Edge], vertices : ListBuffer[Vertex]) extends Prim
   }
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 object Direction extends Enumeration {
   type Direction = Value
   val Left, Right, Bottom, Top, Front, Back = Value

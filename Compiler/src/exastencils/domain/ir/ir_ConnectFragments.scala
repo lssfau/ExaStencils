@@ -8,7 +8,9 @@ import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
-import exastencils.deprecated.ir.IR_DimToString
+import exastencils.deprecated.domain.RectangularDomain
+import exastencils.deprecated.domain.ir.IR_ReadValueFrom
+import exastencils.deprecated.ir._
 import exastencils.domain._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
@@ -83,7 +85,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
       if (Knowledge.domain_rect_generate)
         body += IR_Assignment(IR_IV_IsValidForDomain(d), isPointInsideDomain(IR_IV_FragmentPosition(_), domains(d)))
       else
-        body += IR_Assignment(IR_IV_IsValidForDomain(d), ReadValueFrom(IR_BooleanDatatype, "data"))
+        body += IR_Assignment(IR_IV_IsValidForDomain(d), IR_ReadValueFrom(IR_BooleanDatatype, "data"))
     }
 
     if (Knowledge.domain_canHaveLocalNeighs || Knowledge.domain_canHaveRemoteNeighs || Knowledge.domain_rect_hasPeriodicity) {

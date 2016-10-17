@@ -7,7 +7,7 @@ import exastencils.communication.ir.IR_CommunicationFunctions
 import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.domain._
+import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.field.ir._
 import exastencils.globals.ir._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
@@ -69,7 +69,7 @@ object MainAlex {
     // Setup tree
     StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
       // FunctionCollections
-      DomainFunctions(),
+      IR_DomainFunctions(),
       IR_CommunicationFunctions(),
 
       // Util

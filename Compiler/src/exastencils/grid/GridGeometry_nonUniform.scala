@@ -10,6 +10,7 @@ import exastencils.boundary.l4.L4_NoBC
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core._
+import exastencils.deprecated.domain._
 import exastencils.deprecated.ir._
 import exastencils.domain._
 import exastencils.domain.ir._
@@ -76,7 +77,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // fix grid width to match domain size
     if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
-    val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
+    val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
     val cellWidth = (domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal
 
     // look up field and compile access to base element

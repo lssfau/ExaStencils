@@ -10,10 +10,11 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
+import exastencils.deprecated._
+import exastencils.deprecated.domain._
 import exastencils.deprecated.ir._
-import exastencils.deprecated.l3Generate
-import exastencils.domain.ir.IR_DomainCollection
-import exastencils.domain.{ l4 => _, _ }
+import exastencils.domain.ir._
+import exastencils.domain.{ l4 => _ }
 import exastencils.field.ir._
 import exastencils.globals.ir._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
@@ -81,7 +82,7 @@ object MainJeremias {
 
     if (Knowledge.domain_readFromFile) {
       if (args.length >= 3) {
-        val d = new exastencils.parsers.settings.ParserDomainFile
+        val d = new ParserDomainFile
         d.parseHeader(args(2))
         DomainFileHeader.updateKnowledge()
       } else Logger.error("No file for domain configuration has been commited as third argument")
@@ -171,7 +172,7 @@ object MainJeremias {
 
     if (!Knowledge.domain_rect_generate) {
       if (Knowledge.domain_readFromFile) {
-        val d = new exastencils.parsers.settings.ParserDomainFile
+        val d = new ParserDomainFile
         d.parseBody(args(2))
         IR_DomainCollection.initFragments()
       } else if (Knowledge.domain_onlyRectangular) {
@@ -215,7 +216,7 @@ object MainJeremias {
     // add remaining nodes
     StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
       // FunctionCollections
-      DomainFunctions(),
+      IR_DomainFunctions(),
       IR_CommunicationFunctions(),
 
       // Util
@@ -341,7 +342,7 @@ object MainJeremias {
     PrintToFile.apply()
     PrettyprintingManager.finish
     if (!Knowledge.domain_rect_generate) {
-      exastencils.domain.FragmentKnowledge.saveFragmentData()
+      FragmentKnowledge.saveFragmentData()
       FragmentCollection.fragments.clear()
     }
 

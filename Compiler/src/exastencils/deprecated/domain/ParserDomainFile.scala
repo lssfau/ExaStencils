@@ -1,11 +1,10 @@
-package exastencils.parsers.settings
+package exastencils.deprecated.domain
 
 import scala.collection.immutable.PagedSeq
 import scala.collection.mutable.ListBuffer
 import scala.util.parsing.input.PagedSeqReader
 
 import exastencils.core._
-import exastencils.domain._
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.logger._
 import exastencils.parsers._
@@ -32,7 +31,7 @@ class ParserDomainFile extends ExaParser {
 
   def setHeaderParameter[T](ident : String, value : T) = {
     try {
-      UniversalSetter(exastencils.domain.DomainFileHeader, ident, value)
+      UniversalSetter(DomainFileHeader, ident, value)
     } catch {
       case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter DomainFile.${ ident } to ${ value } but this parameter is undefined")
       case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter DomainFile.${ ident } to ${ value } but data types are incompatible")

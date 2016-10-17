@@ -1,10 +1,13 @@
-package exastencils.domain
+package exastencils.deprecated.domain
 
+import exastencils.config._
 import exastencils.constraints._
 import exastencils.domain.ir.IR_DomainCollection
-import exastencils.config._
 import exastencils.prettyprinting._
 
+/// DomainFileHeader
+
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 object DomainFileHeader {
   var dimensionality = Knowledge.dimensionality
 
@@ -32,8 +35,11 @@ object DomainFileHeader {
 
 }
 
+/// DomainFileWriter
+
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 object DomainFileWriter extends BuildfileGenerator {
-  override def write = {
+  override def write() = {
     val domains = if (Knowledge.domain_useCase != "") IR_DomainCollection.objects.filter { f => f.identifier != "global" } else IR_DomainCollection.objects
     val fragments = if (Knowledge.domain_useCase != "") FragmentCollection.fragments.filter { f => f.domainIds.exists { d => d != 0 } } else FragmentCollection.fragments
 
@@ -49,7 +55,7 @@ object DomainFileWriter extends BuildfileGenerator {
     printer <<< "discr_hx = (" + Knowledge.discr_hx.toList.mkString(",") + ")"
     if (Knowledge.dimensionality >= 2) printer <<< "discr_hy = (" + Knowledge.discr_hy.toList.mkString(",") + ")"
     if (Knowledge.dimensionality >= 3) printer <<< "discr_hz = (" + Knowledge.discr_hz.toList.mkString(",") + ")"
-    printer <<< "domainIdentifier = \"" + (domains.map { d => d.identifier }.mkString(",")) + "\""
+    printer <<< "domainIdentifier = \"" + domains.map { d => d.identifier }.mkString(",") + "\""
 
     printer <<< "DOMAINS"
     for (d <- domains) {
@@ -79,13 +85,13 @@ object DomainFileWriter extends BuildfileGenerator {
       printer << "f" + f.globalId.toString + " = " + "("
       var tmp = ""
       for (i <- 0 to 3) {
-        tmp += "(" + List(it.next().toString(), it.next().toString(), it.next().toString(), it.next().toString()).mkString(",") + "),"
+        tmp += "(" + List(it.next().toString, it.next().toString, it.next().toString, it.next().toString).mkString(",") + "),"
       }
       printer << tmp.dropRight(1)
       printer <<< ")"
 
     }
 
-    printer.finish
+    printer.finish()
   }
 }

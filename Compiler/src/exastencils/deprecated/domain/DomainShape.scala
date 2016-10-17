@@ -1,15 +1,18 @@
-package exastencils.domain
+package exastencils.deprecated.domain
 
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config._
+import exastencils.domain.AABB
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.logger._
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 case class Interval(lower : Double, upper : Double) {
   override def toString = s"[${ lower },${ upper }]"
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 trait DomainShape {
   def shapeData : Any
   def contains(vertex : Vertex) : Boolean
@@ -28,6 +31,7 @@ trait DomainShape {
 
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 case class FileInputDomainShape(override val shapeData : String) extends DomainShape {
 
   var blocks : List[String] = List()
@@ -71,6 +75,7 @@ case class FileInputDomainShape(override val shapeData : String) extends DomainS
 
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 case class ShapedDomainShape(override val shapeData : List[RectangularDomainShape]) extends DomainShape {
   def contains(vertex : Vertex) = {
     shapeData.exists { rds => rds.contains(vertex) }
@@ -101,6 +106,7 @@ case class ShapedDomainShape(override val shapeData : List[RectangularDomainShap
 
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 case class RectangularDomainShape(override val shapeData : AABB) extends DomainShape {
   var counter = -1
   val rankWidth_x : Double = (shapeData.upper_x - shapeData.lower_x) / Knowledge.domain_rect_numBlocks_x.toDouble
@@ -293,6 +299,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
 
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 case class IrregularDomainShape(var faces : ListBuffer[Face], var edges : ListBuffer[Edge], var vertices : List[Vertex]) extends DomainShape {
   def shapeData = faces
   def contains(vertex : Vertex) : Boolean = {
@@ -360,6 +367,7 @@ case class IrregularDomainShape(var faces : ListBuffer[Face], var edges : ListBu
   }
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 class Donut(var f : ListBuffer[Face], var e : ListBuffer[Edge], var v : List[Vertex]) extends IrregularDomainShape(f, e, v) {
 
 }

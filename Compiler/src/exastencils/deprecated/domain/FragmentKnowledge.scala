@@ -1,4 +1,4 @@
-package exastencils.domain
+package exastencils.deprecated.domain
 
 import scala.collection.mutable._
 
@@ -8,6 +8,7 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.domain.ir.IR_DomainCollection
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 object FragmentKnowledge {
 
   def saveFragmentData() : Unit = {
@@ -90,6 +91,7 @@ object FragmentKnowledge {
 
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 object FragmentCollection {
   var fragments : ListBuffer[DummyFragment] = ListBuffer()
 
@@ -194,6 +196,7 @@ object FragmentCollection {
 
 }
 
+@deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
 class FragmentDataWriter(s : BufferedOutputStream) extends DataOutputStream(s) {
   val boolSize = 1
   val intSize = 4
