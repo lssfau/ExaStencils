@@ -9,7 +9,7 @@ import exastencils.config.Knowledge
 import exastencils.core.StateManager
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.datastructures.ir.{ iv, _ }
+import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
@@ -62,23 +62,23 @@ case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var 
             }
           } else IR_IntegerConstant(1)),
         IR_VariableDeclaration(IR_RealDatatype, "xPos", Some(
-          ("xPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 0)
-            + ("yPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 1)
-            + ("zPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 2)
-            + IR_ArrayAccess(iv.PrimitiveTransformation(), 3))),
+          ("xPosTMP" : IR_Expression) * IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 0)
+            + ("yPosTMP" : IR_Expression) * IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 1)
+            + ("zPosTMP" : IR_Expression) * IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 2)
+            + IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 3))),
         if (Knowledge.dimensionality > 1)
           IR_VariableDeclaration(IR_RealDatatype, "yPos", Some(
-            ("xPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 4)
-              + ("yPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 5)
-              + ("zPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 6)
-              + IR_ArrayAccess(iv.PrimitiveTransformation(), 7)))
+            ("xPosTMP" : IR_Expression) * IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 4)
+              + ("yPosTMP" : IR_Expression) * IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 5)
+              + ("zPosTMP" : IR_Expression) * IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 6)
+              + IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 7)))
         else IR_NullStatement,
         if (Knowledge.dimensionality > 2)
           IR_VariableDeclaration(IR_RealDatatype, "zPos", Some(
-            ("xPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 8)
-              + ("yPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 9)
-              + ("zPosTMP" : IR_Expression) * IR_ArrayAccess(iv.PrimitiveTransformation(), 10)
-              + IR_ArrayAccess(iv.PrimitiveTransformation(), 11)))
+            ("xPosTMP" : IR_Expression) * IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 8)
+              + ("yPosTMP" : IR_Expression) * IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 9)
+              + ("zPosTMP" : IR_Expression) * IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 10)
+              + IR_ArrayAccess(IR_IV_PrimitiveTransformation(), 11)))
         else IR_NullStatement)
     } else {
       Logger.error("deprecated")

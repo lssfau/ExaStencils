@@ -46,7 +46,7 @@ case class IR_RemoteCommunicationFinish(
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
         IR_RemoteRecv(field, neighbor, IR_AddressofExpression(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        IR_RemoteRecv(field, neighbor, iv.TmpBuffer(field.field, s"Recv_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
+        IR_RemoteRecv(field, neighbor, IR_IV_CommBuffer(field.field, s"Recv_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body

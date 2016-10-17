@@ -2,9 +2,9 @@ package exastencils.globals.ir
 
 import exastencils.base.ir._
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.datastructures.ir.iv
 import exastencils.domain.ir._
 
 /// IR_ResolveConstIVs
@@ -46,11 +46,11 @@ object IR_ResolveConstIVs extends DefaultStrategy("Resolve constant internal var
 
     if (Knowledge.domain_numFragmentsPerBlock <= 1 || Knowledge.comm_disableLocalCommSync) {
       this.execute(new Transformation("Resolve local synchronization", {
-        case IR_Assignment(_ : iv.LocalCommReady, _, _) => IR_NullStatement
-        case _ : iv.LocalCommReady                      => IR_BooleanConstant(true)
+        case IR_Assignment(_ : IR_IV_LocalCommReady, _, _) => IR_NullStatement
+        case _ : IR_IV_LocalCommReady                      => IR_BooleanConstant(true)
 
-        case IR_Assignment(_ : iv.LocalCommDone, _, _) => IR_NullStatement
-        case _ : iv.LocalCommDone                      => IR_BooleanConstant(true)
+        case IR_Assignment(_ : IR_IV_LocalCommDone, _, _) => IR_NullStatement
+        case _ : IR_IV_LocalCommDone                      => IR_BooleanConstant(true)
 
         // FIXME: IR_UserFunctionAccess
         case IR_FunctionCall(IR_UserFunctionAccess("waitForFlag", _), _) => IR_NullExpression

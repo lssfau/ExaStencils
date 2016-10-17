@@ -6,8 +6,8 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.parallelization.api.mpi.MPI_Request
 import exastencils.prettyprinting._
 
 /// local communication operations
@@ -19,9 +19,9 @@ case class IR_WaitForRemoteTransfer(var field : IR_FieldSelection, var neighbor 
 
   override def expand : Output[IR_Statement] = {
     IR_IfCondition(
-      iv.RemoteReqOutstanding(field.field, direction, neighbor.index),
+      IR_IV_RemoteReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[IR_Statement](
-        IR_FunctionCall("waitForMPIReq", IR_AddressofExpression(iv.MpiRequest(field.field, direction, neighbor.index))),
-        IR_Assignment(iv.RemoteReqOutstanding(field.field, direction, neighbor.index), false)))
+        IR_FunctionCall("waitForMPIReq", IR_AddressofExpression(MPI_Request(field.field, direction, neighbor.index))),
+        IR_Assignment(IR_IV_RemoteReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }

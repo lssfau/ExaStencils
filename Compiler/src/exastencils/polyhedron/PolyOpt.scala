@@ -9,8 +9,8 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.logger._
+import exastencils.optimization.IR_IV_LoopCarriedCSBuffer
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
 
@@ -313,13 +313,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var readsToVec, readsNotVec : isl.UnionMap = empty
 
     writes.foreachMap { map : isl.Map =>
-      if (map.getTupleName(isl.DimType.Out).startsWith(iv.LoopCarriedCSBuffer.commonPrefix))
+      if (map.getTupleName(isl.DimType.Out).startsWith(IR_IV_LoopCarriedCSBuffer.commonPrefix))
         writesToVec = writesToVec.addMap(map)
       else
         writesNotVec = writesNotVec.addMap(map)
     }
     reads.foreachMap { map : isl.Map =>
-      if (map.getTupleName(isl.DimType.Out).startsWith(iv.LoopCarriedCSBuffer.commonPrefix))
+      if (map.getTupleName(isl.DimType.Out).startsWith(IR_IV_LoopCarriedCSBuffer.commonPrefix))
         readsToVec = readsToVec.addMap(map)
       else
         readsNotVec = readsNotVec.addMap(map)

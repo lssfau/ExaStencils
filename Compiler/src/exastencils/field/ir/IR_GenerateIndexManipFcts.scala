@@ -8,7 +8,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.datastructures.ir.iv
 import exastencils.deprecated.ir.IR_DimToString
 
 /// IR_GenerateIndexManipFcts
@@ -33,7 +32,7 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
   }
 
   this += new Transformation("Collect", {
-    case idx : iv.IndexFromField =>
+    case idx : IR_IV_IndexFromField =>
       layoutMap += (s"${ idx.layoutIdentifier }_${ idx.level.prettyprint }" -> (idx.layoutIdentifier, idx.level))
       idx
   })
@@ -49,13 +48,13 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
         for (dim <- 0 until Knowledge.dimensionality) {
           // calculate index shift
           body += IR_VariableDeclaration(idxShift(dim), newInnerSize(dim) - (
-            iv.IndexFromField(layout._2._1, layout._2._2, "IE", dim) -
-              iv.IndexFromField(layout._2._1, layout._2._2, "IB", dim)))
+            IR_IV_IndexFromField(layout._2._1, layout._2._2, "IE", dim) -
+              IR_IV_IndexFromField(layout._2._1, layout._2._2, "IB", dim)))
 
           // adapt indices
           for (idxIdent <- List("IE", "DRB", "DRE", "GRB", "GRE", "PRB", "PRE", "TOT")) {
             body += IR_Assignment(
-              iv.IndexFromField(layout._2._1, layout._2._2, idxIdent, dim),
+              IR_IV_IndexFromField(layout._2._1, layout._2._2, idxIdent, dim),
               idxShift(dim), "+=")
           }
         }

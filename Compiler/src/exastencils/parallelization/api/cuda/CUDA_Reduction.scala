@@ -4,16 +4,15 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_Linearization
+import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.datastructures.ir.iv
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.prettyprinting.PpStream
 
 /// CUDA_ReductionDeviceDataAccess
 
-case class CUDA_ReductionDeviceDataAccess(var data : iv.ReductionDeviceData, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression {
+case class CUDA_ReductionDeviceDataAccess(var data : CUDA_ReductionDeviceData, var index : IR_ExpressionIndex, var strides : IR_ExpressionIndex) extends IR_Expression {
   override def datatype = data.datatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
@@ -28,6 +27,22 @@ object CUDA_LinearizeReductionDeviceDataAccess extends DefaultStrategy("Lineariz
   })
 }
 
+/// CUDA_ReductionDeviceData
+
+case class CUDA_ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
+  override def resolveDatatype = IR_PointerDatatype(IR_RealDatatype)
+  // TODO: extend for other types
+  override def resolveName : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+
+  override def getDtor() : Option[IR_Statement] = {
+    val access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
+    Some(IR_IfCondition(access,
+      ListBuffer[IR_Statement](
+        CUDA_Free(access),
+        IR_Assignment(access, 0))))
+  }
+}
+
 /// CUDA_HandleReductions
 
 object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in device kernels") {
@@ -40,7 +55,7 @@ object CUDA_HandleReductions extends DefaultStrategy("Handle reductions in devic
       val stride = (kernel.maxIndices, kernel.minIndices).zipped.map((x, y) => IR_SubtractionExpression(x, y) : IR_Expression)
 
       CUDA_ReplaceReductionAssignments.redTarget = kernel.reduction.get.target.name
-      CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(iv.ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
+      CUDA_ReplaceReductionAssignments.replacement = CUDA_ReductionDeviceDataAccess(CUDA_ReductionDeviceData(IR_MultiplicationExpression(ListBuffer[IR_Expression](stride : _*))), index, IR_ExpressionIndex(stride))
       CUDA_ReplaceReductionAssignments.applyStandalone(IR_Scope(kernel.body))
       kernel
   })

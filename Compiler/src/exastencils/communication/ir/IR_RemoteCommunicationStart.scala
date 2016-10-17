@@ -40,7 +40,7 @@ case class IR_RemoteCommunicationStart(
     val body = {
       val maxCnt = indices.getTotalSize
       val cnt = if (condition.isDefined)
-        iv.TmpBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
+        IR_IV_CommBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
       else
         maxCnt
       if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == IR_SimplifyExpression.evalIntegral(cnt))) {
@@ -48,7 +48,7 @@ case class IR_RemoteCommunicationStart(
       } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
         IR_RemoteSend(field, neighbor, IR_AddressofExpression(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        IR_RemoteSend(field, neighbor, iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
+        IR_RemoteSend(field, neighbor, IR_IV_CommBuffer(field.field, s"Send_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body

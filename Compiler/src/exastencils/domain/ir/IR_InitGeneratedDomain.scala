@@ -5,9 +5,9 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir.iv
 import exastencils.deprecated.domain.RectangularDomain
 import exastencils.domain._
 import exastencils.globals.ir.IR_AllocateDataFunction
@@ -55,7 +55,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
   }
 
   def setupCommId() = {
-    IR_Assignment(iv.CommId(),
+    IR_Assignment(IR_IV_CommunicationId(),
       Knowledge.dimensions.map(dim =>
         (IR_ToInt((IR_IV_FragmentPosition(dim) - globalSize.lower(dim)) / fragWidth(dim))
           Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) * (0 until dim).map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product : IR_Expression).reduce(_ + _))

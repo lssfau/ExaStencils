@@ -3,7 +3,6 @@ package exastencils.field.ir
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.prettyprinting.PpStream
 
@@ -60,7 +59,7 @@ case class IR_LinearizedFieldAccess(var fieldSelection : IR_FieldSelection, var 
 
   override def expand() = {
     IR_ArrayAccess(
-      iv.FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx),
+      IR_IV_FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx),
       index,
       Knowledge.data_alignFieldPointers)
   }

@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication._
 import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir.{ iv, _ }
+import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
@@ -29,9 +29,9 @@ case class IR_RemoteSend(
   override def expand() : Output[StatementList] = {
     ListBuffer[IR_Statement](
       IR_PotentiallyCritical(MPI_Send(src, numDataPoints, datatype, IR_IV_NeighborRemoteRank(field.domainIndex, neighbor.index),
-        MPI_GeneratedTag(iv.CommId(), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), neighbor.index, concurrencyId),
-        iv.MpiRequest(field.field, s"Send_${ concurrencyId }", neighbor.index))),
-      IR_Assignment(iv.RemoteReqOutstanding(field.field, s"Send_${ concurrencyId }", neighbor.index), true))
+        MPI_GeneratedTag(IR_IV_CommunicationId(), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index), neighbor.index, concurrencyId),
+        MPI_Request(field.field, s"Send_${ concurrencyId }", neighbor.index))),
+      IR_Assignment(IR_IV_RemoteReqOutstanding(field.field, s"Send_${ concurrencyId }", neighbor.index), true))
   }
 }
 
@@ -53,9 +53,9 @@ case class IR_CopyToSendBuffer(
 
     if (condition.isDefined) {
       // switch to iterator based copy operation if condition is defined -> number of elements and index mapping is unknown
-      def it = iv.TmpBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
+      def it = IR_IV_CommBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
 
-      val tmpBufAccess = IR_TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
       val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))
 
@@ -65,7 +65,7 @@ case class IR_CopyToSendBuffer(
           IR_Assignment(tmpBufAccess, fieldAccess),
           IR_Assignment(it, 1, "+="))))
     } else {
-      val tmpBufAccess = IR_TempBufferAccess(iv.TmpBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
+      val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))

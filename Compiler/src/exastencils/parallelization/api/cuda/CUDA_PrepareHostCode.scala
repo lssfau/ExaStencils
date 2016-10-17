@@ -10,7 +10,6 @@ import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.core.collectors.FctNameCollector
 import exastencils.datastructures._
-import exastencils.datastructures.ir.iv
 import exastencils.field.ir._
 import exastencils.polyhedron.PolyhedronAccessible
 
@@ -49,7 +48,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     for (access <- CUDA_GatherFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldSelection = access._2.fieldSelection
       if (access._1.startsWith("write"))
-        afterHost += IR_Assignment(iv.HostDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
     }
 
     // device sync stmts
@@ -73,7 +72,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       for (access <- CUDA_GatherFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
         val fieldSelection = access._2.fieldSelection
         if (access._1.startsWith("write"))
-          afterDevice += IR_Assignment(iv.DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+          afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
       }
     }
 

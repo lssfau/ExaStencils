@@ -8,7 +8,6 @@ import exastencils.baseExt.ir.IR_InternalVariable
 import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Node
-import exastencils.datastructures.ir.iv
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -501,13 +500,13 @@ case class CUDA_Kernel(var identifier : String,
 
     for (fieldAccess <- linearizedFieldAccesses) {
       val fieldSelection = fieldAccess._2.fieldSelection
-      callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
+      callArgs += CUDA_FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
     }
 
     if (Knowledge.cuda_useSharedMemory && fieldForSharedMemory.nonEmpty) {
       fieldNames.foreach(field => {
         val fieldSelection = fieldForSharedMemory(field).fieldSelection
-        callArgs += iv.FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
+        callArgs += CUDA_FieldDeviceData(fieldSelection.field, fieldSelection.level, fieldSelection.slot)
       })
     }
 
@@ -523,7 +522,7 @@ case class CUDA_Kernel(var identifier : String,
 
     if (reduction.isDefined) {
       def bufSize = requiredThreadsPerDim.product
-      def bufAccess = iv.ReductionDeviceData(bufSize)
+      def bufAccess = CUDA_ReductionDeviceData(bufSize)
       body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.innerDatatype.get)
       body += CUDA_FunctionCallExperimental(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
       body += IR_Return(Some(IR_FunctionCall(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",

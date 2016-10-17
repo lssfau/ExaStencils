@@ -4,7 +4,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_Linearization
 import exastencils.config._
-import exastencils.datastructures.ir.iv
 import exastencils.knowledge.ir._
 
 /// IR_FieldLayout
@@ -53,7 +52,7 @@ case class IR_FieldLayout(
   def idxById(id : String, dim : Int) : IR_Expression = {
     if (Knowledge.data_genVariableFieldSizes && dim < Knowledge.dimensionality)
     // TODO : total
-      iv.IndexFromField(identifier, level, id, dim)
+      IR_IV_IndexFromField(identifier, level, id, dim)
     else
       defIdxById(id, dim)
   }

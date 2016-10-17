@@ -5,15 +5,15 @@ import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
+import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.config._
 import exastencils.core.collectors._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.logger._
-import exastencils.optimization.IR_LoopCarriedCSBufferAccess
+import exastencils.optimization._
 import exastencils.util.ir.IR_MathFunctions
 
 /** Object for all "static" attributes */
@@ -130,7 +130,7 @@ object Extractor {
       //     case _ =>
       //   }
 
-      case iff : iv.IndexFromField =>
+      case iff : IR_IV_IndexFromField =>
         val islStr : String = ScopNameMapping.expr2id(iff)
         if (vars != null)
           vars.add(islStr)
@@ -507,7 +507,7 @@ class Extractor extends Collector {
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case IR_ArrayAccess(tmp : iv.TmpBuffer, index, _) =>
+          case IR_ArrayAccess(tmp : IR_IV_CommBuffer, index, _) =>
             tmp.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(tmp.prettyprint(), index)
@@ -894,7 +894,7 @@ class Extractor extends Collector {
     leaveArrayAccess()
   }
 
-  private def enterTempBufferAccess(buffer : iv.TmpBuffer, index : IR_ExpressionIndex) : Unit = {
+  private def enterTempBufferAccess(buffer : IR_IV_CommBuffer, index : IR_ExpressionIndex) : Unit = {
     val name = new StringBuilder("buffer")
     name.append('_').append(buffer.direction)
     name.append('_').append(buffer.field.identifier).append(buffer.field.index).append('_').append(buffer.field.level)
@@ -907,7 +907,7 @@ class Extractor extends Collector {
     leaveArrayAccess()
   }
 
-  private def enterLoopCarriedCSBufferAccess(buffer : iv.LoopCarriedCSBuffer, index : IR_ExpressionIndex) : Unit = {
+  private def enterLoopCarriedCSBufferAccess(buffer : IR_IV_LoopCarriedCSBuffer, index : IR_ExpressionIndex) : Unit = {
     enterArrayAccess(buffer.resolveName, index, true)
   }
 

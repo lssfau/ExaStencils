@@ -5,6 +5,7 @@ import scala.collection.mutable.{ ArrayBuffer, BitSet, Buffer, HashMap, ListBuff
 import scala.reflect.ClassTag
 import scala.util.Sorting
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.IR_TempBufferAccess
@@ -12,11 +13,11 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting._
 import exastencils.util.ir.IR_Print
 
@@ -245,7 +246,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
           // FIXME: fix datatypes
           val decl : IR_VariableDeclaration = commonExp.declaration
-          val tmpBuf = new iv.LoopCarriedCSBuffer(bufferCounter, decl.datatype, IR_ExpressionIndex(Duplicate(tmpBufLen)))
+          val tmpBuf = new IR_IV_LoopCarriedCSBuffer(bufferCounter, decl.datatype, IR_ExpressionIndex(Duplicate(tmpBufLen)))
           bufferCounter += 1
           val tmpBufAcc = new IR_LoopCarriedCSBufferAccess(tmpBuf, IR_ExpressionIndex(Duplicate(tmpBufInd)))
           decl.initialValue = Some(tmpBufAcc)
@@ -642,7 +643,7 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
 
 /// IR_LoopCarriedCSBufferAccess
 
-case class IR_LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access {
+case class IR_LoopCarriedCSBufferAccess(var buffer : IR_IV_LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access {
   override def datatype = buffer.datatype
   override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
@@ -661,3 +662,86 @@ object IR_LinearizeLoopCarriedCSBufferAccess extends DefaultStrategy("Linearize 
     case access : IR_LoopCarriedCSBufferAccess => access.linearize
   })
 }
+
+/// IR_IV_AbstractLoopCarriedCSBuffer
+
+abstract class IR_IV_AbstractLoopCarriedCSBuffer(var namePostfix : String, var freeInDtor : Boolean) extends IR_UnduplicatedVariable {
+
+  def identifier : Int
+  def baseDatatype : IR_Datatype
+
+  override def getDeclaration() : IR_VariableDeclaration = {
+    val superDecl = super.getDeclaration()
+    if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
+      superDecl.datatype = IR_ArrayDatatype(superDecl.datatype, Knowledge.omp_numThreads)
+    superDecl
+  }
+
+  override def wrapInLoops(body : IR_Statement) : IR_Statement = {
+    var wrappedBody = super.wrapInLoops(body)
+    if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
+      val begin = IR_VariableDeclaration(IR_IntegerDatatype, IR_LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
+      val end = IR_LowerExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
+      val inc = IR_PreIncrementExpression(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
+      wrappedBody = IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody), IR_ParallelizationInfo.PotentiallyParallel())
+    }
+    wrappedBody
+  }
+
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
+    var access = baseAccess
+    if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
+      access = IR_ArrayAccess(access, IR_StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
+    super.resolveAccess(access, fragment, domain, field, level, neigh)
+  }
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << resolveAccess(resolveName(), null, null, null, null, null)
+  }
+
+  override def resolveName() : String = {
+    IR_IV_LoopCarriedCSBuffer.commonPrefix + identifier + namePostfix
+  }
+
+  override def resolveDatatype() : IR_Datatype = {
+    IR_PointerDatatype(baseDatatype)
+  }
+
+  override def resolveDefValue() : Option[IR_Expression] = {
+    Some(0)
+  }
+
+  override def getDtor() : Option[IR_Statement] = {
+    val ptrExpr = resolveAccess(resolveName(), null, null, null, null, null)
+    if (freeInDtor)
+      Some(wrapInLoops(
+        IR_IfCondition(ptrExpr,
+          ListBuffer[IR_Statement](
+            IR_ArrayFree(ptrExpr),
+            IR_Assignment(ptrExpr, 0)))))
+    else
+      Some(wrapInLoops(IR_Assignment(ptrExpr, 0)))
+  }
+}
+
+/// IR_IV_LoopCarriedCSBuffer
+
+object IR_IV_LoopCarriedCSBuffer {
+  final val commonPrefix = "_lcs"
+}
+
+case class IR_IV_LoopCarriedCSBuffer(var identifier : Int, var baseDatatype : IR_Datatype, var dimSizes : IR_ExpressionIndex)
+  extends IR_IV_AbstractLoopCarriedCSBuffer("", !Knowledge.data_alignFieldPointers) {
+
+  lazy val basePtr = IR_IV_LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
+
+  override def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
+    super.registerIV(declarations, ctors, dtors)
+    if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
+      basePtr.registerIV(declarations, ctors, dtors)
+  }
+}
+
+/// IR_IV_LoopCarriedCSBufferBasePtr
+case class IR_IV_LoopCarriedCSBufferBasePtr(var identifier : Int, var baseDatatype : IR_Datatype)
+  extends IR_IV_AbstractLoopCarriedCSBuffer("_base", true)

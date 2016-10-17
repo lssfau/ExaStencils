@@ -4,11 +4,11 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir.iv
 import exastencils.deprecated.domain.FragmentCollection
-import exastencils.deprecated.ir.IR_DimToString
+import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.parallelization.api.mpi.MPI_Send
@@ -121,7 +121,7 @@ case class IR_SetValues() extends IR_AbstractFunction with IR_Expandable {
     }
     body += IR_Scope(
       IR_Assignment(IR_IV_FragmentId(), IR_ReadValueFrom(IR_IntegerDatatype, "data")),
-      IR_Assignment(iv.CommId(), IR_ReadValueFrom(IR_IntegerDatatype, "data")),
+      IR_Assignment(IR_IV_CommunicationId(), IR_ReadValueFrom(IR_IntegerDatatype, "data")),
       IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, "i", 0),
         IR_LowerExpression(IR_VariableAccess("i", IR_IntegerDatatype), math.pow(2, Knowledge.dimensionality)),
         IR_PreIncrementExpression(IR_VariableAccess("i", IR_IntegerDatatype)),
@@ -144,17 +144,17 @@ case class IR_SetValues() extends IR_AbstractFunction with IR_Expandable {
               ListBuffer[IR_Statement](//neighbor is remote
                 IR_VariableDeclaration(IR_IntegerDatatype, "neighIdx", Some(IR_ReadValueFrom(IR_IntegerDatatype, "data"))),
                 IR_VariableDeclaration(IR_IntegerDatatype, "neighRank", Some(IR_ReadValueFrom(IR_IntegerDatatype, "data"))),
-                if (Knowledge.mpi_enabled) s"connectRemoteElement (${ iv.CommId().prettyprint() }, neighIdx, neighRank, location, $d)" else IR_NullStatement),
+                if (Knowledge.mpi_enabled) s"connectRemoteElement (${ IR_IV_CommunicationId().prettyprint() }, neighIdx, neighRank, location, $d)" else IR_NullStatement),
               ListBuffer[IR_Statement](//neighbor is local
                 IR_VariableDeclaration(IR_IntegerDatatype, "neighIdx", Some(IR_ReadValueFrom(IR_IntegerDatatype, "data"))),
-                if (FragmentCollection.fragments.length > 1) s"connectLocalElement(${ iv.CommId().prettyprint() },neighIdx,location,$d)" else IR_NullStatement)))))
+                if (FragmentCollection.fragments.length > 1) s"connectLocalElement(${ IR_IV_CommunicationId().prettyprint() },neighIdx,location,$d)" else IR_NullStatement)))))
     }
     body += IR_IfCondition(IR_ReadValueFrom(IR_BooleanDatatype, "data"),
       ListBuffer[IR_Statement](
         "Mat4 trafoTmp = Mat4()",
         IR_ForLoop("int i = 0", " i < 12 ", "++i",
           IR_Assignment("trafoTmp[i]", IR_ReadValueFrom(IR_RealDatatype, "data"))),
-        IR_Assignment(iv.PrimitiveTransformation(), "trafoTmp")))
+        IR_Assignment(IR_IV_PrimitiveTransformation(), "trafoTmp")))
     IR_Function(IR_UnitDatatype, name,
       ListBuffer[IR_FunctionArgument](IR_FunctionArgument("data", IR_SpecialDatatype("char*")), IR_FunctionArgument("numFragments", IR_IntegerDatatype)),
       //      ListBuffer((LoopOverFragments(body))))

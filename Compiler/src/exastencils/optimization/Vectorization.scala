@@ -421,7 +421,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val lhsVec = vectorizeExpr(lhsSca, ctx.setStore())
         // ---- special handling of loop-carried cse variables ----
         lhsSca match {
-          case IR_ArrayAccess(_ : iv.LoopCarriedCSBuffer, _, _) =>
+          case IR_ArrayAccess(_ : IR_IV_LoopCarriedCSBuffer, _, _) =>
             val initOpt : Option[SIMD_ConcShift] = ctx.toFinish_LCSE.get(ctx.getName(lhsSca)._1)
             if (initOpt.isDefined) {
               val concShiftRight : IR_VariableAccess =
@@ -522,7 +522,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           val aligned : Boolean = alignedBase && (const.getOrElse(0L) - ctx.getAlignedResidue()) % vs == 0
           base match {
             // ---- special handling of loop-carried cse variables ----
-            case _ : iv.LoopCarriedCSBuffer if (access1) => //if(access1 && ctx.isStore() && !ctx.isLoad()) =>
+            case _ : IR_IV_LoopCarriedCSBuffer if (access1) => //if(access1 && ctx.isStore() && !ctx.isLoad()) =>
               ctx.addStmtPreLoop(IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, SIMD_Scalar2Vector(expr)), expr)
               ctx.addStmtPostLoop(IR_Assignment(expr, new SIMD_ExtractScalar(IR_VariableAccess(vecTmp, SIMD_RealDatatype), vs - 1)))
             // ------------------------------------------------------
@@ -539,7 +539,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val (aligned : Boolean, access1 : Boolean) = ctx.getAlignAndAccess1(vecTmp)
         if (ctx.isStore()) {
           // ---- special handling of loop-carried cse variables ----
-          if (!base.isInstanceOf[iv.LoopCarriedCSBuffer] || !access1) { // if we have an access to a single LCS buffer, we must not do anything special here, just skip all sanity checks
+          if (!base.isInstanceOf[IR_IV_LoopCarriedCSBuffer] || !access1) { // if we have an access to a single LCS buffer, we must not do anything special here, just skip all sanity checks
             // ------------------------------------------------------
             if (access1)
               throw new VectorizationException("parallel store to a single memory location")
@@ -553,11 +553,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         }
         // ---- special handling of loop-carried cse variables ----
         base match {
-          case _ : iv.LoopCarriedCSBuffer if (access1 && ctx.isLoad() && !ctx.isStore() && !ctx.toFinish_LCSE.contains(vecTmp)) =>
+          case _ : IR_IV_LoopCarriedCSBuffer if (access1 && ctx.isLoad() && !ctx.isStore() && !ctx.toFinish_LCSE.contains(vecTmp)) =>
             val init = new SIMD_ConcShift(IR_VariableAccess(vecTmp, SIMD_RealDatatype), null, Platform.simd_vectorSize - 1)
             ctx.toFinish_LCSE(vecTmp) = init
             ctx.addStmt(new IR_Assignment(IR_VariableAccess(vecTmp, SIMD_RealDatatype), init, "="))
-          case _                                                                                                                => // nothing to do
+          case _                                                                                                                      => // nothing to do
         }
         // --------------------------------------------------------
         IR_VariableAccess(vecTmp, SIMD_RealDatatype)

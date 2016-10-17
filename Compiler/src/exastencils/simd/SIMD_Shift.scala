@@ -1,18 +1,20 @@
 package exastencils.simd
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_UnduplicatedVariable
 import exastencils.config._
-import exastencils.datastructures.ir.iv
+import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// SIMD_ConcShift
 
 // TODO: why is offset val?
 case class SIMD_ConcShift(var left : IR_VariableAccess, var right : IR_VariableAccess, val offset : Int) extends SIMD_Expression {
-  private var shiftIV : iv.VecShiftIndex = null
+  private var shiftIV : IR_IV_VecShiftIndex = null
 
   Platform.simd_instructionSet match {
-    case "AVX512" | "IMCI" => shiftIV = new iv.VecShiftIndex(offset)
+    case "AVX512" | "IMCI" => shiftIV = new IR_IV_VecShiftIndex(offset)
     case _                 =>
   }
 
@@ -82,5 +84,44 @@ case class SIMD_ConcShift(var left : IR_VariableAccess, var right : IR_VariableA
       case "QPX"  => out << "vec_sldw(" << left << ", " << right << ", " << offset << ")"
       case "NEON" => out << "vextq_f32(" << left << ", " << right << ", " << offset << ")" // TODO: only single precision?
     }
+  }
+}
+
+/// IR_VecShiftIndexStaticInit
+
+object IR_VecShiftIndexStaticInit {
+  val header = Platform.simd_header
+  if (header != null)
+    IR_GlobalCollection.get.externalDependencies += header
+}
+
+/// IR_IV_VecShiftIndex
+
+case class IR_IV_VecShiftIndex(var offset : Int) extends IR_UnduplicatedVariable {
+  IR_VecShiftIndexStaticInit // just to ensure VecShiftIndexStaticInit is initialized (once, since its an object)
+
+  if (offset <= 0 || offset >= Platform.simd_vectorSize)
+    Logger.error("VecShiftIndex out of bounds: " + offset)
+
+  override def resolveName = "vShift" + offset
+  override def resolveDatatype = IR_SpecialDatatype("__m512i")
+
+  override def getCtor() : Option[IR_Statement] = {
+    val init = IR_StringLiteral(null : String)
+    Platform.simd_instructionSet match {
+      case "AVX512" =>
+        if (Knowledge.useDblPrecision)
+          init.value = "_mm512_set_epi64(" + (7 + offset to 0 + offset by -1).mkString(", ") + ')'
+        else
+          init.value = "_mm512_set_epi32(" + (15 + offset to 0 + offset by -1).mkString(", ") + ')'
+
+      case "IMCI" =>
+        val stride : Int = if (Knowledge.useDblPrecision) 2 else 1
+        init.value = "_mm512_cvtfxpnt_round_adjustps_epi32((__m512) { " + (0 to 15).map(i => (i + offset * stride) % 16).mkString(", ") + " }, _MM_FROUND_TO_NEAREST_INT, _MM_EXPADJ_NONE)"
+
+      case si => Logger.error("VecShiftIndex cannot be used for instruction set " + si)
+    }
+
+    Some(IR_Assignment(IR_VariableAccess(resolveName, resolveDatatype), init))
   }
 }

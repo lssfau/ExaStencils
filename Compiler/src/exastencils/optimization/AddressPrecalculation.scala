@@ -10,10 +10,9 @@ import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir.iv.FieldData
+import exastencils.field.ir.IR_IV_FieldData
 import exastencils.logger._
 import exastencils.optimization.ir._
-import exastencils.util._
 
 object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
 
@@ -228,8 +227,8 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
           name = bases.getName(outMap, base, al)
           val datatype : Option[IR_Datatype] = base match {
-            case fd : FieldData => Some(IR_ConstPointerDatatype(fd.field.resolveDeclType))
-            case _              => None
+            case fd : IR_IV_FieldData => Some(IR_ConstPointerDatatype(fd.field.resolveDeclType))
+            case _                    => None
           }
           val newAcc = IR_ArrayAccess(IR_VariableAccess(name, datatype), in, al)
           newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization

@@ -4,8 +4,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.field.ir.IR_MultiDimFieldAccess
+import exastencils.field.ir._
 import exastencils.logger._
 import exastencils.optimization.ir._
 
@@ -38,7 +37,7 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(fd : iv.FieldData, _, _), src, op) //
+    case a @ IR_Assignment(IR_ArrayAccess(fd : IR_IV_FieldData, _, _), src, op) //
       if (fd.field.resolveBaseDatatype == IR_RealDatatype) =>
       a.src = simplify(src)
       a

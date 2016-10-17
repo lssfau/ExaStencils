@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config._
 import exastencils.datastructures.Transformation.Output
-import exastencils.datastructures.ir.{ iv, _ }
+import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.prettyprinting.PpStream
@@ -29,7 +29,7 @@ case class IR_LocalCommunicationStart(
       neighbors.map(neighbor =>
         IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor._1.index)
           AndAnd IR_NegationExpression(IR_IV_NeighborIsRemote(field.domainIndex, neighbor._1.index)),
-          IR_Assignment(iv.LocalCommReady(field.field, neighbor._1.index), IR_BooleanConstant(true)))),
+          IR_Assignment(IR_IV_LocalCommReady(field.field, neighbor._1.index), IR_BooleanConstant(true)))),
       true)
   }
 
