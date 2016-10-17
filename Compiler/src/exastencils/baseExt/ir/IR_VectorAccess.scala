@@ -11,7 +11,7 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 // FIXME: update with actual accessors
 case class IR_HackVecComponentAccess(var vec : IR_VariableAccess, var i : IR_Expression) extends IR_Expression {
-  override def datatype = vec.innerDatatype.getOrElse(IR_RealDatatype)
+  override def datatype = vec.datatype
   override def prettyprint(out : PpStream) : Unit = out << vec << "(" << i << ", " << 0 << ")"
 }
 

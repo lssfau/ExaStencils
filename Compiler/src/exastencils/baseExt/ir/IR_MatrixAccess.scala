@@ -11,7 +11,7 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 // FIXME: update with actual accessors
 case class IR_HackMatComponentAccess(var mat : IR_VariableAccess, var i : IR_Expression, var j : IR_Expression) extends IR_Expression {
-  override def datatype = mat.innerDatatype.getOrElse(IR_RealDatatype)
+  override def datatype = mat.datatype
   override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
@@ -21,7 +21,7 @@ case class IR_HackMatComponentAccess(var mat : IR_VariableAccess, var i : IR_Exp
 case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var expressions : ListBuffer[ListBuffer[IR_Expression]]) extends IR_Expression {
   override def datatype = {
     if (innerDatatype.isEmpty) {
-      var l = expressions.flatten
+      val l = expressions.flatten
       var ret = l(0).datatype
       l.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
       innerDatatype = Some(ret)

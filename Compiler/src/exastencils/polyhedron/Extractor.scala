@@ -491,8 +491,7 @@ class Extractor extends Collector {
             enterScalarAccess(varName)
 
           case IR_VariableAccess(varName, ty) =>
-            if (ty.isDefined)
-              ty.get.annotate(SKIP_ANNOT)
+            ty.annotate(SKIP_ANNOT)
             enterScalarAccess(varName)
 
           case IR_ArrayAccess(array @ IR_StringLiteral(varName), index, _) =>
@@ -501,8 +500,7 @@ class Extractor extends Collector {
             enterArrayAccess(varName, index)
 
           case IR_ArrayAccess(array @ IR_VariableAccess(varName, ty), index, _) =>
-            if (ty.isDefined)
-              ty.get.annotate(SKIP_ANNOT)
+            ty.annotate(SKIP_ANNOT)
             array.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)

@@ -97,7 +97,7 @@ object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotate
       val kernel = CUDA_Kernel(
         kernelFunctions.getIdentifier(collector.getCurrentName),
         Duplicate(parallelInnerLoops.length),
-        variableAccesses.map(s => IR_FunctionArgument(s.name, s.innerDatatype.get)),
+        variableAccesses.map(s => IR_FunctionArgument(s.name, s.datatype)),
         Duplicate(loopVariables),
         Duplicate(lowerBounds),
         Duplicate(upperBounds),

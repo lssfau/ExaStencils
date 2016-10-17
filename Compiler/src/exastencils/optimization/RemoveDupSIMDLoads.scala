@@ -159,7 +159,7 @@ private[optimization] final class Analyze extends StackCollector {
         } else
           load1s(load) = (decl, ArrayBuffer(stack.elems)) // super.stack
 
-      case vAcc @ IR_VariableAccess(vecTmp, Some(SIMD_RealDatatype)) if (replaceAcc != null) =>
+      case vAcc @ IR_VariableAccess(vecTmp, SIMD_RealDatatype) if replaceAcc != null =>
         val nju = replaceAcc.get(vecTmp)
         if (nju.isDefined)
           vAcc.name = nju.get
@@ -237,7 +237,7 @@ private[optimization] final class Analyze extends StackCollector {
     private var replace : Boolean = false
 
     this += new Transformation("apply", {
-      case vAcc @ IR_VariableAccess(v, Some(IR_IntegerDatatype)) if (v == itName) =>
+      case vAcc @ IR_VariableAccess(v, IR_IntegerDatatype) if v == itName =>
         if (replace)
           IR_Subtraction(Duplicate(nju), IR_IntegerConstant(offset))
         else if (!vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {

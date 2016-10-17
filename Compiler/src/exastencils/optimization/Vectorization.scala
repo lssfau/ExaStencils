@@ -6,7 +6,6 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
@@ -70,27 +69,27 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
         val uBoundExcl : IR_Expression =
           condExpr match {
-            case IR_Lower(IR_VariableAccess(bName, Some(IR_IntegerDatatype)), upperBoundExcl) if (itName == bName)      =>
+            case IR_Lower(IR_VariableAccess(bName, IR_IntegerDatatype), upperBoundExcl) if (itName == bName)      =>
               upperBoundExcl
-            case IR_LowerEqual(IR_VariableAccess(bName, Some(IR_IntegerDatatype)), upperBoundIncl) if (itName == bName) =>
+            case IR_LowerEqual(IR_VariableAccess(bName, IR_IntegerDatatype), upperBoundIncl) if (itName == bName) =>
               IR_Addition(upperBoundIncl, IR_IntegerConstant(1))
-            case _                                                                                                                => throw new VectorizationException("no upper bound")
+            case _                                                                                                => throw new VectorizationException("no upper bound")
           }
 
         val incr : Long =
           incrExpr match {
-            case IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n)  => 1L
-            case IR_ExpressionStatement(IR_PostIncrement(IR_VariableAccess(n, Some(IR_IntegerDatatype)))) if (itName == n) => 1L
-            case IR_Assignment(IR_VariableAccess(n, Some(IR_IntegerDatatype)),
+            case IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(n, IR_IntegerDatatype))) if (itName == n)  => 1L
+            case IR_ExpressionStatement(IR_PostIncrement(IR_VariableAccess(n, IR_IntegerDatatype))) if (itName == n) => 1L
+            case IR_Assignment(IR_VariableAccess(n, IR_IntegerDatatype),
             IR_IntegerConstant(i),
-            "+=") if (itName == n)                                                                                         => i
-            case IR_Assignment(IR_VariableAccess(n1, Some(IR_IntegerDatatype)),
-            IR_Addition(ListBuffer(IR_IntegerConstant(i), IR_VariableAccess(n2, Some(IR_IntegerDatatype)))),
-            "=") if (itName == n1 && itName == n2)                                                                         => i
-            case IR_Assignment(IR_VariableAccess(n1, Some(IR_IntegerDatatype)),
-            IR_Addition(ListBuffer(IR_VariableAccess(n2, Some(IR_IntegerDatatype)), IR_IntegerConstant(i))),
-            "=") if (itName == n1 && itName == n2)                                                                                   => i
-            case _                                                                                                                   => throw new VectorizationException("loop increment must be constant or cannot be extracted:  " + incrExpr)
+            "+=") if (itName == n)                                                                                   => i
+            case IR_Assignment(IR_VariableAccess(n1, IR_IntegerDatatype),
+            IR_Addition(ListBuffer(IR_IntegerConstant(i), IR_VariableAccess(n2, IR_IntegerDatatype))),
+            "=") if (itName == n1 && itName == n2)                                                                   => i
+            case IR_Assignment(IR_VariableAccess(n1, IR_IntegerDatatype),
+            IR_Addition(ListBuffer(IR_VariableAccess(n2, IR_IntegerDatatype), IR_IntegerConstant(i))),
+            "=") if (itName == n1 && itName == n2)                                                                   => i
+            case _                                                                                                   => throw new VectorizationException("loop increment must be constant or cannot be extracted:  " + incrExpr)
           }
 
         vectorizeLoop(Duplicate(loop), itName, lBound, uBoundExcl, incr, body, parallelization)
@@ -431,7 +430,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                 }
               initOpt.get.right = concShiftRight
             }
-          case _                                                => // nothing to do
+          case _                                                   => // nothing to do
         }
         // --------------------------------------------------------
         ctx.addStmt(new IR_Assignment(lhsVec, rhsVec, "="))
@@ -444,7 +443,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val initWrap = new IR_ExpressionStatement(Duplicate(init))
         IR_GeneralSimplify.doUntilDoneStandalone(initWrap)
         val initVec = vectorizeExpr(initWrap.expression, ctx.setLoad())
-        val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, Some(dataType)))
+        val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, dataType))
         ctx.addStmt(new IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(initVec)))
 
       case IR_IfCondition(cond, trueBody, falseBody) if (stmt.hasAnnotation(Vectorization.COND_VECTABLE)) =>
@@ -477,7 +476,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           var access1 : Boolean = true
           for ((expr, value) <- ind)
             expr match {
-              case IR_VariableAccess(name, Some(IR_IntegerDatatype)) =>
+              case IR_VariableAccess(name, IR_IntegerDatatype) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != 1L)
                     throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
@@ -485,7 +484,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                 }
 
               case IR_Division(
-              IR_VariableAccess(name, Some(IR_IntegerDatatype)),
+              IR_VariableAccess(name, IR_IntegerDatatype),
               IR_IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs)
@@ -494,7 +493,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                 }
 
               case IR_Division(
-              IR_Addition(ListBuffer(IR_VariableAccess(name, Some(IR_IntegerDatatype)), IR_IntegerConstant(_))),
+              IR_Addition(ListBuffer(IR_VariableAccess(name, IR_IntegerDatatype), IR_IntegerConstant(_))),
               IR_IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs)
@@ -503,7 +502,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
                 }
 
               case IR_Division(
-              IR_Addition(ListBuffer(IR_IntegerConstant(_), IR_VariableAccess(name, Some(IR_IntegerDatatype)))),
+              IR_Addition(ListBuffer(IR_IntegerConstant(_), IR_VariableAccess(name, IR_IntegerDatatype))),
               IR_IntegerConstant(divs)) =>
                 if (name == ctx.itName) {
                   if (value != 1L || ctx.incr != divs)
@@ -557,7 +556,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             val init = new SIMD_ConcShift(IR_VariableAccess(vecTmp, SIMD_RealDatatype), null, Platform.simd_vectorSize - 1)
             ctx.toFinish_LCSE(vecTmp) = init
             ctx.addStmt(new IR_Assignment(IR_VariableAccess(vecTmp, SIMD_RealDatatype), init, "="))
-          case _                                                                                                                      => // nothing to do
+          case _                                                                                                                   => // nothing to do
         }
         // --------------------------------------------------------
         IR_VariableAccess(vecTmp, SIMD_RealDatatype)

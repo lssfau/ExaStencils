@@ -33,7 +33,7 @@ trait LogVerbose {
 private case class FieldWithSlotId(val field : IR_Field, val slotId : Int) {
   def identifierName : String = field.identifier + slotId.toString
   def multiDimArrayAccess(index : IR_ExpressionIndex) = {
-    val ident = IR_VariableAccess(identifierName, Some(field.resolveBaseDatatype))
+    val ident = IR_VariableAccess(identifierName, field.resolveBaseDatatype)
     IR_MultiDimArrayAccess(ident, index)
   }
 
@@ -183,7 +183,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     val end = IR_LoopOverDimensions.evalMaxIndex(loop.indices.end, loop.numDimensions, true)
 
     def createForLoop(d : Int, body : ListBuffer[IR_Statement]) : IR_ForLoop = {
-      def it = IR_VariableAccess(IR_DimToString(d), Some(IR_IntegerDatatype))
+      def it = IR_VariableAccess(IR_DimToString(d), IR_IntegerDatatype)
       val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(IR_IntegerConstant(begin(d))))
       val cond = IR_Lower(it, IR_IntegerConstant(end(d)))
       val incr = IR_Assignment(it, loop.stepSize(d), "+=")
@@ -280,7 +280,7 @@ private object TransformKernel
       fields += fieldWithSlotId
 
       val idname = fa.fieldSelection.field.identifier + slotId.toString
-      val ident = new IR_VariableAccess(idname, Some(fa.fieldSelection.field.resolveBaseDatatype))
+      val ident = new IR_VariableAccess(idname, fa.fieldSelection.field.resolveBaseDatatype)
 
       fieldWithSlotId.multiDimArrayAccess(fa.index)
 

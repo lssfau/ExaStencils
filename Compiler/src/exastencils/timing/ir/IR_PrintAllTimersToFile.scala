@@ -39,7 +39,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_Expandable
     var it = 0
     val sep = "\"" + Settings.csvSeparatorEscaped() + "\""
     for (timer <- timers.toList.sortBy(_._1)) {
-      statements += IR_Print(IR_VariableAccess("outFile"), ListBuffer[IR_Expression](
+      statements += IR_Print(IR_VariableAccess("outFile", IR_UnknownDatatype), ListBuffer[IR_Expression](
         IR_StringConstant(timer._2.name), sep,
         IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it), sep,
         IR_ArrayAccess("timesToPrint", (stride * (2 * timers.size)) + it + 1), IR_StringConstant("\\n")))
@@ -57,9 +57,9 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_Expandable
           statements))
     }
 
-    statements.prepend(IR_MemberFunctionCall(IR_VariableAccess("outFile"), "open", "\"" + Knowledge.l3tmp_timerOuputFile + "\""))
+    statements.prepend(IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "open", "\"" + Knowledge.l3tmp_timerOuputFile + "\""))
     statements.prepend(IR_VariableDeclaration(IR_SpecialDatatype("std::ofstream"), "outFile"))
-    statements.append(IR_MemberFunctionCall(IR_VariableAccess("outFile"), "close"))
+    statements.append(IR_MemberFunctionCall(IR_VariableAccess("outFile", IR_UnknownDatatype), "close"))
 
     statements
   }

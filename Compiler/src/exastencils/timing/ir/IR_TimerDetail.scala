@@ -15,16 +15,16 @@ case class IR_AssignNowToTimer(var lhs : IR_Expression) extends IR_Statement wit
     Knowledge.timer_type match {
       case "Chrono"       => IR_Assignment(lhs, IR_FunctionCall("std::chrono::high_resolution_clock::now"))
       case "QPC"          => IR_Scope(ListBuffer[IR_Statement](
-        IR_VariableDeclaration(IR_SpecialDatatype("LARGE_INTEGER"), "now"),
+        IR_VariableDeclaration("LARGE_INTEGER", "now"),
         IR_FunctionCall("QueryPerformanceCounter", IR_AddressOf("now")),
-        IR_Assignment(lhs, IR_MemberAccess(IR_VariableAccess("now"), "QuadPart"))))
+        IR_Assignment(lhs, IR_MemberAccess(IR_VariableAccess("now", "LARGE_INTEGER"), "QuadPart"))))
       case "WIN_TIME"     => IR_Assignment(lhs, IR_Cast(IR_DoubleDatatype, IR_FunctionCall("clock")) / "CLOCKS_PER_SEC")
-      case "UNIX_TIME"    => IR_Scope(ListBuffer[IR_Statement](
-        IR_VariableDeclaration(IR_SpecialDatatype("timeval"), "timePoint"),
+      case "UNIX_TIME"    => IR_Scope(
+        IR_VariableDeclaration("timeval", "timePoint"),
         IR_FunctionCall("gettimeofday", IR_AddressOf("timePoint"), "NULL"),
         IR_Assignment(lhs,
-          IR_Cast(IR_DoubleDatatype, IR_MemberAccess(IR_VariableAccess("timePoint"), "tv_sec") * 1e3
-            + IR_Cast(IR_DoubleDatatype, IR_MemberAccess(IR_VariableAccess("timePoint"), "tv_usec") * 1e-3)))))
+          IR_Cast(IR_DoubleDatatype, IR_MemberAccess(IR_VariableAccess("timePoint", "timeval"), "tv_sec") * 1e3
+            + IR_Cast(IR_DoubleDatatype, IR_MemberAccess(IR_VariableAccess("timePoint", "timeval"), "tv_usec") * 1e-3))))
       case "MPI_TIME"     => IR_Assignment(lhs, IR_FunctionCall("MPI_Wtime"))
       case "WINDOWS_RDSC" => IR_Assignment(lhs, IR_FunctionCall("__rdtsc"))
       case "RDSC"         => IR_Assignment(lhs, IR_FunctionCall("__rdtsc"))

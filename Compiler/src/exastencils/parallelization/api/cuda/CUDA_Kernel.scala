@@ -122,10 +122,10 @@ case class CUDA_Kernel(var identifier : String,
       val name = fa._1
       val fieldAccesses = fa._2
 
-      // 2.1 colllect some basic informations required for further calculations
+      // 2.1 collect some basic information required for further calculations
       var requiredMemoryInByte = 0L
       val offset = fieldAccesses.head.fieldSelection.fieldLayout.referenceOffset
-      val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => IR_Addition(IR_VariableAccess(x), y)).toArray[IR_Expression]
+      val baseIndex = (loopVariables.take(offset.length), offset).zipped.map((x, y) => IR_Addition(IR_VariableAccess(x, IR_IntegerDatatype), y)).toArray[IR_Expression]
 
       // 2.2 calculate negative and positive deviation from the basic field index
       val leftDeviationFromBaseIndex = fieldIndicesConstantPart(name).foldLeft(Array.fill(parallelDims)(0L))((acc, m) => (acc, m, offset).zipped.map((x, y, z) => {
@@ -367,15 +367,15 @@ case class CUDA_Kernel(var identifier : String,
           // 5. Add statements for loop body in kernel (z-Dim)
           // 5.1 advance the slice (move the thread front)
           (leftDeviation(field) to 2L by -1).foreach(x => {
-            sharedMemoryStatements += IR_Assignment(IR_VariableAccess("behind" + x), IR_VariableAccess("behind" + (x - 1)))
+            sharedMemoryStatements += IR_Assignment(IR_VariableAccess("behind" + x, fieldDatatype(field)), IR_VariableAccess("behind" + (x - 1), fieldDatatype(field)))
           })
-          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("behind1"), current)
-          sharedMemoryStatements += IR_Assignment(current, IR_VariableAccess("infront1"))
+          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("behind1", fieldDatatype(field)), current)
+          sharedMemoryStatements += IR_Assignment(current, IR_VariableAccess("infront1", fieldDatatype(field)))
           (2L to rightDeviation(field)).foreach(x => {
-            sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + x), IR_VariableAccess("infront" + (x + 1)))
+            sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + x, fieldDatatype(field)), IR_VariableAccess("infront" + (x + 1), fieldDatatype(field)))
           })
 
-          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field)), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
+          sharedMemoryStatements += IR_Assignment(IR_VariableAccess("infront" + rightDeviation(field), fieldDatatype(field)), IR_DirectFieldAccess(fieldForSharedMemory(field).fieldSelection, fieldBaseIndex(field) + IR_ExpressionIndex(Array[Long](0, 0, 1))).linearize)
 
           // 5.2 load from global memory into shared memory
           sharedMemoryStatements += IR_Assignment(new CUDA_SharedArrayAccess(KernelVariablePrefix + field, localThreadId.take(executionDim).reverse, sharedArrayStrides), current)
@@ -432,7 +432,7 @@ case class CUDA_Kernel(var identifier : String,
           zDimLoopBody += IR_IfCondition(conditionAccess, body)
           zDimLoopBody += CUDA_SyncThreads()
 
-          statements += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_Lower(IR_VariableAccess(loopVariables(executionDim)), s"${ KernelVariablePrefix }end_$executionDim"), IR_Assignment(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
+          statements += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, loopVariables(executionDim), s"${ KernelVariablePrefix }begin_$executionDim"), IR_Lower(IR_VariableAccess(loopVariables(executionDim), IR_IntegerDatatype), s"${ KernelVariablePrefix }end_$executionDim"), IR_Assignment(loopVariables(executionDim), IR_IntegerConstant(1), "+="), zDimLoopBody)
 
           // 9. Remove the used loop variable to avoid later complications in loop variable substitution
           loopVariables.remove(executionDim)
@@ -523,7 +523,7 @@ case class CUDA_Kernel(var identifier : String,
     if (reduction.isDefined) {
       def bufSize = requiredThreadsPerDim.product
       def bufAccess = CUDA_ReductionDeviceData(bufSize)
-      body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.innerDatatype.get)
+      body += CUDA_Memset(bufAccess, 0, bufSize, reduction.get.target.datatype)
       body += CUDA_FunctionCallExperimental(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
       body += IR_Return(Some(IR_FunctionCall(s"DefaultReductionKernel${ IR_BinaryOperators.opAsIdent(reduction.get.op) }_wrapper",
         ListBuffer[IR_Expression](bufAccess, bufSize))))
@@ -534,7 +534,7 @@ case class CUDA_Kernel(var identifier : String,
     }
 
     IR_Function(
-      if (reduction.isDefined) reduction.get.target.innerDatatype.get else IR_UnitDatatype,
+      if (reduction.isDefined) reduction.get.target.datatype else IR_UnitDatatype,
       getWrapperFctName,
       Duplicate(passThroughArgs),
       body,

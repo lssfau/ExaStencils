@@ -53,18 +53,18 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
 
     val (lower, isDecl) : (IR_Expression, Boolean) =
       begin match {
-        case IR_Assignment(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), init, "=") if (itVar == itVar2) => (init, false)
-        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2)                => (init, true)
+        case IR_Assignment(IR_VariableAccess(itVar2, IR_IntegerDatatype), init, "=") if (itVar == itVar2) => (init, false)
+        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init)) if (itVar == itVar2)          => (init, true)
 
         case _ => throw new UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
 
     val upperExcl : IR_Expression =
       if (writeDecls) end match {
-        case IR_Lower(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) =>
+        case IR_Lower(IR_VariableAccess(itVar2, IR_IntegerDatatype), bound) if (itVar == itVar2) =>
           bound
 
-        case IR_LowerEqual(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) =>
+        case IR_LowerEqual(IR_VariableAccess(itVar2, IR_IntegerDatatype), bound) if (itVar == itVar2) =>
           IR_Addition(bound, IR_IntegerConstant(1))
 
         case _ => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
@@ -171,17 +171,17 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
   private[optimization] def extractBoundsAndIncrement(begin : IR_Statement, end : IR_Expression, inc : IR_Statement) : (String, IR_Expression, IR_Expression, Long) = {
 
     val (itVar, stride) = inc match {
-      case IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(itVar, Some(IR_IntegerDatatype))))       => (itVar, 1L)
-      case IR_ExpressionStatement(IR_PostIncrement(IR_VariableAccess(itVar, Some(IR_IntegerDatatype))))      => (itVar, 1L)
-      case IR_Assignment(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr), "+=") => (itVar, incr)
+      case IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(itVar, IR_IntegerDatatype)))       => (itVar, 1L)
+      case IR_ExpressionStatement(IR_PostIncrement(IR_VariableAccess(itVar, IR_IntegerDatatype)))      => (itVar, 1L)
+      case IR_Assignment(IR_VariableAccess(itVar, IR_IntegerDatatype), IR_IntegerConstant(incr), "+=") => (itVar, incr)
 
-      case IR_Assignment(IR_VariableAccess(itVar, Some(IR_IntegerDatatype)),
-      IR_Addition(ListBuffer(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), IR_IntegerConstant(incr))),
+      case IR_Assignment(IR_VariableAccess(itVar, IR_IntegerDatatype),
+      IR_Addition(ListBuffer(IR_VariableAccess(itVar2, IR_IntegerDatatype), IR_IntegerConstant(incr))),
       "=") if (itVar == itVar2) =>
         (itVar, incr)
 
-      case IR_Assignment(IR_VariableAccess(itVar, Some(exastencils.base.ir.IR_IntegerDatatype)),
-      IR_Addition(ListBuffer(IR_IntegerConstant(incr), IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)))),
+      case IR_Assignment(IR_VariableAccess(itVar, IR_IntegerDatatype),
+      IR_Addition(ListBuffer(IR_IntegerConstant(incr), IR_VariableAccess(itVar2, IR_IntegerDatatype))),
       "=") if (itVar == itVar2) =>
         (itVar, incr)
 
@@ -198,9 +198,9 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
     val upperExcl : IR_Expression =
       end match {
-        case IR_Lower(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2)      => bound
-        case IR_LowerEqual(IR_VariableAccess(itVar2, Some(IR_IntegerDatatype)), bound) if (itVar == itVar2) => IR_Addition(bound, IR_IntegerConstant(1))
-        case _                                                                                                        => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
+        case IR_Lower(IR_VariableAccess(itVar2, IR_IntegerDatatype), bound) if (itVar == itVar2)      => bound
+        case IR_LowerEqual(IR_VariableAccess(itVar2, IR_IntegerDatatype), bound) if (itVar == itVar2) => IR_Addition(bound, IR_IntegerConstant(1))
+        case _                                                                                        => throw new UnrollException("cannot interpret loop end: " + end.prettyprint())
       }
 
     return (itVar, lower, upperExcl, stride)
@@ -250,7 +250,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       case vAcc @ IR_VariableAccess(v, _) if (v == itVar) =>
         if (offset != 0 && !vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
           vAcc.annotate(SKIP_ANNOT) // already done
-          vAcc.innerDatatype = Some(IR_IntegerDatatype) // fix type, if required
+          vAcc.datatype = IR_IntegerDatatype // fix type, if required
           IR_Addition(vAcc, IR_IntegerConstant(offset))
         } else
           vAcc

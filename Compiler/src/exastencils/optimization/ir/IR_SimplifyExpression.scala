@@ -509,7 +509,7 @@ object IR_SimplifyExpression {
 
       case IR_VariableAccess(varName, dt) =>
         res = new HashMap[IR_Expression, Double]()
-        res(IR_VariableAccess(varName, dt.getOrElse(IR_RealDatatype))) = 1d // preserve datatype if some
+        res(IR_VariableAccess(varName, dt)) = 1d // preserve datatype if some
 
       case IR_StringLiteral(varName) =>
         if (varName.contains("std::rand")) // HACK

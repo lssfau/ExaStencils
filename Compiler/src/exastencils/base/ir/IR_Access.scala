@@ -11,14 +11,10 @@ trait IR_Access extends IR_Expression {
 /// IR_VariableAccess
 
 object IR_VariableAccess {
-  def apply(name : String) = new IR_VariableAccess(name, None)
-  def apply(name : String, datatype : IR_Datatype) = new IR_VariableAccess(name, Some(datatype))
-  def apply(decl : IR_VariableDeclaration) = new IR_VariableAccess(decl.name, Some(decl.datatype))
+  def apply(decl : IR_VariableDeclaration) = new IR_VariableAccess(decl.name, decl.datatype)
 }
 
-// FIXME: mandatory datatype
-case class IR_VariableAccess(var name : String, var innerDatatype : Option[IR_Datatype]) extends IR_Access {
-  override def datatype = innerDatatype.getOrElse(IR_RealDatatype)
+case class IR_VariableAccess(var name : String, var datatype : IR_Datatype) extends IR_Access {
   override def prettyprint(out : PpStream) : Unit = out << name
 }
 

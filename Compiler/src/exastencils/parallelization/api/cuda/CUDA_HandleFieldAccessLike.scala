@@ -52,11 +52,11 @@ object CUDA_GatherFieldAccessLike extends QuietDefaultStrategy("Gather local Fie
           case IR_Addition(ListBuffer(va @ IR_VariableAccess(name : String, _), IR_IntegerConstant(v : Long))) =>
             suitableForSharedMemory &= loopVariables.contains(name)
             indexConstantPart(i) = v
-          case va @ IR_VariableAccess(name : String, _)                                                                  =>
+          case va @ IR_VariableAccess(name : String, _)                                                        =>
             suitableForSharedMemory &= loopVariables.contains(name)
-          case IR_IntegerConstant(v : Long)                                                                              =>
+          case IR_IntegerConstant(v : Long)                                                                    =>
             indexConstantPart(i) = v
-          case _                                                                                                         =>
+          case _                                                                                               =>
             suitableForSharedMemory = false
         }
       })
@@ -104,9 +104,10 @@ object CUDA_ReplaceFieldAccessLike extends QuietDefaultStrategy("Replace local F
 
       if (applySpatialBlocking && deviation.take(executionDim).forall(x => IR_SimplifyExpression.evalIntegral(x) == 0)) {
         IR_SimplifyExpression.evalIntegral(deviation(executionDim)) match {
-          case 0                                                        => IR_VariableAccess("current")
-          case x if 0L to offsetForSharedMemoryAccess contains x        => IR_VariableAccess("infront" + x)
-          case y if 0L to -offsetForSharedMemoryAccess by -1 contains y => IR_VariableAccess("behind" + math.abs(y))
+          // TODO: check if the datatypes in the next three lines are correct
+          case 0                                                        => IR_VariableAccess("current", access.datatype)
+          case x if 0L to offsetForSharedMemoryAccess contains x        => IR_VariableAccess("infront" + x, access.datatype)
+          case y if 0L to -offsetForSharedMemoryAccess by -1 contains y => IR_VariableAccess("behind" + math.abs(y), access.datatype)
         }
       } else {
         new CUDA_SharedArrayAccess(IR_VariableAccess(CUDA_Kernel.KernelVariablePrefix + identifier, IR_PointerDatatype(access.fieldSelection.field.resolveDeclType)), (access.index - fieldToOffset).indices.take(executionDim).reverse, IR_ExpressionIndex(sharedArrayStrides))

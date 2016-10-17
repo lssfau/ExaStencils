@@ -8,7 +8,7 @@ import exastencils.datastructures._
 
 object IR_ReplaceVariableAccess extends QuietDefaultStrategy("Replace something with something else") {
   var toReplace : String = ""
-  var replacement : Node = IR_VariableAccess("") // to be overwritten
+  var replacement : Node = IR_VariableAccess("", IR_UnknownDatatype) // to be overwritten
 
   this += new Transformation("Search and replace", {
 // TODO: rely only on IR_VariableAccess => eliminate IR_StringLiteral occurrences

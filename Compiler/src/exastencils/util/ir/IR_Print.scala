@@ -27,7 +27,7 @@ object IR_RawPrint {
 }
 
 // FIXME: name
-case class IR_RawPrint(var toPrint : ListBuffer[IR_Expression], var stream : IR_VariableAccess = IR_VariableAccess("std::cout")) extends IR_Statement with IR_Expandable {
+case class IR_RawPrint(var toPrint : ListBuffer[IR_Expression], var stream : IR_VariableAccess = IR_VariableAccess("std::cout", IR_UnknownDatatype)) extends IR_Statement with IR_Expandable {
   override def expand() : Output[IR_Statement] = {
     if (toPrint.isEmpty) {
       IR_NullStatement

@@ -75,14 +75,14 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
 
-      case node @ IR_VariableAccess(name, None) =>
+      case node @ IR_VariableAccess(name, IR_UnknownDatatype) =>
         val ty : IR_Datatype = findType(name)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
         else if (warnMissingDeclarations)
           Logger.warn("[Type inference]  declaration to " + name + " missing?")
 
-      case IR_VariableAccess(name, Some(ty)) =>
+      case IR_VariableAccess(name, ty) =>
         val inferred = findType(name)
         if (inferred == null) {
           if (warnMissingDeclarations)

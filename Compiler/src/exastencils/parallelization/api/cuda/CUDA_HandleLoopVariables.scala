@@ -42,7 +42,7 @@ object CUDA_ReplaceLoopVariablesInWrapper extends QuietDefaultStrategy("Replace 
     case IR_StringLiteral(v @ value) if loopVariables.contains(v) =>
       bounds(loopVariables.indexOf(v))
 
-    case IR_VariableAccess(n, Some(IR_IntegerDatatype)) if loopVariables.contains(n) =>
+    case IR_VariableAccess(n, IR_IntegerDatatype) if loopVariables.contains(n) =>
       bounds(loopVariables.indexOf(n))
   })
 }

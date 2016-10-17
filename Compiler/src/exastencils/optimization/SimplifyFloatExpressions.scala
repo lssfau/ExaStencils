@@ -17,28 +17,28 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       d.initialValue = Some(simplify(expr))
       d
 
-    case a @ IR_Assignment(IR_VariableAccess(_, Some(IR_RealDatatype)), src, op) =>
+    case a @ IR_Assignment(IR_VariableAccess(_, IR_RealDatatype), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, Some(IR_PointerDatatype(IR_RealDatatype))), _, _), src, op) =>
+    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, IR_PointerDatatype(IR_RealDatatype)), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, Some(IR_CUDAConstPointerDatatype(IR_RealDatatype))), _, _), src, op) =>
+    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, IR_CUDAConstPointerDatatype(IR_RealDatatype)), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, Some(IR_ConstPointerDatatype(IR_RealDatatype))), _, _), src, op) =>
+    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, IR_ConstPointerDatatype(IR_RealDatatype)), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, Some(IR_ArrayDatatype(IR_RealDatatype, _))), _, _), src, op) =>
+    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, IR_ArrayDatatype(IR_RealDatatype, _)), _, _), src, op) =>
       a.src = simplify(src)
       a
 
     case a @ IR_Assignment(IR_ArrayAccess(fd : IR_IV_FieldData, _, _), src, op) //
-      if (fd.field.resolveBaseDatatype == IR_RealDatatype) =>
+      if fd.field.resolveBaseDatatype == IR_RealDatatype =>
       a.src = simplify(src)
       a
 
