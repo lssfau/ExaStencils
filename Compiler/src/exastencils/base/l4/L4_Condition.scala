@@ -10,13 +10,13 @@ import exastencils.prettyprinting.PpStream
 case class L4_IfCondition(var condition : L4_Expression, var trueBody : ListBuffer[L4_Statement], var falseBody : ListBuffer[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "if (" << condition << ") {\n"
-    out <<< trueBody << '\n'
+    out <<< (trueBody, "\n")
     if (falseBody.nonEmpty) {
-      out << "} else {\n"
-      out <<< falseBody << '\n'
+      out << "\n} else {\n"
+      out <<< (falseBody, "\n")
     }
-    out << "}\n"
+    out << "\n}"
   }
 
-  override def progress : IR_IfCondition = IR_IfCondition(condition.progress, trueBody.map(_.progress), falseBody.map(_.progress))
+  override def progress = IR_IfCondition(condition.progress, trueBody.map(_.progress), falseBody.map(_.progress))
 }

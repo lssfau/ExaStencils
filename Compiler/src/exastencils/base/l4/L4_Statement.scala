@@ -21,6 +21,6 @@ case object L4_NullStatement extends L4_Statement {
 /// L4_ExpressionStatement
 
 case class L4_ExpressionStatement(var expression : L4_Expression) extends L4_Statement {
-  override def prettyprint(out : PpStream) : Unit = out << expression << '\n'
+  override def prettyprint(out : PpStream) : Unit = out << expression
   override def progress = IR_ExpressionStatement(expression.progress)
 }

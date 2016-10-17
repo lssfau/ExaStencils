@@ -16,7 +16,7 @@ case class L4_Root(var nodes : ListBuffer[L4_Node]) extends L4_Node with L4_Prog
   override def prettyprint(out : PpStream) = {
     // TODO: print knowledge collections
     nodes.foreach {
-      case p : PrettyPrintable => out << p << '\n'
+      case p : PrettyPrintable => out << p << "\n\n"
       case _                   =>
     }
   }

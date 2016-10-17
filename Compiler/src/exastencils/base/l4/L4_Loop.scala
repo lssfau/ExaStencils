@@ -20,7 +20,7 @@ case class L4_ForLoop(
   override def prettyprint(out : PpStream) = {
     out << "repeat " << number << " times"
     if (iterator.isDefined) out << " count " << iterator.get
-    out << " {\n" <<< body << "}\n"
+    out << " {\n" <<< (body, "\n") << "\n}"
   }
 
   override def progress : IR_Statement = {
@@ -55,11 +55,11 @@ object L4_WhileLoop {
 case class L4_WhileLoop(var comparison : L4_Expression, var body : ListBuffer[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "repeat while " << comparison << "{\n"
-    out <<< (body, "\n") << '\n'
-    out << '}'
+    out <<< (body, "\n")
+    out << "\n}"
   }
 
-  override def progress : IR_WhileLoop = IR_WhileLoop(comparison.progress, body.map(_.progress))
+  override def progress = IR_WhileLoop(comparison.progress, body.map(_.progress))
 }
 
 /// L4_UntilLoop
@@ -71,12 +71,12 @@ object L4_UntilLoop {
 case class L4_UntilLoop(var comparison : L4_Expression, var body : ListBuffer[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "repeat until " << comparison << "{\n"
-    out <<< body << '\n'
-    out << "}\n"
+    out <<< (body, "\n")
+    out << "\n}"
   }
 
   // TODO: internally process L4_UntilLoops to L4_WhileLoops and remove progress
-  override def progress : IR_WhileLoop = IR_WhileLoop(IR_Negation(comparison.progress), body.map(_.progress))
+  override def progress = IR_WhileLoop(IR_Negation(comparison.progress), body.map(_.progress))
 }
 
 /// L4_Break

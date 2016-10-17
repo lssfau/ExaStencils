@@ -13,9 +13,9 @@ object L4_Scope {
 case class L4_Scope(var body : ListBuffer[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) : Unit = {
     out << "{\n"
-    out <<< (body, "\n") << '\n'
-    out << '}'
+    out <<< (body, "\n")
+    out << "\n}"
   }
 
-  override def progress : IR_Scope = IR_Scope(body.map(_.progress))
+  override def progress = IR_Scope(body.map(_.progress))
 }

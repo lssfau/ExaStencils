@@ -32,8 +32,8 @@ case class L4_Function(
 
   override def prettyprint(out : PpStream) = {
     out << "Function " << identifier << " (" <<< (arguments, ", ") << " )" << " : " << returntype << " {\n"
-    out <<< statements
-    out << "}\n"
+    out <<< (statements, "\n")
+    out << "\n}"
   }
 
   override def progress = IR_Function(returntype.progress, identifier.fullName, arguments.map(s => s.progress), statements.map(s => s.progress), allowInlining)
@@ -65,7 +65,6 @@ case class L4_Return(var expr : Option[L4_Expression]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
     out << "return"
     if (expr.isDefined) out << ' ' << expr.get.prettyprint()
-    out << '\n'
   }
 
   override def progress = IR_Return(L4_ProgressOption(expr)(_.progress))

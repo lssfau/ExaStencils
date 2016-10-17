@@ -15,7 +15,7 @@ case class L4_ValueDeclaration(
     var datatype : L4_Datatype,
     var initialValue : L4_Expression) extends L4_Statement with L4_HasIdentifier {
 
-  override def prettyprint(out : PpStream) = out << "Value " << identifier << " : " << datatype << " = " << initialValue << '\n'
+  override def prettyprint(out : PpStream) = out << "Value " << identifier << " : " << datatype << " = " << initialValue
 
   override def progress : IR_VariableDeclaration = {
     Logger.warn(s"Progressing L4_ValueDeclaration with ${ identifier.fullName }")
@@ -33,7 +33,6 @@ case class L4_VariableDeclaration(
   override def prettyprint(out : PpStream) = {
     out << "Variable " << identifier << " : " << datatype
     if (initialValue.isDefined) out << " = " << initialValue.get
-    out << '\n'
   }
 
   override def progress = IR_VariableDeclaration(datatype.progress, identifier.fullName, L4_ProgressOption(initialValue)(_.progress))
