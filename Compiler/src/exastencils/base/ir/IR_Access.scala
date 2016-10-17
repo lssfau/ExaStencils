@@ -2,6 +2,8 @@ package exastencils.base.ir
 
 import exastencils.prettyprinting._
 
+/// IR_Access
+
 trait IR_Access extends IR_Expression {
   // TODO: def name : String
 }
