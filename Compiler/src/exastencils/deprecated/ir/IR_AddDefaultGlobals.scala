@@ -13,7 +13,7 @@ import exastencils.util.ir._
 @deprecated("to be split and moved to the corresponding packages", "13.10.16")
 object IR_AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
   this += new Transformation("Adding default global constants and variables", {
-    case globals : IR_GlobalCollection => {
+    case globals : IR_GlobalCollection =>
       if (Knowledge.cuda_enabled) {
         globals.variables += IR_VariableDeclaration("CUcontext", "cudaContext")
         globals.variables += IR_VariableDeclaration("CUdevice", "cudaDevice")
@@ -24,9 +24,8 @@ object IR_AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         globals.variables += IR_VariableDeclaration(IR_IntegerDatatype, "mpiSize")
       }
       globals
-    }
 
-    case func : IR_Function if "initGlobals" == func.name => {
+    case func : IR_Function if "initGlobals" == func.name =>
       if (Knowledge.cuda_enabled) {
         // init device
         func.body ++= ListBuffer[IR_Statement](
@@ -63,6 +62,5 @@ object IR_AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
       }
 
       func
-    }
   })
 }

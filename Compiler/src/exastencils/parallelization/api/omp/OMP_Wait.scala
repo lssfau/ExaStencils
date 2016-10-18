@@ -2,7 +2,7 @@ package exastencils.parallelization.api.omp
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.{ IR_Function, _ }
+import exastencils.base.ir._
 import exastencils.datastructures.Transformation.Output
 
 case object OMP_WaitForFlag extends IR_AbstractFunction with IR_Expandable {

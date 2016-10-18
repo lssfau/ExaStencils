@@ -23,14 +23,14 @@ object Application {
 
     if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
-        case 2 => {
+        case 2 =>
           printer.println("\tLaplace_Coeff_0_0 = -4")
           printer.println("\tLaplace_Coeff_P1_0 = 1")
           printer.println("\tLaplace_Coeff_N1_0 = 1")
           printer.println("\tLaplace_Coeff_0_P1 = 1")
           printer.println("\tLaplace_Coeff_0_N1 = 1")
-        }
-        case 3 => {
+
+        case 3 =>
           printer.println("\tLaplace_Coeff_0_0_0 = -6")
           printer.println("\tLaplace_Coeff_P1_0_0 = 1")
           printer.println("\tLaplace_Coeff_N1_0_0 = 1")
@@ -38,7 +38,6 @@ object Application {
           printer.println("\tLaplace_Coeff_0_N1_0 = 1")
           printer.println("\tLaplace_Coeff_0_0_P1 = 1")
           printer.println("\tLaplace_Coeff_0_0_N1 = 1")
-        }
       }
     }
 
@@ -198,6 +197,6 @@ object Application {
     printer.println("\tdestroyGlobals ( )")
 
     printer.println("}")
-    printer.println
+    printer.println()
   }
 }

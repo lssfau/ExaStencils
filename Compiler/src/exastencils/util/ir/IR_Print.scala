@@ -2,7 +2,7 @@ package exastencils.util.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.{ IR_VariableAccess, _ }
+import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.api.mpi.MPI_IsRootProc

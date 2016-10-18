@@ -8,7 +8,7 @@ import exastencils.prettyprinting._
 @deprecated("to be replaced by internal handling of higher-order datatypes", "12.10.16")
 case class IR_Matrix() extends Node with FilePrettyPrintable {
   override def printToFile() = {
-    val writer = PrettyprintingManager.getPrinter(s"Util/Matrix.h");
+    val writer = PrettyprintingManager.getPrinter(s"Util/Matrix.h")
 
     writer.addExternalDependency("cmath")
     writer <<

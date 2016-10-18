@@ -28,7 +28,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case IR_FunctionCall(IR_UserFunctionAccess("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
 
     // Vector functions
-    case f : IR_FunctionCall if f.name == "cross" || f.name == "crossproduct" => {
+    case f : IR_FunctionCall if f.name == "cross" || f.name == "crossproduct" =>
       f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[IR_VectorExpression] || f.arguments(0).isInstanceOf[IR_VectorExpression])
         && a.getClass != f.arguments(0).getClass) Logger.error("Must have matching types!"))
       f.arguments.foreach(a => if (a.asInstanceOf[IR_VectorExpression].length != f.arguments(0).asInstanceOf[IR_VectorExpression].length) Logger.error("Vectors must have matching lengths"))
@@ -44,10 +44,9 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         val r = ListBuffer[IR_Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
         IR_VectorExpression(x.innerDatatype, r, x.rowVector)
       }
-    }
 
     // Matrix functions
-    case x : IR_FunctionCall if x.name == "inverse" => {
+    case x : IR_FunctionCall if x.name == "inverse" =>
       if (x.arguments.size == 1) {
         if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
           val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
@@ -88,10 +87,9 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       } else {
         x
       }
-    }
 
     // FIXME: HACK to realize application functionality
-    case func : IR_Function if "Application" == func.name => {
+    case func : IR_Function if "Application" == func.name =>
       func.returntype = IR_IntegerDatatype
       func.name = "main"
       func.parameters = ListBuffer(IR_FunctionArgument("argc", IR_IntegerDatatype), IR_FunctionArgument("argv", IR_SpecialDatatype("char**"))) ++ func.parameters
@@ -115,7 +113,6 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
       func.body.append(IR_Return(0))
       func
-    }
 
     // FIXME: IR_UserFunctionAccess's
 

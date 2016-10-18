@@ -21,7 +21,7 @@ object IR_ResolveIntegrateFunction extends DefaultStrategy("Resolve integration 
     "integrateOverZStaggeredWestFace", "integrateOverZStaggeredSouthFace", "integrateOverZStaggeredBottomFace")
 
   this += new Transformation("Resolving functions", {
-    case IR_FunctionCall(function, args) if functions.contains(function.name) => {
+    case IR_FunctionCall(function, args) if functions.contains(function.name) =>
       if (0 == args.length) {
         Logger.warn(s"Trying to use build-in function ${ function.name } without arguments")
         IR_NullExpression
@@ -29,6 +29,5 @@ object IR_ResolveIntegrateFunction extends DefaultStrategy("Resolve integration 
         if (args.length > 1) Logger.warn(s"Trying to use build-in function ${ function.name } with more than one arguments; additional arguments are discarded")
         GridEvaluator.getEvaluator.invokeIntegrateResolve(function.name, args(0))
       }
-    }
   })
 }

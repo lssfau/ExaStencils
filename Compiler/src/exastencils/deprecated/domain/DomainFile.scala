@@ -61,7 +61,7 @@ object DomainFileWriter extends BuildfileGenerator {
     for (d <- domains) {
       printer <<< d.name + " = (" + fragments.filter { f => f.rank >= 0 }
         .filter { f => f.domainIds.contains(d.index) }
-        .groupBy { g => g.rank }.keySet.map { m => "b" + m.toString() }.mkString(",") + ")"
+        .groupBy { g => g.rank }.keySet.map { m => "b" + m.toString }.mkString(",") + ")"
     }
 
     printer <<< "BLOCKS"

@@ -79,6 +79,6 @@ object CGS {
 
       printer.println(s"}")
     }
-    printer.println
+    printer.println()
   }
 }

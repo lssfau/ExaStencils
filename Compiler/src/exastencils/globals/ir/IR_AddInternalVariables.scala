@@ -48,21 +48,20 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   }
 
   this += new Transformation("Collecting buffer sizes", {
-    case buf : IR_IV_CommBuffer => {
-      val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+    case buf : IR_IV_CommBuffer =>
+      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (bufferSizes.contains(id))
           bufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
         else
           bufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
       } else {
-        val size = IR_SimplifyExpression.evalIntegral(buf.size).toLong
+        val size = IR_SimplifyExpression.evalIntegral(buf.size)
         bufferSizes += (id -> (size max bufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
       }
       buf
-    }
 
-    case field : IR_IV_FieldData => {
+    case field : IR_IV_FieldData =>
       val cleanedField = Duplicate(field)
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = IR_LoopOverFragments.defIt
@@ -101,9 +100,8 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
         IR_ParallelizationInfo.PotentiallyParallel()))
 
       field
-    }
 
-    case field : CUDA_FieldDeviceData => {
+    case field : CUDA_FieldDeviceData =>
       val cleanedField = Duplicate(field)
       cleanedField.slot = "slot"
       cleanedField.fragmentIdx = IR_LoopOverFragments.defIt
@@ -131,23 +129,21 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
         IR_ParallelizationInfo.PotentiallyParallel()))
 
       field
-    }
 
-    case buf : CUDA_ReductionDeviceData => {
-      val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
+    case buf : CUDA_ReductionDeviceData =>
+      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       if (Knowledge.data_genVariableFieldSizes) {
         if (deviceBufferSizes.contains(id))
           deviceBufferSizes(id).asInstanceOf[IR_Maximum].args += Duplicate(buf.size)
         else
           deviceBufferSizes += (id -> IR_Maximum(ListBuffer(Duplicate(buf.size))))
       } else {
-        val size = IR_SimplifyExpression.evalIntegral(buf.size).toLong
+        val size = IR_SimplifyExpression.evalIntegral(buf.size)
         deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
       }
       buf
-    }
 
-    case buf : IR_IV_LoopCarriedCSBuffer => {
+    case buf : IR_IV_LoopCarriedCSBuffer =>
       val id = buf.resolveName()
       val size : IR_Expression =
         if (buf.dimSizes.isEmpty)
@@ -156,16 +152,15 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
           Duplicate(buf.dimSizes.reduce(_ * _))
       bufferSizes.get(id) match {
         case Some(IR_Maximum(maxList)) => maxList += size
-        case None                                => bufferSizes += (id -> IR_Maximum(ListBuffer(size)))
-        case _                                   => Logger.error("should not happen...")
+        case None                      => bufferSizes += (id -> IR_Maximum(ListBuffer(size)))
+        case _                         => Logger.error("should not happen...")
       }
       buf
-    }
   })
 
   this += new Transformation("Updating temporary buffer allocations", {
     case buf : IR_IV_CommBuffer =>
-      val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
       val size = bufferSizes(id)
 
       if (Knowledge.data_alignTmpBufferPointers) {
@@ -185,7 +180,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       buf
 
     case buf : CUDA_ReductionDeviceData =>
-      val id = buf.resolveAccess(buf.resolveName, IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
+      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, IR_NullExpression, IR_NullExpression, IR_NullExpression).prettyprint
       val size = deviceBufferSizes(id)
 
       deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo.PotentiallyParallel()))
@@ -214,7 +209,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   })
 
   this += new Transformation("Extend SetupBuffers function", {
-    case func @ IR_Function(_, IR_AllocateDataFunction.fctName, _, _, _, _, _) => {
+    case func @ IR_Function(_, IR_AllocateDataFunction.fctName, _, _, _, _, _) =>
       for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
         if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += IR_Scope(genericAlloc._2)
@@ -222,7 +217,6 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
           func.body += genericAlloc._2
 
       func
-    }
   })
 
   this += new Transformation("Collect", {

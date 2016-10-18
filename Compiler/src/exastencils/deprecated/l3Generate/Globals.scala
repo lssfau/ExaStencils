@@ -9,14 +9,13 @@ object Globals {
       printer.println(s"\tValue l3tmp_omega : Real = ${ Knowledge.l3tmp_omega }")
     if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
-        case 2 => {
+        case 2 =>
           printer.println("\tVariable Laplace_Coeff_0_0 : Real")
           printer.println("\tVariable Laplace_Coeff_P1_0 : Real")
           printer.println("\tVariable Laplace_Coeff_N1_0 : Real")
           printer.println("\tVariable Laplace_Coeff_0_P1 : Real")
           printer.println("\tVariable Laplace_Coeff_0_N1 : Real")
-        }
-        case 3 => {
+        case 3 =>
           printer.println("\tVariable Laplace_Coeff_0_0_0 : Real")
           printer.println("\tVariable Laplace_Coeff_P1_0_0 : Real")
           printer.println("\tVariable Laplace_Coeff_N1_0_0 : Real")
@@ -24,7 +23,6 @@ object Globals {
           printer.println("\tVariable Laplace_Coeff_0_N1_0 : Real")
           printer.println("\tVariable Laplace_Coeff_0_0_P1 : Real")
           printer.println("\tVariable Laplace_Coeff_0_0_N1 : Real")
-        }
       }
     }
 
@@ -48,6 +46,6 @@ object Globals {
     }
 
     printer.println("}")
-    printer.println
+    printer.println()
   }
 }

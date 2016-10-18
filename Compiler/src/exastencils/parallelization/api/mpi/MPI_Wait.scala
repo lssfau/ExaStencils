@@ -3,7 +3,7 @@ package exastencils.parallelization.api.mpi
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.{ IR_Function, _ }
+import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
@@ -15,7 +15,7 @@ import exastencils.util.ir.IR_RawPrint
 case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
-  override def prettyprint_decl : String = prettyprint
+  override def prettyprint_decl() : String = prettyprint
   override def name = "waitForMPIReq"
 
   def request = IR_VariableAccess("request", IR_PointerDatatype(IR_SpecialDatatype("MPI_Request")))
@@ -35,7 +35,7 @@ case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
       IR_RawPrint("\"MPI Error encountered (\"", msg, "\")\"")))
   }
 
-  override def expand : Output[IR_Function] = {
+  override def expand() : Output[IR_Function] = {
     val fct = IR_Function(IR_UnitDatatype, name, IR_FunctionArgument(request), ListBuffer[IR_Statement]())
     fct.allowInlining = false
 

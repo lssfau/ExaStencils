@@ -28,12 +28,12 @@ object CUDA_LinearizeReductionDeviceDataAccess extends DefaultStrategy("Lineariz
 /// CUDA_ReductionDeviceData
 
 case class CUDA_ReductionDeviceData(var size : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_InternalVariable(true, false, false, false, false) {
-  override def resolveDatatype = IR_PointerDatatype(IR_RealDatatype)
+  override def resolveDatatype() = IR_PointerDatatype(IR_RealDatatype)
   // TODO: extend for other types
-  override def resolveName : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
+  override def resolveName() : String = "reductionDeviceData" + resolvePostfix(fragmentIdx.prettyprint, "", "", "", "")
 
   override def getDtor() : Option[IR_Statement] = {
-    val access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
+    val access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
     Some(IR_IfCondition(access,
       ListBuffer[IR_Statement](
         CUDA_Free(access),

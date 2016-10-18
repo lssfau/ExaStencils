@@ -87,7 +87,7 @@ class Vertex(coords : ListBuffer[Double]) extends Primitives {
 
   override def toString : String = {
     var s = "("
-    for (i <- 0 to coords.size - 1) {
+    for (i <- coords.indices) {
       s += "%.5f".format(coords(i).toFloat) + ","
     }
     s = s.dropRight(1).toString + ")"
@@ -95,12 +95,10 @@ class Vertex(coords : ListBuffer[Double]) extends Primitives {
   }
   override def equals(that : Any) : Boolean = {
     that match {
-      case o : Vertex => {
+      case o : Vertex =>
         o.Coords(0) == o.Coords(0) &&
           (if (Knowledge.dimensionality >= 2) o.Coords(1) == Coords(1) else true) &&
           (if (Knowledge.dimensionality >= 3) o.Coords(2) == Coords(2) else true)
-
-      }
       case _          => false
     }
   }
@@ -117,12 +115,11 @@ class Edge(v1 : Vertex, v2 : Vertex) extends Primitives {
 
   override def equals(that : Any) = {
     that match {
-      case o : Edge => {
+      case o : Edge =>
         val v1 = vertex1 == o.vertex1
         val v2 = vertex2 == o.vertex2
         (vertex1 == o.vertex1 && vertex2 == o.vertex2) ||
           (vertex2 == o.vertex1 && vertex1 == o.vertex2)
-      }
       case _        => false
     }
   }

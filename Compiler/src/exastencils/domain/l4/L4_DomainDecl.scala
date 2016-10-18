@@ -20,16 +20,14 @@ case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) ex
     (lower, upper) match {
       case (null, null)                       => out << s"Domain = fromFile($name) \n"
       case (l : L4_ConstVec, u : L4_ConstVec) => out << "Domain " << name << "< " << l << " to " << u << " >\n"
-      case (lo : List[_], up : List[_])       => {
+      case (lo : List[_], up : List[_])       =>
         (lo.head, up.head) match {
-          case (_ : L4_ConstVec, _ : L4_ConstVec) => {
+          case (_ : L4_ConstVec, _ : L4_ConstVec) =>
             val sep = lo.map(m => ", ").dropRight(1) :+ " >\n"
             out << "Domain " << name << "< "
             for (i <- lo.indices) { out << lo(i) << " to " << up(i) << sep(i) }
             //out << "Domain " << name << "< " << l(0) << " to " << u(0) << ", " << l(1) << " to " << u(1) << " ," << l(2) << " to " << u(2) << " >\n"
-          }
         }
-      }
     }
   }
 
@@ -40,23 +38,20 @@ case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) ex
     runningIndex += 1
 
     (lower, upper) match {
-      case (null, null)                           => {
+      case (null, null)                           =>
         FileInputGlobalDomain("global", index, DomainFileHeader.domainIdentifier.zipWithIndex.map {
           case (identifier, index) => FileInputDomain(identifier, index, FileInputDomainShape(identifier))
         }.toList)
-      }
-      case (lo : List[_], up : List[_])           => {
+      case (lo : List[_], up : List[_])           =>
         (lo.head, up.head) match {
-          case (_ : L4_ConstVec2D, _ : L4_ConstVec2D) => {
+          case (_ : L4_ConstVec2D, _ : L4_ConstVec2D) =>
             val rectUnionDomains : List[RectangularDomainShape] =
               lo.zip(up).map {
                 case (li : L4_ConstVec2D, ui : L4_ConstVec2D) =>
                   RectangularDomainShape(AABB(li.x, ui.x, li.y, ui.y, 0.0, 0.0))
               }
             ShapedDomain(name, index, ShapedDomainShape(rectUnionDomains))
-          }
         }
-      }
       case (l : L4_ConstVec2D, u : L4_ConstVec2D) => RectangularDomain(name, index, RectangularDomainShape(AABB(l.x, u.x, l.y, u.y, 0, 0)))
       case (l : L4_ConstVec3D, u : L4_ConstVec3D) => RectangularDomain(name, index, RectangularDomainShape(AABB(l.x, u.x, l.y, u.y, l.z, u.z)))
       case _                                      => RectangularDomain(name, index, RectangularDomainShape(AABB()))

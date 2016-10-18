@@ -10,7 +10,7 @@ import exastencils.logger.Logger
   *
   */
 object CMakeGenerator extends BuildfileGenerator {
-  override def write : Unit = {
+  override def write() : Unit = {
     Logger.info("Generating CMakeLists.txt")
     val printer = PrettyprintingManager.getPrinter("CMakeLists.txt")
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
@@ -29,6 +29,6 @@ object CMakeGenerator extends BuildfileGenerator {
     printer <<< ""
     printer << "add_executable(" + Settings.binary + " ${SOURCES})"
 
-    printer.finish
+    printer.finish()
   }
 }

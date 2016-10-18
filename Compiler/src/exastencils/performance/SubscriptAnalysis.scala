@@ -56,7 +56,7 @@ object KernelSubscriptAnalysis extends QuietDefaultStrategy(
     println("orig index: " + origIndex.prettyprint())
     println("stepped index: " + steppedIndex.prettyprint())
 
-    val diffIndex = steppedIndex - origIndex;
+    val diffIndex = steppedIndex - origIndex
     //    IR_ExpressionIndex(diffIndex:_*)
     println("diff : " + diffIndex.prettyprint())
 

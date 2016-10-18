@@ -229,6 +229,6 @@ case class IR_LoopOverDimensions(
 
 object IR_ResolveLoopOverDimensions extends DefaultStrategy("Resolve LoopOverDimensions nodes") {
   this += new Transformation("Resolve", {
-    case loop : IR_LoopOverDimensions => loop.expandSpecial
+    case loop : IR_LoopOverDimensions => loop.expandSpecial()
   })
 }

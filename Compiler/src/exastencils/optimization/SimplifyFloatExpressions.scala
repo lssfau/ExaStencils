@@ -49,12 +49,12 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
 
   private final def simplify(expr : IR_Expression) : IR_Expression = {
     try {
-      return IR_SimplifyExpression.simplifyFloatingExpr(expr)
+      IR_SimplifyExpression.simplifyFloatingExpr(expr)
     } catch {
       case x : EvaluationException =>
         if (DEBUG)
           Logger.debug("[simplify]  cannot simplify float expression: " + x.msg)
-        return expr
+        expr
     }
   }
 }

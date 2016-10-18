@@ -30,7 +30,7 @@ object IR_AdaptTimerFunctions extends DefaultStrategy("Adapt function calls to t
           fctCall.arguments = ListBuffer[IR_Expression](IR_IV_Timer(args(0)))
         case "printAllTimers" | "printAllTimersToFile"                   =>
           // functions expecting no parameters
-          if (args.length != 0) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
+          if (args.nonEmpty) Logger.warn("Ignoring invalid number of parameters in " + function.name + " timer function: " + args)
           fctCall.arguments = ListBuffer()
       }
 

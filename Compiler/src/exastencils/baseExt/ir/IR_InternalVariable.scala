@@ -29,12 +29,12 @@ abstract class IR_InternalVariable(
   def usesLevelArrays : Boolean = true
   def usesNeighborArrays : Boolean = true
 
-  def resolveName : String
-  def resolveDatatype : IR_Datatype
-  def resolveDefValue : Option[IR_Expression] = None
+  def resolveName() : String
+  def resolveDatatype() : IR_Datatype
+  def resolveDefValue() : Option[IR_Expression] = None
 
   def getDeclaration() : IR_VariableDeclaration = {
-    var datatype : IR_Datatype = resolveDatatype
+    var datatype : IR_Datatype = resolveDatatype()
 
     if (canBePerFragment && usesFragmentArrays && Knowledge.domain_numFragmentsPerBlock > 1)
       datatype = IR_ArrayDatatype(datatype, Knowledge.domain_numFragmentsPerBlock)
@@ -47,7 +47,7 @@ abstract class IR_InternalVariable(
     if (canBePerNeighbor && usesNeighborArrays && DefaultNeighbors.neighbors.size > 1)
       datatype = IR_ArrayDatatype(datatype, DefaultNeighbors.neighbors.size)
 
-    new IR_VariableDeclaration(datatype, resolveName)
+    new IR_VariableDeclaration(datatype, resolveName())
   }
 
   def wrapInLoops(body : IR_Statement) : IR_Statement = {
@@ -68,8 +68,8 @@ abstract class IR_InternalVariable(
   }
 
   def getCtor() : Option[IR_Statement] = {
-    if (resolveDefValue.isDefined)
-      Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue.get)))
+    if (resolveDefValue().isDefined)
+      Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue().get)))
     else
       None
   }

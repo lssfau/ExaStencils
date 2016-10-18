@@ -1,6 +1,6 @@
 package exastencils.optimization
 
-import scala.collection.mutable.{ Node => _, _ }
+import scala.collection.mutable._
 
 import exastencils.base.ir._
 import exastencils.config.Settings
@@ -41,7 +41,7 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
   }
 
   private val SortLoads : PartialFunction[Node, Transformation.OutputType] = {
-    case l : IR_ForLoop if (l.hasAnnotation(Vectorization.VECT_ANNOT)) =>
+    case l : IR_ForLoop if l.hasAnnotation(Vectorization.VECT_ANNOT) =>
       val newBody = new ListBuffer[IR_Statement]()
       val toSort = new ArrayBuffer[(IR_Statement, IR_Expression, IR_Expression)]()
       for (s <- l.body) {
@@ -73,7 +73,7 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
                   return basePpCmp
                 val indXCst : Long = IR_SimplifyExpression.extractIntegralSum(x._3).getOrElse(IR_SimplifyExpression.constName, 0L)
                 val indYCst : Long = IR_SimplifyExpression.extractIntegralSum(y._3).getOrElse(IR_SimplifyExpression.constName, 0L)
-                return indXCst compare indYCst
+                indXCst compare indYCst
               }
             })
             newBody ++= sorted.view.map(_._1)
@@ -104,7 +104,7 @@ private[optimization] final class Analyze extends StackCollector {
       case loop @ IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, lVar, Some(start)),
       IR_Lower(IR_VariableAccess(lVar3, _), end),
       IR_Assignment(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
-      _, _) if (lVar == lVar2 && lVar2 == lVar3) //
+      _, _) if lVar == lVar2 && lVar2 == lVar3 //
       =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
           preLoopDecls = new ListBuffer[IR_Statement]
@@ -150,7 +150,7 @@ private[optimization] final class Analyze extends StackCollector {
           }
         }
 
-      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(load : SIMD_Scalar2Vector)) if (load1s != null) =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(load : SIMD_Scalar2Vector)) if load1s != null =>
         val other = load1s.get(load)
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
@@ -185,7 +185,7 @@ private[optimization] final class Analyze extends StackCollector {
 
     if (node.hasAnnotation(ADD_BEFORE_ANNOT)) {
       // check if some declarations must be moved out of their scope
-      for ((load, ancss) <- loads.values.view ++ load1s.values ++ concShifts.values; if (ancss.length > 1)) {
+      for ((load, ancss) <- loads.values.view ++ load1s.values ++ concShifts.values; if ancss.length > 1) {
         var loadAncs = ancss.head
         for (i <- 1 until ancss.length) {
           val reuseAncs : List[Node] = ancss(i)
@@ -240,7 +240,7 @@ private[optimization] final class Analyze extends StackCollector {
       case vAcc @ IR_VariableAccess(v, IR_IntegerDatatype) if v == itName =>
         if (replace)
           IR_Subtraction(Duplicate(nju), IR_IntegerConstant(offset))
-        else if (!vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
+        else if (vAcc.removeAnnotation(SKIP_ANNOT).isEmpty) {
           vAcc.annotate(SKIP_ANNOT) // already done
           IR_Subtraction(vAcc, IR_IntegerConstant(offset))
         } else
@@ -251,14 +251,14 @@ private[optimization] final class Analyze extends StackCollector {
       val expr2 = IR_ArrayFree(Duplicate(expr)) // just a temporary wrapper...
       replace = false
       applyStandalone(expr2)
-      return expr2.pointer
+      expr2.pointer
     }
 
     def replaceDup(expr : IR_Expression) : IR_Expression = {
       val expr2 = IR_ArrayFree(Duplicate(expr)) // just a temporary wrapper...
       replace = true
       applyStandalone(expr2)
-      return expr2.pointer
+      expr2.pointer
     }
   }
 
@@ -269,7 +269,7 @@ private final object Adapt extends PartialFunction[Node, Transformation.OutputTy
   import RemoveDupSIMDLoads._
 
   def isDefinedAt(node : Node) : Boolean = {
-    return node.hasAnnotation(ADD_BEFORE_ANNOT) || node.hasAnnotation(REPL_ANNOT) || node.hasAnnotation(REMOVE_ANNOT)
+    node.hasAnnotation(ADD_BEFORE_ANNOT) || node.hasAnnotation(REPL_ANNOT) || node.hasAnnotation(REMOVE_ANNOT)
   }
 
   def apply(node : Node) : Transformation.OutputType = {

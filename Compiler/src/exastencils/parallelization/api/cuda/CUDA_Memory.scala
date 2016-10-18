@@ -3,7 +3,7 @@ package exastencils.parallelization.api.cuda
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir.{ IR_IfCondition, _ }
+import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
@@ -41,13 +41,13 @@ case class CUDA_Memset(var data : IR_Expression, var value : IR_Expression, var 
 /// CUDA_FieldDeviceData
 
 case class CUDA_FieldDeviceData(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
-  override def resolveName = (if (1 == field.numSlots) s"fieldDeviceData" else "slottedFieldDeviceData") +
+  override def resolveName() = (if (1 == field.numSlots) s"fieldDeviceData" else "slottedFieldDeviceData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "")
 
   override def getDtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
+    val access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
 
     val ret = Some(wrapInLoops(
       IR_IfCondition(access,

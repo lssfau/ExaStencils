@@ -43,7 +43,7 @@ case class L4_StencilFieldDecl(
 object L4_ProcessStencilFieldDeclarations extends DefaultStrategy("Integrating L4 stencil field declarations with knowledge") {
   this += Transformation("Process new stencil fields", {
     case stencilFieldDecl : L4_StencilFieldDecl =>
-      stencilFieldDecl.addToKnowledge
+      stencilFieldDecl.addToKnowledge()
       None
   })
 }

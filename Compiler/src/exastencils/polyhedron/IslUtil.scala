@@ -2,9 +2,7 @@ package exastencils.polyhedron
 
 import scala.util.Random
 
-import isl.Conversions._
-import java.io.FileOutputStream
-import java.io.InputStream
+import java.io._
 import java.net.URL
 
 import exastencils.logger.Logger
@@ -25,11 +23,11 @@ object Isl {
 
     val system : String =
       System.getProperty("os.name") match {
-        case x if (x.startsWith("Windows")) => "win32"
-        case x if (x.startsWith("Linux"))   => "linux"
-        case x if (x.startsWith("Mac"))     => "darwin"
-        case x if (x.startsWith("Darwin"))  => "darwin"
-        case x =>
+        case x if x.startsWith("Windows") => "win32"
+        case x if x.startsWith("Linux")   => "linux"
+        case x if x.startsWith("Mac")     => "darwin"
+        case x if x.startsWith("Darwin")  => "darwin"
+        case x                            =>
           throw new Exception("unknown operating system (" + x + "), cannot load native library isl")
       }
     val arch : String =
@@ -38,7 +36,7 @@ object Isl {
         case "x86_64"    => "x86_64"
         case "i386"      => "x86"
         case "powerpc64" => "ppc64"
-        case x =>
+        case x           =>
           throw new Exception("unknown system architecture (" + x + "), cannot load native library isl")
       }
 
@@ -53,13 +51,13 @@ object Isl {
     if (tmpDir.exists()) {
       // remove old libs
       val markers : Array[java.io.File] =
-        tmpDir.listFiles(new java.io.FilenameFilter() {
-          def accept(dir : java.io.File, name : String) : Boolean = {
-            return name.endsWith(markerSuffix)
-          }
-        })
+      tmpDir.listFiles(new java.io.FilenameFilter() {
+        def accept(dir : java.io.File, name : String) : Boolean = {
+          name.endsWith(markerSuffix)
+        }
+      })
       for (m <- markers) {
-        var oldLibName : String = m.getName()
+        var oldLibName : String = m.getName
         oldLibName = oldLibName.substring(0, oldLibName.length() - markerSuffix.length())
         val oldLibDir = new java.io.File(tmpDir, oldLibName)
         for (f <- oldLibDir.listFiles())
@@ -69,9 +67,9 @@ object Isl {
       }
     }
 
-    lurl.getProtocol() match {
+    lurl.getProtocol match {
       case "file" =>
-        val lfile : String = lurl.getPath()
+        val lfile : String = lurl.getPath
         val lpath : String = lfile.substring(0, lfile.lastIndexOf('/'))
         isl.Init.loadNative(lpath)
 
@@ -93,7 +91,7 @@ object Isl {
           repeat = !tmpIslLibDir.mkdir()
         } while (repeat && i < 1000)
         if (repeat)
-          Logger.error("unable to create temp directory for native lib in " + tmpDir.getAbsolutePath())
+          Logger.error("unable to create temp directory for native lib in " + tmpDir.getAbsolutePath)
         val tmpIslLib = new java.io.File(tmpIslLibDir, lname)
         tmpIslLib.createNewFile()
 
@@ -111,12 +109,12 @@ object Isl {
           is.close()
         }
 
-        isl.Init.loadNative(tmpIslLibDir.getAbsolutePath())
+        isl.Init.loadNative(tmpIslLibDir.getAbsolutePath)
 
         // library loaded, try to delete file now (which should be possible on linux, but not on windows)
         if (!(tmpIslLib.delete() && tmpIslLibDir.delete())) {
           // cannot delete temp lib now, mark for later deletion (either when jvm exits normally, or on next run)
-          val marker = new java.io.File(tmpDir, tmpIslLibDir.getName() + markerSuffix)
+          val marker = new java.io.File(tmpDir, tmpIslLibDir.getName + markerSuffix)
           marker.createNewFile()
           tmpIslLib.deleteOnExit()
         }
@@ -127,7 +125,7 @@ object Isl {
 
   def initCtx() : isl.Ctx = {
     this.load()
-    return isl.Ctx.alloc()
+    isl.Ctx.alloc()
   }
 
   final lazy val ctx = initCtx()
@@ -143,36 +141,36 @@ object Isl {
   def simplify(uset : isl.UnionSet) : isl.UnionSet = {
     if (uset == null)
       return null
-    return uset.coalesce()
+    uset.coalesce()
   }
 
   def simplify(umap : isl.UnionMap) : isl.UnionMap = {
     if (umap == null)
       return null
-    return umap.coalesce()
+    umap.coalesce()
   }
 
   def simplify(set : isl.Set) : isl.Set = {
     if (set == null)
       return null
-    return set.coalesce()
+    set.coalesce()
   }
 
   def simplify(map : isl.Map) : isl.Map = {
     if (map == null)
       return null
-    return map.coalesce()
+    map.coalesce()
   }
 
   def simplify(set : isl.BasicSet) : isl.BasicSet = {
     if (set == null)
       return null
-    return set.removeRedundancies()
+    set.removeRedundancies()
   }
 
   def simplify(map : isl.BasicMap) : isl.BasicMap = {
     if (map == null)
       return null
-    return map.removeRedundancies()
+    map.removeRedundancies()
   }
 }

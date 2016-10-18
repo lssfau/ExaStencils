@@ -73,7 +73,7 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
       setIterationOffset(neighIdx, domain, localFragmentIdx))
   }
 
-  override def expand : Output[IR_LoopOverFragments] = {
+  override def expand() : Output[IR_LoopOverFragments] = {
     var body = new ListBuffer[IR_Statement]
 
     val neighbors = DefaultNeighbors.neighbors

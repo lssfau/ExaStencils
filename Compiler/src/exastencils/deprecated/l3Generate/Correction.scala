@@ -20,6 +20,6 @@ object Correction {
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\t}")
     printer.println(s"}")
-    printer.println
+    printer.println()
   }
 }

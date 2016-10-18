@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.config._
 
 object MakefileGenerator extends BuildfileGenerator {
-  override def write : Unit = {
+  override def write() : Unit = {
     val printer = PrettyprintingManager.getPrinter("Makefile")
 
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
@@ -124,7 +124,7 @@ object MakefileGenerator extends BuildfileGenerator {
       printer <<< ""
     }
 
-    printer.finish
+    printer.finish()
   }
 
   /** Concatenates a variable number of Strings or Seq[String] to a single String, separated by " ".
@@ -135,12 +135,11 @@ object MakefileGenerator extends BuildfileGenerator {
     * @param args variable number of String or Seq[String]
     */
   private def mkStringTrimFlat(args : Any*) : String = {
-    args.map(e =>
-      e match {
-        case s : String        => s.trim
-        case c : Iterable[Any] => c.mkString(" ")
-        case x                 => throw new Exception("unexpected object " + x.getClass.getCanonicalName)
+    args.map {
+      case s : String        => s.trim
+      case c : Iterable[Any] => c.mkString(" ")
+      case x                 => throw new Exception("unexpected object " + x.getClass.getCanonicalName)
 
-      }).filter(s => !s.isEmpty).mkString(" ")
+    }.filter(s => !s.isEmpty).mkString(" ")
   }
 }

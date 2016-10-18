@@ -43,10 +43,10 @@ class ParserDomainFile extends ExaParser {
   lazy val header = stringLit ||| ident ~ "=" ~ headerExpr ^^ { case id ~ "=" ~ ex => setHeaderParameter(id, ex) }
   lazy val headerExpr =
     arrayLit |
-      stringLit ^^ { _.toString().split(",") } |
+      stringLit ^^ { _.toString.split(",") } |
       "-".? ~ numericLit ^^ {
-        case s ~ n if (isInt(s.getOrElse("") + n)) => (s.getOrElse("") + n).toInt : AnyVal
-        case s ~ n                                 => (s.getOrElse("") + n).toDouble : AnyVal
+        case s ~ n if isInt(s.getOrElse("") + n) => (s.getOrElse("") + n).toInt : AnyVal
+        case s ~ n                               => (s.getOrElse("") + n).toDouble : AnyVal
       } |
       booleanLit ^^ { _.booleanValue() }
 
@@ -109,9 +109,9 @@ class ParserDomainFile extends ExaParser {
 
   def setDomainParameter[T](ident : String, value : T) = {
     IR_DomainCollection.getByIdentifier("global").get
-      .asInstanceOf[FileInputGlobalDomain].shape.asInstanceOf[List[FileInputDomain]]
+      .asInstanceOf[FileInputGlobalDomain].shape
       .find { d => d.name == ident } match {
-      case Some(n) => n.shape.asInstanceOf[FileInputDomainShape].blocks = value.asInstanceOf[List[String]]
+      case Some(n) => n.shape.blocks = value.asInstanceOf[List[String]]
       case None    => throw new Exception("error when parsing domain file")
     }
     tmpDomains = tmpDomains + (ident -> value)
@@ -119,9 +119,9 @@ class ParserDomainFile extends ExaParser {
 
   def setBlockParameter[T](ident : String, value : T) = {
     IR_DomainCollection.getByIdentifier("global").get
-      .asInstanceOf[FileInputGlobalDomain].shape.asInstanceOf[List[FileInputDomain]]
-      .find { d => d.shape.asInstanceOf[FileInputDomainShape].blocks.contains(ident) } match {
-      case Some(n) => n.shape.asInstanceOf[FileInputDomainShape].frags ++= value.asInstanceOf[List[String]]
+      .asInstanceOf[FileInputGlobalDomain].shape
+      .find { d => d.shape.blocks.contains(ident) } match {
+      case Some(n) => n.shape.frags ++= value.asInstanceOf[List[String]]
       case None    => throw new Exception("error when parsing domain file")
     }
     tmpBlocks = tmpBlocks + (ident -> value)
@@ -149,22 +149,21 @@ class ParserDomainFile extends ExaParser {
     val globalId = ident.drop(1).toInt
     val blockIdent = tmpBlocks.find(f => f._2.asInstanceOf[List[String]].contains(ident)).get._1
     val domainIds = IR_DomainCollection.getByIdentifier("global").get
-      .asInstanceOf[FileInputGlobalDomain].shape.asInstanceOf[List[FileInputDomain]]
+      .asInstanceOf[FileInputGlobalDomain].shape
       .filter { domFil =>
         tmpDomains.filter(f => f._2.asInstanceOf[List[String]].contains(blockIdent)).contains(domFil.name)
       }
       .map(m => m.index).to[ListBuffer]
-    FragmentCollection.fragments += new DummyFragment(localId, globalId, domainIds, faces, edges, vertices.toSeq.distinct.to[ListBuffer], ListBuffer.fill(FragmentCollection.getNumberOfNeighbors)(-1), blockIdent.drop(1).toInt)
+    FragmentCollection.fragments += new DummyFragment(localId, globalId, domainIds, faces, edges, vertices.distinct, ListBuffer.fill(FragmentCollection.getNumberOfNeighbors())(-1), blockIdent.drop(1).toInt)
   }
 
   def setTrafoParameter[T](ident : String, value : T) = {
     val trafoList = value.asInstanceOf[List[List[String]]]
     val trafos : ListBuffer[Double] = ListBuffer()
     FragmentCollection.fragments.find { f => f.globalId == ident.drop(1).toInt } match {
-      case Some(f) => {
+      case Some(f) =>
         val tmp = trafoList
-        f.trafo = trafoList.map { row => row.map { item => item.toDouble } }.flatten.to[ListBuffer]
-      }
+        f.trafo = trafoList.flatMap { row => row.map { item => item.toDouble } }.to[ListBuffer]
       case None    =>
     }
   }

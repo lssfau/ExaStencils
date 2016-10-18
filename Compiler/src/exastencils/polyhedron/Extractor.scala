@@ -4,8 +4,7 @@ import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, 
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.IR_TempBufferAccess
-import exastencils.communication.ir.IR_IV_CommBuffer
+import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core.collectors._
 import exastencils.datastructures._
@@ -25,7 +24,7 @@ object Extractor {
     final val ANNOT : String = "PolyAcc"
     final val READ, WRITE, UPDATE = Value
 
-    exastencils.core.Duplicate.registerImmutable(this.getClass())
+    exastencils.core.Duplicate.registerImmutable(this.getClass)
   }
 
   /** annotation id used to indicate that this subtree should be skipped */
@@ -54,7 +53,7 @@ object Extractor {
 
     expr match {
 
-      case _ if (!paramExprs.isEmpty && paramExprs.contains(expr)) =>
+      case _ if paramExprs.nonEmpty && paramExprs.contains(expr) =>
         val islStr : String = ScopNameMapping.expr2id(expr)
         if (vars != null)
           vars.add(islStr)
@@ -67,7 +66,7 @@ object Extractor {
         constraints.append(islStr)
 
       // a StringConstant is only allowed, if the value it represents was used correctly before (as a VariableAccess, for example)
-      case str : IR_StringLiteral if (ScopNameMapping.id2expr(str.value).isDefined) =>
+      case str : IR_StringLiteral if ScopNameMapping.id2expr(str.value).isDefined =>
         val e = ScopNameMapping.id2expr(str.value).get
         val islStr : String = ScopNameMapping.expr2id(e)
         if (vars != null)
@@ -265,14 +264,14 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.prettyprint())
+      case _ => throw ExtractionException("unknown expression: " + expr.getClass + " - " + expr.prettyprint())
     }
 
-    return bool
+    bool
   }
 
   private[polyhedron] def replaceSpecial(str : String) : String = {
-    return replaceSpecial(new StringBuilder(str)).toString()
+    replaceSpecial(new StringBuilder(str)).toString()
   }
 
   private[polyhedron] def replaceSpecial(str : StringBuilder) : StringBuilder = {
@@ -286,7 +285,7 @@ object Extractor {
       i += 1
     }
 
-    return str
+    str
   }
 
   private def checkCode(name : String) : Unit = {
@@ -296,9 +295,9 @@ object Extractor {
       i -= 1
       name.charAt(i) match {
         case '=' | '+' | '*' | '/' | '[' | '(' | ' ' =>
-          throw new ExtractionException("expression in string constant found: " + name)
+          throw ExtractionException("expression in string constant found: " + name)
         case '-' if name.charAt(i + 1) != '>'        =>
-          throw new ExtractionException("expression in string constant found: " + name)
+          throw ExtractionException("expression in string constant found: " + name)
         case _                                       =>
       }
     }
@@ -352,7 +351,7 @@ class Extractor extends Collector {
       def next() : this.type = {
         id_ += 1
         label_ = "S%04d".format(id_)
-        return this
+        this
       }
     }
 
@@ -380,26 +379,26 @@ class Extractor extends Collector {
     }
 
     def exists() : Boolean = {
-      return scop_ != null
+      scop_ != null
     }
 
     def get() : Scop = {
-      return scop_
+      scop_
     }
 
     def modelLoopVars() : String = {
-      return modelLoopVars_
+      modelLoopVars_
     }
 
     def origLoopVars() : ArrayBuffer[String] = {
-      return origLoopVars_
+      origLoopVars_
     }
 
     // [..] -> { %s[..] : .. %s }
     def buildIslSet(tupleName : String, cond : String = "") : isl.Set = {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(setTemplate_, tupleName, cond)
-      return isl.Set.readFromStr(Isl.ctx, formatterResult.toString())
+      isl.Set.readFromStr(Isl.ctx, formatterResult.toString)
     }
 
     // [..] -> { %s[..] -> %s[%s] }
@@ -407,17 +406,17 @@ class Extractor extends Collector {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(mapTemplate_, inTupleName, outTupleName, out)
       try {
-        return isl.Map.readFromStr(Isl.ctx, formatterResult.toString())
+        isl.Map.readFromStr(Isl.ctx, formatterResult.toString)
       } catch {
         case e : isl.IslException =>
-          throw new ExtractionException("error in map creation (maybe not affine?):  " + e.getMessage())
+          throw ExtractionException("error in map creation (maybe not affine?):  " + e.getMessage)
       }
     }
 
     def finish() : Scop = {
       val res = scop_
       discard()
-      return res
+      res
     }
 
     def discard(msg : String = null) : Unit = {
@@ -532,14 +531,14 @@ class Extractor extends Collector {
 
           case pos @ IR_IV_FragmentPositionBegin(_, frgIdx) =>
             frgIdx.annotate(SKIP_ANNOT)
-            enterScalarAccess(pos.resolveName)
+            enterScalarAccess(pos.resolveName())
 
           case pos @ IR_IV_FragmentPositionEnd(_, frgIdx) =>
             frgIdx.annotate(SKIP_ANNOT)
-            enterScalarAccess(pos.resolveName)
+            enterScalarAccess(pos.resolveName())
 
           // ignore
-          case IR_FunctionCall(function, _) if (allowedFunctions.contains(function.name)) =>
+          case IR_FunctionCall(function, _) if allowedFunctions.contains(function.name) =>
             function.annotate(SKIP_ANNOT)
 
           case _ : IR_IntegerConstant
@@ -561,10 +560,10 @@ class Extractor extends Collector {
                | IR_NullStatement => // nothing to do for all of them...
 
           // deny
-          case e : IR_ExpressionStatement => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
-          case IR_ArrayAccess(a, _, _)    => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
-          case f : IR_FunctionCall        => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
-          case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
+          case e : IR_ExpressionStatement => throw ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
+          case IR_ArrayAccess(a, _, _)    => throw ExtractionException("ArrayAccess to base " + a.getClass + " not yet implemented")
+          case f : IR_FunctionCall        => throw ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
+          case x : Any                    => throw ExtractionException("cannot deal with " + x.getClass)
         }
     } catch {
       case ExtractionException(msg) =>
@@ -625,7 +624,7 @@ class Extractor extends Collector {
 
     for (step <- loop.stepSize)
       if (step != IR_IntegerConstant(1))
-        throw new ExtractionException("only stride 1 supported yet")
+        throw ExtractionException("only stride 1 supported yet")
 
     val dims : Int = loop.numDimensions
 
@@ -663,13 +662,13 @@ class Extractor extends Collector {
     } while (i < dims)
 
     if (bool)
-      throw new ExtractionException("loop bounds contain (in)equalities")
+      throw ExtractionException("loop bounds contain (in)equalities")
 
     // TODO: interaction betweed condition and at1stIt (see also: TODO in LoopOverDimensions.expandSpecial)
     if (loop.condition.isDefined)
       extractConstraints(loop.condition.get, constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
     else
-      constrs.delete(constrs.length - (" and ".length()), constrs.length)
+      constrs.delete(constrs.length - " and ".length(), constrs.length)
 
     // remove variables from params set
     for (v <- modelLoopVars)
@@ -679,23 +678,23 @@ class Extractor extends Collector {
     templateBuilder.append('[')
     for (p <- params)
       templateBuilder.append(p).append(',')
-    if (!params.isEmpty)
+    if (params.nonEmpty)
       templateBuilder.deleteCharAt(templateBuilder.length - 1)
     templateBuilder.append("]->{")
 
     // create local context
     var tmp : Int = templateBuilder.length
     templateBuilder.append(':')
-    if (!locCtxConstrs.isEmpty)
-      templateBuilder.append(locCtxConstrs.delete(locCtxConstrs.length - (" and ".length()), locCtxConstrs.length))
+    if (locCtxConstrs.nonEmpty)
+      templateBuilder.append(locCtxConstrs.delete(locCtxConstrs.length - " and ".length(), locCtxConstrs.length))
     templateBuilder.append('}')
     val localContext = isl.Set.readFromStr(Isl.ctx, templateBuilder.toString())
 
     // create global context
     templateBuilder.delete(tmp, templateBuilder.length)
     templateBuilder.append(':')
-    if (!gloCtxConstrs.isEmpty)
-      templateBuilder.append(gloCtxConstrs.delete(gloCtxConstrs.length - (" and ".length()), gloCtxConstrs.length))
+    if (gloCtxConstrs.nonEmpty)
+      templateBuilder.append(gloCtxConstrs.delete(gloCtxConstrs.length - " and ".length(), gloCtxConstrs.length))
     templateBuilder.append('}')
     val globalContext = isl.Set.readFromStr(Isl.ctx, templateBuilder.toString())
 
@@ -748,7 +747,7 @@ class Extractor extends Collector {
       extractConstraints(cond.condition, sb, false, paramExprs)
       conditions.push(sb.toString())
     } else
-      throw new ExtractionException("cannot deal with a non-empty falseBody in a ConditionStatement: " + cond.prettyprint())
+      throw ExtractionException("cannot deal with a non-empty falseBody in a ConditionStatement: " + cond.prettyprint())
   }
 
   private def leaveCondition(cond : IR_IfCondition) : Unit = {
@@ -778,7 +777,7 @@ class Extractor extends Collector {
     enterStmt(assign) // as an assignment is also a statement
 
     if (isRead || isWrite)
-      throw new ExtractionException("nested assignments are not supported (yet...?); skipping scop")
+      throw ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 
     assign.op match {
 
@@ -789,7 +788,7 @@ class Extractor extends Collector {
         assign.dest.annotate(Access.ANNOT, Access.UPDATE)
 
       case _ =>
-        throw new ExtractionException("unrecognized assignment operator: " + assign.op)
+        throw ExtractionException("unrecognized assignment operator: " + assign.op)
     }
 
     assign.src.annotate(Access.ANNOT, Access.READ)
@@ -805,12 +804,12 @@ class Extractor extends Collector {
     checkCode(varName)
 
     if (!curScop.curStmt.exists() || (!isRead && !isWrite))
-      throw new ExtractionException("misplaced access expression?")
+      throw ExtractionException("misplaced access expression?")
 
     // is access to loop variable?
-    if (curScop.origLoopVars.contains(varName)) {
+    if (curScop.origLoopVars().contains(varName)) {
       if (isWrite)
-        throw new ExtractionException("write to loop variable found")
+        throw ExtractionException("write to loop variable found")
       return
     }
 
@@ -836,7 +835,7 @@ class Extractor extends Collector {
   private def enterArrayAccess(name : String, index : IR_Expression, deadAfterScop : Boolean = false) : Unit = {
 
     if (!curScop.curStmt.exists() || (!isRead && !isWrite))
-      throw new ExtractionException("misplaced access expression?")
+      throw ExtractionException("misplaced access expression?")
 
     // hack: check for code in name
     checkCode(name)
@@ -851,14 +850,14 @@ class Extractor extends Collector {
           ineq |= extractConstraints(i, indB, false, paramExprs)
           indB.append(',')
         }
-        if (!mInd.isEmpty)
+        if (mInd.nonEmpty)
           indB.deleteCharAt(indB.length - 1)
       case ind                       =>
         ineq |= extractConstraints(ind, indB, false, paramExprs)
     }
 
     if (ineq)
-      throw new ExtractionException("array access contains (in)equalities")
+      throw ExtractionException("array access contains (in)equalities")
 
     val access : isl.Map = curScop.buildIslMap(curScop.curStmt.label(), replaceSpecial(name), indB.toString())
     if (deadAfterScop) {
@@ -906,7 +905,7 @@ class Extractor extends Collector {
   }
 
   private def enterLoopCarriedCSBufferAccess(buffer : IR_IV_LoopCarriedCSBuffer, index : IR_ExpressionIndex) : Unit = {
-    enterArrayAccess(buffer.resolveName, index, true)
+    enterArrayAccess(buffer.resolveName(), index, true)
   }
 
   private def leaveLoopCarriedCSBufferAccess() : Unit = {
@@ -915,10 +914,10 @@ class Extractor extends Collector {
 
   private def enterDecl(decl : IR_VariableDeclaration) : Unit = {
     if (isRead || isWrite)
-      throw new ExtractionException("nested assignments are not supported (yet...?); skipping scop")
+      throw ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 
     if (decl.initialValue.isDefined) {
-      val stmt = new IR_Assignment(
+      val stmt = IR_Assignment(
         IR_VariableAccess(decl.name, decl.datatype), decl.initialValue.get, "=")
       enterStmt(stmt) // as a declaration is also a statement
       decl.initialValue.get.annotate(Access.ANNOT, Access.READ)

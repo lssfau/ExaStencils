@@ -43,10 +43,10 @@ case class IR_StencilStencilConvolution(var stencilLeft : IR_Stencil, var stenci
         IR_ReplaceIndexOccurrences.replacement = rightOffset
         IR_ReplaceIndexOccurrences.doUntilDoneStandalone(combOff)
 
-        var combCoeff : IR_Expression = (re.coefficient * le.coefficient)
+        var combCoeff : IR_Expression = re.coefficient * le.coefficient
         IR_GeneralSimplify.doUntilDoneStandalone(combOff)
         IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
-        val addToEntry = entries.find(e => e.offset match { case o if (combOff == o) => true; case _ => false })
+        val addToEntry = entries.find(e => e.offset match { case o if combOff == o => true; case _ => false })
         if (addToEntry.isDefined) {
           combCoeff += addToEntry.get.coefficient
           IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)

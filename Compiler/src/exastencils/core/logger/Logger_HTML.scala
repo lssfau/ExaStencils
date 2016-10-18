@@ -8,9 +8,9 @@ object Logger_HTML {
 
   def init() = {
     val targetFile = Settings.getHtmlLogFile
-    if (!(new java.io.File(targetFile)).exists) {
+    if (!new java.io.File(targetFile).exists) {
       val file = new java.io.File(targetFile)
-      if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
+      if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
     }
 
     log = new java.io.FileWriter(targetFile)

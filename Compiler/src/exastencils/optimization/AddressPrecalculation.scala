@@ -1,7 +1,7 @@
 package exastencils.optimization
 
 import scala.collection.immutable.StringLike
-import scala.collection.mutable.{ Node => _, _ }
+import scala.collection.mutable._
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_InternalVariable
@@ -48,7 +48,7 @@ private final class ArrayBases(val arrayName : String) {
   private var idCount = -1
 
   def getName(initVec : HashMap[IR_Expression, Long], base : IR_Expression, al : Boolean) : String = {
-    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, new IR_ArrayAccess(base, IR_SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
+    inits.getOrElseUpdate(initVec, { idCount += 1; (arrayName + "_p" + idCount, IR_ArrayAccess(base, IR_SimplifyExpression.recreateExprFromIntSum(initVec), al)) })._1
   }
 
   def addToDecls(decls : ListBuffer[IR_Statement]) : Unit = {
@@ -62,7 +62,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   import AddressPrecalculation._
 
   private def generateName(expr : IR_Expression) : String = {
-    return filter('_' + expr.prettyprint())
+    filter('_' + expr.prettyprint())
   }
 
   private def filter(cpp : StringLike[_]) : String = {
@@ -73,7 +73,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         case ']' | '(' | ')' | ' '       =>
         case _                           => res.append(c)
       }
-    return res.toString()
+    res.toString()
   }
 
   def containsLoopVar(expr : IR_Expression, allowed : String = null) : Boolean = {
@@ -90,7 +90,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           res |= (allowed != name) && inVars.contains(name)
           varA
         case i : IR_InternalVariable  =>
-          val name = i.resolveName
+          val name = i.resolveName()
           res |= (allowed != name) && inVars.contains(name)
           i
       })
@@ -98,7 +98,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     Search.res = false
     Search.allowed = allowed
     Search.applyStandalone(IR_Return(expr)) // wrap to ensure ALL nodes of expr are visited
-    return Search.res
+    Search.res
   }
 
   private def splitIndex(ind : IR_Expression) : (IR_Expression, HashMap[IR_Expression, Long]) = {
@@ -114,11 +114,11 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     } catch {
       case ex : EvaluationException =>
         var cause : Throwable = ex
-        while (cause.getCause() != null)
-          cause = cause.getCause()
+        while (cause.getCause != null)
+          cause = cause.getCause
         val stackTraceHead = cause.getStackTrace()(0)
         Logger.dbg("[APC]  cannot deal with index expression  (" + ex.msg + ")  in  " + ind.prettyprint() +
-          "  (" + stackTraceHead.getFileName() + ':' + stackTraceHead.getLineNumber() + ')')
+          "  (" + stackTraceHead.getFileName + ':' + stackTraceHead.getLineNumber + ')')
         return (ind, outMap)
     }
 
@@ -129,7 +129,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     for ((expr, _) <- outMap)
       inMap.remove(expr)
 
-    return (IR_SimplifyExpression.recreateExprFromIntSum(inMap), outMap)
+    (IR_SimplifyExpression.recreateExprFromIntSum(inMap), outMap)
   }
 
   private final val SKIP_SUBTREE_ANNOT = "APCSST"
@@ -145,7 +145,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       return
 
     node match {
-      case l : IR_ForLoop with OptimizationHint if (l.isInnermost) =>
+      case l : IR_ForLoop with OptimizationHint if l.isInnermost =>
         if (decls != null) {
           Logger.dbg("ups, nested \"innermost\" loops... something is wrong here")
           decls = null
@@ -190,12 +190,12 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         node.annotate(DECLS_ANNOT, d)
 
       // ArrayAccess with a constant index only cannot be optimized further
-      case acc : IR_ArrayAccess if (decls != null && !acc.index.isInstanceOf[IR_IntegerConstant]) =>
+      case acc : IR_ArrayAccess if decls != null && !acc.index.isInstanceOf[IR_IntegerConstant] =>
         acc.annotate(SKIP_SUBTREE_ANNOT) // skip other ArrayAccesses below this one
         skipSubtree = true
         toAnalyze += acc
 
-      case IR_Assignment(dst, _, _) if (decls != null && inVars != null) =>
+      case IR_Assignment(dst, _, _) if decls != null && inVars != null =>
         dst match {
           case _ : IR_StringLiteral
                | _ : IR_VariableAccess
@@ -204,7 +204,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           case _                         => // nothing; expand match here, if more vars should stay inside the loop
         }
 
-      case IR_VariableDeclaration(_, name, _) if (decls != null && inVars != null) =>
+      case IR_VariableDeclaration(_, name, _) if decls != null && inVars != null =>
         inVars += name
 
       case _ => // ignore
@@ -217,7 +217,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       skipSubtree = false
 
     node match {
-      case l : IR_ForLoop with OptimizationHint if (l.isInnermost) =>
+      case l : IR_ForLoop with OptimizationHint if l.isInnermost =>
         // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
         for (acc @ IR_ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
@@ -238,7 +238,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         decls = null
         inVars = null
         toAnalyze.clear()
-      case _                                                       => // ignore
+      case _                                                     => // ignore
     }
   }
 
@@ -254,7 +254,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
       case IR_ArrayAccess(base, _, _) => resolveName(base)
       case IR_VariableAccess(name, _) => name
       case IR_StringLiteral(str)      => str
-      case i : IR_InternalVariable    => i.resolveName
+      case i : IR_InternalVariable    => i.resolveName()
     }
   }
 }
@@ -264,7 +264,7 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
   import AddressPrecalculation._
 
   def isDefinedAt(node : Node) : Boolean = {
-    return node.hasAnnotation(DECLS_ANNOT) || node.hasAnnotation(REPL_ANNOT)
+    node.hasAnnotation(DECLS_ANNOT) || node.hasAnnotation(REPL_ANNOT)
   }
 
   def apply(node : Node) : Transformation.OutputType = {
@@ -282,6 +282,6 @@ private final object IntegrateAnnotations extends PartialFunction[Node, Transfor
       bases.addToDecls(stmts)
 
     stmts += node.asInstanceOf[IR_Statement]
-    return IR_Scope(stmts)
+    IR_Scope(stmts)
   }
 }

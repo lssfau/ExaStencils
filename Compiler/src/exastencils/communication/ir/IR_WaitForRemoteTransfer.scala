@@ -14,7 +14,7 @@ import exastencils.parallelization.api.mpi.MPI_Request
 /// remote communication operations
 
 case class IR_WaitForRemoteTransfer(var field : IR_FieldSelection, var neighbor : NeighborInfo, var direction : String) extends IR_Statement with IR_Expandable {
-  override def expand : Output[IR_Statement] = {
+  override def expand() : Output[IR_Statement] = {
     IR_IfCondition(
       IR_IV_RemoteReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[IR_Statement](

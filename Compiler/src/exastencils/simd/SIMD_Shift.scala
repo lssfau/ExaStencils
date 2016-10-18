@@ -14,7 +14,7 @@ case class SIMD_ConcShift(var left : IR_VariableAccess, var right : IR_VariableA
   private var shiftIV : IR_IV_VecShiftIndex = null
 
   Platform.simd_instructionSet match {
-    case "AVX512" | "IMCI" => shiftIV = new IR_IV_VecShiftIndex(offset)
+    case "AVX512" | "IMCI" => shiftIV = IR_IV_VecShiftIndex(offset)
     case _                 =>
   }
 
@@ -103,8 +103,8 @@ case class IR_IV_VecShiftIndex(var offset : Int) extends IR_UnduplicatedVariable
   if (offset <= 0 || offset >= Platform.simd_vectorSize)
     Logger.error("VecShiftIndex out of bounds: " + offset)
 
-  override def resolveName = "vShift" + offset
-  override def resolveDatatype = IR_SpecialDatatype("__m512i")
+  override def resolveName() = "vShift" + offset
+  override def resolveDatatype() = IR_SpecialDatatype("__m512i")
 
   override def getCtor() : Option[IR_Statement] = {
     val init = IR_StringLiteral(null : String)
@@ -122,6 +122,6 @@ case class IR_IV_VecShiftIndex(var offset : Int) extends IR_UnduplicatedVariable
       case si => Logger.error("VecShiftIndex cannot be used for instruction set " + si)
     }
 
-    Some(IR_Assignment(IR_VariableAccess(resolveName, resolveDatatype), init))
+    Some(IR_Assignment(IR_VariableAccess(resolveName(), resolveDatatype()), init))
   }
 }

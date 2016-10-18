@@ -7,7 +7,7 @@ import exastencils.prettyprinting.PpStream
 
 case class L4_SingleLevel(var level : Int) extends L4_DeclarationLevelSpecification with L4_AccessLevelSpecification {
   def prettyprint(out : PpStream) = out << level
-  override def toString() = level.toString
+  override def toString = level.toString
   override def resolveLevel : Int = level
 }
 

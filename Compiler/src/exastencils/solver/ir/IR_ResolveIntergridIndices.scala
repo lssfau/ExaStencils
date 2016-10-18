@@ -22,7 +22,7 @@ object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in op
   // TODO: think about if this case (access outside of a loop) should be supported
 
   this += new Transformation("ModifyIndices", {
-    case fct : IR_FunctionCall if "changeLvlAndIndices" == fct.name => {
+    case fct : IR_FunctionCall if "changeLvlAndIndices" == fct.name =>
       // extract information from special function call
       val fieldAccess = fct.arguments(0).asInstanceOf[IR_FieldAccess]
       Logger.warn("Performing index adaptation for " + fieldAccess.fieldSelection.field.codeName)
@@ -42,36 +42,34 @@ object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in op
       }
 
       fieldAccess
-    }
 
     case access : IR_FieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel        => {
+      IR_SimplifyExpression.evalIntegral(access.fieldSelection.level) < collector.getCurrentLevel =>
       val fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = fieldAccess.index(i) / 2
       fieldAccess
-    }
+
     case access : IR_FieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel        => {
+      IR_SimplifyExpression.evalIntegral(access.fieldSelection.level) > collector.getCurrentLevel =>
       val fieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         fieldAccess.index(i) = 2 * fieldAccess.index(i)
       fieldAccess
-    }
+
     case access : IR_StencilFieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) < collector.getCurrentLevel => {
+      IR_SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) < collector.getCurrentLevel =>
       val stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
       stencilFieldAccess
-    }
+
     case access : IR_StencilFieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) > collector.getCurrentLevel => {
+      IR_SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) > collector.getCurrentLevel =>
       val stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)
       stencilFieldAccess
-    }
   }, false /* don't do this recursively -> avoid double adaptation for cases using special functions */)
 }
 

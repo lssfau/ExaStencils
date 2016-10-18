@@ -6,7 +6,7 @@ import exastencils.stencil.ir.IR_StencilCollection
 object L4_StencilCollection extends L4_LeveledKnowledgeCollection[L4_Stencil] {
   exastencils.core.Duplicate.registerConstant(this)
 
-  def progress = {
+  def progress() = {
     for (obj <- objects)
       IR_StencilCollection.objects += obj.progress
   }

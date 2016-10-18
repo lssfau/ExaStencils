@@ -98,6 +98,6 @@ object Cycle {
       }
     }
 
-    printer.println
+    printer.println()
   }
 }

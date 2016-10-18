@@ -21,7 +21,7 @@ case class IR_PrintAllTimers() extends IR_TimerFunction with IR_Expandable {
 
     val timeToPrint = "getTotalTime"
     def timerValue = IR_VariableAccess("timerValue", IR_DoubleDatatype)
-    statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(timeToPrint, timer.resolveName))
+    statements += IR_VariableDeclaration(timerValue, IR_FunctionCall(timeToPrint, timer.resolveName()))
 
     if (Knowledge.mpi_enabled) {
       statements += MPI_AllReduce(IR_AddressOf(timerValue), timerValue.datatype, 1, "+")

@@ -9,11 +9,11 @@ import exastencils.baseExt.ir._
 case object MPI_IV_MpiRank extends IR_UnduplicatedVariable {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
-  override def resolveName = "mpiRank"
-  override def resolveDatatype = IR_IntegerDatatype
+  override def resolveName() = "mpiRank"
+  override def resolveDatatype() = IR_IntegerDatatype
 
   // default value is not applicable since mpi rank will be initialized in a separate routine
-  override def resolveDefValue = None
+  override def resolveDefValue() = None
 }
 
 /// MPI_IsRootProc

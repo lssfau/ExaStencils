@@ -14,14 +14,12 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainFunctions
-import exastencils.domain.{ l4 => _ }
 import exastencils.field.ir._
 import exastencils.globals.ir._
-import exastencils.grid.{ l4 => _, _ }
+import exastencils.grid._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
-import exastencils.knowledge.{ l4 => _ }
 import exastencils.logger._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
@@ -51,23 +49,23 @@ object MainChristian {
     val knowledgeParser = new ParserKnowledge
     val platformParser = new ParserPlatform
     if (args.length == 1 && args(0) == "--json-stdin") {
-      InputReader.read
+      InputReader.read()
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else if (args.length == 2 && args(0) == "--json-file") {
       InputReader.read(args(1))
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else {
       if (args.length >= 1)
         settingsParser.parseFile(args(0))
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       if (args.length >= 2)
         knowledgeParser.parseFile(args(1))
       if (args.length >= 3)
@@ -80,7 +78,7 @@ object MainChristian {
     Platform.update()
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.getOutputPath)).exists) {
+      if (new java.io.File(Settings.getOutputPath).exists) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
@@ -96,10 +94,10 @@ object MainChristian {
 
   def shutdown() = {
     if (Settings.timeStrategies)
-      StrategyTimer.print
+      StrategyTimer.print()
 
     if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+      Logger_HTML.finish()
   }
 
   def handleL1() = {
@@ -156,20 +154,20 @@ object MainChristian {
     } else {
       StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
     }
-    ValidationL4.apply
+    ValidationL4.apply()
 
     if (false) // re-print the merged L4 state
     {
       val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(L4_printed)))
-      outFile.close
+      outFile.write(Indenter.addIndentations(L4_printed))
+      outFile.close()
 
       // re-parse the file to check for errors
       var parserl4 = new ParserL4
       StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
-      ValidationL4.apply
+      ValidationL4.apply()
     }
 
     if (Settings.timeStrategies)
@@ -321,7 +319,7 @@ object MainChristian {
     IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.cuda_enabled)
-      CUDA_KernelFunctions.get.convertToFunctions
+      CUDA_KernelFunctions.get.convertToFunctions()
 
     IR_ResolveBoundedScalar.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
     IR_ResolveSlotOperations.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
@@ -392,9 +390,9 @@ object MainChristian {
   }
 
   def print() = {
-    Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
+    Logger.dbg("Prettyprinting to folder " + new java.io.File(Settings.getOutputPath).getAbsolutePath)
     PrintToFile.apply()
-    PrettyprintingManager.finish
+    PrettyprintingManager.finish()
   }
 
   def main(args : Array[String]) : Unit = {
@@ -414,7 +412,7 @@ object MainChristian {
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    (new CountNodes("number of printed nodes")).apply()
+    new CountNodes("number of printed nodes").apply()
 
     shutdown()
   }

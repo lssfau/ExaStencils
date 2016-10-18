@@ -149,6 +149,6 @@ abstract class Strategy(val name : String) {
     if (Settings.logStrategyResults) {
       Logger.debug(s"""Result of strategy "${ name }::${ transformation.name }": $result""")
     }
-    return result
+    result
   }
 }

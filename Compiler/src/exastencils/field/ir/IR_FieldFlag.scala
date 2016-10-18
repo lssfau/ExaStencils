@@ -16,7 +16,7 @@ abstract class IR_IV_FieldFlag extends IR_InternalVariable(true, false, true, tr
     super.resolveAccess(access, fragment, domain, field, level, neigh)
   }
 
-  override def resolveDatatype = {
+  override def resolveDatatype() = {
     if (field.numSlots > 1)
       IR_ArrayDatatype(IR_BooleanDatatype, field.numSlots)
     else
@@ -37,7 +37,7 @@ abstract class IR_IV_FieldFlag extends IR_InternalVariable(true, false, true, tr
   override def getCtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue.get)))
+    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue().get)))
     slot = origSlot
     ret
   }

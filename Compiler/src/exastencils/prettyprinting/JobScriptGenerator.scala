@@ -1,12 +1,11 @@
 package exastencils.prettyprinting
 
-import exastencils.core._
 import exastencils.config._
 
 object JobScriptGenerator {
-  def write : Unit = {
+  def write() : Unit = {
     Platform.targetCompiler match {
-      case "IBMBG" | "IBMXL" => {
+      case "IBMBG" | "IBMXL" =>
         val numOMP = Knowledge.omp_numThreads
         val numMPI = Knowledge.mpi_numThreads
         val numThreadsPerNode = Platform.hw_numThreadsPerNode
@@ -16,18 +15,18 @@ object JobScriptGenerator {
         val printer = PrettyprintingManager.getPrinter("runJuQueen")
         printer <<< s"#@ shell = /bin/bash"
         //printer <<< s"#@ job_name = GENERATED_$numNodes"
-        printer <<< s"#@ job_name = ${Settings.configName}"
+        printer <<< s"#@ job_name = ${ Settings.configName }"
         printer <<< "#@ error = $(job_name).$(jobid).out"
         printer <<< "#@ output = $(job_name).$(jobid).out"
         printer <<< s"#@ environment = COPY_ALL"
         var notify_user : String = null
         Settings.user.toLowerCase() match {
-          case "sebastian" | "kuckuk" | "sebastiankuckuk" => notify_user = "sebastian.kuckuk@fau.de"
-          case "christian" | "schmitt" | "christianschmitt" => notify_user = "christian.schmitt@cs.fau.de"
-          case "stefan" | "kronawitter" | "stefankronawitter" => notify_user = "kronast@fim.uni-passau.de"
+          case "sebastian" | "kuckuk" | "sebastiankuckuk"              => notify_user = "sebastian.kuckuk@fau.de"
+          case "christian" | "schmitt" | "christianschmitt"            => notify_user = "christian.schmitt@cs.fau.de"
+          case "stefan" | "kronawitter" | "stefankronawitter"          => notify_user = "kronast@fim.uni-passau.de"
           case "alex" | "alexander" | "grebhahn" | "alexandergrebhahn" => notify_user = "grebhahn@fim.uni-passau.de"
-          case "hannah" | "rittich" | "hannahrittich" => notify_user = "rittich@math.uni-wuppertal.de"
-          case _ => // no user -> no notifications
+          case "hannah" | "rittich" | "hannahrittich"                  => notify_user = "rittich@math.uni-wuppertal.de"
+          case _                                                       => // no user -> no notifications
         }
         if (notify_user != null) {
           printer <<< s"#@ notification = always"
@@ -54,9 +53,9 @@ object JobScriptGenerator {
         printer <<< s"export OMP_NUM_THREADS=$numOMP"
         printer <<< s"time runjob --ranks-per-node $numMPIRanksPerNode --np $numMPI --exp-env OMP_NUM_THREADS : ./$destBinary"
 
-        printer.finish
-      }
-      case "ICC" | "ICPC" => { // emmy - FIXME: switch according to more appropriate metrics
+        printer.finish()
+
+      case "ICC" | "ICPC" => // emmy - FIXME: switch according to more appropriate metrics
         val numOMP = Knowledge.omp_numThreads
         val numMPI = Knowledge.mpi_numThreads
         val numThreadsPerNode = Platform.hw_numThreadsPerNode
@@ -66,18 +65,18 @@ object JobScriptGenerator {
         val printer = PrettyprintingManager.getPrinter("runTest")
         printer <<< s"#!/bin/bash -l"
 
-        printer <<< s"#PBS -N ${Settings.configName}"
+        printer <<< s"#PBS -N ${ Settings.configName }"
         printer <<< s"#PBS -l nodes=$numNodes:ppn=40"
         printer <<< s"#PBS -l walltime=01:00:00"
         printer <<< s"#PBS -q route"
         var notify_user : String = null
         Settings.user.toLowerCase() match {
-          case "sebastian" | "kuckuk" | "sebastiankuckuk" => notify_user = "sebastian.kuckuk@fau.de"
-          case "christian" | "schmitt" | "christianschmitt" => notify_user = "christian.schmitt@cs.fau.de"
-          case "stefan" | "kronawitter" | "stefankronawitter" => notify_user = "kronast@fim.uni-passau.de"
+          case "sebastian" | "kuckuk" | "sebastiankuckuk"              => notify_user = "sebastian.kuckuk@fau.de"
+          case "christian" | "schmitt" | "christianschmitt"            => notify_user = "christian.schmitt@cs.fau.de"
+          case "stefan" | "kronawitter" | "stefankronawitter"          => notify_user = "kronast@fim.uni-passau.de"
           case "alex" | "alexander" | "grebhahn" | "alexandergrebhahn" => notify_user = "grebhahn@fim.uni-passau.de"
-          case "hannah" | "rittich" | "hannahrittich" => notify_user = "rittich@math.uni-wuppertal.de"
-          case _ => // no user -> no notifications
+          case "hannah" | "rittich" | "hannahrittich"                  => notify_user = "rittich@math.uni-wuppertal.de"
+          case _                                                       => // no user -> no notifications
         }
         if (notify_user != null)
           printer <<< s"#PBS -M $notify_user -m abe"
@@ -99,15 +98,15 @@ object JobScriptGenerator {
         // FIXME: adapt for mpi/omp
         printer <<< s"time make -j && time likwid-pin -S -c S0:0-19 ./$srcBinary"
 
-        printer.finish
-      }
+        printer.finish()
+
       case _ =>
     }
   }
 
   def write(numMPI : Int, numOMP : Int, ranksPerNode : Int, sourcePath : Array[String], number : Int, suffix : String) : Unit = {
     Platform.targetCompiler match {
-      case "IBMBG" | "IBMXL" => {
+      case "IBMBG" | "IBMXL" =>
         val numThreadsPerNode = ranksPerNode
         val numMPIRanksPerNode = numThreadsPerNode / numOMP
         val numNodes = (numOMP * numMPI) / ranksPerNode
@@ -120,19 +119,19 @@ object JobScriptGenerator {
         printer <<< s"#@ environment = COPY_ALL"
         printer <<< s"#@ notification = always"
         Settings.user.toLowerCase() match {
-          case "sebastian" | "kuckuk" | "sebastiankuckuk" => printer <<< s"#@ notify_user = sebastian.kuckuk@fau.de"
-          case "christian" | "schmitt" | "christianschmitt" => printer <<< s"#@ notify_user = christian.schmitt@cs.fau.de"
-          case "stefan" | "kronawitter" | "stefankronawitter" => printer <<< s"#@ notify_user = kronast@fim.uni-passau.de"
+          case "sebastian" | "kuckuk" | "sebastiankuckuk"              => printer <<< s"#@ notify_user = sebastian.kuckuk@fau.de"
+          case "christian" | "schmitt" | "christianschmitt"            => printer <<< s"#@ notify_user = christian.schmitt@cs.fau.de"
+          case "stefan" | "kronawitter" | "stefankronawitter"          => printer <<< s"#@ notify_user = kronast@fim.uni-passau.de"
           case "alex" | "alexander" | "grebhahn" | "alexandergrebhahn" => printer <<< s"#@ notify_user = grebhahn@fim.uni-passau.de"
-          case "hannah" | "rittich" | "hannahrittich" => printer <<< s"#@ notify_user = rittich@math.uni-wuppertal.de"
-          case _ => // no user -> no notifications
+          case "hannah" | "rittich" | "hannahrittich"                  => printer <<< s"#@ notify_user = rittich@math.uni-wuppertal.de"
+          case _                                                       => // no user -> no notifications
         }
         printer <<< s"#@ job_type = bluegene"
         printer <<< s"#@ bg_size = $numNodes"
         printer <<< s"#@ bg_connectivity = TORUS"
         if (numNodes > 64) {
-          var hours : Int = ((sourcePath.size * 3) / 60).toInt
-          var minutes : Int = ((sourcePath.size * 3) % 60).toInt
+          var hours : Int = (sourcePath.length * 3) / 60
+          var minutes : Int = (sourcePath.length * 3) % 60
           if (minutes < 10) {
             printer <<< s"#@ wall_clock_limit = 0" + hours + ":0" + minutes + ":00"
           } else {
@@ -144,7 +143,7 @@ object JobScriptGenerator {
         printer <<< s"#@ queue"
         printer <<< ""
 
-        for (a <- 0 to sourcePath.size - 1) {
+        for (a <- sourcePath.indices) {
           // list of source and destination locations for the different jobs
           // TODO: tune the next 4 parameters
 
@@ -164,8 +163,8 @@ object JobScriptGenerator {
           }
         }
 
-        printer.finish
-      }
+        printer.finish()
+
       case _ =>
     }
   }

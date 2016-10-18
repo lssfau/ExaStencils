@@ -15,7 +15,7 @@ object Communication {
     var commName = "communication"
     if (Knowledge.l3tmp_genCommTimersPerField) commName += "_" + field.split('[')(0).split('@')(0)
     commTimerNames += commName -> (if (Knowledge.l3tmp_genCommTimersPerField) " " + field.split('[')(0).split('@')(0) else "")
-    if (Knowledge.l3tmp_genCommTimersPerLevel) commName = s"concat ( '${ commName }_', levels@current() )" else s"'$commName'"
+    commName = if (Knowledge.l3tmp_genCommTimersPerLevel) s"concat ( '${ commName }_', levels@current() )" else s"'$commName'"
 
     if (Knowledge.l3tmp_genTimersForComm)
       printer.println(s"\tstartTimer ( $commName )")

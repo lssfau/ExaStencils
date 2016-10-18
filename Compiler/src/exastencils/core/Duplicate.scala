@@ -21,7 +21,7 @@ object Duplicate {
   // def registerConstant(t : Class[_], field : String) : Unit = cloner.registerConstant(t, field)
 
   def clonable(o : AnyRef) : Boolean = {
-    return o ne cloner.shallowClone(o)
+    o ne cloner.shallowClone(o)
   }
 
   // prevent cloning of some immutable objects/classes of the scala library (otherwise something goes boom)

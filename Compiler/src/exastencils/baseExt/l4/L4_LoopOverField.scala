@@ -3,10 +3,10 @@ package exastencils.baseExt.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.l4.{ L4_ProgressOption, _ }
+import exastencils.base.l4._
 import exastencils.baseExt.ir._
+import exastencils.communication.l4.L4_Communicate
 import exastencils.field.l4.L4_FieldAccess
-import exastencils.l4.L4_Communicate
 import exastencils.logger.Logger
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting._

@@ -14,14 +14,12 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainFunctions
-import exastencils.domain.{ l4 => _ }
 import exastencils.field.ir._
 import exastencils.globals.ir._
-import exastencils.grid.{ l4 => _, _ }
+import exastencils.grid._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
-import exastencils.knowledge.{ l4 => _ }
 import exastencils.logger._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
@@ -55,21 +53,21 @@ object MainChristoph {
     if (args.length == 1 && args(0) == "--json-stdin") {
       InputReader.read()
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else if (args.length == 2 && args(0) == "--json-file") {
       InputReader.read(args(1))
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else {
       if (args.length >= 1)
         settingsParser.parseFile(args(0))
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       if (args.length >= 2)
         knowledgeParser.parseFile(args(1))
       if (args.length >= 3)
@@ -100,10 +98,10 @@ object MainChristoph {
 
   def shutdown() : Unit = {
     if (Settings.timeStrategies)
-      StrategyTimer.print
+      StrategyTimer.print()
 
     if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+      Logger_HTML.finish()
   }
 
   def handleL1() : Unit = {
@@ -394,7 +392,7 @@ object MainChristoph {
   def print() : Unit = {
     Logger.dbg("Prettyprinting to folder " + new java.io.File(Settings.getOutputPath).getAbsolutePath)
     PrintToFile.apply()
-    PrettyprintingManager.finish
+    PrettyprintingManager.finish()
   }
 
   def main(args : Array[String]) : Unit = {

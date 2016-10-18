@@ -78,11 +78,11 @@ sealed abstract class IndexOffset {
 }
 
 case class ConstantIndexOffset(off : Long) extends IndexOffset {
-  override def toString() : String = off.toString
+  override def toString : String = off.toString
 }
 
 case class InfiniteIndexOffset() extends IndexOffset {
-  override def toString() : String = "inf"
+  override def toString : String = "inf"
 }
 
 /** Analysis pass to extract memory access distances in iteration space. See [[IndexOffset]]
@@ -139,7 +139,7 @@ object AnalyzeIterationDistance extends QuietDefaultStrategy(
         val fieldAccess = Duplicate(fa)
         IR_GeneralSimplify.doUntilDoneStandalone(fieldAccess)
         println(fa.fieldSelection.field.codeName + fieldAccess.index.prettyprint())
-        val offsets = (0 to numDims - 1).map({ dim => // loop over dimensions
+        val offsets = (0 until numDims).map({ dim => // loop over dimensions
           val indexExpr = fieldAccess.index.indices(dim)
           AnalyzeSubscriptExpression(indexExpr, dim, iterSpace)
         }).toList
@@ -212,9 +212,9 @@ class AnalyzeSubscriptExpression(val ssExpr : IR_Expression, val dim : Int, val 
 
       case IR_Subtraction(left, right) => addTerm(left, true) + addTerm(right, false)
 
-      case _ : IR_Multiplication => InfiniteIndexOffset()
-      case _ : IR_Division       => InfiniteIndexOffset()
-      case va : IR_VariableAccess          => addTerm(va, true)
+      case _ : IR_Multiplication  => InfiniteIndexOffset()
+      case _ : IR_Division        => InfiniteIndexOffset()
+      case va : IR_VariableAccess => addTerm(va, true)
 
     }
   }

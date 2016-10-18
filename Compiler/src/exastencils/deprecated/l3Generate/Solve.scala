@@ -45,8 +45,7 @@ object Solve {
       printer.println(s"\t\t\tintegral += Solution[currentSlot]@current")
       printer.println(s"\t\t}")
       val numPoints : Double = Knowledge.dimensions.map(dim =>
-        Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << Knowledge.maxLevel) + (if (Knowledge.l3tmp_genCellBasedDiscr) 0 else -1))
-        .reduce((a, b) => a * b)
+        Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << Knowledge.maxLevel) + (if (Knowledge.l3tmp_genCellBasedDiscr) 0 else -1)).product
       printer.println(s"\t\tintegral /= $numPoints")
       printer.println(s"\t\tloop over Solution[currentSlot]@current {")
       printer.println(s"\t\t\tSolution[currentSlot]@current -= integral")
@@ -97,7 +96,7 @@ object Solve {
       printer.println("\tprint ( 'Mean time per vCycle: ', getMeanFromTimer ( 'cycle' ) )")
     }
     printer.println(s"}")
-    printer.println
+    printer.println()
 
     if (Knowledge.l3tmp_kelvin) {
       printer.println("Function Solve_GMRF ( ) : Unit {")
@@ -167,7 +166,7 @@ object Solve {
       printer.println(s"\t\tSolution_GMRF@finest = exp ( Solution_GMRF@finest / sqrt ( tau2 ) )")
       printer.println(s"\t}")
       printer.println(s"}")
-      printer.println
+      printer.println()
     }
   }
 }

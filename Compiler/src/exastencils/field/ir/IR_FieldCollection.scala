@@ -11,10 +11,9 @@ object IR_FieldCollection extends IR_LeveledKnowledgeCollection[IR_Field] {
   def getByIdentifierLevExp(identifier : String, level : IR_Expression, suppressError : Boolean = false) : Option[IR_Field] = {
     level match {
       case IR_IntegerConstant(constLevel) => getByIdentifier(identifier, constLevel.toInt, suppressError)
-      case _                              => {
+      case _                              =>
         if (!suppressError) Logger.warn(s"Trying to find field $identifier on level ${ level.prettyprint } - non-constant levels are not supported")
         None
-      }
     }
   }
 

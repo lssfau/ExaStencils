@@ -28,7 +28,7 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
     // apply local trafo and replace boundaryCoord
     val strat = QuietDefaultStrategy("ResolveBoundaryCoordinates")
     strat += new Transformation("SearchAndReplace", {
-      case virtualField : IR_VirtualFieldAccess if virtualField.fieldName.startsWith("boundaryCoord") || virtualField.fieldName.startsWith("vf_boundaryCoord") => {
+      case virtualField : IR_VirtualFieldAccess if virtualField.fieldName.startsWith("boundaryCoord") || virtualField.fieldName.startsWith("vf_boundaryCoord") =>
         val evalDim = virtualField.fieldName match {
           case "boundaryCoord_x" | "vf_boundaryCoord_x" => 0
           case "boundaryCoord_y" | "vf_boundaryCoord_y" => 1
@@ -41,7 +41,7 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
           case "node" => virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
           //case d if         || ("face_x" == d && 0 != neigh.dir(0))         || ("face_y" == d && 0 != neigh.dir(1))         || ("face_z" == d && 0 != neigh.dir(2))
 
-          case "cell" => {
+          case "cell" =>
             if (0 == neigh.dir(evalDim)) { // simple projection
               virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "cellCenter")
             } else if (neigh.dir(evalDim) < 0) { // snap to left boundary
@@ -50,11 +50,9 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
               virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
               virtualField.index = GridUtil.offsetIndex(virtualField.index, 1, evalDim)
             }
-          }
         }
         virtualField
         //Grid.getGridObject.invokeAccessResolve(virtualField)
-      }
     })
 
     val bc = Duplicate(field.field.boundary)

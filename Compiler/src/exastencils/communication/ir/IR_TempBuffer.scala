@@ -1,8 +1,7 @@
-package exastencils.communication
+package exastencils.communication.ir
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_Linearization
-import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.datastructures._
 
 /// IR_TempBufferAccess

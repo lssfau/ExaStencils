@@ -3,7 +3,7 @@ package exastencils.prettyprinting
 import exastencils.config._
 
 object ProjectfileGenerator extends BuildfileGenerator {
-  override def write : Unit = {
+  override def write() : Unit = {
     val projectPrinter = PrettyprintingManager.getPrinter("exastencils.vcxproj")
     val solutionPrinter = PrettyprintingManager.getPrinter("exastencils.sln")
 
@@ -163,7 +163,7 @@ object ProjectfileGenerator extends BuildfileGenerator {
 
     /// finalize
 
-    projectPrinter.finish
-    solutionPrinter.finish
+    projectPrinter.finish()
+    solutionPrinter.finish()
   }
 }

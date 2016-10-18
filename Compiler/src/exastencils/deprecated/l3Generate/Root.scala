@@ -49,7 +49,7 @@ case class Root() extends Node {
       printer.println(s"\tif ( xPos <= 0.0 ) { return ( UW ) }")
       printer.println(s"\treturn ( 0.0 )")
       printer.println(s"}")
-      printer.println
+      printer.println()
     }
 
     // Coeff/StencilFields
@@ -68,7 +68,7 @@ case class Root() extends Node {
     // External Fields
     if (Knowledge.l3tmp_genExtFields) {
       printer.println("external Field extSolution <ExtSolLayout> => Solution@(finest)")
-      printer.println
+      printer.println()
     }
 
     // Stencils

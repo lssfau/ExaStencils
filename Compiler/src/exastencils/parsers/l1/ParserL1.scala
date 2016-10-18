@@ -25,13 +25,12 @@ class ParserL1 extends ExaParser with scala.util.parsing.combinator.PackratParse
     phrase(program)(tokens) match {
       case Success(e, _)        => e
       case Error(msg, _)        => throw new Exception("parse error: " + msg)
-      case Failure(msg, parser) => {
+      case Failure(msg, parser) =>
         var sb = new StringBuilder
         sb.append(s"Parse failure at position ${ parser.pos }: $msg\n")
         sb.append(parser.pos.longString)
         sb.append("\n")
         throw new Exception(sb.toString)
-      }
     }
   }
 

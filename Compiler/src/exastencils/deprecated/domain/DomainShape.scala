@@ -49,14 +49,14 @@ case class FileInputDomainShape(override val shapeData : String) extends DomainS
         .filter { x => x.globalId != f.globalId }
         .foreach { neighbor => {
           if (Knowledge.comm_strategyFragment == 26) {
-            if (Knowledge.dimensionality == 2 && f.vertices.intersect(neighbor.vertices).length > 0) {
+            if (Knowledge.dimensionality == 2 && f.vertices.intersect(neighbor.vertices).nonEmpty) {
               f.neighborIDs(FragmentCollection.getNeighborIndex(f, neighbor)) = neighbor.globalId
             } else if (Knowledge.dimensionality == 3) {
               //TODO
             }
 
           } else {
-            if (Knowledge.dimensionality == 2 && f.edges.intersect(neighbor.edges).length > 0) {
+            if (Knowledge.dimensionality == 2 && f.edges.intersect(neighbor.edges).nonEmpty) {
               val tmp = f.edges.intersect(neighbor.edges)
               val t = f.edges.intersect(neighbor.edges).head
               f.faces.head.getEdgeDirection(t) match {
@@ -82,7 +82,7 @@ case class ShapedDomainShape(override val shapeData : List[RectangularDomainShap
   }
   def initFragments() = {
     IR_DomainCollection.getByIdentifier("global") match {
-      case Some(d) => {
+      case Some(d) =>
         d.shape.asInstanceOf[RectangularDomainShape].initFragments()
         //TODO more flexibel when several domains defined
 
@@ -97,9 +97,7 @@ case class ShapedDomainShape(override val shapeData : List[RectangularDomainShap
         FragmentCollection.fragments.filter { f => rankMapping.values.toList.contains(f.rank) }
           .foreach { f => f.rank = -99 }
         FragmentCollection.fragments.filter { f => rankMapping.keySet.contains(f.rank) }
-          .foreach { f => f.rank = rankMapping.get(f.rank).getOrElse(f.rank) }
-
-      }
+          .foreach { f => f.rank = rankMapping.getOrElse(f.rank, f.rank) }
       case None    => Logger.error(s"No global Domain defined")
     }
   }
@@ -134,7 +132,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
         var v : ListBuffer[Vertex] = ListBuffer()
         var e : ListBuffer[Edge] = ListBuffer()
         var f : ListBuffer[Face] = ListBuffer()
-        val indices = new Index(r, k, j, i)
+        val indices = Index(r, k, j, i)
         if (Knowledge.dimensionality == 1) {
           for (iv <- 0 to 1) {
             v += new Vertex(ListBuffer(
@@ -143,7 +141,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
             f = ListBuffer(new Face(ListBuffer(e(0)), v))
             val domainIDs = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
 
-            FragmentCollection.fragments += new DummyFragment(calcLocalFragmentId, calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbors(indices), r)
+            FragmentCollection.fragments += new DummyFragment(calcLocalFragmentId(), calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbors(indices), r)
           }
         } else if (Knowledge.dimensionality == 2) {
           for {
@@ -157,7 +155,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
           e = ListBuffer(new Edge(v(0), v(1)), new Edge(v(0), v(2)), new Edge(v(1), v(3)), new Edge(v(2), v(3)))
           f = ListBuffer(new Face(ListBuffer(e(0), e(1), e(2), e(3)), v))
           val domainIDs = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
-          FragmentCollection.fragments += new DummyFragment(calcLocalFragmentId, calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbors(indices), r)
+          FragmentCollection.fragments += new DummyFragment(calcLocalFragmentId(), calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbors(indices), r)
         } else {
           // 3D
           for {
@@ -180,7 +178,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
             new Face(ListBuffer(e(3), e(4), e(7), e(10)), ListBuffer(v(1), v(3), v(5), v(7))), //top
             new Face(ListBuffer(e(1), e(2), e(6), e(9)), ListBuffer(v(0), v(2), v(4), v(6)))) //bottom
           val domainIDs = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
-          FragmentCollection.fragments += new DummyFragment(calcLocalFragmentId, calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbors(indices), r)
+          FragmentCollection.fragments += new DummyFragment(calcLocalFragmentId(), calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbors(indices), r)
         }
       }
     }
@@ -202,8 +200,8 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
     if (Knowledge.comm_strategyFragment == 26) {
       val n =
         for (
-          kStep <- (if (Knowledge.dimensionality > 2) -1 to 1 else 0 to 0);
-          jStep <- (if (Knowledge.dimensionality > 1) -1 to 1 else 0 to 0);
+          kStep <- if (Knowledge.dimensionality > 2) -1 to 1 else 0 to 0;
+          jStep <- if (Knowledge.dimensionality > 1) -1 to 1 else 0 to 0;
           iStep <- -1 to 1
         ) yield calcGlobalFragmentId(indices.getNeighbor(kStep, jStep, iStep))
       n.filter { f => f != indices.getGlobalId() }.to[ListBuffer]
@@ -220,32 +218,32 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
     val yFrom : Int = (rank / Knowledge.domain_rect_numBlocks_x) % Knowledge.domain_rect_numBlocks_y
     val zFrom : Int = rank / (Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y)
     var interval = Map(
-      "xInterval" -> new Interval(shapeData.lower_x + xFrom.toDouble * rankWidth_x, shapeData.lower_x + (xFrom.toDouble + 1) * rankWidth_x))
-    if (Knowledge.dimensionality >= 2) interval += ("yInterval" -> new Interval(shapeData.lower_y + yFrom.toDouble * rankWidth_y, shapeData.lower_y + (yFrom.toDouble + 1) * rankWidth_y))
-    if (Knowledge.dimensionality >= 3) interval += ("zInterval" -> new Interval(shapeData.lower_z + zFrom.toDouble * rankWidth_z, shapeData.lower_z + (zFrom.toDouble + 1) * rankWidth_z))
+      "xInterval" -> Interval(shapeData.lower_x + xFrom.toDouble * rankWidth_x, shapeData.lower_x + (xFrom.toDouble + 1) * rankWidth_x))
+    if (Knowledge.dimensionality >= 2) interval += ("yInterval" -> Interval(shapeData.lower_y + yFrom.toDouble * rankWidth_y, shapeData.lower_y + (yFrom.toDouble + 1) * rankWidth_y))
+    if (Knowledge.dimensionality >= 3) interval += ("zInterval" -> Interval(shapeData.lower_z + zFrom.toDouble * rankWidth_z, shapeData.lower_z + (zFrom.toDouble + 1) * rankWidth_z))
     interval
   }
 
   case class Index(r : Int, k : Int, j : Int, i : Int) {
     def lowerNeighbor(dir : String) : Index = {
       dir match {
-        case "i" => new Index(r, k, j, i - 1)
-        case "j" => new Index(r, k, j - 1, i)
-        case "k" => new Index(r, k - 1, j, i)
+        case "i" => Index(r, k, j, i - 1)
+        case "j" => Index(r, k, j - 1, i)
+        case "k" => Index(r, k - 1, j, i)
         case _   => this
       }
     }
     def upperNeighbor(dir : String) : Index = {
       dir match {
-        case "i" => new Index(r, k, j, i + 1)
-        case "j" => new Index(r, k, j + 1, i)
-        case "k" => new Index(r, k + 1, j, i)
+        case "i" => Index(r, k, j, i + 1)
+        case "j" => Index(r, k, j + 1, i)
+        case "k" => Index(r, k + 1, j, i)
         case _   => this
       }
     }
 
     def getNeighbor(kStep : Int = 0, jStep : Int = 0, iStep : Int = 0) = {
-      new Index(r, k + kStep, j + jStep, i + iStep)
+      Index(r, k + kStep, j + jStep, i + iStep)
     }
 
     def getGlobalId() : Int = {
@@ -259,39 +257,39 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
     def checkValidity(id : Int) : Int = {
       //TODO improve this function!!
       val dom = IR_DomainCollection.getByIdentifier("global").get
-      val size = dom.asInstanceOf[RectangularDomain].shape.asInstanceOf[RectangularDomainShape].shapeData.asInstanceOf[AABB]
+      val size = dom.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
       if (r < 0) -7
       else if (r > Knowledge.domain_numBlocks - 1) -8
 
       else if (i < 0) {
         if (getIntervalOfRank(r)("xInterval").lower > 0.0) {
           val newRankId = r - 1
-          calcGlobalFragmentId(new Index(newRankId, k, j, Knowledge.domain_rect_numFragsPerBlock_x - 1))
+          calcGlobalFragmentId(Index(newRankId, k, j, Knowledge.domain_rect_numFragsPerBlock_x - 1))
         } else -1
       } else if (j < 0) {
         if (getIntervalOfRank(r)("yInterval").lower > size.lower_y) {
           val newRankId = r - Knowledge.domain_rect_numBlocks_x
-          calcGlobalFragmentId(new Index(newRankId, k, Knowledge.domain_rect_numFragsPerBlock_y - 1, i))
+          calcGlobalFragmentId(Index(newRankId, k, Knowledge.domain_rect_numFragsPerBlock_y - 1, i))
         } else -2
       } else if (k < 0) {
         if (getIntervalOfRank(r)("zInterval").lower > size.lower_z) {
           val newRankId = r - Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y
-          calcGlobalFragmentId(new Index(newRankId, Knowledge.domain_rect_numFragsPerBlock_z - 1, j, i))
+          calcGlobalFragmentId(Index(newRankId, Knowledge.domain_rect_numFragsPerBlock_z - 1, j, i))
         } else -3
       } else if (i > Knowledge.domain_rect_numFragsPerBlock_x - 1) {
         val newRankId = r + 1
         if (getIntervalOfRank(newRankId)("yInterval") == getIntervalOfRank(r)("yInterval"))
-          calcGlobalFragmentId(new Index(newRankId, k, j, 0))
+          calcGlobalFragmentId(Index(newRankId, k, j, 0))
         else -4
       } else if (j > Knowledge.domain_rect_numFragsPerBlock_y - 1) {
         val newRankId = r + Knowledge.domain_rect_numBlocks_x
         if (getIntervalOfRank(newRankId)("xInterval") == getIntervalOfRank(r)("xInterval")) {
-          calcGlobalFragmentId(new Index(newRankId, k, 0, i))
+          calcGlobalFragmentId(Index(newRankId, k, 0, i))
         } else -5
       } else if (k > Knowledge.domain_rect_numFragsPerBlock_z - 1) {
         val newRankId = r + Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y
         if (getIntervalOfRank(newRankId)("xInterval") == getIntervalOfRank(r)("xInterval") && getIntervalOfRank(newRankId)("yInterval") == getIntervalOfRank(r)("yInterval")) {
-          calcGlobalFragmentId(new Index(newRankId, 0, j, i))
+          calcGlobalFragmentId(Index(newRankId, 0, j, i))
         } else -6
       } else id
     }
@@ -306,10 +304,10 @@ case class IrregularDomainShape(var faces : ListBuffer[Face], var edges : ListBu
     (vertices :+ vertices(0)).sliding(2).foldLeft(false) {
       case (c, List(i, j)) =>
         val cond = {
-          ((
+          (
             (i.Coords(1) <= vertex.Coords(1) && vertex.Coords(1) < j.Coords(1)) ||
               (j.Coords(1) <= vertex.Coords(1) && vertex.Coords(1) < i.Coords(1))) &&
-            (vertex.Coords(0) <= (j.Coords(0) - i.Coords(0)) * (vertex.Coords(1) - i.Coords(1)) / (j.Coords(1) - i.Coords(1)) + i.Coords(0))) //
+            (vertex.Coords(0) <= (j.Coords(0) - i.Coords(0)) * (vertex.Coords(1) - i.Coords(1)) / (j.Coords(1) - i.Coords(1)) + i.Coords(0)) //
         }
         if (cond) {
           //          println(vertex.Coords)

@@ -1,4 +1,4 @@
-package exastencils.l4
+package exastencils.communication.l4
 
 import scala.collection.mutable.ListBuffer
 

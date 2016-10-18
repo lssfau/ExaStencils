@@ -18,17 +18,17 @@ import exastencils.logger.Logger
 
 @deprecated("to be integrated into the new grid class family", "05.10.16")
 case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var offset : IR_ExpressionIndex = IR_ExpressionIndex(0, 0, 0) /* was float index before */) extends IR_Statement with IR_Expandable {
-  override def expand : Output[StatementList] = {
+  override def expand() : Output[StatementList] = {
     if (Knowledge.domain_fragmentTransformation) {
       // TODO: integrate into the new grid class family
       ListBuffer[IR_Statement](
         IR_VariableDeclaration(IR_RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
           case "node" | "face_x"            =>
-            Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : IR_Expression)) + offset(0))
+            Some(((if (directCoords) "x" - field.referenceOffset(0) else "x" : IR_Expression) + offset(0))
               / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 1)
               * (IR_IV_FragmentPositionEnd(0) - IR_IV_FragmentPositionBegin(0)) + IR_IV_FragmentPositionBegin(0))
           case "cell" | "face_y" | "face_z" =>
-            Some(((if (directCoords) ("x" - field.referenceOffset(0)) else ("x" : IR_Expression)) + 0.5 + offset(0))
+            Some(((if (directCoords) "x" - field.referenceOffset(0) else "x" : IR_Expression) + 0.5 + offset(0))
               / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 0)
               * (IR_IV_FragmentPositionEnd(0) - IR_IV_FragmentPositionBegin(0)) + IR_IV_FragmentPositionBegin(0))
         }),
@@ -36,11 +36,11 @@ case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var 
           if (Knowledge.dimensionality > 1) {
             field.fieldLayout.discretization match {
               case "node" | "face_y"            =>
-                (((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + offset(1))
+                (((if (directCoords) "y" - field.referenceOffset(1) else "y" : IR_Expression) + offset(1))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 1)
                   * (IR_IV_FragmentPositionEnd(1) - IR_IV_FragmentPositionBegin(1)) + IR_IV_FragmentPositionBegin(1))
               case "cell" | "face_x" | "face_z" =>
-                (((if (directCoords) ("y" - field.referenceOffset(1)) else ("y" : IR_Expression)) + 0.5 + offset(1))
+                (((if (directCoords) "y" - field.referenceOffset(1) else "y" : IR_Expression) + 0.5 + offset(1))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 0)
                   * (IR_IV_FragmentPositionEnd(1) - IR_IV_FragmentPositionBegin(1)) + IR_IV_FragmentPositionBegin(1))
             }
@@ -49,11 +49,11 @@ case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var 
           if (Knowledge.dimensionality > 2) {
             field.fieldLayout.discretization match {
               case "node" | "face_z"            =>
-                (((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + offset(2))
+                (((if (directCoords) "z" - field.referenceOffset(2) else "z" : IR_Expression) + offset(2))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 1)
                   * (IR_IV_FragmentPositionEnd(2) - IR_IV_FragmentPositionBegin(2)) + IR_IV_FragmentPositionBegin(2))
               case "cell" | "face_x" | "face_y" =>
-                (((if (directCoords) ("z" - field.referenceOffset(2)) else ("z" : IR_Expression)) + 0.5 + offset(2))
+                (((if (directCoords) "z" - field.referenceOffset(2) else "z" : IR_Expression) + 0.5 + offset(2))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 0)
                   * (IR_IV_FragmentPositionEnd(2) - IR_IV_FragmentPositionBegin(2)) + IR_IV_FragmentPositionBegin(2))
             }

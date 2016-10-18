@@ -49,7 +49,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
   import TypeInference._
 
   override def cloneCurScope() : Map[String, IR_Datatype] = {
-    return curScope.clone()
+    curScope.clone()
   }
 
   private def declare(name : String, datatype : IR_Datatype) : Unit = {
@@ -57,7 +57,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
   }
 
   private def findType(name : String) : IR_Datatype = {
-    return curScope.getOrElse(name, null)
+    curScope.getOrElse(name, null)
   }
 
   override def enter(node : Node) : Unit = {
@@ -108,7 +108,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
   import TypeInference._
 
   override def isDefinedAt(node : Node) : Boolean = {
-    return (node.isInstanceOf[IR_StringLiteral] || node.isInstanceOf[IR_VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
+    (node.isInstanceOf[IR_StringLiteral] || node.isInstanceOf[IR_VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
@@ -120,6 +120,6 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
         case IR_StringLiteral(name)     => name
         case IR_VariableAccess(name, _) => name
       }
-    return IR_VariableAccess(varr, typee)
+    IR_VariableAccess(varr, typee)
   }
 }

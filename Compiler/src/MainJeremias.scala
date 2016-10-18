@@ -14,13 +14,11 @@ import exastencils.deprecated._
 import exastencils.deprecated.domain._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
-import exastencils.domain.{ l4 => _ }
 import exastencils.field.ir._
 import exastencils.globals.ir._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
-import exastencils.knowledge.{ l4 => _ }
 import exastencils.logger._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
@@ -55,10 +53,10 @@ object MainJeremias {
     }
 
     if (Settings.produceHtmlLog)
-      Logger_HTML.init
+      Logger_HTML.init()
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.getOutputPath)).exists) {
+      if (new java.io.File(Settings.getOutputPath).exists) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
@@ -133,20 +131,20 @@ object MainJeremias {
       StrategyTimer.startTiming("Handling Layer 4")
 
     StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
-    ValidationL4.apply
+    ValidationL4.apply()
 
     if (false) // re-print the merged L4 state
     {
       val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(L4_printed)))
-      outFile.close
+      outFile.write(Indenter.addIndentations(L4_printed))
+      outFile.close()
 
       // re-parse the file to check for errors
       var parserl4 = new ParserL4
       StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
-      ValidationL4.apply
+      ValidationL4.apply()
     }
 
     if (Settings.timeStrategies)
@@ -210,7 +208,7 @@ object MainJeremias {
         IR_DomainCollection.initFragments()
         Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
       }
-      if (Knowledge.domain_generateDomainFile) DomainFileWriter.write
+      if (Knowledge.domain_generateDomainFile) DomainFileWriter.write()
     }
 
     // add remaining nodes
@@ -340,7 +338,7 @@ object MainJeremias {
       Inlining.apply()
 
     PrintToFile.apply()
-    PrettyprintingManager.finish
+    PrettyprintingManager.finish()
     if (!Knowledge.domain_rect_generate) {
       FragmentKnowledge.saveFragmentData()
       FragmentCollection.fragments.clear()
@@ -349,12 +347,12 @@ object MainJeremias {
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    (new CountNodes("number of printed nodes")).apply()
+    new CountNodes("number of printed nodes").apply()
 
     if (Settings.timeStrategies)
-      StrategyTimer.print
+      StrategyTimer.print()
 
     if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+      Logger_HTML.finish()
   }
 }

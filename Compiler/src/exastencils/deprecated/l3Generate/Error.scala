@@ -36,7 +36,7 @@ object Error {
         printer.println(s"\treturn sqrt ( err )")
       }
       printer.println(s"}")
-      printer.println
+      printer.println()
     }
   }
 }

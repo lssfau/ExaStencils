@@ -26,7 +26,7 @@ case class L4_FunctionInstantiation(var templateName : String, args : ListBuffer
 
 object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving function templates and instantiations") {
   this += new Transformation("Find and resolve", {
-    case functionInst : L4_FunctionInstantiation => {
+    case functionInst : L4_FunctionInstantiation =>
       val templateOpt = StateManager.findFirst({ f : L4_FunctionTemplate => f.name == functionInst.templateName })
       if (templateOpt.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
       val template = templateOpt.get
@@ -36,7 +36,6 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
       L4_ReplaceUnresolvedAccess.applyStandalone(instantiated)
 
       instantiated // replace instantiation with function declaration
-    }
   })
 
   this += new Transformation("Remove function templates", {
@@ -54,11 +53,11 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
     }
 
     this += new Transformation("Search and replace", {
-      case origAccess : L4_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) => {
+      case origAccess : L4_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) =>
         // includes accesses used as identifiers in function calls
         val newAccess = Duplicate(replacements(origAccess.name))
         newAccess match {
-          case newAccess : L4_UnresolvedAccess => {
+          case newAccess : L4_UnresolvedAccess =>
             if (origAccess.slot.isDefined) {
               if (newAccess.slot.isDefined) Logger.warn("Overriding slot on access in function instantiation")
               newAccess.slot = origAccess.slot
@@ -79,11 +78,10 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
               if (newAccess.dirAccess.isDefined) Logger.warn("Overriding direction access on access in function instantiation")
               newAccess.dirAccess = origAccess.dirAccess
             }
-          }
-          case _                               =>
+
+          case _ =>
         }
         newAccess
-      }
     })
   }
 

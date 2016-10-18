@@ -17,14 +17,14 @@ object IR_IV_Timer {
 }
 
 case class IR_IV_Timer(var name : String) extends IR_UnduplicatedVariable with IR_Access {
-  override def resolveName = s"timer_" + stripName
-  override def resolveDatatype = IR_SpecialDatatype("StopWatch")
+  override def resolveName() = s"timer_" + stripName
+  override def resolveDatatype() = IR_SpecialDatatype("StopWatch")
 
   def stripName = name.replaceAll("[^a-zA-Z0-9]", "_")
 
   override def getCtor() : Option[IR_Statement] = {
     Some(IR_Assignment(
-      IR_MemberAccess(IR_VariableAccess(resolveName, resolveDatatype), "timerName"),
+      IR_MemberAccess(IR_VariableAccess(resolveName(), resolveDatatype()), "timerName"),
       IR_StringConstant(stripName)))
   }
 }

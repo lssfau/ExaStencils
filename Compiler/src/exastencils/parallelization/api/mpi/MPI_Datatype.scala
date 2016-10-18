@@ -30,7 +30,7 @@ object MPI_DataType {
       if (IR_SimplifyExpression.evalIntegral(indexRange.end(dim) - indexRange.begin(dim)) > 1) 1 else 0).sum
 
     // avoid nested data types for now
-    return numNonDummyDims <= 1
+    numNonDummyDims <= 1
   }
 }
 
@@ -101,10 +101,9 @@ object MPI_AddDatatypeSetup extends DefaultStrategy("Add declaration, initializa
   }
 
   this += new Transformation("Looking for data types", {
-    case dt : MPI_DataType => {
+    case dt : MPI_DataType =>
       datatypes(dt.generateName) = dt
       dt
-    }
   })
 
   this += new Transformation("Adding declaration and init code", {

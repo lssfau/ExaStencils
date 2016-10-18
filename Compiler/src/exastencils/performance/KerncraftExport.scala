@@ -87,7 +87,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
   // Clone it and transform the clone.
   // Pretty print transformed kernel to file as simplified c++.
   this += new Transformation("Visiting LoopOverDimension", {
-    case loop : IR_LoopOverDimensions => {
+    case loop : IR_LoopOverDimensions =>
       val clone = Duplicate(loop)
       val kernelFilePath = kerncraftDir.resolve("%s-kernel-%04d.c".format(curFun.name, curFunLoopCounter))
       val kernelFunFilePath = kerncraftDir.resolve("%s-kernel-%04d-fun.c".format(curFun.name, curFunLoopCounter))
@@ -98,10 +98,9 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
       if (verbose) {
         val ix = loop.indices
         val ixPairs = ix.begin.zip(ix.end)
-        logVerbose("loop index ranges: " + ixPairs.map(ix =>
-          ix match {
-            case (begin, end) => "[%s,%s]".format(begin.prettyprint, end.prettyprint)
-          }).mkString("[", ",", "]"))
+        logVerbose("loop index ranges: " + ixPairs.map {
+          case (begin, end) => "[%s,%s]".format(begin.prettyprint, end.prettyprint)
+        }.mkString("[", ",", "]"))
       }
 
       // transform kernel to for-loop nest
@@ -139,7 +138,6 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
         curFunLoopCounter += 1
       }
       loop
-    }
   })
 
   def buildFieldDeclarations(fieldAccesses : Seq[FieldWithSlotId], placeHolderDim : Boolean) : Seq[String] = {
@@ -190,11 +188,11 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
 
       val forloop = IR_ForLoop(decl, cond, incr, ListBuffer[IR_Statement]())
       forloop.body = body
-      return forloop
+      forloop
     }
 
     var forLoop : Option[IR_ForLoop] = None
-    (0 to loop.numDimensions - 1).foreach { d =>
+    (0 until loop.numDimensions).foreach { d =>
       if (d == 0) {
         forLoop = Some(createForLoop(d, loop.body))
       } else {
@@ -204,7 +202,7 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     }
     //logVerbose("buildForLoopRec() loop:")
     //logVerbose("%s".format(forLoop.get.prettyprint()))
-    return forLoop.get
+    forLoop.get
 
   }
 
@@ -212,17 +210,17 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     if (!Files.exists(kerncraftDir)) {
       Files.createDirectory(kerncraftDir)
     } else {
-      deleteKernelFiles
+      deleteKernelFiles()
     }
   }
 
-  private def deleteKernelFiles : Unit = {
+  private def deleteKernelFiles() : Unit = {
     val matcher = new BiPredicate[Path, BasicFileAttributes] {
       val pattern = """.*kernel-(\d){1,}(-fun){0,1}.c$""".r
       def test(p : Path, att : BasicFileAttributes) : Boolean = {
-        val isMatch = pattern.findFirstIn(p.toString) != None
+        val isMatch = pattern.findFirstIn(p.toString).isDefined
         //println("file " + p.toString + " match: " + isMatch)
-        return isMatch
+        isMatch
       }
     }
     val files = Files.find(kerncraftDir, 1, matcher)

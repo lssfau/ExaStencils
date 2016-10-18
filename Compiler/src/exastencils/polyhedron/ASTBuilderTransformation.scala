@@ -67,7 +67,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
       val tDeps : isl.UnionMap = deps.intersectDomain(scop.domain).intersectRange(scop.domain).applyRange(scop.schedule).applyDomain(scop.schedule)
       tDeps.foreachMap({ dep : isl.Map =>
         val directions = dep.deltas()
-        val universe : isl.Set = isl.BasicSet.universe(directions.getSpace())
+        val universe : isl.Set = isl.BasicSet.universe(directions.getSpace)
         val dim : Int = universe.dim(isl.DimType.Set)
         for (i <- 0 until dim) {
           var seq = universe
@@ -75,7 +75,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
             seq = seq.fixVal(isl.DimType.Set, j, ZERO_VAL)
           seq = seq.lowerBoundVal(isl.DimType.Set, i, ONE_VAL)
 
-          if (!seq.intersect(directions).isEmpty()) {
+          if (!seq.intersect(directions).isEmpty) {
             val lVar = scop.njuLoopVars(i)
             parDims -= lVar
             if (forVect)
@@ -86,14 +86,14 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           seq = seq.upperBoundVal(isl.DimType.Set, i, NEG_ONE_VAL)
 
           val negative_deps = seq.intersect(directions)
-          if (!negative_deps.isEmpty()) {
+          if (!negative_deps.isEmpty) {
             Logger.debug("[poly ast] invalid dependence found (negative direction):  " + negative_deps)
             invalidateScop(scop)
             return false
           }
         }
       })
-      return true
+      true
     }
 
     if (!respectDeps(scop.deps.validityParVec(), true))
@@ -165,9 +165,9 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     }
 
     // add comment (for debugging) and (eventually) declarations outside loop nest
-    val comment = new IR_Comment("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
+    val comment = IR_Comment("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
     comment +=: nju // prepend
-    if (!scop.decls.isEmpty) {
+    if (scop.decls.nonEmpty) {
       val scopeList = new ListBuffer[IR_Statement]
       for (decl : IR_VariableDeclaration <- scop.decls) {
         decl.initialValue = None
@@ -175,33 +175,33 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           scopeList += decl
       }
       scopeList ++= nju
-      return IR_Scope(loop.createOMPThreadsWrapper(scopeList))
+      IR_Scope(loop.createOMPThreadsWrapper(scopeList))
     } else
-      return loop.createOMPThreadsWrapper(nju)
+      loop.createOMPThreadsWrapper(nju)
   }
 
   private def processIslNode(node : isl.AstNode) : ListBuffer[IR_Statement] = {
 
-    return node.getType() match {
+    node.getType match {
 
       case isl.AstNodeType.NodeFor =>
         if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
-          assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
-          val decl : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
+          assume(islIt.getType == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
+          val decl : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, islIt.getId.getName, processIslExpr(node.forGetInit()))
           processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
           val islIt : isl.AstExpr = node.forGetIterator()
-          assume(islIt.getType() == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
-          val itStr : String = islIt.getId().getName()
+          assume(islIt.getType == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
+          val itStr : String = islIt.getId.getName
           val parOMP : Boolean = parallelize_omp && parDims.contains(itStr)
           // TODO: is parallelize_omp still required?
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
           val it : IR_VariableAccess = IR_VariableAccess(itStr, IR_IntegerDatatype)
           val init : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
           val cond : IR_Expression = processIslExpr(node.forGetCond())
-          val incr : IR_Statement = new IR_Assignment(it, processIslExpr(node.forGetInc()), "+=")
+          val incr : IR_Statement = IR_Assignment(it, processIslExpr(node.forGetInc()), "+=")
 
           val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
@@ -229,7 +229,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
 
       case isl.AstNodeType.NodeUser =>
         val expr : isl.AstExpr = node.userGetExpr()
-        assume(expr.getOpType() == isl.AstOpType.OpCall, "user node is no OpCall?!")
+        assume(expr.getOpType == isl.AstOpType.OpCall, "user node is no OpCall?!")
         val args : Array[IR_Expression] = processArgs(expr)
         val name : String = args(0).asInstanceOf[IR_StringLiteral].value
         val (oldStmt : ListBuffer[IR_Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
@@ -247,20 +247,20 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
           }
         stmts
 
-      case isl.AstNodeType.NodeMark  => throw new PolyASTBuilderException("unexpected and unknown mark node found...")
-      case isl.AstNodeType.NodeError => throw new PolyASTBuilderException("NodeError found...")
+      case isl.AstNodeType.NodeMark  => throw PolyASTBuilderException("unexpected and unknown mark node found...")
+      case isl.AstNodeType.NodeError => throw PolyASTBuilderException("NodeError found...")
     }
   }
 
   private def processIslExpr(expr : isl.AstExpr) : IR_Expression = {
 
-    return expr.getType() match { // TODO: check if ExprId contains only variable identifier
+    expr.getType match { // TODO: check if ExprId contains only variable identifier
       case isl.AstExprType.ExprId    =>
-        val id : String = expr.getId().getName()
+        val id : String = expr.getId.getName
         Duplicate(ScopNameMapping.id2expr(id)).getOrElse(IR_StringLiteral(id))
-      case isl.AstExprType.ExprInt   => IR_IntegerConstant(expr.getVal().toString().toLong)
+      case isl.AstExprType.ExprInt   => IR_IntegerConstant(expr.getVal.toString.toLong)
       case isl.AstExprType.ExprOp    => processIslExprOp(expr)
-      case isl.AstExprType.ExprError => throw new PolyASTBuilderException("ExprError found...")
+      case isl.AstExprType.ExprError => throw PolyASTBuilderException("ExprError found...")
     }
   }
 
@@ -270,11 +270,11 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     val args : Array[IR_Expression] = processArgs(expr)
     val n : Int = args.length
 
-    return expr.getOpType() match {
+    expr.getOpType match {
       case isl.AstOpType.OpEq if n == 2 && args(0).isInstanceOf[IR_IV_NeighborIsValid] =>
         args(1) match {
           case IR_IntegerConstant(1) => args(0)
-          case IR_IntegerConstant(0) => new IR_Negation(args(0))
+          case IR_IntegerConstant(0) => IR_Negation(args(0))
         }
 
       case isl.AstOpType.OpAndThen if n == 2 => IR_AndAnd(args(0), args(1))
@@ -306,18 +306,18 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
         IR_FunctionCall(args(0).asInstanceOf[IR_StringLiteral].value, fArgs)
 
       case err =>
-        throw new PolyASTBuilderException("expression not (yet) available:  " + err + "  with " + args.length + " arguments:  " + expr)
+        throw PolyASTBuilderException("expression not (yet) available:  " + err + "  with " + args.length + " arguments:  " + expr)
     }
   }
 
   private def processArgs(expr : isl.AstExpr) : Array[IR_Expression] = {
 
-    val nArgs : Int = expr.getOpNArg()
+    val nArgs : Int = expr.getOpNArg
     val args = new Array[IR_Expression](nArgs)
     for (i <- 0 until nArgs)
       args(i) = processIslExpr(expr.getOpArg(i))
 
-    return args
+    args
   }
 }
 

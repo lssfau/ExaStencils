@@ -573,8 +573,8 @@ case class CUDA_Kernel(var identifier : String,
     }
 
     for (ivAccess <- ivAccesses) {
-      val access = IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype)
-      val datatype = ivAccess._2.resolveDatatype
+      val access = IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype())
+      val datatype = ivAccess._2.resolveDatatype()
 
       fctParams += IR_FunctionArgument(ivAccess._1, datatype)
     }

@@ -26,7 +26,7 @@ object CUDA_ReplaceIVs extends QuietDefaultStrategy("Replace local InternalVaria
   this += new Transformation("Searching", {
     case iv : IR_InternalVariable =>
       val ivAccess = ivAccesses.find(_._2 == iv).get // TODO: improve performance
-      IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype)
+      IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype())
   })
 }
 

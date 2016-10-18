@@ -24,7 +24,7 @@ class ParserSettings extends ExaParser {
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
 
-    prevDirs.push(file.getAbsoluteFile().getParentFile())
+    prevDirs.push(file.getAbsoluteFile.getParentFile)
     parseTokens(scanner)
     prevDirs.pop()
   }
@@ -57,9 +57,9 @@ class ParserSettings extends ExaParser {
 
   lazy val settingsfile = setting.*
 
-  lazy val expressionList = /*locationize*/ ((expr <~ ("," | newline)).* ~ expr ^^ { case args ~ arg => args :+ arg })
+  lazy val expressionList = /*locationize*/ (expr <~ ("," | newline)).* ~ expr ^^ { case args ~ arg => args :+ arg }
 
-  lazy val setting = ("import" ~> stringLit ^^ { case path => parseFile(path) }
+  lazy val setting = ("import" ~> stringLit ^^ (path => parseFile(path))
     ||| (ident <~ "=") ~ expr ^^ { case id ~ ex => setParameter(id, ex) }
     ||| (ident <~ "+=") ~ expr ^^ { case id ~ ex => addParameter(id, ex) }
     ||| (ident <~ "+=") ~ ("{" ~> expressionList <~ "}") ^^ { case id ~ exs => for (ex <- exs) addParameter(id, ex) }
@@ -67,8 +67,8 @@ class ParserSettings extends ExaParser {
 
   lazy val expr = stringLit ^^ { _.toString } |
     "-".? ~ numericLit ^^ {
-      case s ~ n if (isInt(s.getOrElse("") + n)) => (s.getOrElse("") + n).toInt : AnyVal
-      case s ~ n                                 => (s.getOrElse("") + n).toDouble : AnyVal
+      case s ~ n if isInt(s.getOrElse("") + n) => (s.getOrElse("") + n).toInt : AnyVal
+      case s ~ n                               => (s.getOrElse("") + n).toDouble : AnyVal
     } |
     booleanLit ^^ { _.booleanValue() }
 }

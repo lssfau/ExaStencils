@@ -63,15 +63,15 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
       val x1 = () => { GridUtil.offsetAccess(fieldAccess, 1, faceDim) }
 
       field.discretization match {
-        case "cell"                         => {
+        case "cell" =>
           if (stagDim.isDefined) {
             return fieldAccess // value is located at the evaluation region
           } else {
             a0 = () => { geom.cellCenterToFace(level, Duplicate(baseIndex), None, faceDim) }
             a1 = () => { geom.cellCenterToFace(level, GridUtil.offsetIndex(baseIndex, 1, faceDim), None, faceDim) }
           }
-        }
-        case "face_x" | "face_y" | "face_z" => {
+
+        case "face_x" | "face_y" | "face_z" =>
           if (stagDim.isDefined) {
             if (s"face_${ IR_DimToString(faceDim) }" == field.discretization) {
               // interpolation weights are always 0.5 due to geometric construction
@@ -84,7 +84,6 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           } else {
             return fieldAccess // value is located at the evaluation region
           }
-        }
       }
 
       // compile evaluation
@@ -167,7 +166,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
       def addPIntAnnot(exp : IR_Expression) = { exp.annotate(pIntAnnot); exp }
 
       this += new Transformation("Wrapping", {
-        case fieldAccess : IR_FieldAccess                                                                               => {
+        case fieldAccess : IR_FieldAccess =>
           val discr = fieldAccess.fieldSelection.field.discretization
           if (stagDim.isDefined) {
             val curStagDim = stagDim.get
@@ -187,21 +186,20 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           } else {
             discr match {
               case "cell"                         => EvalAtRFace(fieldAccess, faceDim, stagDim) // interpolation
-              case "face_x" | "face_y" | "face_z" => {
+              case "face_x" | "face_y" | "face_z" =>
                 if (s"face_${ IR_DimToString(faceDim) }" == discr)
                   GridUtil.offsetAccess(fieldAccess, 1, faceDim) // direct sampling with offset
                 else
                   addPIntAnnot(EvalAtRFace(fieldAccess, faceDim, stagDim)) // interpolation, piecewiseIntegration
-              }
               case _                              => Logger.error(s"Unknown or unsupported discretization $discr for field $fieldAccess in basic integration")
             }
           }
-        }
-        case fieldAccess : IR_VirtualFieldAccess                                                                        => {
+
+        case fieldAccess : IR_VirtualFieldAccess =>
           Logger.warn(s"Virtual field accesses ($fieldAccess) are currently unsupported within evaluation and intergration functions")
           fieldAccess
-        }
-        case eval : EvalAtRFace                                                                                         => {
+
+        case eval : EvalAtRFace =>
           if (eval.faceDim != faceDim) Logger.error(s"Found unaligned eval for faceDim ${ eval.faceDim } in integration for faceDim $faceDim in eval for ${ eval.fieldAccess }")
           if (eval.stagDim != stagDim) Logger.error(s"Found unaligned eval for stagDim ${ eval.stagDim } in integration for stagDim $stagDim in eval for ${ eval.fieldAccess }")
 
@@ -226,20 +224,18 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           } else {
             discr match {
               case "cell"                         => eval // interpolation
-              case "face_x" | "face_y" | "face_z" => {
+              case "face_x" | "face_y" | "face_z" =>
                 if (s"face_${ IR_DimToString(faceDim) }" == discr) {
                   eval.fieldAccess = GridUtil.offsetAccess(eval.fieldAccess, 1, faceDim)
                   eval // direct sampling with offset
                 } else
                   addPIntAnnot(eval) // interpolation, piecewiseIntegration
-              }
               case _                              => Logger.error(s"Unknown or unsupported discretization $discr for field ${ eval.fieldAccess } in basic integration")
             }
           }
-        }
-        case fctCall @ IR_FunctionCall(function, args) if IR_ResolveIntegrateFunction.functions.contains(function.name) => {
+
+        case fctCall @ IR_FunctionCall(function, args) if IR_ResolveIntegrateFunction.functions.contains(function.name) =>
           Logger.error("Integration functions called inside other integration functions are currently not supported")
-        }
       }, false) // not recursive -> don't look inside eval functions
     }
     WrappingFieldAccesses.applyStandalone(IR_Scope(exp))

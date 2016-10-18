@@ -12,7 +12,7 @@ case class CImg() extends Node with FilePrettyPrintable {
       return
     }
 
-    val writer = PrettyprintingManager.getPrinter(s"Util/CImg.h");
+    val writer = PrettyprintingManager.getPrinter(s"Util/CImg.h")
 
     val url = getClass.getResource("/res/CImg.h")
     for (line <- Source.fromURL(url, "utf8").getLines())

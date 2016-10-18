@@ -5,7 +5,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.config._
-import exastencils.datastructures.{ ir => _, _ }
+import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 import exastencils.knowledge.l4.L4_KnowledgeAccess

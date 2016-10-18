@@ -43,7 +43,7 @@ case class L4_StencilDecl(override var identifier : L4_Identifier, var entries :
 object L4_ProcessStencilDeclarations extends DefaultStrategy("Integrating L4 stencil declarations with knowledge") {
   this += Transformation("Process new stencils", {
     case stencilDecl : L4_StencilDecl =>
-      stencilDecl.addToKnowledge
+      stencilDecl.addToKnowledge()
       None
   })
 }

@@ -47,7 +47,7 @@ class IR_SlotAccessAsConst extends StandaloneStrategy {
   this += new Transformation("IR_SlotAccess to simple expression", {
     case sa : IR_SlotAccess =>
       hasSlotAccess = true
-      sa.expandSpecial
+      sa.expandSpecial()
 
     case as : IR_IV_ActiveSlot => IR_IntegerConstant(0)
   })

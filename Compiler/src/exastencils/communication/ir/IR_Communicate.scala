@@ -22,14 +22,13 @@ case class IR_Communicate(
   // TODO: extract strategy - field package?
   object ShiftIndexAccesses extends QuietDefaultStrategy("Shifting index accesses") {
     this += new Transformation("SearchAndReplace", {
-      case access : IR_VariableAccess => {
+      case access : IR_VariableAccess =>
         var ret : IR_Expression = access
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
           if (IR_DimToString(dim) == access.name)
             ret = IR_VariableAccess(IR_DimToString(dim), IR_IntegerDatatype) - field.field.referenceOffset(dim)
         ret
-      }
     }, false)
   }
 

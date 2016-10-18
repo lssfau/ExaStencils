@@ -51,15 +51,14 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
 
       case IR_Negative(exp) => processExpression(pos, exp, !switchSign)
 
-      case access : IR_FieldAccess => {
+      case access : IR_FieldAccess =>
         val uPos = matchUnknowns(access)
         if (uPos < 0)
           fVals(pos).summands += (if (switchSign) access else IR_Negative(access)) // no match -> rhs
         else
           AVals(pos)(uPos).summands += IR_RealConstant(if (switchSign) -1 else 1) // match -> matrix
-      }
 
-      case multEx @ IR_Multiplication(factors) => {
+      case multEx @ IR_Multiplication(factors) =>
         // split into known and unknown
         var localFactors = ListBuffer[IR_Expression]()
         var localUnknowns = ListBuffer[IR_FieldAccess]()
@@ -88,7 +87,6 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
               IR_Negative(IR_Multiplication(localFactors))
             else
               IR_Multiplication(localFactors))
-      }
 
       case _ => Logger.warn(s"Found unsupported node type ${ ex.getClass.getName }: $ex")
     }

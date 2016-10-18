@@ -82,13 +82,12 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
   }
 
   this += new Transformation("SearchAndMark", {
-    case exp : IR_Multiplication => {
+    case exp : IR_Multiplication =>
       val newMult = transformMultiplication(exp)
       newMult.factors.size match {
         case 0 => IR_NullExpression
         case 1 => newMult.factors.head
         case _ => newMult
       }
-    }
   })
 }

@@ -3,7 +3,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.baseExt.l4._
 import exastencils.communication._
-import exastencils.communication.ir.IR_CommunicationFunctions
+import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures._

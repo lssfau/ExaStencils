@@ -10,7 +10,7 @@ class LexerL4 extends ExaLexer {
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
   // for import functionality
-  reserved += ("import")
+  reserved += "import"
 
   // function keywords
   reserved += ("Func", "Function", "return", "noinline")
@@ -27,7 +27,7 @@ class LexerL4 extends ExaLexer {
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")
   reserved += ("loop", "until", "while", "over", "fragments", "only", "on", "boundary", "where", "starting", "ending", "stepping", "reduction")
-  reserved += ("sequentially") // FIXME: seq HACK
+  reserved += "sequentially" // FIXME: seq HACK
   reserved += ("precomm", "postcomm") // temporary loop annotation
   reserved += ("color", "with")
 
@@ -44,7 +44,7 @@ class LexerL4 extends ExaLexer {
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
 
   // domain keywords
-  reserved += ("fromFile")
+  reserved += "fromFile"
 
   // layout and field keywords
   reserved += ("with", "communication", "None",
@@ -68,5 +68,5 @@ class LexerL4 extends ExaLexer {
   //  reserved += ()
 
   // obsolete keywords
-  reserved += ("steps")
+  reserved += "steps"
 }

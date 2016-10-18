@@ -9,10 +9,8 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
-import exastencils.config._
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.polyhedron._
-import exastencils.util._
 
 object ColorSplitting extends DefaultStrategy("Color Splitting") {
 
@@ -34,11 +32,11 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       val (expr, cValue) : (IR_Expression, Long) =
         cond match {
           case IR_EqEq(IR_IntegerConstant(c),
-          IR_Modulo(sum, IR_IntegerConstant(nrColors2))) if (nrColors == nrColors2) =>
+          IR_Modulo(sum, IR_IntegerConstant(nrColors2))) if nrColors == nrColors2 =>
             (sum, c)
 
           case IR_EqEq(IR_Modulo(sum, IR_IntegerConstant(nrColors2)),
-          IR_IntegerConstant(c)) if (nrColors == nrColors2) =>
+          IR_IntegerConstant(c)) if nrColors == nrColors2 =>
             (sum, c)
 
           case _ =>
@@ -50,7 +48,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
         return false
       val color : Long = ((cValue + cOffset) % nrColors + nrColors) % nrColors // mathematical modulo
       index(dim) += IR_IntegerConstant(color * colorOffset)
-      return true
+      true
     }
 
     override def apply(node : Node) : Transformation.OutputType = {
@@ -76,7 +74,7 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
         index(outerD) += (Duplicate(index).reduce((x, y) => x + y) Mod IR_IntegerConstant(nrColors)) * IR_IntegerConstant(colorOffset.longValue())
       index(innerD) = index(innerD) / IR_IntegerConstant(nrColors)
 
-      return dfa
+      dfa
     }
   })
 }
@@ -87,11 +85,11 @@ object ColorCondCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case loop : IR_LoopOverDimensions if (loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEq]) =>
+      case loop : IR_LoopOverDimensions if loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEq] =>
         cond = loop.condition.get
-      case IR_IfCondition(c : IR_EqEq, _, fB) if (fB.isEmpty)                                                     =>
+      case IR_IfCondition(c : IR_EqEq, _, fB) if fB.isEmpty                                                     =>
         cond = c
-      case _                                                                                                                =>
+      case _                                                                                                    =>
         val annot : Option[Any] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
         if (annot.isDefined && annot.get.isInstanceOf[IR_EqEq])
           cond = annot.get.asInstanceOf[IR_Expression]
@@ -100,15 +98,15 @@ object ColorCondCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case loop : IR_LoopOverDimensions             => cond = null
-      case IR_IfCondition(c, _, fB) if (fB.isEmpty) => cond = null
-      case _                                        =>
+      case loop : IR_LoopOverDimensions           => cond = null
+      case IR_IfCondition(c, _, fB) if fB.isEmpty => cond = null
+      case _                                      =>
         if (node.hasAnnotation(PolyOpt.IMPL_CONDITION_ANNOT))
           cond = null
     }
   }
 
-  override def reset : Unit = {
+  override def reset() : Unit = {
     cond = null
   }
 }

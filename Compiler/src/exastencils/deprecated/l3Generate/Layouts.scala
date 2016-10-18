@@ -85,6 +85,6 @@ object Layouts {
       }
     }
 
-    printer.println
+    printer.println()
   }
 }

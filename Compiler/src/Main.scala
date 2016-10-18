@@ -14,17 +14,15 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainFunctions
-import exastencils.domain.{ l4 => _ }
 import exastencils.field.ir._
 import exastencils.field.l4._
 import exastencils.globals.ir._
+import exastencils.grid._
 import exastencils.grid.l4._
-import exastencils.grid.{ l4 => _, _ }
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
-import exastencils.knowledge.{ l4 => _ }
 import exastencils.logger._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
@@ -170,7 +168,7 @@ object Main {
       val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(L4_printed)))
+      outFile.write(Indenter.addIndentations(L4_printed))
       outFile.close()
 
       // re-parse the file to check for errors

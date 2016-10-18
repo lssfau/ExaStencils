@@ -16,18 +16,18 @@ abstract class IR_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
   var slot : IR_Expression
   var fragmentIdx : IR_Expression
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, level, IR_NullExpression)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
-  override def resolveDatatype = {
+  override def resolveDatatype() = {
     if (field.numSlots > 1)
       IR_ArrayDatatype(IR_PointerDatatype(field.resolveDeclType), field.numSlots)
     else
       IR_PointerDatatype(field.resolveDeclType)
   }
 
-  override def resolveDefValue = Some(0)
+  override def resolveDefValue() = Some(0)
 
   override def wrapInLoops(body : IR_Statement) : IR_Statement = {
     var wrappedBody = body
@@ -43,7 +43,7 @@ abstract class IR_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
   override def getCtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue.get)))
+    val ret = Some(wrapInLoops(IR_Assignment(resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt), resolveDefValue().get)))
     slot = origSlot
     ret
   }
@@ -51,7 +51,7 @@ abstract class IR_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
   override def getDtor() : Option[IR_Statement] = {
     val origSlot = slot
     slot = "slot"
-    val access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
+    val access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
 
     val ret = Some(wrapInLoops(
       IR_IfCondition(access,
@@ -73,7 +73,7 @@ abstract class IR_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
 /// IR_IV_FieldDataBasePtr
 
 case class IR_IV_FieldDataBasePtr(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
-  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
+  override def resolveName() = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "") +
     "_base"
 }
@@ -83,14 +83,14 @@ case class IR_IV_FieldDataBasePtr(override var field : IR_Field, override var le
 case class IR_IV_FieldData(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
   def basePtr = IR_IV_FieldDataBasePtr(field, level, slot, fragmentIdx)
 
-  override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
+  override def resolveName() = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
     resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "")
 
   override def getDtor() : Option[IR_Statement] = {
     if (Knowledge.data_alignFieldPointers) {
       val origSlot = slot
       slot = "slot"
-      val access = resolveAccess(resolveName, IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
+      val access = resolveAccess(resolveName(), IR_LoopOverFragments.defIt, IR_LoopOverDomains.defIt, IR_LoopOverFields.defIt, IR_LoopOverLevels.defIt, IR_LoopOverNeighbors.defIt)
       val ret = Some(wrapInLoops(IR_Assignment(access, 0)))
       slot = origSlot
       ret

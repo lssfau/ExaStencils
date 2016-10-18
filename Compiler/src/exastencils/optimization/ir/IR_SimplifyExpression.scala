@@ -5,7 +5,7 @@ import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_InternalVariable
-import exastencils.communication.IR_TempBufferAccess
+import exastencils.communication.ir.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -353,7 +353,7 @@ object IR_SimplifyExpression {
           res(IR_Minimum(exprs)) = 1L
         }
 
-      case scalarIV : IR_InternalVariable if scalarIV.resolveDatatype.isInstanceOf[IR_ScalarDatatype] =>
+      case scalarIV : IR_InternalVariable if scalarIV.resolveDatatype().isInstanceOf[IR_ScalarDatatype] =>
         res = new HashMap[IR_Expression, Long]()
         res(scalarIV) = 1L
 

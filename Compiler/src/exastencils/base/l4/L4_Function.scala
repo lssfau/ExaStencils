@@ -2,7 +2,7 @@ package exastencils.base.l4
 
 import scala.collection.mutable._
 
-import exastencils.base.ir.{ IR_FunctionCall, _ }
+import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.core.Duplicate
 import exastencils.datastructures._

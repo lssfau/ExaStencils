@@ -35,19 +35,17 @@ object IR_PrepareShiftedEvaluationFunctions extends DefaultStrategy("Prepare shi
 
   private object DoShift extends QuietDefaultStrategy("DoShift") {
     this += new Transformation("Resolving functions", {
-      case fct @ IR_FunctionCall(function, args) if shiftEvalFunctions.contains(function.name) => {
+      case fct @ IR_FunctionCall(function, args) if shiftEvalFunctions.contains(function.name) =>
         // return datatype remains identical
         fct.function.name = shiftEvalFunctions(function.name)
         fct
-      }
     })
   }
 
   this += new Transformation("Resolving functions", {
-    case fct @ IR_FunctionCall(function, args) if shiftIntegrateFunctions.contains(function.name) => {
+    case fct @ IR_FunctionCall(function, args) if shiftIntegrateFunctions.contains(function.name) =>
       DoShift.applyStandalone(fct)
       fct
-    }
   })
 }
 
@@ -64,7 +62,7 @@ object IR_ResolveEvalFunction extends DefaultStrategy("Resolve evaluation functi
     "evalAtZStaggeredWestFace", "evalAtZStaggeredSouthFace", "evalAtZStaggeredBottomFace")
 
   this += new Transformation("Resolving functions", {
-    case IR_FunctionCall(function, args) if functions.contains(function.name) => {
+    case IR_FunctionCall(function, args) if functions.contains(function.name) =>
       if (0 == args.length) {
         Logger.warn(s"Trying to use build-in function ${ function.name } without arguments")
         IR_NullExpression
@@ -78,7 +76,6 @@ object IR_ResolveEvalFunction extends DefaultStrategy("Resolve evaluation functi
             args(0)
         }
       }
-    }
   })
 }
 

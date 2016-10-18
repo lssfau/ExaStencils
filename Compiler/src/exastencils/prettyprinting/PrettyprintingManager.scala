@@ -17,13 +17,13 @@ object PrettyprintingManager {
   def popPrinter() = printerStack.pop
 
   def getPrinter(filename : String) : Prettyprinter = {
-    printers.getOrElseUpdate(filename, new Prettyprinter(filename, (new java.io.File(Settings.getOutputPath + filename)).getAbsolutePath()))
+    printers.getOrElseUpdate(filename, new Prettyprinter(filename, new java.io.File(Settings.getOutputPath + filename).getAbsolutePath))
   }
 
   def finish() = {
     printers.values.foreach(f => f.finish())
     BuildfileGenerator.parseGenerators(Settings.buildfileGenerators).foreach(gen => gen.write())
-    JobScriptGenerator.write
+    JobScriptGenerator.write()
 
     printers.clear()
     printerStack.clear()
@@ -46,7 +46,7 @@ object PrettyprintingManager {
     def removeExternalDependency(filename : String) : Unit = { externalDependencies_ = externalDependencies_.distinct -= filename }
     def externalDependencies() : Seq[String] = {
       externalDependencies_ = externalDependencies_.distinct
-      return externalDependencies_
+      externalDependencies_
     }
 
     def <<(s : String) = write(s)
@@ -69,7 +69,7 @@ object PrettyprintingManager {
         val extendedContent = new java.io.StringWriter
 
         // add header guard
-        val addHeaderGuard = (filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx") || filename.endsWith(".cuh"))
+        val addHeaderGuard = filename.endsWith(".h") || filename.endsWith(".hpp") || filename.endsWith(".hxx") || filename.endsWith(".cuh")
         if (addHeaderGuard) {
           val guard = "EXASTENCILS_" + filename.replace("/", "_").replace("""\""", "_").replace(".", "_").toUpperCase()
           extendedContent.write(s"#ifndef $guard\n")
@@ -77,21 +77,21 @@ object PrettyprintingManager {
         }
 
         // add includes for external dependencies
-        for (dep <- externalDependencies)
+        for (dep <- externalDependencies())
           extendedContent.write(generateInclude(dep))
-        if (externalDependencies.size > 0)
+        if (externalDependencies().nonEmpty)
           extendedContent.write('\n')
 
         // add includes from Settings.additionalIncludes
         for (dep <- Settings.additionalIncludes)
           extendedContent.write(generateInclude(dep))
-        if (Settings.additionalIncludes.size > 0)
+        if (Settings.additionalIncludes.nonEmpty)
           extendedContent.write('\n')
 
         // add includes for internal dependencies
         for (dep <- internalDependencies)
           extendedContent.write(generateInclude(dep.filename))
-        if (internalDependencies.size > 0)
+        if (internalDependencies.nonEmpty)
           extendedContent.write('\n')
 
         // add main content
@@ -107,15 +107,15 @@ object PrettyprintingManager {
       }
 
       // check if the file already exists
-      if (!(new java.io.File(path)).exists) {
+      if (!new java.io.File(path).exists) {
         Logger.debug("Creating file: " + path)
         var file = new java.io.File(path)
-        if (!file.getParentFile().exists()) file.getParentFile().mkdirs()
+        if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
 
-        writeToFile
+        writeToFile()
       } else if (Indenter.addIndentations(toString) != scala.io.Source.fromFile(path).mkString) {
         Logger.debug("Updating file: " + path)
-        writeToFile
+        writeToFile()
       }
     }
   }

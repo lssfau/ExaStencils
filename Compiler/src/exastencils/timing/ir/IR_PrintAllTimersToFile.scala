@@ -22,9 +22,9 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_Expandable
 
     var it = 0
     for (timer <- timers.toList.sortBy(_._1)) {
-      statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall("getTotalTime", timer._2.resolveName))
+      statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall("getTotalTime", timer._2.resolveName()))
       it += 1
-      statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall("getMeanTime", timer._2.resolveName))
+      statements += IR_Assignment(IR_ArrayAccess("timesToPrint", it), IR_FunctionCall("getMeanTime", timer._2.resolveName()))
       it += 1
     }
 

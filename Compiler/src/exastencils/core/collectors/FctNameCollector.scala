@@ -27,7 +27,7 @@ class FctNameCollector extends Collector {
     nameStack.clear
   }
 
-  def inFuction : Boolean = !nameStack.isEmpty
+  def inFuction : Boolean = nameStack.nonEmpty
 
   def getCurrentName : String = {
     if (nameStack.isEmpty) {

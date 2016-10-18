@@ -55,7 +55,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     *
     * @return The list of [[exastencils.datastructures.TransformationResult]]s of the last [[exastencils.datastructures.Transformation]] that has been executed
     */
-  def lastResult = { if (!results.isEmpty) Logger.error("No transformation has been executed!"); results_.last._2 }
+  def lastResult = { if (results.nonEmpty) Logger.error("No transformation has been executed!"); results_.last._2 }
 
   /**
     * Returns the [[exastencils.datastructures.TransformationResult]] of the given [[exastencils.datastructures.Transformation]].
@@ -105,13 +105,12 @@ class DefaultStrategy(name : String) extends Strategy(name) {
       })
       this.commit()
     } catch {
-      case x : TransformationException => {
+      case x : TransformationException =>
         Logger.warn(s"""Strategy "${ name }" did not apply successfully""")
         Logger.warn(s"""Error in Transformation ${ x.transformation.name }""")
         Logger.warn(s"Message: ${ x.msg }")
         Logger.warn(s"Rollback will be performed")
         this.abort()
-      }
     }
 
     //    if ("Counting " + "Before" != name && "Counting " + "After" != name) {
@@ -147,11 +146,10 @@ class DefaultStrategy(name : String) extends Strategy(name) {
         executeStandaloneInternal(transformation, node)
       })
     } catch {
-      case x : TransformationException => {
+      case x : TransformationException =>
         Logger.warn(s"""Strategy "${ name }" as standalone did not apply successfully""")
         Logger.warn(s"""Error in Transformation ${ x.transformation.name }""")
         Logger.warn(s"Message: ${ x.msg }")
-      }
     }
   }
 

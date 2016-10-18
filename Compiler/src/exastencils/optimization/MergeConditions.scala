@@ -31,7 +31,7 @@ object MergeConditions extends DefaultStrategy("Fuse Conditions") {
       val cond = node.asInstanceOf[IR_IfCondition]
       mergeInto.trueBody ++= cond.trueBody
       mergeInto.falseBody ++= cond.falseBody
-      return IR_NullStatement
+      IR_NullStatement
     }
   })
 }

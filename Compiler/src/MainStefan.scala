@@ -14,17 +14,15 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainFunctions
-import exastencils.domain.{ l4 => _ }
 import exastencils.field.ir._
 import exastencils.field.l4._
 import exastencils.globals.ir._
+import exastencils.grid._
 import exastencils.grid.l4._
-import exastencils.grid.{ l4 => _, _ }
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
-import exastencils.knowledge.{ l4 => _ }
 import exastencils.logger._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
@@ -88,7 +86,7 @@ object MainStefan {
     Platform.update()
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.getOutputPath)).exists()) {
+      if (new java.io.File(Settings.getOutputPath).exists()) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
@@ -174,7 +172,7 @@ object MainStefan {
       val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(L4_printed)))
+      outFile.write(Indenter.addIndentations(L4_printed))
       outFile.close()
 
       // re-parse the file to check for errors
@@ -403,7 +401,7 @@ object MainStefan {
     IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.cuda_enabled)
-      CUDA_KernelFunctions.get.convertToFunctions
+      CUDA_KernelFunctions.get.convertToFunctions()
 
     IR_ResolveBoundedScalar.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
     IR_ResolveSlotOperations.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
@@ -474,7 +472,7 @@ object MainStefan {
   }
 
   def print() = {
-    Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
+    Logger.dbg("Prettyprinting to folder " + new java.io.File(Settings.getOutputPath).getAbsolutePath)
     PrintToFile.apply()
     PrettyprintingManager.finish()
   }
@@ -496,7 +494,7 @@ object MainStefan {
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    (new CountNodes("number of printed nodes")).apply()
+    new CountNodes("number of printed nodes").apply()
 
     shutdown()
   }
