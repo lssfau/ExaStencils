@@ -1,14 +1,12 @@
 package exastencils.knowledge.l3
 
-import scala.collection.mutable._
-
-import exastencils.core._
-import exastencils.knowledge._
+import exastencils.field.l3.L3_Field
+import exastencils.field.l4.L4_FieldCollection
 
 /// L3_FieldCollection
 
-//object L3_FieldCollection extends KnowledgeCollectionLeveled[Field] {
-//  def prepareFieldLayout = {
+object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field] {
+  //  def prepareFieldLayout = {
 //    var requiredLayouts = HashMap[(String, Int), (Datatype, String)]()
 //    for (field <- objects)
 //      requiredLayouts += ((field.fieldLayoutName, field.level) -> (field.datatype, field.localization))
@@ -42,8 +40,8 @@ import exastencils.knowledge._
 //    StateManager.root_.asInstanceOf[Root].statements += fct
 //  }
 //
-//  def progress = {
-//    for (obj <- objects)
-//      l4.FieldCollection.add(obj.progress)
-//  }
-//}
+def progress() = {
+  for (obj <- objects)
+    L4_FieldCollection.add(obj.progress)
+}
+}

@@ -71,9 +71,8 @@ object L3_Parser extends ExaParser with PackratParsers {
     "(" ~> binaryexpression <~ ")"
       ||| ("-" ~ "(") ~> binaryexpression <~ ")" ^^ { exp => L3_UnaryOperators.createExpression("-", exp) }
       ||| locationize(stringLit ^^ { L3_StringConstant })
-      ||| locationize("-".? ~ numericLit ^^ {
-      case s ~ n => if (isInt(s.getOrElse("") + n))
-        L3_IntegerConstant((s.getOrElse("") + n).toInt)
+      ||| locationize("-".? ~ numericLit ^^ { case s ~ n =>
+      if (isInt(s.getOrElse("") + n)) L3_IntegerConstant((s.getOrElse("") + n).toInt)
       else L3_RealConstant((s.getOrElse("") + n).toDouble)
     })
       ||| locationize("-" ~> functionCall ^^ { x => L3_UnaryOperators.createExpression("-", x) })
