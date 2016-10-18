@@ -12,7 +12,7 @@ object L4_DuplicateFieldLayoutsForFields {
 
     for (field <- L4_FieldCollection.objects) {
       val fieldLayout = Duplicate(field.fieldLayout)
-      fieldLayout.identifier += "_" + field.identifier
+      fieldLayout.name += "_" + field.name
       field.fieldLayout = fieldLayout
       newFieldLayouts += fieldLayout
     }

@@ -134,7 +134,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
         for (stmt <- cl.body)
           stmt match {
             case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment)) =>
-              val fKey = (field.identifier, field.level)
+              val fKey = (field.name, field.level)
               fieldOffset(fKey) = fieldOffset.getOrElse(fKey, 0) + 1
               fields(fKey) = field
 

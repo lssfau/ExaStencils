@@ -22,7 +22,7 @@ case class L4_StencilAccess(
     var dirAccess : Option[L4_ExpressionIndex] = None) extends L4_KnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
-    out << target.identifier << '@' << target.level
+    out << target.name << '@' << target.level
     if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
@@ -30,7 +30,7 @@ case class L4_StencilAccess(
     // TODO: implement strategy converting accesses with arrayIndex or dirAccess
 
     if (arrayIndex.isDefined && dirAccess.isDefined)
-      Logger.warn(s"Access to stencil ${ target.identifier } on level ${ target.level } has dirAccess and array subscript modifiers; array index will be given precedence, dirAccess will be ignored")
+      Logger.warn(s"Access to stencil ${ target.name } on level ${ target.level } has dirAccess and array subscript modifiers; array index will be given precedence, dirAccess will be ignored")
 
     val stencil = target.getProgressedObject
 

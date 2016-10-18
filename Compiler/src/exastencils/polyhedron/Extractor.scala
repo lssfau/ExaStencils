@@ -878,7 +878,7 @@ class Extractor extends Collector {
 
   private def enterFieldAccess(fSel : IR_FieldSelection, index : IR_ExpressionIndex) : Unit = {
     val name = new StringBuilder("field")
-    name.append('_').append(fSel.field.identifier).append(fSel.field.index).append('_').append(fSel.field.level)
+    name.append('_').append(fSel.field.name).append(fSel.field.index).append('_').append(fSel.field.level)
     name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex)
     name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
@@ -895,7 +895,7 @@ class Extractor extends Collector {
   private def enterTempBufferAccess(buffer : IR_IV_CommBuffer, index : IR_ExpressionIndex) : Unit = {
     val name = new StringBuilder("buffer")
     name.append('_').append(buffer.direction)
-    name.append('_').append(buffer.field.identifier).append(buffer.field.index).append('_').append(buffer.field.level)
+    name.append('_').append(buffer.field.name).append(buffer.field.index).append('_').append(buffer.field.level)
     name.append("_n").append(buffer.neighIdx.prettyprint())
     name.append("_f").append(buffer.fragmentIdx.prettyprint())
     enterArrayAccess(name.toString(), index)

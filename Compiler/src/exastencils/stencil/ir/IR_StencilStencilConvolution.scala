@@ -55,7 +55,7 @@ case class IR_StencilStencilConvolution(var stencilLeft : IR_Stencil, var stenci
       }
     }
 
-    IR_StencilAccess(IR_Stencil(stencilLeft.identifier + "_" + stencilRight.identifier, stencilLeft.level, entries))
+    IR_StencilAccess(IR_Stencil(stencilLeft.name + "_" + stencilRight.name, stencilLeft.level, entries))
   }
 }
 
@@ -106,7 +106,7 @@ case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAc
       }
     }
 
-    IR_StencilAccess(IR_Stencil(stencilLeft.stencilFieldSelection.stencil.identifier + "_" + stencilRight.identifier, stencilLeft.stencilFieldSelection.stencil.level, entries))
+    IR_StencilAccess(IR_Stencil(stencilLeft.stencilFieldSelection.stencil.name + "_" + stencilRight.name, stencilLeft.stencilFieldSelection.stencil.level, entries))
   }
 }
 

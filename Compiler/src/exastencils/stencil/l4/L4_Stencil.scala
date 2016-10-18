@@ -23,25 +23,25 @@ object L4_Stencil {
 }
 
 case class L4_Stencil(
-    var identifier : String, // will be used to find the stencil
+    var name : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on
-    var entries : ListBuffer[L4_StencilEntry]) extends L4_KnowledgeObjectWithIdentAndLevel {
+    var entries : ListBuffer[L4_StencilEntry]) extends L4_KnowledgeObjectWithLevel {
 
   override def prettyprintDecl(out : PpStream) = {
-    out << "Stencil " << identifier << "@(" << level << ") {\n"
+    out << "Stencil " << name << "@(" << level << ") {\n"
     out <<< (entries, "\n")
     out << "\n}\n"
   }
 
   def progress = {
-    progressed = Some(IR_Stencil(identifier, level, entries.map(_.progress)))
+    progressed = Some(IR_Stencil(name, level, entries.map(_.progress)))
     progressed.get
   }
 
   var progressed : Option[IR_Stencil] = None
   override def getProgressedObject = {
     if (progressed.isEmpty)
-      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ identifier }")
+      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ name }")
     progressed.get
   }
 }

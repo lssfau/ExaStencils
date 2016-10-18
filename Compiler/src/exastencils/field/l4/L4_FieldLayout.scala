@@ -4,7 +4,7 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
 import exastencils.config._
 import exastencils.field.ir._
-import exastencils.knowledge.l4.L4_KnowledgeObjectWithIdentAndLevel
+import exastencils.knowledge.l4.L4_KnowledgeObjectWithLevel
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -52,7 +52,7 @@ object L4_FieldLayout {
 }
 
 case class L4_FieldLayout(
-    var identifier : String, // will be used to find the layout
+    var name : String, // will be used to find the layout
     var level : Int, // the level the field lives on
     var numDimsGrid : Int, // the number of dimensions of the grid
     var datatype : L4_Datatype,
@@ -61,10 +61,10 @@ case class L4_FieldLayout(
     var communicatesGhosts : Boolean,
     var duplicateLayers : L4_ConstIndex,
     var communicatesDuplicated : Boolean,
-    var innerPoints : L4_ConstIndex) extends L4_KnowledgeObjectWithIdentAndLevel {
+    var innerPoints : L4_ConstIndex) extends L4_KnowledgeObjectWithLevel {
 
   override def prettyprintDecl(out : PpStream) = {
-    out << "Layout " << identifier << "< "
+    out << "Layout " << name << "< "
     out << datatype << ", "
     out << discretization
     out << " >" << "@(" << level << ") {\n"
@@ -98,7 +98,7 @@ case class L4_FieldLayout(
     // will be updated afterwards
     val dummyRefOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
 
-    progressed = Some(IR_FieldLayout(identifier, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
+    progressed = Some(IR_FieldLayout(name, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
       communicatesDuplicated, communicatesGhosts))
 
     // update reference offset
@@ -110,7 +110,7 @@ case class L4_FieldLayout(
   var progressed : Option[IR_FieldLayout] = None
   override def getProgressedObject = {
     if (progressed.isEmpty)
-      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ identifier }")
+      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ name }")
     progressed.get
   }
 }

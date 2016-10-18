@@ -4,11 +4,11 @@ import exastencils.base.ir._
 import exastencils.base.l4.L4_ExpressionIndex
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
+import exastencils.config._
 import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.l4._
-import exastencils.config._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -29,7 +29,7 @@ case class L4_StencilFieldAccess(
     var dirAccess : Option[L4_ExpressionIndex] = None) extends L4_KnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
-    out << target.identifier
+    out << target.name
     if (target.field.numSlots > 1) out << '[' << slot << ']'
     out << '@' << target.level
     if (offset.isDefined) out << "@" << offset
@@ -41,7 +41,7 @@ case class L4_StencilFieldAccess(
     // TODO: extract mapping to FieldAccess for cases where single entries are targeted into a separate strategy
 
     if (arrayIndex.isDefined && dirAccess.isDefined)
-      Logger.warn(s"Access to stencil field ${ target.identifier } on level ${ target.level } has direction access and array subscript modifiers; array index will be given precedence, offset will be ignored")
+      Logger.warn(s"Access to stencil field ${ target.name } on level ${ target.level } has direction access and array subscript modifiers; array index will be given precedence, offset will be ignored")
 
     val stencilField = target.getProgressedObject
 

@@ -1,13 +1,13 @@
 package exastencils.knowledge.ir
 
-trait IR_KnowledgeObject {}
+/// IR_KnowledgeObject
 
-trait IR_KnowledgeObjectWithIdent extends IR_KnowledgeObject {
-  def identifier : String
+trait IR_KnowledgeObject {
+  def name : String
 }
 
-trait IR_KnowledgeObjectWithLevel extends IR_KnowledgeObjectWithIdent {
+/// IR_KnowledgeObjectWithLevel
+
+trait IR_KnowledgeObjectWithLevel extends IR_KnowledgeObject {
   def level : Int
 }
-
-trait IR_KnowledgeObjectWithIdentAndLevel extends IR_KnowledgeObjectWithIdent with IR_KnowledgeObjectWithLevel

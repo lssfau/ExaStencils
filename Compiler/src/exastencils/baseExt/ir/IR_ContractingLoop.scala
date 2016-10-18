@@ -85,7 +85,7 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
   }
 
   private type FieldKey = (String, Int)
-  private def FieldKey(field : IR_Field) : FieldKey = (field.identifier, field.level)
+  private def FieldKey(field : IR_Field) : FieldKey = (field.name, field.level)
 
   private def updateSlots(stmts : ListBuffer[IR_Statement], fieldOffset : HashMap[FieldKey, Int]) : Unit = {
     object AdaptFieldSlots extends QuietDefaultStrategy("Adapt field slots") {

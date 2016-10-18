@@ -5,30 +5,30 @@ import scala.reflect.runtime.universe._
 
 import exastencils.logger._
 
-class IR_KnowledgeCollection[T <: IR_KnowledgeObjectWithIdent : TypeTag] {
+class IR_KnowledgeCollection[T <: IR_KnowledgeObject : TypeTag] {
   var objects : ListBuffer[T] = ListBuffer()
 
-  def exists(identifier : String) = objects.exists(f => f.identifier == identifier)
+  def exists(identifier : String) = objects.exists(f => f.name == identifier)
 
   def getByIdentifier(identifier : String, suppressError : Boolean = false) : Option[T] = {
-    val ret = objects.find(f => f.identifier == identifier)
+    val ret = objects.find(f => f.name == identifier)
     if (!suppressError && ret.isEmpty) Logger.warn(s"${ typeOf[T].toString } $identifier was not found")
     ret
   }
 
-  def sortedObjects = objects.sortBy(_.identifier)
+  def sortedObjects = objects.sortBy(_.name)
 
   def add(newObj : T) = objects += newObj
 }
 
-class IR_LeveledKnowledgeCollection[T <: IR_KnowledgeObjectWithIdentAndLevel : TypeTag] {
+class IR_LeveledKnowledgeCollection[T <: IR_KnowledgeObjectWithLevel : TypeTag] {
   var objects : ListBuffer[T] = ListBuffer()
 
-  def exists(identifier : String) = { objects.exists(f => f.identifier == identifier) }
-  def exists(identifier : String, level : Int) = { objects.exists(f => f.identifier == identifier && f.level == level) }
+  def exists(identifier : String) = { objects.exists(f => f.name == identifier) }
+  def exists(identifier : String, level : Int) = { objects.exists(f => f.name == identifier && f.level == level) }
 
   def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[T] = {
-    val ret = objects.find(f => f.identifier == identifier && f.level == level)
+    val ret = objects.find(f => f.name == identifier && f.level == level)
     if (!suppressError && ret.isEmpty) Logger.warn(s"${ typeOf[T].toString } $identifier for level $level was not found")
     ret
   }
@@ -36,14 +36,14 @@ class IR_LeveledKnowledgeCollection[T <: IR_KnowledgeObjectWithIdentAndLevel : T
   def getAllByIdentifier(identifier : String, suppressError : Boolean = false) : ListBuffer[T] = {
     var foundObjs = ListBuffer[T]()
     for (obj <- objects)
-      if (obj.identifier == identifier)
+      if (obj.name == identifier)
         foundObjs += obj
 
     if (!suppressError && foundObjs.isEmpty) Logger.warn(s"${ typeOf[T].toString } $identifier was not found on any level")
     foundObjs
   }
 
-  def sortedObjects = objects.sortBy(obj => (obj.identifier, obj.level))
+  def sortedObjects = objects.sortBy(obj => (obj.name, obj.level))
 
   def add(newObj : T) = { objects += newObj }
 }

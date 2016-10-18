@@ -13,7 +13,7 @@ object IR_FieldLayout {
 }
 
 case class IR_FieldLayout(
-    var identifier : String, // will be used to find the field
+    var name : String, // will be used to find the field
     var level : Int, // the (geometric) level the layout is associated with
     var datatype : IR_Datatype, // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
     var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}"
@@ -23,7 +23,7 @@ case class IR_FieldLayout(
     var referenceOffset : IR_ExpressionIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
-) extends IR_KnowledgeObjectWithIdentAndLevel {
+) extends IR_KnowledgeObjectWithLevel {
   def apply(dim : Int) = layoutsPerDim(dim)
 
   def defIdxPadLeftBegin(dim : Int) = { 0 }
@@ -52,7 +52,7 @@ case class IR_FieldLayout(
   def idxById(id : String, dim : Int) : IR_Expression = {
     if (Knowledge.data_genVariableFieldSizes && dim < Knowledge.dimensionality)
     // TODO : total
-      IR_IV_IndexFromField(identifier, level, id, dim)
+      IR_IV_IndexFromField(name, level, id, dim)
     else
       defIdxById(id, dim)
   }

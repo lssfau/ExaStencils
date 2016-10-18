@@ -10,8 +10,8 @@ object IR_StencilField {
 }
 
 case class IR_StencilField(
-    var identifier : String,
+    var name : String,
     var level : Int,
     var field : IR_Field,
-    var stencil : IR_Stencil) extends IR_KnowledgeObjectWithIdentAndLevel {
+    var stencil : IR_Stencil) extends IR_KnowledgeObjectWithLevel {
 }

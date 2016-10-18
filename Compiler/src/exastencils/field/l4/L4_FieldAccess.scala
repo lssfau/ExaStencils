@@ -38,7 +38,7 @@ case class L4_FieldAccess(
 
   override def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
-    out << target.identifier
+    out << target.name
     if (target.numSlots > 1) out << '[' << slot << ']'
     out << '@' << target.level
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'

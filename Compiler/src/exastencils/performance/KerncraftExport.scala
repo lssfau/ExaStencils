@@ -31,7 +31,7 @@ trait LogVerbose {
 
 /** Field used in loop kernel with slot mapped to integer constant. */
 private case class FieldWithSlotId(val field : IR_Field, val slotId : Int) {
-  def identifierName : String = field.identifier + slotId.toString
+  def identifierName : String = field.name + slotId.toString
   def multiDimArrayAccess(index : IR_ExpressionIndex) = {
     val ident = IR_VariableAccess(identifierName, field.resolveBaseDatatype)
     IR_MultiDimArrayAccess(ident, index)
@@ -279,7 +279,7 @@ private object TransformKernel
 
       fields += fieldWithSlotId
 
-      val idname = fa.fieldSelection.field.identifier + slotId.toString
+      val idname = fa.fieldSelection.field.name + slotId.toString
       val ident = new IR_VariableAccess(idname, fa.fieldSelection.field.resolveBaseDatatype)
 
       fieldWithSlotId.multiDimArrayAccess(fa.index)

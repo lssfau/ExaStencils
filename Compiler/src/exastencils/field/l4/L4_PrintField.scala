@@ -29,7 +29,7 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
       if (level.isDefined) Logger.warn(s"Found leveled print field function with level ${ level.get }; level is ignored")
       args match {
         case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
-          L4_PrintField(L4_StringConstant(field.target.identifier + ".dat"), field)
+          L4_PrintField(L4_StringConstant(field.target.name + ".dat"), field)
         case ListBuffer(fileName, field : L4_FieldAccess)            => // option 2: filename and field
           L4_PrintField(fileName, field)
         case ListBuffer(fileName, field : L4_FieldAccess, condition) => //option 3: filename, file and condition

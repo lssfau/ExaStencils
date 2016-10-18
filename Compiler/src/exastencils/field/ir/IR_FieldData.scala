@@ -16,7 +16,7 @@ abstract class IR_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
   var slot : IR_Expression
   var fragmentIdx : IR_Expression
 
-  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index, level, IR_NullExpression)
+  override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName, fragmentIdx, IR_NullExpression, if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index, level, IR_NullExpression)
 
   override def usesFieldArrays : Boolean = !Knowledge.data_useFieldNamesAsIdx
 
@@ -74,7 +74,7 @@ abstract class IR_IV_AbstractFieldData extends IR_InternalVariable(true, false, 
 
 case class IR_IV_FieldDataBasePtr(override var field : IR_Field, override var level : IR_Expression, override var slot : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractFieldData {
   override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
-    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "") +
+    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "") +
     "_base"
 }
 
@@ -84,7 +84,7 @@ case class IR_IV_FieldData(override var field : IR_Field, override var level : I
   def basePtr = IR_IV_FieldDataBasePtr(field, level, slot, fragmentIdx)
 
   override def resolveName = (if (1 == field.numSlots) s"fieldData" else "slottedFieldData") +
-    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.identifier else field.index.toString, level.prettyprint, "")
+    resolvePostfix(fragmentIdx.prettyprint, "", if (Knowledge.data_useFieldNamesAsIdx) field.name else field.index.toString, level.prettyprint, "")
 
   override def getDtor() : Option[IR_Statement] = {
     if (Knowledge.data_alignFieldPointers) {

@@ -110,7 +110,7 @@ class ParserDomainFile extends ExaParser {
   def setDomainParameter[T](ident : String, value : T) = {
     IR_DomainCollection.getByIdentifier("global").get
       .asInstanceOf[FileInputGlobalDomain].shape.asInstanceOf[List[FileInputDomain]]
-      .find { d => d.identifier == ident } match {
+      .find { d => d.name == ident } match {
       case Some(n) => n.shape.asInstanceOf[FileInputDomainShape].blocks = value.asInstanceOf[List[String]]
       case None    => throw new Exception("error when parsing domain file")
     }
@@ -151,7 +151,7 @@ class ParserDomainFile extends ExaParser {
     val domainIds = IR_DomainCollection.getByIdentifier("global").get
       .asInstanceOf[FileInputGlobalDomain].shape.asInstanceOf[List[FileInputDomain]]
       .filter { domFil =>
-        tmpDomains.filter(f => f._2.asInstanceOf[List[String]].contains(blockIdent)).contains(domFil.identifier)
+        tmpDomains.filter(f => f._2.asInstanceOf[List[String]].contains(blockIdent)).contains(domFil.name)
       }
       .map(m => m.index).to[ListBuffer]
     FragmentCollection.fragments += new DummyFragment(localId, globalId, domainIds, faces, edges, vertices.toSeq.distinct.to[ListBuffer], ListBuffer.fill(FragmentCollection.getNumberOfNeighbors)(-1), blockIdent.drop(1).toInt)

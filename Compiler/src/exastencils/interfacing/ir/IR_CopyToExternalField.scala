@@ -15,7 +15,7 @@ import exastencils.polyhedron.PolyhedronAccessible
 
 case class IR_CopyToExternalField(var src : IR_Field, var dest : IR_ExternalField) extends IR_AbstractFunction with IR_Expandable {
   override def prettyprint_decl() : String = prettyprint
-  override def name = "get" + dest.identifier
+  override def name = "get" + dest.name
 
   def getFortranCompDT() : IR_Datatype = {
     var dt = dest.resolveBaseDatatype
