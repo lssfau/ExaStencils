@@ -6,6 +6,9 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.domain.ir.IR_IV_FragmentPosition
+import exastencils.domain.ir.IR_IV_FragmentPositionBegin
+import exastencils.domain.ir.IR_IV_FragmentPositionEnd
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
@@ -657,10 +660,13 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_Power(base, exp) if SIMD_MathFunctions.isAllowed("pow") =>
         IR_FunctionCall(SIMD_MathFunctions.addUsage("pow"), ListBuffer(vectorizeExpr(base, ctx), vectorizeExpr(exp, ctx)))
 
-      case mAcc : IR_MemberAccess =>
+      case _ : IR_MemberAccess |
+           _ : IR_IV_FragmentPositionBegin |
+           _ : IR_IV_FragmentPositionEnd |
+           _ : IR_IV_FragmentPosition =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp)
-          ctx.addStmtPreLoop(IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, SIMD_Scalar2Vector(mAcc)), expr)
+          ctx.addStmtPreLoop(IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, SIMD_Scalar2Vector(expr)), expr)
         IR_VariableAccess(vecTmp, SIMD_RealDatatype)
 
       case _ =>
