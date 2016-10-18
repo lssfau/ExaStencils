@@ -1,6 +1,7 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.base.l3.L3_Root
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.baseExt.l4._
@@ -30,6 +31,8 @@ import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
 import exastencils.parsers.InputReader
+import exastencils.parsers.l2.L2_Parser
+import exastencils.parsers.l3.L3_Parser
 import exastencils.parsers.l4._
 import exastencils.parsers.settings._
 import exastencils.performance._
@@ -130,6 +133,20 @@ object Main {
           level => l3Generate.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
     }
 
+    if (Knowledge.experimental_layerExtension) {
+      StateManager.root_ = L2_Parser.parseFile(Settings.getL2file)
+
+//      L2_ProcessLevelSpecifiers.apply() // before processing declarations ...
+//
+//      L2_ProcessDomainDeclarations.apply()
+//      L2_ProcessFieldDeclarations.apply()
+//      L2_ProcessStencilDeclarations.apply()
+//      L2_ProcessStencilTemplateDeclarations.apply()
+//      L2_ProcessOperatorDeclarations.apply()
+//
+//      L2_ProcessLevelSpecifiers.apply() // ... and again afterwards
+    }
+
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 2")
   }
@@ -138,9 +155,34 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 3")
 
-    // Looking for other L3 related code? Check MainL3.scala!
+    if (Knowledge.experimental_layerExtension) {
+      StateManager.root_ = L3_Parser.parseFile(Settings.getL3file)
 
-    if (Knowledge.l3tmp_generateL4) {
+//      ProcessLevelSpecifiers.apply() // before processing declarations ...
+//
+//      ProcessFieldDeclarations.apply()
+//      ProcessStencilDeclarations.apply()
+//      ProcessOperatorDeclarations.apply()
+//
+//      L3_ResolveFunctionTemplates.apply()
+//
+//      ProcessLevelSpecifiers.apply() // ... and again afterwards
+//      UnfoldFunctionDeclarations.apply()
+//
+//      ProcessFieldOverrides.apply()
+//
+//      ResolveL3Accesses.apply()
+//      ResolveL3Convolutions.apply()
+//
+//      L3_FieldCollection.addInitFieldsFunction
+//
+//      L3_FieldCollection.prepareFieldLayout // prepare field layout knowledge for fields
+//      L3_OperatorCollection.prepareFieldLayout // prepare  field layout knowledge for stencil fields
+//      L3_FieldCollection.progress // progress field knowledge
+//      L3_StencilCollection.progress // process stencil knowledge
+//      L3_StencilTemplateCollection.progress // process stencil knowledge
+//      L3_OperatorCollection.progress // process operator knowledge
+    } else if (Knowledge.l3tmp_generateL4) {
       StateManager.root_ = l3Generate.Root()
       StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
     }
@@ -153,6 +195,12 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
+    // store the l3 root
+    val l3root = if (Knowledge.experimental_layerExtension)
+      StateManager.root_.asInstanceOf[L3_Root]
+    else
+      null
+
     if (Settings.inputFromJson) {
       StateManager.root_ = (new ParserL4).parseFile(InputReader.layer4)
     } else {
@@ -163,17 +211,28 @@ object Main {
 
     ValidationL4.apply()
 
-    // re-print the merged L4 state
-    if (false) {
-      val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
+    if (Knowledge.experimental_layerExtension) {
+      // add some extra nodes to test functionalities
+      val l4root = StateManager.root_.asInstanceOf[L4_Root]
 
-      val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write(Indenter.addIndentations(L4_printed))
+      val newL4Root = l3root.progress // progress root
+//      AddCommunicationAndLoopStatements.apply(Some(newL4Root))
+//      AdaptFieldLayouts.apply(Some(newL4Root))
+//
+//      l4root.nodes ++= newL4Root.nodes // TODO: other collections
+    }
+
+    // re-print the merged L4 state
+    if (Knowledge.experimental_layerExtension) {
+      val repFileName = { val tmp = Settings.getL4file.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
+      val l4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
+
+      val outFile = new java.io.FileWriter(repFileName)
+      outFile.write(Indenter.addIndentations(l4_printed))
       outFile.close()
 
       // re-parse the file to check for errors
-      val parserl4 = new ParserL4()
-      StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
+      StateManager.root_ = (new ParserL4).parseFile(repFileName)
       ValidationL4.apply()
     }
 

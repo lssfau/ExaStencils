@@ -1,13 +1,13 @@
-package exastencils.knowledge.l4
+package exastencils.knowledge.l2
 
 import scala.collection.mutable._
 import scala.reflect.runtime.universe._
 
 import exastencils.logger._
 
-/// L4_KnowledgeCollection
+/// L2_KnowledgeCollection
 
-class L4_KnowledgeCollection[T <: L4_KnowledgeObject : TypeTag] {
+class L2_KnowledgeCollection[T <: L2_KnowledgeObject : TypeTag] {
   var objects : ListBuffer[T] = ListBuffer()
 
   def exists(identifier : String) = objects.exists(f => f.name == identifier)
@@ -23,7 +23,7 @@ class L4_KnowledgeCollection[T <: L4_KnowledgeObject : TypeTag] {
   def add(newObj : T) = objects += newObj
 }
 
-class L4_LeveledKnowledgeCollection[T <: L4_KnowledgeObjectWithLevel : TypeTag] {
+class L2_LeveledKnowledgeCollection[T <: L2_KnowledgeObjectWithLevel : TypeTag] {
   var objects : ListBuffer[T] = ListBuffer()
 
   def exists(identifier : String) = { objects.exists(f => f.name == identifier) }

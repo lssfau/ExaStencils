@@ -49,6 +49,12 @@ case class L4_LevelList(var levels : HashSet[L4_LevelSpecification]) extends L4_
 
 /// L4_NegatedLevelList
 
+object L4_NegatedLevelList {
+  def apply() = new L4_NegatedLevelList(L4_LevelList())
+  def apply(level : L4_LevelSpecification) = new L4_NegatedLevelList(L4_LevelList(level))
+  def apply(levels : List[L4_LevelSpecification]) = new L4_NegatedLevelList(L4_LevelList(levels))
+}
+
 case class L4_NegatedLevelList(var levels : L4_LevelList) extends L4_LevelGroup {
   def prettyprint(out : PpStream) = out << "not" << levels
 }

@@ -5,7 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.prettyprinting._
 
 object Settings {
-  var user : String = "guest" // allows triggering user-specific code
+  // allows triggering user-specific code
+  var user : String = "guest"
 
   /// input
 
@@ -20,41 +21,29 @@ object Settings {
 
   def inputFromJson : Boolean = false
 
+  /// layer 1
+
+  var l1file : String = ""
+  def defL1file : String = if (basePathPrefix.isEmpty) "../Compiler/dsl/Layer1.exa" else getBasePath + "Compiler/dsl/Layer1.exa"
+  def getL1file : String = if (l1file.isEmpty) defL1file else getBasePath + l1file
+
+  /// layer 2
+
+  var l2file : String = ""
+  def defL2file : String = if (basePathPrefix.isEmpty) "../Compiler/dsl/Layer2.exa" else getBasePath + "Compiler/dsl/Layer2.exa"
+  def getL2file : String = if (l2file.isEmpty) defL2file else getBasePath + l2file
+
   /// layer 3
 
   var l3file : String = ""
-
-  def defL3file : String = {
-    if (basePathPrefix.isEmpty)
-      "../Compiler/dsl/Layer3.exa"
-    else
-      getBasePath + "Compiler/dsl/Layer3.exa"
-  }
-
-  def getL3file : String = {
-    if (l3file.isEmpty)
-      defL3file
-    else
-      getBasePath + l3file
-  }
+  def defL3file : String = if (basePathPrefix.isEmpty) "../Compiler/dsl/Layer3.exa" else getBasePath + "Compiler/dsl/Layer3.exa"
+  def getL3file : String = if (l3file.isEmpty) defL3file else getBasePath + l3file
 
   /// layer 4
 
   var l4file : String = ""
-
-  def defL4file : String = {
-    if (basePathPrefix.isEmpty)
-      "../Compiler/dsl/Layer4.exa"
-    else
-      getBasePath + "Compiler/dsl/Layer4.exa"
-  }
-
-  def getL4file : String = {
-    if (l4file.isEmpty)
-      defL4file
-    else
-      getBasePath + l4file
-  }
+  def defL4file : String = if (basePathPrefix.isEmpty) "../Compiler/dsl/Layer4.exa" else getBasePath + "Compiler/dsl/Layer4.exa"
+  def getL4file : String = if (l4file.isEmpty) defL4file else getBasePath + l4file
 
   /// config file for polyhedral search space exploration
 
@@ -70,7 +59,6 @@ object Settings {
         "../generated/"
       else
         "/tmp/"
-
     } else {
       getBasePath + "generated/"
     }
@@ -153,19 +141,8 @@ object Settings {
   var produceHtmlLog : Boolean = false
   var htmlLogFile : String = ""
 
-  def defHtmlLogFile : String = {
-    if (basePathPrefix.isEmpty)
-      "../Compiler/log/log.html"
-    else
-      getBasePath + "Compiler/log/log.html"
-  }
-
-  def getHtmlLogFile : String = {
-    if (htmlLogFile.isEmpty)
-      defHtmlLogFile
-    else
-      getBasePath + htmlLogFile
-  }
+  def defHtmlLogFile : String = if (basePathPrefix.isEmpty) "../Compiler/log/log.html" else getBasePath + "Compiler/log/log.html"
+  def getHtmlLogFile : String = if (htmlLogFile.isEmpty) defHtmlLogFile else getBasePath + htmlLogFile
 
   /// debug output
 

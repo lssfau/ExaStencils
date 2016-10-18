@@ -7,6 +7,8 @@ import exastencils.baseExt.ir.IR_UserFunctions
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
+/// L4_Root
+
 object L4_Root {
   def apply(node : L4_Node) = new L4_Root(ListBuffer(node))
   def apply(nodes : List[L4_Node]) = new L4_Root(nodes.to[ListBuffer])

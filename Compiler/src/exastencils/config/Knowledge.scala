@@ -422,6 +422,9 @@ object Knowledge {
   // TODO
   var experimental_kerncraftExport : Boolean = false
 
+  // enables support for layers 2 and 3
+  var experimental_layerExtension : Boolean = false
+
   /// paper project - SISC
 
   // [16~64§sisc2015_numNodes*2]
