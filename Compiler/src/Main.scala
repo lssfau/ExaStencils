@@ -1,9 +1,11 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.base.l3.L3_Root
+import exastencils.base.l2.L2_ResolveLevelSpecifications
+import exastencils.base.l3._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
+import exastencils.baseExt.l3.L3_ResolveFunctionTemplates
 import exastencils.baseExt.l4._
 import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
@@ -15,7 +17,10 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainFunctions
+import exastencils.domain.l2.L2_ProcessDomainDeclarations
 import exastencils.field.ir._
+import exastencils.field.l2.L2_ProcessFieldDeclarations
+import exastencils.field.l3._
 import exastencils.field.l4._
 import exastencils.globals.ir._
 import exastencils.grid._
@@ -23,6 +28,7 @@ import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.interfacing.ir._
+import exastencils.knowledge.l3.L3_FieldCollection
 import exastencils.knowledge.l4._
 import exastencils.logger._
 import exastencils.optimization._
@@ -136,15 +142,15 @@ object Main {
     if (Knowledge.experimental_layerExtension) {
       StateManager.root_ = L2_Parser.parseFile(Settings.getL2file)
 
-//      L2_ProcessLevelSpecifiers.apply() // before processing declarations ...
-//
-//      L2_ProcessDomainDeclarations.apply()
-//      L2_ProcessFieldDeclarations.apply()
+      L2_ResolveLevelSpecifications.apply() // before processing declarations ...
+
+      L2_ProcessDomainDeclarations.apply()
+      L2_ProcessFieldDeclarations.apply()
 //      L2_ProcessStencilDeclarations.apply()
 //      L2_ProcessStencilTemplateDeclarations.apply()
 //      L2_ProcessOperatorDeclarations.apply()
-//
-//      L2_ProcessLevelSpecifiers.apply() // ... and again afterwards
+
+      L2_ResolveLevelSpecifications.apply() // ... and again afterwards
     }
 
     if (Settings.timeStrategies)
@@ -158,27 +164,27 @@ object Main {
     if (Knowledge.experimental_layerExtension) {
       StateManager.root_ = L3_Parser.parseFile(Settings.getL3file)
 
-//      ProcessLevelSpecifiers.apply() // before processing declarations ...
-//
-//      ProcessFieldDeclarations.apply()
-//      ProcessStencilDeclarations.apply()
-//      ProcessOperatorDeclarations.apply()
-//
-//      L3_ResolveFunctionTemplates.apply()
-//
-//      ProcessLevelSpecifiers.apply() // ... and again afterwards
-//      UnfoldFunctionDeclarations.apply()
-//
-//      ProcessFieldOverrides.apply()
-//
-//      ResolveL3Accesses.apply()
-//      ResolveL3Convolutions.apply()
+      L3_ResolveLevelSpecifications.apply() // before processing declarations ...
+
+      L3_ProcessFieldDeclarations.apply()
+//      L3_ProcessStencilDeclarations.apply()
+//      L3_ProcessOperatorDeclarations.apply()
+
+      L3_ResolveFunctionTemplates.apply()
+
+      L3_ResolveLevelSpecifications.apply() // ... and again afterwards
+      L3_UnfoldFunctionDeclarations.apply()
+
+      L3_ProcessFieldOverrides.apply()
+
+//      L3_ResolveAccesses.apply()
+//      L3_ResolveConvolutions.apply()
 //
 //      L3_FieldCollection.addInitFieldsFunction
 //
-//      L3_FieldCollection.prepareFieldLayout // prepare field layout knowledge for fields
-//      L3_OperatorCollection.prepareFieldLayout // prepare  field layout knowledge for stencil fields
-//      L3_FieldCollection.progress // progress field knowledge
+//      L3_FieldCollection.prepareFieldLayouts // prepare field layout knowledge for fields
+//      L3_OperatorCollection.prepareFieldLayouts // prepare  field layout knowledge for stencil fields
+      L3_FieldCollection.progress() // progress field knowledge
 //      L3_StencilCollection.progress // process stencil knowledge
 //      L3_StencilTemplateCollection.progress // process stencil knowledge
 //      L3_OperatorCollection.progress // process operator knowledge
@@ -216,8 +222,8 @@ object Main {
       val l4root = StateManager.root_.asInstanceOf[L4_Root]
 
       val newL4Root = l3root.progress // progress root
-//      AddCommunicationAndLoopStatements.apply(Some(newL4Root))
-//      AdaptFieldLayouts.apply(Some(newL4Root))
+//      L4_AddCommunicationAndLoopStatement.apply(Some(newL4Root))
+//      L4_AdaptFieldLayout.apply(Some(newL4Root))
 //
 //      l4root.nodes ++= newL4Root.nodes // TODO: other collections
     }

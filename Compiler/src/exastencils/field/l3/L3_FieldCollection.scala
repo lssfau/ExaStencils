@@ -1,47 +1,47 @@
 package exastencils.knowledge.l3
 
-import exastencils.field.l3.L3_Field
+import scala.collection.mutable.ListBuffer
+
+import exastencils.base.l3._
+import exastencils.core.StateManager
+import exastencils.field.l3._
 import exastencils.field.l4._
 
 /// L3_FieldCollection
 
 object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Field] {
-  //  def prepareFieldLayout = {
-//    var requiredLayouts = HashMap[(String, Int), (Datatype, String)]()
+//  def prepareFieldLayout() = {
+//    var requiredLayouts = HashMap[(String, Int), (L3_Datatype, String)]()
 //    for (field <- objects)
 //      requiredLayouts += ((field.fieldLayoutName, field.level) -> (field.datatype, field.localization))
 //
-//    def defIndex = Knowledge.dimensionality match {
-//      case 1 => l4Dep.Index1D(0)
-//      case 2 => l4Dep.Index2D(0, 0)
-//      case 3 => l4Dep.Index3D(0, 0, 0)
-//    }
+//    def defIndex = L4_ConstIndex(Array.fill(Knowledge.dimensionality-1)(0))
 //
 //    for (layout <- requiredLayouts.toList.sortBy(_._1._2).sortBy(_._1._1)) {
-//      l4.FieldLayoutCollection.add(l4.FieldLayout(
-//        layout._1._1, // identifier
+//      L4_FieldLayoutCollection.add(L4_FieldLayout(
+//        layout._1._1, // name
 //        layout._1._2, // level
 //        layout._2._1.progress, // datatype
 //        layout._2._2, // localization
-//        l4.FieldLayout.default_ghostLayers(layout._2._2), // to be determined later
+//        L4_FieldLayout.default_ghostLayers(layout._2._2), // to be determined later
 //        false,
-//        l4.FieldLayout.default_duplicateLayers(layout._2._2),
+//        L4_FieldLayout.default_duplicateLayers(layout._2._2),
 //        false,
 //        defIndex))
 //    }
 //  }
-//
-//  def addInitFieldsFunction = {
-//    val initStmts = ListBuffer[Statement]()
-//    for (field <- objects)
-//      if (field.initial.isDefined)
-//        initStmts += AssignmentStatement(FieldAccess(field, SingleLevelSpecification(field.level)), field.initial.get, "=", None)
-//    val fct = FunctionStatement("InitFields", None, UnitDatatype, ListBuffer[Variable](), initStmts)
-//    StateManager.root_.asInstanceOf[Root].statements += fct
-//  }
-//
-def progress() = {
-  for (obj <- objects)
-    L4_FieldCollection.add(obj.progress)
-}
+
+  def addInitFieldsFunction() = {
+    val initStmts = ListBuffer[L3_Statement]()
+    for (field <- objects)
+      if (field.initial.isDefined)
+        initStmts += L3_Assignment(L3_FieldAccess(field, L3_SingleLevel(field.level)), field.initial.get, "=", None)
+    val fct = L3_Function("InitFields", None, L3_UnitDatatype, initStmts)
+    StateManager.root_.asInstanceOf[L3_Root].nodes += fct
+  }
+
+  def progress() = {
+    for (obj <- objects)
+      L4_FieldCollection.add(obj.progress())
+  }
 }
