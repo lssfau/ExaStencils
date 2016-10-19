@@ -1,7 +1,6 @@
 package exastencils.performance
 
 import scala.collection.mutable.ListBuffer
-
 import java.io._
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
@@ -18,6 +17,8 @@ import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.performance.ir.IR_SlotAccessAsConst
+
+import scala.collection.mutable
 
 trait LogVerbose {
   val verbose = true
@@ -235,13 +236,19 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
 
 /** Strategy to analyze and transform variable / field accesses in loop kernels.
   *
-  * Field accesses are enumerated by slot access expressions.
+  * Field accesses are enumerated by slot access expressions. Assumes slot expressions are constant inside the
+  * IR_LoopOverDimensions.
   */
 private object TransformKernel
   extends DefaultStrategy("Transforming variable/field accesses in loop kernel")
     with LogVerbose {
   val fields = ListBuffer[FieldWithSlotId]()
   var hasInternalVariables = false
+
+  // id for next slot expression for each field
+  var nextSlotId = mutable.HashMap[IR_Field,Int]()
+  // map per-field slot expressions to id
+  val slotExprId = mutable.HashMap[(IR_Field,IR_Expression),Int]()
 
   override def apply(applyAtNode : Option[Node] = None) : Unit = {
     fields.clear()
@@ -258,20 +265,16 @@ private object TransformKernel
   val trafo : PartialFunction[Node, Transformation.OutputType] = {
     case fa : IR_MultiDimFieldAccess =>
 
-      val slotId : Int =
-        fa.fieldSelection.slot match {
-          case sa : IR_SlotAccess           =>
-            IR_SlotAccessAsConst(fa) match {
-              case Some(id) =>
-                logVerbose("XX SlotAccessAsConst: %d".format(id.v))
-                id.v.toInt
-              case _        => throw new Exception("IR_MultiDimFieldAccess wit IR_SlotAccess did not resolve to IR_IntegerConstant")
-            }
-          case IR_IntegerConstant(v)        => v.toInt
-          case IR_VariableAccess("slot", _) => 99 // FIXME HACK, do we have some more info on slot variable?
-          case _                            =>
-            throw new Exception("KerncraftExport: unhandled IR_SlotAccess expression: %s".format(fa.fieldSelection.slot))
+      val slotId : Int = {
+        slotExprId.get((fa.fieldSelection.field, fa.fieldSelection.slot)) match {
+          case Some(id) => id
+          case None =>
+            val id = nextSlotId.getOrElse(fa.fieldSelection.field, 0)
+            nextSlotId(fa.fieldSelection.field) = id + 1
+            slotExprId((fa.fieldSelection.field, fa.fieldSelection.slot)) = id
+            id
         }
+      }
 
       val fieldWithSlotId = FieldWithSlotId(fa.fieldSelection.field, slotId)
 

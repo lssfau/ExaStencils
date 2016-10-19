@@ -128,7 +128,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     } catch {
       case UnrollException(msg) =>
         if (DEBUG)
-          Logger.debug("[unroll]  unable to unroll loop: " + msg)
+          println("[unroll]  unable to unroll loop: " + msg) // print directly, logger may be silenced by any surrounding strategy
         return node
     }
 

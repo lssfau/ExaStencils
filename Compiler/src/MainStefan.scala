@@ -217,6 +217,8 @@ object MainStefan {
     L4_ResolveLoopItAccesses.apply()
     L4_ResolveSpecialConstants.apply()
     HACK_L4_ResolveNativeFunctions.apply()
+    L4_ResolvePrintFunctions.apply()
+    L4_ResolveBuildStringFunctions.apply()
     L4_ResolveKnowledgeParameterAccess.apply()
 
     L4_ProcessKnowledgeDeclarations.apply()
@@ -227,6 +229,9 @@ object MainStefan {
     L4_ResolveFieldAccesses.apply()
     L4_ResolveStencilAccesses.apply()
     L4_ResolveStencilFieldAccesses.apply()
+
+    // after L4_ResolveFieldAccesses
+    L4_ResolvePrintFieldFunctions.apply()
 
     /// BEGIN HACK: progress expression in knowledge
     {
@@ -294,6 +299,7 @@ object MainStefan {
     IR_SetupCommunication.apply()
 
     HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
+    IR_AdaptTimerFunctions.apply()
 
     IR_ResolveLoopOverPoints.apply()
     IR_ResolveIntergridIndices.apply()
@@ -337,7 +343,8 @@ object MainStefan {
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
     if (Knowledge.experimental_memoryDistanceAnalysis) {
-      AnalyzeIterationDistance.apply()
+      //AnalyzeIterationDistance.apply()
+      KernelSubscriptAnalysis.apply()
     }
 
     if (Knowledge.experimental_kerncraftExport) {
@@ -364,6 +371,8 @@ object MainStefan {
       IR_ExpandInOnePass.apply()
     else
       IR_Expand.doUntilDone()
+
+    IR_ResolveLoopOverFragments.apply()
 
     // resolve constant IVs before applying poly opt
     IR_ResolveConstIVs.apply()
@@ -432,6 +441,7 @@ object MainStefan {
 
     if (Knowledge.data_genVariableFieldSizes)
       IR_GenerateIndexManipFcts.apply()
+
     IR_AddInternalVariables.apply()
     // resolve possibly newly added constant IVs
     IR_ResolveConstIVs.apply()
@@ -441,13 +451,18 @@ object MainStefan {
     else
       IR_Expand.doUntilDone()
 
-    if (Knowledge.mpi_enabled)
+    // resolve newly added fragment loops
+    IR_ResolveLoopOverFragments.apply()
+
+    if (Knowledge.mpi_enabled) {
       MPI_AddDatatypeSetup.apply()
+      MPI_AddReductions.apply()
+    }
 
     if (Knowledge.omp_enabled) {
       OMP_AddParallelSections.apply()
 
-      // resolve min/max reductions if omp version does not support them inherently
+      // resolve min/max reductions for omp versions not supporting them inherently
       if (Platform.omp_version < 3.1)
         OMP_ResolveMinMaxReduction.apply()
 
