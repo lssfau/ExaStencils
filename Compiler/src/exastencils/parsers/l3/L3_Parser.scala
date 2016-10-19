@@ -59,6 +59,13 @@ object L3_Parser extends ExaParser with PackratParsers {
   // #############################################################################
 
   // ######################################
+  // ##### L3_Assignment
+  // ######################################
+
+  lazy val generalAssignment = locationize(genericAccess ~ ("=" ||| "+=" ||| "-=" ||| "*=" ||| "/=") ~ (binaryexpression ||| booleanexpression) ~ ("where" ~> booleanexpression).?
+    ^^ { case id ~ op ~ exp ~ cond => L3_Assignment(id, exp, op, cond) })
+
+  // ######################################
   // ##### L3_BinaryOps, L3_Constant
   // ######################################
 
@@ -109,6 +116,16 @@ object L3_Parser extends ExaParser with PackratParsers {
     locationize((binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => L3_BinaryOperators.createExpression(op, ex1, ex2) })
 
   // ######################################
+  // ##### L3_Conditional
+  // ######################################
+
+  lazy val conditional : PackratParser[L3_IfCondition] = (
+    locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ~ (("else" ~ "{") ~> statement.+ <~ "}").?
+      ^^ { case exp ~ stmts ~ elseStmts => L3_IfCondition(exp, stmts.to[ListBuffer], elseStmts.getOrElse(ListBuffer()).to[ListBuffer]) })
+      ||| locationize(("if" ~ "(" ~> booleanexpression <~ ")") ~ ("{" ~> statement.+ <~ "}") ~ ("else" ~> conditional)
+      ^^ { case exp ~ stmts ~ elseCond => L3_IfCondition(exp, stmts.to[ListBuffer], ListBuffer[L3_Statement](elseCond)) }))
+
+  // ######################################
   // ##### L3_Datatype
   // ######################################
 
@@ -134,6 +151,18 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val returnDatatype = (("Unit" ||| "unit") ^^ { _ => L3_UnitDatatype }
     ||| datatype)
+
+  // ######################################
+  // ##### L3_Declaration
+  // ######################################
+
+  lazy val localDeclaration = variableDeclaration ||| valueDeclaration
+
+  lazy val variableDeclaration = locationize((("Var" ||| "Variable") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ dt ~ exp => L3_VariableDeclaration(id, dt, exp) })
+
+  lazy val valueDeclaration = locationize((("Val" ||| "Value") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
+    ^^ { case id ~ dt ~ exp => L3_ValueDeclaration(id, dt, exp) })
 
   // ######################################
   // ##### L3_Function
@@ -187,17 +216,30 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| locationize(integerLit ^^ { L3_SingleLevel }))
 
   // ######################################
+  // ##### L3_Loop
+  // ######################################
+
+  lazy val countLoop = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> genericAccess).? ~ ("{" ~> statement.+ <~ "}")
+    ^^ { case numIt ~ it ~ stmts => L3_ForLoop(numIt.toInt, it, stmts.to[ListBuffer]) })
+
+  lazy val untilLoop = locationize((("repeat" ~ "until") ~> booleanexpression) ~ (("{" ~> statement.+) <~ "}")
+    ^^ { case cond ~ stmts => L3_UntilLoop(cond, stmts.to[ListBuffer]) })
+
+  lazy val whileLoop = locationize((("repeat" ~ "while") ~> booleanexpression) ~ (("{" ~> statement.+) <~ "}")
+    ^^ { case cond ~ stmts => L3_WhileLoop(cond, stmts.to[ListBuffer]) })
+
+  // ######################################
   // ##### L3_Statement
   // ######################################
 
   lazy val statement : Parser[L3_Statement] = (
-//    localDeclaration
-//      ||| generalAssignment
-//      ||| conditional
-//      ||| countLoop
-//      ||| untilLoop
-//      ||| whileLoop
-    functionCall ^^ { L3_ExpressionStatement(_) }
+    localDeclaration
+      ||| generalAssignment
+      ||| conditional
+      ||| countLoop
+      ||| untilLoop
+      ||| whileLoop
+      ||| functionCall ^^ { L3_ExpressionStatement(_) }
       ||| returnStatement)
 
   // #############################################################################

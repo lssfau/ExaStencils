@@ -69,6 +69,11 @@ object L3_BinaryOperators extends Enumeration {
     case Greater                => L3_Greater(left, right)
     case GreaterEqual           => L3_GreaterEqual(left, right)
   }
+
+  def progress(op : Value) : L4_BinaryOperators.BinaryOperators = {
+    // TODO: better implementation?
+    L4_BinaryOperators.withName(op.toString)
+  }
 }
 
 /// (scalar) arithmetic operations

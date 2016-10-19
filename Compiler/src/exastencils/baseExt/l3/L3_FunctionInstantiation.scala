@@ -66,7 +66,7 @@ object L3_ResolveFunctionTemplates extends DefaultStrategy("Resolving function t
               newAccess.level = origAccess.level
             }
 
-          case _                               =>
+          case _ =>
         }
         newAccess
     })
