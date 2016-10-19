@@ -59,7 +59,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     } catch {
       case ex : VectorizationException =>
         if (DEBUG)
-          Logger.debug("[vect]  unable to vectorize loop: " + ex.msg + "  (line " + ex.getStackTrace()(0).getLineNumber + ')')
+          println("[vect]  unable to vectorize loop: " + ex.msg + "  (line " + ex.getStackTrace()(0).getLineNumber + ')') // print directly, logger may be silenced by any surrounding strategy
         node
     }
   }

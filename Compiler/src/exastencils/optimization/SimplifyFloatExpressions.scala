@@ -53,7 +53,7 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
     } catch {
       case x : EvaluationException =>
         if (DEBUG)
-          Logger.debug("[simplify]  cannot simplify float expression: " + x.msg)
+          println("[simplify]  cannot simplify float expression: " + x.msg) // print directly, logger may be silenced by any surrounding strategy
         expr
     }
   }
