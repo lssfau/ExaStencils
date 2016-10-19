@@ -8,6 +8,22 @@ import exastencils.prettyprinting._
 
 /// L3_LevelSpecification
 
+object L3_LevelSpecification {
+  def extractLevelList(levels : Option[L3_LevelSpecification], defForNone : List[Int]) : List[Int] = {
+    levels match {
+      case None                        => defForNone
+      case Some(L3_SingleLevel(level)) => List(level)
+      case Some(L3_LevelList(levels))  => levels.map(_.asInstanceOf[L3_SingleLevel].level).toList
+    }
+  }
+
+  // assumes list of all levels as default
+  def extractLevelListDefAll(levels : Option[L3_LevelSpecification]) : List[Int] = extractLevelList(levels, (Knowledge.minLevel to Knowledge.maxLevel).toList)
+
+  // assumes empty level list as default
+  def extractLevelListDefEmpty(levels : Option[L3_LevelSpecification]) : List[Int] = extractLevelList(levels, List())
+}
+
 trait L3_LevelSpecification extends L3_Node with L3_Progressable with PrettyPrintable {
   override def progress : L4_LevelSpecification
   def resolveLevel : Int
