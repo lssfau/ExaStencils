@@ -6,6 +6,7 @@ import exastencils.prettyprinting._
 
 trait L4_Index extends L4_Expression {
   override def progress : IR_Index
+  def toExpressionIndex : L4_ExpressionIndex
 }
 
 trait L4_ArrayBasedIndex[T] extends Iterable[T] {
@@ -55,6 +56,8 @@ case class L4_ExpressionIndex(override var indices : Array[L4_Expression]) exten
   override def hashCode() : Int = {
     java.util.Arrays.hashCode(indices.asInstanceOf[Array[Object]]) * 31 + 42 // random modification to ensure the hashcode of this element differs from the hashcode of the array itself
   }
+
+  override def toExpressionIndex = this
 }
 
 /// L4_ConstIndex
@@ -75,5 +78,5 @@ case class L4_ConstIndex(override var indices : Array[Int]) extends L4_Index wit
   def +(that : L4_ExpressionIndex) = L4_ExpressionIndex(this.toExpressionIndex, that, _ + _)
   def -(that : L4_ExpressionIndex) = L4_ExpressionIndex(this.toExpressionIndex, that, _ - _)
 
-  def toExpressionIndex = L4_ExpressionIndex(indices.map(L4_IntegerConstant(_) : L4_Expression))
+  override def toExpressionIndex = L4_ExpressionIndex(indices.map(L4_IntegerConstant(_) : L4_Expression))
 }
