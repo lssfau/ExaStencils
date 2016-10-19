@@ -9,6 +9,9 @@ import exastencils.communication.ir.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.domain.ir.IR_IV_FragmentPosition
+import exastencils.domain.ir.IR_IV_FragmentPositionBegin
+import exastencils.domain.ir.IR_IV_FragmentPositionEnd
 import exastencils.field.ir._
 import exastencils.interfacing.ir._
 import exastencils.logger._
@@ -516,6 +519,18 @@ object IR_SimplifyExpression {
           throw EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[IR_Expression, Double]()
         res(IR_VariableAccess(varName, IR_RealDatatype)) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
+
+      case frag : IR_IV_FragmentPosition =>
+        res = new HashMap[IR_Expression, Double]()
+        res(frag) = 1d
+
+      case frag : IR_IV_FragmentPositionBegin =>
+        res = new HashMap[IR_Expression, Double]()
+        res(frag) = 1d
+
+      case frag : IR_IV_FragmentPositionEnd =>
+        res = new HashMap[IR_Expression, Double]()
+        res(frag) = 1d
 
       case aAcc : IR_ArrayAccess =>
         res = new HashMap[IR_Expression, Double]()

@@ -14,6 +14,9 @@ import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
+import exastencils.domain.ir.IR_IV_FragmentPosition
+import exastencils.domain.ir.IR_IV_FragmentPositionBegin
+import exastencils.domain.ir.IR_IV_FragmentPositionEnd
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
@@ -561,6 +564,9 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
            | _ : IR_RealConstant
            | _ : IR_BooleanConstant
            | _ : IR_VariableAccess
+           | _ : IR_IV_FragmentPosition
+           | _ : IR_IV_FragmentPositionBegin
+           | _ : IR_IV_FragmentPositionEnd
            | _ : IR_StringLiteral
            | _ : IR_ArrayAccess
            | _ : IR_DirectFieldAccess
