@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
 import exastencils.knowledge.l4._
-import exastencils.logger.Logger
 import exastencils.prettyprinting._
 import exastencils.stencil.ir._
 
@@ -25,7 +24,7 @@ object L4_Stencil {
 case class L4_Stencil(
     var name : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on
-    var entries : ListBuffer[L4_StencilEntry]) extends L4_KnowledgeObjectWithLevel {
+    var entries : ListBuffer[L4_StencilEntry]) extends L4_KnowledgeObjectWithLevel[IR_Stencil] {
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Stencil " << name << "@(" << level << ") {\n"
@@ -33,15 +32,5 @@ case class L4_Stencil(
     out << "\n}\n"
   }
 
-  def progress = {
-    progressed = Some(IR_Stencil(name, level, entries.map(_.progress)))
-    progressed.get
-  }
-
-  var progressed : Option[IR_Stencil] = None
-  override def getProgressedObject = {
-    if (progressed.isEmpty)
-      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ name }")
-    progressed.get
-  }
+  override def progressImpl() = IR_Stencil(name, level, entries.map(_.progress))
 }

@@ -4,7 +4,6 @@ import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_Field
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithLevel
-import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 /// L4_Field
@@ -20,7 +19,7 @@ case class L4_Field(
     var domainName : String, // FIXME: var domain : L4_Domain
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
-    var boundary : L4_BoundaryCondition) extends L4_KnowledgeObjectWithLevel {
+    var boundary : L4_BoundaryCondition) extends L4_KnowledgeObjectWithLevel[IR_Field] {
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << name
@@ -29,8 +28,8 @@ case class L4_Field(
     out << "@" << level << "\n"
   }
 
-  override def progress : IR_Field = {
-    progressed = Some(IR_Field(
+  override def progressImpl() = {
+    IR_Field(
       name,
       level,
       index,
@@ -38,15 +37,6 @@ case class L4_Field(
       name.toLowerCase + "Data_" + level,
       fieldLayout.getProgressedObject,
       numSlots,
-      boundary.progress))
-
-    progressed.get
-  }
-
-  var progressed : Option[IR_Field] = None
-  override def getProgressedObject = {
-    if (progressed.isEmpty)
-      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ name }")
-    progressed.get
+      boundary.progress)
   }
 }

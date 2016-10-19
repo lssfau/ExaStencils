@@ -1,9 +1,9 @@
 package exastencils.interfacing.l4
 
-import exastencils.interfacing.ir.IR_ExternalFieldCollection
+import exastencils.interfacing.ir._
 import exastencils.knowledge.l4.L4_LeveledKnowledgeCollection
 
-object L4_ExternalFieldCollection extends L4_LeveledKnowledgeCollection[L4_ExternalField] {
+object L4_ExternalFieldCollection extends L4_LeveledKnowledgeCollection[L4_ExternalField, IR_ExternalField] {
   exastencils.core.Duplicate.registerConstant(this)
 
   def progress() = {

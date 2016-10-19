@@ -1,11 +1,11 @@
 package exastencils.knowledge.l3
 
 import exastencils.field.l3.L3_Field
-import exastencils.field.l4.L4_FieldCollection
+import exastencils.field.l4._
 
 /// L3_FieldCollection
 
-object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field] {
+object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Field] {
   //  def prepareFieldLayout = {
 //    var requiredLayouts = HashMap[(String, Int), (Datatype, String)]()
 //    for (field <- objects)

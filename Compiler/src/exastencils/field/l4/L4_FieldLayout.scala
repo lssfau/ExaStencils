@@ -5,7 +5,6 @@ import exastencils.base.l4._
 import exastencils.config._
 import exastencils.field.ir._
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithLevel
-import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 object L4_FieldLayout {
@@ -61,7 +60,7 @@ case class L4_FieldLayout(
     var communicatesGhosts : Boolean,
     var duplicateLayers : L4_ConstIndex,
     var communicatesDuplicated : Boolean,
-    var innerPoints : L4_ConstIndex) extends L4_KnowledgeObjectWithLevel {
+    var innerPoints : L4_ConstIndex) extends L4_KnowledgeObjectWithLevel[IR_FieldLayout] {
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Layout " << name << "< "
@@ -74,7 +73,7 @@ case class L4_FieldLayout(
     out << "}\n"
   }
 
-  override def progress : IR_FieldLayout = {
+  override def progressImpl() : IR_FieldLayout = {
     // determine full data dimensionality
     val numDimsData = numDimsGrid + datatype.dimensionality
 
@@ -98,19 +97,12 @@ case class L4_FieldLayout(
     // will be updated afterwards
     val dummyRefOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
 
-    progressed = Some(IR_FieldLayout(name, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
-      communicatesDuplicated, communicatesGhosts))
+    val ret = IR_FieldLayout(name, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
+      communicatesDuplicated, communicatesGhosts)
 
     // update reference offset
-    progressed.get.updateDefReferenceOffset()
+    ret.updateDefReferenceOffset()
 
-    progressed.get
-  }
-
-  var progressed : Option[IR_FieldLayout] = None
-  override def getProgressedObject = {
-    if (progressed.isEmpty)
-      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ name }")
-    progressed.get
+    ret
   }
 }
