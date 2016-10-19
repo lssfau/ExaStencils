@@ -3,12 +3,10 @@ package exastencils.stencil.l3
 import exastencils.knowledge.l3._
 import exastencils.stencil.l4._
 
-///// L3_Operator
-//
-//abstract class L3_Operator extends L3_KnowledgeObjectWithLevel {
-//  def progress : L4_Operator
-//}
-//
+/// L3_Operator
+
+abstract class L3_Operator extends L3_KnowledgeObjectWithLevel[L4_Operator] {}
+
 ///// L3_StencilOperator
 //
 //case class L3_StencilOperator(
