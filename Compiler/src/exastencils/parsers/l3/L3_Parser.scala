@@ -8,6 +8,8 @@ import scala.util.parsing.input._
 
 import exastencils.base.l3._
 import exastencils.baseExt.l3._
+import exastencils.boundary.l3._
+import exastencils.field.l3._
 import exastencils.parsers._
 
 object L3_Parser extends ExaParser with PackratParsers {
@@ -41,7 +43,12 @@ object L3_Parser extends ExaParser with PackratParsers {
   //###########################################################
 
   lazy val program = ((
-    function
+    fieldDeclaration
+      | overrideFieldInformation
+//      | operatorDeclaration
+      | function
+      | functionTemplate
+      | functionInstantiation
     ).*
     ^^ (nodes => L3_Root(nodes)))
 
@@ -198,6 +205,23 @@ object L3_Parser extends ExaParser with PackratParsers {
   // #############################################################################
 
   // ######################################
+  // ##### l3_FunctionTemplate
+  // ######################################
+
+  lazy val functionTemplateArgList = /*locationize*/ (ident <~ ("," | newline)).* ~ ident ^^ { case args ~ arg => args :+ arg }
+  lazy val functionTemplate = locationize((("FuncTemplate" ||| "FunctionTemplate") ~> ident) ~ ("<" ~> functionTemplateArgList.? <~ ">") ~ ("(" ~> functionArgumentList.? <~ ")").? ~ (":" ~> returnDatatype).? ~ ("{" ~> (statement.* <~ "}"))
+    ^^ { case id ~ templateArgs ~ functionArgs ~ retType ~ stmts => L3_FunctionTemplate(id, templateArgs, functionArgs, retType, stmts) })
+
+  // ######################################
+  // ##### l3_FunctionInstantiation
+  // ######################################
+
+  lazy val functionInstArgList = /*locationize*/ (functionInstArgument <~ ("," | newline)).* ~ functionInstArgument ^^ { case args ~ arg => args :+ arg }
+  lazy val functionInstArgument = binaryexpression ||| booleanexpression
+  lazy val functionInstantiation = locationize(((("Inst" ||| "Instantiate") ~> ident) ~ ("<" ~> functionInstArgList.? <~ ">") ~ ("as" ~> ident) ~ level.?)
+    ^^ { case template ~ args ~ target ~ targetLevel => L3_FunctionInstantiation(template, args.getOrElse(List()), target, targetLevel) })
+
+  // ######################################
   // ##### L3_HigherOrderDatatype
   // ######################################
 
@@ -211,7 +235,32 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val genericAccess = locationize(ident ~ levelAccess.? ^^ { case id ~ level => L3_UnresolvedAccess(id, level) })
 
   // #############################################################################
+  // ################################## BOUNDARY #################################
+  // #############################################################################
+
+  lazy val fieldBoundary = (
+    "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L3_NeumannBC(_) }
+      ||| "None" ^^ { _ => L3_NoBC }
+      ||| binaryexpression ^^ { L3_DirichletBC }
+    )
+
+  // #############################################################################
   // ################################## L3_FIELD #################################
   // #############################################################################
+
+  // ######################################
+  // ##### L3_FieldDecl
+  // ######################################
+
+  lazy val fieldDeclaration = (
+    locationize("Field" ~> ident ~ level.? <~ "from" <~ "L2" ^^ { case id ~ levels => L3_FieldFromL2(id, levels) })
+      ||| locationize(("Field" ~> ident) ~ level.? ~ ("from" ~> ident) ^^ { case id ~ levels ~ src => L3_FieldFromOther(id, levels, src) }))
+
+  // ######################################
+  // ##### L3_FieldOverride
+  // ######################################
+
+  lazy val overrideFieldInformation = locationize(("override" ~ "bc" ~ "for") ~> ident ~ level.? ~ ("with" ~> fieldBoundary)
+    ^^ { case field ~ level ~ newBC => L3_OverrideFieldBC(field, level, newBC) })
 
 }

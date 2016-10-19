@@ -7,6 +7,11 @@ import exastencils.prettyprinting._
 
 /// L3_FunctionArgument
 
+object L3_FunctionArgument {
+  // generate declaration corresponding to given access
+  def apply(access : L3_VariableAccess) = new L3_FunctionArgument(access.name, access.datatype)
+}
+
 case class L3_FunctionArgument(var name : String, var datatype : L3_Datatype) extends L3_Node with PrettyPrintable with L3_Progressable {
   override def prettyprint(out : PpStream) = out << name << " : " << datatype
   override def progress = L4_FunctionArgument(name, datatype.progress)

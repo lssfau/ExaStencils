@@ -11,6 +11,11 @@ import exastencils.prettyprinting._
 
 /// L4_FunctionArgument
 
+object L4_FunctionArgument {
+  // generate declaration corresponding to given access
+  def apply(access : L4_VariableAccess) = new L4_FunctionArgument(access.name, access.datatype)
+}
+
 case class L4_FunctionArgument(var name : String, var datatype : L4_Datatype) extends L4_Node with PrettyPrintable with L4_Progressable {
   override def prettyprint(out : PpStream) = out << name << " : " << datatype
   override def progress = IR_FunctionArgument(name, datatype.progress)
