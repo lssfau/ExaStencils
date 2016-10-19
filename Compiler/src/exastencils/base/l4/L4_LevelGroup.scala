@@ -28,11 +28,11 @@ case class L4_LevelRange(var begin : L4_LevelSpecification, var end : L4_LevelSp
 
 object L4_LevelList {
   def apply() = new L4_LevelList(HashSet())
-  def apply(level : L4_LevelSpecification) = new L4_LevelList(HashSet(level))
-  def apply(levels : List[L4_LevelSpecification]) = new L4_LevelList(levels.to[HashSet])
+  def apply(level : L4_DeclarationLevelSpecification) = new L4_LevelList(HashSet(level))
+  def apply(levels : List[L4_DeclarationLevelSpecification]) = new L4_LevelList(levels.to[HashSet])
 }
 
-case class L4_LevelList(var levels : HashSet[L4_LevelSpecification]) extends L4_LevelGroup {
+case class L4_LevelList(var levels : HashSet[L4_DeclarationLevelSpecification]) extends L4_LevelGroup {
   override def prettyprint(out : PpStream) = out << '(' <<< (levels, ", ") << ')'
 
   def flatten() : Unit = {
@@ -51,8 +51,8 @@ case class L4_LevelList(var levels : HashSet[L4_LevelSpecification]) extends L4_
 
 object L4_NegatedLevelList {
   def apply() = new L4_NegatedLevelList(L4_LevelList())
-  def apply(level : L4_LevelSpecification) = new L4_NegatedLevelList(L4_LevelList(level))
-  def apply(levels : List[L4_LevelSpecification]) = new L4_NegatedLevelList(L4_LevelList(levels))
+  def apply(level : L4_DeclarationLevelSpecification) = new L4_NegatedLevelList(L4_LevelList(level))
+  def apply(levels : List[L4_DeclarationLevelSpecification]) = new L4_NegatedLevelList(L4_LevelList(levels))
 }
 
 case class L4_NegatedLevelList(var levels : L4_LevelList) extends L4_LevelGroup {

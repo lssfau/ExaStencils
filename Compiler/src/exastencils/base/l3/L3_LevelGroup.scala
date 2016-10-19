@@ -31,11 +31,11 @@ case class L3_LevelRange(var begin : L3_LevelSpecification, var end : L3_LevelSp
 
 object L3_LevelList {
   def apply() = new L3_LevelList(HashSet())
-  def apply(level : L3_LevelSpecification) = new L3_LevelList(HashSet(level))
-  def apply(levels : List[L3_LevelSpecification]) = new L3_LevelList(levels.to[HashSet])
+  def apply(level : L3_DeclarationLevelSpecification) = new L3_LevelList(HashSet(level))
+  def apply(levels : List[L3_DeclarationLevelSpecification]) = new L3_LevelList(levels.to[HashSet])
 }
 
-case class L3_LevelList(var levels : HashSet[L3_LevelSpecification]) extends L3_LevelGroup {
+case class L3_LevelList(var levels : HashSet[L3_DeclarationLevelSpecification]) extends L3_LevelGroup {
   override def prettyprint(out : PpStream) = out << '(' <<< (levels, ", ") << ')'
   override def progress = L4_LevelList(levels.map(_.progress))
 
@@ -55,8 +55,8 @@ case class L3_LevelList(var levels : HashSet[L3_LevelSpecification]) extends L3_
 
 object L3_NegatedLevelList {
   def apply() = new L3_NegatedLevelList(L3_LevelList())
-  def apply(level : L3_LevelSpecification) = new L3_NegatedLevelList(L3_LevelList(level))
-  def apply(levels : List[L3_LevelSpecification]) = new L3_NegatedLevelList(L3_LevelList(levels))
+  def apply(level : L3_DeclarationLevelSpecification) = new L3_NegatedLevelList(L3_LevelList(level))
+  def apply(levels : List[L3_DeclarationLevelSpecification]) = new L3_NegatedLevelList(L3_LevelList(levels))
 }
 
 case class L3_NegatedLevelList(var levels : L3_LevelList) extends L3_LevelGroup {
