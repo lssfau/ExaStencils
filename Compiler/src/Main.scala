@@ -26,7 +26,7 @@ import exastencils.globals.ir._
 import exastencils.grid._
 import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
-import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
+import exastencils.hack.l4._
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l3.L3_FieldCollection
 import exastencils.knowledge.l4._
@@ -222,10 +222,10 @@ object Main {
       val l4root = StateManager.root_.asInstanceOf[L4_Root]
 
       val newL4Root = l3root.progress // progress root
-//      L4_AddCommunicationAndLoopStatement.apply(Some(newL4Root))
-//      L4_AdaptFieldLayout.apply(Some(newL4Root))
-//
-//      l4root.nodes ++= newL4Root.nodes // TODO: other collections
+//      L4_AddCommunicationAndLoopStatements.apply(Some(newL4Root))
+//      L4_AdaptFieldLayouts.apply(Some(newL4Root))
+
+      l4root.nodes ++= newL4Root.nodes // TODO: other collections
     }
 
     // re-print the merged L4 state
