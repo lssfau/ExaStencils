@@ -133,6 +133,15 @@ object L2_Parser extends ExaParser with PackratParsers {
   lazy val functionCall = locationize(genericAccess ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => L2_FunctionCall(id, args) })
 
   // ######################################
+  // ##### L2_Index
+  // ######################################
+
+  lazy val index = expressionIndex ||| constIndex
+
+  lazy val expressionIndex = locationize("[" ~> binaryexpression ~ ("," ~> binaryexpression).* <~ "]" ^^ { case b ~ l => L2_ExpressionIndex((List(b) ++ l).toArray) })
+  lazy val constIndex = locationize("[" ~> integerLit ~ ("," ~> integerLit).* <~ "]" ^^ { case b ~ l => L2_ConstIndex((List(b) ++ l).toArray) })
+
+  // ######################################
   // ##### L2_LevelSpecification
   // ######################################
 
@@ -207,7 +216,7 @@ object L2_Parser extends ExaParser with PackratParsers {
   lazy val domainDeclaration = locationize("Domain" ~> ident ^^ { L2_DomainDecl })
 
   // #############################################################################
-  // ################################## L3_FIELD #################################
+  // #################################### FIELD ##################################
   // #############################################################################
 
   // ######################################
@@ -225,4 +234,39 @@ object L2_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ levels ~ datatype ~ localization ~ domain ~ initial => L2_BaseFieldDecl(id, levels, datatype, localization, domain, initial) })
   lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ level.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ _ ~ bc => L2_BoundaryFieldDecl(id, levels, bc) })
+
+//  // #############################################################################
+//  // ################################### STENCIL #################################
+//  // #############################################################################
+//
+//  // ######################################
+//  // ##### L2_OperatorDecl
+//  // ######################################
+//
+//  lazy val operatorDeclaration = (
+//    locationize(("Operator" ~> ident) ~ ("from" ~> stencilDeclaration) ^^ { case id ~ stencil => stencil.name = id; L2_OperatorFromStencil(id, stencil) })
+//      ||| locationize(("Operator" ~> ident) ~ ("from" ~> stencilTemplateDeclaration) ^^ { case id ~ stencil => stencil.name = id; L2_OperatorFromStencilTemplate(id, stencil) }))
+//
+//  // ######################################
+//  // ##### L2_StencilDecl
+//  // ######################################
+//
+//  lazy val stencilDeclaration = locationize(("Stencil" ~> ident.?) ~ ("{" ~> stencilEntries <~ "}") ^^ { case id ~ entries => L2_StencilDecl(id.getOrElse("anonymous"), entries.to[ListBuffer]) })
+//  lazy val stencilEntries = (
+//    (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
+//      ||| stencilEntry.+)
+//  lazy val stencilEntry : Parser[L2_StencilEntry] = constStencilEntry ||| varStencilEntry
+//  lazy val constStencilEntry = locationize((index ~ ("=>" ~> numericLit)) ^^ { case offset ~ coeff => L2_ConstStencilEntry(offset, coeff.toDouble) })
+//  lazy val varStencilEntry = locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_VarStencilEntry(offset, coeff) })
+//
+//  // ######################################
+//  // ##### L2_StencilTemplateDecl
+//  // ######################################
+//
+//  lazy val stencilTemplateDeclaration = locationize(("StencilTemplate" ~> ident.?) ~ ("on" ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
+//    ^^ { case id ~ localization ~ domain ~ entries => L2_StencilTemplateDecl(id.getOrElse("anonymous"), localization, domain, entries.map(e => e : L2_Index).to[ListBuffer]) })
+//  lazy val stencilTemplateEntries = (
+//    (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
+//      ||| stencilTemplateEntry.+)
+//  lazy val stencilTemplateEntry = locationize(index <~ "=>" ^^ (offset => offset))
 }
