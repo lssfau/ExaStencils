@@ -74,7 +74,7 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
 
     if (true) {
       // TODO: add flag to control behavior
-      var file = new java.io.File(Settings.performanceEstimateOutputFile)
+      val file = new java.io.File(Settings.performanceEstimateOutputFile)
       if (!file.getParentFile.exists()) {
         file.getParentFile.mkdirs()
       }
@@ -194,7 +194,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         estimatedTimeOps_host /= Platform.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
         estimatedTimeOps_device /= Platform.hw_gpu_numCores // assumes perfect utilization - TODO: annotate max number of iterations in loop and use it here if smaller than number of cuda cores
 
-        var totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
+        val totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
         totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
 
         loop.annotate("perf_timeEstimate_host", totalEstimate.host)
@@ -285,6 +285,7 @@ object EvaluatePerformanceEstimates_Ops extends QuietDefaultStrategy("Evaluating
     super.applyStandalone(node)
   }
 
+  // FIXME: incorporate number of operands
   this += new Transformation("Searching", {
     case exp : IR_Addition       =>
       numAdd += 1
