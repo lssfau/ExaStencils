@@ -32,16 +32,16 @@ case class L4_Function(
     override var identifier : L4_Identifier,
     var returntype : L4_Datatype,
     var arguments : ListBuffer[L4_FunctionArgument],
-    var statements : ListBuffer[L4_Statement],
+    var body : ListBuffer[L4_Statement],
     var allowInlining : Boolean = true) extends L4_Statement with L4_HasIdentifier {
 
   override def prettyprint(out : PpStream) = {
     out << "Function " << identifier << " (" <<< (arguments, ", ") << " )" << " : " << returntype << " {\n"
-    out <<< (statements, "\n")
+    out <<< (body, "\n")
     out << "\n}"
   }
 
-  override def progress = IR_Function(returntype.progress, identifier.fullName, arguments.map(s => s.progress), statements.map(s => s.progress), allowInlining)
+  override def progress = IR_Function(returntype.progress, identifier.fullName, arguments.map(s => s.progress), body.map(s => s.progress), allowInlining)
 }
 
 /// L4_FunctionCall

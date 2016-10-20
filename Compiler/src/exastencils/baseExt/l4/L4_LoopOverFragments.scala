@@ -10,18 +10,20 @@ import exastencils.prettyprinting.PpStream
 /// L4_LoopOverFragments
 
 object L4_LoopOverFragments {
+  def apply(body : L4_Statement*) = new L4_LoopOverFragments(body.to[ListBuffer], None)
+
   def apply(statements : List[L4_Statement], reduction : Option[L4_Reduction]) =
     new L4_LoopOverFragments(statements.to[ListBuffer], reduction)
 }
 
 case class L4_LoopOverFragments(
-    var statements : ListBuffer[L4_Statement],
+    var body : ListBuffer[L4_Statement],
     var reduction : Option[L4_Reduction]) extends L4_Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "loop over fragments "
     if (reduction.isDefined) out << "with " << reduction.get
-    out << "{\n" <<< statements << "}\n"
+    out << "{\n" <<< body << "}\n"
   }
 
   override def progress = {
@@ -31,6 +33,6 @@ case class L4_LoopOverFragments(
     parallelization.potentiallyParallel = true
     parallelization.reduction = reduction.map(_.progress)
 
-    new IR_LoopOverFragments(statements.map(_.progress), parallelization)
+    new IR_LoopOverFragments(body.map(_.progress), parallelization)
   }
 }

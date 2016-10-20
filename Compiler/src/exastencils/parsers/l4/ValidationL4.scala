@@ -56,7 +56,7 @@ object ValidationL4 {
 
   s += Transformation("check destroyGlobals", {
     case f : L4_Function if f.identifier.name == "Application" =>
-      var last = f.statements.last
+      var last = f.body.last
       last match {
         case c : L4_FunctionCall => if (c.function.name != "destroyGlobals") Logger.error("destroyGlobals has to be last statement in Application()")
         case _                   =>

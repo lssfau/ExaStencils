@@ -26,6 +26,9 @@ case class L4_RegionSpecification(var region : String, var dir : L4_ConstIndex, 
 /// L4_LoopOverField
 
 object L4_LoopOverField {
+  def apply(field : L4_Access, body : L4_Statement*) =
+    new L4_LoopOverField(field, None, false, None, None, None, None, body.to[ListBuffer], None, ListBuffer(), ListBuffer())
+
   def apply(field : L4_Access, region : Option[L4_RegionSpecification], seq : Boolean, condition : Option[L4_Expression], startOffset : Option[L4_ExpressionIndex], endOffset : Option[L4_ExpressionIndex],
       increment : Option[L4_ExpressionIndex], statements : List[L4_Statement], reduction : Option[L4_Reduction], preComms : List[L4_Communicate], postComms : List[L4_Communicate]) =
     new L4_LoopOverField(field, region, seq, condition, startOffset, endOffset,
@@ -41,7 +44,7 @@ case class L4_LoopOverField(
     var startOffset : Option[L4_ExpressionIndex],
     var endOffset : Option[L4_ExpressionIndex],
     var increment : Option[L4_ExpressionIndex],
-    var statements : ListBuffer[L4_Statement],
+    var body : ListBuffer[L4_Statement],
     var reduction : Option[L4_Reduction],
     var preComms : ListBuffer[L4_Communicate],
     var postComms : ListBuffer[L4_Communicate]) extends L4_Statement {
@@ -57,7 +60,7 @@ case class L4_LoopOverField(
     if (reduction.isDefined) out << "with " << reduction.get << ' '
     for (cs <- preComms) { out << "precomm " <<< (cs.targets, " ") << (if (cs.targets.isEmpty) "" else " of ") << cs.field << ' ' }
     for (cs <- postComms) { out << "postcomm " <<< (cs.targets, " ") << (if (cs.targets.isEmpty) "" else " of ") << cs.field << ' ' }
-    out << "{\n" <<< statements << "}\n"
+    out << "{\n" <<< body << "}\n"
   }
 
   override def progress : IR_LoopOverPoints = {
@@ -94,7 +97,7 @@ case class L4_LoopOverField(
       procStartOffset,
       procEndOffset,
       procIncrement,
-      statements.map(_.progress),
+      body.map(_.progress),
       preComms.map(_.progress),
       postComms.map(_.progress),
       parallelization,

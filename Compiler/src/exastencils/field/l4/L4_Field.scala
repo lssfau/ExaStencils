@@ -21,6 +21,8 @@ case class L4_Field(
     var numSlots : Int,
     var boundary : L4_BoundaryCondition) extends L4_KnowledgeObjectWithLevel[IR_Field] {
 
+  def datatype = fieldLayout.datatype
+
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << name
     out << "< " << domainName << ", " << fieldLayout.name << ", " << boundary << " >"

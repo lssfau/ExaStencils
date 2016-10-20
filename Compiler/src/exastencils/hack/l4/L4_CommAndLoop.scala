@@ -1,12 +1,13 @@
 package exastencils.hack.l4
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable._
 
 import exastencils.base.l4._
+import exastencils.baseExt.l4._
+import exastencils.communication.l4.L4_Communicate
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.field.l4._
-import exastencils.logger.Logger
+import exastencils.field.l4.L4_FieldFieldConvolution
 
 //
 //// TODO: split into separate strategies; move to more appropriate files; integrate
@@ -14,81 +15,6 @@ import exastencils.logger.Logger
 ///// L4_AddCommunicationAndLoopStatements
 //
 //object L4_AddCommunicationAndLoopStatements extends DefaultStrategy("Add communication and loop statements around field assignments") {
-//
-//  object ResolveFieldFieldConvolutions extends QuietDefaultStrategy("ResolveFieldFieldConvolutions") {
-//    var tmpVarCounter : Int = 0
-//    var tmpVarMap = HashMap[L4_BasicAccess, L4_FieldFieldConvolution]()
-//
-//    this += new Transformation("resolve", {
-//      case conv : L4_FieldFieldConvolution => {
-//        val tmpVar = L4_BasicAccess(s"reductionVar_$tmpVarCounter")
-//
-//        tmpVarMap += (tmpVar -> conv)
-//
-//        Duplicate(tmpVar)
-//      }
-//    })
-//  }
-//
-//
-//
-//  def processStmtList(statements : List[L4_Statement]) : List[L4_Statement] = {
-//    import ResolveFieldFieldConvolutions._
-//    var newBody = ListBuffer[L4_Statement]()
-//
-//    // reset counter for temporary variables
-//    // tmpVarCounter = 0
-//
-//    // process each statement of the functions body
-//    for (stmt <- statements) {
-//      stmt match {
-//        case loop : L4_UntilLoop   => loop.body = processStmtList(loop.body)
-//        case loop : L4_WhileLoop   => loop.body = processStmtList(loop.body)
-//        case loop : L4_ForLoop     => loop.body = processStmtList(loop.body)
-//        case cond : L4_IfCondition => {
-//          cond.trueBody = processStmtList(cond.trueBody)
-//          cond.falseBody = processStmtList(cond.falseBody)
-//        }
-//        // TODO: emit warning for types with list of statements as member
-//        case _ => {
-//          // check if statement includes a field-field-convolution; replace with temporary variable
-//          ResolveFieldFieldConvolutions.applyStandalone(stmt)
-//
-//          if (tmpVarMap.nonEmpty) {
-//            // add temporary variable
-//            for (tmpVar <- tmpVarMap.toList.sortBy(_._1.name)) {
-//              // FIXME: data type - tmpVar._2.lhs.resolveField.gridDatatype // FIXME: default value according to data type
-//              newBody += L4_VariableDeclaration(L4_BasicIdentifier(tmpVar._1.name), L4_RealDatatype, Some(L4_FloatConstant(0)))
-//            }
-//
-//            // add reduction loop
-//            // TODO: merge loops/ communications for identical fields
-//            // TODO: warp in fragment loops?
-//            for (tmpVar <- tmpVarMap.toList.sortBy(_._1.name)) {
-//              val assignment = L4_Assignment(Duplicate(tmpVar._1), Duplicate(tmpVar._2), "+=", None)
-//              val red = L4_Reduction("+", tmpVar._1.name)
-//              val commStmts = List[L4_Communicate]() // can be extended if comm is required - dup maybe?
-//              newBody += L4_LoopOverField(tmpVar._2.lhs, None, false, None, None, None, None, List[L4_Statement](assignment), Some(red), commStmts, List())
-//            }
-//
-//            // consume map entries
-//            tmpVarMap.clear
-//          }
-//        }
-//      }
-//      // add original stmt in any case
-//      newBody += stmt
-//    }
-//
-//    newBody.toList
-//  }
-//
-//  this += new Transformation("Handle field-field-convolutions", {
-//    case func : L4_Function => {
-//      func.statements = processStmtList(func.statements)
-//      func
-//    }
-//  })
 //
 //  this += new Transformation("Add loops around field assignments", {
 //    case assignment @ L4_Assignment(lhs : L4_FieldAccess, rhs, op, cond) => {
