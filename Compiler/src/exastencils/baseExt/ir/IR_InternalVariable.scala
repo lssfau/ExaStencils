@@ -19,8 +19,7 @@ abstract class IR_InternalVariable(
     var canBePerLevel : Boolean,
     var canBePerNeighbor : Boolean) extends IR_Expression {
 
-  // FIXME: datatype
-  override def datatype = IR_UnitDatatype
+  override def datatype = resolveDatatype()
   override def prettyprint(out : PpStream) : Unit = out << resolveName
 
   def usesFragmentArrays : Boolean = true
