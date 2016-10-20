@@ -11,7 +11,7 @@ import exastencils.stencil.ir._
 
 case class L4_StencilConvolution(var stencilAccess : L4_StencilAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = out << stencilAccess << " * " << fieldAccess
-  def progress = IR_StencilConvolution(stencilAccess.target.getProgressedObject, fieldAccess.progress)
+  def progress = IR_StencilConvolution(stencilAccess.target.getProgressedObject(), fieldAccess.progress)
 }
 
 /// L4_StencilFieldConvolution

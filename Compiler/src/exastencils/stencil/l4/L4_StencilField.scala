@@ -19,10 +19,13 @@ case class L4_StencilField(
     var stencil : L4_Stencil // linked stencil template // TODO: var stencil : L4_StencilTemplate
 ) extends L4_KnowledgeObjectWithLevel[IR_StencilField] {
 
+  // TODO: integrate StencilTemplate
+  def offsets = stencil.entries.map(_.offset)
+
   def prettyprintDecl(out : PpStream) = {
     out << "StencilField " << name <<
       "< " << field.name << " => " << stencil.name << " >" << "@" << level << "\n"
   }
 
-  override def progressImpl() = IR_StencilField(name, level, field.getProgressedObject, stencil.getProgressedObject)
+  override def progressImpl() = IR_StencilField(name, level, field.getProgressedObject(), stencil.getProgressedObject())
 }
