@@ -1,18 +1,13 @@
 package exastencils.hack.l4
 
-import scala.collection.mutable._
+import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.baseExt.l4._
-import exastencils.boundary.l4._
-import exastencils.communication.l4._
 import exastencils.core._
-import exastencils.core.collectors.Collector
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.l4._
 import exastencils.logger.Logger
-import exastencils.stencil.l4._
+
 //
 //// TODO: split into separate strategies; move to more appropriate files; integrate
 //
@@ -35,44 +30,7 @@ import exastencils.stencil.l4._
 //    })
 //  }
 //
-//  object SetNextSlotOnFieldAccess extends QuietDefaultStrategy("SetNextSlotOnFieldAccess") {
-//    var targetAccessName : String = ""
-//    var targetAccessLevel : L4_LevelSpecification = L4_CurrentLevel()
 //
-//    this += new Transformation("Introduce slots", {
-//      case access @ L4_FieldAccess(targetAccessName, targetAccessLevel, _, _, _) => {
-//        access.slot = L4_ActiveSlot
-//        access
-//      }
-//    })
-//  }
-//
-//  this += new Transformation("Introduce slots", {
-//    case assignment @ L4_Assignment(lhs : L4_FieldAccess, rhs, op, cond) => {
-//      if (cond.isDefined) Logger.warn("Found potentially slotted assignment with condition - resolution is currently unsupported")
-//      if (cond.isEmpty && StateManager.findFirst({ access : L4_FieldAccess => access.name == lhs.name && access.level == lhs.level }, ExpressionStatement(rhs)).isDefined) {
-//        // destination field is used in update expression -> introduce slots
-//        L4_FieldCollection.getByIdentifier(lhs.name, lhs.level.asInstanceOf[L4_SingleLevel].level).get.numSlots = 2 // TODO: better strategy to determine number of slots required
-//
-//        // pre-store advance statements before altering lhs
-//        val advance = L4_Advance(Duplicate(lhs))
-//
-//        // handle lhs
-//        lhs.slot = L4_NextSlot
-//
-//        // handle rhs
-//        SetNextSlotOnFieldAccess.targetAccessName = lhs.name
-//        SetNextSlotOnFieldAccess.targetAccessLevel = lhs.level
-//        SetNextSlotOnFieldAccess.applyStandalone(rhs)
-//
-//        // return original statement plus advance statement
-//        List(assignment, advance)
-//      } else {
-//        // no slots necessary -> return assignment unchanged
-//        assignment
-//      }
-//    }
-//  })
 //
 //  def processStmtList(statements : List[L4_Statement]) : List[L4_Statement] = {
 //    import ResolveFieldFieldConvolutions._

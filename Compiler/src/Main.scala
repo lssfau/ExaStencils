@@ -188,6 +188,7 @@ object Main {
       L3_ProcessFieldOverrides.apply()
 
       //      L3_ResolveAccesses.apply()
+      L3_ResolveFieldAccesses.apply()
       //      L3_ResolveConvolutions.apply()
 
       L3_FieldCollection.addInitFieldsFunction()
@@ -234,6 +235,7 @@ object Main {
       val l4root = StateManager.root_.asInstanceOf[L4_Root]
 
       val newL4Root = l3root.progress // progress root
+      L4_IntroduceSlots.apply(Some(newL4Root))
       //      L4_AddCommunicationAndLoopStatements.apply(Some(newL4Root))
       //      L4_AdaptFieldLayouts.apply(Some(newL4Root))
 

@@ -4,6 +4,7 @@ import exastencils.base.ir.IR_StringLiteral
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.field.ir._
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 /// L4_SlotSpecification
@@ -42,10 +43,16 @@ case class L4_ConstantSlot(number : Long) extends L4_SlotSpecification {
 /// L4_AdvanceSlot
 
 case class L4_AdvanceSlot(var field : L4_Access) extends L4_Statement {
-  override def prettyprint(out : PpStream) = out << "advance " << field << '\n'
+  override def prettyprint(out : PpStream) = {
+    // don't use field's prettyprinter -> slot modifiers are not required in advance statements
+    field match {
+      case access : L4_FieldAccess => out << "advance " << access.target.name << "@" << access.target.level
+      case access                  => Logger.warn("Trying to advance slot of something that is not a field: " + access)
+    }
+  }
 
   override def progress = {
-    IR_AdvanceSlot(IR_IV_ActiveSlot(field.asInstanceOf[L4_FieldAccess].target.getProgressedObject,
+    IR_AdvanceSlot(IR_IV_ActiveSlot(field.asInstanceOf[L4_FieldAccess].target.getProgressedObject(),
       IR_StringLiteral(IR_LoopOverFragments.defIt)))
   }
 }

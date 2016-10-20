@@ -42,7 +42,7 @@ object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Fie
     val initStmts = ListBuffer[L3_Statement]()
     for (field <- objects)
       if (field.initial.isDefined)
-        initStmts += L3_Assignment(L3_FieldAccess(field, L3_SingleLevel(field.level)), field.initial.get, "=", None)
+        initStmts += L3_Assignment(L3_FieldAccess(field, field.level), field.initial.get, "=", None)
     val fct = L3_Function("InitFields", None, L3_UnitDatatype, initStmts)
     StateManager.root_.asInstanceOf[L3_Root].nodes += fct
   }
