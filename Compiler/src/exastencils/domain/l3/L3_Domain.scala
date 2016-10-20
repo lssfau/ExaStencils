@@ -8,6 +8,5 @@ import exastencils.prettyprinting.PpStream
 
 case class L3_Domain(var name : String /* TODO: add other relevant information */) extends L3_KnowledgeObject[L4_Domain] {
   override def prettyprintDecl(out : PpStream) : Unit = ???
-
-  override def progressImpl() = ???
+  override def progressImpl() = L4_Domain(name)
 }

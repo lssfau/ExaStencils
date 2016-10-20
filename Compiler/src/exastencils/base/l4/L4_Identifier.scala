@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.core.Duplicate
 import exastencils.datastructures.Node
 import exastencils.logger.Logger
-import exastencils.prettyprinting.PpStream
+import exastencils.prettyprinting._
 
 /// L4_HasIdentifier
 
@@ -15,12 +15,6 @@ trait L4_HasIdentifier {
 }
 
 /// L4_Identifier
-
-trait L4_Identifier extends Node {
-  // read and write access to name
-  var name : String
-  def fullName : String
-}
 
 object L4_Identifier {
   def doDuplicate[T <: L4_HasIdentifier](toDuplicate : T, level : L4_LevelSpecification) : ListBuffer[T] = {
@@ -48,16 +42,22 @@ object L4_Identifier {
   }
 }
 
+trait L4_Identifier extends Node with PrettyPrintable {
+  // read and write access to name
+  var name : String
+  def fullName : String
+}
+
 /// L4_BasicIdentifier
 
 case class L4_BasicIdentifier(var name : String) extends L4_Identifier {
-  def prettyprint(out : PpStream) = out << name
-  def fullName = name
+  override def prettyprint(out : PpStream) = out << name
+  override def fullName = name
 }
 
 /// L4_LeveledIdentifier
 
 case class L4_LeveledIdentifier(var name : String, var level : L4_LevelSpecification) extends L4_Identifier {
-  def prettyprint(out : PpStream) = out << name << '@' << level
-  def fullName = name + "_" + level.prettyprint
+  override def prettyprint(out : PpStream) = out << name << '@' << level
+  override def fullName = name + "_" + level.prettyprint
 }

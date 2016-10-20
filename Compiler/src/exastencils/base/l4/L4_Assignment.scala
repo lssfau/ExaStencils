@@ -8,7 +8,7 @@ import exastencils.prettyprinting.PpStream
 
 // TODO: use specialized compound assignment and eliminate op member
 case class L4_Assignment(var dest : L4_Access, var src : L4_Expression, var op : String, var condition : Option[L4_Expression] = None) extends L4_Statement {
-  override def prettyprint(out : PpStream) = out << dest << ' ' << op << ' ' << src << '\n'
+  override def prettyprint(out : PpStream) = out << dest << ' ' << op << ' ' << src
   override def progress = IR_Assignment(dest.progress, src.progress, op)
 }
 

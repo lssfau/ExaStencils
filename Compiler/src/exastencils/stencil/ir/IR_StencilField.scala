@@ -2,6 +2,7 @@ package exastencils.stencil.ir
 
 import exastencils.field.ir.IR_Field
 import exastencils.knowledge.ir._
+import exastencils.operator.ir.IR_Stencil
 
 /// IR_StencilField
 

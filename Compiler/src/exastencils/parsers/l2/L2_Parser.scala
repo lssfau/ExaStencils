@@ -11,6 +11,7 @@ import exastencils.baseExt.l2._
 import exastencils.boundary.l2._
 import exastencils.domain.l2.L2_DomainDecl
 import exastencils.field.l2._
+import exastencils.operator.l2._
 import exastencils.parsers._
 
 object L2_Parser extends ExaParser with PackratParsers {
@@ -43,7 +44,7 @@ object L2_Parser extends ExaParser with PackratParsers {
 
   //###########################################################
 
-  lazy val program = (domainDeclaration ||| fieldDeclaration).* ^^ { nodes => L2_Root(nodes) }
+  lazy val program = (domainDeclaration ||| fieldDeclaration ||| stencilDeclaration).* ^^ { nodes => L2_Root(nodes) }
 
   //###########################################################
 
@@ -235,38 +236,37 @@ object L2_Parser extends ExaParser with PackratParsers {
   lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ level.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ _ ~ bc => L2_BoundaryFieldDecl(id, levels, bc) })
 
-//  // #############################################################################
-//  // ################################### STENCIL #################################
-//  // #############################################################################
-//
-//  // ######################################
-//  // ##### L2_OperatorDecl
-//  // ######################################
-//
-//  lazy val operatorDeclaration = (
-//    locationize(("Operator" ~> ident) ~ ("from" ~> stencilDeclaration) ^^ { case id ~ stencil => stencil.name = id; L2_OperatorFromStencil(id, stencil) })
-//      ||| locationize(("Operator" ~> ident) ~ ("from" ~> stencilTemplateDeclaration) ^^ { case id ~ stencil => stencil.name = id; L2_OperatorFromStencilTemplate(id, stencil) }))
-//
-//  // ######################################
-//  // ##### L2_StencilDecl
-//  // ######################################
-//
-//  lazy val stencilDeclaration = locationize(("Stencil" ~> ident.?) ~ ("{" ~> stencilEntries <~ "}") ^^ { case id ~ entries => L2_StencilDecl(id.getOrElse("anonymous"), entries.to[ListBuffer]) })
-//  lazy val stencilEntries = (
-//    (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
-//      ||| stencilEntry.+)
-//  lazy val stencilEntry : Parser[L2_StencilEntry] = constStencilEntry ||| varStencilEntry
-//  lazy val constStencilEntry = locationize((index ~ ("=>" ~> numericLit)) ^^ { case offset ~ coeff => L2_ConstStencilEntry(offset, coeff.toDouble) })
-//  lazy val varStencilEntry = locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_VarStencilEntry(offset, coeff) })
-//
-//  // ######################################
-//  // ##### L2_StencilTemplateDecl
-//  // ######################################
-//
-//  lazy val stencilTemplateDeclaration = locationize(("StencilTemplate" ~> ident.?) ~ ("on" ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
-//    ^^ { case id ~ localization ~ domain ~ entries => L2_StencilTemplateDecl(id.getOrElse("anonymous"), localization, domain, entries.map(e => e : L2_Index).to[ListBuffer]) })
-//  lazy val stencilTemplateEntries = (
-//    (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
-//      ||| stencilTemplateEntry.+)
-//  lazy val stencilTemplateEntry = locationize(index <~ "=>" ^^ (offset => offset))
+  // #############################################################################
+  // ################################## OPERATOR #################################
+  // #############################################################################
+
+  //  // ######################################
+  //  // ##### L2_OperatorDecl
+  //  // ######################################
+  //
+  //  lazy val operatorDeclaration = (
+  //    locationize(("Operator" ~> ident) ~ ("from" ~> stencilDeclaration) ^^ { case id ~ stencil => stencil.name = id; L2_OperatorFromStencil(id, stencil) })
+  //      ||| locationize(("Operator" ~> ident) ~ ("from" ~> stencilTemplateDeclaration) ^^ { case id ~ stencil => stencil.name = id; L2_OperatorFromStencilTemplate(id, stencil) }))
+
+  // ######################################
+  // ##### L2_StencilDecl
+  // ######################################
+
+  lazy val stencilDeclaration = locationize(("Operator" ~> ident <~ ("from" ~ "Stencil")) ~ ("{" ~> stencilEntries <~ "}")
+    ^^ { case id ~ entries => L2_StencilDecl(id, entries) })
+  lazy val stencilEntries = (
+    (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
+      ||| stencilEntry.+)
+  lazy val stencilEntry = locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_StencilEntry(offset, coeff) })
+
+  //  // ######################################
+  //  // ##### L2_StencilTemplateDecl
+  //  // ######################################
+  //
+  //  lazy val stencilTemplateDeclaration = locationize(("StencilTemplate" ~> ident.?) ~ ("on" ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
+  //    ^^ { case id ~ localization ~ domain ~ entries => L2_StencilTemplateDecl(id.getOrElse("anonymous"), localization, domain, entries.map(e => e : L2_Index).to[ListBuffer]) })
+  //  lazy val stencilTemplateEntries = (
+  //    (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
+  //      ||| stencilTemplateEntry.+)
+  //  lazy val stencilTemplateEntry = locationize(index <~ "=>" ^^ (offset => offset))
 }

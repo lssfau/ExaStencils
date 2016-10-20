@@ -1,4 +1,4 @@
-package exastencils.stencil.ir
+package exastencils.operator.ir
 
 import scala.collection.mutable.ListBuffer
 
@@ -10,12 +10,6 @@ import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.util.ir.IR_ResultingDatatype
 
-/// IR_StencilEntry
-
-case class IR_StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Expression) {
-  def datatype : IR_Datatype = coefficient.datatype
-}
-
 /// IR_Stencil
 
 object IR_Stencil {
@@ -25,7 +19,7 @@ object IR_Stencil {
 case class IR_Stencil(
     var name : String,
     var level : Int,
-    var entries : ListBuffer[IR_StencilEntry] = new ListBuffer) extends IR_KnowledgeObjectWithLevel {
+    var entries : ListBuffer[IR_StencilEntry] = new ListBuffer) extends IR_KnowledgeObjectWithLevel with IR_Operator {
 
   def datatype = entries.foldLeft(entries.head.datatype)((dt, entry) => IR_ResultingDatatype(dt, entry.datatype))
 
@@ -76,4 +70,10 @@ case class IR_Stencil(
 
     s
   }
+}
+
+/// IR_StencilEntry
+
+case class IR_StencilEntry(var offset : IR_ExpressionIndex, var coefficient : IR_Expression) {
+  def datatype : IR_Datatype = coefficient.datatype
 }

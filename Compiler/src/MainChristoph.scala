@@ -21,6 +21,7 @@ import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
 import exastencils.logger._
+import exastencils.operator.l4.L4_ProcessStencilDeclarations
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.api.cuda._
@@ -34,7 +35,6 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir.IR_ResolveIntergridIndices
 import exastencils.stencil.ir._
-import exastencils.stencil.l4.L4_ProcessStencilDeclarations
 import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.l4.L4_ResolveSpecialConstants

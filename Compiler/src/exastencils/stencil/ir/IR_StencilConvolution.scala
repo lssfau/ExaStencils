@@ -6,6 +6,7 @@ import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.operator.ir.IR_Stencil
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.util.ir.IR_ResultingDatatype
 

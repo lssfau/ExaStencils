@@ -7,6 +7,8 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
+import exastencils.operator.ir.IR_Stencil
+import exastencils.operator.ir.IR_StencilEntry
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting._
 import exastencils.stencil.ir._

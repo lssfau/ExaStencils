@@ -19,6 +19,8 @@ class IR_KnowledgeCollection[T <: IR_KnowledgeObject : TypeTag] {
   def sortedObjects = objects.sortBy(_.name)
 
   def add(newObj : T) = objects += newObj
+
+  def clear() = objects.clear()
 }
 
 class IR_LeveledKnowledgeCollection[T <: IR_KnowledgeObjectWithLevel : TypeTag] {
@@ -46,4 +48,6 @@ class IR_LeveledKnowledgeCollection[T <: IR_KnowledgeObjectWithLevel : TypeTag] 
   def sortedObjects = objects.sortBy(obj => (obj.name, obj.level))
 
   def add(newObj : T) = { objects += newObj }
+
+  def clear() = objects.clear()
 }

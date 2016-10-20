@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_Root
 import exastencils.baseExt.ir.IR_UserFunctions
+import exastencils.knowledge.l4.L4_PrintKnowledgeDecl
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
@@ -16,7 +17,8 @@ object L4_Root {
 
 case class L4_Root(var nodes : ListBuffer[L4_Node]) extends L4_Node with L4_Progressable with PrettyPrintable {
   override def prettyprint(out : PpStream) = {
-    // TODO: print knowledge collections
+    L4_PrintKnowledgeDecl.apply(out)
+
     nodes.foreach {
       case p : PrettyPrintable => out << p << "\n\n"
       case _                   =>

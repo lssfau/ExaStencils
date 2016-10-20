@@ -17,9 +17,10 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainFunctions
-import exastencils.domain.l2.L2_ProcessDomainDeclarations
+import exastencils.domain.l2._
+import exastencils.domain.l3.L3_DomainCollection
 import exastencils.field.ir._
-import exastencils.field.l2.L2_ProcessFieldDeclarations
+import exastencils.field.l2._
 import exastencils.field.l3._
 import exastencils.field.l4._
 import exastencils.globals.ir._
@@ -31,6 +32,9 @@ import exastencils.interfacing.ir._
 import exastencils.knowledge.l3.L3_FieldCollection
 import exastencils.knowledge.l4._
 import exastencils.logger._
+import exastencils.operator.l2._
+import exastencils.operator.l3._
+import exastencils.operator.l4._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.api.cuda._
@@ -146,11 +150,16 @@ object Main {
 
       L2_ProcessDomainDeclarations.apply()
       L2_ProcessFieldDeclarations.apply()
-//      L2_ProcessStencilDeclarations.apply()
-//      L2_ProcessStencilTemplateDeclarations.apply()
-//      L2_ProcessOperatorDeclarations.apply()
+      L2_ProcessStencilDeclarations.apply()
+      //      L2_ProcessStencilTemplateDeclarations.apply()
+      //      L2_ProcessOperatorDeclarations.apply()
 
       L2_ResolveLevelSpecifications.apply() // ... and again afterwards
+
+      // progress knowledge to l3
+      L2_DomainCollection.progress()
+      L2_FieldCollection.progress()
+      L2_StencilCollection.progress()
     }
 
     if (Settings.timeStrategies)
@@ -166,9 +175,10 @@ object Main {
 
       L3_ResolveLevelSpecifications.apply() // before processing declarations ...
 
+      //      L3_ProcessDomainDeclarations.apply()
       L3_ProcessFieldDeclarations.apply()
-//      L3_ProcessStencilDeclarations.apply()
-//      L3_ProcessOperatorDeclarations.apply()
+      L3_ProcessStencilDeclarations.apply()
+      //      L3_ProcessOperatorDeclarations.apply()
 
       L3_ResolveFunctionTemplates.apply()
 
@@ -177,17 +187,19 @@ object Main {
 
       L3_ProcessFieldOverrides.apply()
 
-//      L3_ResolveAccesses.apply()
-//      L3_ResolveConvolutions.apply()
-//
-//      L3_FieldCollection.addInitFieldsFunction
-//
-//      L3_FieldCollection.prepareFieldLayouts // prepare field layout knowledge for fields
-//      L3_OperatorCollection.prepareFieldLayouts // prepare  field layout knowledge for stencil fields
+      //      L3_ResolveAccesses.apply()
+      //      L3_ResolveConvolutions.apply()
+
+      L3_FieldCollection.addInitFieldsFunction()
+
+      // progress knowledge to l4
+      L3_DomainCollection.progress()
+      L3_FieldCollection.prepareFieldLayouts() // prepare field layout knowledge for fields
+      //      L3_OperatorCollection.prepareFieldLayouts // prepare  field layout knowledge for stencil fields
       L3_FieldCollection.progress() // progress field knowledge
-//      L3_StencilCollection.progress // process stencil knowledge
-//      L3_StencilTemplateCollection.progress // process stencil knowledge
-//      L3_OperatorCollection.progress // process operator knowledge
+      L3_StencilCollection.progress() // process stencil knowledge
+      //      L3_StencilTemplateCollection.progress // process stencil knowledge
+      //      L3_OperatorCollection.progress // process operator knowledge
     } else if (Knowledge.l3tmp_generateL4) {
       StateManager.root_ = l3Generate.Root()
       StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
@@ -222,8 +234,8 @@ object Main {
       val l4root = StateManager.root_.asInstanceOf[L4_Root]
 
       val newL4Root = l3root.progress // progress root
-//      L4_AddCommunicationAndLoopStatements.apply(Some(newL4Root))
-//      L4_AdaptFieldLayouts.apply(Some(newL4Root))
+      //      L4_AddCommunicationAndLoopStatements.apply(Some(newL4Root))
+      //      L4_AdaptFieldLayouts.apply(Some(newL4Root))
 
       l4root.nodes ++= newL4Root.nodes // TODO: other collections
     }
@@ -237,7 +249,9 @@ object Main {
       outFile.write(Indenter.addIndentations(l4_printed))
       outFile.close()
 
-      // re-parse the file to check for errors
+      // re-parse the file to check for errors - also clear knowledge collections
+      L4_ClearKnowledge.apply()
+
       StateManager.root_ = (new ParserL4).parseFile(repFileName)
       ValidationL4.apply()
     }

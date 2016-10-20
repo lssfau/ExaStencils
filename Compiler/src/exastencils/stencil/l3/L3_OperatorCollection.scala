@@ -1,9 +1,12 @@
 package exastencils.stencil.l3
 
-import exastencils.knowledge.l3.L3_LeveledKnowledgeCollection
-import exastencils.stencil.l4._
+import scala.collection.mutable.ListBuffer
 
-object L3_OperatorCollection extends L3_LeveledKnowledgeCollection[L3_Operator, L4_Operator] {
+import exastencils.knowledge.l3.L3_LeveledKnowledgeCollection
+
+//object L3_OperatorCollection {
+//  val collections = ListBuffer[L3_LeveledKnowledgeCollection[_, _]](L3_StencilCollection)
+
 //  def prepareFieldLayout = {
 //    var requiredLayouts = HashMap[(String, Int), (Datatype, String)]()
 //    for (operator <- objects)
@@ -33,8 +36,5 @@ object L3_OperatorCollection extends L3_LeveledKnowledgeCollection[L3_Operator, 
 //    }
 //  }
 
-  def progress() = {
-    for (obj <- objects)
-      L4_OperatorCollection.add(obj.progress().asInstanceOf[L4_Operator]/*.asInstanceOf[L4_Operator[_ <: IR_KnowledgeObject]]*/)
-  }
-}
+//  def progress() = collections.foreach(_.progress())
+//}

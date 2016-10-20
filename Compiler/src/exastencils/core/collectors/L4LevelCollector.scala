@@ -4,7 +4,7 @@ import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.field.l4.L4_FieldDecl
 import exastencils.logger._
-import exastencils.stencil.l4.L4_StencilDecl
+import exastencils.operator.l4.L4_StencilDecl
 
 class L4LevelCollector extends Collector {
   private var curLevel = -1

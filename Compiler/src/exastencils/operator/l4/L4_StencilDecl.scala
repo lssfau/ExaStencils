@@ -1,4 +1,4 @@
-package exastencils.stencil.l4
+package exastencils.operator.l4
 
 import scala.collection.mutable.ListBuffer
 

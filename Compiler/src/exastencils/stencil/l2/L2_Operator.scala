@@ -3,10 +3,6 @@ package exastencils.stencil.l2
 import exastencils.knowledge.l2.L2_KnowledgeObjectWithLevel
 import exastencils.stencil.l3._
 
-/// L2_Operator
-
-abstract class L2_Operator extends L2_KnowledgeObjectWithLevel[L3_Operator]
-
 ///// L2_StencilOperator
 //
 //case class L2_StencilOperator(

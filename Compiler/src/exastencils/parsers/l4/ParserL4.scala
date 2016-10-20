@@ -14,6 +14,7 @@ import exastencils.deprecated.l4._
 import exastencils.domain.l4.L4_DomainDecl
 import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldDecl
+import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
 import exastencils.stencil.l4._

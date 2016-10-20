@@ -10,6 +10,7 @@ import exastencils.base.l3._
 import exastencils.baseExt.l3._
 import exastencils.boundary.l3._
 import exastencils.field.l3._
+import exastencils.operator.l3._
 import exastencils.parsers._
 
 object L3_Parser extends ExaParser with PackratParsers {
@@ -45,7 +46,7 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val program = ((
     fieldDeclaration
       | overrideFieldInformation
-//      | operatorDeclaration
+      | stencilDeclaration
       | function
       | functionTemplate
       | functionInstantiation
@@ -179,6 +180,15 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val functionCall = locationize(genericAccess ~ "(" ~ functionCallArgumentList.? ~ ")" ^^ { case id ~ "(" ~ args ~ ")" => L3_FunctionCall(id, args) })
 
   // ######################################
+  // ##### L3_Index
+  // ######################################
+
+  lazy val index = expressionIndex ||| constIndex
+
+  lazy val expressionIndex = locationize("[" ~> binaryexpression ~ ("," ~> binaryexpression).* <~ "]" ^^ { case b ~ l => L3_ExpressionIndex((List(b) ++ l).toArray) })
+  lazy val constIndex = locationize("[" ~> integerLit ~ ("," ~> integerLit).* <~ "]" ^^ { case b ~ l => L3_ConstIndex((List(b) ++ l).toArray) })
+
+  // ######################################
   // ##### L3_LevelSpecification
   // ######################################
 
@@ -287,7 +297,7 @@ object L3_Parser extends ExaParser with PackratParsers {
     )
 
   // #############################################################################
-  // ################################## L3_FIELD #################################
+  // #################################### FIELD ##################################
   // #############################################################################
 
   // ######################################
@@ -304,5 +314,20 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val overrideFieldInformation = locationize(("override" ~ "bc" ~ "for") ~> ident ~ level.? ~ ("with" ~> fieldBoundary)
     ^^ { case field ~ level ~ newBC => L3_OverrideFieldBC(field, level, newBC) })
+
+  // #############################################################################
+  // ################################## OPERATOR #################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L3_StencilDecl
+  // ######################################
+
+  lazy val stencilDeclaration = locationize(("Operator" ~> ident <~ ("from" ~ "Stencil")) ~ ("{" ~> stencilEntries <~ "}")
+    ^^ { case id ~ entries => L3_StencilDecl(id, entries) })
+  lazy val stencilEntries = (
+    (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
+      ||| stencilEntry.+)
+  lazy val stencilEntry = locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L3_StencilEntry(offset, coeff) })
 
 }

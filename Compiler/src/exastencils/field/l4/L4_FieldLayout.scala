@@ -70,7 +70,7 @@ case class L4_FieldLayout(
     //FIXME: out << "innerPoints = " << innerPoints <<  "\n"
     out << "duplicateLayers = " << duplicateLayers << (if (communicatesDuplicated) " with communication\n" else "\n")
     out << "ghostLayers = " << ghostLayers << (if (communicatesGhosts) " with communication\n" else "\n")
-    out << "}\n"
+    out << "}"
   }
 
   override def progressImpl() : IR_FieldLayout = {

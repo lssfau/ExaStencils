@@ -22,6 +22,8 @@ class L4_KnowledgeCollection[L4_Type <: L4_KnowledgeObject[IR_Type] : TypeTag, I
   def sortedObjects = objects.sortBy(_.name)
 
   def add(newObj : L4_Type) = objects += newObj
+
+  def clear() = objects.clear()
 }
 
 class L4_LeveledKnowledgeCollection[L4_Type <: L4_KnowledgeObjectWithLevel[IR_Type] : TypeTag, IR_Type <: IR_KnowledgeObject] {
@@ -49,4 +51,6 @@ class L4_LeveledKnowledgeCollection[L4_Type <: L4_KnowledgeObjectWithLevel[IR_Ty
   def sortedObjects = objects.sortBy(obj => (obj.name, obj.level))
 
   def add(newObj : L4_Type) = { objects += newObj }
+
+  def clear() = objects.clear()
 }

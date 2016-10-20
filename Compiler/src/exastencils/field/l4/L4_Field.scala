@@ -23,9 +23,9 @@ case class L4_Field(
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << name
-    out << "< " << domainName << ", " << fieldLayout << ", " << boundary << " >"
+    out << "< " << domainName << ", " << fieldLayout.name << ", " << boundary << " >"
     if (numSlots > 1) out << "[" << numSlots << "]"
-    out << "@" << level << "\n"
+    out << "@" << level
   }
 
   override def progressImpl() = {
@@ -35,7 +35,7 @@ case class L4_Field(
       index,
       IR_DomainCollection.getByIdentifier(domainName).get,
       name.toLowerCase + "Data_" + level,
-      fieldLayout.getProgressedObject,
+      fieldLayout.getProgressedObject(),
       numSlots,
       boundary.progress)
   }

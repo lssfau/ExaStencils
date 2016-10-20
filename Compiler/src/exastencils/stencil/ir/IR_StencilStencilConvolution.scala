@@ -12,6 +12,8 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
+import exastencils.operator.ir.IR_Stencil
+import exastencils.operator.ir.IR_StencilEntry
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.util.ir.IR_ResultingDatatype
 

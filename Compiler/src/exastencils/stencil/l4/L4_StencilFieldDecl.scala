@@ -5,6 +5,7 @@ import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.field.l4.L4_FieldCollection
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
+import exastencils.operator.l4.L4_StencilCollection
 import exastencils.prettyprinting.PpStream
 
 case class L4_StencilFieldDecl(

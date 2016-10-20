@@ -8,8 +8,8 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.knowledge.l3.L3_FieldCollection
 import exastencils.logger.Logger
+import exastencils.operator.l3._
 import exastencils.prettyprinting._
-import exastencils.stencil.l3.L3_OperatorCollection
 
 /// L3_FunctionArgument
 
@@ -120,8 +120,8 @@ object L3_UnfoldFunctionDeclarations extends DefaultStrategy("Unfold function de
         // check if access without level is a field
         if (L3_FieldCollection.exists(access.name))
           access.level = Some(L3_SingleLevel(baseLevel))
-        // ... or an operator
-        else if (L3_OperatorCollection.exists(access.name))
+        // ... or a stencil operator
+        else if (L3_StencilCollection.exists(access.name))
           access.level = Some(L3_SingleLevel(baseLevel))
         // ... or a function
         else if (StateManager.findFirst({ fct : L3_Function => access.name == fct.name && fct.levels.isDefined }).isDefined)

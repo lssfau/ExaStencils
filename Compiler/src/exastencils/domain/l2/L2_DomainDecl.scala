@@ -7,7 +7,7 @@ import exastencils.prettyprinting._
 
 case class L2_DomainDecl(var name : String) extends L2_Statement {
   override def prettyprint(out : PpStream) = out << "Domain" << name
-  override def progress = { Logger.error(s"Trying to progress l2 domain declaration for domain $name; this is not supported") }
+  override def progress = Logger.error(s"Trying to progress l2 domain declaration for domain $name; this is not supported")
 }
 
 /// strategies

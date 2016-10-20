@@ -1,4 +1,4 @@
-package exastencils.stencil.ir
+package exastencils.operator.ir
 
 import scala.collection.mutable.ListBuffer
 
@@ -16,4 +16,6 @@ case class IR_StencilTemplate(
     var name : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on
     var domain : IR_Domain, // domain the stencil lives on
-    var offsets : ListBuffer[IR_Index]) extends IR_KnowledgeObjectWithLevel {}
+    var offsets : ListBuffer[IR_Index]) extends IR_KnowledgeObjectWithLevel {
+
+}

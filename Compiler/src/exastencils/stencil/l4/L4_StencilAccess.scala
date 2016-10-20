@@ -6,6 +6,7 @@ import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
+import exastencils.operator.l4._
 import exastencils.prettyprinting.PpStream
 import exastencils.stencil.ir.IR_StencilAccess
 
@@ -32,7 +33,7 @@ case class L4_StencilAccess(
     if (arrayIndex.isDefined && dirAccess.isDefined)
       Logger.warn(s"Access to stencil ${ target.name } on level ${ target.level } has dirAccess and array subscript modifiers; array index will be given precedence, dirAccess will be ignored")
 
-    val stencil = target.getProgressedObject
+    val stencil = target.getProgressedObject()
 
     if (arrayIndex.isDefined)
       stencil.entries(arrayIndex.get).coefficient

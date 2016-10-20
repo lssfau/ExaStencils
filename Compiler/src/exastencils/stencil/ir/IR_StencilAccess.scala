@@ -7,6 +7,8 @@ import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_StencilFieldSelection
 import exastencils.field.ir.IR_FieldAccess
+import exastencils.operator.ir.IR_Stencil
+import exastencils.operator.ir.IR_StencilEntry
 
 /// IR_StencilAccess
 

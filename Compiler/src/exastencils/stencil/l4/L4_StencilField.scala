@@ -2,6 +2,7 @@ package exastencils.stencil.l4
 
 import exastencils.field.l4.L4_Field
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithLevel
+import exastencils.operator.l4.L4_Stencil
 import exastencils.prettyprinting._
 import exastencils.stencil.ir.IR_StencilField
 
