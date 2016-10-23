@@ -10,6 +10,7 @@ import exastencils.baseExt.l4._
 import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
 import exastencils.communication.ir._
+import exastencils.communication.l4._
 import exastencils.config._
 import exastencils.core._
 import exastencils.core.logger.Logger_HTML
@@ -189,7 +190,9 @@ object Main {
 
       //      L3_ResolveAccesses.apply()
       L3_ResolveFieldAccesses.apply()
+      L3_ResolveStencilAccesses.apply()
       L3_ResolveFieldFieldConvolutions.apply()
+      L3_ResolveStencilConvolutions.apply()
       //      L3_ResolveConvolutions.apply()
 
       L3_FieldCollection.addInitFieldsFunction()
@@ -239,8 +242,8 @@ object Main {
       L4_IntroduceSlots.apply(Some(newL4Root))
       L4_WrapFieldFieldConvolutions.apply(Some(newL4Root))
       L4_AddLoopsToFieldAssignments.apply(Some(newL4Root))
-      //      L4_AddCommunicationAndLoopStatements.apply(Some(newL4Root))
-      //      L4_AdaptFieldLayouts.apply(Some(newL4Root))
+      L4_AddCommunicationToLoops.apply(Some(newL4Root))
+      L4_AdaptFieldLayoutsForComm.apply(Some(newL4Root))
 
       l4root.nodes ++= newL4Root.nodes // TODO: other collections
     }

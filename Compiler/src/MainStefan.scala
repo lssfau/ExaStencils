@@ -24,7 +24,7 @@ import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
 import exastencils.logger._
-import exastencils.operator.l4.L4_StencilCollection
+import exastencils.operator.l4._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.api.cuda._

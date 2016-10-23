@@ -1,15 +1,15 @@
 
-// TODO: remove
-//Field RHS               from L2
-//Field Solution          from L2
-Field Residual@all      from Solution
+//Field RHS             from L2
+//Field Solution        from L2
+//Operator Laplace      from L2
+
+Field Residual      from Solution
 
 Field VecP@coarsest     from Solution
 Field VecGradP@coarsest from Solution
 
 override bc for Residual@finest with 0.0
 
-//Operator Laplace from L2
 
 Operator RestrictionStencil from Stencil {
 	[ 0,  0,  0] => 1.0 / 8.0

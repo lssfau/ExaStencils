@@ -1,6 +1,7 @@
 package exastencils.stencil.l4
 
 import exastencils.base.l4.L4_Expression
+import exastencils.operator.l4.L4_StencilAccess
 import exastencils.prettyprinting.PpStream
 import exastencils.stencil.ir._
 

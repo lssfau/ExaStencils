@@ -40,6 +40,7 @@ case class L4_ForLoop(
       IR_Assignment(loopVar, IR_IntegerConstant(1), "+="),
       body.map(_.progress))
 
+    // TODO: move annotation to OptimizationInfo trait
     ret.annotate("numLoopIterations", number)
 
     ret

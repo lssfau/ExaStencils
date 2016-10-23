@@ -14,8 +14,8 @@ case class L3_FieldFieldConvolution(var lhs : L3_FieldAccess, var rhs : L3_Field
 
 /// L3_ResolveFieldFieldConvolutions
 
-object L3_ResolveFieldFieldConvolutions extends DefaultStrategy("Resolving L3 convolutions") {
-  this += new Transformation("Resolving", {
+object L3_ResolveFieldFieldConvolutions extends DefaultStrategy("Resolving L3 field field convolutions") {
+  this += new Transformation("Resolve", {
     // FIXME: traverse and match operand list -> register as multiplication's member function receiving a lambda?
     case mult @ L3_Multiplication(args) if 2 == args.size =>
       (args(0), args(1)) match {

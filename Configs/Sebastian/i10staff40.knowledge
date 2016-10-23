@@ -1,7 +1,7 @@
 dimensionality				= 3
 
-minLevel					= 1
-maxLevel					= 6
+minLevel					= 0
+maxLevel					= 5
 
 domain_onlyRectangular		= true
 domain_numBlocks			= 1
@@ -11,9 +11,9 @@ domain_rect_generate			= true
 domain_rect_numBlocks_x			= 1
 domain_rect_numBlocks_y			= 1
 domain_rect_numBlocks_z			= 1
-domain_rect_numFragsPerBlock_x	= 1
-domain_rect_numFragsPerBlock_y	= 1
-domain_rect_numFragsPerBlock_z	= 1
+domain_rect_numFragsPerBlock_x	= 2
+domain_rect_numFragsPerBlock_y	= 2
+domain_rect_numFragsPerBlock_z	= 2
 
 omp_enabled					= true
 omp_numThreads				= 8
@@ -21,8 +21,8 @@ omp_numThreads				= 8
 mpi_enabled					= false
 mpi_numThreads				= 1
 
-omp_parallelizeLoopOverFragments	= false
-omp_parallelizeLoopOverDimensions	= true
+omp_parallelizeLoopOverFragments	= true
+omp_parallelizeLoopOverDimensions	= false
 
 l3tmp_generateL4			= false
 l3tmp_genForAutoTests		= true
@@ -30,4 +30,5 @@ l3tmp_genForAutoTests		= true
 l3tmp_exactSolution			= "Polynomial"
 
 experimental_resolveUnreqFragmentLoops	= true
+experimental_trimBoundsForReductionLoops	= true
 experimental_layerExtension	= true
