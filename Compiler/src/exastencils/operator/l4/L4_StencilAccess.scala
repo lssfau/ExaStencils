@@ -1,4 +1,4 @@
-package exastencils.stencil.l4
+package exastencils.operator.l4
 
 import exastencils.base.ir.IR_Expression
 import exastencils.base.l4._
@@ -6,7 +6,6 @@ import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
-import exastencils.operator.l4._
 import exastencils.prettyprinting.PpStream
 import exastencils.stencil.ir.IR_StencilAccess
 

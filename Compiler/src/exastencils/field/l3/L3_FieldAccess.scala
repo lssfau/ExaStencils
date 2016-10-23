@@ -4,18 +4,18 @@ import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.field.l4._
-import exastencils.knowledge.l3.L3_FieldCollection
+import exastencils.knowledge.l3._
 import exastencils.prettyprinting.PpStream
 
 /// L3_FieldAccess
 
 case class L3_FieldAccess(
-    var field : L3_Field,
-    var level : Int) extends L3_Access {
+    var target : L3_Field,
+    var level : Int) extends L3_KnowledgeAccess {
 
-  override def name = field.name
+  override def name = target.name
   override def prettyprint(out : PpStream) = out << name << '@' << level
-  override def progress = L4_FieldAccess(field.getProgressedObject(), L4_ActiveSlot)
+  override def progress = L4_FieldAccess(target.getProgressedObject(), L4_ActiveSlot)
 }
 
 /// L3_ResolveFieldAccesses
