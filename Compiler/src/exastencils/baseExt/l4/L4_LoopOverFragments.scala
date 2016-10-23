@@ -23,7 +23,7 @@ case class L4_LoopOverFragments(
   override def prettyprint(out : PpStream) = {
     out << "loop over fragments "
     if (reduction.isDefined) out << "with " << reduction.get
-    out << "{\n" <<< body << "}\n"
+    out << "{\n" <<< (body, "\n") << "\n}"
   }
 
   override def progress = {

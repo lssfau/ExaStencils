@@ -60,13 +60,13 @@ case class L4_LoopOverField(
     if (reduction.isDefined) out << "with " << reduction.get << ' '
     for (cs <- preComms) { out << "precomm " <<< (cs.targets, " ") << (if (cs.targets.isEmpty) "" else " of ") << cs.field << ' ' }
     for (cs <- postComms) { out << "postcomm " <<< (cs.targets, " ") << (if (cs.targets.isEmpty) "" else " of ") << cs.field << ' ' }
-    out << "{\n" <<< body << "}\n"
+    out << "{\n" <<< (body, "\n") << "\n}"
   }
 
   override def progress : IR_LoopOverPoints = {
     val resolvedField = field match {
-      case access : L4_FieldAccess        => access.target.getProgressedObject
-      case access : L4_StencilFieldAccess => access.target.getProgressedObject.field
+      case access : L4_FieldAccess        => access.target.getProgressedObject()
+      case access : L4_StencilFieldAccess => access.target.getProgressedObject().field
       case _                              => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 

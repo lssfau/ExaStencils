@@ -27,16 +27,15 @@ case class L4_Communicate(
     if ("both" != op) out << op + ' '
     out << "communicate " <<< (targets, " ") << (if (targets.isEmpty) "" else " of ") << field
     if (condition.isDefined) out << " where " << condition
-    out << '\n'
   }
 
   override def progress : IR_Communicate = {
     // TODO: extract to strategy replacing stencil field accesses with corresponding field accesses
     val progressedField = field match {
       case f : L4_FieldAccess         => f.progress.fieldSelection
-      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObject.field,
+      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObject().field,
         sf.target.level,
-        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject.field, sf.slot),
+        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject().field, sf.slot),
         sf.arrayIndex)
     }
     val progressedTargets : ListBuffer[IR_CommunicateTarget] = ListBuffer()

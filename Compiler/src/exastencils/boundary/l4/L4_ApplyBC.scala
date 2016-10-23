@@ -11,15 +11,15 @@ import exastencils.stencil.l4.L4_StencilFieldAccess
 /// L4_ApplyBC
 
 case class L4_ApplyBC(var target : L4_Access) extends L4_Statement {
-  override def prettyprint(out : PpStream) = out << "apply bc to " << target << '\n'
+  override def prettyprint(out : PpStream) = out << "apply bc to " << target
 
   override def progress : IR_ApplyBC = {
     // TODO: extract to strategy replacing stencil field accesses with corresponding field accesses
     val resolvedField = target match {
       case f : L4_FieldAccess         => f.progress.fieldSelection
-      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObject.field,
+      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObject().field,
         sf.target.level,
-        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject.field, sf.slot),
+        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject().field, sf.slot),
         sf.arrayIndex)
     }
     IR_ApplyBC(resolvedField)
