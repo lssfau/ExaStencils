@@ -7,12 +7,197 @@ Layout DefCellLayout < Real , Cell > @all {
 	ghostLayers		= [ 1, 1, 1 ] with communication
 }
 
+Layout DefFaceXLayout < Real , Face_x > @all {
+	duplicateLayers	= [ 1, 0, 0 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
+}
+
+Layout DefFaceYLayout < Real , Face_y > @all {
+	duplicateLayers	= [ 0, 1, 0 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
+}
+
+Layout DefFaceZLayout < Real , Face_z > @all {
+	duplicateLayers	= [ 0, 0, 1 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
+}
+
+Layout CellStencilLayout < Array<Real><7>, Cell > @all {
+	duplicateLayers	= [ 0, 0, 0 ]
+	ghostLayers		= [ 1, 1, 1 ] // no communication necessary since only required for subexpression re-usage
+}
+
+Layout FaceXStencilLayout < Array<Real><7>, Face_x > @all {
+	duplicateLayers	= [ 1, 0, 0 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication	// only communicate face dim's ghost layers -> fix in communicate call
+}
+
+Layout FaceYStencilLayout < Array<Real><7>, Face_y > @all {
+	duplicateLayers	= [ 0, 1, 0 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
+}
+
+Layout FaceZStencilLayout < Array<Real><7>, Face_z > @all {
+	duplicateLayers	= [ 0, 0, 1 ] with communication
+	ghostLayers		= [ 1, 1, 1 ] with communication
+}
+
+// values associated with u, ie face_x
+
+Field u < global, DefFaceXLayout, 0.0 >[2] @all
+Field du < global, DefFaceXLayout, 0.0 > @finest
+
+Field residual_u < global, DefFaceXLayout, 0.0 > @all
+Field rhs_u < global, DefFaceXLayout, None > @all
+
+Field AuStencilData< global, FaceXStencilLayout, None > @all
+StencilField AuStencil< AuStencilData => SevenPointStencil > @all
+
+// values associated with v, ie face_y
+
+Field v < global, DefFaceYLayout, 0.0 >[2] @all
+Field dv < global, DefFaceYLayout, 0.0 > @finest
+
+Field residual_v < global, DefFaceYLayout, 0.0 > @all
+Field rhs_v < global, DefFaceYLayout, None > @all
+
+Field AvStencilData< global, FaceYStencilLayout, None > @all
+StencilField AvStencil< AvStencilData => SevenPointStencil > @all
+
+// values associated with w, ie face_z
+
+Field w < global, DefFaceZLayout, 0.0 >[2] @all
+Field dw < global, DefFaceZLayout, 0.0 > @finest
+
+Field residual_w < global, DefFaceZLayout, 0.0 > @all
+Field rhs_w < global, DefFaceZLayout, None > @all
+
+Field AwStencilData< global, FaceZStencilLayout, None > @all
+StencilField AwStencil< AwStencilData => SevenPointStencil > @all
+
+// values associated with p and rho, ie cell center
+
+Field rho < global, DefCellLayout, Neumann >[2] @finest
+Field p < global, DefCellLayout, Neumann > @finest
+Field pc < global, DefCellLayout, Neumann > @all
+
+Field residual_pc < global, DefCellLayout, Neumann > @all
+Field rhs_pc < global, DefCellLayout, None > @all
+
+Field ApcStencilData< global, CellStencilLayout, None > @all
+StencilField ApcStencil< ApcStencilData => SevenPointStencil > @all
+
+// values associated with phi7, ie cell center
+
+Field phi7 < global, DefCellLayout, applyBC_t@current ( ) >[2] @all
+Field residual_t < global, DefCellLayout, Neumann > @all
+Field rhs_t < global, DefCellLayout, None > @all
+
+Field AtStencilData< global, CellStencilLayout, None > @all
+StencilField AtStencil< AtStencilData => SevenPointStencil > @all
+
 // auxilary fields
 
 Field vis < global, DefCellLayout, Neumann > @finest
 Field miu < global, DefCellLayout, Neumann > @finest
 
 Field gamma < global, DefCellLayout, Neumann > @finest
+
+// stencils and stencils templates
+
+Stencil SevenPointStencil@all {
+	[ 0,  0,  0] =>  6.0
+	[-1,  0,  0] => -1.0
+	[ 1,  0,  0] => -1.0
+	[ 0, -1,  0] => -1.0
+	[ 0,  1,  0] => -1.0
+	[ 0,  0, -1] => -1.0
+	[ 0,  0,  1] => -1.0
+}
+
+Stencil RestrictionCell@all {
+	[ 0,  0,  0] => 0.125
+    [ 0,  0,  1] => 0.125
+    [ 0,  1,  0] => 0.125
+    [ 1,  0,  0] => 0.125
+    [ 0,  1,  1] => 0.125
+    [ 1,  0,  1] => 0.125
+    [ 1,  1,  0] => 0.125
+    [ 1,  1,  1] => 0.125
+}
+
+Stencil CorrectionCell@all {
+	[ 0,  0,  0] => 1.0
+}
+
+Stencil RestrictionFaceX@all {
+	[ 0,  0,  0] => 0.125
+	[-1,  0,  0] => 0.0625
+	[ 1,  0,  0] => 0.0625
+
+	[ 0,  1,  0] => 0.125
+	[-1,  1,  0] => 0.0625
+	[ 1,  1,  0] => 0.0625
+
+	[ 0,  0,  1] => 0.125
+	[-1,  0,  1] => 0.0625
+	[ 1,  0,  1] => 0.0625
+
+	[ 0,  1,  1] => 0.125
+	[-1,  1,  1] => 0.0625
+	[ 1,  1,  1] => 0.0625
+}
+
+Stencil CorrectionFaceX@all {
+	[    0,  0,  0] => 0.5
+	[x % 2,  0,  0] => 0.5
+}
+
+Stencil RestrictionFaceY@all {
+	[ 0,  0,  0] => 0.125
+	[ 0, -1,  0] => 0.0625
+	[ 0,  1,  0] => 0.0625
+
+	[ 0,  0,  1] => 0.125
+	[ 0, -1,  1] => 0.0625
+	[ 0,  1,  1] => 0.0625
+
+	[ 1,  0,  0] => 0.125
+	[ 1, -1,  0] => 0.0625
+	[ 1,  1,  0] => 0.0625
+
+	[ 1,  0,  1] => 0.125
+	[ 1, -1,  1] => 0.0625
+	[ 1,  1,  1] => 0.0625
+}
+
+Stencil CorrectionFaceY@all {
+	[ 0,     0,  0] => 0.5
+	[ 0, y % 2,  0] => 0.5
+}
+
+Stencil RestrictionFaceZ@all {
+	[ 0,  0,  0] => 0.125
+	[ 0,  0, -1] => 0.0625
+	[ 0,  0,  1] => 0.0625
+
+	[ 1,  0,  0] => 0.125
+	[ 1,  0, -1] => 0.0625
+	[ 1,  0,  1] => 0.0625
+
+	[ 0,  1,  0] => 0.125
+	[ 0,  1, -1] => 0.0625
+	[ 0,  1,  1] => 0.0625
+
+	[ 1,  1,  0] => 0.125
+	[ 1,  1, -1] => 0.0625
+	[ 1,  1,  1] => 0.0625
+}
+
+Stencil CorrectionFaceZ@all {
+	[ 0,  0,     0] => 0.5
+	[ 0,  0, z % 2] => 0.5
+}
 
 Globals {
 	// global states
@@ -128,27 +313,6 @@ Function applyBC_t@(coarsest to (finest - 1)) ( ) : Unit {
 	}
 }
 
-Function applyBC_res_t@all ( ) : Unit {
-	loop over residual_t@current only ghost [-1,  0,  0] on boundary {
-		residual_t@current = 0.0 - residual_t@current@[ 1,  0,  0]
-	}
-	loop over residual_t@current only ghost [ 1,  0,  0] on boundary {
-		residual_t@current = 0.0 - residual_t@current@[-1,  0,  0]
-	}
-	loop over residual_t@current only ghost [ 0, -1,  0] on boundary {
-		residual_t@current = residual_t@current@[ 0,  1,  0]
-	}
-	loop over residual_t@current only ghost [ 0,  1,  0] on boundary {
-		residual_t@current = residual_t@current@[ 0, -1,  0]
-	}
-	loop over residual_t@current only ghost [ 0,  0, -1] on boundary {
-		residual_t@current = residual_t@current@[ 0,  0,  1]
-	}
-	loop over residual_t@current only ghost [ 0,  0,  1] on boundary {
-		residual_t@current = residual_t@current@[ 0,  0, -1]
-	}
-}
-
 /// main functions
 
 Function Application ( ) : Unit {
@@ -165,7 +329,7 @@ Function Application ( ) : Unit {
 
 	TimeLoop ( )
 
-	//printAllTimers ( )
+	printAllTimers ( )
 	destroyGlobals ( )
 }
 
@@ -270,19 +434,19 @@ Function Solve@finest ( ) : Unit {
 		apply bc to p@current
 
 		loop over u@current {
-			u[active]@current += du@current * ( pc@current@[-1, 0, 0] - pc@current )
+			u[active]@current += du@current * ( pc@current@[-1,  0,  0] - pc@current )
 		}
 		communicate u[active]@current
 		apply bc to u[active]@current
 
 		loop over v@current {
-			v[active]@current += dv@current * ( pc@current@[0, -1, 0] - pc@current )
+			v[active]@current += dv@current * ( pc@current@[ 0, -1,  0] - pc@current )
 		}
 		communicate v[active]@current
 		apply bc to v[active]@current
 
 		loop over w@current {
-			w[active]@current += dw@current * ( pc@current@[0, 0, -1] - pc@current )
+			w[active]@current += dw@current * ( pc@current@[ 0,  0, -1] - pc@current )
 		}
 		communicate w[active]@current
 		apply bc to w[active]@current
@@ -372,7 +536,8 @@ Function Solve@finest ( ) : Unit {
 }
 
 Function printVal ( toPrint : Real ) : Unit {
-    if ( toPrint <= 1e-12 ) {
+	print ( toPrint )
+	/*if ( toPrint <= 1e-12 ) {
 		print ( "EFFECTIVELY ZERO" )
     } else if ( toPrint <= 1e-11 ) {
 		native ( 'std::streamsize oldPrec = std::cout.precision()' )
@@ -394,7 +559,7 @@ Function printVal ( toPrint : Real ) : Unit {
 		native ( 'std::cout.precision(4)' )
 		print ( toPrint )
 		native ( 'std::cout.precision(oldPrec)' )
-    }
+    }*/
 }
 
 /// init functions
@@ -434,6 +599,33 @@ Function InitFields@finest ( ) : Unit {
 
 /// utility functions
 
+Function AdvanceFields@finest ( ) : Unit {
+	loop over phi7@current starting [-1, -1, -1] ending [-1, -1, -1] {
+		phi7[next]@current = phi7[active]@current
+	}
+	advance phi7@current
+
+	loop over u@current starting [-1, -1, -1] ending [-1, -1, -1] {
+		u[next]@current = u[active]@current
+	}
+	advance u@current
+
+	loop over v@current starting [-1, -1, -1] ending [-1, -1, -1] {
+		v[next]@current = v[active]@current
+	}
+	advance v@current
+
+	loop over w@current starting [-1, -1, -1] ending [-1, -1, -1] {
+		w[next]@current = w[active]@current
+	}
+	advance w@current
+
+	loop over rho@current starting [-1, -1, -1] ending [-1, -1, -1] {
+		rho[next]@current = rho[active]@current
+	}
+	advance rho@current
+}
+
 Function calc_diflow ( flow : Real, diff : Real ) : Real {
 	Var tmp : Real = ( diff - 0.1 * fabs ( flow ) ) / diff
 	return max ( 0.0, diff * ( tmp ** 5 ) )
@@ -452,10 +644,10 @@ Function UpdateProperties@finest ( ) : Unit {
 			+ e_den * ( phi7[active]@current - t_ph )**4 )
 
 		// Zografos et al. Specific heat, thermal conductivity and viscosity
-		Var cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
+		Val cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
 			- 0.19149 * phi7[active]@current**2
 			+ 1.7850e-4 * phi7[active]@current**3 )
-		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
+		Val cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
 			- 1.144e-5 * phi7[active]@current**2
 			+ 4.2365e-9 * phi7[active]@current**3 )
 		vis@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
@@ -484,10 +676,10 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 			+ e_den * ( phi7[active]@current - t_ph )**4 )
 
 		// Zografos et al. Specific heat, thermal conductivity and viscosity
-		Var cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
+		Val cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
 			- 0.19149 * phi7[active]@current**2
 			+ 1.7850e-4 * phi7[active]@current**3 )
-		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
+		Val cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
 			- 1.144e-5 * phi7[active]@current**2
 			+ 4.2365e-9 * phi7[active]@current**3 )
 		miu@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
@@ -510,26 +702,26 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 		Val dudx : Real = ( evalAtEastFace ( u[active]@current ) - evalAtWestFace ( u[active]@current ) ) / vf_cellWidth_x@current
 
 		Val dvdx : Real = 0.5 * ( evalAtEastFace ( v[active]@current ) - evalAtWestFace ( v[active]@current )
-			+ evalAtEastFace ( v[active]@current@[0, 1, 0] ) - evalAtWestFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_x@current
+			+ evalAtEastFace ( v[active]@current@[ 0,  1,  0] ) - evalAtWestFace ( v[active]@current@[ 0,  1,  0] ) ) / vf_cellWidth_x@current
 
 		Val dwdx : Real = 0.5 * ( evalAtEastFace ( w[active]@current ) - evalAtWestFace ( w[active]@current )
-			+ evalAtEastFace ( w[active]@current@[0, 0, 1] ) - evalAtWestFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_x@current
+			+ evalAtEastFace ( w[active]@current@[ 0,  0,  1] ) - evalAtWestFace ( w[active]@current@[ 0,  0,  1] ) ) / vf_cellWidth_x@current
 
 		// du/dy and dv/dy and dw/dy
 		Val dudy : Real = 0.5 * ( evalAtNorthFace ( u[active]@current ) - evalAtSouthFace ( u[active]@current )
-			+ evalAtNorthFace ( u[active]@current@[1, 0, 0] ) - evalAtSouthFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_y@current
+			+ evalAtNorthFace ( u[active]@current@[ 1,  0,  0] ) - evalAtSouthFace ( u[active]@current@[ 1,  0,  0] ) ) / vf_cellWidth_y@current
 
 		Val dvdy : Real = ( evalAtNorthFace ( v[active]@current ) - evalAtSouthFace ( v[active]@current ) ) / vf_cellWidth_y@current
 
 		Val dwdy : Real = 0.5 * ( evalAtNorthFace ( w[active]@current ) - evalAtSouthFace ( w[active]@current )
-			+ evalAtNorthFace ( w[active]@current@[0, 0, 1] ) - evalAtSouthFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_y@current
+			+ evalAtNorthFace ( w[active]@current@[ 0,  0,  1] ) - evalAtSouthFace ( w[active]@current@[ 0,  0,  1] ) ) / vf_cellWidth_y@current
 
 		// du/dz and dv/dz and dw/dz
 		Val dudz : Real = 0.5 * ( evalAtTopFace ( u[active]@current ) - evalAtBottomFace ( u[active]@current )
-			+ evalAtTopFace ( u[active]@current@[1, 0, 0] ) - evalAtBottomFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_z@current
+			+ evalAtTopFace ( u[active]@current@[ 1,  0,  0] ) - evalAtBottomFace ( u[active]@current@[ 1,  0,  0] ) ) / vf_cellWidth_z@current
 
 		Val dvdz : Real = 0.5 * ( evalAtTopFace ( v[active]@current ) - evalAtBottomFace ( v[active]@current )
-			+ evalAtTopFace ( v[active]@current@[0, 1, 0] ) - evalAtBottomFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_z@current
+			+ evalAtTopFace ( v[active]@current@[ 0,  1,  0] ) - evalAtBottomFace ( v[active]@current@[ 0,  1,  0] ) ) / vf_cellWidth_z@current
 
 		Val dwdz : Real = ( evalAtTopFace ( w[active]@current ) - evalAtBottomFace ( w[active]@current ) ) / vf_cellWidth_z@current
 
@@ -843,6 +1035,76 @@ FunctionTemplate SolveComponent < vCycle, normFunction, maxSteps, rhs, converged
 	//print ( numIt, normRHS, initRes, curRes)
 }
 
+FunctionTemplate NormResidualComponent < solution, stencil, rhs > ( ) : Real {
+	Var totalRes : Real = 0
+	loop over solution with reduction( + : totalRes ) {
+		Var curRes : Real = rhs - stencil * solution
+		totalRes += curRes ** 2
+	}
+	return sqrt ( totalRes )
+}
+
+FunctionTemplate SmoothComponent < solution, stencil, rhs, omega, requiresBcUpdate > ( ) : Unit {
+	loop over solution where 0 == ((x + y + z) % 2) {
+		solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
+	}
+	communicate solution
+
+	loop over solution where 1 == ((x + y + z) % 2) {
+		solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
+	}
+	communicate solution
+
+	if ( requiresBcUpdate ) {
+		apply bc to solution
+	}
+}
+
+FunctionTemplate VCycleComponent < VCycle, Smooth, UpdateResidual, Restriction, SetSolution, Correction > ( ) : Unit {
+	repeat 3 times {
+		Smooth@current ( )
+	}
+	UpdateResidual@current ( )
+	Restriction@current ( )
+	SetSolution@coarser ( 0 )
+	VCycle@coarser ( )
+	Correction@current ( )
+	repeat 3 times {
+		Smooth@current ( )
+	}
+}
+
+FunctionTemplate CGSComponent < solution, stencil, rhs, omega, requiresBcUpdate > ( ) : Unit {
+	repeat 4 times {
+		loop over solution where 0 == ((x + y + z) % 2) {
+			solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
+		}
+		communicate solution
+
+		loop over solution where 1 == ((x + y + z) % 2) {
+			solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
+		}
+		communicate solution
+
+		if ( requiresBcUpdate ) {
+			apply bc to solution
+		}
+	}
+}
+
+FunctionTemplate UpdateResidualComponent < solution, stencil, rhs, residual > ( ) : Unit {
+	loop over residual {
+		residual = rhs - stencil * solution
+	}
+	communicate residual
+}
+
+FunctionTemplate RestrictionComponent < source, dest, restrictionStencil > ( ) : Unit {
+	loop over dest {
+		dest = restrictionStencil * source
+	}
+}
+
 FunctionTemplate StencilRestrictionComponent < self, source, dest, restrictionStencil > ( ) : Unit {
 	loop over dest {
 		dest:[ 0,  0,  0] = restrictionStencil * source:[ 0,  0,  0]
@@ -862,19 +1124,76 @@ FunctionTemplate StencilRestrictionComponent < self, source, dest, restrictionSt
 	}
 }
 
+FunctionTemplate CorrectionComponent < source, dest, correctionStencil, requiresBcUpdate > ( ) : Unit {
+	loop over dest {
+		dest += correctionStencil * source
+	}
+
+	communicate dest
+	if ( requiresBcUpdate ) {
+		apply bc to dest
+	}
+}
+
+FunctionTemplate SetFieldComponent < target > ( value : Real ) : Unit {
+	loop over target starting [-1, -1, -1] ending [-1, -1, -1] {
+		target = value
+	}
+}
+
 // instantiations
 
 Instantiate SolveComponent < VCycle_u, NormResidual_u, 100, rhs_u@current, converged_u > as Solve_u@finest
+Instantiate NormResidualComponent < u[active]@current, AuStencil@current, rhs_u@current > as NormResidual_u@finest
+Instantiate SmoothComponent < u[active]@current, AuStencil@current, rhs_u@current, 1.0, true > as Smooth_u@all
+Instantiate VCycleComponent < VCycle_u, Smooth_u, UpdateResidual_u, Restriction_u, SetSolution_u, Correction_u > as VCycle_u@( ( coarsest + 1 ) to finest )
+Instantiate CGSComponent < u[active]@current, AuStencil@current, rhs_u@current, 1.0, true > as VCycle_u@coarsest
+Instantiate UpdateResidualComponent < u[active]@current, AuStencil@current, rhs_u@current, residual_u@current > as UpdateResidual_u@all
+Instantiate RestrictionComponent < residual_u@current, rhs_u@coarser, RestrictionFaceX@current > as Restriction_u@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_u, AuStencil@current, AuStencil@coarser, RestrictionFaceX@current > as StencilRestriction_u@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < u[active]@coarser, u[active]@current, CorrectionFaceX@current, true > as Correction_u@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < u[active]@current > as SetSolution_u@all
 
 Instantiate SolveComponent < VCycle_v, NormResidual_v, 100, rhs_v@current, converged_v > as Solve_v@finest
+Instantiate NormResidualComponent < v[active]@current, AvStencil@current, rhs_v@current > as NormResidual_v@finest
+Instantiate SmoothComponent < v[active]@current, AvStencil@current, rhs_v@current, 1.0, true > as Smooth_v@all
+Instantiate VCycleComponent < VCycle_v, Smooth_v, UpdateResidual_v, Restriction_v, SetSolution_v, Correction_v > as VCycle_v@( ( coarsest + 1 ) to finest )
+Instantiate CGSComponent < v[active]@current, AvStencil@current, rhs_v@current, 1.0, true > as VCycle_v@coarsest
+Instantiate UpdateResidualComponent < v[active]@current, AvStencil@current, rhs_v@current, residual_v@current > as UpdateResidual_v@all
+Instantiate RestrictionComponent < residual_v@current, rhs_v@coarser, RestrictionFaceY@current > as Restriction_v@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_v, AvStencil@current, AvStencil@coarser, RestrictionFaceY@current > as StencilRestriction_v@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < v[active]@coarser, v[active]@current, CorrectionFaceY@current, true > as Correction_v@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < v[active]@current > as SetSolution_v@all
 
 Instantiate SolveComponent < VCycle_w, NormResidual_w, 100, rhs_w@current, converged_w > as Solve_w@finest
+Instantiate NormResidualComponent < w[active]@current, AwStencil@current, rhs_w@current > as NormResidual_w@finest
+Instantiate SmoothComponent < w[active]@current, AwStencil@current, rhs_w@current, 1.0, true > as Smooth_w@all
+Instantiate VCycleComponent < VCycle_w, Smooth_w, UpdateResidual_w, Restriction_w, SetSolution_w, Correction_w > as VCycle_w@( ( coarsest + 1 ) to finest )
+Instantiate CGSComponent < w[active]@current, AwStencil@current, rhs_w@current, 1.0, true > as VCycle_w@coarsest
+Instantiate UpdateResidualComponent < w[active]@current, AwStencil@current, rhs_w@current, residual_w@current > as UpdateResidual_w@all
+Instantiate RestrictionComponent < residual_w@current, rhs_w@coarser, RestrictionFaceZ@current > as Restriction_w@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_w, AwStencil@current, AwStencil@coarser, RestrictionFaceZ@current > as StencilRestriction_w@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < w[active]@coarser, w[active]@current, CorrectionFaceZ@current, true > as Correction_w@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < w[active]@current > as SetSolution_w@all
 
 Instantiate SolveComponent < VCycle_pc, NormResidual_pc, 100, rhs_pc@current, converged_pc > as Solve_pc@finest
+Instantiate NormResidualComponent < pc[active]@current, ApcStencil@current, rhs_pc@current > as NormResidual_pc@finest
+Instantiate SmoothComponent < pc[active]@current, ApcStencil@current, rhs_pc@current, 0.8, true > as Smooth_pc@all
+Instantiate VCycleComponent < VCycle_pc, Smooth_pc, UpdateResidual_pc, Restriction_pc, SetSolution_pc, Correction_pc > as VCycle_pc@( ( coarsest + 1 ) to finest )
+Instantiate CGSComponent < pc[active]@current, ApcStencil@current, rhs_pc@current, 0.8, true > as VCycle_pc@coarsest
+Instantiate UpdateResidualComponent < pc[active]@current, ApcStencil@current, rhs_pc@current, residual_pc@current > as UpdateResidual_pc@all
+Instantiate RestrictionComponent < residual_pc@current, rhs_pc@coarser, RestrictionCell@current > as Restriction_pc@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_pc, ApcStencil@current, ApcStencil@coarser, RestrictionCell@current > as StencilRestriction_pc@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < pc[active]@coarser, pc[active]@current, CorrectionCell@current, true > as Correction_pc@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < pc[active]@current > as SetSolution_pc@all
 
 Instantiate SolveComponent < VCycle_t, NormResidual_t, 100, rhs_t@current, converged_t > as Solve_t@finest
+Instantiate NormResidualComponent < phi7[active]@current, AtStencil@current, rhs_t@current > as NormResidual_t@finest
+Instantiate SmoothComponent < phi7[active]@current, AtStencil@current, rhs_t@current, 1.0, true > as Smooth_t@all
+Instantiate VCycleComponent < VCycle_t, Smooth_t, UpdateResidual_t, Restriction_t, SetSolution_t, Correction_t > as VCycle_t@( ( coarsest + 1 ) to finest )
+Instantiate CGSComponent < phi7[active]@current, AtStencil@current, rhs_t@current, 1.0, true > as VCycle_t@coarsest
+Instantiate UpdateResidualComponent < phi7[active]@current, AtStencil@current, rhs_t@current, residual_t@current > as UpdateResidual_t@all
+Instantiate RestrictionComponent < residual_t@current, rhs_t@coarser, RestrictionCell@current > as Restriction_t@( ( coarsest + 1 ) to finest )
 Instantiate StencilRestrictionComponent < StencilRestriction_t, AtStencil@current, AtStencil@coarser, RestrictionCell@current > as StencilRestriction_t@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < phi7[active]@coarser, phi7[active]@current, CorrectionCell@current, true > as Correction_t@( ( coarsest + 1 ) to finest )
+Instantiate SetFieldComponent < phi7[active]@current > as SetSolution_t@all
