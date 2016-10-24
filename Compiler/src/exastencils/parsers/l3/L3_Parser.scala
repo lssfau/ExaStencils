@@ -45,11 +45,12 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val program = ((
     fieldDeclaration
-      | overrideFieldInformation
-      | stencilDeclaration
-      | function
-      | functionTemplate
-      | functionInstantiation
+      ||| overrideFieldInformation
+      ||| stencilDeclaration
+      ||| stencilTemplateDeclaration
+      ||| function
+      ||| functionTemplate
+      ||| functionInstantiation
     ).*
     ^^ (nodes => L3_Root(nodes)))
 
@@ -304,6 +305,11 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ##### L3_FieldDecl
   // ######################################
 
+  lazy val localization = ("Node" ||| "node" ||| "Cell" ||| "cell"
+    ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
+    ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
+    ^^ (l => l))
+
   lazy val fieldDeclaration = (
     locationize("Field" ~> ident ~ level.? <~ "from" <~ "L2" ^^ { case id ~ levels => L3_FieldFromL2(id, levels) })
       ||| locationize(("Field" ~> ident) ~ level.? ~ ("from" ~> ident) ^^ { case id ~ levels ~ src => L3_FieldFromOther(id, levels, src) }))
@@ -329,5 +335,16 @@ object L3_Parser extends ExaParser with PackratParsers {
     (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilEntry.+)
   lazy val stencilEntry = locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L3_StencilEntry(offset, coeff) })
+
+  // ######################################
+  // ##### L3_StencilTemplateDecl
+  // ######################################
+
+  lazy val stencilTemplateDeclaration = locationize(("Operator" ~> ident) ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
+    ^^ { case id ~ local ~ domain ~ offsets => L3_StencilTemplateDecl(id, local, domain, offsets) })
+  lazy val stencilTemplateEntries = (
+    (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
+      ||| stencilTemplateEntry.+)
+  lazy val stencilTemplateEntry = locationize((index <~ "=>") ^^ { offset => offset })
 
 }

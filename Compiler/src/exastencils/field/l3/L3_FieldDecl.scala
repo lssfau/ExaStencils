@@ -17,6 +17,7 @@ trait L3_FieldDecl extends L3_Statement {
 
 /// L3_FieldFromL2
 
+@deprecated("to be removed -> l2 objects are automatically progressed", "24.10.2016")
 case class L3_FieldFromL2(var name : String, var levels : Option[L3_LevelSpecification]) extends L3_FieldDecl {
   override def prettyprint(out : PpStream) = out << "Field" << ' ' << name << "@" << levels << ' ' << "from" << ' ' << "L2"
 }

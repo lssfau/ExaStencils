@@ -1,4 +1,4 @@
-package exastencils.stencil.ir
+package exastencils.operator.ir
 
 import exastencils.knowledge.ir.IR_LeveledKnowledgeCollection
 

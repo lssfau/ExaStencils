@@ -44,7 +44,11 @@ object L2_Parser extends ExaParser with PackratParsers {
 
   //###########################################################
 
-  lazy val program = (domainDeclaration ||| fieldDeclaration ||| stencilDeclaration).* ^^ { nodes => L2_Root(nodes) }
+  lazy val program = (
+    domainDeclaration
+      ||| fieldDeclaration
+      ||| stencilDeclaration
+      ||| stencilTemplateDeclaration).* ^^ { nodes => L2_Root(nodes) }
 
   //###########################################################
 
@@ -259,14 +263,15 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| stencilEntry.+)
   lazy val stencilEntry = locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_StencilEntry(offset, coeff) })
 
-  //  // ######################################
-  //  // ##### L2_StencilTemplateDecl
-  //  // ######################################
-  //
-  //  lazy val stencilTemplateDeclaration = locationize(("StencilTemplate" ~> ident.?) ~ ("on" ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
-  //    ^^ { case id ~ localization ~ domain ~ entries => L2_StencilTemplateDecl(id.getOrElse("anonymous"), localization, domain, entries.map(e => e : L2_Index).to[ListBuffer]) })
-  //  lazy val stencilTemplateEntries = (
-  //    (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
-  //      ||| stencilTemplateEntry.+)
-  //  lazy val stencilTemplateEntry = locationize(index <~ "=>" ^^ (offset => offset))
+  // ######################################
+  // ##### L2_StencilTemplateDecl
+  // ######################################
+
+  lazy val stencilTemplateDeclaration = locationize(("Operator" ~> ident) ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
+    ^^ { case id ~ local ~ domain ~ offsets => L2_StencilTemplateDecl(id, local, domain, offsets) })
+  lazy val stencilTemplateEntries = (
+    (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
+      ||| stencilTemplateEntry.+)
+  lazy val stencilTemplateEntry = locationize((index <~ "=>") ^^ { offset => offset })
+
 }

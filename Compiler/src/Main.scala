@@ -152,8 +152,7 @@ object Main {
       L2_ProcessDomainDeclarations.apply()
       L2_ProcessFieldDeclarations.apply()
       L2_ProcessStencilDeclarations.apply()
-      //      L2_ProcessStencilTemplateDeclarations.apply()
-      //      L2_ProcessOperatorDeclarations.apply()
+      L2_ProcessStencilTemplateDeclarations.apply()
 
       L2_ResolveLevelSpecifications.apply() // ... and again afterwards
 
@@ -179,7 +178,7 @@ object Main {
       //      L3_ProcessDomainDeclarations.apply()
       L3_ProcessFieldDeclarations.apply()
       L3_ProcessStencilDeclarations.apply()
-      //      L3_ProcessOperatorDeclarations.apply()
+      L3_ProcessStencilTemplateDeclarations.apply()
 
       L3_ResolveFunctionTemplates.apply()
 
@@ -188,12 +187,12 @@ object Main {
 
       L3_ProcessFieldOverrides.apply()
 
-      //      L3_ResolveAccesses.apply()
       L3_ResolveFieldAccesses.apply()
       L3_ResolveStencilAccesses.apply()
+//      L3_ResolveStencilTemplateAccesses.apply()
       L3_ResolveFieldFieldConvolutions.apply()
       L3_ResolveStencilConvolutions.apply()
-      //      L3_ResolveConvolutions.apply()
+//      L3_ResolveStencilTemplateConvolutions.apply()
 
       L3_FieldCollection.addInitFieldsFunction()
 

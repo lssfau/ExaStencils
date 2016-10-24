@@ -4,7 +4,7 @@ import exastencils.base.ir.IR_Expression
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.datastructures.Node
-import exastencils.stencil.ir.IR_StencilField
+import exastencils.operator.ir.IR_StencilField
 
 /// IR_StencilFieldSelection
 
