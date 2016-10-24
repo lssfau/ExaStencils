@@ -19,7 +19,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
       val collector = L4_CollectCommInformation.collector
 
       // find all fields read outside the iteration space
-      var fieldsToConsider = ListBuffer[L4_Field]()
+      var fieldsToConsider = ListBuffer[L4_FieldAccessRangeCollector.L4_FieldWithSlot]()
       for (fieldData <- collector.readExtentMax)
         if (fieldData._2.count(_ != 0) > 0)
           fieldsToConsider += fieldData._1
@@ -30,7 +30,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
         var targets = ListBuffer[L4_CommunicateTarget]()
         targets += L4_CommunicateTarget("ghost", None, Some(L4_ConstIndex(collector.readExtentMax(field))))
         commStatements += L4_Communicate(
-          L4_FieldAccess(field, L4_ActiveSlot),
+          L4_FieldAccess(field.field, field.slot),
           "both",
           targets.toList,
           None)
@@ -50,7 +50,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
       // TODO: move to separate strategy
       for (field <- collector.writeExtentMax.keys)
         if (L4_NoBC != field.boundary)
-          finalStmts += L4_ApplyBC(L4_FieldAccess(field, L4_ActiveSlot))
+          finalStmts += L4_ApplyBC(L4_FieldAccess(field.field, field.slot))
 
       finalStmts
 

@@ -6,29 +6,40 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
-import exastencils.field.l4._
+import exastencils.field.l4.{ L4_Field, L4_SlotSpecification, _ }
 import exastencils.logger.Logger
 import exastencils.stencil.l4._
 
 /// L4_FieldAccessRangeCollector
 
-class L4_FieldAccessRangeCollector() extends Collector {
-  // TODO: respect slots if used for comm stuff
+object L4_FieldAccessRangeCollector {
 
+  case class L4_FieldWithSlot(var field : L4_Field, var slot : L4_SlotSpecification) {
+    def numDimsGrid = field.numDimsGrid
+    def fieldLayout = field.fieldLayout
+    def boundary = field.boundary
+  }
+
+}
+
+class L4_FieldAccessRangeCollector() extends Collector {
+
+  import L4_FieldAccessRangeCollector.L4_FieldWithSlot
+  
   var beginOffset = Array[Int]()
   var endOffset = Array[Int]()
   var contractionOffsetBegin = Array[Int]()
   var contractionOffsetEnd = Array[Int]()
 
-  var readExtentMin = HashMap[L4_Field, Array[Int]]()
-  var readExtentMax = HashMap[L4_Field, Array[Int]]()
-  var writeExtentMin = HashMap[L4_Field, Array[Int]]()
-  var writeExtentMax = HashMap[L4_Field, Array[Int]]()
+  var readExtentMin = HashMap[L4_FieldWithSlot, Array[Int]]()
+  var readExtentMax = HashMap[L4_FieldWithSlot, Array[Int]]()
+  var writeExtentMin = HashMap[L4_FieldWithSlot, Array[Int]]()
+  var writeExtentMax = HashMap[L4_FieldWithSlot, Array[Int]]()
 
   var ignore : Boolean = true
 
   def adaptNodeBasedFields() = {
-    def adapt(map : HashMap[L4_Field, Array[Int]]) = {
+    def adapt(map : HashMap[L4_FieldWithSlot, Array[Int]]) = {
       for (field <- map) {
         // deduct offset due to node-based discretizations
         field._1.fieldLayout.discretization.toLowerCase match {
@@ -90,7 +101,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
       maxValuesForExprIndex(offset.get)
   }
 
-  def processReadExtent(field : L4_Field, offset : Option[L4_ExpressionIndex], offset2 : Option[L4_Index] = None) = {
+  def processReadExtent(field : L4_FieldWithSlot, offset : Option[L4_ExpressionIndex], offset2 : Option[L4_Index] = None) = {
     // honor offsets in field accesses if present - otherwise assume zero
     var minOffset = extractMinOffsetArray(field.numDimsGrid, offset)
     var maxOffset = extractMaxOffsetArray(field.numDimsGrid, offset)
@@ -117,7 +128,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
       readExtentMax.update(field, (readExtentMax(field), maxOffset).zipped.map(math.max))
   }
 
-  def processWriteExtent(field : L4_Field, offset : Option[L4_ExpressionIndex]) = {
+  def processWriteExtent(field : L4_FieldWithSlot, offset : Option[L4_ExpressionIndex]) = {
     // honor offsets in field accesses if present - otherwise assume zero
     var minOffset = extractMinOffsetArray(field.numDimsGrid, offset)
     var maxOffset = extractMaxOffsetArray(field.numDimsGrid, offset)
@@ -177,7 +188,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
         if (ignore) Logger.warn("Found assignment to field outside kernel")
 
         // store write access for lhs
-        processWriteExtent(field.target, field.offset)
+        processWriteExtent(L4_FieldWithSlot(field.target, field.slot), field.offset)
 
       // TODO: find a way to ignore recursive match on (lhs) L4_FieldAccess and the wrongfully detected read access
 
@@ -186,7 +197,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
 
         // process each entry (offset) of the stencil
         for (entry <- stencil.target.entries)
-          processReadExtent(field.target, field.offset, Some(entry.offset))
+          processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset, Some(entry.offset))
 
       // TODO: find a way to ignore recursive match on L4_FieldAccess - issues if (0,0,0) entry is not present
 
@@ -195,10 +206,10 @@ class L4_FieldAccessRangeCollector() extends Collector {
 
         // process each entry (offset) of the stencil template
         for (offset <- op.target.offsets)
-          processReadExtent(field.target, field.offset, Some(offset))
+          processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset, Some(offset))
 
-        // process access to stencil coefficients
-        processReadExtent(op.target.field, op.offset)
+        // process access to stencil coefficients - no slot
+        processReadExtent(L4_FieldWithSlot(op.target.field, L4_ActiveSlot), op.offset)
 
       // TODO: find a way to ignore recursive match on L4_FieldAccess - issues if (0,0,0) entry is not present
 
@@ -207,7 +218,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
 
       case field : L4_FieldAccess =>
         if (!ignore)
-          processReadExtent(field.target, field.offset)
+          processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset)
 
       case _ =>
     }

@@ -16,7 +16,6 @@ Field pc@all on boundary = Neumann
 Field phi7@finest on boundary = applyBC_t@current ( )
 Field phi7@(all, but finest) on boundary = applyBC_t@current ( )
 
-
 Operator AuStencil  from StencilTemplate on Face_x of global {
 	[ 0,  0,  0] =>
 	[-1,  0,  0] =>
@@ -66,4 +65,3 @@ Operator AtStencil  from StencilTemplate on Cell of global {
 	[ 0,  0, -1] =>
 	[ 0,  0,  1] =>
 }
-

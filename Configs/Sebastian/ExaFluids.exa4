@@ -1,7 +1,5 @@
 // layer 4 code
 
-Domain global< [ 0, 0, 0 ] to [ 0.05, 0.05, 0.05 ] >
-
 Layout DefCellLayout < Real , Cell > @all {
 	duplicateLayers	= [ 0, 0, 0 ]
 	ghostLayers		= [ 1, 1, 1 ] with communication
@@ -13,6 +11,8 @@ Field vis < global, DefCellLayout, Neumann > @finest
 Field miu < global, DefCellLayout, Neumann > @finest
 
 Field gamma < global, DefCellLayout, Neumann > @finest
+
+// globals
 
 Globals {
 	// global states
@@ -107,6 +107,7 @@ Function applyBC_t@finest ( ) : Unit {
 		phi7[active]@current = phi7[active]@current@[ 0,  0, -1]
 	}
 }
+
 Function applyBC_t@(coarsest to (finest - 1)) ( ) : Unit {
 	loop over phi7@current only ghost [-1,  0,  0] on boundary {
 		phi7[active]@current = 0.0 - phi7[active]@current@[ 1,  0,  0]
@@ -165,7 +166,7 @@ Function Application ( ) : Unit {
 
 	TimeLoop ( )
 
-	//printAllTimers ( )
+	printAllTimers ( )
 	destroyGlobals ( )
 }
 
@@ -270,19 +271,19 @@ Function Solve@finest ( ) : Unit {
 		apply bc to p@current
 
 		loop over u@current {
-			u[active]@current += du@current * ( pc@current@[-1, 0, 0] - pc@current )
+			u[active]@current += du@current * ( pc@current@[-1,  0,  0] - pc@current )
 		}
 		communicate u[active]@current
 		apply bc to u[active]@current
 
 		loop over v@current {
-			v[active]@current += dv@current * ( pc@current@[0, -1, 0] - pc@current )
+			v[active]@current += dv@current * ( pc@current@[ 0, -1,  0] - pc@current )
 		}
 		communicate v[active]@current
 		apply bc to v[active]@current
 
 		loop over w@current {
-			w[active]@current += dw@current * ( pc@current@[0, 0, -1] - pc@current )
+			w[active]@current += dw@current * ( pc@current@[ 0,  0, -1] - pc@current )
 		}
 		communicate w[active]@current
 		apply bc to w[active]@current
@@ -372,7 +373,8 @@ Function Solve@finest ( ) : Unit {
 }
 
 Function printVal ( toPrint : Real ) : Unit {
-    if ( toPrint <= 1e-12 ) {
+	print ( toPrint )
+	/*if ( toPrint <= 1e-12 ) {
 		print ( "EFFECTIVELY ZERO" )
     } else if ( toPrint <= 1e-11 ) {
 		native ( 'std::streamsize oldPrec = std::cout.precision()' )
@@ -394,7 +396,7 @@ Function printVal ( toPrint : Real ) : Unit {
 		native ( 'std::cout.precision(4)' )
 		print ( toPrint )
 		native ( 'std::cout.precision(oldPrec)' )
-    }
+    }*/
 }
 
 /// init functions
@@ -452,10 +454,10 @@ Function UpdateProperties@finest ( ) : Unit {
 			+ e_den * ( phi7[active]@current - t_ph )**4 )
 
 		// Zografos et al. Specific heat, thermal conductivity and viscosity
-		Var cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
+		Val cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
 			- 0.19149 * phi7[active]@current**2
 			+ 1.7850e-4 * phi7[active]@current**3 )
-		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
+		Val cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
 			- 1.144e-5 * phi7[active]@current**2
 			+ 4.2365e-9 * phi7[active]@current**3 )
 		vis@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
@@ -484,10 +486,10 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 			+ e_den * ( phi7[active]@current - t_ph )**4 )
 
 		// Zografos et al. Specific heat, thermal conductivity and viscosity
-		Var cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
+		Val cp : Real = ( -3755.9 + 67.953 * phi7[active]@current
 			- 0.19149 * phi7[active]@current**2
 			+ 1.7850e-4 * phi7[active]@current**3 )
-		Var cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
+		Val cond : Real = ( -0.63262 + 7.1959e-3 * phi7[active]@current
 			- 1.144e-5 * phi7[active]@current**2
 			+ 4.2365e-9 * phi7[active]@current**3 )
 		miu@current = 3.8208e-2 / ( phi7[active]@current - 252.33 )
@@ -510,26 +512,26 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 		Val dudx : Real = ( evalAtEastFace ( u[active]@current ) - evalAtWestFace ( u[active]@current ) ) / vf_cellWidth_x@current
 
 		Val dvdx : Real = 0.5 * ( evalAtEastFace ( v[active]@current ) - evalAtWestFace ( v[active]@current )
-			+ evalAtEastFace ( v[active]@current@[0, 1, 0] ) - evalAtWestFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_x@current
+			+ evalAtEastFace ( v[active]@current@[ 0,  1,  0] ) - evalAtWestFace ( v[active]@current@[ 0,  1,  0] ) ) / vf_cellWidth_x@current
 
 		Val dwdx : Real = 0.5 * ( evalAtEastFace ( w[active]@current ) - evalAtWestFace ( w[active]@current )
-			+ evalAtEastFace ( w[active]@current@[0, 0, 1] ) - evalAtWestFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_x@current
+			+ evalAtEastFace ( w[active]@current@[ 0,  0,  1] ) - evalAtWestFace ( w[active]@current@[ 0,  0,  1] ) ) / vf_cellWidth_x@current
 
 		// du/dy and dv/dy and dw/dy
 		Val dudy : Real = 0.5 * ( evalAtNorthFace ( u[active]@current ) - evalAtSouthFace ( u[active]@current )
-			+ evalAtNorthFace ( u[active]@current@[1, 0, 0] ) - evalAtSouthFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_y@current
+			+ evalAtNorthFace ( u[active]@current@[ 1,  0,  0] ) - evalAtSouthFace ( u[active]@current@[ 1,  0,  0] ) ) / vf_cellWidth_y@current
 
 		Val dvdy : Real = ( evalAtNorthFace ( v[active]@current ) - evalAtSouthFace ( v[active]@current ) ) / vf_cellWidth_y@current
 
 		Val dwdy : Real = 0.5 * ( evalAtNorthFace ( w[active]@current ) - evalAtSouthFace ( w[active]@current )
-			+ evalAtNorthFace ( w[active]@current@[0, 0, 1] ) - evalAtSouthFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_y@current
+			+ evalAtNorthFace ( w[active]@current@[ 0,  0,  1] ) - evalAtSouthFace ( w[active]@current@[ 0,  0,  1] ) ) / vf_cellWidth_y@current
 
 		// du/dz and dv/dz and dw/dz
 		Val dudz : Real = 0.5 * ( evalAtTopFace ( u[active]@current ) - evalAtBottomFace ( u[active]@current )
-			+ evalAtTopFace ( u[active]@current@[1, 0, 0] ) - evalAtBottomFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_z@current
+			+ evalAtTopFace ( u[active]@current@[ 1,  0,  0] ) - evalAtBottomFace ( u[active]@current@[ 1,  0,  0] ) ) / vf_cellWidth_z@current
 
 		Val dvdz : Real = 0.5 * ( evalAtTopFace ( v[active]@current ) - evalAtBottomFace ( v[active]@current )
-			+ evalAtTopFace ( v[active]@current@[0, 1, 0] ) - evalAtBottomFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_z@current
+			+ evalAtTopFace ( v[active]@current@[ 0,  1,  0] ) - evalAtBottomFace ( v[active]@current@[ 0,  1,  0] ) ) / vf_cellWidth_z@current
 
 		Val dwdz : Real = ( evalAtTopFace ( w[active]@current ) - evalAtBottomFace ( w[active]@current ) ) / vf_cellWidth_z@current
 

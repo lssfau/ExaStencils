@@ -90,7 +90,7 @@ StencilField ApcStencil< ApcStencilData => SevenPointStencil > @all
 // values associated with phi7, ie cell center
 
 Field phi7 < global, DefCellLayout, applyBC_t@current ( ) >[2] @all
-Field residual_t < global, DefCellLayout, Neumann > @all
+Field residual_t < global, DefCellLayout, applyBC_res_t@current ( ) > @all
 Field rhs_t < global, DefCellLayout, None > @all
 
 Field AtStencilData< global, CellStencilLayout, None > @all
@@ -272,6 +272,7 @@ Globals {
 }
 
 /// specialized boundary handling functions
+
 Function applyBC_t@finest ( ) : Unit {
 	loop over phi7@current only ghost [-1,  0,  0] on boundary {
 		phi7[active]@current = 2.0 * th - phi7[active]@current@[ 1,  0,  0]
@@ -292,6 +293,7 @@ Function applyBC_t@finest ( ) : Unit {
 		phi7[active]@current = phi7[active]@current@[ 0,  0, -1]
 	}
 }
+
 Function applyBC_t@(coarsest to (finest - 1)) ( ) : Unit {
 	loop over phi7@current only ghost [-1,  0,  0] on boundary {
 		phi7[active]@current = 0.0 - phi7[active]@current@[ 1,  0,  0]
@@ -310,6 +312,27 @@ Function applyBC_t@(coarsest to (finest - 1)) ( ) : Unit {
 	}
 	loop over phi7@current only ghost [ 0,  0,  1] on boundary {
 		phi7[active]@current = phi7[active]@current@[ 0,  0, -1]
+	}
+}
+
+Function applyBC_res_t@all ( ) : Unit {
+	loop over residual_t@current only ghost [-1,  0,  0] on boundary {
+		residual_t@current = 0.0 - residual_t@current@[ 1,  0,  0]
+	}
+	loop over residual_t@current only ghost [ 1,  0,  0] on boundary {
+		residual_t@current = 0.0 - residual_t@current@[-1,  0,  0]
+	}
+	loop over residual_t@current only ghost [ 0, -1,  0] on boundary {
+		residual_t@current = residual_t@current@[ 0,  1,  0]
+	}
+	loop over residual_t@current only ghost [ 0,  1,  0] on boundary {
+		residual_t@current = residual_t@current@[ 0, -1,  0]
+	}
+	loop over residual_t@current only ghost [ 0,  0, -1] on boundary {
+		residual_t@current = residual_t@current@[ 0,  0,  1]
+	}
+	loop over residual_t@current only ghost [ 0,  0,  1] on boundary {
+		residual_t@current = residual_t@current@[ 0,  0, -1]
 	}
 }
 

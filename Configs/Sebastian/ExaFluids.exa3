@@ -1,3 +1,4 @@
+
 /// progressed from L2
 
 //Field u    from L2
@@ -157,7 +158,7 @@ Instantiate SmoothComponent < w, AwStencil, rhs_w, 1.0 > as Smooth_w@all
 Instantiate SmoothComponent < pc, ApcStencil, rhs_pc, 0.8 > as Smooth_pc@all
 Instantiate SmoothComponent < phi7, AtStencil, rhs_t, 1.0 > as Smooth_t@all
 
-FunctionTemplate VCycleComponent < VCycle, Smooth,  solution, rhs, residual, stencil, restrictionStencil, correctionStencil > {
+FunctionTemplate VCycleComponent < VCycle, Smooth, solution, rhs, residual, stencil, restrictionStencil, correctionStencil > {
 	Smooth@current ( )
 	
 	residual = rhs - stencil * solution
@@ -171,11 +172,12 @@ FunctionTemplate VCycleComponent < VCycle, Smooth,  solution, rhs, residual, ste
 	Smooth@current ( )
 }
 
-Instantiate VCycleComponent < VCycle_u, Smooth_u,  u, rhs_u, residual_u, AuStencil, RestrictionFaceX, CorrectionFaceX > as VCycle_u@( ( coarsest + 1 ) to finest )
-Instantiate VCycleComponent < VCycle_v, Smooth_v,  v, rhs_v, residual_v, AvStencil, RestrictionFaceY, CorrectionFaceY > as VCycle_v@( ( coarsest + 1 ) to finest )
-Instantiate VCycleComponent < VCycle_w, Smooth_w,  w, rhs_w, residual_w, AwStencil, RestrictionFaceZ, CorrectionFaceZ > as VCycle_w@( ( coarsest + 1 ) to finest )
-Instantiate VCycleComponent < VCycle_pc, Smooth_pc,  pc, rhs_pc, residual_pc, ApcStencil, RestrictionCell, CorrectionCell > as VCycle_pc@( ( coarsest + 1 ) to finest )
-Instantiate VCycleComponent < VCycle_t, Smooth_t,  phi7, rhs_t, residual_t, AtStencil, RestrictionCell, CorrectionCell > as VCycle_t@( ( coarsest + 1 ) to finest )
+Instantiate VCycleComponent < VCycle_u, Smooth_u, u, rhs_u, residual_u, AuStencil, RestrictionFaceX, CorrectionFaceX > as VCycle_u@( ( coarsest + 1 ) to finest )
+Instantiate VCycleComponent < VCycle_v, Smooth_v, v, rhs_v, residual_v, AvStencil, RestrictionFaceY, CorrectionFaceY > as VCycle_v@( ( coarsest + 1 ) to finest )
+Instantiate VCycleComponent < VCycle_w, Smooth_w, w, rhs_w, residual_w, AwStencil, RestrictionFaceZ, CorrectionFaceZ > as VCycle_w@( ( coarsest + 1 ) to finest )
+Instantiate VCycleComponent < VCycle_pc, Smooth_pc, pc, rhs_pc, residual_pc, ApcStencil, RestrictionCell, CorrectionCell > as VCycle_pc@( ( coarsest + 1 ) to finest )
+Instantiate VCycleComponent < VCycle_t, Smooth_t, phi7, rhs_t, residual_t, AtStencil, RestrictionCell, CorrectionCell > as VCycle_t@( ( coarsest + 1 ) to finest )
+
 
 FunctionTemplate CGSComponent < solution, stencil, rhs, omega > {
 	repeat 4 times {
