@@ -22,7 +22,7 @@ class LexerL4 extends ExaLexer {
   reserved += ("Var", "Variable", "Val", "Value")
 
   // declaration keywords - complex
-  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilField", "Set", "external", "Globals")
+  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "Globals")
 
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")

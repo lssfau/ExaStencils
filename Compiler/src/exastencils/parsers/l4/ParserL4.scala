@@ -17,7 +17,6 @@ import exastencils.interfacing.l4.L4_ExternalFieldDecl
 import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
-import exastencils.stencil.l4._
 
 class ParserL4 extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = new LexerL4()
@@ -54,7 +53,7 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   //###########################################################
 
-  lazy val program = ((import_ ||| domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
+  lazy val program = ((import_ ||| domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| stencilTemplateDeclaration ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
     ^^ { L4_Root(_) })
 
   lazy val import_ = "import" ~> stringLit ^^ { path => parseFile(path).asInstanceOf[L4_Root] }
@@ -405,4 +404,15 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   lazy val comparison : PackratParser[L4_Expression] = //(
     locationize((binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
+
+  // ######################################
+  // ##### L4_StencilTemplateDecl
+  // ######################################
+
+  lazy val stencilTemplateDeclaration = locationize(("StencilTemplate" ~> identifierWithOptionalLevel) ~ ("{" ~> stencilTemplateEntries <~ "}")
+    ^^ { case id ~ offsets => L4_StencilTemplateDecl(id, offsets) })
+  lazy val stencilTemplateEntries = (
+    (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
+      ||| stencilTemplateEntry.+)
+  lazy val stencilTemplateEntry = locationize((index <~ "=>") ^^ { offset => offset })
 }

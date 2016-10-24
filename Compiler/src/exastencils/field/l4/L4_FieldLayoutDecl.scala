@@ -113,7 +113,7 @@ case class L4_FieldLayoutDecl(
       innerPoints)
   }
 
-  override def addToKnowledge() = {
+  override def addToKnowledge() : Unit = {
     identifier match {
       case L4_BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels)
@@ -121,7 +121,6 @@ case class L4_FieldLayoutDecl(
       case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
         L4_FieldLayoutCollection.add(composeLayout(level))
     }
-    None // consume declaration statement
   }
 }
 

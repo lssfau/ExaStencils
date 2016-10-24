@@ -23,7 +23,7 @@ case class L4_StencilDecl(override var identifier : L4_Identifier, var entries :
     out << "}\n"
   }
 
-  override def addToKnowledge() = {
+  override def addToKnowledge() : Unit = {
     identifier match {
       case L4_BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels) {
@@ -33,7 +33,6 @@ case class L4_StencilDecl(override var identifier : L4_Identifier, var entries :
       case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
         val stencil = L4_Stencil(name, level, entries)
         L4_StencilCollection.add(stencil)
-        None // consume declaration statement
     }
   }
 }
@@ -44,6 +43,6 @@ object L4_ProcessStencilDeclarations extends DefaultStrategy("Integrating L4 ste
   this += Transformation("Process new stencils", {
     case stencilDecl : L4_StencilDecl =>
       stencilDecl.addToKnowledge()
-      None
+      None // consume declaration statement
   })
 }

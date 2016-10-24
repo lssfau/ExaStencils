@@ -32,5 +32,5 @@ case class L3_StencilTemplate(
   //  def progressStencilField = L4_StencilField(name, level, field, stencil)
 
   override def prettyprintDecl(out : PpStream) : Unit = ???
-  override def progressImpl() = L4_StencilTemplate(name + "Template", level, localization, domain.getProgressedObject(), offsets.map(_.progress))
+  override def progressImpl() = L4_StencilTemplate(name + "Template", level, offsets.map(_.progress))
 }

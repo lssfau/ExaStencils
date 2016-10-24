@@ -1,9 +1,11 @@
 package exastencils.stencil.l4
 
+import scala.collection.mutable.ListBuffer
+
+import exastencils.base.l4.L4_Index
 import exastencils.field.l4.L4_Field
 import exastencils.knowledge.l4.L4_KnowledgeObjectWithLevel
 import exastencils.operator.ir.IR_StencilField
-import exastencils.operator.l4.L4_Stencil
 import exastencils.prettyprinting._
 
 /// L4_StencilField
@@ -16,16 +18,12 @@ case class L4_StencilField(
     var name : String, // will be used to find the operator
     var level : Int, // the level the operator lives on
     var field : L4_Field, // linked coefficient field
-    var stencil : L4_Stencil // linked stencil template // TODO: var stencil : L4_StencilTemplate
+    var stencilTemplateName : String, // name of the linked stencil (template)
+    var offsets : ListBuffer[L4_Index]  // offsets of the stencil (template)
 ) extends L4_KnowledgeObjectWithLevel[IR_StencilField] {
 
-  // TODO: integrate StencilTemplate
-  def offsets = stencil.entries.map(_.offset)
+  def prettyprintDecl(out : PpStream) =
+    out << "StencilField " << name << "< " << field.name << " => " << stencilTemplateName << " >" << "@" << level
 
-  def prettyprintDecl(out : PpStream) = {
-    out << "StencilField " << name <<
-      "< " << field.name << " => " << stencil.name << " >" << "@" << level << "\n"
-  }
-
-  override def progressImpl() = IR_StencilField(name, level, field.getProgressedObject(), stencil.getProgressedObject())
+  override def progressImpl() = IR_StencilField(name, level, field.getProgressedObject(), offsets.map(_.progress.toExpressionIndex))
 }

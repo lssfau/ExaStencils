@@ -44,7 +44,7 @@ case class IR_StencilFieldConvolution(var stencilFieldAccess : IR_StencilFieldAc
     stencilFieldIdx(Knowledge.dimensionality) = idx
 
     // fill offset with zeros to match dimensionality of the field access
-    val offset = Duplicate(stencilFieldAccess.stencilFieldSelection.stencil.entries(idx).offset)
+    val offset = Duplicate(stencilFieldAccess.stencilFieldSelection.offsets(idx))
     while (offset.length < fieldAccess.index.length)
       offset.indices :+= IR_IntegerConstant(0)
 
@@ -53,7 +53,7 @@ case class IR_StencilFieldConvolution(var stencilFieldAccess : IR_StencilFieldAc
   }
 
   override def expand() : Output[IR_Expression] = {
-    val ret : IR_Expression = stencilFieldAccess.stencilFieldSelection.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
+    val ret : IR_Expression = stencilFieldAccess.stencilFieldSelection.offsets.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
     IR_GeneralSimplify.doUntilDoneStandalone(ret)
     ret
   }

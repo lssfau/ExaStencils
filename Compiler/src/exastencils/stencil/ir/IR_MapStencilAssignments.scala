@@ -19,11 +19,11 @@ object IR_MapStencilAssignments extends DefaultStrategy("Map assignments to sten
       var statements : ListBuffer[IR_Statement] = ListBuffer()
 
       val stencilRight = stencil
-      val stencilLeft = stencilFieldAccess.stencilFieldSelection.stencil
+      val offsetsLeft = stencilFieldAccess.stencilFieldSelection.offsets
 
       val flipEntries = false
 
-      for (idx <- stencilLeft.entries.indices) {
+      for (idx <- offsetsLeft.indices) {
         val fieldSelection = stencilFieldAccess.stencilFieldSelection.toFieldSelection
         fieldSelection.arrayIndex = Some(idx)
         val fieldIndex = Duplicate(stencilFieldAccess.index)
@@ -32,18 +32,18 @@ object IR_MapStencilAssignments extends DefaultStrategy("Map assignments to sten
         for (e <- stencilRight.entries) {
           if (flipEntries) {
             if (Knowledge.dimensions.map(dim =>
-              IR_SimplifyExpression.evalIntegral(e.offset(dim)) == -IR_SimplifyExpression.evalIntegral(stencilLeft.entries(idx).offset(dim)))
+              IR_SimplifyExpression.evalIntegral(e.offset(dim)) == -IR_SimplifyExpression.evalIntegral(offsetsLeft(idx)(dim)))
               .reduceLeft((a, b) => a && b))
               coeff += e.coefficient
           } else {
-            if (e.offset == stencilLeft.entries(idx).offset)
+            if (e.offset == offsetsLeft(idx))
               coeff += e.coefficient
           }
         }
 
         if (flipEntries)
           for (dim <- 0 until Knowledge.dimensionality)
-            fieldIndex(dim) -= stencilLeft.entries(idx).offset(dim)
+            fieldIndex(dim) -= offsetsLeft(idx)(dim)
 
         statements += IR_Assignment(IR_FieldAccess(fieldSelection, fieldIndex), coeff, op)
       }

@@ -17,7 +17,7 @@ case class L4_ExternalFieldDecl(
 
   override def prettyprint(out : PpStream) = out << "external Field " << identifier << " <" << fieldLayout << "> => " << targetField << '\n'
 
-  override def addToKnowledge() = {
+  override def addToKnowledge() : Unit = {
     val resolvedAccess = targetField match {
       case access : L4_UnresolvedAccess =>
         if (access.dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
@@ -27,7 +27,8 @@ case class L4_ExternalFieldDecl(
     }
     val resolvedField = resolvedAccess.target
     val resolvedFieldLayout = resolvedField.fieldLayout
-    L4_ExternalField(identifier, resolvedField.level, resolvedFieldLayout, resolvedField)
+    val extField = L4_ExternalField(identifier, resolvedField.level, resolvedFieldLayout, resolvedField)
+    L4_ExternalFieldCollection.add(extField)
   }
 }
 

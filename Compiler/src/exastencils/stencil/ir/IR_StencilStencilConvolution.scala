@@ -12,8 +12,7 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
-import exastencils.operator.ir.IR_Stencil
-import exastencils.operator.ir.IR_StencilEntry
+import exastencils.operator.ir._
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.util.ir.IR_ResultingDatatype
 
@@ -70,7 +69,7 @@ case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAc
     var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
-      for (e <- stencilLeft.stencilFieldSelection.stencil.entries.indices) {
+      for (e <- stencilLeft.stencilFieldSelection.offsets.indices) {
         val stencilFieldIdx = Duplicate(stencilLeft.index)
         stencilFieldIdx(Knowledge.dimensionality) = e
         for (dim <- 0 until Knowledge.dimensionality)
@@ -80,8 +79,8 @@ case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAc
 
         val rightOffset = Duplicate(re.offset)
 
-        val leftOffset = Duplicate(stencilLeft.stencilFieldSelection.stencil.entries(e).offset)
-        if (stencilRight.level > stencilLeft.stencilFieldSelection.stencil.level) {
+        val leftOffset = Duplicate(stencilLeft.stencilFieldSelection.offsets(e))
+        if (stencilRight.level > stencilLeft.stencilFieldSelection.stencilField.level) {
           for (d <- 0 until Knowledge.dimensionality)
             leftOffset(d) = (IR_DimToString(d) : IR_Expression) / 2 + leftOffset(d)
         } else {
@@ -108,7 +107,7 @@ case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAc
       }
     }
 
-    IR_StencilAccess(IR_Stencil(stencilLeft.stencilFieldSelection.stencil.name + "_" + stencilRight.name, stencilLeft.stencilFieldSelection.stencil.level, entries))
+    IR_StencilAccess(IR_Stencil(stencilLeft.stencilFieldSelection.stencilField.name + "_" + stencilRight.name, stencilLeft.stencilFieldSelection.stencilField.level, entries))
   }
 }
 

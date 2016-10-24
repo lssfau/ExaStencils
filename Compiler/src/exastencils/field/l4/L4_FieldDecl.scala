@@ -39,7 +39,7 @@ case class L4_FieldDecl(
     L4_Field(identifier.name, level, index, domainName, resolvedFieldLayout, numSlots, boundary)
   }
 
-  override def addToKnowledge() = {
+  override def addToKnowledge() : Unit = {
     identifier match {
       case L4_BasicIdentifier(name)                          =>
         for (level <- Knowledge.levels)
@@ -47,7 +47,6 @@ case class L4_FieldDecl(
       case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
         L4_FieldCollection.add(composeField(level))
     }
-    None // consume declaration statement
   }
 }
 

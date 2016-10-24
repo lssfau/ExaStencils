@@ -50,7 +50,7 @@ case class L4_StencilFieldAccess(
     if (arrayIndex.isDefined)
       accessIndex = arrayIndex.get
     else if (dirAccess.isDefined)
-      accessIndex = stencilField.stencil.findStencilEntryIndex(dirAccess.get.progress).get
+      accessIndex = stencilField.findOffsetIndex(dirAccess.get.progress).get
 
     var numDims = Knowledge.dimensionality // TODO: resolve field info
     numDims += 1 // TODO: remove array index and update function after integration of vec types

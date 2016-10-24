@@ -26,7 +26,7 @@ case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) ex
             val sep = lo.map(m => ", ").dropRight(1) :+ " >\n"
             out << "Domain " << name << "< "
             for (i <- lo.indices) { out << lo(i) << " to " << up(i) << sep(i) }
-            //out << "Domain " << name << "< " << l(0) << " to " << u(0) << ", " << l(1) << " to " << u(1) << " ," << l(2) << " to " << u(2) << " >\n"
+          //out << "Domain " << name << "< " << l(0) << " to " << u(0) << ", " << l(1) << " to " << u(1) << " ," << l(2) << " to " << u(2) << " >\n"
         }
     }
   }
@@ -57,7 +57,7 @@ case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) ex
       case _                                      => RectangularDomain(name, index, RectangularDomainShape(AABB()))
     }
   }
-  override def addToKnowledge() = ???
+  override def addToKnowledge() : Unit = ???
 }
 
 /// L4_ProcessFieldDeclarations
