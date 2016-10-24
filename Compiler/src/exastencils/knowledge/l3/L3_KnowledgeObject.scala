@@ -12,7 +12,7 @@ trait L3_KnowledgeObject[L4_Equivalent <: L4_KnowledgeObject[_]] {
   def prettyprintDecl(out : PpStream) : Unit
 
   final def progress() : L4_Equivalent = {
-    progressed = Some(progressImpl)
+    progressed = Some(progressImpl())
     progressed.get
   }
 

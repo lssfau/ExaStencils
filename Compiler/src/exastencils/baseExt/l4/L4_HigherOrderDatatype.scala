@@ -12,7 +12,7 @@ trait L4_HigherOrderDatatype extends L4_Datatype {
 }
 
 case class L4_ArrayDatatype(datatype : L4_Datatype, numElements : Int) extends L4_HigherOrderDatatype {
-  override def prettyprint(out : PpStream) = { out << "Array[" << datatype << "][" << numElements << ']' }
+  override def prettyprint(out : PpStream) = { out << "Array<" << datatype << "><" << numElements << '>' }
   override def progress = IR_ArrayDatatype(datatype.progress, numElements)
 
   override def dimensionality : Int = 1 + datatype.dimensionality

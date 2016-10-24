@@ -22,7 +22,7 @@ case class L4_FunctionTemplate(
   override def prettyprint(out : PpStream) = {
     out << "FunctionTemplate " << name << " < " << templateArgs.mkString(", ") << " > ( "
     out <<< (functionArgs, ", ") << " )" << " : " << returntype << " {\n"
-    out <<< statements
-    out << "}\n"
+    out <<< (statements, "\n")
+    out << "\n}"
   }
 }

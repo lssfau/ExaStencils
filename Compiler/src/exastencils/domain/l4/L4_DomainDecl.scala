@@ -18,8 +18,8 @@ object L4_DomainDecl {
 case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) extends L4_KnowledgeDecl {
   override def prettyprint(out : PpStream) = {
     (lower, upper) match {
-      case (null, null)                       => out << s"Domain = fromFile($name) \n"
-      case (l : L4_ConstVec, u : L4_ConstVec) => out << "Domain " << name << "< " << l << " to " << u << " >\n"
+      case (null, null)                       => out << s"Domain = fromFile($name)"
+      case (l : L4_ConstVec, u : L4_ConstVec) => out << "Domain " << name << "< " << l << " to " << u << " >"
       case (lo : List[_], up : List[_])       =>
         (lo.head, up.head) match {
           case (_ : L4_ConstVec, _ : L4_ConstVec) =>

@@ -19,8 +19,8 @@ object L4_StencilDecl {
 case class L4_StencilDecl(override var identifier : L4_Identifier, var entries : ListBuffer[L4_StencilEntry]) extends L4_LeveledKnowledgeDecl {
   override def prettyprint(out : PpStream) = {
     out << "Stencil " << identifier.name << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level << " {\n"
-    out <<< (entries, "\n") << '\n'
-    out << "}\n"
+    out <<< (entries, "\n")
+    out << "\n}"
   }
 
   override def addToKnowledge() : Unit = {

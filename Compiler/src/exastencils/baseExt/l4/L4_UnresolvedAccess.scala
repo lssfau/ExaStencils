@@ -21,7 +21,7 @@ case class L4_UnresolvedAccess(
     if (level.isDefined) out << '@' << level.get
     if (offset.isDefined) out << '@' << offset.get
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
-    if (dirAccess.isDefined) out << ':' << dirAccess
+    if (dirAccess.isDefined) out << ':' << dirAccess.get
   }
 
   def progress : IR_Expression = {

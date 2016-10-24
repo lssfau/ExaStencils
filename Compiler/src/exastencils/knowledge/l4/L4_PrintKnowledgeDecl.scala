@@ -12,43 +12,37 @@ object L4_PrintKnowledgeDecl {
     out << "// domain declarations\n\n"
     L4_DomainCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
-      out << "\n"
+      out << "\n\n"
     }
-    out << "\n"
 
     out << "// field layout declarations\n\n"
     L4_FieldLayoutCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
-      out << "\n"
+      out << "\n\n"
     }
-    out << "\n"
 
     out << "// field declarations\n\n"
     L4_FieldCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
-      out << "\n"
+      out << "\n\n"
     }
-    out << "\n"
 
     out << "// external field declarations\n\n"
     L4_ExternalFieldCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
-      out << "\n"
+      out << "\n\n"
     }
-    out << "\n"
 
     out << "// stencil declarations\n\n"
     L4_StencilCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
-      out << "\n"
+      out << "\n\n"
     }
-    out << "\n"
 
     out << "// stencil field declarations\n\n"
     L4_StencilFieldCollection.objects.foreach { obj =>
       obj.prettyprintDecl(out)
-      out << "\n"
+      out << "\n\n"
     }
-    out << "\n"
   }
 }

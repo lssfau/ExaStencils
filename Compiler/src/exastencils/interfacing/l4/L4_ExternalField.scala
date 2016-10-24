@@ -19,7 +19,7 @@ case class L4_ExternalField(
 ) extends L4_KnowledgeObjectWithLevel[IR_ExternalField] {
 
   override def prettyprintDecl(out : PpStream) = {
-    out << "external Field " << name << " <" << fieldLayout << "> => " << targetField << "@" << level << '\n'
+    out << "external Field " << name << " <" << fieldLayout << "> => " << targetField << "@" << level
   }
 
   override def progressImpl() = IR_ExternalField(name, targetField.getProgressedObject(), fieldLayout.getProgressedObject(), level)

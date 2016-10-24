@@ -24,7 +24,7 @@ case class L4_FieldDecl(
   override def prettyprint(out : PpStream) = {
     out << "Field " << identifier.name << "< " << domainName << ", " << fieldLayoutName << ", " << boundary << " >"
     if (numSlots > 1) out << '[' << numSlots << ']'
-    out << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level << '\n'
+    out << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level
   }
 
   def composeField(level : Int) : L4_Field = {

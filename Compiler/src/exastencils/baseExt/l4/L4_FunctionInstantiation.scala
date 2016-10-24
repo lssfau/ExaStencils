@@ -16,10 +16,7 @@ object L4_FunctionInstantiation {
 }
 
 case class L4_FunctionInstantiation(var templateName : String, args : ListBuffer[L4_Expression], targetFct : L4_Identifier) extends L4_Node with PrettyPrintable {
-  override def prettyprint(out : PpStream) = {
-    out << "Instantiate " << templateName << " < " <<< (args, ", ") << " > "
-    out << " as " << targetFct << "\n"
-  }
+  override def prettyprint(out : PpStream) = out << "Instantiate " << templateName << " < " <<< (args, ", ") << " > " << " as " << targetFct
 }
 
 /// L4_ResolveFunctionInstantiations

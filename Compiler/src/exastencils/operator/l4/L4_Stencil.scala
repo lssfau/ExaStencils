@@ -21,7 +21,7 @@ case class L4_Stencil(
   override def prettyprintDecl(out : PpStream) = {
     out << "Stencil " << name << "@(" << level << ") {\n"
     out <<< (entries, "\n")
-    out << "\n}\n"
+    out << "\n}"
   }
 
   override def progressImpl() = IR_Stencil(name, level, entries.map(_.progress))

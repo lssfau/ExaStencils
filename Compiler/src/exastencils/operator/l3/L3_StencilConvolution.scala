@@ -15,7 +15,7 @@ case class L3_StencilConvolution(var stencilAccess : L3_StencilAccess, var field
   def progress = L4_StencilConvolution(stencilAccess.progress, fieldAccess.progress)
 }
 
-/// L3_ResolveFieldFieldConvolutions
+/// L3_ResolveStencilConvolutions
 
 object L3_ResolveStencilConvolutions extends DefaultStrategy("Resolving L3 stencil field convolutions") {
   this += new Transformation("Resolve", {

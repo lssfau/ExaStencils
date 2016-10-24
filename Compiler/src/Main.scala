@@ -160,6 +160,7 @@ object Main {
       L2_DomainCollection.progress()
       L2_FieldCollection.progress()
       L2_StencilCollection.progress()
+      L2_StencilTemplateCollection.progress()
     }
 
     if (Settings.timeStrategies)
@@ -189,21 +190,19 @@ object Main {
 
       L3_ResolveFieldAccesses.apply()
       L3_ResolveStencilAccesses.apply()
-//      L3_ResolveStencilTemplateAccesses.apply()
+      L3_ResolveStencilTemplateAccesses.apply()
       L3_ResolveFieldFieldConvolutions.apply()
       L3_ResolveStencilConvolutions.apply()
-//      L3_ResolveStencilTemplateConvolutions.apply()
+      L3_ResolveStencilTemplateConvolutions.apply()
 
       L3_FieldCollection.addInitFieldsFunction()
 
       // progress knowledge to l4
       L3_DomainCollection.progress()
       L3_FieldCollection.prepareFieldLayouts() // prepare field layout knowledge for fields
-      //      L3_OperatorCollection.prepareFieldLayouts // prepare  field layout knowledge for stencil fields
       L3_FieldCollection.progress() // progress field knowledge
       L3_StencilCollection.progress() // process stencil knowledge
-      //      L3_StencilTemplateCollection.progress // process stencil knowledge
-      //      L3_OperatorCollection.progress // process operator knowledge
+      L3_StencilTemplateCollection.progress() // process stencil knowledge
     } else if (Knowledge.l3tmp_generateL4) {
       StateManager.root_ = l3Generate.Root()
       StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)

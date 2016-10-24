@@ -72,7 +72,10 @@ class ParserL4 extends ExaParser with PackratParsers {
       ||| locationize("@" ~ "(" ~> levellist <~ ")" ^^ { l => l }))
 
   lazy val levellist = locationize(((levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation) <~ ("," ||| "and")).* ~ (levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation)
-    ^^ { case a ~ b => L4_LevelList(a :+ b) })
+    ^^ {
+    case a ~ b if a.isEmpty => b
+    case a ~ b              => L4_LevelList(a :+ b)
+  })
 
   lazy val levelsublist = locationize(((levelsingle ||| levelrange ||| levelrelative) <~ ("," ||| "and")).* ~ (levelsingle ||| levelrange ||| levelrelative)
     ^^ { case a ~ b => L4_LevelList(a :+ b) })
