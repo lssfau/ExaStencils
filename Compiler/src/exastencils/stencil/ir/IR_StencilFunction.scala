@@ -21,7 +21,7 @@ object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functi
   this.register(collector)
 
   this += new Transformation("Resolve", {
-    case IR_FunctionCall(IR_StencilFunctionAccess(fctName, _), args) =>
+    case fctCall @ IR_FunctionCall(IR_StencilFunctionAccess(fctName, _), args) =>
       fctName match {
         // diag function
         case "diag" =>
@@ -43,6 +43,12 @@ object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functi
               Logger.warn("diag with unknown arg " + args(0))
               IR_FunctionCall(fctName, args)
           }
+
+        // diag_inv
+        case "diag_inv" =>
+          // FIXME: check datatype -> 'real' invert for matrices
+          fctCall.function.name = "diag"
+          1.0 / fctCall
 
         case _ =>
           Logger.warn("stencil function with unknown name " + fctName)
