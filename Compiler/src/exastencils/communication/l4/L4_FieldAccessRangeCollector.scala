@@ -25,7 +25,7 @@ object L4_FieldAccessRangeCollector {
 class L4_FieldAccessRangeCollector() extends Collector {
 
   import L4_FieldAccessRangeCollector.L4_FieldWithSlot
-  
+
   var beginOffset = Array[Int]()
   var endOffset = Array[Int]()
   var contractionOffsetBegin = Array[Int]()

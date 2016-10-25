@@ -48,6 +48,7 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| overrideFieldInformation
       ||| stencilDeclaration
       ||| stencilTemplateDeclaration
+      ||| stencilFromDefault
       ||| function
       ||| functionTemplate
       ||| functionInstantiation
@@ -335,6 +336,13 @@ object L3_Parser extends ExaParser with PackratParsers {
     (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilEntry.+)
   lazy val stencilEntry = locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L3_StencilEntry(offset, coeff) })
+
+  lazy val stencilFromDefault = (
+    locationize(("Operator" ~> ident <~ ("from" ~ "default" ~ "restriction")) ~ ("on" ~> localization) ~ ("with" ~> stringLit)
+      ^^ { case id ~ localization ~ interpolation => L3_DefaultRestrictionStencil(id, localization, interpolation) })
+      ||| locationize(("Operator" ~> ident <~ ("from" ~ "default" ~ "prolongation")) ~ ("on" ~> localization) ~ ("with" ~> stringLit)
+      ^^ { case id ~ localization ~ interpolation => L3_DefaultProlongationStencil(id, localization, interpolation) })
+    )
 
   // ######################################
   // ##### L3_StencilTemplateDecl

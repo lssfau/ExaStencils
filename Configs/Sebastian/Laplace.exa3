@@ -10,47 +10,8 @@ Field VecGradP@coarsest from Solution
 
 override bc for Residual@finest with 0.0
 
-
-Operator RestrictionStencil from Stencil {
-	[ 0,  0,  0] => 1.0 / 8.0
-	[ 0,  0, -1] => 1.0 / 16.0
-	[ 0,  0,  1] => 1.0 / 16.0
-	[ 0, -1,  0] => 1.0 / 16.0
-	[ 0,  1,  0] => 1.0 / 16.0
-	[-1,  0,  0] => 1.0 / 16.0
-	[ 1,  0,  0] => 1.0 / 16.0
-	[ 0, -1,  1] => 1.0 / 32.0
-	[ 0, -1, -1] => 1.0 / 32.0
-	[ 0,  1,  1] => 1.0 / 32.0
-	[ 0,  1, -1] => 1.0 / 32.0
-	[-1,  0,  1] => 1.0 / 32.0
-	[-1,  0, -1] => 1.0 / 32.0
-	[ 1,  0,  1] => 1.0 / 32.0
-	[ 1,  0, -1] => 1.0 / 32.0
-	[-1, -1,  0] => 1.0 / 32.0
-	[-1,  1,  0] => 1.0 / 32.0
-	[ 1, -1,  0] => 1.0 / 32.0
-	[ 1,  1,  0] => 1.0 / 32.0
-	[-1, -1,  1] => 1.0 / 64.0
-	[-1, -1, -1] => 1.0 / 64.0
-	[-1,  1,  1] => 1.0 / 64.0
-	[-1,  1, -1] => 1.0 / 64.0
-	[ 1, -1,  1] => 1.0 / 64.0
-	[ 1, -1, -1] => 1.0 / 64.0
-	[ 1,  1,  1] => 1.0 / 64.0
-	[ 1,  1, -1] => 1.0 / 64.0
-}
-
-Operator CorrectionStencil from Stencil {
-	[    0,     0,     0] => 0.125
-	[x % 2,     0,     0] => 0.125
-	[    0, y % 2,     0] => 0.125
-	[x % 2, y % 2,     0] => 0.125
-	[    0,     0, z % 2] => 0.125
-	[x % 2,     0, z % 2] => 0.125
-	[    0, y % 2, z % 2] => 0.125
-	[x % 2, y % 2, z % 2] => 0.125
-}
+Operator RestrictionStencil from default restriction on Node with 'linear'
+Operator CorrectionStencil from default prolongation on Node with 'linear'
 
 /*
 update Smoother ( x_l, b_l ) = D^-1 ( b - (L + U) x )
@@ -65,8 +26,9 @@ update MG ( x_l, b_l, l )
 */
 
 Function Smoother@((coarsest + 1) to finest) {
+	Val omega : Real = 0.8
 	repeat 3 times {
-		Solution = Solution + ( ( ( 1.0 / diag ( Laplace ) ) * 0.8 ) * ( RHS - Laplace * Solution ) )
+		Solution = Solution + omega * diag_inv ( Laplace ) * ( RHS - Laplace * Solution )
 	}
 }
 

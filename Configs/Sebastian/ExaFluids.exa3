@@ -49,90 +49,15 @@ override bc for dw@finest  with None
 
 /// Operators
 
-Operator RestrictionCell from Stencil {
-	[ 0,  0,  0] => 0.125
-    [ 0,  0,  1] => 0.125
-    [ 0,  1,  0] => 0.125
-    [ 1,  0,  0] => 0.125
-    [ 0,  1,  1] => 0.125
-    [ 1,  0,  1] => 0.125
-    [ 1,  1,  0] => 0.125
-    [ 1,  1,  1] => 0.125
-}
+Operator RestrictionCell from default restriction on Cell with 'linear'
+Operator RestrictionFaceX from default restriction on Face_x with 'linear'
+Operator RestrictionFaceY from default restriction on Face_y with 'linear'
+Operator RestrictionFaceZ from default restriction on Face_z with 'linear'
 
-Operator RestrictionFaceX from Stencil {
-	[ 0,  0,  0] => 0.125
-	[-1,  0,  0] => 0.0625
-	[ 1,  0,  0] => 0.0625
-
-	[ 0,  1,  0] => 0.125
-	[-1,  1,  0] => 0.0625
-	[ 1,  1,  0] => 0.0625
-
-	[ 0,  0,  1] => 0.125
-	[-1,  0,  1] => 0.0625
-	[ 1,  0,  1] => 0.0625
-
-	[ 0,  1,  1] => 0.125
-	[-1,  1,  1] => 0.0625
-	[ 1,  1,  1] => 0.0625
-}
-
-Operator RestrictionFaceY from Stencil {
-	[ 0,  0,  0] => 0.125
-	[ 0, -1,  0] => 0.0625
-	[ 0,  1,  0] => 0.0625
-
-	[ 0,  0,  1] => 0.125
-	[ 0, -1,  1] => 0.0625
-	[ 0,  1,  1] => 0.0625
-
-	[ 1,  0,  0] => 0.125
-	[ 1, -1,  0] => 0.0625
-	[ 1,  1,  0] => 0.0625
-
-	[ 1,  0,  1] => 0.125
-	[ 1, -1,  1] => 0.0625
-	[ 1,  1,  1] => 0.0625
-}
-
-Operator RestrictionFaceZ from Stencil {
-	[ 0,  0,  0] => 0.125
-	[ 0,  0, -1] => 0.0625
-	[ 0,  0,  1] => 0.0625
-
-	[ 1,  0,  0] => 0.125
-	[ 1,  0, -1] => 0.0625
-	[ 1,  0,  1] => 0.0625
-
-	[ 0,  1,  0] => 0.125
-	[ 0,  1, -1] => 0.0625
-	[ 0,  1,  1] => 0.0625
-
-	[ 1,  1,  0] => 0.125
-	[ 1,  1, -1] => 0.0625
-	[ 1,  1,  1] => 0.0625
-}
-
-
-Operator CorrectionCell from Stencil {
-	[ 0,  0,  0] => 1.0
-}
-
-Operator CorrectionFaceX from Stencil {
-	[    0,  0,  0] => 0.5
-	[x % 2,  0,  0] => 0.5
-}
-
-Operator CorrectionFaceY from Stencil {
-	[ 0,     0,  0] => 0.5
-	[ 0, y % 2,  0] => 0.5
-}
-
-Operator CorrectionFaceZ from Stencil {
-	[ 0,  0,     0] => 0.5
-	[ 0,  0, z % 2] => 0.5
-}
+Operator CorrectionCell from default prolongation on Cell with 'linear'
+Operator CorrectionFaceX from default prolongation on Face_x with 'linear'
+Operator CorrectionFaceY from default prolongation on Face_y with 'linear'
+Operator CorrectionFaceZ from default prolongation on Face_z with 'linear'
 
 /// Functions
 
@@ -144,11 +69,10 @@ Function AdvanceFields@finest {
 	phi7 = phi7
 }
 
-
 FunctionTemplate SmoothComponent < solution, stencil, rhs, omega > {
 	repeat 3 times {
-		solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution ) where 0 == ((x + y + z) % 2)
-		solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution ) where 1 == ((x + y + z) % 2)
+		solution += omega * diag_inv ( stencil ) * ( rhs - stencil * solution ) where 0 == ((x + y + z) % 2)
+		solution += omega * diag_inv ( stencil ) * ( rhs - stencil * solution ) where 1 == ((x + y + z) % 2)
 	}
 }
 

@@ -19,13 +19,18 @@ case class L3_StencilDecl(var name : String, var entries : ListBuffer[L3_Stencil
   override def progress = Logger.error(s"Trying to progress l3 stencil $name; this is not supported")
 }
 
-/// L3_ProcessStencilDeclaration
+/// L3_ProcessStencilDeclarations
 
 object L3_ProcessStencilDeclarations extends DefaultStrategy("Integrate Layer3 stencil declarations with knowledge") {
   this += Transformation("Process new stencils", {
     case stencil : L3_StencilDecl =>
       for (level <- Knowledge.levels) // TODO: how to choose levels?
         L3_StencilCollection.add(L3_Stencil(stencil.name, level, stencil.entries)) // defer level determination
+      None // consume declaration statement
+
+    case stencil : L3_StencilFromDefault =>
+      for (level <- Knowledge.levels) // TODO: how to choose levels?
+        L3_StencilCollection.add(L3_Stencil(stencil.name, level, stencil.generateEntries())) // defer level determination
       None // consume declaration statement
   })
 }

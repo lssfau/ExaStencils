@@ -43,7 +43,8 @@ object L3_Lexer extends ExaLexer {
   reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")
 
   // baseExt => l3_OperatorDeclarations
-  reserved += ("Operator", "from", "L2")
+  reserved += ("Operator", "from", "L2", "default", "restriction", "prolongation", "on", "with")
+  reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
   // baseExt => l3_StencilDeclarations
   reserved += ("Stencil")
