@@ -1,7 +1,7 @@
 dimensionality						= 3
 
 minLevel							= 1 // must not be smaller than 1 or the coarse grid system cannot be solved any more
-maxLevel							= 5
+maxLevel							= 6
 comm_strategyFragment				= 6
 
 experimental_Neumann				= true
@@ -22,14 +22,15 @@ domain_rect_numBlocks_z				= 1
 mpi_enabled							= false
 mpi_numThreads						= 1
 
-// pure mpi
-//domain_numBlocks					= 8
-//domain_rect_numBlocks_x				= 2
-//domain_rect_numBlocks_y				= 2
-//domain_rect_numBlocks_z				= 2
+/*// pure mpi
+domain_numBlocks					= 8
+domain_rect_numBlocks_x				= 2
+domain_rect_numBlocks_y				= 2
+domain_rect_numBlocks_z				= 2
 
-//mpi_enabled							= true
-//mpi_numThreads						= 8
+mpi_enabled							= true
+mpi_numThreads						= 8
+*/
 
 domain_numFragmentsPerBlock			= 1
 domain_fragmentLength_x				= 1
@@ -42,19 +43,19 @@ domain_rect_numFragsPerBlock_y		= 1
 domain_rect_numFragsPerBlock_z		= 1
 
 omp_enabled							= true
-omp_numThreads						= 8
+omp_numThreads						= 10
 
 omp_parallelizeLoopOverFragments	= false
 omp_parallelizeLoopOverDimensions	= true
 
 l3tmp_generateL4					= false
 
-//mpi_useCustomDatatypes				= true
-//poly_optLevel_fine					= 3
-//opt_useAddressPrecalc				= true
-//opt_vectorize						= false
-//opt_unroll							= 2
+mpi_useCustomDatatypes				= true
+poly_optLevel_fine					= 3
+opt_useAddressPrecalc				= true
+opt_vectorize						= true
+opt_unroll							= 1
 
 experimental_resolveUnreqFragmentLoops	= true
-experimental_generateParaviewFiles		= true
+//experimental_generateParaviewFiles	= true
 experimental_bc_checkOnlyMainAxis	= true
