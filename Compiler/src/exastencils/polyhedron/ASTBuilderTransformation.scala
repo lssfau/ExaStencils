@@ -23,7 +23,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
   private final val ONE_VAL : isl.Val = isl.Val.one(Isl.ctx)
   private final val NEG_ONE_VAL : isl.Val = isl.Val.negone(Isl.ctx)
 
-  private val loopStmts = new HashMap[String, ListBuffer[OptimizationHint]]()
+  private val loopStmts = new HashMap[String, ListBuffer[IR_ForLoop]]()
   private var oldStmts : HashMap[String, (ListBuffer[IR_Statement], ArrayBuffer[String])] = null
   private var parDims : Set[String] = null
   private var vecDims : Set[String] = null
@@ -158,7 +158,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
       val innermostLoops = loopStmts.get(scop.njuLoopVars(i))
       if (innermostLoops.isDefined) {
         for (l <- innermostLoops.get)
-          l.isInnermost = true
+          l.parallelization.isInnermost = true
         i = -1 // break
       }
       i -= 1
@@ -205,10 +205,10 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
 
           val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
-          val loop = new IR_ForLoop(init, cond, incr, body, parallelization) with OptimizationHint
+          val loop = new IR_ForLoop(init, cond, incr, body, parallelization)
           loop.parallelization.potentiallyParallel = parDims != null && parDims.contains(itStr)
           loop.parallelization.isVectorizable = vecDims != null && vecDims.contains(itStr)
-          loop.privateVars ++= privateVars
+          loop.parallelization.privateVars ++= privateVars
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
           ListBuffer[IR_Statement](loop)
         }

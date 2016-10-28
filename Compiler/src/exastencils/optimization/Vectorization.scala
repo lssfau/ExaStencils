@@ -46,9 +46,11 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
     node.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
     node match {
-      case loop : IR_ForLoop with OptimizationHint =>
-        loop.isInnermost && (loop.parallelization.potentiallyParallel || loop.parallelization.isVectorizable) && !loop.hasAnnotation(Vectorization.VECT_ANNOT)
-      case _                                       =>
+      case loop : IR_ForLoop =>
+        loop.parallelization.isInnermost &&
+          (loop.parallelization.potentiallyParallel || loop.parallelization.isVectorizable) &&
+          !loop.hasAnnotation(Vectorization.VECT_ANNOT)
+      case _                 =>
         false
     }
   }

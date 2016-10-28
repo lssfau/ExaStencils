@@ -101,8 +101,8 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
   def isDefinedAt(node : Node) : Boolean = {
     node match {
-      case loop : IR_ForLoop with OptimizationHint =>
-        loop.isInnermost && loop.removeAnnotation(SKIP_ANNOT).isEmpty
+      case loop : IR_ForLoop =>
+        loop.parallelization.isInnermost && loop.removeAnnotation(SKIP_ANNOT).isEmpty
       case _                                       =>
         false
     }
@@ -110,7 +110,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
   def apply(node : Node) : Transformation.OutputType = {
 
-    val loop = node.asInstanceOf[IR_ForLoop with OptimizationHint]
+    val loop = node.asInstanceOf[IR_ForLoop]
 
     var itVar : String = null
     def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
@@ -137,7 +137,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     loop.end = IR_Lower(itVarAcc, Unrolling.intermVarAcc)
     loop.inc = IR_Assignment(itVarAcc, IR_IntegerConstant(newStride), "+=")
     // duplicate private vars would also be possible...
-    val interleave : Boolean = Knowledge.opt_unroll_interleave && loop.parallelization.potentiallyParallel && loop.privateVars.isEmpty
+    val interleave : Boolean = Knowledge.opt_unroll_interleave && loop.parallelization.potentiallyParallel && loop.parallelization.privateVars.isEmpty
     loop.body = duplicateStmts(loop.body, Knowledge.opt_unroll, itVar, oldStride, interleave)
 
     val annot = loop.removeAnnotation(Unrolling.UNROLLED_ANNOT)

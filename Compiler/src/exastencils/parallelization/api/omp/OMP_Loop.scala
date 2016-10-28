@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config._
 import exastencils.datastructures._
-import exastencils.optimization.OptimizationHint
+import exastencils.optimization.OptimizationHint2
 import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ReplaceVariableAccess
@@ -62,12 +62,8 @@ object OMP_AddParallelSections extends DefaultStrategy("Handle potentially paral
       if (target.parallelization.reduction.isDefined)
         additionalOMPClauses += OMP_Reduction(target.parallelization.reduction.get)
 
-      target match {
-        case l : OptimizationHint =>
-          if (l.privateVars.nonEmpty)
-            additionalOMPClauses += OMP_Private(l.privateVars.clone())
-        case _                    =>
-      }
+      if (target.parallelization.privateVars.nonEmpty)
+        additionalOMPClauses += OMP_Private(target.parallelization.privateVars.clone())
 
       OMP_ParallelFor(target, additionalOMPClauses, target.parallelization.collapseDepth)
   }, false) // switch off recursion due to wrapping mechanism

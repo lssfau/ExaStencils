@@ -9,7 +9,6 @@ import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger.Logger
-import exastencils.optimization.OptimizationHint
 import exastencils.optimization.ir._
 import exastencils.parallelization.ir._
 
@@ -204,7 +203,7 @@ case class IR_LoopOverDimensions(
       val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(inds.begin(d)))
       val cond = IR_Lower(it, inds.end(d))
       val incr = IR_Assignment(it, stepSize(d), "+=")
-      val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, Duplicate(parallelization)) with OptimizationHint
+      val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, Duplicate(parallelization))
       if (parallelize(d) && d == outerPar) {
         // FIXME: set depth for inner dimensions?
         // FIXME: set depth depending on parallelizability of inner dimensions?
@@ -212,7 +211,7 @@ case class IR_LoopOverDimensions(
       }
 
       // set optimization hints
-      loop.isInnermost = d == 0
+      loop.parallelization.isInnermost = d == 0
       loop.parallelization.potentiallyParallel = parallelizable(d)
       loop.parallelization.isVectorizable = isVectorizable
 
