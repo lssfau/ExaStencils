@@ -122,11 +122,7 @@ object IR_Addition {
 }
 
 case class IR_Addition(var summands : ListBuffer[IR_Expression]) extends IR_Expression {
-  override def datatype = {
-    var ret = summands(0).datatype
-    summands.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
-    ret
-  }
+  override def datatype = summands.view.map(_.datatype).reduce(IR_ResultingDatatype.apply)
   override def prettyprint(out : PpStream) : Unit = out << '(' <<< (summands, "+") << ')'
 }
 
@@ -140,11 +136,7 @@ object IR_Multiplication {
 }
 
 case class IR_Multiplication(var factors : ListBuffer[IR_Expression]) extends IR_Expression {
-  override def datatype = {
-    var ret = factors(0).datatype
-    factors.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
-    ret
-  }
+  override def datatype = factors.view.map(_.datatype).reduce(IR_ResultingDatatype.apply)
   override def prettyprint(out : PpStream) : Unit = out << '(' <<< (factors, "*") << ')'
 }
 
@@ -268,11 +260,7 @@ object IR_Minimum {
 }
 
 case class IR_Minimum(var args : ListBuffer[IR_Expression]) extends IR_Expression {
-  override def datatype = {
-    var ret = args(0).datatype
-    args.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
-    ret
-  }
+  override def datatype = args.view.map(_.datatype).reduce(IR_ResultingDatatype.apply)
 
   override def prettyprint(out : PpStream) : Unit = {
     import PrintEnvironment._
@@ -286,11 +274,7 @@ object IR_Maximum {
 }
 
 case class IR_Maximum(var args : ListBuffer[IR_Expression]) extends IR_Expression {
-  override def datatype = {
-    var ret = args(0).datatype
-    args.foreach(s => ret = IR_ResultingDatatype(ret, s.datatype))
-    ret
-  }
+  override def datatype = args.view.map(_.datatype).reduce(IR_ResultingDatatype.apply)
 
   override def prettyprint(out : PpStream) : Unit = {
     import PrintEnvironment._
