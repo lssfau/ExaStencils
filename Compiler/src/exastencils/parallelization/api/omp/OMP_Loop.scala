@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config._
 import exastencils.datastructures._
-import exastencils.optimization.OptimizationHint2
 import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ReplaceVariableAccess
