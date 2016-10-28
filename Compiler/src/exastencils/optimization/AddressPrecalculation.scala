@@ -42,7 +42,7 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
   }
 }
 
-private final class ArrayBases(val arrayName : String) {
+private final class ArrayBases(val arrayName : String, val elemDType : IR_Datatype) {
 
   private val inits = new HashMap[HashMap[IR_Expression, Long], (String, IR_Expression)]()
   private var idCount = -1
@@ -53,7 +53,7 @@ private final class ArrayBases(val arrayName : String) {
 
   def addToDecls(decls : ListBuffer[IR_Statement]) : Unit = {
     for ((name : String, init : IR_Expression) <- inits.values.toArray.sortBy(_._1))
-      decls += IR_VariableDeclaration(IR_ConstPointerDatatype(IR_RealDatatype), name, IR_AddressOf(init))
+      decls += IR_VariableDeclaration(IR_ConstPointerDatatype(elemDType), name, IR_AddressOf(init))
   }
 }
 
@@ -132,12 +132,15 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     (IR_SimplifyExpression.recreateExprFromIntSum(inMap), outMap)
   }
 
-  private final val SKIP_SUBTREE_ANNOT = "APCSST"
+  private val SKIP_SUBTREE_ANNOT = "APCSST"
   private var skipSubtree : Boolean = false
 
   private var decls : HashMap[String, ArrayBases] = null
   private var inVars : Set[String] = null
   private val toAnalyze = new ListBuffer[IR_ArrayAccess]()
+
+  private def isInInner() : Boolean = decls != null
+  private def isValid() : Boolean = inVars != null
 
   override def enter(node : Node) : Unit = {
 
@@ -146,56 +149,56 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
     node match {
       case l : IR_ForLoop with OptimizationHint if l.isInnermost =>
-        if (decls != null) {
+        if (isInInner()) {
           Logger.dbg("ups, nested \"innermost\" loops... something is wrong here")
           decls = null
           return
         }
         val d = new HashMap[String, ArrayBases]()
         l.inc match { // TODO: remove StringLiteral
-          case IR_Assignment(IR_VariableAccess(name, _), _, _)                      =>
+          case IR_Assignment(IR_VariableAccess(nName, _), _, _)                      =>
             decls = d
-            inVars = Set(name)
-          case IR_Assignment(IR_StringLiteral(name), _, _)                          =>
+            inVars = Set(nName)
+          case IR_Assignment(IR_StringLiteral(nName), _, _)                          =>
             decls = d
-            inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(name, _)))  =>
+            inVars = Set(nName)
+          case IR_ExpressionStatement(IR_PreIncrement(IR_VariableAccess(nName, _)))  =>
             decls = d
-            inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreIncrement(IR_StringLiteral(name)))      =>
+            inVars = Set(nName)
+          case IR_ExpressionStatement(IR_PreIncrement(IR_StringLiteral(nName)))      =>
             decls = d
-            inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostIncrement(IR_VariableAccess(name, _))) =>
+            inVars = Set(nName)
+          case IR_ExpressionStatement(IR_PostIncrement(IR_VariableAccess(nName, _))) =>
             decls = d
-            inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostIncrement(IR_StringLiteral(name)))     =>
+            inVars = Set(nName)
+          case IR_ExpressionStatement(IR_PostIncrement(IR_StringLiteral(nName)))     =>
             decls = d
-            inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreDecrement(IR_VariableAccess(name, _)))  =>
+            inVars = Set(nName)
+          case IR_ExpressionStatement(IR_PreDecrement(IR_VariableAccess(nName, _)))  =>
             decls = d
-            inVars = Set(name)
-          case IR_ExpressionStatement(IR_PreDecrement(IR_StringLiteral(name)))      =>
+            inVars = Set(nName)
+          case IR_ExpressionStatement(IR_PreDecrement(IR_StringLiteral(nName)))      =>
             decls = d
-            inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostDecrement(IR_VariableAccess(name, _))) =>
+            inVars = Set(nName)
+          case IR_ExpressionStatement(IR_PostDecrement(IR_VariableAccess(nName, _))) =>
             decls = d
-            inVars = Set(name)
-          case IR_ExpressionStatement(IR_PostDecrement(IR_StringLiteral(name)))     =>
+            inVars = Set(nName)
+          case IR_ExpressionStatement(IR_PostDecrement(IR_StringLiteral(nName)))     =>
             decls = d
-            inVars = Set(name)
-          case _                                                                    =>
+            inVars = Set(nName)
+          case _                                                                     =>
             Logger.dbg("[addr precalc]  cannot determine loop variable name, inc of ForLoopStatement is not recognized:  " + l.inc)
             decls = d
         }
         node.annotate(DECLS_ANNOT, d)
 
       // ArrayAccess with a constant index only cannot be optimized further
-      case acc : IR_ArrayAccess if decls != null && !acc.index.isInstanceOf[IR_IntegerConstant] =>
+      case acc : IR_ArrayAccess if isInInner() && !acc.index.isInstanceOf[IR_IntegerConstant] =>
         acc.annotate(SKIP_SUBTREE_ANNOT) // skip other ArrayAccesses below this one
         skipSubtree = true
         toAnalyze += acc
 
-      case IR_Assignment(dst, _, _) if decls != null && inVars != null =>
+      case IR_Assignment(dst, _, _) if isInInner() && isValid() =>
         dst match {
           case _ : IR_StringLiteral
                | _ : IR_VariableAccess
@@ -204,8 +207,8 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           case _                         => // nothing; expand match here, if more vars should stay inside the loop
         }
 
-      case IR_VariableDeclaration(_, name, _) if decls != null && inVars != null =>
-        inVars += name
+      case IR_VariableDeclaration(_, nName, _) if isInInner() && isValid() =>
+        inVars += nName
 
       case _ => // ignore
     }
@@ -222,18 +225,16 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
         for (acc @ IR_ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
           val (in : IR_Expression, outMap : HashMap[IR_Expression, Long]) = splitIndex(index)
-          // if (!outMap.isEmpty) {
           var name : String = generateName(base)
-          val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name))
-          name = bases.getName(outMap, base, al)
           val datatype = base match {
             case fd : IR_IV_FieldData => IR_ConstPointerDatatype(fd.field.resolveDeclType)
-            case e : IR_Expression    => e.datatype
+            case _ : IR_Expression    => base.datatype
           }
+          val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name, datatype))
+          name = bases.getName(outMap, base, al)
           val newAcc = IR_ArrayAccess(IR_VariableAccess(name, datatype), in, al)
           newAcc.annotate(ORIG_IND_ANNOT, Duplicate(index)) // save old (complete) index expression for vectorization
           acc.annotate(REPL_ANNOT, newAcc)
-          // }
         }
         decls = null
         inVars = null
@@ -252,14 +253,14 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   private def resolveName(expr : IR_Expression) : String = {
     expr match {
       case IR_ArrayAccess(base, _, _) => resolveName(base)
-      case IR_VariableAccess(name, _) => name
+      case IR_VariableAccess(nam, _)  => nam
       case IR_StringLiteral(str)      => str
       case i : IR_InternalVariable    => i.resolveName()
     }
   }
 }
 
-private final object IntegrateAnnotations extends PartialFunction[Node, Transformation.OutputType] {
+private object IntegrateAnnotations extends PartialFunction[Node, Transformation.OutputType] {
 
   import AddressPrecalculation._
 
