@@ -23,7 +23,7 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
   private[optimization] def endVarAcc = IR_VariableAccess(endVar, IR_IntegerDatatype)
 
   private[optimization] def getBoundsDeclAndPostLoop(itVar : String, start : IR_Expression, endExcl : IR_Expression, oldIncr : Long,
-      body : ListBuffer[IR_Statement], parallelization : IR_ParallelizationInfo) : (ListBuffer[IR_Statement], IR_Statement) = {
+      body : ListBuffer[IR_Statement], reduction : Option[IR_Reduction]) : (ListBuffer[IR_Statement], IR_Statement) = {
 
     def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
 
@@ -35,7 +35,9 @@ object Unrolling extends DefaultStrategy("Loop unrolling") {
     val postEnd = IR_Lower(itVarAcc, endVarAcc)
     val postIncr = IR_Assignment(itVarAcc, IR_IntegerConstant(oldIncr), "+=")
 
-    val postLoop = new IR_ForLoop(postBegin, postEnd, postIncr, body, parallelization)
+    // remainder loop must not be optimized => use a plain/default par info
+    val postLoop = new IR_ForLoop(postBegin, postEnd, postIncr, body, IR_ParallelizationInfo())
+    postLoop.parallelization.reduction = reduction
 
     (boundsDecls, postLoop)
   }
@@ -151,7 +153,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       intermDecl.initialValue = Some(Unrolling.getIntermExpr(newStride))
     } else {
       val (boundsDecls, postLoop_) : (ListBuffer[IR_Statement], IR_Statement) =
-        Unrolling.getBoundsDeclAndPostLoop(itVar, start, endExcl, oldStride, oldBody, Duplicate(loop.parallelization))
+        Unrolling.getBoundsDeclAndPostLoop(itVar, start, endExcl, oldStride, oldBody, Duplicate(loop.parallelization.reduction))
       postLoop = postLoop_
       intermDecl = Unrolling.getIntermDecl(newStride)
       res = boundsDecls += intermDecl

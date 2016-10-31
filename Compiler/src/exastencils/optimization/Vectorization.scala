@@ -97,7 +97,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
             case _                                                                                                 => throw new VectorizationException("loop increment must be constant or cannot be extracted:  " + incrExpr)
           }
 
-        vectorizeLoop(Duplicate(loop), itName, lBound, uBoundExcl, incr, body, parallelization)
+        vectorizeLoop(Duplicate(loop), itName, lBound, uBoundExcl, incr, body, parallelization.reduction)
 
       case _ => throw new VectorizationException("cannot analyze loop (yet)")
     }
@@ -235,13 +235,13 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
   }
 
   private def vectorizeLoop(oldLoop : IR_ForLoop, itVar : String, begin : IR_Expression, endExcl : IR_Expression,
-      incr : Long, body : ListBuffer[IR_Statement], parallelization : IR_ParallelizationInfo) : IR_Statement = {
+      incr : Long, body : ListBuffer[IR_Statement], reduction : Option[IR_Reduction]) : IR_Statement = {
 
     val ctx = new LoopCtx(itVar, incr)
     var postLoopStmt : IR_Statement = null
-    if (parallelization.reduction.isDefined) {
-      val target = parallelization.reduction.get.target
-      val operator = parallelization.reduction.get.op
+    if (reduction.isDefined) {
+      val target = reduction.get.target
+      val operator = reduction.get.op
 
       val (vecTmp : String, true) = ctx.getName(target)
       val identityElem : IR_Expression =
@@ -350,7 +350,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     } else {
       // old AST will be replaced completely, so we can reuse the body once here (and duplicate later)
       val (boundsDecls, postLoop_) : (ListBuffer[IR_Statement], IR_Statement) =
-      Unrolling.getBoundsDeclAndPostLoop(itVar, begin, endExcl, incr, body, Duplicate(parallelization))
+      Unrolling.getBoundsDeclAndPostLoop(itVar, begin, endExcl, incr, body, Duplicate(reduction))
       postLoop = postLoop_
       res = boundsDecls
     }
