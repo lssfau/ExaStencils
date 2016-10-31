@@ -108,9 +108,13 @@ if [[ -n "${OLD_JOBS}" ]]; then
   done
 fi
 # remove old files (if some) and backup existing
-mkdir -p "${PREV_TEMP_DIR}"
-rm -rf "${PREV_TEMP_DIR}"/*
-find "${TEMP_DIR}" -maxdepth 1 -mindepth 1 ! -samefile "${PREV_TEMP_DIR}" -exec mv '{}' "${PREV_TEMP_DIR}" \;
+if [[ -e "${COMPILER_JAR}" ]]; then
+  mkdir -p "${PREV_TEMP_DIR}"
+  rm -rf "${PREV_TEMP_DIR}"/*
+  find "${TEMP_DIR}" -maxdepth 1 -mindepth 1 ! -samefile "${PREV_TEMP_DIR}" -exec mv '{}' "${PREV_TEMP_DIR}" \;
+else
+  find "${TEMP_DIR}" -maxdepth 1 -mindepth 1 ! -samefile "${PREV_TEMP_DIR}" -exec rm -rf '{}' \;
+fi
 TESTS_DIR="${TEMP_DIR}/tests"
 mkdir "${TESTS_DIR}"
 
