@@ -226,7 +226,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         for (acc @ IR_ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
           val (in : IR_Expression, outMap : HashMap[IR_Expression, Long]) = splitIndex(index)
           var name : String = generateName(base)
-          val datatype = base.datatype.resolveBaseDatatype
+          val datatype = IR_ConstPointerDatatype(base.datatype.resolveBaseDatatype)
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name, datatype))
           name = bases.getName(outMap, base, al)
           val newAcc = IR_ArrayAccess(IR_VariableAccess(name, datatype), in, al)
