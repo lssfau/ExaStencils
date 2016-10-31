@@ -42,7 +42,7 @@ object AddressPrecalculation extends CustomStrategy("Perform address precalculat
   }
 }
 
-private final class ArrayBases(val arrayName : String, val elemDType : IR_Datatype) {
+private final class ArrayBases(val arrayName : String, val arrayDType : IR_Datatype) {
 
   private val inits = new HashMap[HashMap[IR_Expression, Long], (String, IR_Expression)]()
   private var idCount = -1
@@ -53,7 +53,7 @@ private final class ArrayBases(val arrayName : String, val elemDType : IR_Dataty
 
   def addToDecls(decls : ListBuffer[IR_Statement]) : Unit = {
     for ((name : String, init : IR_Expression) <- inits.values.toArray.sortBy(_._1))
-      decls += IR_VariableDeclaration(IR_ConstPointerDatatype(elemDType), name, IR_AddressOf(init))
+      decls += IR_VariableDeclaration(arrayDType, name, IR_AddressOf(init))
   }
 }
 
@@ -228,7 +228,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           var name : String = generateName(base)
           val datatype = base match {
             case fd : IR_IV_FieldData => IR_ConstPointerDatatype(fd.field.resolveDeclType)
-            case _ : IR_Expression    => base.datatype
+            case _ : IR_Expression    => IR_ConstPointerDatatype(base.datatype)
           }
           val bases : ArrayBases = decls.getOrElseUpdate(name, new ArrayBases(name, datatype))
           name = bases.getName(outMap, base, al)
