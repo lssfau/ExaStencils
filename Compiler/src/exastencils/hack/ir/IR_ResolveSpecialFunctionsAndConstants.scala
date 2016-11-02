@@ -14,6 +14,7 @@ import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
+
 /// HACK_IR_ResolveSpecialFunctionsAndConstants
 
 // TODO: split according to functionality and move to appropriate packages
@@ -92,8 +93,11 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case func : IR_Function if "Application" == func.name =>
       func.returntype = IR_IntegerDatatype
       func.name = "main"
-      func.parameters = ListBuffer(IR_FunctionArgument("argc", IR_IntegerDatatype), IR_FunctionArgument("argv", IR_SpecialDatatype("char**"))) ++ func.parameters
+      if (!func.parameters.isEmpty)
+        Logger.warning("function Application is not allowed to have parameters, omitting them")
+      func.parameters = ListBuffer(IR_FunctionArgument("argc", IR_IntegerDatatype), IR_FunctionArgument("argv", IR_SpecialDatatype("char**")))
       func.allowFortranInterface = false
+      func.allowInlining = false
       //if (true) {
       //func.body.append(new ConditionStatement(new MPI_IsRootProc,
       //  """#ifdef TRACK_CALLS
