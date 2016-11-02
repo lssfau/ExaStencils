@@ -146,10 +146,10 @@ object Inlining extends CustomStrategy("Function inlining") {
     var exit = false
     var retStmt : IR_Return = null
     this.execute(new Transformation("rename conflicts", {
-      case IR_VariableDeclaration(t, vname, i) if potConflicts.contains(name) => IR_VariableDeclaration(t, rename(vname), i)
-      case IR_VariableAccess(vname, t) if potConflicts.contains(name)         => IR_VariableAccess(rename(vname), t)
-      case IR_StringLiteral(vname) if potConflicts.contains(name)             => IR_StringLiteral(rename(vname))
-      case ret : IR_Return                                                    =>
+      case IR_VariableDeclaration(t, vname, i) if potConflicts.contains(vname) => IR_VariableDeclaration(t, rename(vname), i)
+      case IR_VariableAccess(vname, t) if potConflicts.contains(vname)         => IR_VariableAccess(rename(vname), t)
+      case IR_StringLiteral(vname) if potConflicts.contains(vname)             => IR_StringLiteral(rename(vname))
+      case ret : IR_Return                                                     =>
         if (ret.expr.isEmpty != (funcStmt.returntype == IR_UnitDatatype))
           exit = true
         retStmt = ret
