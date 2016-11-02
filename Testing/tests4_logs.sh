@@ -70,6 +70,8 @@ if [[ -z "${TO_ZIP}" ]]; then
   telnet 132.231.65.171 5555 | grep -v -e "132\.231\.65\.171" -e "Escape character is" -e "Connection closed"
 else
   echo '<span style="color: #E00000"><b>Oh no... something went wrong... :(</b></span>'
+  echo ""
+  echo "Create error log archive and send email:"
   ERROR_ARCHIVE="${LOG_DIR}/ErrorLogs.7z"
   srun 7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
   echo "Errors in automatic tests!  See log (or attachment) for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
