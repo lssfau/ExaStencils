@@ -61,14 +61,22 @@ done
 
 echo ""
 echo ""
-if [[ -n "${TO_ZIP}" ]]; then
+if [[ -z "${TO_ZIP}" ]]; then
+  # no error: update generator for webinterface
+  echo '<span style="color: #00E000"><b>Yeehaw! no errors detected!</b></span>'
+  echo ""
+  echo ""
+  echo "Create generator for webinterface:"
+  telnet 132.231.65.171 5555 | grep -v -e "132\.231\.65\.171" -e "Escape character is" -e "Connection closed"
+else
+  echo '<span style="color: #E00000"><b>Oh no... something went wrong... :(</b></span>'
   ERROR_ARCHIVE="${LOG_DIR}/ErrorLogs.7z"
   srun 7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
-  echo ""
-  echo ""
   echo "Errors in automatic tests!  See log (or attachment) for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
 fi
 
+echo ""
+echo ""
 echo "Tests finished at $(date -R)."
 echo "New tests can be triggered <a href=../../trigger-eg-tests.html>here</a>."
 echo ""
