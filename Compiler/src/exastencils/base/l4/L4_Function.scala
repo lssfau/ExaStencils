@@ -4,7 +4,7 @@ import scala.collection.mutable._
 
 import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
-import exastencils.core.Duplicate
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
@@ -120,4 +120,56 @@ object L4_UnfoldLeveledFunctions extends DefaultStrategy("Unfold leveled functio
 
     duplicated
   }
+}
+
+/// L4_ReplaceLevelsInFunctions
+
+object L4_ReplaceLevelsInFunctions extends DefaultStrategy("Replace explicit levels with CurrentLevel, CoarserLevel and FinerLevel in functions") {
+  this += new Transformation("Replace levels", {
+    case fct @ L4_Function(L4_LeveledIdentifier(_, L4_SingleLevel(level)), _, _, body, _) =>
+      L4_ReplaceExplicitLevelsWithCurrent.curLevel = level
+      L4_ReplaceExplicitLevelsWithCurrent.applyStandalone(L4_Scope(body))
+      fct
+  })
+}
+
+/// L4_CombineLeveledFunctions
+
+object L4_CombineLeveledFunctions extends DefaultStrategy("Combine single functions into leveled functions") {
+  var functions = ListBuffer[(L4_Function, Int)]()
+
+  override def apply(applyAtNode : Option[Node]) = {
+    functions.clear
+
+    // gather all functions
+    super.apply(applyAtNode)
+
+    // re-add combined functions
+    val combinedFcts = ListBuffer[L4_Function]()
+    while (functions.nonEmpty) {
+      val (curFct, curLevel) = functions.remove(0)
+
+      val levels = ListBuffer[Int]()
+      levels += curLevel
+      // only regard functions with the same name
+      for ((cmpFct, cmpLevel) <- functions.filter(_._1.identifier.name == curFct.identifier.name)) {
+        if (cmpFct.body.map(_.prettyprint()).mkString("\n") == curFct.body.map(_.prettyprint()).mkString("\n")
+          && cmpFct.arguments.map(_.prettyprint()).mkString(", ") == curFct.arguments.map(_.prettyprint()).mkString(", ")) {
+          levels += cmpLevel
+          functions -= ((cmpFct, cmpLevel))
+        }
+      }
+
+      curFct.identifier.asInstanceOf[L4_LeveledIdentifier].level = L4_LevelList(levels.sorted.map(L4_SingleLevel).toList)
+      combinedFcts += curFct
+    }
+
+    StateManager.root.asInstanceOf[L4_Root].nodes ++= combinedFcts
+  }
+
+  this += new Transformation("Gather functions", {
+    case fct @ L4_Function(L4_LeveledIdentifier(_, L4_SingleLevel(level)), _, _, body, _) =>
+      functions += ((fct, level))
+      None // remove fct
+  })
 }

@@ -1,7 +1,7 @@
 package exastencils.stencil.l4
 
 import exastencils.base.ir._
-import exastencils.base.l4.L4_ExpressionIndex
+import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.config._
@@ -83,5 +83,15 @@ object L4_ResolveStencilFieldAccesses extends DefaultStrategy("Resolve accesses 
     case access : L4_UnresolvedAccess if L4_StencilFieldCollection.exists(access.name) =>
       L4_StencilFieldAccess(access.name, access.level.get.resolveLevel,
         access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset, access.dirAccess)
+  })
+}
+
+/// L4_UnresolveStencilFieldAccesses
+
+object L4_UnresolveStencilFieldAccesses extends DefaultStrategy("Revert stencil field accesses to unresolved accesses") {
+  this += new Transformation("Replace", {
+    case L4_StencilFieldAccess(target, slot, arrayIndex, offset, dirAccess) =>
+      val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
+      L4_UnresolvedAccess(target.name, newSlot, Some(L4_SingleLevel(target.level)), offset, arrayIndex, dirAccess)
   })
 }

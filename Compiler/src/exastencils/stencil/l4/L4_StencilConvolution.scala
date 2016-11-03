@@ -1,6 +1,7 @@
 package exastencils.stencil.l4
 
-import exastencils.base.l4.L4_Expression
+import exastencils.base.l4._
+import exastencils.datastructures._
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.operator.l4.L4_StencilAccess
 import exastencils.prettyprinting.PpStream
@@ -20,4 +21,13 @@ case class L4_StencilConvolution(var stencilAccess : L4_StencilAccess, var field
 case class L4_StencilFieldConvolution(var stencilFieldAccess : L4_StencilFieldAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {
   def prettyprint(out : PpStream) = out << stencilFieldAccess << " * " << fieldAccess
   def progress = IR_StencilFieldConvolution(stencilFieldAccess.progress.asInstanceOf[IR_StencilFieldAccess], fieldAccess.progress)
+}
+
+/// L4_UnresolveStencilFieldConvolutions
+
+object L4_UnresolveStencilFieldConvolutions extends DefaultStrategy("Revert stencil field convolutions to plain multiplications") {
+  this += new Transformation("Replace", {
+    case L4_StencilConvolution(lhs, rhs)      => L4_Multiplication(lhs, rhs)
+    case L4_StencilFieldConvolution(lhs, rhs) => L4_Multiplication(lhs, rhs)
+  })
 }
