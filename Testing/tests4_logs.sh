@@ -63,11 +63,11 @@ echo ""
 echo ""
 if [[ -z "${TO_ZIP}" ]]; then
   # no error: update generator for webinterface
-  echo '<span style="color: #00E000"><b>Yeehaw! no errors detected!</b></span>'
+  echo '<span style="color: #00E000"><b>Yeehaw! No errors detected!</b></span>'
   echo ""
   echo ""
   echo "Create generator for webinterface:"
-  telnet 132.231.65.171 5555 | grep -v -e "132\.231\.65\.171" -e "Escape character is" -e "Connection closed"
+  srun nc 132.231.65.171 5555
 else
   echo '<span style="color: #E00000"><b>Oh no... something went wrong... :(</b></span>'
   echo ""
