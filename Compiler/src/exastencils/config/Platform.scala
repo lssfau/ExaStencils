@@ -185,8 +185,7 @@ object Platform {
 
     targetCudaCompiler match {
       case "NVCC" =>
-        // -arch=sm_35 tells nvcc that it is compiling for the real architecture Kepler GK110 (NVIDIA Titan Black)
-        flags += " -std=c++11 -O3 -DNDEBUG -lineinfo -arch=sm_35"
+        flags += s" -std=c++11 -O3 -DNDEBUG -lineinfo -arch=sm_${ Platform.hw_cuda_capability }${ Platform.hw_cuda_capabilityMinor }"
 
         // this is required since latest Ubuntu update
         flags += " -D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES"
