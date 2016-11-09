@@ -77,3 +77,15 @@ object L4_ResolveCurrentLevels extends DefaultStrategy("Resolve current level re
     case L4_FinerLevel   => L4_SingleLevel(levelCollector.getCurrentLevel + 1)
   })
 }
+
+/// L4_ReplaceExplicitLevelsWithCurrent
+
+object L4_ReplaceExplicitLevelsWithCurrent extends QuietDefaultStrategy("Replace explicit levels with CurrentLevel, CoarserLevel and FinerLevel") {
+  var curLevel : Int = 0
+
+  this += new Transformation("Replace", {
+    case L4_SingleLevel(level) if level == curLevel     => L4_CurrentLevel
+    case L4_SingleLevel(level) if level == curLevel - 1 => L4_CoarserLevel
+    case L4_SingleLevel(level) if level == curLevel + 1 => L4_FinerLevel
+  })
+}

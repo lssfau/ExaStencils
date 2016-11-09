@@ -244,6 +244,17 @@ object Main {
       L4_AdaptFieldLayoutsForComm.apply(Some(newL4Root))
 
       l4root.nodes ++= newL4Root.nodes // TODO: other collections
+
+      if (true) {
+        L4_UnresolveStencilFieldConvolutions.apply()
+        L4_UnresolveFieldFieldConvolutions.apply()
+        L4_UnresolveStencilAccesses.apply()
+        L4_UnresolveStencilFieldAccesses.apply()
+        L4_UnresolveFieldAccesses.apply()
+        L4_ReplaceLevelsInFunctions.apply()
+        L4_CombineLeveledFunctions.apply()
+        // L4_GenerateLeveledKnowledgeDecls.apply()
+      }
     }
 
     // re-print the merged L4 state

@@ -100,3 +100,11 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
   }
 
 }
+
+/// L4_UnresolveFieldFieldConvolutions
+
+object L4_UnresolveFieldFieldConvolutions extends DefaultStrategy("Revert field field convolutions to plain multiplications") {
+  this += new Transformation("Replace", {
+    case L4_FieldFieldConvolution(lhs, rhs) => L4_Multiplication(lhs, rhs)
+  })
+}

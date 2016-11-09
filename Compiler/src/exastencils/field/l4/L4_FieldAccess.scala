@@ -72,3 +72,13 @@ object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fiel
       L4_FieldAccess(access.name, access.level.get.resolveLevel, access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
   })
 }
+
+/// L4_UnresolveFieldAccesses
+
+object L4_UnresolveFieldAccesses extends DefaultStrategy("Revert field accesses to unresolved accesses") {
+  this += new Transformation("Replace", {
+    case L4_FieldAccess(target, slot, arrayIndex, offset) =>
+      val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
+      L4_UnresolvedAccess(target.name, newSlot, Some(L4_SingleLevel(target.level)), offset, arrayIndex, None)
+  })
+}
