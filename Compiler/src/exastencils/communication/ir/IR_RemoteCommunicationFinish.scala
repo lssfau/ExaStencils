@@ -26,7 +26,7 @@ case class IR_RemoteCommunicationFinish(
     var condition : Option[IR_Expression]) extends IR_RemoteCommunication {
 
   override def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
-    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
+    if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
       val body = IR_CopyFromRecvBuffer(field, neighbor, indices, concurrencyId, condition)
       if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body
     } else {
@@ -40,7 +40,7 @@ case class IR_RemoteCommunicationFinish(
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
       if (!Knowledge.data_genVariableFieldSizes && 1 == IR_SimplifyExpression.evalIntegral(cnt)) {
         IR_RemoteRecv(field, neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
-      } else if (MPI_DataType.shouldBeUsed(indices, condition)) {
+      } else if (MPI_DataType.shouldBeUsed(field, indices, condition)) {
         IR_RemoteRecv(field, neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
         IR_RemoteRecv(field, neighbor, IR_IV_CommBuffer(field.field, s"Recv_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)

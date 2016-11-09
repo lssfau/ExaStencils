@@ -16,13 +16,18 @@ import exastencils.prettyprinting.PpStream
 /// MPI_DataType
 
 object MPI_DataType {
-  def shouldBeUsed(indexRange : IR_ExpressionIndexRange, condition : Option[IR_Expression]) : Boolean = {
+  def shouldBeUsed(field : IR_FieldSelection, indexRange : IR_ExpressionIndexRange, condition : Option[IR_Expression]) : Boolean = {
+    // TODO: extend range of supported cases
     // honor user-give knowledge parameters
     if (!Knowledge.mpi_useCustomDatatypes || Knowledge.data_genVariableFieldSizes)
       return false
 
     // skip communication steps with conditions for now
     if (condition.isDefined)
+      return false
+
+    // skip vector and matrix fields for now
+    if (field.fieldLayout.numDimsData > field.fieldLayout.numDimsGrid)
       return false
 
     // count the number of dimensions with more than one entry - size in the zero dimension is irrelevant
@@ -46,7 +51,7 @@ case class MPI_DataType(var field : IR_FieldSelection, var indexRange : IR_Expre
   override def resolveFlattendSize : Int = ???
   override def typicalByteSize = ???
 
-  if (!MPI_DataType.shouldBeUsed(indexRange, condition))
+  if (!MPI_DataType.shouldBeUsed(field, indexRange, condition))
     Logger.warn(s"Trying to setup an MPI data type for unsupported index range ${ indexRange.print }")
 
   // determine data type parameters
