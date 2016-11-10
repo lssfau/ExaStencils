@@ -6,10 +6,6 @@ import exastencils.knowledge.ir.IR_KnowledgeObjectWithLevel
 
 /// IR_Field
 
-object IR_Field {
-  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
-}
-
 case class IR_Field(
     var name : String, // will be used to find the field
     var level : Int, // the (geometric) level the field lives on

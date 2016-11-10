@@ -2,17 +2,25 @@ package exastencils.knowledge.l4
 
 import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.logger.Logger
-import exastencils.prettyprinting.PpStream
+import exastencils.prettyprinting._
 
 /// L4_KnowledgeObject
 
 trait L4_KnowledgeObject[IR_Equivalent <: IR_KnowledgeObject] {
+
+  exastencils.core.Duplicate.dontClone(this.getClass)
+
   def name : String
   def progressImpl() : IR_Equivalent
   def prettyprintDecl(out : PpStream) : Unit
+  def prettyprintDecl() : String = {
+    val out = new PpStream(PrintEnvironment.L4)
+    prettyprintDecl(out)
+    out.toString()
+  }
 
   final def progress() : IR_Equivalent = {
-    progressed = Some(progressImpl)
+    progressed = Some(progressImpl())
     progressed.get
   }
 

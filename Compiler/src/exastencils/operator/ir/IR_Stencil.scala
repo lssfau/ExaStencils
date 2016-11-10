@@ -12,10 +12,6 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_Stencil
 
-object IR_Stencil {
-  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
-}
-
 case class IR_Stencil(
     var name : String,
     var level : Int,

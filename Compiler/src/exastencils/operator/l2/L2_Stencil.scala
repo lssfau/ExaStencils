@@ -9,10 +9,6 @@ import exastencils.prettyprinting._
 
 /// L2_Stencil
 
-object L2_Stencil {
-  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
-}
-
 case class L2_Stencil(
     var name : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on

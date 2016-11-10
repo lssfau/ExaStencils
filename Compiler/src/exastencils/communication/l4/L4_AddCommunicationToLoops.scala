@@ -68,6 +68,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
       super.apply(node)
       this.unregister(collector)
       collector.adaptNodeBasedFields()
+      collector.reset()
     }
 
     override def applyStandalone(node : Node) = {
@@ -76,6 +77,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
       super.applyStandalone(node)
       this.unregister(collector)
       collector.adaptNodeBasedFields()
+      collector.reset()
     }
 
     this += new Transformation("Collect", PartialFunction.empty)

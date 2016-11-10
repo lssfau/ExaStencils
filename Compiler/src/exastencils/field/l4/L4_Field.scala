@@ -9,10 +9,6 @@ import exastencils.prettyprinting._
 
 /// L4_Field
 
-object L4_Field {
-  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
-}
-
 case class L4_Field(
     var name : String, // will be used to find the field
     var level : Int, // the level the field lives on

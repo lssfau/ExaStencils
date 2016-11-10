@@ -13,10 +13,6 @@ import exastencils.stencil.l4.L4_StencilField
 
 /// L3_StencilTemplate
 
-object L3_StencilTemplate {
-  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
-}
-
 case class L3_StencilTemplate(
     var name : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on

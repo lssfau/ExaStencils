@@ -7,10 +7,6 @@ import exastencils.prettyprinting._
 
 /// L4_ExternalField
 
-object L4_ExternalField {
-  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
-}
-
 case class L4_ExternalField(
     var name : String, // will be used to find the field
     var level : Int, // the level the field lives on

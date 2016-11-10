@@ -53,7 +53,7 @@ object L3_ProcessFieldDeclarations extends DefaultStrategy("Integrate Layer3 fie
         if (l3Field.isEmpty)
           Logger.warn(s"Trying to copy l3 field ${ field.name } for level $level - not found")
         else {
-          val destField = Duplicate(l3Field.get)
+          val destField = Duplicate.forceClone(l3Field.get)
           destField.name = field.name
           L3_FieldCollection.add(destField)
         }

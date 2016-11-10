@@ -8,10 +8,6 @@ import exastencils.knowledge.ir._
 
 /// IR_FieldLayout
 
-object IR_FieldLayout {
-  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
-}
-
 case class IR_FieldLayout(
     var name : String, // will be used to find the field
     var level : Int, // the (geometric) level the layout is associated with
@@ -24,6 +20,7 @@ case class IR_FieldLayout(
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
 ) extends IR_KnowledgeObjectWithLevel {
+
   def apply(dim : Int) = layoutsPerDim(dim)
 
   def defIdxPadLeftBegin(dim : Int) = { 0 }

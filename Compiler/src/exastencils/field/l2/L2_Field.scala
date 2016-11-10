@@ -9,10 +9,6 @@ import exastencils.prettyprinting.PpStream
 
 /// L2_Field
 
-object L2_Field {
-  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
-}
-
 case class L2_Field(
     var name : String,
     var level : Int,

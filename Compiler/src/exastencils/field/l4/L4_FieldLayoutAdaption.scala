@@ -11,7 +11,7 @@ object L4_DuplicateFieldLayoutsForFields {
     val newFieldLayouts = ListBuffer[L4_FieldLayout]()
 
     for (field <- L4_FieldCollection.objects) {
-      val fieldLayout = Duplicate(field.fieldLayout)
+      val fieldLayout = Duplicate.forceClone(field.fieldLayout)
       fieldLayout.name += "_" + field.name
       field.fieldLayout = fieldLayout
       newFieldLayouts += fieldLayout

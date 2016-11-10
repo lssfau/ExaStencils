@@ -35,7 +35,7 @@ case class L4_FieldDecl(
 
     val resolvedFieldLayout = L4_FieldLayoutCollection.getByIdentifier(fieldLayoutName, level).get
 
-    // compile final layout
+    // compile final field
     L4_Field(identifier.name, level, index, domainName, resolvedFieldLayout, numSlots, boundary)
   }
 

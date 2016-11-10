@@ -10,10 +10,6 @@ import exastencils.logger.Logger
 
 /// IR_StencilField
 
-object IR_StencilField {
-  exastencils.core.Duplicate.dontCloneHierarchy(this.getClass)
-}
-
 case class IR_StencilField(
     var name : String,
     var level : Int,

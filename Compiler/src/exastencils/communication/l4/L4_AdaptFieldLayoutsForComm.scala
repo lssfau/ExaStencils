@@ -22,6 +22,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
     this.unregister(collector)
     collector.adaptNodeBasedFields()
     actuallyAdapt()
+    collector.reset()
   }
 
   override def applyStandalone(node : Node) = {
@@ -31,15 +32,44 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
     this.unregister(collector)
     collector.adaptNodeBasedFields()
     actuallyAdapt()
+    collector.reset()
   }
 
   def actuallyAdapt() = {
     var unreferencedFields = ListBuffer[L4_Field]()
 
-    val readExtentMin = collector.readExtentMin.map(e => (e._1.field, e._2))
-    val readExtentMax = collector.readExtentMax.map(e => (e._1.field, e._2))
-    val writeExtentMin = collector.writeExtentMin.map(e => (e._1.field, e._2))
-    val writeExtentMax = collector.writeExtentMax.map(e => (e._1.field, e._2))
+    // re-map read and write extent maps, ie ignore slots
+    val readExtentMin = HashMap[L4_Field, Array[Int]]()
+    collector.readExtentMin.foreach(e => {
+      if (readExtentMin.contains(e._1.field))
+        readExtentMin(e._1.field) = (readExtentMin(e._1.field), e._2).zipped.map(math.min)
+      else
+        readExtentMin.put(e._1.field, e._2)
+    })
+
+    val readExtentMax = HashMap[L4_Field, Array[Int]]()
+    collector.readExtentMax.foreach(e => {
+      if (readExtentMax.contains(e._1.field))
+        readExtentMax(e._1.field) = (readExtentMax(e._1.field), e._2).zipped.map(math.max)
+      else
+        readExtentMax.put(e._1.field, e._2)
+    })
+
+    val writeExtentMin = HashMap[L4_Field, Array[Int]]()
+    collector.writeExtentMin.foreach(e => {
+      if (writeExtentMin.contains(e._1.field))
+        writeExtentMin(e._1.field) = (writeExtentMin(e._1.field), e._2).zipped.map(math.min)
+      else
+        writeExtentMin.put(e._1.field, e._2)
+    })
+
+    val writeExtentMax = HashMap[L4_Field, Array[Int]]()
+    collector.writeExtentMax.foreach(e => {
+      if (writeExtentMax.contains(e._1.field))
+        writeExtentMax(e._1.field) = (writeExtentMax(e._1.field), e._2).zipped.map(math.max)
+      else
+        writeExtentMax.put(e._1.field, e._2)
+    })
 
     for (field <- L4_FieldCollection.objects) {
       val defLayout = field.fieldLayout
@@ -74,11 +104,11 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
           if ("node" == localization || s"face_${ IR_DimToString(i) }" == localization) {
             // node type localization doesn't require ghost layers for boundary handling - apart from Neumann
             field.boundary match {
-              case L4_NeumannBC(order) => {
+              case L4_NeumannBC(order) =>
                 numGhostLayersLeft(i) = math.max(numGhostLayersLeft(i), 1)
                 numGhostLayersRight(i) = math.max(numGhostLayersRight(i), 1)
-              }
-              case _                   =>
+
+              case _ =>
             }
           } else if ("cell" == localization || "face_x" == localization || "face_y" == localization || "face_z" == localization) {
             // cell type localization always requires (at least) on ghost layer for implementing boundary conditions
@@ -99,7 +129,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
         field.fieldLayout = L4_FieldLayoutCollection.getByIdentifier(newLayoutName, field.level).get
       } else {
         // layout doesn't exist yet -> create it
-        val newLayout = Duplicate(defLayout)
+        val newLayout = Duplicate.forceClone(defLayout)
         newLayout.name = newLayoutName
         val numGhostLayers = (numGhostLayersLeft, numGhostLayersRight).zipped.map(math.max)
         newLayout.ghostLayers = L4_ConstIndex(numGhostLayers)

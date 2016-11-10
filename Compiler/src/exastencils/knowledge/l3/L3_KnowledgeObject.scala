@@ -7,6 +7,9 @@ import exastencils.prettyprinting.PpStream
 /// L3_KnowledgeObject
 
 trait L3_KnowledgeObject[L4_Equivalent <: L4_KnowledgeObject[_]] {
+
+  exastencils.core.Duplicate.dontClone(this.getClass)
+
   def name : String
   def progressImpl() : L4_Equivalent
   def prettyprintDecl(out : PpStream) : Unit
