@@ -14,6 +14,7 @@ object L3_LevelSpecification {
       case None                        => defForNone
       case Some(L3_SingleLevel(level)) => List(level)
       case Some(L3_LevelList(levels))  => levels.map(_.asInstanceOf[L3_SingleLevel].level).toList
+      case other                       => Logger.error("Trying to extract level list from unsupported instance " + other)
     }
   }
 
