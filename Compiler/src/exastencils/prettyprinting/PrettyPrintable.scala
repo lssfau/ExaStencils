@@ -23,6 +23,10 @@ object PrintToFile extends DefaultStrategy("Prettyprint all file-prettyprintable
 
 object PrintEnvironment extends Enumeration {
   type PrintEnvironment = Value
+  val L1 = Value
+  val L2 = Value
+  val L3 = Value
+  val L4 = Value
   val CPP = Value
   val CUDA = Value
 }
