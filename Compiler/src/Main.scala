@@ -26,6 +26,7 @@ import exastencils.field.l3._
 import exastencils.field.l4._
 import exastencils.globals.ir._
 import exastencils.grid._
+import exastencils.grid.l3.L3_ResolveVirtualFieldAccesses
 import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4._
@@ -156,6 +157,8 @@ object Main {
 
       L2_ResolveLevelSpecifications.apply() // ... and again afterwards
 
+      //L2_ResolveVirtualFieldAccesses.apply()
+
       // progress knowledge to l3
       L2_DomainCollection.progress()
       L2_FieldCollection.progress()
@@ -188,6 +191,7 @@ object Main {
 
       L3_ProcessFieldOverrides.apply()
 
+      L3_ResolveVirtualFieldAccesses.apply()
       L3_ResolveFieldAccesses.apply()
       L3_ResolveStencilAccesses.apply()
       L3_ResolveStencilTemplateAccesses.apply()
