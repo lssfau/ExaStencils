@@ -6,6 +6,7 @@ import exastencils.deprecated.l4._
 import exastencils.domain._
 import exastencils.domain.ir._
 import exastencils.knowledge.l4.L4_KnowledgeDecl
+import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// L4_DomainDecl
@@ -28,6 +29,7 @@ case class L4_DomainDecl(var name : String, var lower : Any, var upper : Any) ex
             for (i <- lo.indices) { out << lo(i) << " to " << up(i) << sep(i) }
           //out << "Domain " << name << "< " << l(0) << " to " << u(0) << ", " << l(1) << " to " << u(1) << " ," << l(2) << " to " << u(2) << " >\n"
         }
+      case _                                  => Logger.error("Unsupported: " + lower + " to " + upper)
     }
   }
 
