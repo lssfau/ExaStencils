@@ -31,7 +31,7 @@ case class L4_ForLoop(
       (lv, IR_Assignment(lv, IR_IntegerConstant(0)))
     } else {
       val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
-      (IR_StringLiteral(lv), IR_VariableDeclaration(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
+      (IR_VariableAccess(lv, IR_IntegerDatatype), IR_VariableDeclaration(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
     }
 
     val ret = IR_ForLoop(
