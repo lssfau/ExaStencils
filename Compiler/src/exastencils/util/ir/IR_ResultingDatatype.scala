@@ -7,6 +7,8 @@ object IR_ResultingDatatype {
   def apply(a : IR_Datatype, b : IR_Datatype) : IR_Datatype = {
     if (a eq IR_UnitDatatype) return IR_UnitDatatype
     if (b eq IR_UnitDatatype) return IR_UnitDatatype
+    if (a eq IR_UnknownDatatype) return b
+    if (b eq IR_UnknownDatatype) return a
 
     a match {
       case IR_IntegerDatatype          => b match {

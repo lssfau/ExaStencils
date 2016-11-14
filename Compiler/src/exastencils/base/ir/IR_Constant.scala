@@ -12,7 +12,7 @@ trait IR_Number extends IR_ConstantExpression {
 /// strings
 
 case class IR_StringLiteral(var value : String) extends IR_Expression {
-  override def datatype = IR_StringDatatype
+  override def datatype = IR_UnknownDatatype
   override def prettyprint(out : PpStream) : Unit = out << value
   override def toString : String = value
 }
