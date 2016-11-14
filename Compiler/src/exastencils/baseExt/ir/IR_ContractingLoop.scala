@@ -11,6 +11,7 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir._
+import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// IR_ContractionSpecification
@@ -21,7 +22,6 @@ case class IR_ContractionSpecification(var posExt : IR_ConstIndex, var negExt : 
 
 case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Expression], var body : ListBuffer[IR_Statement],
     var spec : IR_ContractionSpecification) extends IR_Statement with IR_SpecialExpandable {
-  // FIXME: iterator is not used?!
   // TODO: validate spec
 
   // IMPORTANT: must match and extend all possible bounds for LoopOverDimensions inside a ContractingLoop
@@ -45,12 +45,6 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
         }
         add.summands += IR_IntegerConstant(-extent)
         IR_SimplifyExpression.simplifyIntegralExpr(add)
-
-      // case oInd @ OffsetIndex(0, 1, _, ArrayAccess(_ : iv.IterationOffsetBegin, _, _)) =>
-      //   oInd.maxOffset += extent
-      //   oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index - extent)
-      //   oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
-      //   oInd
     }
   }
 
@@ -75,12 +69,6 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
         }
         add.summands += IR_IntegerConstant(extent)
         IR_SimplifyExpression.simplifyIntegralExpr(add)
-
-      // case oInd @ OffsetIndex(-1, 0, _, ArrayAccess(_ : iv.IterationOffsetEnd, _, _)) =>
-      //   oInd.minOffset -= extent
-      //   oInd.index = SimplifyExpression.simplifyIntegralExpr(oInd.index + extent)
-      //   oInd.offset = SimplifyExpression.simplifyIntegralExpr(oInd.offset * (extent + 1))
-      //   oInd
     }
   }
 
@@ -113,7 +101,16 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
     val fieldOffset = new HashMap[FieldKey, Int]()
     val fields = new HashMap[FieldKey, IR_Field]()
     var condStmt : IR_IfCondition = null
-    for (i <- 1 to number)
+    val replIt = new QuietDefaultStrategy("replace Iterator") {
+      var itVal : Long = 0
+      this += new Transformation("now", {
+        case expr : IR_Expression if expr == iterator.get =>
+          IR_IntegerConstant(itVal)
+      })
+      override def applyStandalone(node : Node) : Unit = if (iterator.isDefined) super.applyStandalone(node)
+    }
+    for (i <- 1 to number) {
+      replIt.itVal = i - 1
       for (stmt <- body)
         stmt match {
           case IR_AdvanceSlot(IR_IV_ActiveSlot(field, fragment)) =>
@@ -129,15 +126,21 @@ case class IR_ContractingLoop(var number : Int, var iterator : Option[IR_Express
                 if (condStmt == null || cond != condStmt.condition) {
                   condStmt = Duplicate(cStmt)
                   condStmt.trueBody.clear()
+                  replIt.applyStandalone(condStmt)
                   res += condStmt
                 }
+                replIt.applyStandalone(nju)
                 condStmt.trueBody += nju
               case _                                     =>
+                Logger.error("IR_ContractingLoop cannot be expanded: body contains an IR_IfCondition with unexpected statements")
             }
 
           case l : IR_LoopOverDimensions =>
-            res += processLoopOverDimensions(l, number - i, fieldOffset)
+            val nju = processLoopOverDimensions(l, number - i, fieldOffset)
+            replIt.applyStandalone(nju)
+            res += nju
         }
+    }
 
     for ((fKey, offset) <- fieldOffset) {
       val field = fields(fKey)
