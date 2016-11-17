@@ -1,5 +1,6 @@
 import java.util.Locale
 
+import exastencils.base.ExaRootNode
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
@@ -42,6 +43,8 @@ object MainJeremias {
 
     // for runtime measurement
     val start : Long = System.nanoTime()
+
+    StateManager.setRoot(ExaRootNode)
 
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
@@ -118,8 +121,8 @@ object MainJeremias {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = l3Generate.Root()
-      StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
+      var l3gen_root = l3Generate.Root()
+      l3gen_root.printToL4(Settings.getL4file)
     }
 
     if (Settings.timeStrategies)
@@ -130,12 +133,12 @@ object MainJeremias {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
-    StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+    ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
     ValidationL4.apply()
 
     if (false) // re-print the merged L4 state
     {
-      val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
+      val L4_printed = ExaRootNode.l4_root.prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
       outFile.write(Indenter.addIndentations(L4_printed))
@@ -143,7 +146,7 @@ object MainJeremias {
 
       // re-parse the file to check for errors
       var parserl4 = new ParserL4
-      StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
+      ExaRootNode.l4_root = parserl4.parseFile(Settings.getL4file + "_rep.exa")
       ValidationL4.apply()
     }
 
@@ -166,7 +169,7 @@ object MainJeremias {
 
     L4_ProcessStencilDeclarations.apply()
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
+    ExaRootNode.ProgressToIR()
 
     if (!Knowledge.domain_rect_generate) {
       if (Knowledge.domain_readFromFile) {
@@ -212,7 +215,7 @@ object MainJeremias {
     }
 
     // add remaining nodes
-    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
+    ExaRootNode.ir_root.nodes ++= List(
       // FunctionCollections
       IR_DomainFunctions(),
       IR_CommunicationFunctions(),

@@ -4,7 +4,6 @@ import scala.collection.mutable.{ HashMap, ListBuffer, Stack }
 import scala.language.existentials
 import scala.reflect.ClassTag
 
-import exastencils.config.Settings
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
@@ -13,9 +12,10 @@ import exastencils.logger._
   * The central entity to apply transformations to the current program state.
   */
 object StateManager {
+  private var root_ : RootNode = null
   def root = root_
-  // FIXME remove this
-  var root_ : Node = null
+  def setRoot(n : RootNode) = root_ = n
+
   // FIXME make this protected
   var strategies_ = Stack[Strategy]()
 
@@ -25,45 +25,17 @@ object StateManager {
   /** Dummy node that is used internally to signal that a Transformation did not match a given node. */
   protected case object NoMatch extends Node
 
-  // ###############################################################################################
-  // #### Checkpointing ############################################################################
-  // ###############################################################################################
-
-  /** Type that represents a checkpoint identifier. */
-  type CheckpointIdentifier = String
-  protected var checkpoints_ = new HashMap[CheckpointIdentifier, Node]
-
-  /**
-    * Creates a new checkpoint (snapshot copy) of the current program state.
-    *
-    * @param id The identifier to be used for the newly created checkpoint.
-    */
-  def checkpoint(id : CheckpointIdentifier) : Unit = {
-    Logger.debug(s"""Creating checkpoint "$id"""")
-    try {
-      var c = Duplicate(StateManager.root_)
-      checkpoints_ += ((id, c))
-    } catch {
-      case e : Throwable => throw CheckpointException(s"""Could not create Checkpoint "$id""", Some(e))
-    }
+  /** Modify StateManager behavior */
+  object Settings {
+    var skipDuplicates : Boolean = false /// Set to true if elements should not be visited twice by the same transformation run
+    def printNodeCountAfterStrategy = exastencils.config.Settings.printNodeCountAfterStrategy
+    //var printNodeCountAfterStrategy : Boolean = false /// Set to true to output size of AST after each strategy
+    def printNodeCountAfterTransformation = exastencils.config.Settings.printNodeCountAfterTransformation
+    //var printNodeCountAfterTransformation : Boolean = false /// Set to true to output size of AST after each transformation
+    def printTransformationTime = exastencils.config.Settings.printNodeCountAfterStrategy
+    //var printTransformationTime : Boolean = false /// Set to true to output walltimes for each transformation applied
+    var keepTransformationHistory : Boolean = true /// Set to false to not keep a log of transformations and matches
   }
-
-  /**
-    * Restores the current program state from a previously saved checkpoint.
-    *
-    * @param id The identifier to be used to find the checkpoint that is to be restored.
-    */
-  def restore(id : CheckpointIdentifier) : Unit = {
-    Logger.debug(s"""Restoring to checkpoint "$id"""")
-    root_ = checkpoints_.getOrElse(id, { throw CheckpointException(s"""Could not restore to checkpoint "$id": Not found""") })
-  }
-
-  /**
-    * List identifiers of all currently known checkpoints.
-    *
-    * @return The list of identifiers of all currently known checkpoints.
-    */
-  def listCheckpoints() = checkpoints_.keys
 
   protected object History {
     protected var history = new Stack[ProtocalEntry]

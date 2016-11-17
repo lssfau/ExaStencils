@@ -1,3 +1,4 @@
+import exastencils.base.ExaRootNode
 import exastencils.config._
 import exastencils.core.StateManager
 import exastencils.parsers.InputReader
@@ -29,9 +30,9 @@ object ValidateL4 {
     Knowledge.update()
 
     if (Settings.inputFromJson) {
-      StateManager.root_ = (new ParserL4).parseFile(InputReader.layer4)
+      ExaRootNode.l4_root = (new ParserL4).parseFile(InputReader.layer4)
     } else {
-      StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+      ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
     }
     ValidationL4.apply
   }

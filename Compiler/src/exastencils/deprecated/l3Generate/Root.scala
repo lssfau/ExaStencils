@@ -1,10 +1,13 @@
 package exastencils.deprecated.l3Generate
 
+import exastencils.base.l3.L3_Root
 import exastencils.config._
 import exastencils.datastructures._
 import exastencils.polyhedron._
 
-case class Root() extends Node {
+import scala.collection.mutable.ListBuffer
+
+case class Root() {
   def printToL4(filename : String) : Unit = {
     val file = new java.io.File(filename)
     if (!file.getParentFile.exists()) file.getParentFile.mkdirs()

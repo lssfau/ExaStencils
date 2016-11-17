@@ -1,5 +1,6 @@
-import scala.collection.mutable.ListBuffer
+import exastencils.base.ExaRootNode
 
+import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
@@ -45,6 +46,8 @@ object MainChristoph {
   def initialize(args : Array[String]) : Unit = {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
+
+    StateManager.setRoot(ExaRootNode)
 
     // check from where to read input
     val settingsParser = new ParserSettings
@@ -141,8 +144,8 @@ object MainChristoph {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = l3Generate.Root()
-      StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
+      var l3gen_root = l3Generate.Root()
+      l3gen_root.printToL4(Settings.getL4file)
     }
 
     if (Settings.timeStrategies)
@@ -154,15 +157,15 @@ object MainChristoph {
       StrategyTimer.startTiming("Handling Layer 4")
 
     if (Settings.inputFromJson) {
-      StateManager.root_ = (new ParserL4).parseFile(InputReader.layer4)
+      ExaRootNode.l4_root = (new ParserL4).parseFile(InputReader.layer4)
     } else {
-      StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+      ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
     }
     ValidationL4.apply()
 
     if (false) // re-print the merged L4 state
     {
-      val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
+      val L4_printed = ExaRootNode.l4_root.prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
       outFile.write(Indenter.addIndentations(L4_printed))
@@ -170,7 +173,7 @@ object MainChristoph {
 
       // re-parse the file to check for errors
       val parserl4 = new ParserL4
-      StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
+      ExaRootNode.l4_root = parserl4.parseFile(Settings.getL4file + "_rep.exa")
       ValidationL4.apply()
     }
 
@@ -201,7 +204,7 @@ object MainChristoph {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
+    ExaRootNode.ProgressToIR()
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")
@@ -216,7 +219,7 @@ object MainChristoph {
     IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
     // add remaining nodes
-    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
+    ExaRootNode.ir_root.nodes ++= List(
       // FunctionCollections
       IR_DomainFunctions(),
       IR_CommunicationFunctions(),
@@ -229,7 +232,7 @@ object MainChristoph {
     )
 
     if (Knowledge.cuda_enabled)
-      StateManager.root_.asInstanceOf[IR_Root].nodes += CUDA_KernelFunctions()
+      ExaRootNode.ir_root.nodes += CUDA_KernelFunctions()
 
     if (Knowledge.experimental_mergeCommIntoLoops)
       IR_MergeCommunicateAndLoop.apply()

@@ -1,7 +1,8 @@
 package exastencils.base.l4
 
-import scala.collection.mutable._
+import exastencils.base.ExaRootNode
 
+import scala.collection.mutable._
 import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.core._
@@ -164,7 +165,7 @@ object L4_CombineLeveledFunctions extends DefaultStrategy("Combine single functi
       combinedFcts += curFct
     }
 
-    StateManager.root.asInstanceOf[L4_Root].nodes ++= combinedFcts
+    ExaRootNode.l4_root.nodes ++= combinedFcts
   }
 
   this += new Transformation("Gather functions", {

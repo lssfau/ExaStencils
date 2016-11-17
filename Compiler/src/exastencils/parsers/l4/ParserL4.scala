@@ -26,7 +26,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   }
 
   private val prevDirs = new Stack[java.io.File]().push(null)
-  def parseFile(filename : String) : Node = {
+  def parseFile(filename : String) : L4_Root = {
     val file = new java.io.File(prevDirs.top, filename)
     val lines = io.Source.fromFile(file).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
@@ -35,7 +35,7 @@ class ParserL4 extends ExaParser with PackratParsers {
     prevDirs.push(file.getAbsoluteFile.getParentFile)
     val ret = parseTokens(scanner)
     prevDirs.pop()
-    ret
+    ret.asInstanceOf[L4_Root]
   }
 
   protected def parseTokens(tokens : lexical.Scanner) : Node = {

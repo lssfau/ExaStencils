@@ -1,7 +1,8 @@
 package exastencils.grid
 
-import scala.collection.mutable.ListBuffer
+import exastencils.base.ExaRootNode
 
+import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.base.l4._
@@ -29,15 +30,13 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     super.initL4() // set basic stuff
 
     // extend with info required by staggered grid
-    val root = StateManager.root_.asInstanceOf[L4_Root]
-
-    root.nodes += L4_FieldDecl(
+    ExaRootNode.l4_root.nodes += L4_FieldDecl(
       L4_LeveledIdentifier("stag_cv_width_x", L4_FinestLevel), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 1)
-      root.nodes += L4_FieldDecl(
+      ExaRootNode.l4_root.nodes += L4_FieldDecl(
         L4_LeveledIdentifier("stag_cv_width_y", L4_FinestLevel), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 2)
-      root.nodes += L4_FieldDecl(
+      ExaRootNode.l4_root.nodes += L4_FieldDecl(
         L4_LeveledIdentifier("stag_cv_width_z", L4_FinestLevel), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
   }
 

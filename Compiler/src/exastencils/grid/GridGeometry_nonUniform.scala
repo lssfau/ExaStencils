@@ -1,7 +1,8 @@
 package exastencils.grid
 
-import scala.collection.mutable.ListBuffer
+import exastencils.base.ExaRootNode
 
+import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.base.l4._
@@ -38,22 +39,21 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
   // injection of  missing l4 information for virtual fields and generation of setup code
   override def initL4() = {
-    val root = StateManager.root_.asInstanceOf[L4_Root]
-    root.nodes += L4_FieldLayoutDecl(
+    ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
       L4_LeveledIdentifier("DefNodeLineLayout_x", L4_AllLevels),
       L4_RealDatatype, "Edge_Node".toLowerCase(),
       ListBuffer(
         L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(2, 0, 0), false),
         L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(1, 0, 0), false),
         L4_FieldLayoutOption("innerPoints", L4_ConstIndex((1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_x - 1, 1, 1), false)))
-    root.nodes += L4_FieldLayoutDecl(
+    ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
       L4_LeveledIdentifier("DefNodeLineLayout_y", L4_AllLevels),
       L4_RealDatatype, "Edge_Node".toLowerCase(),
       ListBuffer(
         L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 2, 0), false),
         L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 1, 0), false),
         L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_y - 1, 1), false)))
-    root.nodes += L4_FieldLayoutDecl(
+    ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
       L4_LeveledIdentifier("DefNodeLineLayout_z", L4_AllLevels),
       L4_RealDatatype, "Edge_Node".toLowerCase(),
       ListBuffer(
@@ -61,13 +61,13 @@ trait GridGeometry_nonUniform extends GridGeometry {
         L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 0, 1), false),
         L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1), false)))
 
-    root.nodes += L4_FieldDecl(
+    ExaRootNode.l4_root.nodes += L4_FieldDecl(
       L4_LeveledIdentifier("node_pos_x", L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 1)
-      root.nodes += L4_FieldDecl(
+      ExaRootNode.l4_root.nodes += L4_FieldDecl(
         L4_LeveledIdentifier("node_pos_y", L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 2)
-      root.nodes += L4_FieldDecl(
+      ExaRootNode.l4_root.nodes += L4_FieldDecl(
         L4_LeveledIdentifier("node_pos_z", L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
   }
 

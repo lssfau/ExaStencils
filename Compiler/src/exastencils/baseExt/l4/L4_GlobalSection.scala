@@ -1,7 +1,8 @@
 package exastencils.baseExt.l4
 
-import scala.collection.mutable.ListBuffer
+import exastencils.base.ExaRootNode
 
+import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
@@ -48,8 +49,7 @@ object L4_UnifyGlobalSections extends DefaultStrategy("Unify all global sections
   // FIXME: use transformation below instead of overriding apply -> requires ability to match root node
   override def apply(applyAtNode : Option[Node]) = {
     super.apply(applyAtNode)
-    val root = StateManager.root.asInstanceOf[L4_Root]
-    root.nodes += unifiedGlobalSection
+    ExaRootNode.l4_root.nodes += unifiedGlobalSection
     // reset unifiedGlobalSection for potential subsequent runs
     unifiedGlobalSection = L4_GlobalSection()
   }
