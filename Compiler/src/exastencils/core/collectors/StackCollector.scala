@@ -8,8 +8,8 @@ import exastencils.logger._
 class StackCollector extends Collector {
   final val stack = new Stack[Node]()
 
-  def isEmpty : Boolean = { return stack.isEmpty }
-  def head : Node = { return stack.head }
+  def isEmpty : Boolean = { stack.isEmpty }
+  def head : Node = { stack.head }
 
   override def enter(node : Node) : Unit = {
     stack.push(node)

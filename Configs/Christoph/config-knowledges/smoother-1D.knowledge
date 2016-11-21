@@ -1,0 +1,88 @@
+///////////////////////////
+// General configuration //
+///////////////////////////
+simd_avoidUnaligned         = false
+data_alignFieldPointers     = true
+useDblPrecision             = false
+
+/////////////////////////
+// Layer configuration //
+/////////////////////////
+// Layer 1 configuration
+dimensionality = 1
+
+// Layer 2 configuration
+minLevel = 0 // the coarsest level
+maxLevel = 0 // the finest level
+
+//////////////////////////
+// Domain Decomposition //
+//////////////////////////
+domain_onlyRectangular      = true
+domain_numBlocks            = 1
+domain_numFragmentsPerBlock = 1
+
+domain_rect_generate            = true
+// number of blocks to be generated per dimension - one block will usually be mapped to one MPI thread
+domain_rect_numBlocks_x         = 1
+domain_rect_numBlocks_y         = 1
+domain_rect_numBlocks_z         = 1
+// number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
+domain_rect_numFragsPerBlock_x  = 1
+domain_rect_numFragsPerBlock_y  = 1
+domain_rect_numFragsPerBlock_z  = 1
+
+/////////////////////
+// Parallelization //
+/////////////////////
+// OpenMP
+omp_enabled    = false
+omp_numThreads = 1
+omp_parallelizeLoopOverFragments  = false
+omp_parallelizeLoopOverDimensions = true
+
+// MPI
+mpi_enabled    = false
+mpi_numThreads = 1
+
+///////////////////
+// Optimizations //
+///////////////////
+// Polyhedron optimizations
+//poly_optLevel_fine          = 3
+//poly_optLevel_coarse        = 1
+//poly_numFinestLevels        = 1
+//poly_performDCE             = false
+//poly_tileSize_x             = 0
+//poly_tileSize_y             = 128
+//poly_tileSize_z             = 0
+//poly_filterDeps             = true
+
+// other optimizations
+//opt_useAddressPrecalc  = true
+//opt_vectorize          = false // true is not working
+//opt_unroll             = 2
+//opt_unroll_interleave  = false
+
+///////////////////////////////////////////////////////////
+// HACK configuration options for generating L4 DSL file //
+///////////////////////////////////////////////////////////
+l3tmp_generateL4 = false
+l3tmp_genTemporalBlocking  = true
+
+//////////
+// CUDA //
+//////////
+cuda_enabled                       = true
+//cuda_deviceId                      = 0
+cuda_preferredExecution            = "Device"
+cuda_syncDeviceAfterKernelCalls    = true
+cuda_syncHostForWrites             = false
+cuda_syncDeviceForWrites           = true
+cuda_blockSize_x                   = 512
+// default (1D) block size for default reduction kernels
+cuda_reductionBlockSize            = 1024
+cuda_useSharedMemory               = true
+cuda_linearizeSharedMemoryAccess   = true
+cuda_favorL1CacheOverSharedMemory  = false
+experimental_cuda_useOldVersion    = false

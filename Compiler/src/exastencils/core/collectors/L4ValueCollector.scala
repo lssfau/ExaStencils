@@ -1,44 +1,43 @@
 package exastencils.core.collectors
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable._
 
+import exastencils.base.l4._
+import exastencils.baseExt.l4._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
 
 class L4ValueCollector extends Collector {
-  private var values = new ListBuffer[HashMap[String, Expression]]()
+  private var values = new ListBuffer[HashMap[String, L4_Expression]]()
   private var insideGlobals = false
 
   override def enter(node : Node) : Unit = {
     node match {
-      case x : GlobalDeclarationStatement => insideGlobals = true
-      case x : FunctionStatement          => { values.clear(); values.+=((new HashMap[String, Expression]())) }
-      case x : LoopOverFragmentsStatement => values.+=((new HashMap[String, Expression]()))
-      case x : LoopOverPointsStatement    => values.+=((new HashMap[String, Expression]()))
-      case x : RepeatTimesStatement       => values.+=((new HashMap[String, Expression]()))
-      case x : RepeatUntilStatement       => values.+=((new HashMap[String, Expression]()))
-      case x : ConditionalStatement       => values.+=((new HashMap[String, Expression]()))
-      case x : ValueDeclarationStatement => {
+      case x : L4_GlobalSection     => insideGlobals = true
+      case x : L4_Function          => values.clear(); values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_LoopOverFragments => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_LoopOverField     => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_ForLoop           => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_UntilLoop         => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_IfCondition       => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_ValueDeclaration  =>
         x.identifier match { // ignore Values in Globals
-          case v : LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.expression))
-          case _                     => if (!insideGlobals) values.last += ((x.identifier.name, x.expression))
+          case v : L4_LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.initialValue))
+          case _                        => if (!insideGlobals) values.last += ((x.identifier.name, x.initialValue))
         }
-      }
-      case _ =>
+      case _                        =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case x : GlobalDeclarationStatement => insideGlobals = false
-      case x : FunctionStatement          => values.clear()
-      case x : LoopOverFragmentsStatement => values.trimEnd(1)
-      case x : LoopOverPointsStatement    => values.trimEnd(1)
-      case x : RepeatTimesStatement       => values.trimEnd(1)
-      case x : RepeatUntilStatement       => values.trimEnd(1)
-      case x : ConditionalStatement       => values.trimEnd(1)
-      case _                              =>
+      case x : L4_GlobalSection     => insideGlobals = false
+      case x : L4_Function          => values.clear()
+      case x : L4_LoopOverFragments => values.trimEnd(1)
+      case x : L4_LoopOverField     => values.trimEnd(1)
+      case x : L4_ForLoop           => values.trimEnd(1)
+      case x : L4_UntilLoop         => values.trimEnd(1)
+      case x : L4_IfCondition       => values.trimEnd(1)
+      case _                        =>
     }
   }
 
@@ -46,8 +45,8 @@ class L4ValueCollector extends Collector {
     values.clear()
   }
 
-  def getValue(name : String) : Option[Expression] = {
-    var exp : Option[Expression] = None
+  def getValue(name : String) : Option[L4_Expression] = {
+    var exp : Option[L4_Expression] = None
     var i = values.length - 1
     while (i >= 0 && exp.isEmpty) {
       exp = values(i).get(name) // Local Vals will shadow global Vals

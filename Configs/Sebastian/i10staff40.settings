@@ -1,10 +1,21 @@
 user						= "Sebastian"
 
 basePathPrefix				= "./"
-l4file						= "Compiler\dsl\Layer4.exa"
+l1file						= "Configs\Sebastian\ExaFluids.exa1"
+l2file						= "Configs\Sebastian\ExaFluids.exa2"
+l3file						= "Configs\Sebastian\ExaFluids.exa3"
+l4file						= "Configs\Sebastian\ExaFluids.exa4"
+//l4file						= ".\Compiler\dsl\Layer4.exa"
 htmlLogFile					= "Compiler\log\log.html"
 outputPath					= "generated/"
 
 produceHtmlLog				= true
 timeStrategies				= true
 timeStratPercentThreshold	= 0
+
+pathsInc					+= "$(MSMPI_INC)"
+pathsLib					+= "$(MSMPI_LIB64)"
+
+additionalLibs				+= "msmpi.lib"
+
+buildfileGenerators			= { "ProjectfileGenerator" }

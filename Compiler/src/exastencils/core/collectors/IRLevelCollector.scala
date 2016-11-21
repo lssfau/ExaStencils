@@ -2,8 +2,8 @@ package exastencils.core.collectors
 
 import scala.collection.mutable.Stack
 
+import exastencils.baseExt.ir._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
 import exastencils.logger._
 
 class IRLevelCollector extends Collector {
@@ -11,17 +11,17 @@ class IRLevelCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case loop : LoopOverPoints              => levelStack.push(loop.field.level)
-      case loop : LoopOverPointsInOneFragment => levelStack.push(loop.field.level)
-      case _                                  =>
+      case loop : IR_LoopOverPoints              => levelStack.push(loop.field.level)
+      case loop : IR_LoopOverPointsInOneFragment => levelStack.push(loop.field.level)
+      case _                                     =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case loop : LoopOverPoints              => levelStack.pop
-      case loop : LoopOverPointsInOneFragment => levelStack.pop
-      case _                                  =>
+      case loop : IR_LoopOverPoints              => levelStack.pop
+      case loop : IR_LoopOverPointsInOneFragment => levelStack.pop
+      case _                                     =>
     }
   }
 
@@ -29,7 +29,7 @@ class IRLevelCollector extends Collector {
     levelStack.clear
   }
 
-  def inLevelScope : Boolean = !levelStack.isEmpty
+  def inLevelScope : Boolean = levelStack.nonEmpty
 
   def getCurrentLevel : Int = {
     if (levelStack.isEmpty) {

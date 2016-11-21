@@ -1,7 +1,7 @@
 package exastencils.datastructures.l1
 
 import exastencils.logger._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.datastructures.l1._
 
 case class Domain(var identifier : String, var range : List[Tuple2[Double, Double]]) extends Definition {

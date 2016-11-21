@@ -1,0 +1,38 @@
+dimensionality				= 3
+
+minLevel					= 0
+maxLevel					= 6
+
+domain_onlyRectangular		= true
+domain_numBlocks			= 27
+domain_numFragmentsPerBlock	= 27
+
+domain_rect_generate			= true
+domain_rect_numBlocks_x			= 3
+domain_rect_numBlocks_y			= 3
+domain_rect_numBlocks_z			= 3
+domain_rect_numFragsPerBlock_x	= 3
+domain_rect_numFragsPerBlock_y	= 3
+domain_rect_numFragsPerBlock_z	= 3
+
+omp_enabled					= true
+omp_numThreads				= 3
+
+mpi_enabled					= true
+mpi_numThreads				= 27
+
+omp_parallelizeLoopOverFragments	= true
+omp_parallelizeLoopOverDimensions	= false
+
+l3tmp_generateL4			= true
+l3tmp_genForAutoTests		= true
+
+l3tmp_exactSolution			= "Polynomial"
+
+l3tmp_smoother				= "BS"
+
+mpi_useCustomDatatypes		= true
+poly_optLevel_fine			= 3
+opt_useAddressPrecalc		= true
+opt_vectorize				= false
+opt_unroll					= 2

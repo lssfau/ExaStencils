@@ -19,11 +19,11 @@ BRANCH=${8}
 
 function update_progress {
   if [[ "${1}" -eq 0 ]]; then
-    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n  Done!</div></body></html>" > "${PROGRESS}"
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)  (Reload this page manually.)\n Log can be found <a href=./${BRANCH}/>here</a>.\n\n  Done!\n\n  New tests can be triggered <a href=../trigger-eg-tests.html>here</a></div></body></html>" > "${PROGRESS}"
   elif [[ "${1}" -eq 1 ]]; then
-    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)  (Reload this page manually.)\n Log can be found <a href=./${BRANCH}/>here</a>.\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
   else
-    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)  (Reload this page manually.)\n Log can be found <a href=./${BRANCH}/>here</a>.\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
   fi
 }
 
@@ -55,13 +55,15 @@ function cleanup {
   echo ""
   ENDTIME=$(date +%s)
   echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (test execution)"
+  echo "<a href=./>Back to overview.</a>"
+  echo ""
 }
 trap cleanup EXIT
 
 
 # run generated code
 echo "  Created  ${RESULT}: run code and redirect its stdout and stderr."
-srun --cpu_bind=socket "${BIN}" 2>&1 | grep -v -e "No protocol specified" -e "fglrx" | tee "${RESULT}" # HACK: filter strange X server error...
+srun --cpu_bind=socket "${BIN}" 2>&1 | grep -v -e "No protocol specified" -e "fglrx" -e "srun: setscheduler: init" | tee "${RESULT}" # HACK: filter strange X server error...
 echo ""
 
 if grep -q "Communication connection failure" ${RESULT}; then
@@ -72,9 +74,9 @@ if grep -q "Communication connection failure" ${RESULT}; then
 fi
 
 if diff -B -w --strip-trailing-cr -I "time" -I "No root privilege"  "${RESULT}" "${EXP_RESULT}" > /dev/null; then
-  echo "============== Test OK =============="
+  echo '<span style="color: #00E000"><b>============== Test OK ==============</b></span>'
 else
-  echo "============== Test ERROR =============="
+  echo '<span style="color: #E00000"><b>============== Test ERROR ==============</b></span>'
   echo "invalid result, expected:"
   cat "${EXP_RESULT}"
   touch ${ERROR_MARKER}

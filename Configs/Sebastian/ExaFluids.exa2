@@ -1,0 +1,67 @@
+Domain global
+
+Field rho@finest with Real on Cell of global
+Field rho@finest on boundary = Neumann
+
+Field u@all with Real on Face_x of global // = 0.0
+Field v@all with Real on Face_y of global
+Field w@all with Real on Face_z of global
+Field pc@all with Real on Cell of global
+Field phi7@all with Real on Cell of global
+
+Field u@all on boundary = 0.0
+Field v@all on boundary = 0.0
+Field w@all on boundary = 0.0
+Field pc@all on boundary = Neumann
+Field phi7@finest on boundary = applyBC_t@current ( )
+Field phi7@(all, but finest) on boundary = applyBC_t@current ( )
+
+Operator AuStencil  from StencilTemplate on Face_x of global {
+	[ 0,  0,  0] =>
+	[-1,  0,  0] =>
+	[ 1,  0,  0] =>
+	[ 0, -1,  0] =>
+	[ 0,  1,  0] =>
+	[ 0,  0, -1] =>
+	[ 0,  0,  1] =>
+}
+
+Operator AvStencil  from StencilTemplate on Face_y of global {
+	[ 0,  0,  0] =>
+	[-1,  0,  0] =>
+	[ 1,  0,  0] =>
+	[ 0, -1,  0] =>
+	[ 0,  1,  0] =>
+	[ 0,  0, -1] =>
+	[ 0,  0,  1] =>
+}
+
+Operator AwStencil  from StencilTemplate on Face_z of global {
+	[ 0,  0,  0] =>
+	[-1,  0,  0] =>
+	[ 1,  0,  0] =>
+	[ 0, -1,  0] =>
+	[ 0,  1,  0] =>
+	[ 0,  0, -1] =>
+	[ 0,  0,  1] =>
+}
+
+Operator ApcStencil from StencilTemplate on Cell of global {
+	[ 0,  0,  0] =>
+	[-1,  0,  0] =>
+	[ 1,  0,  0] =>
+	[ 0, -1,  0] =>
+	[ 0,  1,  0] =>
+	[ 0,  0, -1] =>
+	[ 0,  0,  1] =>
+}
+
+Operator AtStencil  from StencilTemplate on Cell of global {
+	[ 0,  0,  0] =>
+	[-1,  0,  0] =>
+	[ 1,  0,  0] =>
+	[ 0, -1,  0] =>
+	[ 0,  1,  0] =>
+	[ 0,  0, -1] =>
+	[ 0,  0,  1] =>
+}

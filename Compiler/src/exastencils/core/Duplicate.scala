@@ -2,11 +2,41 @@ package exastencils.core
 
 import scala.collection.immutable.Nil
 
+import exastencils.config.Settings
+import exastencils.knowledge.ir.IR_KnowledgeObject
+import exastencils.knowledge.l2.L2_KnowledgeObject
+import exastencils.knowledge.l3.L3_KnowledgeObject
+import exastencils.knowledge.l4.L4_KnowledgeObject
+import exastencils.logger.Logger
+
 object Duplicate {
   private val cloner = new com.rits.cloning.Cloner
-  cloner.setDumpClonedClasses(Settings.printClonedObjects);
+  cloner.setDumpClonedClasses(Settings.printClonedObjects)
+  private val forceCloner = new com.rits.cloning.Cloner
+  forceCloner.setDumpClonedClasses(Settings.printClonedObjects)
 
-  def apply[T](t : T) : T = cloner.deepClone(t)
+  val debug = true
+
+  def apply[T](t : T) : T = {
+    val cloned = cloner.deepClone(t)
+
+    // check for objects that are not cloned
+    if (debug)
+      t match {
+        // TODO: more generic way
+        case _ : L2_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
+        case _ : L3_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
+        case _ : L4_KnowledgeObject[_] => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
+        case _ : IR_KnowledgeObject    => Logger.warn("Fruitless call to Duplicate.apply for instance of type " + t.getClass)
+        case _                         =>
+      }
+
+    cloned
+  }
+
+  def forceClone[T](t : T) : T = {
+    forceCloner.deepClone(t)
+  }
 
   def debugOutput(output : Boolean) = cloner.setDumpClonedClasses(output)
 
@@ -19,16 +49,19 @@ object Duplicate {
   // def registerConstant(t : Class[_], field : String) : Unit = cloner.registerConstant(t, field)
 
   def clonable(o : AnyRef) : Boolean = {
-    return o ne cloner.shallowClone(o)
+    o ne cloner.shallowClone(o)
   }
 
   // prevent cloning of some immutable objects/classes of the scala library (otherwise something goes boom)
   // Note: do ONLY register classes as immutable, whose children/attributes are immutable, too (recursively)
   //       e.g., immutable.List must therefore be copied
-  this.registerConstant(None)
-  this.registerConstant(Nil)
-  this.registerConstant(scala.Array)
-  this.registerImmutable(classOf[scala.Int])
-  this.registerImmutable(classOf[scala.Double])
-  this.registerImmutable(classOf[scala.Float])
+  List(cloner, forceCloner).foreach(
+    c => {
+      c.registerConstant(None)
+      c.registerConstant(Nil)
+      c.registerConstant(scala.Array)
+      c.registerImmutable(classOf[scala.Int])
+      c.registerImmutable(classOf[scala.Double])
+      c.registerImmutable(classOf[scala.Float])
+    })
 }

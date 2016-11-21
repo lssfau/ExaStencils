@@ -1,0 +1,9 @@
+user                        = "Christoph"
+basePathPrefix              = "../generator-result/exp/smoother/GS"
+l3file                      = ""
+l4file                      = "/dsl/Layer4.exa"
+outputPath                  = "/generated/"
+htmlLogFile                 = "/log/log.html"
+produceHtmlLog              = true
+timeStrategies              = true
+timeStratPercentThreshold   = 0

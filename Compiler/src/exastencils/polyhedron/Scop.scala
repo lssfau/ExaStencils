@@ -1,16 +1,14 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.TreeSet
+import scala.collection.mutable._
 
-import exastencils.datastructures.ir._
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import isl.Conversions._
 
 // since Scop can be cloned by Duplicate make sure NONE of the isl wrapper objects it uses is cloned by it
 //   (register all required classes as not cloneable in IslUtil.scala)
-class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var globalContext : isl.Set, var optLevel : Int,
+class Scop(val root : IR_LoopOverDimensions with PolyhedronAccessible, var localContext : isl.Set, var globalContext : isl.Set, var optLevel : Int,
     var parallelize : Boolean, var origIterationCount : Array[Long]) {
 
   var nextMerge : Scop = null
@@ -19,8 +17,8 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
   def getContext() : isl.Set = localContext.intersect(globalContext)
   var domain : isl.UnionSet = null
   var schedule : isl.UnionMap = null
-  val stmts = new HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])]()
-  val decls = new ListBuffer[VariableDeclarationStatement]()
+  val stmts = new HashMap[String, (ListBuffer[IR_Statement], ArrayBuffer[String])]()
+  val decls = new ListBuffer[IR_VariableDeclaration]()
 
   final val loopVarTempl : String = "_i%d"
   val njuLoopVars = new ArrayBuffer[String]()
@@ -28,6 +26,8 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
 
   var reads, writes : isl.UnionMap = null
   var deadAfterScop : isl.UnionSet = null
+
+  def tileSizes : Array[Int] = root.tileSizes
 
   object deps {
     // dependences, which prevent parallelization AND vectorization
@@ -39,11 +39,11 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
 
     def flow : isl.UnionMap = {
       if (flowParVec == null)
-        return flowPar
+        flowPar
       else if (flowPar == null)
-        return flowParVec
+        flowParVec
       else
-        return Isl.simplify(flowParVec.union(flowPar))
+        Isl.simplify(flowParVec.union(flowPar))
     }
 
     private var inputCache : isl.UnionMap = null
@@ -75,19 +75,19 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
       while (it.hasNext && inputCache != null)
         inputCache = it.next()(inputCache)
       lazyUpdateInputs.clear()
-      return inputCache
+      inputCache
     }
 
     def validity() : isl.UnionMap = {
-      return Isl.simplify(flowParVec.union(flowPar).union(antiOutParVec).union(antiOutPar))
+      Isl.simplify(flowParVec.union(flowPar).union(antiOutParVec).union(antiOutPar))
     }
 
     def validityParVec() : isl.UnionMap = {
-      return Isl.simplify(flowParVec.union(antiOutParVec))
+      Isl.simplify(flowParVec.union(antiOutParVec))
     }
 
     def validityPar() : isl.UnionMap = {
-      return Isl.simplify(flowPar.union(antiOutPar))
+      Isl.simplify(flowPar.union(antiOutPar))
     }
   }
 
@@ -108,22 +108,22 @@ class Scop(val root : LoopOverDimensions, var localContext : isl.Set, var global
 object ScopNameMapping {
 
   private var count : Int = 0
-  private final val id2expr = new HashMap[String, Expression]()
-  private final val expr2id = new HashMap[Expression, String]()
+  private final val id2expr = new HashMap[String, IR_Expression]()
+  private final val expr2id = new HashMap[IR_Expression, String]()
 
-  def id2expr(id : String) : Option[Expression] = {
-    return id2expr.get(id)
+  def id2expr(id : String) : Option[IR_Expression] = {
+    id2expr.get(id)
   }
 
-  def expr2id(expr : Expression, alias : Expression = null) : String = {
-    return expr2id.getOrElseUpdate(expr, {
+  def expr2id(expr : IR_Expression, alias : IR_Expression = null) : String = {
+    expr2id.getOrElseUpdate(expr, {
       val id : String =
         if (alias != null && expr2id.contains(alias))
           expr2id(alias)
         else expr match {
-          case VariableAccess(str, _) if (str.length() < 5) =>
+          case IR_VariableAccess(str, _) if str.length() < 5 =>
             str
-          case _ =>
+          case _                                             =>
             count += 1
             "p" + count
         }

@@ -1,0 +1,27 @@
+////////////////////////
+///// Chimaira GPU /////
+////////////////////////
+targetOS                   = "Linux"
+targetCompiler             = "GCC"
+targetCompilerVersion      = 4
+targetCompilerVersionMinor = 8
+targetHardware             = "CPU"
+targetCudaCompiler         = "NVCC"
+simd_instructionSet        = "AVX"
+
+hw_cpu_name                = "AMD Athlon 64 X2 Dual Core Processor 3600+"
+hw_cpu_numCoresPerCPU      = 2
+hw_cpu_numCPUs             = 2
+hw_cpu_bandwidth           = 13743895347.2 // in B/s = 12.8 GB/s
+hw_cpu_frequency           = 19000000000.0 // = 1.9 GHz
+hw_64bit                   = true
+hw_cacheLineSize           = 64 // in B
+hw_gpu_name                = "NVidia GeForce GT 230 v.2"
+hw_gpu_numDevices          = 1
+hw_gpu_bandwidth           = 25769803776.0 // in B/s = 24 GB/s
+hw_gpu_frequency           = 500000000000.0 // = 500 MHz
+hw_gpu_numCores            = 96
+hw_cuda_capability         = 1
+hw_cuda_capabilityMinor    = 1
+sw_cuda_version            = 6
+sw_cuda_versionMinor       = 2

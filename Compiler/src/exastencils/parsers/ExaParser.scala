@@ -3,8 +3,8 @@ package exastencils.parsers
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
+import exastencils.config._
 import exastencils.datastructures._
-import exastencils.knowledge._
 
 class ExaParser extends StandardTokenParsers with PackratParsers {
   val IntRegEx = """[+-]?(\d+)""".r
@@ -31,14 +31,12 @@ class ExaParser extends StandardTokenParsers with PackratParsers {
   lazy val newline = "\n" | "\r\n"
 
   lazy val integerLit = (
-    numericLit ^^ { case n if (isInt(n)) => n.toInt }
-    ||| ("-" ~> numericLit ^^ { case n if (isInt(n)) => -n.toInt }))
+    numericLit ^^ { case n if isInt(n) => n.toInt }
+    ||| ("-" ~> numericLit ^^ { case n if isInt(n) => -n.toInt }))
 
   lazy val realLit = (
-    integerLit ^^ { case n if (n.isValidInt) => n.toDouble }
+    numericLit ^^ { case n if isReal(n) => n.toDouble }
+    ||| ("-" ~> numericLit ^^ { case n if isReal(n) => -n.toDouble }))
 
-    ||| numericLit ^^ { case n if (isReal(n)) => n.toDouble }
-    ||| ("-" ~> numericLit ^^ { case n if (isReal(n)) => -n.toDouble }))
-
-  lazy val booleanLit : Parser[Boolean] = ("true" ||| "false") ^^ { case b => if (b == "true") true; else false }
+  lazy val booleanLit : Parser[Boolean] = ("true" ||| "false") ^^ (b => b == "true")
 }

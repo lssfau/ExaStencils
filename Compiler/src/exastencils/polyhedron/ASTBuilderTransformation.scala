@@ -1,39 +1,36 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
+import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Set }
 
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core._
-import exastencils.datastructures._
 import exastencils.datastructures.Transformation._
-import exastencils.datastructures.ir._
+import exastencils.datastructures._
+import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.logger._
-import exastencils.omp._
 import exastencils.optimization._
-
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import isl.Conversions._
 
-class ASTBuilderTransformation(replaceCallback : (Map[String, Expression], Node) => Unit)
+class ASTBuilderTransformation(replaceCallback : (Map[String, IR_Expression], Node) => Unit)
   extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
 
-private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression], Node) => Unit)
-    extends PartialFunction[Node, Transformation.OutputType] {
+private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Expression], Node) => Unit)
+  extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val ZERO_VAL : isl.Val = isl.Val.zero(Isl.ctx)
   private final val ONE_VAL : isl.Val = isl.Val.one(Isl.ctx)
   private final val NEG_ONE_VAL : isl.Val = isl.Val.negone(Isl.ctx)
 
-  private val loopStmts = new HashMap[String, ListBuffer[OptimizationHint]]()
-  private var oldStmts : HashMap[String, (ListBuffer[Statement], ArrayBuffer[String])] = null
+  private val loopStmts = new HashMap[String, ListBuffer[IR_ForLoop]]()
+  private var oldStmts : HashMap[String, (ListBuffer[IR_Statement], ArrayBuffer[String])] = null
   private var parDims : Set[String] = null
   private var vecDims : Set[String] = null
   private var parallelize_omp : Boolean = false
-  private var reduction : Option[Reduction] = None
-  private var privateVars : ListBuffer[VariableAccess] = null
-  private var condition : Expression = null
+  private var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()
+  private var privateVars : ListBuffer[IR_VariableAccess] = null
+  private var condition : IR_Expression = null
 
   private def invalidateScop(scop : Scop) : Unit = {
     // remove all annotations for the merged scops, as they are invalid now
@@ -45,17 +42,18 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
   }
 
   override def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : LoopOverDimensions with PolyhedronAccessible =>
+    case loop : IR_LoopOverDimensions with PolyhedronAccessible =>
       loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
-    case _ => false
+    case _                                                      => false
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
 
+    val loop = node.asInstanceOf[IR_LoopOverDimensions]
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
-      return NullStatement
-    reduction = scop.root.reduction
+      return IR_NullStatement
+    parallelization = scop.root.parallelization
     condition = scop.root.condition.orNull
 
     // find all sequential loops
@@ -69,7 +67,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       val tDeps : isl.UnionMap = deps.intersectDomain(scop.domain).intersectRange(scop.domain).applyRange(scop.schedule).applyDomain(scop.schedule)
       tDeps.foreachMap({ dep : isl.Map =>
         val directions = dep.deltas()
-        val universe : isl.Set = isl.BasicSet.universe(directions.getSpace())
+        val universe : isl.Set = isl.BasicSet.universe(directions.getSpace)
         val dim : Int = universe.dim(isl.DimType.Set)
         for (i <- 0 until dim) {
           var seq = universe
@@ -77,7 +75,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
             seq = seq.fixVal(isl.DimType.Set, j, ZERO_VAL)
           seq = seq.lowerBoundVal(isl.DimType.Set, i, ONE_VAL)
 
-          if (!seq.intersect(directions).isEmpty()) {
+          if (!seq.intersect(directions).isEmpty) {
             val lVar = scop.njuLoopVars(i)
             parDims -= lVar
             if (forVect)
@@ -88,14 +86,14 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
           seq = seq.upperBoundVal(isl.DimType.Set, i, NEG_ONE_VAL)
 
           val negative_deps = seq.intersect(directions)
-          if (!negative_deps.isEmpty()) {
+          if (!negative_deps.isEmpty) {
             Logger.debug("[poly ast] invalid dependence found (negative direction):  " + negative_deps)
             invalidateScop(scop)
             return false
           }
         }
       })
-      return true
+      true
     }
 
     if (!respectDeps(scop.deps.validityParVec(), true))
@@ -110,9 +108,9 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     })
 
     // mark all additionally declared variables as private
-    privateVars = new ListBuffer[VariableAccess]()
-    for (VariableDeclarationStatement(dt, name, _) <- scop.decls)
-      privateVars += VariableAccess(name, Some(dt))
+    privateVars = new ListBuffer[IR_VariableAccess]()
+    for (IR_VariableDeclaration(dt, name, _) <- scop.decls)
+      privateVars += IR_VariableAccess(name, dt)
 
     // build AST generation options
     val options = new StringBuilder()
@@ -144,7 +142,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
     islBuild = islBuild.setIterators(itersId)
     val scattering : isl.UnionMap = Isl.simplify(scop.schedule.intersectDomain(scop.domain))
     val islNode : isl.AstNode = islBuild.astFromSchedule(scattering)
-    var nju : ListBuffer[Statement] =
+    var nju : ListBuffer[IR_Statement] =
       try {
         processIslNode(islNode)
       } catch {
@@ -160,168 +158,166 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, Expression
       val innermostLoops = loopStmts.get(scop.njuLoopVars(i))
       if (innermostLoops.isDefined) {
         for (l <- innermostLoops.get)
-          l.isInnermost = true
+          l.parallelization.isInnermost = true
         i = -1 // break
       }
       i -= 1
     }
 
     // add comment (for debugging) and (eventually) declarations outside loop nest
-    val comment = new CommentStatement("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
-    nju.+=:(comment) // "comment +=: nju" works too, but both versions are equally horrible
-    if (!scop.decls.isEmpty) {
-      val scopeList = new ListBuffer[Statement]
-      for (decl : VariableDeclarationStatement <- scop.decls) {
-        decl.expression = None
+    val comment = IR_Comment("Statements in this Scop: " + scop.stmts.keySet.toArray.sorted.mkString(", "))
+    comment +=: nju // prepend
+    if (scop.decls.nonEmpty) {
+      val scopeList = new ListBuffer[IR_Statement]
+      for (decl : IR_VariableDeclaration <- scop.decls) {
+        decl.initialValue = None
         if (!scopeList.contains(decl)) // only add if not yet available
           scopeList += decl
       }
       scopeList ++= nju
-      return new Scope(scopeList)
+      IR_Scope(loop.createOMPThreadsWrapper(scopeList))
     } else
-      return nju
+      loop.createOMPThreadsWrapper(nju)
   }
 
-  private def processIslNode(node : isl.AstNode) : ListBuffer[Statement] = {
+  private def processIslNode(node : isl.AstNode) : ListBuffer[IR_Statement] = {
 
-    return node.getType() match {
+    node.getType match {
 
-      case isl.AstNodeType.For =>
+      case isl.AstNodeType.NodeFor =>
         if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
-          assume(islIt.getType() == isl.AstExprType.Id, "isl for node iterator is not an ExprId")
-          val decl : Statement = new VariableDeclarationStatement(IntegerDatatype, islIt.getId().getName(), processIslExpr(node.forGetInit()))
+          assume(islIt.getType == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
+          val decl : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, islIt.getId.getName, processIslExpr(node.forGetInit()))
           processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
           val islIt : isl.AstExpr = node.forGetIterator()
-          assume(islIt.getType() == isl.AstExprType.Id, "isl for node iterator is not an ExprId")
-          val itStr : String = islIt.getId().getName()
+          assume(islIt.getType == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
+          val itStr : String = islIt.getId.getName
           val parOMP : Boolean = parallelize_omp && parDims.contains(itStr)
+          // TODO: is parallelize_omp still required?
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
-          val it : VariableAccess = new VariableAccess(itStr, IntegerDatatype)
-          val init : Statement = new VariableDeclarationStatement(IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
-          val cond : Expression = processIslExpr(node.forGetCond())
-          val incr : Statement = new AssignmentStatement(it, processIslExpr(node.forGetInc()), "+=")
+          val it : IR_VariableAccess = IR_VariableAccess(itStr, IR_IntegerDatatype)
+          val init : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, itStr, processIslExpr(node.forGetInit()))
+          val cond : IR_Expression = processIslExpr(node.forGetCond())
+          val incr : IR_Statement = IR_Assignment(it, processIslExpr(node.forGetInc()), "+=")
 
-          val body : ListBuffer[Statement] = processIslNode(node.forGetBody())
+          val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
-          val loop : ForLoopStatement with OptimizationHint =
-            if (parOMP)
-              new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint with OMP_PotentiallyParallel
-            else
-              new ForLoopStatement(init, cond, incr, body, reduction) with OptimizationHint
-          loop.isParallel = parDims != null && parDims.contains(itStr)
-          loop.isVectorizable = vecDims != null && vecDims.contains(itStr)
-          loop.privateVars ++= privateVars
+          val loop = new IR_ForLoop(init, cond, incr, body, parallelization)
+          loop.parallelization.potentiallyParallel = parDims != null && parDims.contains(itStr)
+          loop.parallelization.isVectorizable = vecDims != null && vecDims.contains(itStr)
+          loop.parallelization.privateVars ++= privateVars
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
-          ListBuffer[Statement](loop)
+          ListBuffer[IR_Statement](loop)
         }
 
-      case isl.AstNodeType.If =>
-        val cond : Expression = processIslExpr(node.ifGetCond())
-        val thenBranch : ListBuffer[Statement] = processIslNode(node.ifGetThen())
+      case isl.AstNodeType.NodeIf =>
+        val cond : IR_Expression = processIslExpr(node.ifGetCond())
+        val thenBranch : ListBuffer[IR_Statement] = processIslNode(node.ifGetThen())
         if (node.ifHasElse()) {
-          val els : ListBuffer[Statement] = processIslNode(node.ifGetElse())
-          ListBuffer[Statement](new ConditionStatement(cond, thenBranch, els))
+          val els : ListBuffer[IR_Statement] = processIslNode(node.ifGetElse())
+          ListBuffer[IR_Statement](IR_IfCondition(cond, thenBranch, els))
         } else
-          ListBuffer[Statement](new ConditionStatement(cond, thenBranch))
+          ListBuffer[IR_Statement](IR_IfCondition(cond, thenBranch))
 
-      case isl.AstNodeType.Block =>
-        val stmts = new ListBuffer[Statement]
+      case isl.AstNodeType.NodeBlock =>
+        val stmts = new ListBuffer[IR_Statement]
         node.blockGetChildren().foreach({ stmt : isl.AstNode => stmts ++= processIslNode(stmt) })
         stmts
 
-      case isl.AstNodeType.User =>
+      case isl.AstNodeType.NodeUser =>
         val expr : isl.AstExpr = node.userGetExpr()
-        assume(expr.getOpType() == isl.AstOpType.Call, "user node is no OpCall?!")
-        val args : Array[Expression] = processArgs(expr)
-        val name : String = args(0).asInstanceOf[StringLiteral].value
-        val (oldStmt : ListBuffer[Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
-        val stmts : ListBuffer[Statement] = Duplicate(oldStmt)
-        val repl = new HashMap[String, Expression]()
+        assume(expr.getOpType == isl.AstOpType.OpCall, "user node is no OpCall?!")
+        val args : Array[IR_Expression] = processArgs(expr)
+        val name : String = args(0).asInstanceOf[IR_StringLiteral].value
+        val (oldStmt : ListBuffer[IR_Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
+        val stmts : ListBuffer[IR_Statement] = Duplicate(oldStmt)
+        val repl = new HashMap[String, IR_Expression]()
         for (d <- 1 until args.length)
           repl.put(loopVars(loopVars.size - d), args(d))
 
-        replaceCallback(repl, Scope(stmts))
+        replaceCallback(repl, IR_Scope(stmts))
         if (condition != null)
           for (stmt <- stmts) {
-            val cond : Expression = Duplicate(condition)
+            val cond : IR_Expression = Duplicate(condition)
             replaceCallback(repl, cond)
             stmt.annotate(PolyOpt.IMPL_CONDITION_ANNOT, cond)
           }
         stmts
 
-      case isl.AstNodeType.Error => throw new PolyASTBuilderException("NodeError found...")
+      case isl.AstNodeType.NodeMark  => throw PolyASTBuilderException("unexpected and unknown mark node found...")
+      case isl.AstNodeType.NodeError => throw PolyASTBuilderException("NodeError found...")
     }
   }
 
-  private def processIslExpr(expr : isl.AstExpr) : Expression = {
+  private def processIslExpr(expr : isl.AstExpr) : IR_Expression = {
 
-    return expr.getType() match { // TODO: check if ExprId contains only variable identifier
-      case isl.AstExprType.Id =>
-        val id : String = expr.getId().getName()
-        Duplicate(ScopNameMapping.id2expr(id)).getOrElse(StringLiteral(id))
-      case isl.AstExprType.Int   => IntegerConstant(expr.getVal().toString().toLong)
-      case isl.AstExprType.Op    => processIslExprOp(expr)
-      case isl.AstExprType.Error => throw new PolyASTBuilderException("ExprError found...")
+    expr.getType match { // TODO: check if ExprId contains only variable identifier
+      case isl.AstExprType.ExprId    =>
+        val id : String = expr.getId.getName
+        Duplicate(ScopNameMapping.id2expr(id)).getOrElse(IR_StringLiteral(id))
+      case isl.AstExprType.ExprInt   => IR_IntegerConstant(expr.getVal.toString.toLong)
+      case isl.AstExprType.ExprOp    => processIslExprOp(expr)
+      case isl.AstExprType.ExprError => throw PolyASTBuilderException("ExprError found...")
     }
   }
 
   /** Process an isl.AstExpr of type isl.AstExprType.ExprOp. Caller must ensure only this type of node is passed! */
-  private def processIslExprOp(expr : isl.AstExpr) : Expression = {
+  private def processIslExprOp(expr : isl.AstExpr) : IR_Expression = {
 
-    val args : Array[Expression] = processArgs(expr)
+    val args : Array[IR_Expression] = processArgs(expr)
     val n : Int = args.length
 
-    return expr.getOpType() match {
-      case isl.AstOpType.Eq if n == 2 && args(0).isInstanceOf[iv.NeighborIsValid] =>
+    expr.getOpType match {
+      case isl.AstOpType.OpEq if n == 2 && args(0).isInstanceOf[IR_IV_NeighborIsValid] =>
         args(1) match {
-          case IntegerConstant(1) => args(0)
-          case IntegerConstant(0) => new NegationExpression(args(0))
+          case IR_IntegerConstant(1) => args(0)
+          case IR_IntegerConstant(0) => IR_Negation(args(0))
         }
 
-      case isl.AstOpType.AndThen if n == 2 => new AndAndExpression(args(0), args(1))
-      case isl.AstOpType.And if n == 2     => new AndAndExpression(args(0), args(1))
-      case isl.AstOpType.OrElse if n == 2  => new OrOrExpression(args(0), args(1))
-      case isl.AstOpType.Or if n == 2      => new OrOrExpression(args(0), args(1))
-      case isl.AstOpType.Minus if n == 1   => new NegativeExpression(args(0))
-      case isl.AstOpType.Add if n == 2     => new AdditionExpression(args(0), args(1))
-      case isl.AstOpType.Sub if n == 2     => new SubtractionExpression(args(0), args(1))
-      case isl.AstOpType.Mul if n == 2     => new MultiplicationExpression(args(0), args(1))
-      case isl.AstOpType.Div if n == 2     => new DivisionExpression(args(0), args(1))
-      case isl.AstOpType.FdivQ if n == 2   => new FunctionCallExpression("floord", args(0), args(1)) // TODO: ensure integer division
-      case isl.AstOpType.PdivQ if n == 2   => new DivisionExpression(args(0), args(1)) // TODO: ensure integer division
-      case isl.AstOpType.PdivR if n == 2   => new ModuloExpression(args(0), args(1))
-      case isl.AstOpType.ZdivR if n == 2   => new ModuloExpression(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
-      case isl.AstOpType.Cond if n == 3    => new TernaryConditionExpression(args(0), args(1), args(2))
-      case isl.AstOpType.Eq if n == 2      => new EqEqExpression(args(0), args(1))
-      case isl.AstOpType.Le if n == 2      => new LowerEqualExpression(args(0), args(1))
-      case isl.AstOpType.Lt if n == 2      => new LowerExpression(args(0), args(1))
-      case isl.AstOpType.Ge if n == 2      => new GreaterEqualExpression(args(0), args(1))
-      case isl.AstOpType.Gt if n == 2      => new GreaterExpression(args(0), args(1))
-      case isl.AstOpType.Max if n >= 2     => new MaximumExpression(args : _*)
-      case isl.AstOpType.Min if n >= 2     => new MinimumExpression(args : _*)
-      case isl.AstOpType.Select if n == 3  => new TernaryConditionExpression(args(0), args(1), args(2))
+      case isl.AstOpType.OpAndThen if n == 2 => IR_AndAnd(args(0), args(1))
+      case isl.AstOpType.OpAnd if n == 2     => IR_AndAnd(args(0), args(1))
+      case isl.AstOpType.OpOrElse if n == 2  => IR_OrOr(args(0), args(1))
+      case isl.AstOpType.OpOr if n == 2      => IR_OrOr(args(0), args(1))
+      case isl.AstOpType.OpMinus if n == 1   => IR_Negative(args(0))
+      case isl.AstOpType.OpAdd if n == 2     => IR_Addition(args(0), args(1))
+      case isl.AstOpType.OpSub if n == 2     => IR_Subtraction(args(0), args(1))
+      case isl.AstOpType.OpMul if n == 2     => IR_Multiplication(args(0), args(1))
+      case isl.AstOpType.OpDiv if n == 2     => IR_Division(args(0), args(1))
+      case isl.AstOpType.OpFdivQ if n == 2   => IR_FunctionCall("floord", args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.OpPdivQ if n == 2   => IR_Division(args(0), args(1)) // TODO: ensure integer division
+      case isl.AstOpType.OpPdivR if n == 2   => IR_Modulo(args(0), args(1))
+      case isl.AstOpType.OpZdivR if n == 2   => IR_Modulo(args(0), args(1)) // isl doc: Equal to zero iff the remainder on integer division is zero.
+      case isl.AstOpType.OpCond if n == 3    => IR_TernaryCondition(args(0), args(1), args(2))
+      case isl.AstOpType.OpEq if n == 2      => IR_EqEq(args(0), args(1))
+      case isl.AstOpType.OpLe if n == 2      => IR_LowerEqual(args(0), args(1))
+      case isl.AstOpType.OpLt if n == 2      => IR_Lower(args(0), args(1))
+      case isl.AstOpType.OpGe if n == 2      => IR_GreaterEqual(args(0), args(1))
+      case isl.AstOpType.OpGt if n == 2      => IR_Greater(args(0), args(1))
+      case isl.AstOpType.OpMax if n >= 2     => IR_Maximum(args : _*)
+      case isl.AstOpType.OpMin if n >= 2     => IR_Minimum(args : _*)
+      case isl.AstOpType.OpSelect if n == 3  => IR_TernaryCondition(args(0), args(1), args(2))
 
-      case isl.AstOpType.Call if n >= 1 =>
-        val fArgs = ListBuffer[Expression](args : _*)
+      case isl.AstOpType.OpCall if n >= 1 =>
+        val fArgs = ListBuffer[IR_Expression](args : _*)
         fArgs.remove(0)
-        FunctionCallExpression(args(0).asInstanceOf[StringLiteral].value, fArgs)
+        IR_FunctionCall(args(0).asInstanceOf[IR_StringLiteral].value, fArgs)
 
       case err =>
-        throw new PolyASTBuilderException("expression not (yet) available:  " + err + "  with " + args.length + " arguments:  " + expr)
+        throw PolyASTBuilderException("expression not (yet) available:  " + err + "  with " + args.length + " arguments:  " + expr)
     }
   }
 
-  private def processArgs(expr : isl.AstExpr) : Array[Expression] = {
+  private def processArgs(expr : isl.AstExpr) : Array[IR_Expression] = {
 
-    val nArgs : Int = expr.getOpNArg()
-    val args = new Array[Expression](nArgs)
+    val nArgs : Int = expr.getOpNArg
+    val args = new Array[IR_Expression](nArgs)
     for (i <- 0 until nArgs)
       args(i) = processIslExpr(expr.getOpArg(i))
 
-    return args
+    args
   }
 }
 

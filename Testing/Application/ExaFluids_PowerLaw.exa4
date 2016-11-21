@@ -103,24 +103,6 @@ Field miu < global, DefCellLayout, Neumann > @finest
 
 Field gamma < global, DefCellLayout, Neumann > @finest
 
-// temporary flow fields
-
-Field floweu < global, DefFaceXLayout, None > @finest
-Field flownu < global, DefFaceXLayout, None > @finest
-Field flowtu < global, DefFaceXLayout, None > @finest
-
-Field flowev < global, DefFaceYLayout, None > @finest
-Field flownv < global, DefFaceYLayout, None > @finest
-Field flowtv < global, DefFaceYLayout, None > @finest
-
-Field flowew < global, DefFaceZLayout, None > @finest
-Field flownw < global, DefFaceZLayout, None > @finest
-Field flowtw < global, DefFaceZLayout, None > @finest
-
-Field flowet < global, DefCellLayout, None > @finest
-Field flownt < global, DefCellLayout, None > @finest
-Field flowtt < global, DefCellLayout, None > @finest
-
 // stencils and stencils templates
 
 Stencil SevenPointStencil@all {
@@ -286,7 +268,8 @@ Globals {
 
 	// non-Newtonian parameters
 	Val useNonNewtonian : Bool	= true
-	Val n_index : Real			= 0.6 // 0.95
+	Val n_index : Real			= 0.6 // 0.95 // required for power law
+	Val tau_y : Real			= 0.1 // 1.0e-4 // required for Bingham
 }
 
 /// specialized boundary handling functions
@@ -753,6 +736,14 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 		// Int. J. Heat & Mass Transfer 34(1991) 1083-1096 CMC/Power law
 		gama = max ( gama, 0.01 )
 		vis@current = miu@current * gama**( n_index - 1.0 )
+
+		// Bingham: Bi-viscosity model O'Donovan & Tanner
+		//Val miu_yield : Real = 1.0e3 * miu@current
+		//if ( gama <= tau_y / miu_yield ) {
+		//	vis@current = miu_yield
+		//} else {
+		//	vis@current = ( tau_y + miu@current * ( gama - tau_y / miu_yield ) ) / gama
+		//}
 	}
 
 	communicate vis@current
@@ -762,54 +753,50 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 /// stencil compilation functions
 
 Function CompileStencil_u@finest (  ) : Unit {
-	loop over u@current starting [-1, -1, -1] {
-		floweu@current = integrateOverXStaggeredEastFace ( u[active]@current * rho[active]@current )
-		flownu@current = integrateOverXStaggeredNorthFace ( v[active]@current * rho[active]@current )
-		flowtu@current = integrateOverXStaggeredTopFace ( w[active]@current * rho[active]@current )
-	}
-
-	loop over AuStencil@current starting [-1, -1, -1] {
-		// FIXME: integrateLFace ( evalLFace (FA) )
-		// TODO: check virtual field offsets
-
-		Val diffeu : Real = integrateOverXStaggeredEastFace ( vis@current ) / vf_cellWidth_x@current
-		AuStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( floweu@current, diffeu ) + max ( 0.0, -1.0 * floweu@current ) )
-
-		Val diffnu : Real = integrateOverXStaggeredNorthFace ( evalAtXStaggeredNorthFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[0, 1, 0]
-		AuStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownu@current, diffnu ) + max ( 0.0, -1.0 * flownu@current ) )
-
-		Val difftu : Real = integrateOverXStaggeredTopFace ( evalAtXStaggeredTopFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
-		AuStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtu@current, difftu ) + max ( 0.0, -1.0 * flowtu@current ) )
-	}
-
-	// compile second half of the stencils
 	loop over AuStencil@current {
-		// subtract because off-center stencil coefficients are negated
-		AuStencil@current:[-1,  0,  0] = AuStencil@current@[-1,  0,  0]:[ 1,  0,  0] - floweu@current@[-1,  0,  0]
-		AuStencil@current:[ 0, -1,  0] = AuStencil@current@[ 0, -1,  0]:[ 0,  1,  0] - flownu@current@[ 0, -1,  0]
-		AuStencil@current:[ 0,  0, -1] = AuStencil@current@[ 0,  0, -1]:[ 0,  0,  1] - flowtu@current@[ 0,  0, -1]
-	}
+		Val flow_e@current : Real = integrateOverXStaggeredEastFace ( u[active]@current * rho[active]@current )
+		Val flow_w@current : Real = integrateOverXStaggeredWestFace ( u[active]@current * rho[active]@current )
 
-	// handle boundary conditions
-	apply bc to AuStencil@current
+		Val flow_n@current : Real = integrateOverXStaggeredNorthFace ( v[active]@current * rho[active]@current )
+		Val flow_s@current : Real = integrateOverXStaggeredSouthFace ( v[active]@current * rho[active]@current )
 
-	loop over rhs_u@current {
+		Val flow_t@current : Real = integrateOverXStaggeredTopFace ( w[active]@current * rho[active]@current )
+		Val flow_b@current : Real = integrateOverXStaggeredBottomFace ( w[active]@current * rho[active]@current )
+
+		Val diff_e : Real = integrateOverXStaggeredEastFace ( vis@current ) / vf_cellWidth_x@current
+		Val diff_w : Real = integrateOverXStaggeredWestFace ( vis@current ) / vf_cellWidth_x@current@[-1,  0,  0]
+
+		Val diff_n : Real = integrateOverXStaggeredNorthFace ( evalAtXStaggeredNorthFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[ 0,  1,  0]
+		Val diff_s : Real = integrateOverXStaggeredSouthFace ( evalAtXStaggeredSouthFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current
+
+		Val diff_t : Real = integrateOverXStaggeredTopFace ( evalAtXStaggeredTopFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[ 0,  0,  1]
+		Val diff_b : Real = integrateOverXStaggeredBottomFace ( evalAtXStaggeredBottomFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current
+
+		AuStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e@current, diff_e ) + max ( 0.0, -1.0 * flow_e@current ) )
+		AuStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w@current, diff_w ) + max ( 0.0,        flow_w@current ) )
+
+		AuStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n@current, diff_n ) + max ( 0.0, -1.0 * flow_n@current ) )
+		AuStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s@current, diff_s ) + max ( 0.0,        flow_s@current ) )
+
+		AuStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t@current, diff_t ) + max ( 0.0, -1.0 * flow_t@current ) )
+		AuStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b@current, diff_b ) + max ( 0.0,        flow_b@current ) )
+
 		Var smasa : Real = (
-			( floweu@current - floweu@current@[-1, 0, 0] + flownu@current - flownu@current@[0, -1, 0] + flowtu@current - flowtu@current@[0, 0, -1] ) / vf_xStagCellVolume@current
+			( flow_e@current - flow_w@current + flow_n@current - flow_s@current + flow_t@current - flow_b@current ) / vf_xStagCellVolume@current
 			+ ( rho[active]@current - rho[previous]@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
-		AuStencil@current:[0, 0, 0] = smasa
-		AuStencil@current:[0, 0, 0] += evalAtWestFace ( rho[active]@current ) / dt
-		AuStencil@current:[0, 0, 0] = ( AuStencil@current:[0, 0, 0] * vf_xStagCellVolume@current
-			- AuStencil@current:[1, 0, 0] - AuStencil@current:[-1, 0, 0]
-			- AuStencil@current:[0, 1, 0] - AuStencil@current:[0, -1, 0]
-			- AuStencil@current:[0, 0, 1] - AuStencil@current:[0, 0, -1] ) / relax_1
+		AuStencil@current:[ 0,  0,  0] = smasa
+		AuStencil@current:[ 0,  0,  0] += evalAtWestFace ( rho[active]@current ) / dt
+		AuStencil@current:[ 0,  0,  0] = ( AuStencil@current:[ 0,  0,  0] * vf_xStagCellVolume@current
+			- AuStencil@current:[ 1,  0,  0] - AuStencil@current:[-1,  0,  0]
+			- AuStencil@current:[ 0,  1,  0] - AuStencil@current:[ 0, -1,  0]
+			- AuStencil@current:[ 0,  0,  1] - AuStencil@current:[ 0,  0, -1] ) / relax_1
 
 		rhs_u@current = ( u[active]@current * smasa
 			+ u[previous]@current * evalAtWestFace ( rho[previous]@current ) / dt )
-		rhs_u@current = rhs_u@current * vf_xStagCellVolume@current + ( 1.0 - relax_1 ) * AuStencil@current:[0, 0, 0] * u[active]@current
-		rhs_u@current += ( vf_cellWidth_y@current * vf_cellWidth_z@current ) * ( p@current@[-1, 0, 0] - p@current )
+		rhs_u@current = rhs_u@current * vf_xStagCellVolume@current + ( 1.0 - relax_1 ) * AuStencil@current:[ 0,  0,  0] * u[active]@current
+		rhs_u@current += ( vf_cellWidth_y@current * vf_cellWidth_z@current ) * ( p@current@[-1,  0,  0] - p@current )
 	}
 
 	communicate AuStencil@current
@@ -819,7 +806,7 @@ Function CompileStencil_u@finest (  ) : Unit {
 
 	// update du
 	loop over du@current {
-		du@current = ( vf_cellWidth_y@current * vf_cellWidth_z@current ) / ( AuStencil@current:[0, 0, 0] )
+		du@current = ( vf_cellWidth_y@current * vf_cellWidth_z@current ) / ( AuStencil@current:[ 0,  0,  0] )
 	}
 
 	communicate du@current
@@ -827,51 +814,51 @@ Function CompileStencil_u@finest (  ) : Unit {
 }
 
 Function CompileStencil_v@finest (  ) : Unit {
-	loop over v@current starting [-1, -1, -1] {
-		flowev@current = integrateOverYStaggeredEastFace ( u[active]@current * rho[active]@current )
-		flownv@current = integrateOverYStaggeredNorthFace ( v[active]@current * rho[active]@current )
-		flowtv@current = integrateOverYStaggeredTopFace ( w[active]@current * rho[active]@current )
-	}
+	loop over AvStencil@current {
+		Val flow_e@current : Real = integrateOverYStaggeredEastFace ( u[active]@current * rho[active]@current )
+		Val flow_w@current : Real = integrateOverYStaggeredWestFace ( u[active]@current * rho[active]@current )
 
-	loop over AvStencil@current starting [-1, -1, -1] {
-		Val diffev : Real = integrateOverYStaggeredEastFace ( evalAtYStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[1, 0, 0]
-		AvStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( flowev@current, diffev ) + max ( 0.0, -1.0 * flowev@current ) )
+		Val flow_n@current : Real = integrateOverYStaggeredNorthFace ( v[active]@current * rho[active]@current )
+		Val flow_s@current : Real = integrateOverYStaggeredSouthFace ( v[active]@current * rho[active]@current )
 
-		Val diffnv : Real = integrateOverYStaggeredNorthFace ( vis@current ) / vf_cellWidth_y@current
-		AvStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownv@current, diffnv ) + max ( 0.0, -1.0 * flownv@current ) )
+		Val flow_t@current : Real = integrateOverYStaggeredTopFace ( w[active]@current * rho[active]@current )
+		Val flow_b@current : Real = integrateOverYStaggeredBottomFace ( w[active]@current * rho[active]@current )
 
-		Val difftv : Real = integrateOverYStaggeredTopFace ( evalAtYStaggeredTopFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
-		AvStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtv@current, difftv ) + max ( 0.0, -1.0 * flowtv@current ) )
-	}
+		Val diff_e : Real = integrateOverYStaggeredEastFace ( evalAtYStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[ 1,  0,  0]
+		Val diff_w : Real = integrateOverYStaggeredWestFace ( evalAtYStaggeredWestFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current
 
-	// compile second half of the stencils
-	loop over AvStencil@current ending [-1, -1, -1] {
-		AvStencil@current:[-1,  0,  0] = AvStencil@current@[-1,  0,  0]:[ 1,  0,  0] - flowev@current@[-1,  0,  0]
-		AvStencil@current:[ 0, -1,  0] = AvStencil@current@[ 0, -1,  0]:[ 0,  1,  0] - flownv@current@[ 0, -1,  0]
-		AvStencil@current:[ 0,  0, -1] = AvStencil@current@[ 0,  0, -1]:[ 0,  0,  1] - flowtv@current@[ 0,  0, -1]
-	}
+		Val diff_n : Real = integrateOverYStaggeredNorthFace ( vis@current ) / vf_cellWidth_y@current
+		Val diff_s : Real = integrateOverYStaggeredSouthFace ( vis@current ) / vf_cellWidth_y@current@[ 0, -1,  0]
 
-	// handle boundary conditions
-	apply bc to AvStencil@current
+		Val diff_t : Real = integrateOverYStaggeredTopFace ( evalAtYStaggeredTopFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[ 0,  0,  1]
+		Val diff_b : Real = integrateOverYStaggeredBottomFace ( evalAtYStaggeredBottomFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current
 
-	loop over rhs_v@current {
+		AvStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e@current, diff_e ) + max ( 0.0, -1.0 * flow_e@current ) )
+		AvStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w@current, diff_w ) + max ( 0.0,        flow_w@current ) )
+
+		AvStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n@current, diff_n ) + max ( 0.0, -1.0 * flow_n@current ) )
+		AvStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s@current, diff_s ) + max ( 0.0,        flow_s@current ) )
+
+		AvStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t@current, diff_t ) + max ( 0.0, -1.0 * flow_t@current ) )
+		AvStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b@current, diff_b ) + max ( 0.0,        flow_b@current ) )
+
 		Var smasa : Real = (
-			( flowev@current - flowev@current@[-1, 0, 0] + flownv@current - flownv@current@[0, -1, 0] + flowtv@current - flowtv@current@[0, 0, -1] ) / vf_yStagCellVolume@current
+			( flow_e@current - flow_w@current + flow_n@current - flow_s@current + flow_t@current - flow_b@current ) / vf_yStagCellVolume@current
 			+ ( rho[active]@current - rho[previous]@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
-		AvStencil@current:[0, 0, 0] = smasa
-		AvStencil@current:[0, 0, 0] += evalAtSouthFace ( rho[active]@current ) / dt
-		AvStencil@current:[0, 0, 0] = ( AvStencil@current:[0, 0, 0] * vf_yStagCellVolume@current
-			- AvStencil@current:[1, 0, 0] - AvStencil@current:[-1, 0, 0]
-			- AvStencil@current:[0, 1, 0] - AvStencil@current:[0, -1, 0]
-			- AvStencil@current:[0, 0, 1] - AvStencil@current:[0, 0, -1] ) / relax_2
+		AvStencil@current:[ 0,  0,  0] = smasa
+		AvStencil@current:[ 0,  0,  0] += evalAtSouthFace ( rho[active]@current ) / dt
+		AvStencil@current:[ 0,  0,  0] = ( AvStencil@current:[ 0,  0,  0] * vf_yStagCellVolume@current
+			- AvStencil@current:[ 1,  0,  0] - AvStencil@current:[-1,  0,  0]
+			- AvStencil@current:[ 0,  1,  0] - AvStencil@current:[ 0, -1,  0]
+			- AvStencil@current:[ 0,  0,  1] - AvStencil@current:[ 0,  0, -1] ) / relax_2
 
 		rhs_v@current = -9.81 * ( rho[active]@current - rhoref ) // incorporate gravity
 		rhs_v@current += v[active]@current * smasa
 			+ v[previous]@current * evalAtSouthFace ( rho[previous]@current ) / dt
-		rhs_v@current = rhs_v@current * vf_yStagCellVolume@current + ( 1.0 - relax_2 ) * AvStencil@current:[0, 0, 0] * v[active]@current
-		rhs_v@current += ( vf_cellWidth_x@current * vf_cellWidth_z@current ) * ( p@current@[0, -1, 0] - p@current )
+		rhs_v@current = rhs_v@current * vf_yStagCellVolume@current + ( 1.0 - relax_2 ) * AvStencil@current:[ 0,  0,  0] * v[active]@current
+		rhs_v@current += ( vf_cellWidth_x@current * vf_cellWidth_z@current ) * ( p@current@[ 0, -1,  0] - p@current )
 	}
 
 	communicate AvStencil@current
@@ -881,7 +868,7 @@ Function CompileStencil_v@finest (  ) : Unit {
 
 	// update dv
 	loop over dv@current {
-		dv@current = ( vf_cellWidth_x@current * vf_cellWidth_z@current ) / ( AvStencil@current:[0, 0, 0] )
+		dv@current = ( vf_cellWidth_x@current * vf_cellWidth_z@current ) / ( AvStencil@current:[ 0,  0,  0] )
 	}
 
 	communicate dv@current
@@ -889,50 +876,50 @@ Function CompileStencil_v@finest (  ) : Unit {
 }
 
 Function CompileStencil_w@finest (  ) : Unit {
-	loop over w@current starting [-1, -1, -1] {
-		flowew@current = integrateOverZStaggeredEastFace ( u[active]@current * rho[active]@current )
-		flownw@current = integrateOverZStaggeredNorthFace ( v[active]@current * rho[active]@current )
-		flowtw@current = integrateOverZStaggeredTopFace ( w[active]@current * rho[active]@current )
-	}
+	loop over AwStencil@current {
+		Val flow_e@current : Real = integrateOverZStaggeredEastFace ( u[active]@current * rho[active]@current )
+		Val flow_w@current : Real = integrateOverZStaggeredWestFace ( u[active]@current * rho[active]@current )
 
-	loop over AwStencil@current starting [-1, -1, -1] {
-		Val diffew : Real = integrateOverZStaggeredEastFace ( evalAtZStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[1, 0, 0]
-		AwStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( flowew@current, diffew ) + max ( 0.0, -1.0 * flowew@current ) )
+		Val flow_n@current : Real = integrateOverZStaggeredNorthFace ( v[active]@current * rho[active]@current )
+		Val flow_s@current : Real = integrateOverZStaggeredSouthFace ( v[active]@current * rho[active]@current )
 
-		Val diffnw : Real = integrateOverZStaggeredNorthFace ( evalAtZStaggeredNorthFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[0, 1, 0]
-		AwStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownw@current, diffnw ) + max ( 0.0, -1.0 * flownw@current ) )
+		Val flow_t@current : Real = integrateOverZStaggeredTopFace ( w[active]@current * rho[active]@current )
+		Val flow_b@current : Real = integrateOverZStaggeredBottomFace ( w[active]@current * rho[active]@current )
 
-		Val difftw : Real = integrateOverZStaggeredTopFace ( vis@current ) / vf_cellWidth_z@current
-		AwStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtw@current, difftw ) + max ( 0.0, -1.0 * flowtw@current ) )
-	}
+		Val diff_e : Real = integrateOverZStaggeredEastFace ( evalAtZStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[ 1,  0,  0]
+		Val diff_w : Real = integrateOverZStaggeredWestFace ( evalAtZStaggeredWestFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current
 
-	// compile second half of the stencils
-	loop over AwStencil@current ending [-1, -1, -1] {
-		AwStencil@current:[-1,  0,  0] = AwStencil@current@[-1,  0,  0]:[ 1,  0,  0] - flowew@current@[-1,  0,  0]
-		AwStencil@current:[ 0, -1,  0] = AwStencil@current@[ 0, -1,  0]:[ 0,  1,  0] - flownw@current@[ 0, -1,  0]
-		AwStencil@current:[ 0,  0, -1] = AwStencil@current@[ 0,  0, -1]:[ 0,  0,  1] - flowtw@current@[ 0,  0, -1]
-	}
+		Val diff_n : Real = integrateOverZStaggeredNorthFace ( evalAtZStaggeredNorthFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[ 0,  1,  0]
+		Val diff_s : Real = integrateOverZStaggeredSouthFace ( evalAtZStaggeredSouthFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current
 
-	// handle boundary conditions
-	apply bc to AwStencil@current
+		Val diff_t : Real = integrateOverZStaggeredTopFace ( vis@current ) / vf_cellWidth_z@current
+		Val diff_b : Real = integrateOverZStaggeredBottomFace ( vis@current ) / vf_cellWidth_z@current@[ 0,  0, -1]
 
-	loop over rhs_w@current {
+		AwStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e@current, diff_e ) + max ( 0.0, -1.0 * flow_e@current ) )
+		AwStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w@current, diff_w ) + max ( 0.0,        flow_w@current ) )
+
+		AwStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n@current, diff_n ) + max ( 0.0, -1.0 * flow_n@current ) )
+		AwStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s@current, diff_s ) + max ( 0.0,        flow_s@current ) )
+
+		AwStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t@current, diff_t ) + max ( 0.0, -1.0 * flow_t@current ) )
+		AwStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b@current, diff_b ) + max ( 0.0,        flow_b@current ) )
+
 		Var smasa : Real = (
-			( flowew@current - flowew@current@[-1, 0, 0] + flownw@current - flownw@current@[0, -1, 0] + flowtw@current - flowtw@current@[0, 0, -1] ) / vf_zStagCellVolume@current
+			( flow_e@current - flow_w@current + flow_n@current - flow_s@current + flow_t@current - flow_b@current ) / vf_zStagCellVolume@current
 			+ ( rho[active]@current - rho[previous]@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
-		AwStencil@current:[0, 0, 0] = smasa
-		AwStencil@current:[0, 0, 0] += evalAtBottomFace ( rho[active]@current ) / dt
-		AwStencil@current:[0, 0, 0] = ( AwStencil@current:[0, 0, 0] * vf_zStagCellVolume@current
-			- AwStencil@current:[1, 0, 0] - AwStencil@current:[-1, 0, 0]
-			- AwStencil@current:[0, 1, 0] - AwStencil@current:[0, -1, 0]
-			- AwStencil@current:[0, 0, 1] - AwStencil@current:[0, 0, -1] ) / relax_3
+		AwStencil@current:[ 0,  0,  0] = smasa
+		AwStencil@current:[ 0,  0,  0] += evalAtBottomFace ( rho[active]@current ) / dt
+		AwStencil@current:[ 0,  0,  0] = ( AwStencil@current:[ 0,  0,  0] * vf_zStagCellVolume@current
+			- AwStencil@current:[ 1,  0,  0] - AwStencil@current:[-1,  0,  0]
+			- AwStencil@current:[ 0,  1,  0] - AwStencil@current:[ 0, -1,  0]
+			- AwStencil@current:[ 0,  0,  1] - AwStencil@current:[ 0,  0, -1] ) / relax_3
 
 		rhs_w@current = w[active]@current * smasa
 			+ w[previous]@current * evalAtBottomFace ( rho[previous]@current ) / dt
-		rhs_w@current = rhs_w@current * vf_zStagCellVolume@current + ( 1.0 - relax_3 ) * AwStencil@current:[0, 0, 0] * w[active]@current
-		rhs_w@current += vf_cellWidth_x@current * vf_cellWidth_y@current * ( p@current@[0, 0, -1] - p@current )
+		rhs_w@current = rhs_w@current * vf_zStagCellVolume@current + ( 1.0 - relax_3 ) * AwStencil@current:[ 0,  0,  0] * w[active]@current
+		rhs_w@current += vf_cellWidth_x@current * vf_cellWidth_y@current * ( p@current@[ 0,  0, -1] - p@current )
 	}
 
 	communicate AwStencil@current
@@ -942,7 +929,7 @@ Function CompileStencil_w@finest (  ) : Unit {
 
 	// update dw
 	loop over dw@current {
-		dw@current = vf_cellWidth_x@current * vf_cellWidth_y@current / AwStencil@current:[0, 0, 0]
+		dw@current = vf_cellWidth_x@current * vf_cellWidth_y@current / AwStencil@current:[ 0,  0,  0]
 	}
 
 	communicate dw@current
@@ -950,31 +937,19 @@ Function CompileStencil_w@finest (  ) : Unit {
 }
 
 Function CompileStencil_pc@finest (  ) : Unit {
-	// compile first half of the stencils
-	loop over ApcStencil@current starting [-1, -1, -1] {
-		ApcStencil@current:[ 1,  0,  0] = -1.0 * integrateOverEastFace ( du@current * rho[active]@current )
-		ApcStencil@current:[ 0,  1,  0] = -1.0 * integrateOverNorthFace ( dv@current * rho[active]@current )
-		ApcStencil@current:[ 0,  0,  1] = -1.0 * integrateOverTopFace ( dw@current * rho[active]@current )
-	}
-
-	// compile second half of the stencils
-	loop over ApcStencil@current ending [-1, -1, -1] {
-		ApcStencil@current:[-1,  0,  0] = ApcStencil@current@[-1,  0,  0]:[ 1,  0,  0]
-		ApcStencil@current:[ 0, -1,  0] = ApcStencil@current@[ 0, -1,  0]:[ 0,  1,  0]
-		ApcStencil@current:[ 0,  0, -1] = ApcStencil@current@[ 0,  0, -1]:[ 0,  0,  1]
-	}
-
-	// handle boundary conditions
-	apply bc to ApcStencil@current
-
 	loop over ApcStencil@current {
+		ApcStencil@current:[ 1,  0,  0] = -1.0 * integrateOverEastFace ( du@current * rho[active]@current )
+		ApcStencil@current:[-1,  0,  0] = -1.0 * integrateOverWestFace ( du@current * rho[active]@current )
+		ApcStencil@current:[ 0,  1,  0] = -1.0 * integrateOverNorthFace ( dv@current * rho[active]@current )
+		ApcStencil@current:[ 0, -1,  0] = -1.0 * integrateOverSouthFace ( dv@current * rho[active]@current )
+		ApcStencil@current:[ 0,  0,  1] = -1.0 * integrateOverTopFace ( dw@current * rho[active]@current )
+		ApcStencil@current:[ 0,  0, -1] = -1.0 * integrateOverBottomFace ( dw@current * rho[active]@current )
+
 		ApcStencil@current:[ 0,  0,  0] = -1.0 * (
 			ApcStencil@current:[ 1,  0,  0] + ApcStencil@current:[-1,  0,  0] +
 			ApcStencil@current:[ 0,  1,  0] + ApcStencil@current:[ 0, -1,  0] +
 			ApcStencil@current:[ 0,  0,  1] + ApcStencil@current:[ 0,  0, -1] )
-	}
 
-	loop over rhs_pc@current {
 		rhs_pc@current = (
 			integrateOverWestFace ( u[active]@current * rho[active]@current )
 			- integrateOverEastFace ( u[active]@current * rho[active]@current )
@@ -990,48 +965,48 @@ Function CompileStencil_pc@finest (  ) : Unit {
 }
 
 Function CompileStencil_t@finest (  ) : Unit {
-	loop over rho@current starting [-1, -1, -1] {
-		flowet@current = integrateOverEastFace ( u[active]@current * rho[active]@current )
-		flownt@current = integrateOverNorthFace ( v[active]@current * rho[active]@current )
-		flowtt@current = integrateOverTopFace ( w[active]@current * rho[active]@current )
-	}
+	loop over AtStencil@current {
+		Val flow_e@current : Real = integrateOverEastFace ( u[active]@current * rho[active]@current )
+		Val flow_w@current : Real = integrateOverWestFace ( u[active]@current * rho[active]@current )
 
-	loop over AtStencil@current starting [-1, -1, -1] {
-		Val diffet : Real = integrateOverEastFace ( evalAtEastFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[1, 0, 0]
-		AtStencil@current:[1, 0, 0] = -1.0 * ( calc_diflow ( flowet@current, diffet ) + max ( 0.0, -1.0 * flowet@current ) )
+		Val flow_n@current : Real = integrateOverNorthFace ( v[active]@current * rho[active]@current )
+		Val flow_s@current : Real = integrateOverSouthFace ( v[active]@current * rho[active]@current )
 
-		Val diffnt : Real = integrateOverNorthFace ( evalAtNorthFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[0, 1, 0]
-		AtStencil@current:[0, 1, 0] = -1.0 * ( calc_diflow ( flownt@current, diffnt ) + max ( 0.0, -1.0 * flownt@current ) )
+		Val flow_t@current : Real = integrateOverTopFace ( w[active]@current * rho[active]@current )
+		Val flow_b@current : Real = integrateOverBottomFace ( w[active]@current * rho[active]@current )
 
-		Val difftt : Real = integrateOverTopFace ( evalAtTopFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[0, 0, 1]
-		AtStencil@current:[0, 0, 1] = -1.0 * ( calc_diflow ( flowtt@current, difftt ) + max ( 0.0, -1.0 * flowtt@current ) )
-	}
+		Val diff_e : Real = integrateOverEastFace ( evalAtEastFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[ 1,  0,  0]
+		Val diff_w : Real = integrateOverWestFace ( evalAtWestFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current
 
-	// compile second half of the stencils
-	loop over AtStencil@current ending [-1, -1, -1] {
-		AtStencil@current:[-1,  0,  0] = AtStencil@current@[-1,  0,  0]:[ 1,  0,  0] - flowet@current@[-1,  0,  0]
-		AtStencil@current:[ 0, -1,  0] = AtStencil@current@[ 0, -1,  0]:[ 0,  1,  0] - flownt@current@[ 0, -1,  0]
-		AtStencil@current:[ 0,  0, -1] = AtStencil@current@[ 0,  0, -1]:[ 0,  0,  1] - flowtt@current@[ 0,  0, -1]
-	}
+		Val diff_n : Real = integrateOverNorthFace ( evalAtNorthFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current@[ 0,  1,  0]
+		Val diff_s : Real = integrateOverSouthFace ( evalAtSouthFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_y@current
 
-	// handle boundary conditions
-	apply bc to AtStencil@current
+		Val diff_t : Real = integrateOverTopFace ( evalAtTopFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[ 0,  0,  1]
+		Val diff_b : Real = integrateOverBottomFace ( evalAtBottomFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current
 
-	loop over rhs_t@current {
+		AtStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e@current, diff_e ) + max ( 0.0, -1.0 * flow_e@current ) )
+		AtStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w@current, diff_w ) + max ( 0.0,        flow_w@current ) )
+
+		AtStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n@current, diff_n ) + max ( 0.0, -1.0 * flow_n@current ) )
+		AtStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s@current, diff_s ) + max ( 0.0,        flow_s@current ) )
+
+		AtStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t@current, diff_t ) + max ( 0.0, -1.0 * flow_t@current ) )
+		AtStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b@current, diff_b ) + max ( 0.0,        flow_b@current ) )
+
 		Var smasa : Real = (
-			( flowet@current - flowet@current@[-1, 0, 0] + flownt@current - flownt@current@[0, -1, 0] + flowtt@current - flowtt@current@[0, 0, -1] ) / vf_cellVolume@current
+			( flow_e@current - flow_w@current + flow_n@current - flow_s@current + flow_t@current - flow_b@current ) / vf_cellVolume@current
 			+ ( rho[active]@current - rho[previous]@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
-		AtStencil@current:[0, 0, 0] = smasa + rho[active]@current / dt
-		AtStencil@current:[0, 0, 0] = ( AtStencil@current:[0, 0, 0] * vf_cellVolume@current
-			- AtStencil@current:[1, 0, 0] - AtStencil@current:[-1, 0, 0]
-			- AtStencil@current:[0, 1, 0] - AtStencil@current:[0, -1, 0]
-			- AtStencil@current:[0, 0, 1] - AtStencil@current:[0, 0, -1] ) / relax_7
+		AtStencil@current:[ 0,  0,  0] = smasa + rho[active]@current / dt
+		AtStencil@current:[ 0,  0,  0] = ( AtStencil@current:[ 0,  0,  0] * vf_cellVolume@current
+			- AtStencil@current:[ 1,  0,  0] - AtStencil@current:[-1,  0,  0]
+			- AtStencil@current:[ 0,  1,  0] - AtStencil@current:[ 0, -1,  0]
+			- AtStencil@current:[ 0,  0,  1] - AtStencil@current:[ 0,  0, -1] ) / relax_7
 
 		rhs_t@current = smasa * phi7[active]@current
 			+ ( rho[active]@current / dt ) * phi7[previous]@current
-		rhs_t@current = rhs_t@current * vf_cellVolume@current + ( 1.0 - relax_7 ) * AtStencil@current:[0, 0, 0] * phi7[active]@current
+		rhs_t@current = rhs_t@current * vf_cellVolume@current + ( 1.0 - relax_7 ) * AtStencil@current:[ 0,  0,  0] * phi7[active]@current
 	}
 
 	// restrict stencil

@@ -1,6 +1,7 @@
 data_alignFieldPointers    = true
+simd_avoidUnaligned        = true
 
-ir_maxInliningSize         = 2147483647
+opt_maxInliningSize         = 2147483647
 
 dimensionality             = 3
 

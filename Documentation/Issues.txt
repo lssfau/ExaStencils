@@ -2,7 +2,33 @@
 ================================================================ Known Problems ================================================================
 ================================================================================================================================================
 
-- 
+- Transformations do not match on root. 
+Example:
+`IR_FieldSelection` has a field `slot` of type `IR_Expression`. Say we want to check
+if `slot` is a `SlotAccess` node.
+
+	val fs : IR_FieldSelection = ...
+	fs.slot match {
+		case  sa: SlotAccess => println("Found a SlotAccess using match satement")
+		case _ =>
+	}
+	SlotStrategy.applyStandalone(fs.slot)
+
+with
+
+	object SlotStrategy extends DefaultStrategy("") {
+	  this += new Transformation("", {
+		case sa : SlotAccess =>
+			// this will never print:
+			println("Found a SlotAccess using Transformation")
+		})
+	}
+
+The match statement prints while the `Transformation` does not. The reason
+for this is that transformations always need to replace a field of an object.
+Obviously, for the root of the AST, the transformation has no parent object
+where the field could be replaced.
+		
 
 ================================================================================================================================================
 ===================================================================== TODO =====================================================================
