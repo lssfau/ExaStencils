@@ -1,7 +1,6 @@
 package exastencils.hack.ir
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -22,6 +21,63 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
   var collector = new StackCollector
   this.register(collector)
 
+  def calculateDeterminant(m: IR_MatrixExpression): IR_Expression = {
+    if(m.rows != m.columns) {
+      Logger.error("determinant for non-quadratic matrices not implemented")
+      // FIXME Nullzeilen/-spalten ergänzen
+    }
+    if (m.rows <= 0) {
+      Logger.error("MatrixExpression of size <= 0")
+    } else if (m.rows == 1) {
+      return m.expressions(0)(0)
+    } else if (m.rows == 2) {
+      return m.expressions(0)(0) * m.expressions(1)(1) - m.expressions(0)(1) * m.expressions(1)(0)
+    } else if (m.rows == 3) {
+      return m.expressions(0)(0) * m.expressions(1)(1) * m.expressions(2)(2) +
+        m.expressions(0)(1) * m.expressions(1)(2) * m.expressions(2)(0) +
+        m.expressions(0)(2) * m.expressions(1)(0) * m.expressions(2)(1) -
+        m.expressions(2)(0) * m.expressions(1)(1) * m.expressions(0)(2) -
+        m.expressions(2)(1) * m.expressions(1)(2) * m.expressions(0)(0) -
+        m.expressions(2)(2) * m.expressions(1)(0) * m.expressions(0)(1)
+    } else {
+      var det: IR_Expression = 0
+      for (i <- 0 until m.rows) {
+        var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
+        for (row <- 0 until m.rows) {
+          if (row != i) {
+            var matrixCol = ListBuffer[IR_Expression]()
+            for (col <- 1 until m.columns) {
+              matrixCol += m.expressions(row)(col)
+            }
+            matrixExps += matrixCol
+          }
+        }
+        var tmp = IR_MatrixExpression(Some(m.datatype), matrixExps)
+        det += m.expressions(i)(0) * calculateDeterminant(tmp) * math.pow(-1, i)
+      }
+      return det
+    }
+  }
+
+  def calculateMatrixOfMinorsElement(m:IR_MatrixExpression, forRow:Integer, forColumn:Integer) : IR_Expression = {
+    if(m.rows != m.columns) {
+      Logger.error("matrix of minors for non-quadratic matrices not implemented ")
+    }
+    var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
+    for (row <- 0 until m.rows) {
+      if (row != forRow) {
+        var matrixCol = ListBuffer[IR_Expression]()
+        for (col <- 0 until m.columns) {
+          if(col != forColumn) {
+            matrixCol += m.expressions(row)(col)
+          }
+        }
+        matrixExps += matrixCol
+      }
+    }
+    return calculateDeterminant(IR_MatrixExpression(Some(m.datatype), matrixExps))
+  }
+
   this += new Transformation("SearchAndReplace", {
     // functions
     // FIXME: datatypes for function accesses
@@ -29,7 +85,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case IR_FunctionCall(IR_UserFunctionAccess("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
 
     // Vector functions
-    case f : IR_FunctionCall if f.name == "cross" || f.name == "crossproduct" =>
+    case f: IR_FunctionCall if f.name == "cross" || f.name == "crossproduct" =>
       f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[IR_VectorExpression] || f.arguments(0).isInstanceOf[IR_VectorExpression])
         && a.getClass != f.arguments(0).getClass) Logger.error("Must have matching types!"))
       f.arguments.foreach(a => if (a.asInstanceOf[IR_VectorExpression].length != f.arguments(0).asInstanceOf[IR_VectorExpression].length) Logger.error("Vectors must have matching lengths"))
@@ -45,9 +101,13 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         val r = ListBuffer[IR_Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
         IR_VectorExpression(x.innerDatatype, r, x.rowVector)
       }
-
     // Matrix functions
-    case x : IR_FunctionCall if x.name == "inverse" =>
+    case x: IR_FunctionCall if x.name == "det" && x.arguments.size == 1 =>
+      x.arguments(0) match {
+        case m: IR_MatrixExpression => calculateDeterminant(m)
+        case _ => x
+      }
+    case x: IR_FunctionCall if x.name == "inverse" =>
       if (x.arguments.size == 1) {
         if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
           val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
@@ -56,7 +116,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             val b = m.expressions(0)(1)
             val c = m.expressions(1)(0)
             val d = m.expressions(1)(1)
-            val det = 1.0 / (a * d - b * c)
+            val det : IR_Expression = 1.0 / (a * d - b * c)
             IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
           } else if (m.rows == 3 && m.columns == 3) {
             val a = m.expressions(0)(0)
@@ -79,6 +139,23 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             val I = a * e - b * d
             val det = a * A + b * B + c * C
             IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
+          } else if (m.rows == m.columns) {
+            val inv_det = 1.0 / calculateDeterminant(m)
+            var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
+            for(row <- 0 until m.rows) {
+              var matrixCol = ListBuffer[IR_Expression]()
+              for(col <- 0 until m.columns) {
+                matrixCol += IR_RealConstant(0)
+              }
+              matrixExps += matrixCol
+            }
+
+            for (row <- 0 until m.rows) {
+              for (col <- 0 until m.columns) {
+                matrixExps(col)(row) = calculateMatrixOfMinorsElement(m, row, col) * math.pow(-1, row + col) * inv_det
+              }
+            }
+            IR_MatrixExpression(Some(m.datatype), matrixExps)
           } else {
             x
           }
@@ -90,7 +167,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
 
     // FIXME: HACK to realize application functionality
-    case func : IR_Function if "Application" == func.name =>
+    case func: IR_Function if "Application" == func.name =>
       func.returntype = IR_IntegerDatatype
       func.name = "main"
       if (!func.parameters.isEmpty)
@@ -121,8 +198,10 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     // FIXME: IR_UserFunctionAccess's
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnBoundaryOf", _), args) =>
-      IR_IsOnBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IR_IsOnBoundary(
+        args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
+        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid)
+      )
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnEastBoundaryOf", _), args) =>
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)),
@@ -148,11 +227,11 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
 
-    case IR_ElementwiseAddition(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
-    case IR_ElementwiseSubtraction(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
+    case IR_ElementwiseAddition(left, right) => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
+    case IR_ElementwiseSubtraction(left, right) => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
     case IR_ElementwiseMultiplication(left, right) => IR_FunctionCall("elementwiseMul", ListBuffer(left, right))
-    case IR_ElementwiseDivision(left, right)       => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
-    case IR_ElementwiseModulo(left, right)         => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
+    case IR_ElementwiseDivision(left, right) => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
+    case IR_ElementwiseModulo(left, right) => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
     // FIXME: IR_UserFunctionAccess
     case IR_FunctionCall(IR_UserFunctionAccess("dot", _), args) => IR_FunctionCall("dotProduct", args)
   })
