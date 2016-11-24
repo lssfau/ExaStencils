@@ -104,7 +104,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
 
     // Simplify matrices
     case IR_Negative(m : IR_MatrixExpression) =>
-      IR_MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => IR_Negative(y) : IR_Expression } })
+      IR_MatrixExpression(m.innerDatatype, m.rows, m.columns, m.expressions.map { y => IR_Negative(y) : IR_Expression })
 
     case IR_Scope(ListBuffer(IR_Scope(body))) => IR_Scope(body)
 
@@ -306,7 +306,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
             IR_VectorExpression(Some(IR_ResultingDatatype(cstDt.get, v.innerDatatype.getOrElse(IR_RealDatatype))), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
           case m : IR_MatrixExpression if !found =>
             found = true
-            IR_MatrixExpression(Some(IR_ResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
+            IR_MatrixExpression(Some(IR_ResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.rows, m.columns, m.expressions.map(Duplicate(coeff) * _ : IR_Expression))
           case x                                 =>
             x
         }

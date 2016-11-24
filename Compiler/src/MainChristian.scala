@@ -50,8 +50,6 @@ object MainChristian {
 //    var simpl = IR_SimplifyExpression.simplifyFloatingExpr(det)
 //    System.out.println(simpl)
 
-
-
     HACK_IR_ResolveSpecialFunctionsAndConstants.apply(Some(root))
     System.out.println(root)
     IR_GeneralSimplify.doUntilDone(Some(root))

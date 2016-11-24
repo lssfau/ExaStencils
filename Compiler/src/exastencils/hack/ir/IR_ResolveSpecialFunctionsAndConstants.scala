@@ -22,60 +22,63 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
   this.register(collector)
 
   def calculateDeterminant(m: IR_MatrixExpression): IR_Expression = {
-    if(m.rows != m.columns) {
+    if (m.rows != m.columns) {
       Logger.error("determinant for non-quadratic matrices not implemented")
       // FIXME Nullzeilen/-spalten ergänzen
     }
     if (m.rows <= 0) {
       Logger.error("MatrixExpression of size <= 0")
     } else if (m.rows == 1) {
-      return m.expressions(0)(0)
+      return m.get(0, 0)
     } else if (m.rows == 2) {
-      return m.expressions(0)(0) * m.expressions(1)(1) - m.expressions(0)(1) * m.expressions(1)(0)
+      return m.get(0, 0) * m.get(1, 1) - m.get(0, 1) * m.get(1, 0)
     } else if (m.rows == 3) {
-      return m.expressions(0)(0) * m.expressions(1)(1) * m.expressions(2)(2) +
-        m.expressions(0)(1) * m.expressions(1)(2) * m.expressions(2)(0) +
-        m.expressions(0)(2) * m.expressions(1)(0) * m.expressions(2)(1) -
-        m.expressions(2)(0) * m.expressions(1)(1) * m.expressions(0)(2) -
-        m.expressions(2)(1) * m.expressions(1)(2) * m.expressions(0)(0) -
-        m.expressions(2)(2) * m.expressions(1)(0) * m.expressions(0)(1)
+      return m.get(0, 0) * m.get(1, 1) * m.get(2, 2) +
+        m.get(0, 1) * m.get(1, 2) * m.get(2, 0) +
+        m.get(0, 2) * m.get(1, 0) * m.get(2, 1) -
+        m.get(2, 0) * m.get(1, 1) * m.get(0, 2) -
+        m.get(2, 1) * m.get(1, 2) * m.get(0, 0) -
+        m.get(2, 2) * m.get(1, 0) * m.get(0, 1)
     } else {
       var det: IR_Expression = 0
+      var tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
+      // laplace expansion
       for (i <- 0 until m.rows) {
-        var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
+        var tmpRow = 0
         for (row <- 0 until m.rows) {
           if (row != i) {
-            var matrixCol = ListBuffer[IR_Expression]()
             for (col <- 1 until m.columns) {
-              matrixCol += m.expressions(row)(col)
+              tmp.set(tmpRow, col - 1, m.get(row, col))
             }
-            matrixExps += matrixCol
+            tmpRow += 1
           }
         }
-        var tmp = IR_MatrixExpression(Some(m.datatype), matrixExps)
-        det += m.expressions(i)(0) * calculateDeterminant(tmp) * math.pow(-1, i)
+        det += m.get(i, 0) * calculateDeterminant(tmp) * math.pow(-1, i)
       }
       return det
     }
   }
 
-  def calculateMatrixOfMinorsElement(m:IR_MatrixExpression, forRow:Integer, forColumn:Integer) : IR_Expression = {
-    if(m.rows != m.columns) {
+  def calculateMatrixOfMinorsElement(m: IR_MatrixExpression, forRow: Integer, forColumn: Integer): IR_Expression = {
+    if (m.rows != m.columns) {
       Logger.error("matrix of minors for non-quadratic matrices not implemented ")
     }
     var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
+    var tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
+    var tmpRow = 0
     for (row <- 0 until m.rows) {
       if (row != forRow) {
-        var matrixCol = ListBuffer[IR_Expression]()
+        var tmpCol = 0
         for (col <- 0 until m.columns) {
-          if(col != forColumn) {
-            matrixCol += m.expressions(row)(col)
+          if (col != forColumn) {
+            tmp.set(tmpRow, tmpCol, m.get(row, col))
+            tmpCol += 1
           }
         }
-        matrixExps += matrixCol
+        tmpRow += 1
       }
     }
-    return calculateDeterminant(IR_MatrixExpression(Some(m.datatype), matrixExps))
+    return calculateDeterminant(tmp)
   }
 
   this += new Transformation("SearchAndReplace", {
@@ -112,22 +115,22 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
           val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
           if (m.rows == 2 && m.columns == 2) {
-            val a = m.expressions(0)(0)
-            val b = m.expressions(0)(1)
-            val c = m.expressions(1)(0)
-            val d = m.expressions(1)(1)
-            val det : IR_Expression = 1.0 / (a * d - b * c)
+            val a = m.get(0, 0)
+            val b = m.get(0, 1)
+            val c = m.get(1, 0)
+            val d = m.get(1, 1)
+            val det: IR_Expression = 1.0 / (a * d - b * c)
             IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
           } else if (m.rows == 3 && m.columns == 3) {
-            val a = m.expressions(0)(0)
-            val b = m.expressions(0)(1)
-            val c = m.expressions(0)(2)
-            val d = m.expressions(1)(0)
-            val e = m.expressions(1)(1)
-            val f = m.expressions(1)(2)
-            val g = m.expressions(2)(0)
-            val h = m.expressions(2)(1)
-            val i = m.expressions(2)(2)
+            val a = m.get(0, 0)
+            val b = m.get(0, 1)
+            val c = m.get(0, 2)
+            val d = m.get(1, 0)
+            val e = m.get(1, 1)
+            val f = m.get(1, 2)
+            val g = m.get(2, 0)
+            val h = m.get(2, 1)
+            val i = m.get(2, 2)
             val A = e * i - f * h
             val B = -1 * (d * i - f * g)
             val C = d * h - e * g
@@ -138,9 +141,12 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             val H = -1 * (a * f - c * d)
             val I = a * e - b * d
             val det = a * A + b * B + c * C
+            val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
+
             IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
           } else if (m.rows == m.columns) {
             val inv_det = 1.0 / calculateDeterminant(m)
+            /*
             var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
             for(row <- 0 until m.rows) {
               var matrixCol = ListBuffer[IR_Expression]()
@@ -149,13 +155,15 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
               }
               matrixExps += matrixCol
             }
+            */
 
+            val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
             for (row <- 0 until m.rows) {
               for (col <- 0 until m.columns) {
-                matrixExps(col)(row) = calculateMatrixOfMinorsElement(m, row, col) * math.pow(-1, row + col) * inv_det
+                tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * math.pow(-1, row + col) * inv_det)
               }
             }
-            IR_MatrixExpression(Some(m.datatype), matrixExps)
+            tmp
           } else {
             x
           }
