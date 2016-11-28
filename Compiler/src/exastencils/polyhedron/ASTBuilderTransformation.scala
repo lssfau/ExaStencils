@@ -29,7 +29,6 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
   private var vecDims : Set[String] = null
   private var parallelize_omp : Boolean = false
   private var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo()
-  private var privateVars : ListBuffer[IR_VariableAccess] = null
   private var condition : IR_Expression = null
 
   private def invalidateScop(scop : Scop) : Unit = {
@@ -53,7 +52,7 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
       return IR_NullStatement
-    parallelization = scop.root.parallelization
+    parallelization = Duplicate(scop.root.parallelization)
     condition = scop.root.condition.orNull
 
     // find all sequential loops
@@ -108,9 +107,8 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
     })
 
     // mark all additionally declared variables as private
-    privateVars = new ListBuffer[IR_VariableAccess]()
     for (IR_VariableDeclaration(dt, name, _) <- scop.decls)
-      privateVars += IR_VariableAccess(name, dt)
+      parallelization.privateVars += IR_VariableAccess(name, dt)
 
     // build AST generation options
     val options = new StringBuilder()
@@ -205,10 +203,9 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
 
           val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
-          val loop = new IR_ForLoop(init, cond, incr, body, parallelization)
+          val loop = new IR_ForLoop(init, cond, incr, body, Duplicate(parallelization))
           loop.parallelization.potentiallyParallel = parDims != null && parDims.contains(itStr)
           loop.parallelization.isVectorizable = vecDims != null && vecDims.contains(itStr)
-          loop.parallelization.privateVars ++= privateVars
           loopStmts.getOrElseUpdate(itStr, new ListBuffer()) += loop
           ListBuffer[IR_Statement](loop)
         }
