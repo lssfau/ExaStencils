@@ -337,8 +337,6 @@ class Extractor extends Collector {
   final val scops = new ArrayBuffer[Scop](256)
   final val trash = new ArrayBuffer[(Node, String)]
 
-  // TODO: debug; remove
-
   private object curScop {
 
     object curStmt {

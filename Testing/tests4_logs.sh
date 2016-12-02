@@ -67,7 +67,7 @@ if [[ -z "${TO_ZIP}" ]]; then
   echo ""
   echo ""
   echo "Create generator for webinterface:"
-  srun nc 132.231.65.171 5555
+  srun nc bartok 5555
 else
   echo '<span style="color: #E00000"><b>Oh no... something went wrong... :(</b></span>'
   echo ""
