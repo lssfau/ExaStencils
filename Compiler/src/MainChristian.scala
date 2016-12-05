@@ -20,9 +20,9 @@ object MainChristian {
   def main(args : Array[String]) : Unit = {
     //var tpdl = scala.xml.XML.loadFile("")
     var parser = new exastencils.parsers.l4.ParserL4()
-//    var prog = "Function Application() : Unit { \n" +
-//      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
-//      "}\n"
+    var prog = "Function Application() : Unit { \n" +
+      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
+      "}\n"
 
 //    var prog = "Function Application() : Unit { \n" +
 //      "Var m : Matrix<Real, 3, 3> = {{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}, {7.0, 8.0, 2.0}}\n" +
@@ -32,12 +32,14 @@ object MainChristian {
 //      "Var m : Matrix<Real, 4, 4> = {{1, 2, 3, 4}, {4, 5, 6, 6}, {7, 8, 2, 2}, {1, 1, 1, 1}}\n" +
 //      "}\n"
 
-    var prog = "Function Application() : Unit { \n" +
-      "Var m : Matrix<Real, 5, 5> = {{1.0, 2.0, 3.0, 4.0, 9.0}, {4.0, 5.0, 6.0, 6.0, 8.0}, {7.0, 8.0, 2.0, 2.0, 7.0}, {1.0, 3.0, 5.0, 7.0, 6.0}, {1.0, 2.0, 3.0, 4.0, 5.0}}\n" +
-      "}\n"
+//    var prog = "Function Application() : Unit { \n" +
+////      "Var m : Matrix<Real, 5, 5> = {{1.0, 2.0, 3.0, 4.0, 9.0}, {4.0, 5.0, 6.0, 6.0, 8.0}, {7.0, 8.0, 2.0, 2.0, 7.0}, {1.0, 3.0, 5.0, 7.0, 6.0}, {1.0, 2.0, 3.0, 4.0, 5.0}}\n" +
+//      "Var m : Matrix<Real, 5, 5> = {{1, 2, 3, 4, 9}, {4, 5, 6, 6, 8}, {7, 8, 2, 2, 7}, {1, 3, 5, 7, 6}, {1, 2, 3, 4, 5}}\n" +
+//    "}\n"
 
 
     var ast = parser.parse(prog)
+    System.out.println(ast)
     var root = MyRoot(ListBuffer(ast))
     StateManager.setRoot(root)
     var exp = IR_FunctionCall("inverse",  StateManager.findFirst[L4_MatrixExpression]().get.progress)

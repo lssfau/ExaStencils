@@ -254,12 +254,12 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
             intCst = -intCst
           case IR_Multiplication(iFacs)                          =>
             workQ.enqueue(iFacs : _*)
-//          case d @ IR_Division(IR_RealConstant(fv), _)           =>
-//            floatCst *= fv
-//            d.left = IR_RealConstant(1.0)
-//            if (div == null)
-//              div = d
-//            remA += d
+          case d @ IR_Division(IR_RealConstant(fv), _)           =>
+            floatCst *= fv
+            d.left = IR_RealConstant(1.0)
+            if (div == null)
+              div = d
+            remA += d
           case _ : IR_VectorExpression | _ : IR_MatrixExpression =>
             if (remA.isEmpty)
               remA += expr
