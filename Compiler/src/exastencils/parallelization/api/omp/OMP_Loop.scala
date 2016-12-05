@@ -6,10 +6,10 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.prettyprinting.PpStream
-import exastencils.util.ir.IR_ReplaceVariableAccess
 
 /// OMP_ParallelFor
 
@@ -94,9 +94,9 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
           val redOperands = ListBuffer[IR_Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
           val red = IR_Assignment(redExp, if ("min" == redOp) IR_Minimum(redOperands) else IR_Maximum(redOperands))
 
-          IR_ReplaceVariableAccess.toReplace = redExp.prettyprint
-          IR_ReplaceVariableAccess.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
-          IR_ReplaceVariableAccess.applyStandalone(ompSection.loop)
+          IR_ReplaceVariableAccessWoReduction.toReplace = redExp.prettyprint
+          IR_ReplaceVariableAccessWoReduction.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
+          IR_ReplaceVariableAccessWoReduction.applyStandalone(IR_Scope(ompSection.loop.body))
 
           prependStmts += decl
           prependStmts ++= init
@@ -112,4 +112,17 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
         ompSection
       }
   }, false) // switch off recursion due to wrapping mechanism
+
+  object IR_ReplaceVariableAccessWoReduction extends QuietDefaultStrategy("Replace something with something else but skip reductions") {
+    var toReplace : String = ""
+    var replacement : Node = IR_VariableAccess("", IR_UnknownDatatype) // to be overwritten
+
+    this += new Transformation("Search and replace", {
+      // TODO: rely only on IR_VariableAccess => eliminate IR_StringLiteral occurrences
+      case red : IR_Reduction                                     => red
+      case IR_StringLiteral(s) if s == toReplace                  => Duplicate(replacement)
+      case access : IR_VariableAccess if access.name == toReplace => Duplicate(replacement)
+    }, false)
+  }
+
 }

@@ -1,3 +1,4 @@
+import exastencils.base.ExaRootNode
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
@@ -51,7 +52,7 @@ object MainAlex {
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
+    ExaRootNode.l4_root = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
     ValidationL4.apply
     L4_ResolveFunctionInstantiations.apply()
 
@@ -64,10 +65,10 @@ object MainAlex {
 
     L4_ResolveCurrentLevels.apply()
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
+    ExaRootNode.ProgressToIR()
 
     // Setup tree
-    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
+    ExaRootNode.ir_root.nodes ++= List(
       // FunctionCollections
       IR_DomainFunctions(),
       IR_CommunicationFunctions(),
