@@ -7,6 +7,7 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
@@ -113,14 +114,16 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case x: IR_FunctionCall if x.name == "inverse" =>
       if (x.arguments.size == 1) {
         if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
-          val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
-          if (m.rows == 2 && m.columns == 2) {
+          val m = x.arguments(0).asInstanceOf[ IR_MatrixExpression ]
+          if(m.rows == 1 && m.columns == 1) {
+            Duplicate(IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(1.0 / m.get(0, 0)))))
+          } else if (m.rows == 2 && m.columns == 2) {
             val a = m.get(0, 0)
             val b = m.get(0, 1)
             val c = m.get(1, 0)
             val d = m.get(1, 1)
             val det: IR_Expression = 1.0 / (a * d - b * c)
-            IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
+            Duplicate(IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a))))
           } else if (m.rows == 3 && m.columns == 3) {
             val a = m.get(0, 0)
             val b = m.get(0, 1)
@@ -142,28 +145,16 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             val I = a * e - b * d
             val det = a * A + b * B + c * C
             val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
-
-            IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
+            Duplicate(IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det))))
           } else if (m.rows == m.columns) {
             val inv_det = 1.0 / calculateDeterminant(m)
-            /*
-            var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
-            for(row <- 0 until m.rows) {
-              var matrixCol = ListBuffer[IR_Expression]()
-              for(col <- 0 until m.columns) {
-                matrixCol += IR_RealConstant(0)
-              }
-              matrixExps += matrixCol
-            }
-            */
-
             val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
             for (row <- 0 until m.rows) {
               for (col <- 0 until m.columns) {
                 tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * math.pow(-1, row + col) * inv_det)
               }
             }
-            tmp
+            Duplicate(tmp)
           } else {
             x
           }
