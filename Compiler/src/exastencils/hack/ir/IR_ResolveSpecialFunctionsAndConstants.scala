@@ -106,24 +106,35 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_VectorExpression(x.innerDatatype, r, x.rowVector)
       }
     // Matrix functions
-    case x: IR_FunctionCall if x.name == "det" && x.arguments.size == 1 =>
+    case x: IR_FunctionCall if x.name == "det" && x.arguments.size == 1 && exastencils.config.Knowledge.experimental_internalHighDimTypes =>
       x.arguments(0) match {
         case m: IR_MatrixExpression => calculateDeterminant(m)
         case _ => x
       }
-    case x: IR_FunctionCall if x.name == "inverse" =>
+    case x: IR_FunctionCall if x.name == "inverse" && exastencils.config.Knowledge.experimental_internalHighDimTypes =>
       if (x.arguments.size == 1) {
         if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
-          val m = x.arguments(0).asInstanceOf[ IR_MatrixExpression ]
-          if(m.rows == 1 && m.columns == 1) {
-            Duplicate(IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(1.0 / m.get(0, 0)))))
+          val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
+          m.innerDatatype match {
+            case Some(IR_IntegerDatatype) => {
+              Logger.warn("Converting matrix expression to real data type for inversion")
+              m.innerDatatype = Some(IR_RealDatatype)
+            }
+            case Some(IR_ComplexDatatype(IR_IntegerDatatype)) => {
+              Logger.warn("Converting matrix expression to real data type for inversion")
+              m.innerDatatype = Some(IR_ComplexDatatype(IR_RealDatatype))
+            }
+            case _ =>
+          }
+          if (m.rows == 1 && m.columns == 1) {
+            Duplicate(IR_MatrixExpression(m.innerDatatype, 1, 1, Array(1.0 / m.get(0, 0))))
           } else if (m.rows == 2 && m.columns == 2) {
             val a = m.get(0, 0)
             val b = m.get(0, 1)
             val c = m.get(1, 0)
             val d = m.get(1, 1)
-            val det: IR_Expression = 1.0 / (a * d - b * c)
-            Duplicate(IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a))))
+            val det : IR_Expression = 1.0 / (a * d - b * c)
+            IR_MatrixExpression(m.innerDatatype, 2, 2, Array(det * d, Duplicate(det) * b * (-1), Duplicate(det) * c * (-1), Duplicate(det) * a))
           } else if (m.rows == 3 && m.columns == 3) {
             val a = m.get(0, 0)
             val b = m.get(0, 1)
@@ -144,8 +155,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             val H = -1 * (a * f - c * d)
             val I = a * e - b * d
             val det = a * A + b * B + c * C
-            val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
-            Duplicate(IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det))))
+            Duplicate(IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / Duplicate(det), G / Duplicate(det)), ListBuffer(B / Duplicate(det), E / Duplicate(det), H / Duplicate(det)), ListBuffer(C / Duplicate(det), F / Duplicate(det), I / Duplicate(det)))))
           } else if (m.rows == m.columns) {
             val inv_det = 1.0 / calculateDeterminant(m)
             val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)

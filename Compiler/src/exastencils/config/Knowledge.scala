@@ -425,6 +425,9 @@ object Knowledge {
   // enables support for layers 2 and 3
   var experimental_layerExtension : Boolean = false
 
+  // enables internal handling of high-dimensional data type
+  var experimental_internalHighDimTypes : Boolean = false
+
   /// paper project - SISC
 
   // [16~64§sisc2015_numNodes*2]
