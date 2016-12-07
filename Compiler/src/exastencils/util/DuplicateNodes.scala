@@ -15,7 +15,7 @@ class DuplicateNodes extends DefaultStrategy("Eliminate multiple usage of node i
 
     override def apply(node : Node) : Transformation.OutputType = {
       // instances.put(dup, this) // we just created a new instance, so it is impossible we can find it anywhere else in the AST
-      Logger.info("Found double reference: " + node)
+      Logger.warn("Eliminated double reference by cloning: " + node)
       Duplicate(node)
     }
   })
