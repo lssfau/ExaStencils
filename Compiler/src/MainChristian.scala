@@ -1,11 +1,12 @@
 import exastencils.base.ir._
 import exastencils.base.l4.{L4_FunctionCall, L4_Node, L4_Progressable}
 import exastencils.baseExt.l4.L4_MatrixExpression
-import exastencils.datastructures.RootNode
-import exastencils.datastructures.Node
+import exastencils.datastructures.{DefaultStrategy, Node, RootNode, Transformation}
 import exastencils.core.StateManager
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
+import exastencils.logger.Logger
 import exastencils.optimization.ir.{IR_GeneralSimplify, IR_SimplifyExpression}
+import exastencils.util.DuplicateNodes
 
 import scala.collection.mutable.ListBuffer
 
@@ -18,11 +19,14 @@ object MainChristian {
   }
 
   def main(args : Array[String]) : Unit = {
+    exastencils.config.Knowledge.experimental_internalHighDimTypes = true
+
+
     //var tpdl = scala.xml.XML.loadFile("")
     var parser = new exastencils.parsers.l4.ParserL4()
-    var prog = "Function Application() : Unit { \n" +
-      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
-      "}\n"
+//    var prog = "Function Application() : Unit { \n" +
+//      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
+//      "}\n"
 
 //    var prog = "Function Application() : Unit { \n" +
 //      "Var m : Matrix<Real, 3, 3> = {{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}, {7.0, 8.0, 2.0}}\n" +
@@ -32,10 +36,10 @@ object MainChristian {
 //      "Var m : Matrix<Real, 4, 4> = {{1, 2, 3, 4}, {4, 5, 6, 6}, {7, 8, 2, 2}, {1, 1, 1, 1}}\n" +
 //      "}\n"
 
-//    var prog = "Function Application() : Unit { \n" +
-////      "Var m : Matrix<Real, 5, 5> = {{1.0, 2.0, 3.0, 4.0, 9.0}, {4.0, 5.0, 6.0, 6.0, 8.0}, {7.0, 8.0, 2.0, 2.0, 7.0}, {1.0, 3.0, 5.0, 7.0, 6.0}, {1.0, 2.0, 3.0, 4.0, 5.0}}\n" +
+    var prog = "Function Application() : Unit { \n" +
+      "Var m : Matrix<Integer, 5, 5> = {{1.8, 2.0, 3.0, 4.0, 9.0}, {4.0, 5.0, 6.0, 6.0, 8.0}, {7.0, 8.0, 2.0, 2.0, 7.0}, {1.0, 3.0, 5.0, 7.0, 6.0}, {1.0, 2.0, 3.0, 4.0, 5.0}}\n" +
 //      "Var m : Matrix<Real, 5, 5> = {{1, 2, 3, 4, 9}, {4, 5, 6, 6, 8}, {7, 8, 2, 2, 7}, {1, 3, 5, 7, 6}, {1, 2, 3, 4, 5}}\n" +
-//    "}\n"
+    "}\n"
 
 
     var ast = parser.parse(prog)
@@ -53,6 +57,14 @@ object MainChristian {
 //    System.out.println(simpl)
 
     HACK_IR_ResolveSpecialFunctionsAndConstants.apply(Some(root))
+    System.out.println(root)
+    var S = new DefaultStrategy("Mark")
+    S += new Transformation("Mark", {
+      case node : Node => if(node.hasAnnotation("blubbbi")) { Logger.error("doppelreferenz: " + node)} else { node.annotate("blubbbi") }; node
+    })
+    S.apply()
+
+    //new DuplicateNodes().apply()
     System.out.println(root)
     IR_GeneralSimplify.doUntilDone(Some(root))
 
