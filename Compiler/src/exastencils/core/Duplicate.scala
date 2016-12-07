@@ -81,9 +81,10 @@ object Duplicate {
     c => {
       c.registerConstant(None)
       c.registerConstant(Nil)
-      c.registerConstant(classOf[scala.Int])
-      c.registerConstant(classOf[scala.Double])
-      c.registerConstant(classOf[scala.Float])
+      c.registerConstant(scala.Array)
+      c.registerImmutable(classOf[scala.Int])
+      c.registerImmutable(classOf[scala.Double])
+      c.registerImmutable(classOf[scala.Float])
     }
   )
 

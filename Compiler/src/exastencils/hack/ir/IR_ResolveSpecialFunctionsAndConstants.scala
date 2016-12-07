@@ -30,16 +30,16 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     if (m.rows <= 0) {
       Logger.error("MatrixExpression of size <= 0")
     } else if (m.rows == 1) {
-      return m.get(0, 0)
+      return Duplicate(m.get(0, 0))
     } else if (m.rows == 2) {
-      return m.get(0, 0) * m.get(1, 1) - m.get(0, 1) * m.get(1, 0)
+      return Duplicate(m.get(0, 0) * m.get(1, 1) - m.get(0, 1) * m.get(1, 0))
     } else if (m.rows == 3) {
-      return m.get(0, 0) * m.get(1, 1) * m.get(2, 2) +
+      return Duplicate(m.get(0, 0) * m.get(1, 1) * m.get(2, 2) +
         m.get(0, 1) * m.get(1, 2) * m.get(2, 0) +
         m.get(0, 2) * m.get(1, 0) * m.get(2, 1) -
         m.get(2, 0) * m.get(1, 1) * m.get(0, 2) -
         m.get(2, 1) * m.get(1, 2) * m.get(0, 0) -
-        m.get(2, 2) * m.get(1, 0) * m.get(0, 1)
+        m.get(2, 2) * m.get(1, 0) * m.get(0, 1))
     } else {
       var det: IR_Expression = 0
       var tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
@@ -49,7 +49,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         for (row <- 0 until m.rows) {
           if (row != i) {
             for (col <- 1 until m.columns) {
-              tmp.set(tmpRow, col - 1, m.get(row, col))
+              tmp.set(tmpRow, col - 1, Duplicate(m.get(row, col)))
             }
             tmpRow += 1
           }
@@ -127,14 +127,14 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             case _ =>
           }
           if (m.rows == 1 && m.columns == 1) {
-            Duplicate.withMultiplication(IR_MatrixExpression(m.innerDatatype, 1, 1, Array(1.0 / m.get(0, 0))))
+            IR_MatrixExpression(m.innerDatatype, 1, 1, Array(1.0 / m.get(0, 0)))
           } else if (m.rows == 2 && m.columns == 2) {
             val a = m.get(0, 0)
             val b = m.get(0, 1)
             val c = m.get(1, 0)
             val d = m.get(1, 1)
             val det : IR_Expression = 1.0 / (a * d - b * c)
-            Duplicate.withMultiplication(IR_MatrixExpression(m.innerDatatype, 2, 2, Array(det * d, det * b * (-1), det * c * (-1), det * a)))
+            IR_MatrixExpression(m.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * (-1), Duplicate(det) * Duplicate(c) * (-1), Duplicate(det) * Duplicate(a)))
           } else if (m.rows == 3 && m.columns == 3) {
             val a = m.get(0, 0)
             val b = m.get(0, 1)
@@ -145,17 +145,17 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             val g = m.get(2, 0)
             val h = m.get(2, 1)
             val i = m.get(2, 2)
-            val A = e * i - f * h
-            val B = -1 * (d * i - f * g)
-            val C = d * h - e * g
-            val D = -1 * (b * i - c * h)
-            val E = a * i - c * g
-            val F = -1 * (a * h - b * g)
-            val G = b * f - c * e
-            val H = -1 * (a * f - c * d)
-            val I = a * e - b * d
-            val det = a * A + b * B + c * C
-            Duplicate.withMultiplication(IR_MatrixExpression(m.innerDatatype, 3, 3, Array(A / det, D / det, G / det, B / det, E / det, H / det, C / det, F / det, I / det)))
+            val A = Duplicate(e) * Duplicate(i) - Duplicate(f) * Duplicate(h)
+            val B = -1 * (Duplicate(d) * Duplicate(i) - Duplicate(f) * Duplicate(g))
+            val C = Duplicate(d) * Duplicate(h) - Duplicate(e) * Duplicate(g)
+            val D = -1 * (Duplicate(b) * Duplicate(i) - Duplicate(c) * Duplicate(h))
+            val E = Duplicate(a) * Duplicate(i) - Duplicate(c) * Duplicate(g)
+            val F = -1 * (Duplicate(a) * Duplicate(h) - Duplicate(b) * Duplicate(g))
+            val G = Duplicate(b) * Duplicate(f) - Duplicate(c) * Duplicate(e)
+            val H = -1 * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
+            val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
+            val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
+            IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
           } else if (m.rows == m.columns) {
             val inv_det = 1.0 / calculateDeterminant(m)
             val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
@@ -164,7 +164,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
                 tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * math.pow(-1, row + col) * inv_det)
               }
             }
-            Duplicate.withMultiplication(tmp)
+            tmp
           } else {
             x
           }

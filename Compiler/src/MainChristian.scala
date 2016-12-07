@@ -37,8 +37,8 @@ object MainChristian {
 //      "}\n"
 
     var prog = "Function Application() : Unit { \n" +
-      "Var m : Matrix<Integer, 5, 5> = {{1.8, 2.0, 3.0, 4.0, 9.0}, {4.0, 5.0, 6.0, 6.0, 8.0}, {7.0, 8.0, 2.0, 2.0, 7.0}, {1.0, 3.0, 5.0, 7.0, 6.0}, {1.0, 2.0, 3.0, 4.0, 5.0}}\n" +
-//      "Var m : Matrix<Real, 5, 5> = {{1, 2, 3, 4, 9}, {4, 5, 6, 6, 8}, {7, 8, 2, 2, 7}, {1, 3, 5, 7, 6}, {1, 2, 3, 4, 5}}\n" +
+//      "Var m : Matrix<Integer, 5, 5> = {{1.8, 2.0, 3.0, 4.0, 9.0}, {4.0, 5.0, 6.0, 6.0, 8.0}, {7.0, 8.0, 2.0, 2.0, 7.0}, {1.0, 3.0, 5.0, 7.0, 6.0}, {1.0, 2.0, 3.0, 4.0, 5.0}}\n" +
+      "Var m : Matrix<Real, 5, 5> = {{1, 2, 3, 4, 9}, {4, 5, 6, 6, 8}, {7, 8, 2, 2, 7}, {1, 3, 5, 7, 6}, {1, 2, 3, 4, 5}}\n" +
     "}\n"
 
 
@@ -62,7 +62,7 @@ object MainChristian {
     S += new Transformation("Mark", {
       case node : Node => if(node.hasAnnotation("blubbbi")) { Logger.error("doppelreferenz: " + node)} else { node.annotate("blubbbi") }; node
     })
-    S.apply()
+    //S.apply()
 
     //new DuplicateNodes().apply()
     System.out.println(root)

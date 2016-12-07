@@ -35,7 +35,7 @@ case class IR_VectorExpression(var innerDatatype : Option[IR_Datatype], var expr
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
-    out << "[]){" <<< (expressions, ",") << "})"
+    out << "[]){" << (expressions.map(_.prettyprint).mkString(",")) << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
     out << "Matrix<"

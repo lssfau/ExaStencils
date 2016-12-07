@@ -52,7 +52,7 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
   def prettyprintInner(out: PpStream): Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
-    out << "[]){" << (expressions.mkString(",")) << "})"
+    out << "[]){" << (expressions.map(_.prettyprint).mkString(",")) << "})"
   }
   override def prettyprint(out: PpStream): Unit = {
     val prec = if (Knowledge.useDblPrecision) "double" else "float"
