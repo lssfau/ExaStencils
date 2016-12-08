@@ -425,9 +425,11 @@ object Knowledge {
   // enables support for layers 2 and 3
   var experimental_layerExtension : Boolean = false
 
+  // enables internal handling of high-dimensional data type
+  var experimental_internalHighDimTypes : Boolean = false
+
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false
-
   /// paper project - SISC
 
   // [16~64§sisc2015_numNodes*2]

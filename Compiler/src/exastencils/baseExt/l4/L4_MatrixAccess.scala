@@ -28,4 +28,5 @@ case class L4_MatrixExpression(
   def rows = expressions.length
   def columns = expressions(0).length
   def isConstant = expressions.count(_.isConstant) == expressions.length
+  def convertConstants(dt : L4_Datatype): Unit = expressions.foreach(_.convertConstants(dt))
 }

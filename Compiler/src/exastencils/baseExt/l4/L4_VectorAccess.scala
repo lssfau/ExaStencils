@@ -46,4 +46,11 @@ case class L4_VectorExpression(
 
   def apply(i : Integer) = expressions(i)
   def isConstant = expressions.count(_.isInstanceOf[L4_Number]) == expressions.length
+  def convertConstants(dt : L4_Datatype): Unit = {
+    expressions = expressions.map(exp => (exp, dt) match {
+      case (c : L4_IntegerConstant, L4_RealDatatype | L4_FloatDatatype | L4_DoubleDatatype) => L4_RealConstant(c.v)
+      case (c : L4_RealConstant, L4_IntegerDatatype) => L4_IntegerConstant(c.v.toInt)
+      case (_, _) => println("Pair: " + exp + "," + dt); exp
+    })
+  }
 }

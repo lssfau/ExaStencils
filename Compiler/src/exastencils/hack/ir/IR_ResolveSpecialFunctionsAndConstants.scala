@@ -1,13 +1,13 @@
 package exastencils.hack.ir
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
@@ -22,6 +22,66 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
   var collector = new StackCollector
   this.register(collector)
 
+  def calculateDeterminant(m: IR_MatrixExpression): IR_Expression = {
+    if (m.rows != m.columns) {
+      Logger.error("determinant for non-quadratic matrices not implemented")
+      // FIXME Nullzeilen/-spalten ergänzen
+    }
+    if (m.rows <= 0) {
+      Logger.error("MatrixExpression of size <= 0")
+    } else if (m.rows == 1) {
+      return Duplicate(m.get(0, 0))
+    } else if (m.rows == 2) {
+      return Duplicate(m.get(0, 0) * m.get(1, 1) - m.get(0, 1) * m.get(1, 0))
+    } else if (m.rows == 3) {
+      return Duplicate(m.get(0, 0) * m.get(1, 1) * m.get(2, 2) +
+        m.get(0, 1) * m.get(1, 2) * m.get(2, 0) +
+        m.get(0, 2) * m.get(1, 0) * m.get(2, 1) -
+        m.get(2, 0) * m.get(1, 1) * m.get(0, 2) -
+        m.get(2, 1) * m.get(1, 2) * m.get(0, 0) -
+        m.get(2, 2) * m.get(1, 0) * m.get(0, 1))
+    } else {
+      var det: IR_Expression = 0
+      var tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
+      // laplace expansion
+      for (i <- 0 until m.rows) {
+        var tmpRow = 0
+        for (row <- 0 until m.rows) {
+          if (row != i) {
+            for (col <- 1 until m.columns) {
+              tmp.set(tmpRow, col - 1, Duplicate(m.get(row, col)))
+            }
+            tmpRow += 1
+          }
+        }
+        det += m.get(i, 0) * calculateDeterminant(tmp) * math.pow(-1, i)
+      }
+      return det
+    }
+  }
+
+  def calculateMatrixOfMinorsElement(m: IR_MatrixExpression, forRow: Integer, forColumn: Integer): IR_Expression = {
+    if (m.rows != m.columns) {
+      Logger.error("matrix of minors for non-quadratic matrices not implemented ")
+    }
+    var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
+    var tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
+    var tmpRow = 0
+    for (row <- 0 until m.rows) {
+      if (row != forRow) {
+        var tmpCol = 0
+        for (col <- 0 until m.columns) {
+          if (col != forColumn) {
+            tmp.set(tmpRow, tmpCol, m.get(row, col))
+            tmpCol += 1
+          }
+        }
+        tmpRow += 1
+      }
+    }
+    return calculateDeterminant(tmp)
+  }
+
   this += new Transformation("SearchAndReplace", {
     // functions
     // FIXME: datatypes for function accesses
@@ -29,7 +89,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case IR_FunctionCall(IR_UserFunctionAccess("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
 
     // Vector functions
-    case f : IR_FunctionCall if f.name == "cross" || f.name == "crossproduct" =>
+    case f: IR_FunctionCall if f.name == "cross" || f.name == "crossproduct" =>
       f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[IR_VectorExpression] || f.arguments(0).isInstanceOf[IR_VectorExpression])
         && a.getClass != f.arguments(0).getClass) Logger.error("Must have matching types!"))
       f.arguments.foreach(a => if (a.asInstanceOf[IR_VectorExpression].length != f.arguments(0).asInstanceOf[IR_VectorExpression].length) Logger.error("Vectors must have matching lengths"))
@@ -45,40 +105,66 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         val r = ListBuffer[IR_Expression](x(1) * y(2) - x(2) * y(1), x(2) * y(0) - x(0) * y(2), x(0) * y(1) - x(1) * y(0))
         IR_VectorExpression(x.innerDatatype, r, x.rowVector)
       }
-
     // Matrix functions
-    case x : IR_FunctionCall if x.name == "inverse" =>
+    case x: IR_FunctionCall if x.name == "det" && x.arguments.size == 1 && exastencils.config.Knowledge.experimental_internalHighDimTypes =>
+      x.arguments(0) match {
+        case m: IR_MatrixExpression => calculateDeterminant(m)
+        case _ => x
+      }
+    case x: IR_FunctionCall if x.name == "inverse" && exastencils.config.Knowledge.experimental_internalHighDimTypes =>
       if (x.arguments.size == 1) {
         if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
           val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
-          if (m.rows == 2 && m.columns == 2) {
-            val a = m.expressions(0)(0)
-            val b = m.expressions(0)(1)
-            val c = m.expressions(1)(0)
-            val d = m.expressions(1)(1)
-            val det = 1.0 / (a * d - b * c)
-            IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(det * d, det * b * (-1)), ListBuffer(det * c * (-1), det * a)))
+          m.innerDatatype match {
+            case Some(IR_IntegerDatatype) => {
+              Logger.warn("Converting matrix expression to real data type for inversion")
+              m.innerDatatype = Some(IR_RealDatatype)
+            }
+            case Some(IR_ComplexDatatype(IR_IntegerDatatype)) => {
+              Logger.warn("Converting matrix expression to real data type for inversion")
+              m.innerDatatype = Some(IR_ComplexDatatype(IR_RealDatatype))
+            }
+            case _ =>
+          }
+          if (m.rows == 1 && m.columns == 1) {
+            IR_MatrixExpression(m.innerDatatype, 1, 1, Array(1.0 / m.get(0, 0)))
+          } else if (m.rows == 2 && m.columns == 2) {
+            val a = m.get(0, 0)
+            val b = m.get(0, 1)
+            val c = m.get(1, 0)
+            val d = m.get(1, 1)
+            val det : IR_Expression = 1.0 / (a * d - b * c)
+            IR_MatrixExpression(m.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * (-1), Duplicate(det) * Duplicate(c) * (-1), Duplicate(det) * Duplicate(a)))
           } else if (m.rows == 3 && m.columns == 3) {
-            val a = m.expressions(0)(0)
-            val b = m.expressions(0)(1)
-            val c = m.expressions(0)(2)
-            val d = m.expressions(1)(0)
-            val e = m.expressions(1)(1)
-            val f = m.expressions(1)(2)
-            val g = m.expressions(2)(0)
-            val h = m.expressions(2)(1)
-            val i = m.expressions(2)(2)
-            val A = e * i - f * h
-            val B = -1 * (d * i - f * g)
-            val C = d * h - e * g
-            val D = -1 * (b * i - c * h)
-            val E = a * i - c * g
-            val F = -1 * (a * h - b * g)
-            val G = b * f - c * e
-            val H = -1 * (a * f - c * d)
-            val I = a * e - b * d
-            val det = a * A + b * B + c * C
-            IR_MatrixExpression(m.innerDatatype, ListBuffer(ListBuffer(A / det, D / det, G / det), ListBuffer(B / det, E / det, H / det), ListBuffer(C / det, F / det, I / det)))
+            val a = m.get(0, 0)
+            val b = m.get(0, 1)
+            val c = m.get(0, 2)
+            val d = m.get(1, 0)
+            val e = m.get(1, 1)
+            val f = m.get(1, 2)
+            val g = m.get(2, 0)
+            val h = m.get(2, 1)
+            val i = m.get(2, 2)
+            val A = Duplicate(e) * Duplicate(i) - Duplicate(f) * Duplicate(h)
+            val B = -1 * (Duplicate(d) * Duplicate(i) - Duplicate(f) * Duplicate(g))
+            val C = Duplicate(d) * Duplicate(h) - Duplicate(e) * Duplicate(g)
+            val D = -1 * (Duplicate(b) * Duplicate(i) - Duplicate(c) * Duplicate(h))
+            val E = Duplicate(a) * Duplicate(i) - Duplicate(c) * Duplicate(g)
+            val F = -1 * (Duplicate(a) * Duplicate(h) - Duplicate(b) * Duplicate(g))
+            val G = Duplicate(b) * Duplicate(f) - Duplicate(c) * Duplicate(e)
+            val H = -1 * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
+            val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
+            val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
+            IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
+          } else if (m.rows == m.columns) {
+            val inv_det = 1.0 / calculateDeterminant(m)
+            val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
+            for (row <- 0 until m.rows) {
+              for (col <- 0 until m.columns) {
+                tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * math.pow(-1, row + col) * inv_det)
+              }
+            }
+            tmp
           } else {
             x
           }
@@ -90,7 +176,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
 
     // FIXME: HACK to realize application functionality
-    case func : IR_Function if "Application" == func.name =>
+    case func: IR_Function if "Application" == func.name =>
       func.returntype = IR_IntegerDatatype
       func.name = "main"
       if (!func.parameters.isEmpty)
@@ -121,8 +207,10 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     // FIXME: IR_UserFunctionAccess's
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnBoundaryOf", _), args) =>
-      IR_IsOnBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      IR_IsOnBoundary(
+        args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
+        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid)
+      )
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnEastBoundaryOf", _), args) =>
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)),
@@ -148,11 +236,11 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
 
-    case IR_ElementwiseAddition(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
-    case IR_ElementwiseSubtraction(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
+    case IR_ElementwiseAddition(left, right) => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
+    case IR_ElementwiseSubtraction(left, right) => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
     case IR_ElementwiseMultiplication(left, right) => IR_FunctionCall("elementwiseMul", ListBuffer(left, right))
-    case IR_ElementwiseDivision(left, right)       => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
-    case IR_ElementwiseModulo(left, right)         => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
+    case IR_ElementwiseDivision(left, right) => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
+    case IR_ElementwiseModulo(left, right) => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
     // FIXME: IR_UserFunctionAccess
     case IR_FunctionCall(IR_UserFunctionAccess("dot", _), args) => IR_FunctionCall("dotProduct", args)
   })

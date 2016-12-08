@@ -35,6 +35,20 @@ case class L4_VariableDeclaration(
     if (initialValue.isDefined) out << " = " << initialValue.get
   }
 
+  if(initialValue.isDefined) {
+    (datatype, initialValue.get) match {
+      case (dt : L4_VectorDatatype, exp : L4_VectorExpression) => {
+        initialValue.get.asInstanceOf[L4_VectorExpression].datatype = Some(dt.datatype)
+        initialValue.get.asInstanceOf[L4_VectorExpression].convertConstants(dt.datatype)
+      }
+      case (dt : L4_MatrixDatatype, exp : L4_MatrixExpression) => {
+        initialValue.get.asInstanceOf[L4_MatrixExpression].datatype = Some(dt.datatype)
+        initialValue.get.asInstanceOf[L4_MatrixExpression].convertConstants(dt.datatype)
+      }
+      case _ =>
+    }
+  }
+
   override def progress = IR_VariableDeclaration(datatype.progress, identifier.fullName, L4_ProgressOption(initialValue)(_.progress))
 }
 
