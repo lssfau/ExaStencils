@@ -1,14 +1,15 @@
 package exastencils.grid
 
-import exastencils.base.ExaRootNode
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ExaRootNode
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.boundary.l4.L4_NoBC
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.deprecated.domain._
@@ -39,27 +40,29 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
   // injection of  missing l4 information for virtual fields and generation of setup code
   override def initL4() = {
-    ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
-      L4_LeveledIdentifier("DefNodeLineLayout_x", L4_AllLevels),
-      L4_RealDatatype, "Edge_Node".toLowerCase(),
-      ListBuffer(
-        L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(2, 0, 0), false),
-        L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(1, 0, 0), false),
-        L4_FieldLayoutOption("innerPoints", L4_ConstIndex((1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_x - 1, 1, 1), false)))
-    ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
-      L4_LeveledIdentifier("DefNodeLineLayout_y", L4_AllLevels),
-      L4_RealDatatype, "Edge_Node".toLowerCase(),
-      ListBuffer(
-        L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 2, 0), false),
-        L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 1, 0), false),
-        L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_y - 1, 1), false)))
-    ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
-      L4_LeveledIdentifier("DefNodeLineLayout_z", L4_AllLevels),
-      L4_RealDatatype, "Edge_Node".toLowerCase(),
-      ListBuffer(
-        L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 0, 2), false),
-        L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 0, 1), false),
-        L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, 1, (1 << Knowledge.maxLevel) * Knowledge.domain_fragmentLength_z - 1), false)))
+    for (lvl <- Knowledge.levels) {
+      ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
+        L4_LeveledIdentifier("DefNodeLineLayout_x", L4_SingleLevel(lvl)),
+        L4_RealDatatype, "Edge_Node".toLowerCase(),
+        ListBuffer(
+          L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(2, 0, 0), true),
+          L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(1, 0, 0), true),
+          L4_FieldLayoutOption("innerPoints", L4_ConstIndex((1 << lvl) * Knowledge.domain_fragmentLength_x - 1, 1, 1), false)))
+      ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
+        L4_LeveledIdentifier("DefNodeLineLayout_y", L4_SingleLevel(lvl)),
+        L4_RealDatatype, "Edge_Node".toLowerCase(),
+        ListBuffer(
+          L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 2, 0), true),
+          L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 1, 0), true),
+          L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, (1 << lvl) * Knowledge.domain_fragmentLength_y - 1, 1), false)))
+      ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
+        L4_LeveledIdentifier("DefNodeLineLayout_z", L4_SingleLevel(lvl)),
+        L4_RealDatatype, "Edge_Node".toLowerCase(),
+        ListBuffer(
+          L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 0, 2), true),
+          L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 0, 1), true),
+          L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, 1, (1 << lvl) * Knowledge.domain_fragmentLength_z - 1), false)))
+    }
 
     ExaRootNode.l4_root.nodes += L4_FieldDecl(
       L4_LeveledIdentifier("node_pos_x", L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
@@ -87,10 +90,10 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
-    if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-      IR_LoopOverDimensions.defItForDim(dim)
-    else
-      IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        IR_LoopOverDimensions.defItForDim(dim)
+      else
+        IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
@@ -184,10 +187,10 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
-    if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-      IR_LoopOverDimensions.defItForDim(dim)
-    else
-      IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        IR_LoopOverDimensions.defItForDim(dim)
+      else
+        IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
@@ -251,6 +254,72 @@ trait GridGeometry_nonUniform extends GridGeometry {
         innerLoop,
         leftBoundaryUpdate,
         rightBoundaryUpdate)))
+  }
+
+  def restrictNodePos(dim : Int, coarseLvl : Int, fineLvl : Int) : ListBuffer[IR_Statement] = {
+    val coarseCellsPerFrag = (1 << coarseLvl) * Knowledge.domain_fragmentLengthAsVec(dim)
+
+    // look up field and compile access to base element
+    val coarseField = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", coarseLvl).get
+    val coarseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+    val coarseAccess = IR_FieldAccess(IR_FieldSelection(coarseField, coarseLvl, 0), coarseIndex)
+    val fineField = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", fineLvl).get
+    val fineIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+    val fineAccess = IR_FieldAccess(IR_FieldSelection(fineField, fineLvl, 0), fineIndex)
+
+    // compile special boundary handling expressions
+    val leftDir = Array(0, 0, 0)
+    leftDir(dim) = -1
+    val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
+
+    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    leftGhostIndex(dim) = -2
+    val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(coarseField, coarseLvl, 0), leftGhostIndex)
+
+    val leftBoundaryUpdate = IR_IfCondition(
+      IR_Negation(IR_IV_NeighborIsValid(coarseField.domain.index, leftNeighIndex)),
+      ListBuffer[IR_Statement](
+        IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
+          2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
+        IR_Assignment(Duplicate(leftGhostAccess),
+          2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
+
+    val rightDir = Array(0, 0, 0)
+    rightDir(dim) = 1
+    val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
+
+    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    rightGhostIndex(dim) = coarseCellsPerFrag + 2
+    val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(coarseField, coarseLvl, 0), rightGhostIndex)
+
+    val rightBoundaryUpdate = IR_IfCondition(
+      IR_Negation(IR_IV_NeighborIsValid(coarseField.domain.index, rightNeighIndex)),
+      ListBuffer[IR_Statement](
+        IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
+          2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
+        IR_Assignment(Duplicate(rightGhostAccess),
+          2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim))))
+
+    // compile final loop
+    val offset = -1
+    //val offset = -2
+    def innerIt = IR_LoopOverDimensions.defItForDim(dim)
+    val innerLoop = IR_LoopOverPoints(coarseField, None,
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), offset, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), offset, dim),
+      IR_ExpressionIndex(1, 1, 1),
+      ListBuffer[IR_Statement](
+        // simple injection strategy
+        IR_Assignment(Duplicate(coarseAccess), Duplicate(fineAccess))))
+
+    innerLoop.parallelization.potentiallyParallel = false
+
+    ListBuffer[IR_Statement](
+      IR_LoopOverFragments(ListBuffer[IR_Statement](
+        innerLoop,
+        leftBoundaryUpdate,
+        rightBoundaryUpdate)),
+      IR_Communicate(IR_FieldSelection(coarseField, coarseLvl, 0), "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None))
   }
 }
 

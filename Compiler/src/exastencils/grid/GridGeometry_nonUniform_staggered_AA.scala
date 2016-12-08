@@ -1,14 +1,15 @@
 package exastencils.grid
 
-import exastencils.base.ExaRootNode
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ExaRootNode
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.boundary.l4.L4_NoBC
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.deprecated.ir._
@@ -31,13 +32,13 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // extend with info required by staggered grid
     ExaRootNode.l4_root.nodes += L4_FieldDecl(
-      L4_LeveledIdentifier("stag_cv_width_x", L4_FinestLevel), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
+      L4_LeveledIdentifier("stag_cv_width_x", L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 1)
       ExaRootNode.l4_root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("stag_cv_width_y", L4_FinestLevel), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
+        L4_LeveledIdentifier("stag_cv_width_y", L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 2)
       ExaRootNode.l4_root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("stag_cv_width_z", L4_FinestLevel), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
+        L4_LeveledIdentifier("stag_cv_width_z", L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
   }
 
   override def generateInitCode() = {
@@ -56,8 +57,17 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_Diego2(dim, Knowledge.maxLevel)) ++
           Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
       case "linearFct" =>
-        Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel)) ++
-          Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+        val stmts = ListBuffer[IR_Statement]()
+        stmts ++= Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel))
+        stmts ++= Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+
+        if (true)
+          for (lvl <- Knowledge.maxLevel - 1 to Knowledge.minLevel by -1) {
+            stmts ++= Knowledge.dimensions.to[ListBuffer].flatMap(dim => restrictNodePos(dim, lvl, lvl + 1))
+            stmts ++= Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, lvl))
+          }
+
+        stmts
     }
   }
 
@@ -184,10 +194,10 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
-    if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-      IR_LoopOverDimensions.defItForDim(dim)
-    else
-      IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        IR_LoopOverDimensions.defItForDim(dim)
+      else
+        IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
@@ -247,6 +257,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
       IR_LoopOverFragments(ListBuffer[IR_Statement](
         innerLoop,
         leftBoundaryUpdate,
-        rightBoundaryUpdate)))
+        rightBoundaryUpdate)),
+      IR_Communicate(IR_FieldSelection(field, level, 0), "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None))
   }
 }
