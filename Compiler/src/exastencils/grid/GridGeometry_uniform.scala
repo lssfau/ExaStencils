@@ -10,7 +10,7 @@ import exastencils.domain.ir._
 trait GridGeometry_uniform extends GridGeometry {
   // properties of uniform grids
   override def cellWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
-    val levelIndex = level.asInstanceOf[IR_IntegerConstant].v.toInt - Knowledge.minLevel
+    val levelIndex = level - Knowledge.minLevel
     dim match {
       case 0 => Knowledge.discr_hx(levelIndex)
       case 1 => Knowledge.discr_hy(levelIndex)
