@@ -69,6 +69,7 @@ object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fiel
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L4_UnresolvedAccess if L4_FieldCollection.exists(access.name) =>
       if (access.dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
+      if (access.level.isEmpty) Logger.warn(s"Encountered field access without level (field ${ access.name })")
       L4_FieldAccess(access.name, access.level.get.resolveLevel, access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
   })
 }
