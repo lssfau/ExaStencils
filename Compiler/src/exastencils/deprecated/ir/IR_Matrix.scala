@@ -29,6 +29,7 @@ case class IR_Matrix() extends Node with FilePrettyPrintable {
 #include <cassert>
 #include <ctime>
 #include <cstdlib>
+#include <array>
 
 #define EPSILON_ZERO 1e-20
 #ifndef SIZE_MAX
@@ -39,36 +40,28 @@ template<typename T, size_t M, size_t N>
 class Matrix
 {
 public:
-    T* m_data;
+    std::array<T, M*N> m_data;
 
     // default constructor
-    Matrix()
-    : m_data(new T[M * N])
-    { }
+    Matrix() { }
 
-    ~Matrix()
-    {
-        delete[] m_data;
-    }
+    ~Matrix() { }
 
     // constructor
     Matrix ( T value )
-    : m_data(new T[M * N])
     {
-        std::fill(m_data, m_data + M * N, value);
+        std::fill(m_data.begin(), m_data.end(), value);
     }
 
     Matrix ( T* data )
-    : m_data(new T[M * N])//(data)
     {
-        std::copy ( data, data + M*N, m_data );
+        std::copy ( data, data + M*N, m_data.begin() );
     }
 
     // copy constructor
     Matrix ( const Matrix<T, M, N>& other )
-    : m_data(new T[M * N])
     {
-        std::copy ( other.m_data, other.m_data + M*N, m_data );
+        std::copy ( other.m_data.begin(), other.m_data.end(), m_data.begin() );
     }
 
     // move constructor
@@ -159,7 +152,7 @@ public:
 
     void swapRows ( const size_t a, const size_t b, const size_t start_elem = 0, const size_t elems = N ) {
         if ( a != b && a < M && b < M ) {
-            std::swap_ranges ( m_data + a * M + start_elem, m_data + a * M + start_elem + elems, m_data + b * M + start_elem );
+            std::swap_ranges ( m_data.begin() + a * M + start_elem, m_data.begin() + a * M + start_elem + elems, m_data.begin() + b * M + start_elem );
         }
     }
 
