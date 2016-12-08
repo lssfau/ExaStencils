@@ -8,6 +8,8 @@ import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.logger.Logger
+import exastencils.optimization.Vectorization
 import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.prettyprinting.PpStream
 
@@ -55,6 +57,11 @@ case class OMP_ParallelFor(
 
 object OMP_AddParallelSections extends DefaultStrategy("Handle potentially parallel omp sections") {
   this += new Transformation("Adding OMP parallel for pragmas", {
+    case target : IR_ForLoop if target.parallelization.potentiallyParallel && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
+      target.parallelization.reduction.isDefined && target.hasAnnotation(Vectorization.VECT_ANNOT)                                  =>
+      // FIXME: workaround for feature interaction
+      Logger.warn("Parallelizing and Vectorizing a loop with a redution is currently not supported! If required, contact Stefan.")
+      target
     case target : IR_ForLoop if target.parallelization.potentiallyParallel && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
       val additionalOMPClauses = ListBuffer[OMP_Clause]()
 
