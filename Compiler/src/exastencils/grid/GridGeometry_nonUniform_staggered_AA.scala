@@ -21,7 +21,7 @@ import exastencils.field.l4._
 
 object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with GridGeometry_staggered {
   // direct accesses
-  override def stagCVWidth(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def stagCVWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = IR_FieldCollection.getByIdentifierLevExp(s"stag_cv_width_${ IR_DimToString(dim) }", level).get
     IR_FieldAccess(IR_FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }

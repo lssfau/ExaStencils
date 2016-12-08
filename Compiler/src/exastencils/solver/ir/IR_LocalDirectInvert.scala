@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
+import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldAccess
 
 /// IR_LocalDirectInvert
@@ -40,13 +41,13 @@ object IR_LocalDirectInvert {
       for (j <- unknowns.indices)
         innerStmts += IR_Assignment(IR_HackMatComponentAccess(A, i, j), AVals(i)(j))
 
-      boundaryStmts += IR_Assignment(IR_HackVecComponentAccess(f, i), unknowns(i))
+      boundaryStmts += IR_Assignment(IR_HackVecComponentAccess(f, i), Duplicate(unknowns(i)))
       for (j <- unknowns.indices)
         boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
 
       // check if current unknown is on/ beyond boundary
       stmts += IR_IfCondition(
-        IR_IsValidComputationPoint(unknowns(i).fieldSelection, unknowns(i).index),
+        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
         innerStmts,
         boundaryStmts)
     }
@@ -57,8 +58,8 @@ object IR_LocalDirectInvert {
     // write back results
     for (i <- unknowns.indices)
       stmts += IR_IfCondition(// don't write back result on boundaries
-        IR_IsValidComputationPoint(unknowns(i).fieldSelection, unknowns(i).index),
-        IR_Assignment(unknowns(i), IR_HackVecComponentAccess(u, i)))
+        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+        IR_Assignment(Duplicate(unknowns(i)), IR_HackVecComponentAccess(u, i)))
 
     stmts
   }

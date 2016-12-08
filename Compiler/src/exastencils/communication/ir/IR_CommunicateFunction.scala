@@ -6,6 +6,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 
@@ -336,7 +337,8 @@ case class IR_CommunicateFunction(
 
   def compileBody(updatedFieldSelection : IR_FieldSelection) : ListBuffer[IR_Statement] = {
     var body = new ListBuffer[IR_Statement]
-    val field = updatedFieldSelection.field
+    def updatedFieldSelectionDup = Duplicate(updatedFieldSelection)
+    val field = updatedFieldSelectionDup.field
 
     // sync duplicate values
     if (dupLayerExch && field.communicatesDuplicated) {
@@ -349,28 +351,28 @@ case class IR_CommunicateFunction(
               val sendNeighbors = ListBuffer(neighbors(2 * dim + 1))
 
               if (begin) {
-                body += IR_RemoteCommunicationStart(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-                body += IR_RemoteCommunicationFinish(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-                body += IR_LocalCommunicationStart(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
+                body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+                body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+                body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
               }
               if (finish) {
-                body += IR_RemoteCommunicationFinish(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-                body += IR_RemoteCommunicationStart(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-                body += IR_LocalCommunicationFinish(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
+                body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+                body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+                body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
               }
             }
           case 26 =>
             val sendNeighbors = neighbors.filter(neigh => neigh.dir(0) >= 0 && neigh.dir(1) >= 0 && neigh.dir(2) >= 0)
             val recvNeighbors = neighbors.filter(neigh => neigh.dir(0) <= 0 && neigh.dir(1) <= 0 && neigh.dir(2) <= 0)
             if (begin) {
-              body += IR_RemoteCommunicationStart(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationFinish(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationStart(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
+              body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+              body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+              body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
             }
             if (finish) {
-              body += IR_RemoteCommunicationFinish(updatedFieldSelection, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationStart(updatedFieldSelection, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationFinish(updatedFieldSelection, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
+              body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateRemoteRecv(recvNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+              body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesDuplicateRemoteSend(sendNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+              body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesDuplicateLocalSend(sendNeighbors), genIndicesDuplicateLocalRecv(recvNeighbors), insideFragLoop, condition)
             }
         }
       }
@@ -386,26 +388,26 @@ case class IR_CommunicateFunction(
               val curNeighbors = ListBuffer(neighbors(2 * dim + 0), neighbors(2 * dim + 1))
 
               if (begin) {
-                body += IR_RemoteCommunicationStart(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-                body += IR_RemoteCommunicationFinish(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
-                body += IR_LocalCommunicationStart(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
+                body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+                body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(curNeighbors), true, false, concurrencyId, insideFragLoop, condition)
+                body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
               }
               if (finish) {
-                body += IR_RemoteCommunicationFinish(updatedFieldSelection, genIndicesGhostRemoteRecv(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-                body += IR_RemoteCommunicationStart(updatedFieldSelection, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
-                body += IR_LocalCommunicationFinish(updatedFieldSelection, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
+                body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+                body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(curNeighbors), false, true, concurrencyId, insideFragLoop, condition)
+                body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostLocalSend(curNeighbors), genIndicesGhostLocalRecv(curNeighbors), insideFragLoop, condition)
               }
             }
           case 26 =>
             if (begin) {
-              body += IR_RemoteCommunicationStart(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationFinish(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), true, false, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationStart(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
+              body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(neighbors), true, false, concurrencyId, insideFragLoop, condition)
+              body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(neighbors), true, false, concurrencyId, insideFragLoop, condition)
+              body += IR_LocalCommunicationStart(updatedFieldSelectionDup, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
             }
             if (finish) {
-              body += IR_RemoteCommunicationFinish(updatedFieldSelection, genIndicesGhostRemoteRecv(neighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_RemoteCommunicationStart(updatedFieldSelection, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop, condition)
-              body += IR_LocalCommunicationFinish(updatedFieldSelection, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
+              body += IR_RemoteCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostRemoteRecv(neighbors), false, true, concurrencyId, insideFragLoop, condition)
+              body += IR_RemoteCommunicationStart(updatedFieldSelectionDup, genIndicesGhostRemoteSend(neighbors), false, true, concurrencyId, insideFragLoop, condition)
+              body += IR_LocalCommunicationFinish(updatedFieldSelectionDup, genIndicesGhostLocalSend(neighbors), genIndicesGhostLocalRecv(neighbors), insideFragLoop, condition)
             }
         }
       }
@@ -416,7 +418,7 @@ case class IR_CommunicateFunction(
 
   override def expand() : Output[IR_Function] = {
     var fctArgs : ListBuffer[IR_FunctionArgument] = ListBuffer()
-    fctArgs += IR_FunctionArgument("slot", IR_SpecialDatatype("unsigned int"))
+    fctArgs += IR_FunctionArgument("slot", IR_IntegerDatatype)
     if (insideFragLoop)
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt, IR_IntegerDatatype)
 

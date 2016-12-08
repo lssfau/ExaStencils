@@ -27,20 +27,20 @@ object GridGeometry {
 
 abstract class GridGeometry() {
   // information always required
-  def nodePosition(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
-  def cellCenter(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
+  def nodePosition(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
+  def cellCenter(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
 
-  def cellWidth(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
-  def gridWidth(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = cellWidth(level, index, arrayIndex, dim) // simple alias for most grids
+  def cellWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
+  def gridWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = cellWidth(level, index, arrayIndex, dim) // simple alias for most grids
 
-  def cellVolume(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = {
+  def cellVolume(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = {
     var exp : IR_Expression = cellWidth(level, index, arrayIndex, 0)
     for (dim <- 1 until Knowledge.dimensionality)
       exp *= cellWidth(level, index, arrayIndex, dim)
     exp
   }
 
-  def cellCenterToFace(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = { 0.5 * cellWidth(level, index, arrayIndex, dim) }
+  def cellCenterToFace(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = { 0.5 * cellWidth(level, index, arrayIndex, dim) }
 
   // resolution of special function accessing virtual fields
   def resolveGridMemberFunction(name : String) : Option[java.lang.reflect.Method] = {
@@ -55,22 +55,22 @@ abstract class GridGeometry() {
       case "_x" =>
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 0 : Integer).asInstanceOf[IR_Expression]
+        method.get.invoke(this, virtualField.level : Integer, virtualField.index, virtualField.arrayIndex, 0 : Integer).asInstanceOf[IR_Expression]
 
       case "_y" =>
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 1 : Integer).asInstanceOf[IR_Expression]
+        method.get.invoke(this, virtualField.level : Integer, virtualField.index, virtualField.arrayIndex, 1 : Integer).asInstanceOf[IR_Expression]
 
       case "_z" =>
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex, 2 : Integer).asInstanceOf[IR_Expression]
+        method.get.invoke(this, virtualField.level : Integer, virtualField.index, virtualField.arrayIndex, 2 : Integer).asInstanceOf[IR_Expression]
 
       case _ =>
         val method = resolveGridMemberFunction(functionName)
         if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level, virtualField.index, virtualField.arrayIndex).asInstanceOf[IR_Expression]
+        method.get.invoke(this, virtualField.level : Integer, virtualField.index, virtualField.arrayIndex).asInstanceOf[IR_Expression]
 
     }
   }

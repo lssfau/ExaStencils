@@ -1,5 +1,6 @@
 package exastencils.field.ir
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.datastructures._

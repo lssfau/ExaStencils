@@ -24,17 +24,17 @@ import exastencils.logger._
 
 trait GridGeometry_nonUniform extends GridGeometry {
   // direct accesses
-  override def nodePosition(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def nodePosition(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = IR_FieldCollection.getByIdentifierLevExp(s"node_pos_${ IR_DimToString(dim) }", level).get
     IR_FieldAccess(IR_FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
   }
 
   // compound accesses
-  override def cellCenter(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def cellCenter(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
     0.5 * (nodePosition(level, GridUtil.offsetIndex(index, 1, dim), arrayIndex, dim) + nodePosition(level, Duplicate(index), arrayIndex, dim))
   }
 
-  override def cellWidth(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def cellWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
     nodePosition(level, GridUtil.offsetIndex(index, 1, dim), arrayIndex, dim) - nodePosition(level, Duplicate(index), arrayIndex, dim)
   }
 
@@ -182,8 +182,9 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // look up field and compile access to base element
     val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", level).get
-    val baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
-    val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
+    def baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality)
+    // TODO: dim
+    def baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
@@ -204,7 +205,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     leftGhostIndex(dim) = -2
-    val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
+    def leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
     val leftBoundaryUpdate = IR_IfCondition(
       IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
@@ -220,7 +221,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
     rightGhostIndex(dim) = numCellsPerFrag + 2
-    val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
+    def rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
     val rightBoundaryUpdate = IR_IfCondition(
       IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),

@@ -11,7 +11,7 @@ import exastencils.operator.ir.IR_StencilField
 @deprecated("to be integrated into IR_StencilFieldAccess and/or replaced by the new accessor classes", "04.10.16")
 case class IR_StencilFieldSelection(
     var stencilField : IR_StencilField,
-    var level : IR_Expression,
+    var level : Int,
     var slot : IR_Expression,
     var arrayIndex : Option[Int],
     var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends Node {

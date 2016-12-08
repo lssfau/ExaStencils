@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
+import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 
@@ -116,7 +117,7 @@ object IR_LocalSchurCompl {
       }
 
       // rhs for boundary
-      boundaryStmts += IR_Assignment(IR_HackVecComponentAccess(f(i), i % 2), unknowns(i))
+      boundaryStmts += IR_Assignment(IR_HackVecComponentAccess(f(i), i % 2), Duplicate(unknowns(i)))
 
       // sub-matrices for inner
       i match {
@@ -144,7 +145,7 @@ object IR_LocalSchurCompl {
 
       // implement check if current unknown is on/ beyond boundary
       stmts += IR_IfCondition(
-        IR_IsValidComputationPoint(unknowns(i).fieldSelection, unknowns(i).index),
+        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
         innerStmts,
         boundaryStmts)
     }
@@ -174,8 +175,8 @@ object IR_LocalSchurCompl {
     // write back results
     for (i <- unknowns.indices)
       stmts += IR_IfCondition(// don't write back result on boundaries
-        IR_IsValidComputationPoint(unknowns(i).fieldSelection, unknowns(i).index),
-        IR_Assignment(unknowns(i), IR_HackVecComponentAccess(u(i), i % 2)))
+        IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
+        IR_Assignment(Duplicate(unknowns(i)), IR_HackVecComponentAccess(u(i), i % 2)))
 
     stmts
   }

@@ -9,7 +9,7 @@ import exastencils.domain.ir._
 
 trait GridGeometry_uniform extends GridGeometry {
   // properties of uniform grids
-  override def cellWidth(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
+  override def cellWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
     val levelIndex = level.asInstanceOf[IR_IntegerConstant].v.toInt - Knowledge.minLevel
     dim match {
       case 0 => Knowledge.discr_hx(levelIndex)
@@ -18,11 +18,11 @@ trait GridGeometry_uniform extends GridGeometry {
     }
   }
 
-  override def nodePosition(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
+  override def nodePosition(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
     index(dim) * cellWidth(level, index, arrayIndex, dim) + IR_IV_FragmentPositionBegin(dim)
   }
 
-  override def cellCenter(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
+  override def cellCenter(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = {
     (index(dim) + 0.5) * cellWidth(level, index, arrayIndex, dim) + IR_IV_FragmentPositionBegin(dim)
   }
 }

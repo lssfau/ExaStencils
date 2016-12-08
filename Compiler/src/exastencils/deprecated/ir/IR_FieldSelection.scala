@@ -11,7 +11,7 @@ import exastencils.field.ir.IR_Field
 @deprecated("to be integrated into IR_FieldAccess and/or replaced by the new accessor classes", "04.10.16")
 case class IR_FieldSelection(
     var field : IR_Field,
-    var level : IR_Expression,
+    var level : Int,
     var slot : IR_Expression,
     var arrayIndex : Option[Int] = None, // TODO: delete
     var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends Node {

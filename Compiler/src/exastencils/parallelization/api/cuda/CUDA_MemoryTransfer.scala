@@ -2,6 +2,7 @@ package exastencils.parallelization.api.cuda
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir._

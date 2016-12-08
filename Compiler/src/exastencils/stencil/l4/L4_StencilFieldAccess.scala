@@ -68,10 +68,10 @@ case class L4_StencilFieldAccess(
     }
 
     if (accessIndex < 0)
-      IR_StencilFieldAccess(IR_StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), L4_FieldAccess.resolveSlot(stencilField.field, slot), None),
+      IR_StencilFieldAccess(IR_StencilFieldSelection(stencilField, stencilField.field.level, L4_FieldAccess.resolveSlot(stencilField.field, slot), None),
         multiIndex)
     else
-      IR_FieldAccess(IR_FieldSelection(stencilField.field, IR_IntegerConstant(stencilField.field.level), L4_FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
+      IR_FieldAccess(IR_FieldSelection(stencilField.field, stencilField.field.level, L4_FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
         multiIndex)
   }
 }

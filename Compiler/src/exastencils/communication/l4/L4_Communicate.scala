@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.l4._
 import exastencils.communication.ir._
+import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.prettyprinting._
@@ -31,13 +32,13 @@ case class L4_Communicate(
 
   override def progress : IR_Communicate = {
     // TODO: extract to strategy replacing stencil field accesses with corresponding field accesses
-    val progressedField = field match {
+    val progressedField = Duplicate(field match {
       case f : L4_FieldAccess         => f.progress.fieldSelection
       case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObject().field,
         sf.target.level,
         L4_FieldAccess.resolveSlot(sf.target.getProgressedObject().field, sf.slot),
         sf.arrayIndex)
-    }
+    })
     val progressedTargets : ListBuffer[IR_CommunicateTarget] = ListBuffer()
 
     if (targets.isEmpty)

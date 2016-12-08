@@ -7,10 +7,10 @@ import exastencils.config.Knowledge
 
 trait GridGeometry_staggered extends GridGeometry {
   // additional information introduced by the staggered property
-  def stagCVWidth(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression // depends on uniform property
+  def stagCVWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression // depends on uniform property
 
   // compound accesses
-  def staggeredCellVolume(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], stagDim : Int) = {
+  def staggeredCellVolume(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], stagDim : Int) = {
     var exp : IR_Expression =
       if (0 == stagDim)
         stagCVWidth(level, index, arrayIndex, 0)
@@ -25,7 +25,7 @@ trait GridGeometry_staggered extends GridGeometry {
     exp
   }
 
-  def xStagCellVolume(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = staggeredCellVolume(level, index, arrayIndex, 0)
-  def yStagCellVolume(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = staggeredCellVolume(level, index, arrayIndex, 1)
-  def zStagCellVolume(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = staggeredCellVolume(level, index, arrayIndex, 2)
+  def xStagCellVolume(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = staggeredCellVolume(level, index, arrayIndex, 0)
+  def yStagCellVolume(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = staggeredCellVolume(level, index, arrayIndex, 1)
+  def zStagCellVolume(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = staggeredCellVolume(level, index, arrayIndex, 2)
 }

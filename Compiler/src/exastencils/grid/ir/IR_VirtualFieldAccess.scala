@@ -9,7 +9,7 @@ import exastencils.grid.GridGeometry
 /// IR_VirtualFieldAccess
 
 case class IR_VirtualFieldAccess(var fieldName : String,
-    var level : IR_Expression,
+    var level : Int,
     var index : IR_ExpressionIndex,
     var arrayIndex : Option[Int] = None,
     var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_Access with IR_SpecialExpandable {

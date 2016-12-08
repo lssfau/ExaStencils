@@ -59,7 +59,7 @@ case class L4_FieldAccess(
     }
 
     val field = target.getProgressedObject()
-    IR_FieldAccess(IR_FieldSelection(field, IR_IntegerConstant(field.level), L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
+    IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
   }
 }
 

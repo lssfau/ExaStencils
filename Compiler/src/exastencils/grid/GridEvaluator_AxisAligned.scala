@@ -59,8 +59,8 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
 
       var a0 : (() => IR_Expression) = () => { IR_NullExpression }
       var a1 : (() => IR_Expression) = () => { IR_NullExpression }
-      val x0 = () => { Duplicate(fieldAccess) }
-      val x1 = () => { GridUtil.offsetAccess(fieldAccess, 1, faceDim) }
+      def x0 = Duplicate(fieldAccess)
+      def x1 = GridUtil.offsetAccess(fieldAccess, 1, faceDim)
 
       field.discretization match {
         case "cell" =>
@@ -88,8 +88,8 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
 
       // compile evaluation
       interpolation match {
-        case "linear" | "default" => (a1() * x0() + a0() * x1()) / (a0() + a1())
-        case "harmonicMean"       => ((a0() + a1()) * (x0() * x1())) / (a1() * x0() + a0() * x1())
+        case "linear" | "default" => a1() * x0 + a0() * x1 / (a0() + a1())
+        case "harmonicMean"       => (a0() + a1()) * (x0 * x1) / (a1() * x0 + a0() * x1)
         case _                    =>
           Logger.warn(s"Trying to use interpolation scheme $interpolation which is unknown - falling back to default scheme")
           EvalAtRFace(fieldAccess, faceDim, stagDim, "default").expandSpecial

@@ -115,7 +115,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       if (!addedFunctions.contains(functionName)) {
         addedFunctions += functionName
         val fieldSelection = Duplicate(communicateStatement.field)
-        fieldSelection.slot = "slot"
+        fieldSelection.slot = IR_VariableAccess("slot", IR_IntegerDatatype)
         commFunctions += IR_CommunicateFunction(functionName,
           fieldSelection, DefaultNeighbors.neighbors,
           "begin" == communicateStatement.op || "both" == communicateStatement.op,

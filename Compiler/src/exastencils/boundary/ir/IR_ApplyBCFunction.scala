@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 
@@ -72,7 +73,7 @@ case class IR_ApplyBCFunction(
     var body = ListBuffer[IR_Statement]()
 
     val boundaryNeighs = neighbors.filter(neigh => 1 == neigh.dir.count(_ != 0)) // exactly one non-zero entry
-    body += IR_HandleBoundaries(fieldSelection, genIndicesBoundaryHandling(boundaryNeighs))
+    body += IR_HandleBoundaries(Duplicate(fieldSelection), genIndicesBoundaryHandling(boundaryNeighs))
 
     body
   }

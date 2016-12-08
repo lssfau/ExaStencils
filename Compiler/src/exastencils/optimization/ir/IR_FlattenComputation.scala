@@ -60,7 +60,7 @@ object IR_FlattenComputation extends QuietDefaultStrategy("Flatten complex compu
           if (ret.summands.isEmpty)
             ret.summands = add.summands.map(s => IR_Multiplication(s +: Duplicate(nonAdditions)))
           else
-            ret.summands = add.summands.flatMap(s => ret.summands.map(r => IR_Multiplication(s, Duplicate(r))))
+            ret.summands = add.summands.flatMap(s => ret.summands.map(r => IR_Multiplication(Duplicate(s), Duplicate(r))))
         }
 
         ret
@@ -72,12 +72,12 @@ object IR_FlattenComputation extends QuietDefaultStrategy("Flatten complex compu
     // (a + b) / c => a/c + b/c
     case IR_Division(add : IR_Addition, div) =>
       changed = true
-      IR_Addition(add.summands.map(ex => IR_Division(ex, div) : IR_Expression))
+      IR_Addition(add.summands.map(ex => IR_Division(ex, Duplicate(div)) : IR_Expression))
 
     // (a * b) / c => a*c + b*c
     case IR_Division(mult : IR_Multiplication, div) =>
       changed = true
-      mult.factors += IR_Division(1.0, div)
+      mult.factors += IR_Division(1.0, Duplicate(div))
       mult
   })
 
