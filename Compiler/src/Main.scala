@@ -1,6 +1,6 @@
-import exastencils.base.ExaRootNode
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ExaRootNode
 import exastencils.base.ir._
 import exastencils.base.l2.L2_ResolveLevelSpecifications
 import exastencils.base.l3._
@@ -40,6 +40,7 @@ import exastencils.operator.l3._
 import exastencils.operator.l4._
 import exastencils.optimization._
 import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.l4.L4_GeneralSimplify
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
@@ -304,6 +305,7 @@ object Main {
       // resolve globals AFTER L4_InlineValueDeclarations (lower precedence than local values!)
       L4_InlineGlobalValueDeclarations.apply()
     }
+
     L4_ResolveVirtualFieldAccesses.apply()
     L4_ResolveVariableAccesses.apply()
     L4_ResolveFunctionAccesses.apply()
@@ -317,6 +319,8 @@ object Main {
     L4_ResolvePrintFunctions.apply()
     L4_ResolveBuildStringFunctions.apply()
     L4_ResolveKnowledgeParameterAccess.apply()
+
+    L4_GeneralSimplify.doUntilDone()
 
     L4_ProcessKnowledgeDeclarations.apply()
 
