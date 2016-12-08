@@ -374,9 +374,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val trans = scop.deps.flow.reverse().transitiveClosure(new Array[Int](1))
     live = live.union(live.apply(trans))
     live = live.intersect(scop.domain)
-    live = live.coalesce()
+    live = Isl.simplify(live)
 
-    if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old if possible
+    val domWCtx = scop.domain.intersectParams(scop.getContext())
+    val liveWCtx = live.intersectParams(scop.getContext())
+    if (!domWCtx.isEqual(liveWCtx)) // the new one could be more complex, so keep old if possible
       scop.domain = live
   }
 
