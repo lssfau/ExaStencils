@@ -4,6 +4,7 @@ import scala.collection.immutable.Nil
 
 import java.util
 
+import com.rits.cloning.IDeepCloner
 import exastencils.config.Settings
 import exastencils.knowledge.ir.IR_KnowledgeObject
 import exastencils.knowledge.l2.L2_KnowledgeObject

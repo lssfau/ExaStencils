@@ -1,6 +1,6 @@
-import exastencils.base.ExaRootNode
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ExaRootNode
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
@@ -383,7 +383,7 @@ object MainStefan {
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
-      new DuplicateNodes().apply() // FIXME: only debug
+      DuplicateNodes.apply() // FIXME: only debug
       Inlining.apply(true)
       CommonSubexpressionElimination.apply()
     }
