@@ -9,9 +9,7 @@ import exastencils.communication.ir.IR_TempBufferAccess
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.domain.ir.IR_IV_FragmentPosition
-import exastencils.domain.ir.IR_IV_FragmentPositionBegin
-import exastencils.domain.ir.IR_IV_FragmentPositionEnd
+import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.interfacing.ir._
 import exastencils.logger._
