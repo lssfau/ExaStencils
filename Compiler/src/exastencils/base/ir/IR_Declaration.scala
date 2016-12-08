@@ -23,7 +23,10 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         out << x << ' ' << name
         if (initialValue.isDefined) {
           out << "("
-          initialValue.get.asInstanceOf[IR_VectorExpression].prettyprintInner(out)
+          initialValue.get match {
+            case init : IR_VectorExpression => init.prettyprintInner(out)
+            case sthElse                    => out << sthElse
+          }
           out << ")"
         }
 
@@ -31,7 +34,10 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         out << x << ' ' << name
         if (initialValue.isDefined) {
           out << "("
-          initialValue.get.asInstanceOf[IR_MatrixExpression].prettyprintInner(out)
+          initialValue.get match {
+            case init : IR_MatrixExpression => init.prettyprintInner(out)
+            case sthElse                    => out << sthElse
+          }
           out << ")"
         }
 
