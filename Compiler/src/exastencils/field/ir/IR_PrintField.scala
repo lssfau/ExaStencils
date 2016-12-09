@@ -69,7 +69,7 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
 
     // TODO: less monolithic code
     var innerLoop = ListBuffer[IR_Statement](
-      IR_ObjectInstantiation(stream, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
+      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
       fileHeader,
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
@@ -93,7 +93,7 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
     if (Knowledge.mpi_enabled) {
       statements += IR_IfCondition(MPI_IsRootProc(),
         ListBuffer[IR_Statement](
-          IR_ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)),
+          IR_ObjectInstantiation(streamType, streamName, Duplicate(filename), IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)),
           IR_MemberFunctionCall(stream, "close")))
 
       statements += MPI_Sequential(innerLoop)

@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
@@ -52,7 +53,7 @@ case class IR_CopyToSendBuffer(
 
       val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(it), IR_ExpressionIndex(0) /* dummy stride */)
-      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))
+      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims))
 
       ret += IR_Assignment(it, 0)
       ret += IR_LoopOverDimensions(numDims, indices, IR_IfCondition(
@@ -63,7 +64,7 @@ case class IR_CopyToSendBuffer(
       val tmpBufAccess = IR_TempBufferAccess(IR_IV_CommBuffer(field.field, s"Send_${ concurrencyId }", indices.getTotalSize, neighbor.index),
         IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), indices.begin, _ - _),
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
-      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims))
+      val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims))
 
       val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(tmpBufAccess, fieldAccess))) with PolyhedronAccessible
       loop.parallelization.potentiallyParallel = true

@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
@@ -26,7 +27,7 @@ case class IR_RemoteCommunicationStart(
 
   override def genCopy(neighbor : NeighborInfo, indices : IR_ExpressionIndexRange, addCondition : Boolean) : IR_Statement = {
     if (Knowledge.data_genVariableFieldSizes || (!MPI_DataType.shouldBeUsed(field, indices, condition) && IR_SimplifyExpression.evalIntegral(indices.getTotalSize) > 1)) {
-      val body = IR_CopyToSendBuffer(field, neighbor, indices, concurrencyId, condition)
+      val body = IR_CopyToSendBuffer(Duplicate(field), neighbor, indices, concurrencyId, condition)
       if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body
     } else {
       IR_NullStatement
@@ -41,18 +42,18 @@ case class IR_RemoteCommunicationStart(
       else
         maxCnt
       if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == IR_SimplifyExpression.evalIntegral(cnt))) {
-        IR_RemoteSend(field, neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
+        IR_RemoteSend(Duplicate(field), neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(field, indices, condition)) {
-        IR_RemoteSend(field, neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
+        IR_RemoteSend(Duplicate(field), neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        IR_RemoteSend(field, neighbor, IR_IV_CommBuffer(field.field, s"Send_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
+        IR_RemoteSend(Duplicate(field), neighbor, IR_IV_CommBuffer(field.field, s"Send_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo) : IR_Statement = {
-    IR_WaitForRemoteTransfer(field, neighbor, s"Send_${ concurrencyId }")
+    IR_WaitForRemoteTransfer(Duplicate(field), neighbor, s"Send_${ concurrencyId }")
   }
 
   override def expand() : Output[StatementList] = {
