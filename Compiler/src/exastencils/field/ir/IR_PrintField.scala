@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
@@ -47,8 +48,8 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
 
     // TODO: adapt to the new type system
     val arrayIndexRange =
-    if (field.arrayIndex.isEmpty) 0 until field.field.gridDatatype.resolveFlattendSize
-    else field.arrayIndex.get to field.arrayIndex.get
+      if (field.arrayIndex.isEmpty) 0 until field.field.gridDatatype.resolveFlattendSize
+      else field.arrayIndex.get to field.arrayIndex.get
 
     def separator = IR_StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
 
@@ -73,8 +74,8 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) : IR_Expression))),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DLB", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DRE", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
               IR_Print(stream,
                 ((0 until numDimsGrid).view.flatMap { dim =>

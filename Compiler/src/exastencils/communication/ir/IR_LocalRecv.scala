@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
@@ -26,8 +27,8 @@ case class IR_LocalRecv(
 
   override def expand() : Output[IR_Statement] = {
     var innerStmt : IR_Statement = IR_Assignment(
-      IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, field.slot), IR_LoopOverDimensions.defIt(numDims)),
-      IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, field.slot, None, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)),
+      IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims)),
+      IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot), None, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)),
         IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
 
     if (condition.isDefined)

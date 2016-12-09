@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.communication._
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_NeighborIsValid
@@ -38,8 +39,8 @@ case class IR_IsOnSpecBoundary(var field : IR_FieldSelection, var neigh : Neighb
     var conditions = ListBuffer[IR_Expression](IR_Negation(IR_IV_NeighborIsValid(field.domainIndex, neigh.index)))
     for (dim <- 0 until field.field.fieldLayout.numDimsGrid) {
       neigh.dir(dim) match {
-        case -1 => conditions += IR_Lower(index(dim), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
-        case 1  => conditions += IR_GreaterEqual(index(dim), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))
+        case -1 => conditions += IR_Lower(Duplicate(index(dim)), field.fieldLayout.idxById("DLE", dim) - field.referenceOffset(dim))
+        case 1  => conditions += IR_GreaterEqual(Duplicate(index(dim)), field.fieldLayout.idxById("DRB", dim) - field.referenceOffset(dim))
         case 0  => // true
       }
     }
@@ -68,8 +69,8 @@ case class IR_IsValidComputationPoint(var field : IR_FieldSelection, var index :
     val isInnerOrDup =
       (0 until field.field.fieldLayout.numDimsGrid).map(dim =>
         IR_AndAnd(
-          IR_Lower(index(dim), field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)),
-          IR_GreaterEqual(index(dim), field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)))).reduce((a, b) => IR_AndAnd(a, b))
+          IR_Lower(Duplicate(index(dim)), field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim)),
+          IR_GreaterEqual(Duplicate(index(dim)), field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim)))).reduce((a, b) => IR_AndAnd(a, b))
 
     IR_AndAnd(isNotOnBoundary, isInnerOrDup)
   }

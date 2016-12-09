@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
@@ -31,7 +32,7 @@ case class IR_InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandabl
         IR_ExpressionIndex((0 until numDims).toArray.map(dim => field.fieldLayout.idxById("GRE", dim)))),
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           IR_Assignment(
-            IR_DirectFieldAccess(IR_FieldSelection(field, field.level, slot), index),
+            IR_DirectFieldAccess(IR_FieldSelection(field, field.level, slot), Duplicate(index)),
             0.0) : IR_Statement)) with PolyhedronAccessible
       loopOverDims.parallelization.potentiallyParallel = true
       loopOverDims.optLevel = 1
