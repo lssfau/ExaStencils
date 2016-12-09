@@ -420,7 +420,7 @@ case class IR_CommunicateFunction(
     var fctArgs : ListBuffer[IR_FunctionArgument] = ListBuffer()
     fctArgs += IR_FunctionArgument("slot", IR_IntegerDatatype)
     if (insideFragLoop)
-      fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt, IR_IntegerDatatype)
+      fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
     IR_Function(IR_UnitDatatype, name, fctArgs, compileBody(fieldSelection))
   }

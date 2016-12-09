@@ -1,6 +1,5 @@
 package exastencils.field.l4
 
-import exastencils.base.ir.IR_StringLiteral
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.baseExt.l4.L4_UnresolvedAccess
@@ -62,6 +61,6 @@ case class L4_AdvanceSlot(var field : L4_Access) extends L4_Statement {
 
   override def progress = {
     IR_AdvanceSlot(IR_IV_ActiveSlot(field.asInstanceOf[L4_FieldAccess].target.getProgressedObject(),
-      IR_StringLiteral(IR_LoopOverFragments.defIt)))
+      IR_LoopOverFragments.defIt))
   }
 }

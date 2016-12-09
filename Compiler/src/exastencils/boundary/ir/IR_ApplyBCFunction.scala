@@ -83,7 +83,7 @@ case class IR_ApplyBCFunction(
     var fctArgs = ListBuffer[IR_FunctionArgument]()
     fctArgs += IR_FunctionArgument("slot", IR_IntegerDatatype)
     if (insideFragLoop)
-      fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt, IR_IntegerDatatype)
+      fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
     // emit compiled function
     IR_Function(IR_UnitDatatype, name, fctArgs, compileBody(fieldSelection))
