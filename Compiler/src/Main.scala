@@ -391,7 +391,7 @@ object Main {
     )
 
     if (Knowledge.cuda_enabled)
-      ExaRootNode.ir_root.asInstanceOf[IR_Root].nodes += CUDA_KernelFunctions()
+      ExaRootNode.ir_root.nodes += CUDA_KernelFunctions()
 
     if (Knowledge.experimental_mergeCommIntoLoops)
       IR_MergeCommunicateAndLoop.apply()
@@ -480,7 +480,7 @@ object Main {
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
-      DuplicateNodes.printWarnings = false
+      DuplicateNodes.instances.clear()
       DuplicateNodes.apply() // FIXME: only debug
       Inlining.apply(true)
       CommonSubexpressionElimination.apply()
