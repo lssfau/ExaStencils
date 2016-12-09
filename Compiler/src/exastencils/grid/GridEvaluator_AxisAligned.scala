@@ -88,8 +88,8 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
 
       // compile evaluation
       interpolation match {
-        case "linear" | "default" => a1() * x0 + a0() * x1 / (a0() + a1())
-        case "harmonicMean"       => (a0() + a1()) * (x0 * x1) / (a1() * x0 + a0() * x1)
+        case "linear" | "default" => (a1() * x0 + a0() * x1) / (a0() + a1())
+        case "harmonicMean"       => ((a0() + a1()) * (x0 * x1)) / (a1() * x0 + a0() * x1)
         case _                    =>
           Logger.warn(s"Trying to use interpolation scheme $interpolation which is unknown - falling back to default scheme")
           EvalAtRFace(fieldAccess, faceDim, stagDim, "default").expandSpecial
