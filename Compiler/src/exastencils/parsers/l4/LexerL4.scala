@@ -41,7 +41,7 @@ class LexerL4 extends ExaLexer {
   reserved += ("true", "false")
 
   // level specification keywords
-  reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "all", "and")
+  reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
   // domain keywords
   reserved += "fromFile"
