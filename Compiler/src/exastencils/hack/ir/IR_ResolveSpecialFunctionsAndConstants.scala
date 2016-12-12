@@ -1,8 +1,9 @@
 package exastencils.hack.ir
 
 import scala.collection.mutable.ListBuffer
+
 import exastencils.base.ir.IR_ImplicitConversion._
-import exastencils.base.ir._
+import exastencils.base.ir.{ IR_FunctionCall, _ }
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors
@@ -22,7 +23,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
   var collector = new StackCollector
   this.register(collector)
 
-  def calculateDeterminant(m: IR_MatrixExpression): IR_Expression = {
+  def calculateDeterminant(m : IR_MatrixExpression) : IR_Expression = {
     if (m.rows != m.columns) {
       Logger.error("determinant for non-quadratic matrices not implemented")
       // FIXME Nullzeilen/-spalten ergänzen
@@ -41,7 +42,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         m.get(2, 1) * m.get(1, 2) * m.get(0, 0) -
         m.get(2, 2) * m.get(1, 0) * m.get(0, 1))
     } else {
-      var det: IR_Expression = 0
+      var det : IR_Expression = 0
       var tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
       // laplace expansion
       for (i <- 0 until m.rows) {
@@ -60,7 +61,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     }
   }
 
-  def calculateMatrixOfMinorsElement(m: IR_MatrixExpression, forRow: Integer, forColumn: Integer): IR_Expression = {
+  def calculateMatrixOfMinorsElement(m : IR_MatrixExpression, forRow : Integer, forColumn : Integer) : IR_Expression = {
     if (m.rows != m.columns) {
       Logger.error("matrix of minors for non-quadratic matrices not implemented ")
     }
@@ -89,7 +90,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case IR_FunctionCall(IR_UserFunctionAccess("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
 
     // Vector functions
-    case f: IR_FunctionCall if f.name == "cross" || f.name == "crossproduct" =>
+    case f : IR_FunctionCall if f.name == "cross" || f.name == "crossproduct" =>
       f.arguments.foreach(a => if ((f.arguments(0).isInstanceOf[IR_VectorExpression] || f.arguments(0).isInstanceOf[IR_VectorExpression])
         && a.getClass != f.arguments(0).getClass) Logger.error("Must have matching types!"))
       f.arguments.foreach(a => if (a.asInstanceOf[IR_VectorExpression].length != f.arguments(0).asInstanceOf[IR_VectorExpression].length) Logger.error("Vectors must have matching lengths"))
@@ -106,17 +107,17 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_VectorExpression(x.innerDatatype, r, x.rowVector)
       }
     // Matrix functions
-    case x: IR_FunctionCall if x.name == "det" && x.arguments.size == 1 && exastencils.config.Knowledge.experimental_internalHighDimTypes =>
+    case x : IR_FunctionCall if x.name == "det" && x.arguments.size == 1 && exastencils.config.Knowledge.experimental_internalHighDimTypes =>
       x.arguments(0) match {
-        case m: IR_MatrixExpression => calculateDeterminant(m)
-        case _ => x
+        case m : IR_MatrixExpression => calculateDeterminant(m)
+        case _                       => x
       }
-    case x: IR_FunctionCall if x.name == "inverse" && exastencils.config.Knowledge.experimental_internalHighDimTypes =>
+    case x : IR_FunctionCall if x.name == "inverse" && exastencils.config.Knowledge.experimental_internalHighDimTypes                      =>
       if (x.arguments.size == 1) {
         if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
           val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
           m.innerDatatype match {
-            case Some(IR_IntegerDatatype) => {
+            case Some(IR_IntegerDatatype)                     => {
               Logger.warn("Converting matrix expression to real data type for inversion")
               m.innerDatatype = Some(IR_RealDatatype)
             }
@@ -124,7 +125,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
               Logger.warn("Converting matrix expression to real data type for inversion")
               m.innerDatatype = Some(IR_ComplexDatatype(IR_RealDatatype))
             }
-            case _ =>
+            case _                                            =>
           }
           if (m.rows == 1 && m.columns == 1) {
             IR_MatrixExpression(m.innerDatatype, 1, 1, Array(1.0 / m.get(0, 0)))
@@ -176,7 +177,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
 
     // FIXME: HACK to realize application functionality
-    case func: IR_Function if "Application" == func.name =>
+    case func : IR_Function if "Application" == func.name =>
       func.returntype = IR_IntegerDatatype
       func.name = "main"
       if (!func.parameters.isEmpty)
@@ -236,12 +237,72 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)),
         IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
 
-    case IR_ElementwiseAddition(left, right) => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
-    case IR_ElementwiseSubtraction(left, right) => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
+    case IR_ElementwiseAddition(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
+    case IR_ElementwiseSubtraction(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
     case IR_ElementwiseMultiplication(left, right) => IR_FunctionCall("elementwiseMul", ListBuffer(left, right))
-    case IR_ElementwiseDivision(left, right) => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
-    case IR_ElementwiseModulo(left, right) => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
+    case IR_ElementwiseDivision(left, right)       => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
+    case IR_ElementwiseModulo(left, right)         => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
     // FIXME: IR_UserFunctionAccess
     case IR_FunctionCall(IR_UserFunctionAccess("dot", _), args) => IR_FunctionCall("dotProduct", args)
+
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UserFunctionAccess("readImage", _), args)) =>
+      if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
+        Logger.warn("Malformed call to readImage; usage: readImage ( field, \"filename\" )")
+        IR_NullStatement
+      } else {
+        val field = args(0).asInstanceOf[IR_FieldAccess]
+        val filename = args(1).asInstanceOf[IR_StringConstant].value
+
+        val stmts = ListBuffer[IR_Statement]()
+
+        //stmts += IR_FunctionCall(IR_UserFunctionAccess("cimg_library::CImg< double > imageIn")
+        stmts += HACK_IR_Native("cimg_library::CImg< double > imageIn ( \"" + filename + "\" )")
+        stmts += IR_LoopOverPoints(field.fieldSelection.field,
+          IR_Assignment(field, HACK_IR_Native("*imageIn.data(x,y)")))
+
+        IR_Scope(stmts)
+      }
+
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UserFunctionAccess("writeImage", _), args)) =>
+      if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
+        Logger.warn("Malformed call to writeImage; usage: writeImage ( field, \"filename\" )")
+        IR_NullStatement
+      } else {
+        val field = args(0).asInstanceOf[IR_FieldAccess]
+        val fieldLayout = field.fieldSelection.field.fieldLayout
+        val numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
+          fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight)
+        val filename = args(1).asInstanceOf[IR_StringConstant].value
+
+        val stmts = ListBuffer[IR_Statement]()
+
+        stmts += HACK_IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + " )")
+        stmts += IR_LoopOverPoints(field.fieldSelection.field,
+          IR_Assignment(HACK_IR_Native("*imageOut.data(x,y)"), field))
+        stmts += HACK_IR_Native("imageOut.save( \"" + filename + "\" )")
+
+        IR_Scope(stmts)
+      }
+
+    case IR_ExpressionStatement(IR_FunctionCall(IR_UserFunctionAccess("showImage", _), args)) =>
+      if (args.size != 1 || !args(0).isInstanceOf[IR_FieldAccess]) {
+        Logger.warn("Malformed call to showImage; usage: showImage ( field )")
+        IR_NullStatement
+      } else {
+        val field = args(0).asInstanceOf[IR_FieldAccess]
+        val fieldLayout = field.fieldSelection.field.fieldLayout
+        val numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
+          fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight)
+
+        val stmts = ListBuffer[IR_Statement]()
+
+        stmts += HACK_IR_Native("cimg_library::CImg< double > imageShow ( " + numPoints.mkString(", ") + " )")
+        stmts += IR_LoopOverPoints(field.fieldSelection.field,
+          IR_Assignment(HACK_IR_Native("*imageShow.data(x,y)"), field))
+        stmts += HACK_IR_Native("cimg_library::CImgDisplay cImgDisp(imageShow, \"" + field.fieldSelection.field.name + "\")")
+        stmts += HACK_IR_Native("while (!cImgDisp.is_closed()) { cImgDisp.wait( ); }")
+
+        IR_Scope(stmts)
+      }
   })
 }
