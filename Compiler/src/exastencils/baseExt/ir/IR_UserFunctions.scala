@@ -42,4 +42,6 @@ case class IR_UserFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid
   // TODO: move to fields package
   if (Knowledge.data_initAllFieldsWithZero)
     functions += IR_InitFieldsWithZero()
+
+  override def toString: String = "IR_UserFunctions(" + baseName + ", " + externalDependencies + ", " + internalDependencies + ", " + functions + ")"
 }
