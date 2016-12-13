@@ -285,22 +285,29 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UserFunctionAccess("showImage", _), args)) =>
-      if (args.size != 1 || !args(0).isInstanceOf[IR_FieldAccess]) {
-        Logger.warn("Malformed call to showImage; usage: showImage ( field )")
+      if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
+        Logger.warn("Malformed call to showImage; usage: showImage ( field.* )")
         IR_NullStatement
       } else {
-        val field = args(0).asInstanceOf[IR_FieldAccess]
-        val fieldLayout = field.fieldSelection.field.fieldLayout
-        val numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
-          fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight)
+        val fields = args.map(_.asInstanceOf[IR_FieldAccess])
+        val fieldLayouts = fields.map(_.fieldSelection.field.fieldLayout)
+        val numPoints = fieldLayouts.map(fieldLayout => (0 until fieldLayout.numDimsGrid).map(dim =>
+          fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight))
+
+        val tmpImgs = fields.indices.map(i => s"imageShow$i")
+        val displays = fields.indices.map(i => s"cImgDisp$i")
 
         val stmts = ListBuffer[IR_Statement]()
 
-        stmts += HACK_IR_Native("cimg_library::CImg< double > imageShow ( " + numPoints.mkString(", ") + " )")
-        stmts += IR_LoopOverPoints(field.fieldSelection.field,
-          IR_Assignment(HACK_IR_Native("*imageShow.data(x,y)"), field))
-        stmts += HACK_IR_Native("cimg_library::CImgDisplay cImgDisp(imageShow, \"" + field.fieldSelection.field.name + "\")")
-        stmts += HACK_IR_Native("while (!cImgDisp.is_closed()) { cImgDisp.wait( ); }")
+        for (i <- fields.indices) {
+          stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + " )")
+          stmts += IR_LoopOverPoints(fields(i).fieldSelection.field,
+            IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(x,y)"), fields(i)))
+          val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
+          stmts += HACK_IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
+        }
+        stmts += IR_WhileLoop(fields.indices.map(i => IR_Negation(IR_MemberFunctionCall(displays(i), "is_closed")) : IR_Expression).reduceLeft(IR_OrOr),
+          fields.indices.map(i => IR_MemberFunctionCall(displays(i), "wait") : IR_Statement).to[ListBuffer])
 
         IR_Scope(stmts)
       }
