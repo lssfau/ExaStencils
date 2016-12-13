@@ -1,9 +1,9 @@
 package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
-
 import exastencils.base.ir._
 import exastencils.config._
+import exastencils.datastructures.{DefaultStrategy, Transformation}
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
 
@@ -18,6 +18,7 @@ case class IR_HackMatComponentAccess(var mat: IR_VariableAccess, var i: IR_Expre
 /// IR_MatrixExpression
 object IR_MatrixExpression {
   //def apply(innerDatatype : Option[IR_Datatype], rows : Integer, columns : Integer) : IR_MatrixExpression = new IR_MatrixExpression(innerDatatype, rows, columns)
+  def apply(innerDatatype : IR_Datatype, rows : Integer, columns : Integer) : IR_MatrixExpression = new IR_MatrixExpression(Some(innerDatatype), rows, columns)
   def apply(innerDatatype: Option[IR_Datatype], rows: Integer, columns: Integer, expressions: Array[IR_Expression]): IR_MatrixExpression = {
     val tmp = new IR_MatrixExpression(innerDatatype, rows, columns)
     tmp.expressions = expressions
@@ -70,3 +71,30 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
   override def toString: String = {"IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "); Items: " + expressions.mkString(", ")}
 }
 
+case object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars") {
+//  this += new Transformation("Evaluate arithmetics", {
+//    case IR_Multiplication(factors) => {
+//      var result : IR_Expression
+//      for(factors.view.re.length - 1 until -1) {
+//
+//      }
+//      factors.foldRight("")((y,z) => y+z)
+//    }
+//  })
+
+  this += new Transformation("Split declarations", {
+    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(x : IR_MatrixExpression)) => {
+      var newDecls = ListBuffer[IR_VariableDeclaration]()
+      for(row <- 0 until matrix.sizeM) {
+        for(col <- 0 until matrix.sizeN) {
+          var value : Option[IR_Expression] = None
+          if(decl.initialValue.isDefined) {
+            value = Some(x.get(row, col))
+          }
+          newDecls += new IR_VariableDeclaration(matrix.datatype, "_matrix_" + decl.name + "_" + row + "_" + col, value)
+        }
+      }
+      newDecls
+    }
+  })
+}

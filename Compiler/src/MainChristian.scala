@@ -1,5 +1,6 @@
 import exastencils.base.ir._
 import exastencils.base.l4.{L4_FunctionCall, L4_Node, L4_Progressable}
+import exastencils.baseExt.ir.{IR_ResolveMatrices, IR_UserFunctions}
 import exastencils.baseExt.l4.L4_MatrixExpression
 import exastencils.datastructures.{DefaultStrategy, Node, RootNode, Transformation}
 import exastencils.core.StateManager
@@ -24,9 +25,10 @@ object MainChristian {
 
     //var tpdl = scala.xml.XML.loadFile("")
     var parser = new exastencils.parsers.l4.ParserL4()
-//    var prog = "Function Application() : Unit { \n" +
-//      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
-//      "}\n"
+    var prog = "Function Application() : Unit { \n" +
+//      "Var m : Matrix<Real, 2, 2>\n"+
+      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}} * {{2.0, 2.0}, {2.0, 2.0}} * {{1,1},{1,1}}\n" +
+      "}\n"
 
 //    var prog = "Function Application() : Unit { \n" +
 //      "Var m : Matrix<Real, 3, 3> = {{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}, {7.0, 8.0, 2.0}}\n" +
@@ -36,16 +38,31 @@ object MainChristian {
 //      "Var m : Matrix<Real, 4, 4> = {{1, 2, 3, 4}, {4, 5, 6, 6}, {7, 8, 2, 2}, {1, 1, 1, 1}}\n" +
 //      "}\n"
 
-    var prog = "Function Application() : Unit { \n" +
-//      "Var m : Matrix<Integer, 5, 5> = {{1.8, 2.0, 3.0, 4.0, 9.0}, {4.0, 5.0, 6.0, 6.0, 8.0}, {7.0, 8.0, 2.0, 2.0, 7.0}, {1.0, 3.0, 5.0, 7.0, 6.0}, {1.0, 2.0, 3.0, 4.0, 5.0}}\n" +
-      "Var m : Matrix<Real, 5, 5> = {{1, 2, 3, 4, 9}, {4, 5, 6, 6, 8}, {7, 8, 2, 2, 7}, {1, 3, 5, 7, 6}, {1, 2, 3, 4, 5}}\n" +
-    "}\n"
+//    var prog = "Function Application() : Unit { \n" +
+////      "Var m : Matrix<Integer, 5, 5> = {{1.8, 2.0, 3.0, 4.0, 9.0}, {4.0, 5.0, 6.0, 6.0, 8.0}, {7.0, 8.0, 2.0, 2.0, 7.0}, {1.0, 3.0, 5.0, 7.0, 6.0}, {1.0, 2.0, 3.0, 4.0, 5.0}}\n" +
+//      "Var m : Matrix<Real, 5, 5> = {{1, 2, 3, 4, 9}, {4, 5, 6, 6, 8}, {7, 8, 2, 2, 7}, {1, 3, 5, 7, 6}, {1, 2, 3, 4, 5}}\n" +
+//    "}\n"
 
 
     var ast = parser.parse(prog)
-    System.out.println(ast)
     var root = MyRoot(ListBuffer(ast))
     StateManager.setRoot(root)
+    System.out.println(root)
+    root.progress
+    root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].baseName = ""
+    root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].externalDependencies.clear()
+    root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].internalDependencies.clear()
+    IR_GeneralSimplify.doUntilDone(Some(root))
+    IR_ResolveMatrices.apply()
+    System.out.println(root)
+
+
+
+
+
+
+/*
+
     var exp = IR_FunctionCall("inverse",  StateManager.findFirst[L4_MatrixExpression]().get.progress)
     //var exp = StateManager.findFirst[L4_MatrixExpression]().get.progress
     root.nodes.clear()
@@ -69,7 +86,7 @@ object MainChristian {
     IR_GeneralSimplify.doUntilDone(Some(root))
 
     System.out.println(root)
-
+*/
 
     /*
     System.out.println("")
