@@ -238,7 +238,7 @@ Function Solve@finest ( ) : Unit {
 	Var numIt   : Integer = 0
 
 	//print ( 'Starting residual at 0', initRes )
-	print ( initRes )
+	printVal ( initRes )
 	startTimer ( 'timeToSolve' )
 
 	// TODO: check with Lisa
@@ -277,16 +277,42 @@ Function Solve@finest ( ) : Unit {
 	}
 }
 
+Function printVal ( toPrint : Real ) : Unit {
+    if ( toPrint <= 1e-12 ) {
+		print ( "EFFECTIVELY ZERO" )
+    } else if ( toPrint <= 1e-11 ) {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(1)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    } else if ( toPrint <= 1e-10 ) {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(2)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    } else if ( toPrint <= 1e-9 ) {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(3)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    } else {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(4)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    }
+}
+
 Function NormResidual_max@finest ( ) : Real {
 	Var res_u : Real = NormResidual_u@current ( )
 	Var res_v : Real = NormResidual_v@current ( )
 	Var res_w : Real = NormResidual_w@current ( )
 	Var res_p : Real = NormResidual_p@current ( )
 
-	print ( res_u )
-	print ( res_v )
-	print ( res_w )
-	print ( res_p )
+	printVal ( res_u )
+	printVal ( res_v )
+	printVal ( res_w )
+	printVal ( res_p )
 	//print ( 'res_u', res_u )
 	//print ( 'res_v', res_v )
 	//print ( 'res_w', res_w )
