@@ -156,6 +156,8 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     var floatCst : Double = 0d
     var vecExpr : IR_VectorExpression = null
     var vecPos : Boolean = true
+    var matExpr : IR_MatrixExpression = null
+    var matPos : Boolean = true
     val workQ = new Queue[(IR_Expression, Boolean)]()
     val posSums = new ListBuffer[IR_Expression]()
     val negSums = new ListBuffer[IR_Expression]()
@@ -191,6 +193,16 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
                   if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector
                 )
             }
+          case m : IR_MatrixExpression =>
+            if(matExpr == null) {
+              matPos = pos
+              matExpr = m
+            } else {
+              if(matExpr.rows != m.rows || matExpr.columns != m.columns) Logger.error("Matrix sizes must match for addition")
+              val matExprsView = if(matPos) matExpr.expressions.view else matExpr.expressions.view.map { x => IR_Negation(x) }
+              val mExprs = if (pos) m.expressions.toSeq else m.expressions.view.map { x => IR_Negation(x) }
+              matExpr = IR_MatrixExpression(Some(IR_ResultingDatatype(matExpr.innerDatatype.getOrElse(IR_RealDatatype), m.innerDatatype.getOrElse(IR_RealDatatype))), m.rows, m.columns, matExprsView.zip(mExprs).map { x => x._1 + x._2 : IR_Expression }.to[Array])
+            }
           case e : IR_Expression       =>
             if (pos)
               posSums += e
@@ -224,6 +236,13 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
         vecExpr
       else
         Logger.error("Unable to add VectorExpression with other Expression types")
+
+    } else if(matExpr != null) {
+      if(posSums.isEmpty && negSums.isEmpty) {
+        matExpr
+      } else {
+        Logger.error("Unable to add MatrixExpression with other Expression types")
+      }
 
     } else if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
       (posSums ++= negSums.transform(x => IR_Negative(x)) += IR_IntegerConstant(0L)).head
