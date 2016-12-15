@@ -15,7 +15,7 @@ import exastencils.logger._
 /// GridEvaluator_AxisAligned
 
 object GridEvaluator_AxisAligned extends GridEvaluator {
-  def geom = GridGeometry.getGeometry.asInstanceOf[GridGeometry_staggered]
+  def geom = GridGeometry.getGeometry
 
   // evaluations and interpolations
   def evalAtEastFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 0, None, interpolation)
@@ -300,7 +300,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         } else {
           val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
 
-          geom.cellWidth(level, index, None, compDim) * geom.stagCVWidth(level, index, None, curStagDim) * exp
+          geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * exp
         }
       } else {
         val compDim0 = if (0 == faceDim) 1 else 0
