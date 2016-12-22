@@ -208,34 +208,32 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     // FIXME: IR_UserFunctionAccess's
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnBoundaryOf", _), args) =>
-      IR_IsOnBoundary(
-        args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid)
-      )
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnBoundary(fieldAccess.fieldSelection, fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnEastBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnWestBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(-1, 0, 0)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnNorthBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 1, 0)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 1, 0)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnSouthBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, -1, 0)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, -1, 0)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnTopBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, 1)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, 1)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnBottomBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)), fieldAccess.index)
 
     case IR_ElementwiseAddition(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
     case IR_ElementwiseSubtraction(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
