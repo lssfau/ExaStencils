@@ -1,11 +1,13 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.core._
+import exastencils.base.l3.L3_Root
+import exastencils.config._
 import exastencils.datastructures._
-import exastencils.knowledge._
 import exastencils.polyhedron._
 
-case class Root() extends Node {
+import scala.collection.mutable.ListBuffer
+
+case class Root() {
   def printToL4(filename : String) : Unit = {
     val file = new java.io.File(filename)
     if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
@@ -50,7 +52,7 @@ case class Root() extends Node {
       printer.println(s"\tif ( xPos <= 0.0 ) { return ( UW ) }")
       printer.println(s"\treturn ( 0.0 )")
       printer.println(s"}")
-      printer.println
+      printer.println()
     }
 
     // Coeff/StencilFields
@@ -69,7 +71,7 @@ case class Root() extends Node {
     // External Fields
     if (Knowledge.l3tmp_genExtFields) {
       printer.println("external Field extSolution <ExtSolLayout> => Solution@(finest)")
-      printer.println
+      printer.println()
     }
 
     // Stencils

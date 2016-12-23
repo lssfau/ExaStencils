@@ -34,13 +34,14 @@
       <pathelement location="${scala-library.jar}"/>
       <pathelement location="${scala-reflect.jar}"/>
       <pathelement location="${build-classes.dir}"/> <!-- used during recompilation -->
-      <fileset dir="${lib.dir}" includes="*.jar"/>
+      <fileset dir="${lib.dir}" includes="*.jar" excludes="scala-parser-combinators*.jar"/>
+      <fileset dir="${scala.dir}/lib" includes="scala-parser-combinators*.jar"/> <!-- file name contains version number -.- -->
     </path>
 
     <path id="scala.classpath" cache="true">
       <pathelement location="${scala-compiler.jar}"/>
-      <pathelement location="${scala-reflect.jar}"/>
       <pathelement location="${scala-library.jar}"/>
+      <pathelement location="${scala-reflect.jar}"/>
     </path>
 
     <!-- load scala's ant tasks -->
@@ -98,10 +99,11 @@
 	  <fileset dir="${resources.dir}" />
 	  <fileset dir="${lib.dir}" excludes="*.jar" />
       <!-- include all jars into generated one (to allow running it without any other files present) -->
-      <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
+      <zipgroupfileset dir="${lib.dir}" includes="*.jar" excludes="scala-parser-combinators*.jar"/>
       <!-- dont't forget scala libraries -->
       <zipgroupfileset file="${scala-library.jar}"/>
       <zipgroupfileset file="${scala-reflect.jar}"/>
+      <zipgroupfileset dir="${scala.dir}/lib" includes="scala-parser-combinators*.jar"/> <!-- file name contains version number -.- -->
     </jar>
   </target>
 </project>

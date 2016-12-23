@@ -2,7 +2,7 @@ package exastencils.deprecated.l3Generate
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Functions {
   def solFunction(boundary : Boolean) : String = {
@@ -117,14 +117,13 @@ object MainStencilCoefficients {
     // specific problems with specialized stencils
     if ("Kappa_VC" == Knowledge.l3tmp_exactSolution) {
       Knowledge.dimensionality match {
-        case 2 => {
+        case 2 =>
           entries += (("[ 0,  0]", s"( getCoefficient ( ${ geomCoord }_x@current + 0.5 * ${ geomWidth }_x@current, ${ geomCoord }_y@current) + getCoefficient ( ${ geomCoord }_x@current - 0.5 * ${ geomWidth }_x@current, ${ geomCoord }_y@current ) ) / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current ) + ( getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current + 0.5 * ${ geomWidth }_y@current ) + getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current - 0.5 * ${ geomWidth }_y@current ) ) / ( ${ geomWidth }_y@current * ${ geomWidth }_y@current )"))
           entries += (("[ 1,  0]", s"-1.0 * getCoefficient ( ${ geomCoord }_x@current + 0.5 * ${ geomWidth }_x@current, ${ geomCoord }_y@current ) / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current )"))
           entries += (("[-1,  0]", s"-1.0 * getCoefficient ( ${ geomCoord }_x@current - 0.5 * ${ geomWidth }_x@current, ${ geomCoord }_y@current ) / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current )"))
           entries += (("[ 0,  1]", s"-1.0 * getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current + 0.5 * ${ geomWidth }_y@current ) / ( ${ geomWidth }_y@current * ${ geomWidth }_y@current )"))
           entries += (("[ 0, -1]", s"-1.0 * getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current - 0.5 * ${ geomWidth }_y@current ) / ( ${ geomWidth }_y@current * ${ geomWidth }_y@current )"))
-        }
-        case 3 => {
+        case 3 =>
           entries += (("[ 0,  0,  0]", s"( getCoefficient ( ${ geomCoord }_x@current + 0.5 * ${ geomWidth }_x@current, ${ geomCoord }_y@current, ${ geomCoord }_z@current ) + getCoefficient ( ${ geomCoord }_x@current - 0.5 * ${ geomWidth }_x@current, ${ geomCoord }_y@current, ${ geomCoord }_z@current ) ) / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current ) + ( getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current + 0.5 * ${ geomWidth }_y@current, ${ geomCoord }_z@current ) + getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current - 0.5 * ${ geomWidth }_y@current, ${ geomCoord }_z@current ) ) / ( ${ geomWidth }_y@current * ${ geomWidth }_y@current ) + ( getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current, ${ geomCoord }_z@current + 0.5 * ${ geomWidth }_z@current ) + getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current, ${ geomCoord }_z@current - 0.5 * ${ geomWidth }_z@current ) ) / ( ${ geomWidth }_z@current * ${ geomWidth }_z@current )"))
           entries += (("[ 1,  0,  0]", s"-1.0 * getCoefficient ( ${ geomCoord }_x@current + 0.5 * ${ geomWidth }_x@current, ${ geomCoord }_y@current, ${ geomCoord }_z@current ) / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current )"))
           entries += (("[-1,  0,  0]", s"-1.0 * getCoefficient ( ${ geomCoord }_x@current - 0.5 * ${ geomWidth }_x@current, ${ geomCoord }_y@current, ${ geomCoord }_z@current ) / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current )"))
@@ -132,7 +131,6 @@ object MainStencilCoefficients {
           entries += (("[ 0, -1,  0]", s"-1.0 * getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current - 0.5 * ${ geomWidth }_y@current, ${ geomCoord }_z@current ) / ( ${ geomWidth }_y@current * ${ geomWidth }_y@current )"))
           entries += (("[ 0,  0,  1]", s"-1.0 * getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current, ${ geomCoord }_z@current + 0.5 * ${ geomWidth }_z@current ) / ( ${ geomWidth }_z@current * ${ geomWidth }_z@current )"))
           entries += (("[ 0,  0, -1]", s"-1.0 * getCoefficient ( ${ geomCoord }_x@current, ${ geomCoord }_y@current, ${ geomCoord }_z@current - 0.5 * ${ geomWidth }_z@current ) / ( ${ geomWidth }_z@current * ${ geomWidth }_z@current )"))
-        }
       }
 
       return entries
@@ -153,14 +151,13 @@ object MainStencilCoefficients {
     // basic Laplace stencil
     if (Knowledge.l3tmp_genSetableStencil) {
       Knowledge.dimensionality match {
-        case 2 => {
+        case 2 =>
           entries += (("[ 0,  0]", s"Laplace_Coeff_0_0"))
           entries += (("[ 1,  0]", s"Laplace_Coeff_P1_0"))
           entries += (("[-1,  0]", s"Laplace_Coeff_N1_0"))
           entries += (("[ 0,  1]", s"Laplace_Coeff_0_P1"))
           entries += (("[ 0, -1]", s"Laplace_Coeff_0_N1"))
-        }
-        case 3 => {
+        case 3 =>
           entries += (("[ 0,  0,  0]", s"Laplace_Coeff_0_0_0"))
           entries += (("[ 1,  0,  0]", s"Laplace_Coeff_P1_0_0"))
           entries += (("[-1,  0,  0]", s"Laplace_Coeff_N1_0_0"))
@@ -168,11 +165,10 @@ object MainStencilCoefficients {
           entries += (("[ 0, -1,  0]", s"Laplace_Coeff_0_N1_0"))
           entries += (("[ 0,  0,  1]", s"Laplace_Coeff_0_0_P1"))
           entries += (("[ 0,  0, -1]", s"Laplace_Coeff_0_0_N1"))
-        }
       }
     } else {
       Knowledge.dimensionality match {
-        case 2 => {
+        case 2 =>
           if (Knowledge.l3tmp_genHDepStencils) {
             entries += (("[ 0,  0]", s"( 2.0 / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current ) + 2.0 / ( ${ geomWidth }_y@current * ${ geomWidth }_y@current ) )"))
             entries += (("[ 1,  0]", s"( -1.0 / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current ) )"))
@@ -192,8 +188,7 @@ object MainStencilCoefficients {
             entries += (("[ 1, -1]", s"0.0"))
             entries += (("[ 1,  1]", s"0.0"))
           }
-        }
-        case 3 => {
+        case 3 =>
           if (Knowledge.l3tmp_genHDepStencils) {
             entries += (("[ 0,  0,  0]", s"( 2.0 / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current ) + 2.0 / ( ${ geomWidth }_y@current * ${ geomWidth }_y@current ) + 2.0 / ( ${ geomWidth }_z@current * ${ geomWidth }_z@current ) )"))
             entries += (("[ 1,  0,  0]", s"( -1.0 / ( ${ geomWidth }_x@current * ${ geomWidth }_x@current ) )"))
@@ -234,7 +229,6 @@ object MainStencilCoefficients {
             entries += (("[ 1,  1,  1]", s"0.0"))
             entries += (("[ 1,  1, -1]", s"0.0"))
           }
-        }
       }
     }
 

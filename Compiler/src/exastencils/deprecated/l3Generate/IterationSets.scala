@@ -1,13 +1,13 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 // NOTE: this is currently obsolete and only kept for reference
 
 object IterationSets {
   def addIterationSets(printer : java.io.PrintWriter) = {
     Knowledge.dimensionality match {
-      case 2 => {
+      case 2 =>
         printer.println("Set inner [0, 0]")
         if ("RBGS" == Knowledge.l3tmp_smoother) {
           if (Knowledge.l3tmp_useConditionsForRBGS) {
@@ -18,8 +18,7 @@ object IterationSets {
             printer.println("Set black [1 - (y % 2), 0] - [0, 0] steps [2, 1]")
           }
         }
-      }
-      case 3 => {
+      case 3 =>
         printer.println("Set inner [0, 0, 0]")
         if ("RBGS" == Knowledge.l3tmp_smoother) {
           if (Knowledge.l3tmp_useConditionsForRBGS) {
@@ -30,8 +29,7 @@ object IterationSets {
             printer.println("Set black [1 - ((y + z) % 2), 0, 0] - [0, 0, 0] steps [2, 1, 1]")
           }
         }
-      }
     }
-    printer.println
+    printer.println()
   }
 }

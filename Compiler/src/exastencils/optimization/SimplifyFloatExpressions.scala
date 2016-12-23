@@ -4,10 +4,9 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.field.ir.IR_MultiDimFieldAccess
+import exastencils.field.ir._
 import exastencils.logger._
-import exastencils.util._
+import exastencils.optimization.ir._
 
 object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expressions") {
 
@@ -18,28 +17,28 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
       d.initialValue = Some(simplify(expr))
       d
 
-    case a @ IR_Assignment(IR_VariableAccess(_, Some(IR_RealDatatype)), src, op) =>
+    case a @ IR_Assignment(IR_VariableAccess(_, IR_RealDatatype), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, Some(IR_PointerDatatype(IR_RealDatatype))), _, _), src, op) =>
+    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, IR_PointerDatatype(IR_RealDatatype)), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, Some(IR_CUDAConstPointerDatatype(IR_RealDatatype))), _, _), src, op) =>
+    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, IR_CUDAConstPointerDatatype(IR_RealDatatype)), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, Some(IR_ConstPointerDatatype(IR_RealDatatype))), _, _), src, op) =>
+    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, IR_ConstPointerDatatype(IR_RealDatatype)), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, Some(IR_ArrayDatatype(IR_RealDatatype, _))), _, _), src, op) =>
+    case a @ IR_Assignment(IR_ArrayAccess(IR_VariableAccess(_, IR_ArrayDatatype(IR_RealDatatype, _)), _, _), src, op) =>
       a.src = simplify(src)
       a
 
-    case a @ IR_Assignment(IR_ArrayAccess(fd : iv.FieldData, _, _), src, op) //
-      if (fd.field.resolveBaseDatatype == IR_RealDatatype) =>
+    case a @ IR_Assignment(IR_ArrayAccess(fd : IR_IV_FieldData, _, _), src, op) //
+      if fd.field.resolveBaseDatatype == IR_RealDatatype =>
       a.src = simplify(src)
       a
 
@@ -50,12 +49,12 @@ object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expre
 
   private final def simplify(expr : IR_Expression) : IR_Expression = {
     try {
-      return SimplifyExpression.simplifyFloatingExpr(expr)
+      IR_SimplifyExpression.simplifyFloatingExpr(expr)
     } catch {
       case x : EvaluationException =>
         if (DEBUG)
-          Logger.debug("[simplify]  cannot simplify float expression: " + x.msg)
-        return expr
+          println("[simplify]  cannot simplify float expression: " + x.msg) // print directly, logger may be silenced by any surrounding strategy
+        expr
     }
   }
 }

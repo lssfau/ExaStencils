@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object StencilFields {
   def addStencilFields(printer : java.io.PrintWriter, postfix : String, domain : String) = {
@@ -11,13 +11,13 @@ object StencilFields {
       else
         printer.println(s"Field LaplaceCoeff$postfix< $domain, ${ if (Knowledge.l3tmp_genTemporalBlocking) "CommPartTempBlockableSF" else "NoCommSF" }, None >@(${ Knowledge.l3tmp_tempBlockingMinLevel } to finest)")
       printer.println(s"StencilField Laplace$postfix< LaplaceCoeff$postfix => LaplaceStencil$postfix >@all")
-      printer.println
+      printer.println()
 
       if (Knowledge.l3tmp_genInvDiagStencil) {
         printer.println(s"Field InvDiagLaplaceCoeff$postfix< $domain, NoComm, None >@(coarsest to ${ Knowledge.l3tmp_tempBlockingMinLevel - 1 })")
         printer.println(s"Field InvDiagLaplaceCoeff$postfix< $domain, ${ if (Knowledge.l3tmp_genTemporalBlocking) "CommPartTempBlockable" else "NoComm" }, None >@(${ Knowledge.l3tmp_tempBlockingMinLevel } to finest)")
         printer.println(s"StencilField InvDiagLaplace$postfix< InvDiagLaplaceCoeff$postfix => InvDiagLaplaceStencil$postfix >@all")
-        printer.println
+        printer.println()
       }
     }
   }

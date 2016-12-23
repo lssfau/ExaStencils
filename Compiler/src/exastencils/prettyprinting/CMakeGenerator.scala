@@ -1,6 +1,6 @@
 package exastencils.prettyprinting
 
-import exastencils.core.Settings
+import exastencils.config.Settings
 import exastencils.logger.Logger
 
 /** Rudimentary generator for cmake / CMakeLists.txt.
@@ -10,7 +10,7 @@ import exastencils.logger.Logger
   *
   */
 object CMakeGenerator extends BuildfileGenerator {
-  override def write : Unit = {
+  override def write() : Unit = {
     Logger.info("Generating CMakeLists.txt")
     val printer = PrettyprintingManager.getPrinter("CMakeLists.txt")
     val filesToConsider = PrettyprintingManager.getFiles ++ Settings.additionalFiles
@@ -23,12 +23,12 @@ object CMakeGenerator extends BuildfileGenerator {
     printer <<< ""
     printer <<< "SET(SOURCES"
     cppFileNames.foreach(file => {
-      printer <<< s"\t${file}"
+      printer <<< s"\t${ file }"
     })
     printer <<< ")"
     printer <<< ""
     printer << "add_executable(" + Settings.binary + " ${SOURCES})"
 
-    printer.finish
+    printer.finish()
   }
 }

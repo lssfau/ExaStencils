@@ -24,9 +24,9 @@ abstract class ScopeCollector[T](init : T) extends Collector {
     node match {
       case IR_IfCondition(_, trueBody, falseBody) =>
         enterScope()
-        if (!trueBody.isEmpty) // HACK: add "switch-info"
+        if (trueBody.nonEmpty) // HACK: add "switch-info"
           trueBody(0).annotate(START_COND_BLOCK_ANNOT)
-        if (!falseBody.isEmpty) // HACK: add "switch-info"
+        if (falseBody.nonEmpty) // HACK: add "switch-info"
           falseBody(0).annotate(START_COND_BLOCK_ANNOT)
 
       case _ : IR_Scope
@@ -63,7 +63,7 @@ abstract class ScopeCollector[T](init : T) extends Collector {
   }
 
   protected def enterScope() : Unit = {
-    scopes.push(cloneCurScope)
+    scopes.push(cloneCurScope())
   }
 
   protected def leaveScope() : Unit = {

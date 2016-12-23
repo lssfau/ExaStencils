@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object InitFields {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
@@ -46,7 +46,7 @@ object InitFields {
         printer.println(s"\t\tLaplace$postfix@current:${ e._1 } = ${ e._2 }")
 
       if (Knowledge.l3tmp_genInvDiagStencil) {
-        printer.println
+        printer.println()
         Knowledge.dimensionality match {
           case 2 => printer.println(s"\t\tInvDiagLaplace$postfix@current:[ 0,  0] = 1.0 / Laplace@current:[ 0,  0]")
           case 3 => printer.println(s"\t\tInvDiagLaplace$postfix@current:[ 0,  0,  0] = 1.0 / Laplace@current:[ 0,  0,  0]")
@@ -56,7 +56,7 @@ object InitFields {
       printer.println(s"\t}")
 
       if (Knowledge.l3tmp_genTemporalBlocking) {
-        printer.println
+        printer.println()
         printer.println(s"\tif (levels@current ( ) >= ${ Knowledge.l3tmp_tempBlockingMinLevel }) {")
         printer.println(s"\t\tcommunicate LaplaceCoeff$postfix@current")
         if (Knowledge.l3tmp_genInvDiagStencil)
@@ -82,6 +82,6 @@ object InitFields {
       }
     }
 
-    printer.println
+    printer.println()
   }
 }

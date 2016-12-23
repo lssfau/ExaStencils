@@ -1,16 +1,16 @@
 package exastencils.optimization
 
-import scala.collection.mutable.{ Node => _, _ }
+import scala.collection.mutable._
 
 import exastencils.base.ir._
+import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
-import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.simd._
-import exastencils.util._
 
 object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") {
 
@@ -41,39 +41,39 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
   }
 
   private val SortLoads : PartialFunction[Node, Transformation.OutputType] = {
-    case l : IR_ForLoop if (l.hasAnnotation(Vectorization.VECT_ANNOT)) =>
+    case l : IR_ForLoop if l.hasAnnotation(Vectorization.VECT_ANNOT) =>
       val newBody = new ListBuffer[IR_Statement]()
       val toSort = new ArrayBuffer[(IR_Statement, IR_Expression, IR_Expression)]()
       for (s <- l.body) {
         s match {
-          case IR_VariableDeclaration(IR_SIMD_RealDatatype, _,
-          Some(IR_SIMD_Load(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), _))) //
+          case IR_VariableDeclaration(SIMD_RealDatatype, _,
+          Some(SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), _))) //
           =>
             toSort += ((s, base, index))
 
-          case IR_VariableDeclaration(IR_SIMD_RealDatatype, _,
-          Some(IR_SIMD_Scalar2Vector(IR_ArrayAccess(base, index, _)))) //
+          case IR_VariableDeclaration(SIMD_RealDatatype, _,
+          Some(SIMD_Scalar2Vector(IR_ArrayAccess(base, index, _)))) //
           =>
             toSort += ((s, base, index))
 
-          case IR_VariableDeclaration(IR_SIMD_RealDatatype, _, Some(sh : IR_SIMD_ConcShift)) =>
+          case IR_VariableDeclaration(SIMD_RealDatatype, _, Some(sh : SIMD_ConcShift)) =>
             toSort += ((s, sh, null))
 
           case _ =>
             val sorted = toSort.sorted(new Ordering[(IR_Statement, IR_Expression, IR_Expression)]() {
               def compare(x : (IR_Statement, IR_Expression, IR_Expression), y : (IR_Statement, IR_Expression, IR_Expression)) : Int = {
                 (x._2, y._2) match {
-                  case (a : IR_SIMD_ConcShift, b : IR_SIMD_ConcShift) => return a.prettyprint() compare b.prettyprint()
-                  case (a : IR_SIMD_ConcShift, _)                     => return 1
-                  case (_, b : IR_SIMD_ConcShift)                     => return -1
-                  case _                                              =>
+                  case (a : SIMD_ConcShift, b : SIMD_ConcShift) => return a.prettyprint() compare b.prettyprint()
+                  case (a : SIMD_ConcShift, _)                  => return 1
+                  case (_, b : SIMD_ConcShift)                  => return -1
+                  case _                                        =>
                 }
                 val basePpCmp : Int = x._2.prettyprint() compare y._2.prettyprint()
                 if (basePpCmp != 0)
                   return basePpCmp
-                val indXCst : Long = SimplifyExpression.extractIntegralSum(x._3).getOrElse(SimplifyExpression.constName, 0L)
-                val indYCst : Long = SimplifyExpression.extractIntegralSum(y._3).getOrElse(SimplifyExpression.constName, 0L)
-                return indXCst compare indYCst
+                val indXCst : Long = IR_SimplifyExpression.extractIntegralSum(x._3).getOrElse(IR_SimplifyExpression.constName, 0L)
+                val indYCst : Long = IR_SimplifyExpression.extractIntegralSum(y._3).getOrElse(IR_SimplifyExpression.constName, 0L)
+                indXCst compare indYCst
               }
             })
             newBody ++= sorted.view.map(_._1)
@@ -92,8 +92,8 @@ private[optimization] final class Analyze extends StackCollector {
 
   private var preLoopDecls : ListBuffer[IR_Statement] = null
   private var loads : HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (IR_VariableDeclaration, Buffer[List[Node]])] = null
-  private var load1s : HashMap[IR_SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])] = null
-  private var concShifts : HashMap[IR_SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])] = null
+  private var load1s : HashMap[SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])] = null
+  private var concShifts : HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])] = null
   private var replaceAcc : HashMap[String, String] = null
   private var upLoopVar : UpdateLoopVar = null
   private var hasOMPPragma : Boolean = false
@@ -101,26 +101,26 @@ private[optimization] final class Analyze extends StackCollector {
   override def enter(node : Node) : Unit = {
     super.enter(node)
     node match {
-      case IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, lVar, Some(start)),
-      IR_LowerExpression(IR_VariableAccess(lVar3, _), end),
+      case loop @ IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, lVar, Some(start)),
+      IR_Lower(IR_VariableAccess(lVar3, _), end),
       IR_Assignment(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
-      _, _) if (lVar == lVar2 && lVar2 == lVar3) //
+      _, _) if lVar == lVar2 && lVar2 == lVar3 //
       =>
         if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
           preLoopDecls = new ListBuffer[IR_Statement]
           node.annotate(ADD_BEFORE_ANNOT, preLoopDecls)
           loads = new HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (IR_VariableDeclaration, Buffer[List[Node]])]()
-          load1s = new HashMap[IR_SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])]()
-          concShifts = new HashMap[IR_SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
+          load1s = new HashMap[SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])]()
+          concShifts = new HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
           replaceAcc = new HashMap[String, String]()
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
-          hasOMPPragma = node.isInstanceOf[OMP_PotentiallyParallel]
+          hasOMPPragma = loop.parallelization.potentiallyParallel
         }
 
-      case decl @ IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp,
-      Some(load @ IR_SIMD_Load(IR_AddressofExpression(IR_ArrayAccess(base, index, _)), aligned))) =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
+      Some(load @ SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), aligned))) =>
 
-        val indSum : HashMap[IR_Expression, Long] = SimplifyExpression.extractIntegralSum(index)
+        val indSum : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
 
         if (other.isDefined) {
@@ -133,24 +133,24 @@ private[optimization] final class Analyze extends StackCollector {
 
           // test if the vector can be reused next iteration
           if (!hasOMPPragma) {
-            val indSumNIt : HashMap[IR_Expression, Long] = SimplifyExpression.extractIntegralSum(upLoopVar.updateDup(index))
+            val indSumNIt : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(upLoopVar.updateDup(index))
             val nextIt = loads.get((base, indSumNIt))
             if (nextIt.isDefined) {
-              preLoopDecls += IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp,
-                IR_SIMD_Load(IR_AddressofExpression(
-                  IR_ArrayAccess(Duplicate(base), SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
-              decl.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), load, "="))
+              preLoopDecls += IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
+                SIMD_Load(IR_AddressOf(
+                  IR_ArrayAccess(Duplicate(base), IR_SimplifyExpression.simplifyIntegralExpr(upLoopVar.replaceDup(index)))), aligned))
+              decl.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(vecTmp, SIMD_RealDatatype), load, "="))
               if (nextIt.get._1.hasAnnotation(REPL_ANNOT))
-                nextIt.get._1.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(nextIt.get._1.name, IR_SIMD_RealDatatype),
-                  IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
+                nextIt.get._1.annotate(REPL_ANNOT, IR_Assignment(IR_VariableAccess(nextIt.get._1.name, SIMD_RealDatatype),
+                  IR_VariableAccess(vecTmp, SIMD_RealDatatype), "=")) // TODO: check if this is always correct...
               else
-                nextIt.get._1.annotate(REPL_ANNOT, IR_VariableDeclaration(IR_SIMD_RealDatatype, nextIt.get._1.name,
-                  IR_VariableAccess(vecTmp, IR_SIMD_RealDatatype)))
+                nextIt.get._1.annotate(REPL_ANNOT, IR_VariableDeclaration(SIMD_RealDatatype, nextIt.get._1.name,
+                  IR_VariableAccess(vecTmp, SIMD_RealDatatype)))
             }
           }
         }
 
-      case decl @ IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, Some(load : IR_SIMD_Scalar2Vector)) if (load1s != null) =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(load : SIMD_Scalar2Vector)) if load1s != null =>
         val other = load1s.get(load)
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
@@ -159,7 +159,7 @@ private[optimization] final class Analyze extends StackCollector {
         } else
           load1s(load) = (decl, ArrayBuffer(stack.elems)) // super.stack
 
-      case vAcc @ IR_VariableAccess(vecTmp, Some(IR_SIMD_RealDatatype)) if (replaceAcc != null) =>
+      case vAcc @ IR_VariableAccess(vecTmp, SIMD_RealDatatype) if replaceAcc != null =>
         val nju = replaceAcc.get(vecTmp)
         if (nju.isDefined)
           vAcc.name = nju.get
@@ -171,7 +171,7 @@ private[optimization] final class Analyze extends StackCollector {
   override def leave(node : Node) : Unit = {
     node match {
       // search for duplicate SIMD_ConcShift AFTER VariableAccesses in the subtree are replaced
-      case decl @ IR_VariableDeclaration(IR_SIMD_RealDatatype, vecTmp, Some(cShift : IR_SIMD_ConcShift)) =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(cShift : SIMD_ConcShift)) =>
         val other = concShifts.get(cShift)
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
@@ -185,7 +185,7 @@ private[optimization] final class Analyze extends StackCollector {
 
     if (node.hasAnnotation(ADD_BEFORE_ANNOT)) {
       // check if some declarations must be moved out of their scope
-      for ((load, ancss) <- loads.values.view ++ load1s.values ++ concShifts.values; if (ancss.length > 1)) {
+      for ((load, ancss) <- loads.values.view ++ load1s.values ++ concShifts.values; if ancss.length > 1) {
         var loadAncs = ancss.head
         for (i <- 1 until ancss.length) {
           val reuseAncs : List[Node] = ancss(i)
@@ -237,12 +237,12 @@ private[optimization] final class Analyze extends StackCollector {
     private var replace : Boolean = false
 
     this += new Transformation("apply", {
-      case vAcc @ IR_VariableAccess(v, Some(IR_IntegerDatatype)) if (v == itName) =>
+      case vAcc @ IR_VariableAccess(v, IR_IntegerDatatype) if v == itName =>
         if (replace)
-          IR_SubtractionExpression(Duplicate(nju), IR_IntegerConstant(offset))
-        else if (!vAcc.removeAnnotation(SKIP_ANNOT).isDefined) {
+          IR_Subtraction(Duplicate(nju), IR_IntegerConstant(offset))
+        else if (vAcc.removeAnnotation(SKIP_ANNOT).isEmpty) {
           vAcc.annotate(SKIP_ANNOT) // already done
-          IR_SubtractionExpression(vAcc, IR_IntegerConstant(offset))
+          IR_Subtraction(vAcc, IR_IntegerConstant(offset))
         } else
           vAcc
     })
@@ -251,14 +251,14 @@ private[optimization] final class Analyze extends StackCollector {
       val expr2 = IR_ArrayFree(Duplicate(expr)) // just a temporary wrapper...
       replace = false
       applyStandalone(expr2)
-      return expr2.pointer
+      expr2.pointer
     }
 
     def replaceDup(expr : IR_Expression) : IR_Expression = {
       val expr2 = IR_ArrayFree(Duplicate(expr)) // just a temporary wrapper...
       replace = true
       applyStandalone(expr2)
-      return expr2.pointer
+      expr2.pointer
     }
   }
 
@@ -269,7 +269,7 @@ private final object Adapt extends PartialFunction[Node, Transformation.OutputTy
   import RemoveDupSIMDLoads._
 
   def isDefinedAt(node : Node) : Boolean = {
-    return node.hasAnnotation(ADD_BEFORE_ANNOT) || node.hasAnnotation(REPL_ANNOT) || node.hasAnnotation(REMOVE_ANNOT)
+    node.hasAnnotation(ADD_BEFORE_ANNOT) || node.hasAnnotation(REPL_ANNOT) || node.hasAnnotation(REMOVE_ANNOT)
   }
 
   def apply(node : Node) : Transformation.OutputType = {

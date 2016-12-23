@@ -3,11 +3,12 @@ package exastencils.optimization
 import scala.collection.mutable.Map
 
 import exastencils.base.ir._
-import exastencils.core._
+import exastencils.config.Settings
+import exastencils.core.Duplicate
 import exastencils.core.collectors.ScopeCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.globals.Globals
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger._
 
 object TypeInference extends CustomStrategy("Type inference") {
@@ -24,7 +25,7 @@ object TypeInference extends CustomStrategy("Type inference") {
 
     val annotate = new AnnotateStringConstants()
     this.register(annotate)
-    this.execute(new Transformation("load global declarations first", PartialFunction.empty), StateManager.findFirst[Globals]())
+    this.execute(new Transformation("load global declarations first", PartialFunction.empty), Some(IR_GlobalCollection.get))
     this.execute(new Transformation("infer types", PartialFunction.empty))
     this.unregister(annotate)
 
@@ -49,7 +50,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
   import TypeInference._
 
   override def cloneCurScope() : Map[String, IR_Datatype] = {
-    return curScope.clone()
+    curScope.clone()
   }
 
   private def declare(name : String, datatype : IR_Datatype) : Unit = {
@@ -57,7 +58,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
   }
 
   private def findType(name : String) : IR_Datatype = {
-    return curScope.getOrElse(name, null)
+    curScope.getOrElse(name, null)
   }
 
   override def enter(node : Node) : Unit = {
@@ -75,14 +76,14 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
 
-      case node @ IR_VariableAccess(name, None) =>
+      case node @ IR_VariableAccess(name, IR_UnknownDatatype) =>
         val ty : IR_Datatype = findType(name)
         if (ty != null)
           node.annotate(TYPE_ANNOT, ty)
         else if (warnMissingDeclarations)
           Logger.warn("[Type inference]  declaration to " + name + " missing?")
 
-      case IR_VariableAccess(name, Some(ty)) =>
+      case IR_VariableAccess(name, ty) =>
         val inferred = findType(name)
         if (inferred == null) {
           if (warnMissingDeclarations)
@@ -108,7 +109,7 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
   import TypeInference._
 
   override def isDefinedAt(node : Node) : Boolean = {
-    return (node.isInstanceOf[IR_StringLiteral] || node.isInstanceOf[IR_VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
+    (node.isInstanceOf[IR_StringLiteral] || node.isInstanceOf[IR_VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
@@ -120,6 +121,6 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
         case IR_StringLiteral(name)     => name
         case IR_VariableAccess(name, _) => name
       }
-    return IR_VariableAccess(varr, typee)
+    IR_VariableAccess(varr, Duplicate(typee))
   }
 }

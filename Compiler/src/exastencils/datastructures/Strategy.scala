@@ -1,13 +1,14 @@
 package exastencils.datastructures
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable._
 
+import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.logger._
 
 object StrategyTimer {
+
   class Data {
     var start : Long = 0
     var entries : Long = 0
@@ -47,7 +48,7 @@ object StrategyTimer {
       val runtime : Double = math.round(d._2.totalDuration / 1e6)
       val share : Double = math.round((d._2.totalDuration * 1000.0) / totalSum) / 10.0
       if (share >= Settings.timeStratPercentThreshold) {
-        Logger.debug(s"$runtime ms ($share %) were consumed through '${d._1}' (${d._2.count} top level transformation calls)")
+        Logger.debug(s"$runtime ms ($share %) were consumed through '${ d._1 }' (${ d._2.count } top level transformation calls)")
       }
     }
   }
@@ -116,26 +117,26 @@ abstract class Strategy(val name : String) {
   def unregisterAll() = { collectors.clear }
 
   /**
-    *  Executes a given [[exastencils.datastructures.Transformation]].
+    * Executes a given [[exastencils.datastructures.Transformation]].
     *
-    *  @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
-    *  @param node Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
-    *  @return Result statistics about the transformation.
+    * @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
+    * @param node           Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
+    * @return Result statistics about the transformation.
     */
   protected def execute(transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
-    Logger.info(s"""Executing nested transformation "${transformation.name}" during strategy "${name}"""")
+    Logger.info(s"""Executing nested transformation "${ transformation.name }" during strategy "${ name }"""")
     executeInternal(transformation, node)
   }
 
   /**
-    *  Executes a given [[exastencils.datastructures.Transformation]].
+    * Executes a given [[exastencils.datastructures.Transformation]].
     *
-    *  @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
-    *  @param node Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
-    *  @return Result statistics about the transformation.
+    * @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
+    * @param node           Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
+    * @return Result statistics about the transformation.
     */
   protected def executeInternal(transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
-    Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
+    Logger.info(s"""Applying strategy "${ name }::${ transformation.name }"""")
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
@@ -146,8 +147,8 @@ abstract class Strategy(val name : String) {
       StrategyTimer.stopTiming(name)
 
     if (Settings.logStrategyResults) {
-      Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+      Logger.debug(s"""Result of strategy "${ name }::${ transformation.name }": $result""")
     }
-    return result
+    result
   }
 }

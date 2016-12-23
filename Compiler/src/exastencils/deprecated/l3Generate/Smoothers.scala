@@ -1,9 +1,9 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Smoothers {
-  def omegaToPrint = (if (Knowledge.l3tmp_genGlobalOmega) "l3tmp_omega" else Knowledge.l3tmp_omega)
+  def omegaToPrint = if (Knowledge.l3tmp_genGlobalOmega) "l3tmp_omega" else Knowledge.l3tmp_omega
 
   def invDiagLaplace(stencil : String) = {
     if (Knowledge.l3tmp_genInvDiagStencil)
@@ -75,18 +75,16 @@ object Smoothers {
     addBodyBefore(printer, postfix, tempBlocking)
 
     Knowledge.dimensionality match {
-      case 2 => {
+      case 2 =>
         if (Knowledge.l3tmp_useConditionsForRBGS)
           printer.println(s"\tloop over Solution$postfix@current where 0 == ((x + y) % 2) {")
         else
           printer.println(s"\tloop over Solution$postfix@current starting [ 0 + (y % 2), 0 ] ending [ 0, 0 ] stepping [ 2, 1 ] {")
-      }
-      case 3 => {
+      case 3 =>
         if (Knowledge.l3tmp_useConditionsForRBGS)
           printer.println(s"\tloop over Solution$postfix@current where 0 == ((x + y + z) % 2) {")
         else
           printer.println(s"\tloop over Solution$postfix@current starting [ 0 + ((y + z) % 2), 0 ] ending [ 0, 0, 0 ] stepping [ 2, 1, 1 ] {")
-      }
     }
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
       printer.println(s"\t\t${ Fields.solution(s"current", postfix)(vecDim) } = ${ Fields.solution(s"current", postfix)(vecDim) } + ( ( ${ invDiagLaplace(stencil) } * $omegaToPrint ) * ( ${ Fields.rhs(s"current", postfix)(vecDim) } - $stencil * ${ Fields.solution(s"current", postfix)(vecDim) } ) )")
@@ -106,18 +104,16 @@ object Smoothers {
       printer.println(s"\tloop over fragments {")
 
     Knowledge.dimensionality match {
-      case 2 => {
+      case 2 =>
         if (Knowledge.l3tmp_useConditionsForRBGS)
           printer.println(s"\tloop over Solution$postfix@current where 1 == ((x + y) % 2) {")
         else
           printer.println(s"\tloop over Solution$postfix@current starting [ 1 - (y % 2), 0 ] ending [ 0, 0 ] stepping [ 2, 1 ] {")
-      }
-      case 3 => {
+      case 3 =>
         if (Knowledge.l3tmp_useConditionsForRBGS)
           printer.println(s"\tloop over Solution$postfix@current where 1 == ((x + y + z) % 2) {")
         else
           printer.println(s"\tloop over Solution$postfix@current starting [ 1 - ((y + z) % 2), 0 ] ending [ 0, 0, 0 ] stepping [ 2, 1, 1 ] {")
-      }
     }
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
       printer.println(s"\t\t${ Fields.solution(s"current", postfix)(vecDim) } = ${ Fields.solution(s"current", postfix)(vecDim) } + ( ( ${ invDiagLaplace(stencil) } * $omegaToPrint ) * ( ${ Fields.rhs(s"current", postfix)(vecDim) } - $stencil * ${ Fields.solution(s"current", postfix)(vecDim) } ) )")
@@ -180,10 +176,10 @@ object Smoothers {
 
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
     val bodyFunction = Knowledge.l3tmp_smoother match {
-      case "Jac"  => ((stencil : String, tempBlocking : Boolean) => addBodyJac(printer, postfix, stencil, tempBlocking))
-      case "RBGS" => ((stencil : String, tempBlocking : Boolean) => addBodyRBGS(printer, postfix, stencil, tempBlocking))
-      case "GS"   => ((stencil : String, tempBlocking : Boolean) => addBodyGS(printer, postfix, stencil, tempBlocking))
-      case "BS"   => ((stencil : String, tempBlocking : Boolean) => addBodyBS(printer, postfix, stencil, tempBlocking))
+      case "Jac"  => (stencil : String, tempBlocking : Boolean) => addBodyJac(printer, postfix, stencil, tempBlocking)
+      case "RBGS" => (stencil : String, tempBlocking : Boolean) => addBodyRBGS(printer, postfix, stencil, tempBlocking)
+      case "GS"   => (stencil : String, tempBlocking : Boolean) => addBodyGS(printer, postfix, stencil, tempBlocking)
+      case "BS"   => (stencil : String, tempBlocking : Boolean) => addBodyBS(printer, postfix, stencil, tempBlocking)
     }
 
     if (Knowledge.l3tmp_genTemporalBlocking) {
@@ -224,6 +220,6 @@ object Smoothers {
       printer.println(s"}")
     }
 
-    printer.println
+    printer.println()
   }
 }

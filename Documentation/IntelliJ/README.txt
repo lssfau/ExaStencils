@@ -8,5 +8,8 @@ Project setup:
 		check that src folders are marked as source folders (file -> project structure -> modules -> { Compiler; CompilerMacros } -> sources)
 		rebuild
 
+Alternative project setup:
+	copy both Compiler.iml and CompilerMacros.iml to correspronding directories and import them in IntelliJ (starting with CompilerMacros)
+
 useful:
 	Keymap -> Eclipse

@@ -4,15 +4,16 @@ import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, 
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.IR_TempBufferAccess
+import exastencils.communication.ir._
+import exastencils.config._
 import exastencils.core.collectors._
-import exastencils.data._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.knowledge._
+import exastencils.deprecated.ir._
+import exastencils.domain.ir._
+import exastencils.field.ir._
 import exastencils.logger._
-import exastencils.optimization.IR_LoopCarriedCSBufferAccess
+import exastencils.optimization._
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_MathFunctions
 
 /** Object for all "static" attributes */
@@ -24,7 +25,7 @@ object Extractor {
     final val ANNOT : String = "PolyAcc"
     final val READ, WRITE, UPDATE = Value
 
-    exastencils.core.Duplicate.registerImmutable(this.getClass())
+    exastencils.core.Duplicate.registerImmutable(this.getClass)
   }
 
   /** annotation id used to indicate that this subtree should be skipped */
@@ -53,7 +54,7 @@ object Extractor {
 
     expr match {
 
-      case _ if (!paramExprs.isEmpty && paramExprs.contains(expr)) =>
+      case _ if paramExprs.nonEmpty && paramExprs.contains(expr) =>
         val islStr : String = ScopNameMapping.expr2id(expr)
         if (vars != null)
           vars.add(islStr)
@@ -66,7 +67,7 @@ object Extractor {
         constraints.append(islStr)
 
       // a StringConstant is only allowed, if the value it represents was used correctly before (as a VariableAccess, for example)
-      case str : IR_StringLiteral if (ScopNameMapping.id2expr(str.value).isDefined) =>
+      case str : IR_StringLiteral if ScopNameMapping.id2expr(str.value).isDefined =>
         val e = ScopNameMapping.id2expr(str.value).get
         val islStr : String = ScopNameMapping.expr2id(e)
         if (vars != null)
@@ -76,7 +77,7 @@ object Extractor {
       case IR_IntegerConstant(i) =>
         constraints.append(java.lang.Long.toString(i))
 
-      case b : iv.NeighborIsValid =>
+      case b : IR_IV_NeighborIsValid =>
         val islStr : String = ScopNameMapping.expr2id(b)
         // vars and glblParConstr must not be null
         vars.add(islStr)
@@ -84,7 +85,7 @@ object Extractor {
         gParConstr.append(" and ")
         constraints.append('(').append(islStr).append("=1)")
 
-      case bExpr @ IR_BoundedScalar(min, max, _ : IR_VariableAccess | _ : IR_ArrayAccess) =>
+      case bExpr @ IR_BoundedScalar(min, max, _ : IR_VariableAccess | _ : IR_ArrayAccess | _ : IR_IV_IterationOffsetBegin | _ : IR_IV_IterationOffsetEnd) =>
         val islStr : String = ScopNameMapping.expr2id(bExpr, bExpr.expr)
         if (vars != null)
           vars.add(islStr)
@@ -114,13 +115,13 @@ object Extractor {
       //       lParConstr.append("<=").append(max).append(')')
       //       lParConstr.append(" and ")
       //
-      //     case MultiplicationExpression(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
+      //     case Multiplication(ListBuffer(IntegerConstant(c), arr : ArrayAccess)) =>
       //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
       //       lParConstr.append(ScopNameMapping.expr2id(arr))
       //       lParConstr.append("<=").append(max).append(')')
       //       lParConstr.append(" and ")
       //
-      //     case MultiplicationExpression(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
+      //     case Multiplication(ListBuffer(arr : ArrayAccess, IntegerConstant(c))) =>
       //       lParConstr.append('(').append(min).append("<=").append(c).append('*')
       //       lParConstr.append(ScopNameMapping.expr2id(arr))
       //       lParConstr.append("<=").append(max).append(')')
@@ -129,7 +130,7 @@ object Extractor {
       //     case _ =>
       //   }
 
-      case iff : iv.IndexFromField =>
+      case iff : IR_IV_IndexFromField =>
         val islStr : String = ScopNameMapping.expr2id(iff)
         if (vars != null)
           vars.add(islStr)
@@ -139,7 +140,7 @@ object Extractor {
           gParConstr.append(" and ")
         }
 
-      case IR_AdditionExpression(sums) =>
+      case IR_Addition(sums) =>
         constraints.append('(')
         for (s <- sums) {
           bool |= extractConstraints(s, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -147,14 +148,14 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last '+'
 
-      case IR_SubtractionExpression(l, r) =>
+      case IR_Subtraction(l, r) =>
         constraints.append('(')
         bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('-')
         bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case IR_MultiplicationExpression(facs) =>
+      case IR_Multiplication(facs) =>
         constraints.append('(')
         for (s <- facs) {
           bool |= extractConstraints(s, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -162,14 +163,14 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last '*'
 
-      case IR_DivisionExpression(l, r) =>
+      case IR_Division(l, r) =>
         constraints.append("floord(")
         bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(',')
         bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case IR_ModuloExpression(l, r) =>
+      case IR_Modulo(l, r) =>
         constraints.append('(')
         bool |= extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('%')
@@ -178,7 +179,7 @@ object Extractor {
         bool |= extractConstraints(r, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
 
-      case IR_MinimumExpression(es) =>
+      case IR_Minimum(es) =>
         constraints.append("min(")
         for (e <- es) {
           bool |= extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -186,7 +187,7 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last ','
 
-      case IR_MaximumExpression(es) =>
+      case IR_Maximum(es) =>
         constraints.append("max(")
         for (e <- es) {
           bool |= extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
@@ -194,13 +195,13 @@ object Extractor {
         }
         constraints(constraints.length - 1) = ')' // replace last ','
 
-      case IR_NegationExpression(e) =>
+      case IR_Negation(e) =>
         constraints.append("!(")
         extractConstraints(e, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(')')
         bool = true
 
-      case IR_LowerExpression(l, r) =>
+      case IR_Lower(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('<')
@@ -208,7 +209,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_LowerEqualExpression(l, r) =>
+      case IR_LowerEqual(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append("<=")
@@ -216,7 +217,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_GreaterEqualExpression(l, r) =>
+      case IR_GreaterEqual(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(">=")
@@ -224,7 +225,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_GreaterExpression(l, r) =>
+      case IR_Greater(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('>')
@@ -232,7 +233,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_EqEqExpression(l, r) =>
+      case IR_EqEq(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append('=')
@@ -240,7 +241,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_NeqExpression(l, r) =>
+      case IR_Neq(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append("!=")
@@ -248,7 +249,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_AndAndExpression(l, r) =>
+      case IR_AndAnd(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(" and ")
@@ -256,7 +257,7 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case IR_OrOrExpression(l, r) =>
+      case IR_OrOr(l, r) =>
         constraints.append('(')
         extractConstraints(l, constraints, formatString, paramExprs, lParConstr, gParConstr, vars)
         constraints.append(" or ")
@@ -264,14 +265,14 @@ object Extractor {
         constraints.append(')')
         bool = true
 
-      case _ => throw new ExtractionException("unknown expression: " + expr.getClass() + " - " + expr.prettyprint())
+      case _ => throw ExtractionException("unknown expression: " + expr.getClass + " - " + expr.prettyprint())
     }
 
-    return bool
+    bool
   }
 
   private[polyhedron] def replaceSpecial(str : String) : String = {
-    return replaceSpecial(new StringBuilder(str)).toString()
+    replaceSpecial(new StringBuilder(str)).toString()
   }
 
   private[polyhedron] def replaceSpecial(str : StringBuilder) : StringBuilder = {
@@ -285,7 +286,7 @@ object Extractor {
       i += 1
     }
 
-    return str
+    str
   }
 
   private def checkCode(name : String) : Unit = {
@@ -295,9 +296,9 @@ object Extractor {
       i -= 1
       name.charAt(i) match {
         case '=' | '+' | '*' | '/' | '[' | '(' | ' ' =>
-          throw new ExtractionException("expression in string constant found: " + name)
+          throw ExtractionException("expression in string constant found: " + name)
         case '-' if name.charAt(i + 1) != '>'        =>
-          throw new ExtractionException("expression in string constant found: " + name)
+          throw ExtractionException("expression in string constant found: " + name)
         case _                                       =>
       }
     }
@@ -336,8 +337,6 @@ class Extractor extends Collector {
   final val scops = new ArrayBuffer[Scop](256)
   final val trash = new ArrayBuffer[(Node, String)]
 
-  // TODO: debug; remove
-
   private object curScop {
 
     object curStmt {
@@ -351,7 +350,7 @@ class Extractor extends Collector {
       def next() : this.type = {
         id_ += 1
         label_ = "S%04d".format(id_)
-        return this
+        this
       }
     }
 
@@ -379,26 +378,26 @@ class Extractor extends Collector {
     }
 
     def exists() : Boolean = {
-      return scop_ != null
+      scop_ != null
     }
 
     def get() : Scop = {
-      return scop_
+      scop_
     }
 
     def modelLoopVars() : String = {
-      return modelLoopVars_
+      modelLoopVars_
     }
 
     def origLoopVars() : ArrayBuffer[String] = {
-      return origLoopVars_
+      origLoopVars_
     }
 
     // [..] -> { %s[..] : .. %s }
     def buildIslSet(tupleName : String, cond : String = "") : isl.Set = {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(setTemplate_, tupleName, cond)
-      return isl.Set.readFromStr(Isl.ctx, formatterResult.toString())
+      isl.Set.readFromStr(Isl.ctx, formatterResult.toString)
     }
 
     // [..] -> { %s[..] -> %s[%s] }
@@ -406,17 +405,17 @@ class Extractor extends Collector {
       formatterResult.delete(0, Int.MaxValue)
       formatter.format(mapTemplate_, inTupleName, outTupleName, out)
       try {
-        return isl.Map.readFromStr(Isl.ctx, formatterResult.toString())
+        isl.Map.readFromStr(Isl.ctx, formatterResult.toString)
       } catch {
         case e : isl.IslException =>
-          throw new ExtractionException("error in map creation (maybe not affine?):  " + e.getMessage())
+          throw ExtractionException("error in map creation (maybe not affine?):  " + e.getMessage)
       }
     }
 
     def finish() : Scop = {
       val res = scop_
       discard()
-      return res
+      res
     }
 
     def discard(msg : String = null) : Unit = {
@@ -466,8 +465,8 @@ class Extractor extends Collector {
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
               loop.condition.get.annotate(SKIP_ANNOT)
-            if (loop.reduction.isDefined)
-              loop.reduction.get.annotate(SKIP_ANNOT)
+            if (loop.parallelization.reduction.isDefined)
+              loop.parallelization.reduction.get.annotate(SKIP_ANNOT)
             // loop.at1stIt is a list of tuple, StateManager does not handle these, so a skip annotation is not required
             if (loop.parallelizationIsReasonable && loop.optLevel >= 1)
               enterLoop(loop, merge)
@@ -490,8 +489,7 @@ class Extractor extends Collector {
             enterScalarAccess(varName)
 
           case IR_VariableAccess(varName, ty) =>
-            if (ty.isDefined)
-              ty.get.annotate(SKIP_ANNOT)
+            ty.annotate(SKIP_ANNOT)
             enterScalarAccess(varName)
 
           case IR_ArrayAccess(array @ IR_StringLiteral(varName), index, _) =>
@@ -500,13 +498,12 @@ class Extractor extends Collector {
             enterArrayAccess(varName, index)
 
           case IR_ArrayAccess(array @ IR_VariableAccess(varName, ty), index, _) =>
-            if (ty.isDefined)
-              ty.get.annotate(SKIP_ANNOT)
+            ty.annotate(SKIP_ANNOT)
             array.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(varName, index)
 
-          case IR_ArrayAccess(tmp : iv.TmpBuffer, index, _) =>
+          case IR_ArrayAccess(tmp : IR_IV_CommBuffer, index, _) =>
             tmp.annotate(SKIP_ANNOT)
             index.annotate(SKIP_ANNOT)
             enterArrayAccess(tmp.prettyprint(), index)
@@ -531,53 +528,42 @@ class Extractor extends Collector {
             d.datatype.annotate(SKIP_ANNOT)
             enterDecl(d)
 
-          // for the following 4 matches: do not distinguish between different elements of
-          //    PrimitivePositionBegin and PrimitivePositionEnd (conservative approach)
-          case IR_ArrayAccess(ppVec : iv.PrimitivePositionBegin, index, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
+          case pos @ IR_IV_FragmentPositionBegin(_, frgIdx) =>
+            frgIdx.annotate(SKIP_ANNOT)
+            enterScalarAccess(pos.resolveName())
 
-          case IR_ArrayAccess(ppVec : iv.PrimitivePositionEnd, index, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
-
-          case IR_MemberAccess(ppVec : iv.PrimitivePositionBegin, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
-
-          case IR_MemberAccess(ppVec : iv.PrimitivePositionEnd, _) =>
-            ppVec.annotate(SKIP_ANNOT)
-            enterScalarAccess(replaceSpecial(ppVec.prettyprint()))
+          case pos @ IR_IV_FragmentPositionEnd(_, frgIdx) =>
+            frgIdx.annotate(SKIP_ANNOT)
+            enterScalarAccess(pos.resolveName())
 
           // ignore
-          case IR_FunctionCall(fAcc @ IR_FunctionAccess(name, _), _) if (allowedFunctions.contains(name)) =>
-            fAcc.annotate(SKIP_ANNOT)
+          case IR_FunctionCall(function, _) if allowedFunctions.contains(function.name) =>
+            function.annotate(SKIP_ANNOT)
 
           case _ : IR_IntegerConstant
                | _ : IR_RealConstant
                | _ : IR_BooleanConstant
-               | _ : IR_NegativeExpression
-               | _ : IR_NegationExpression
-               | _ : IR_AddressofExpression
+               | _ : IR_Negative
+               | _ : IR_Negation
+               | _ : IR_AddressOf
                | _ : IR_DerefAccess
-               | _ : IR_AdditionExpression
-               | _ : IR_SubtractionExpression
-               | _ : IR_MultiplicationExpression
-               | _ : IR_DivisionExpression
-               | _ : IR_ModuloExpression
-               | _ : IR_PowerExpression
-               | _ : IR_MinimumExpression
-               | _ : IR_MaximumExpression
+               | _ : IR_Addition
+               | _ : IR_Subtraction
+               | _ : IR_Multiplication
+               | _ : IR_Division
+               | _ : IR_Modulo
+               | _ : IR_Power
+               | _ : IR_Minimum
+               | _ : IR_Maximum
+               | _ : IR_ParallelizationInfo
                | _ : IR_Comment
                | IR_NullStatement => // nothing to do for all of them...
 
           // deny
-          case e : IR_ExpressionStatement => throw new ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
-          case IR_ArrayAccess(a, _, _)    => throw new ExtractionException("ArrayAccess to base " + a.getClass() + " not yet implemented")
-          case f : IR_FunctionCall        => throw new ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
-          case x : Any                    => throw new ExtractionException("cannot deal with " + x.getClass())
+          case e : IR_ExpressionStatement => throw ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
+          case IR_ArrayAccess(a, _, _)    => throw ExtractionException("ArrayAccess to base " + a.getClass + " not yet implemented")
+          case f : IR_FunctionCall        => throw ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
+          case x : Any                    => throw ExtractionException("cannot deal with " + x.getClass)
         }
     } catch {
       case ExtractionException(msg) =>
@@ -638,7 +624,7 @@ class Extractor extends Collector {
 
     for (step <- loop.stepSize)
       if (step != IR_IntegerConstant(1))
-        throw new ExtractionException("only stride 1 supported yet")
+        throw ExtractionException("only stride 1 supported yet")
 
     val dims : Int = loop.numDimensions
 
@@ -665,7 +651,7 @@ class Extractor extends Collector {
     do {
       bool |= extractConstraints(begin(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append("<=")
-      constrs.append(ScopNameMapping.expr2id(IR_VariableAccess(dimToString(i), IR_IntegerDatatype)))
+      constrs.append(ScopNameMapping.expr2id(IR_VariableAccess(IR_DimToString(i), IR_IntegerDatatype)))
       constrs.append('<')
       bool |= extractConstraints(end(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append(" and ")
@@ -676,13 +662,13 @@ class Extractor extends Collector {
     } while (i < dims)
 
     if (bool)
-      throw new ExtractionException("loop bounds contain (in)equalities")
+      throw ExtractionException("loop bounds contain (in)equalities")
 
     // TODO: interaction betweed condition and at1stIt (see also: TODO in LoopOverDimensions.expandSpecial)
     if (loop.condition.isDefined)
       extractConstraints(loop.condition.get, constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
     else
-      constrs.delete(constrs.length - (" and ".length()), constrs.length)
+      constrs.delete(constrs.length - " and ".length(), constrs.length)
 
     // remove variables from params set
     for (v <- modelLoopVars)
@@ -692,23 +678,23 @@ class Extractor extends Collector {
     templateBuilder.append('[')
     for (p <- params)
       templateBuilder.append(p).append(',')
-    if (!params.isEmpty)
+    if (params.nonEmpty)
       templateBuilder.deleteCharAt(templateBuilder.length - 1)
     templateBuilder.append("]->{")
 
     // create local context
     var tmp : Int = templateBuilder.length
     templateBuilder.append(':')
-    if (!locCtxConstrs.isEmpty)
-      templateBuilder.append(locCtxConstrs.delete(locCtxConstrs.length - (" and ".length()), locCtxConstrs.length))
+    if (locCtxConstrs.nonEmpty)
+      templateBuilder.append(locCtxConstrs.delete(locCtxConstrs.length - " and ".length(), locCtxConstrs.length))
     templateBuilder.append('}')
     val localContext = isl.Set.readFromStr(Isl.ctx, templateBuilder.toString())
 
     // create global context
     templateBuilder.delete(tmp, templateBuilder.length)
     templateBuilder.append(':')
-    if (!gloCtxConstrs.isEmpty)
-      templateBuilder.append(gloCtxConstrs.delete(gloCtxConstrs.length - (" and ".length()), gloCtxConstrs.length))
+    if (gloCtxConstrs.nonEmpty)
+      templateBuilder.append(gloCtxConstrs.delete(gloCtxConstrs.length - " and ".length(), gloCtxConstrs.length))
     templateBuilder.append('}')
     val globalContext = isl.Set.readFromStr(Isl.ctx, templateBuilder.toString())
 
@@ -761,7 +747,7 @@ class Extractor extends Collector {
       extractConstraints(cond.condition, sb, false, paramExprs)
       conditions.push(sb.toString())
     } else
-      throw new ExtractionException("cannot deal with a non-empty falseBody in a ConditionStatement: " + cond.prettyprint())
+      throw ExtractionException("cannot deal with a non-empty falseBody in a ConditionStatement: " + cond.prettyprint())
   }
 
   private def leaveCondition(cond : IR_IfCondition) : Unit = {
@@ -791,7 +777,7 @@ class Extractor extends Collector {
     enterStmt(assign) // as an assignment is also a statement
 
     if (isRead || isWrite)
-      throw new ExtractionException("nested assignments are not supported (yet...?); skipping scop")
+      throw ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 
     assign.op match {
 
@@ -802,7 +788,7 @@ class Extractor extends Collector {
         assign.dest.annotate(Access.ANNOT, Access.UPDATE)
 
       case _ =>
-        throw new ExtractionException("unrecognized assignment operator: " + assign.op)
+        throw ExtractionException("unrecognized assignment operator: " + assign.op)
     }
 
     assign.src.annotate(Access.ANNOT, Access.READ)
@@ -818,12 +804,12 @@ class Extractor extends Collector {
     checkCode(varName)
 
     if (!curScop.curStmt.exists() || (!isRead && !isWrite))
-      throw new ExtractionException("misplaced access expression?")
+      throw ExtractionException("misplaced access expression?")
 
     // is access to loop variable?
-    if (curScop.origLoopVars.contains(varName)) {
+    if (curScop.origLoopVars().contains(varName)) {
       if (isWrite)
-        throw new ExtractionException("write to loop variable found")
+        throw ExtractionException("write to loop variable found")
       return
     }
 
@@ -849,7 +835,7 @@ class Extractor extends Collector {
   private def enterArrayAccess(name : String, index : IR_Expression, deadAfterScop : Boolean = false) : Unit = {
 
     if (!curScop.curStmt.exists() || (!isRead && !isWrite))
-      throw new ExtractionException("misplaced access expression?")
+      throw ExtractionException("misplaced access expression?")
 
     // hack: check for code in name
     checkCode(name)
@@ -864,14 +850,14 @@ class Extractor extends Collector {
           ineq |= extractConstraints(i, indB, false, paramExprs)
           indB.append(',')
         }
-        if (!mInd.isEmpty)
+        if (mInd.nonEmpty)
           indB.deleteCharAt(indB.length - 1)
       case ind                       =>
         ineq |= extractConstraints(ind, indB, false, paramExprs)
     }
 
     if (ineq)
-      throw new ExtractionException("array access contains (in)equalities")
+      throw ExtractionException("array access contains (in)equalities")
 
     val access : isl.Map = curScop.buildIslMap(curScop.curStmt.label(), replaceSpecial(name), indB.toString())
     if (deadAfterScop) {
@@ -889,14 +875,14 @@ class Extractor extends Collector {
     // nothing to do here...
   }
 
-  private def enterFieldAccess(fSel : FieldSelection, index : IR_ExpressionIndex) : Unit = {
+  private def enterFieldAccess(fSel : IR_FieldSelection, index : IR_ExpressionIndex) : Unit = {
     val name = new StringBuilder("field")
-    name.append('_').append(fSel.field.identifier).append(fSel.field.index).append('_').append(fSel.field.level)
-    name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex)
+    name.append('_').append(fSel.field.name).append(fSel.field.index).append('_').append(fSel.field.level)
+    name.append("_l").append(fSel.level).append('a').append(fSel.arrayIndex)
     name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
-      case SlotAccess(_, offset) => name.append('s').append(offset)
-      case s                     => name.append(s.prettyprint())
+      case IR_SlotAccess(_, offset) => name.append('s').append(offset)
+      case s                        => name.append(s.prettyprint())
     }
     enterArrayAccess(replaceSpecial(name.toString()), index)
   }
@@ -905,10 +891,10 @@ class Extractor extends Collector {
     leaveArrayAccess()
   }
 
-  private def enterTempBufferAccess(buffer : iv.TmpBuffer, index : IR_ExpressionIndex) : Unit = {
+  private def enterTempBufferAccess(buffer : IR_IV_CommBuffer, index : IR_ExpressionIndex) : Unit = {
     val name = new StringBuilder("buffer")
     name.append('_').append(buffer.direction)
-    name.append('_').append(buffer.field.identifier).append(buffer.field.index).append('_').append(buffer.field.level)
+    name.append('_').append(buffer.field.name).append(buffer.field.index).append('_').append(buffer.field.level)
     name.append("_n").append(buffer.neighIdx.prettyprint())
     name.append("_f").append(buffer.fragmentIdx.prettyprint())
     enterArrayAccess(name.toString(), index)
@@ -918,8 +904,8 @@ class Extractor extends Collector {
     leaveArrayAccess()
   }
 
-  private def enterLoopCarriedCSBufferAccess(buffer : iv.LoopCarriedCSBuffer, index : IR_ExpressionIndex) : Unit = {
-    enterArrayAccess(buffer.resolveName, index, true)
+  private def enterLoopCarriedCSBufferAccess(buffer : IR_IV_LoopCarriedCSBuffer, index : IR_ExpressionIndex) : Unit = {
+    enterArrayAccess(buffer.resolveName(), index, true)
   }
 
   private def leaveLoopCarriedCSBufferAccess() : Unit = {
@@ -928,10 +914,10 @@ class Extractor extends Collector {
 
   private def enterDecl(decl : IR_VariableDeclaration) : Unit = {
     if (isRead || isWrite)
-      throw new ExtractionException("nested assignments are not supported (yet...?); skipping scop")
+      throw ExtractionException("nested assignments are not supported (yet...?); skipping scop")
 
     if (decl.initialValue.isDefined) {
-      val stmt = new IR_Assignment(
+      val stmt = IR_Assignment(
         IR_VariableAccess(decl.name, decl.datatype), decl.initialValue.get, "=")
       enterStmt(stmt) // as a declaration is also a statement
       decl.initialValue.get.annotate(Access.ANNOT, Access.READ)

@@ -29,7 +29,7 @@ class IRLevelCollector extends Collector {
     levelStack.clear
   }
 
-  def inLevelScope : Boolean = !levelStack.isEmpty
+  def inLevelScope : Boolean = levelStack.nonEmpty
 
   def getCurrentLevel : Int = {
     if (levelStack.isEmpty) {

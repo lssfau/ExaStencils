@@ -1,32 +1,42 @@
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Root
+import exastencils.base.ExaRootNode
+import exastencils.base.ir._
 import exastencils.base.l4._
+import exastencils.baseExt.ir._
 import exastencils.baseExt.l4._
 import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
+import exastencils.communication.ir._
+import exastencils.config._
 import exastencils.core._
-import exastencils.cuda._
-import exastencils.data._
+import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
+import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
-import exastencils.domain.{ l4 => _, _ }
-import exastencils.globals._
-import exastencils.grid.{ l4 => _, _ }
+import exastencils.domain.ir.IR_DomainFunctions
+import exastencils.field.ir._
+import exastencils.globals.ir._
+import exastencils.grid._
+import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
+import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
-import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
-import exastencils.mpi._
-import exastencils.multiGrid._
-import exastencils.omp._
+import exastencils.operator.l4.L4_ProcessStencilDeclarations
 import exastencils.optimization._
+import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.parallelization.api.cuda._
+import exastencils.parallelization.api.mpi._
+import exastencils.parallelization.api.omp._
+import exastencils.parsers.InputReader
 import exastencils.parsers.l4._
 import exastencils.parsers.settings._
 import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
-import exastencils.stencil.l4.L4_ProcessStencilDeclarations
-import exastencils.strategies._
+import exastencils.solver.ir.IR_ResolveIntergridIndices
+import exastencils.stencil.ir._
+import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.l4.L4_ResolveSpecialConstants
 
@@ -37,6 +47,8 @@ object MainChristoph {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
 
+    StateManager.setRoot(ExaRootNode)
+
     // check from where to read input
     val settingsParser = new ParserSettings
     val knowledgeParser = new ParserKnowledge
@@ -44,21 +56,21 @@ object MainChristoph {
     if (args.length == 1 && args(0) == "--json-stdin") {
       InputReader.read()
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else if (args.length == 2 && args(0) == "--json-file") {
       InputReader.read(args(1))
       settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       knowledgeParser.parse(InputReader.knowledge)
       platformParser.parse(InputReader.platform)
       Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
     } else {
       if (args.length >= 1)
         settingsParser.parseFile(args(0))
-      if (Settings.produceHtmlLog) Logger_HTML.init // allows emitting errors and warning in knowledge and platform parsers
+      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
       if (args.length >= 2)
         knowledgeParser.parseFile(args(1))
       if (args.length >= 3)
@@ -89,10 +101,10 @@ object MainChristoph {
 
   def shutdown() : Unit = {
     if (Settings.timeStrategies)
-      StrategyTimer.print
+      StrategyTimer.print()
 
     if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+      Logger_HTML.finish()
   }
 
   def handleL1() : Unit = {
@@ -132,8 +144,8 @@ object MainChristoph {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = l3Generate.Root()
-      StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
+      var l3gen_root = l3Generate.Root()
+      l3gen_root.printToL4(Settings.getL4file)
     }
 
     if (Settings.timeStrategies)
@@ -145,15 +157,15 @@ object MainChristoph {
       StrategyTimer.startTiming("Handling Layer 4")
 
     if (Settings.inputFromJson) {
-      StateManager.root_ = (new ParserL4).parseFile(InputReader.layer4)
+      ExaRootNode.l4_root = (new ParserL4).parseFile(InputReader.layer4)
     } else {
-      StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+      ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
     }
     ValidationL4.apply()
 
     if (false) // re-print the merged L4 state
     {
-      val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
+      val L4_printed = ExaRootNode.l4_root.prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
       outFile.write(Indenter.addIndentations(L4_printed))
@@ -161,7 +173,7 @@ object MainChristoph {
 
       // re-parse the file to check for errors
       val parserl4 = new ParserL4
-      StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
+      ExaRootNode.l4_root = parserl4.parseFile(Settings.getL4file + "_rep.exa")
       ValidationL4.apply()
     }
 
@@ -192,7 +204,7 @@ object MainChristoph {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
+    ExaRootNode.ProgressToIR()
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")
@@ -200,55 +212,57 @@ object MainChristoph {
 
   def handleIR() : Unit = {
     // add some more nodes
-    AddDefaultGlobals.apply()
-    SetupDataStructures.apply()
+    IR_AddDefaultGlobals.apply()
+
+    DefaultNeighbors.setup()
+    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, DefaultNeighbors.neighbors)
+    IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
     // add remaining nodes
-    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
+    ExaRootNode.ir_root.nodes ++= List(
       // FunctionCollections
-      DomainFunctions(),
-      CommunicationFunctions(),
+      IR_DomainFunctions(),
+      IR_CommunicationFunctions(),
 
       // Util
-      Stopwatch(),
-      TimerFunctions(),
-      Vector(),
-      Matrix(), // TODO: only if required
+      IR_Stopwatch(),
+      IR_TimerFunctions(),
+      IR_Matrix(), // TODO: only if required
       CImg() // TODO: only if required
     )
 
     if (Knowledge.cuda_enabled)
-      StateManager.root_.asInstanceOf[IR_Root].nodes += KernelFunctions()
+      ExaRootNode.ir_root.nodes += CUDA_KernelFunctions()
 
     if (Knowledge.experimental_mergeCommIntoLoops)
-      MergeCommunicatesAndLoops.apply()
-    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
-    SetupCommunication.firstCall = true
-    SetupCommunication.apply()
+      IR_MergeCommunicateAndLoop.apply()
+    IR_GeneralSimplify.doUntilDone() // removes (conditional) calls to communication functions that are not possible
+    IR_SetupCommunication.firstCall = true
+    IR_SetupCommunication.apply()
 
-    ResolveSpecialFunctionsAndConstants.apply()
+    HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
 
-    ResolveLoopOverPoints.apply()
-    ResolveIntergridIndices.apply()
+    IR_ResolveLoopOverPoints.apply()
+    IR_ResolveIntergridIndices.apply()
 
     var convChanged = false
     do {
-      FindStencilConvolutions.changed = false
-      FindStencilConvolutions.apply()
-      convChanged = FindStencilConvolutions.changed
+      IR_FindStencilConvolutions.changed = false
+      IR_FindStencilConvolutions.apply()
+      convChanged = IR_FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
-        ExpandOnePassStrategy.apply()
+        IR_ExpandInOnePass.apply()
       else
-        ExpandStrategy.doUntilDone()
+        IR_Expand.doUntilDone()
     } while (convChanged)
 
-    ResolveDiagFunction.apply()
+    IR_ResolveStencilFunction.apply()
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
-    ResolveLoopOverPointsInOneFragment.apply()
+    IR_ResolveLoopOverPointsInOneFragment.apply()
 
-    SetupCommunication.apply() // handle communication statements generated by loop resolution
+    IR_SetupCommunication.apply() // handle communication statements generated by loop resolution
 
     TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
@@ -259,27 +273,27 @@ object MainChristoph {
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
     if (Knowledge.cuda_enabled) {
-      PrepareCudaRelevantCode.apply()
+      CUDA_PrepareHostCode.apply()
     }
 
-    ResolveContractingLoop.apply()
+    IR_ResolveContractingLoop.apply()
 
-    SetupCommunication.apply() // handle communication statements generated by loop resolution
+    IR_SetupCommunication.apply() // handle communication statements generated by loop resolution
 
-    MapStencilAssignments.apply()
-    ResolveFieldAccess.apply()
+    IR_MapStencilAssignments.apply()
+    IR_ResolveFieldAccess.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     // resolve constant IVs before applying poly opt
-    ResolveConstInternalVariables.apply()
-    SimplifyStrategy.doUntilDone()
+    IR_ResolveConstIVs.apply()
+    IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
-      new DuplicateNodes().apply() // FIXME: only debug
+      DuplicateNodes.apply() // FIXME: only debug
       Inlining.apply(true)
       CommonSubexpressionElimination.apply()
     }
@@ -287,39 +301,44 @@ object MainChristoph {
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply(polyOptExplID)
-    ResolveLoopOverDimensions.apply()
+    IR_ResolveLoopOverDimensions.apply()
 
     TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements and to
     // take advantage of the schedule exploration.
     if (Knowledge.cuda_enabled) {
-      CalculateCudaLoopsAnnotations.apply()
-      ExtractHostAndDeviceCode.apply()
-      AdaptKernelDimensionalities.apply()
-      HandleKernelReductions.apply()
+      CUDA_AnnotateLoop.apply()
+      CUDA_ExtractHostAndDeviceCode.apply()
+      CUDA_AdaptKernelDimensionality.apply()
+      CUDA_HandleReductions.apply()
     }
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
 
-    LinearizeFieldAccesses.apply() // before converting kernel functions -> requires linearized accesses
+    // before converting kernel functions -> requires linearized accesses
+    IR_LinearizeDirectFieldAccess.apply()
+    IR_LinearizeExternalFieldAccess.apply()
+    IR_LinearizeTempBufferAccess.apply()
+    CUDA_LinearizeReductionDeviceDataAccess.apply()
+    IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.cuda_enabled)
-      StateManager.findFirst[KernelFunctions]().get.convertToFunctions()
+      CUDA_KernelFunctions.get.convertToFunctions()
 
-    ResolveBoundedExpressions.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
-    ResolveSlotOperationsStrategy.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
+    IR_ResolveBoundedScalar.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
+    IR_ResolveSlotOperations.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     if (!Knowledge.mpi_enabled)
-      RemoveMPIReferences.apply()
+      MPI_RemoveMPI.apply()
 
-    SimplifyStrategy.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
@@ -336,41 +355,48 @@ object MainChristoph {
       RemoveDupSIMDLoads.apply()
 
     if (Knowledge.data_genVariableFieldSizes)
-      GenerateIndexManipFcts.apply()
-    AddInternalVariables.apply()
+      IR_GenerateIndexManipFcts.apply()
+    IR_AddInternalVariables.apply()
     // resolve possibly newly added constant IVs
-    ResolveConstInternalVariables.apply()
+    IR_ResolveConstIVs.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     if (Knowledge.mpi_enabled)
-      AddMPIDatatypes.apply()
+      MPI_AddDatatypeSetup.apply()
 
-    if (Knowledge.omp_enabled)
-      AddOMPPragmas.apply()
+    if (Knowledge.omp_enabled) {
+      OMP_AddParallelSections.apply()
+
+      // resolve min/max reductions if omp version does not support them inherently
+      if (Platform.omp_version < 3.1)
+        OMP_ResolveMinMaxReduction.apply()
+
+      if (Platform.omp_requiresCriticalSections)
+        OMP_AddCriticalSections.apply()
+    }
 
     // one last time
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
-    SimplifyStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
-    if (Knowledge.ir_maxInliningSize > 0)
+    if (Knowledge.opt_maxInliningSize > 0)
       Inlining.apply()
-    CleanUnusedStuff.apply()
 
     if (Knowledge.generateFortranInterface)
-      Fortranify.apply()
+      IR_Fortranify.apply()
   }
 
   def print() : Unit = {
     Logger.dbg("Prettyprinting to folder " + new java.io.File(Settings.getOutputPath).getAbsolutePath)
-    PrintStrategy.apply()
-    PrettyprintingManager.finish
+    PrintToFile.apply()
+    PrettyprintingManager.finish()
   }
 
   def main(args : Array[String]) : Unit = {
@@ -390,7 +416,7 @@ object MainChristoph {
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    new CountingStrategy("number of printed nodes").apply()
+    new CountNodes("number of printed nodes").apply()
 
     shutdown()
   }

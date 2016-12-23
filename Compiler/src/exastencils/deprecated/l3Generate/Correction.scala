@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Correction {
   def addFunction(printer : java.io.PrintWriter, postfix : String) = {
@@ -20,6 +20,6 @@ object Correction {
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\t}")
     printer.println(s"}")
-    printer.println
+    printer.println()
   }
 }

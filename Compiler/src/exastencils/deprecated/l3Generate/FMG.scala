@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object FMG {
   def addFunctions(printer : java.io.PrintWriter) = {
@@ -28,7 +28,7 @@ object FMG {
       }
     }
     printer.println(s"}")
-    printer.println
+    printer.println()
 
     printer.println(s"Function ResetBC@all ( ) : Unit {")
     if ("Jac" == Knowledge.l3tmp_smoother) {
@@ -43,7 +43,7 @@ object FMG {
       Communication.applyBCs(printer, s"Solution@current")
     }
     printer.println(s"}")
-    printer.println
+    printer.println()
 
     // FMG function itself
     printer.println(s"Function FMG@(coarsest to (finest - 1)) ( ) : Unit {")
@@ -52,11 +52,11 @@ object FMG {
     printer.println(s"\tVCycle@current ( )")
     printer.println(s"\tCorrection@finer ( )")
     printer.println(s"\tResetBC@current ( )")
-    printer.println
+    printer.println()
     printer.println(s"\tif ( levels@finer ( ) < levels@finest ( ) ) {")
     printer.println(s"\t\tFMG@finer ( )")
     printer.println(s"\t}")
     printer.println(s"}")
-    printer.println
+    printer.println()
   }
 }

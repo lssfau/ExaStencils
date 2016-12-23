@@ -754,14 +754,14 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 
 Function CompileStencil_u@finest (  ) : Unit {
 	loop over AuStencil@current {
-		Val flow_e@current : Real = integrateOverXStaggeredEastFace ( u[active]@current * rho[active]@current )
-		Val flow_w@current : Real = integrateOverXStaggeredWestFace ( u[active]@current * rho[active]@current )
+		Val flow_e : Real = integrateOverXStaggeredEastFace ( u[active]@current * rho[active]@current )
+		Val flow_w : Real = integrateOverXStaggeredWestFace ( u[active]@current * rho[active]@current )
 
-		Val flow_n@current : Real = integrateOverXStaggeredNorthFace ( v[active]@current * rho[active]@current )
-		Val flow_s@current : Real = integrateOverXStaggeredSouthFace ( v[active]@current * rho[active]@current )
+		Val flow_n : Real = integrateOverXStaggeredNorthFace ( v[active]@current * rho[active]@current )
+		Val flow_s : Real = integrateOverXStaggeredSouthFace ( v[active]@current * rho[active]@current )
 
-		Val flow_t@current : Real = integrateOverXStaggeredTopFace ( w[active]@current * rho[active]@current )
-		Val flow_b@current : Real = integrateOverXStaggeredBottomFace ( w[active]@current * rho[active]@current )
+		Val flow_t : Real = integrateOverXStaggeredTopFace ( w[active]@current * rho[active]@current )
+		Val flow_b : Real = integrateOverXStaggeredBottomFace ( w[active]@current * rho[active]@current )
 
 		Val diff_e : Real = integrateOverXStaggeredEastFace ( vis@current ) / vf_cellWidth_x@current
 		Val diff_w : Real = integrateOverXStaggeredWestFace ( vis@current ) / vf_cellWidth_x@current@[-1,  0,  0]
@@ -772,17 +772,17 @@ Function CompileStencil_u@finest (  ) : Unit {
 		Val diff_t : Real = integrateOverXStaggeredTopFace ( evalAtXStaggeredTopFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[ 0,  0,  1]
 		Val diff_b : Real = integrateOverXStaggeredBottomFace ( evalAtXStaggeredBottomFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current
 
-		AuStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e@current, diff_e ) + max ( 0.0, -1.0 * flow_e@current ) )
-		AuStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w@current, diff_w ) + max ( 0.0,        flow_w@current ) )
+		AuStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e, diff_e ) + max ( 0.0, -1.0 * flow_e ) )
+		AuStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w, diff_w ) + max ( 0.0,        flow_w ) )
 
-		AuStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n@current, diff_n ) + max ( 0.0, -1.0 * flow_n@current ) )
-		AuStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s@current, diff_s ) + max ( 0.0,        flow_s@current ) )
+		AuStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n, diff_n ) + max ( 0.0, -1.0 * flow_n ) )
+		AuStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s, diff_s ) + max ( 0.0,        flow_s ) )
 
-		AuStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t@current, diff_t ) + max ( 0.0, -1.0 * flow_t@current ) )
-		AuStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b@current, diff_b ) + max ( 0.0,        flow_b@current ) )
+		AuStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t, diff_t ) + max ( 0.0, -1.0 * flow_t ) )
+		AuStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b, diff_b ) + max ( 0.0,        flow_b ) )
 
 		Var smasa : Real = (
-			( flow_e@current - flow_w@current + flow_n@current - flow_s@current + flow_t@current - flow_b@current ) / vf_xStagCellVolume@current
+			( flow_e - flow_w + flow_n - flow_s + flow_t - flow_b ) / vf_xStagCellVolume@current
 			+ ( rho[active]@current - rho[previous]@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
@@ -815,14 +815,14 @@ Function CompileStencil_u@finest (  ) : Unit {
 
 Function CompileStencil_v@finest (  ) : Unit {
 	loop over AvStencil@current {
-		Val flow_e@current : Real = integrateOverYStaggeredEastFace ( u[active]@current * rho[active]@current )
-		Val flow_w@current : Real = integrateOverYStaggeredWestFace ( u[active]@current * rho[active]@current )
+		Val flow_e : Real = integrateOverYStaggeredEastFace ( u[active]@current * rho[active]@current )
+		Val flow_w : Real = integrateOverYStaggeredWestFace ( u[active]@current * rho[active]@current )
 
-		Val flow_n@current : Real = integrateOverYStaggeredNorthFace ( v[active]@current * rho[active]@current )
-		Val flow_s@current : Real = integrateOverYStaggeredSouthFace ( v[active]@current * rho[active]@current )
+		Val flow_n : Real = integrateOverYStaggeredNorthFace ( v[active]@current * rho[active]@current )
+		Val flow_s : Real = integrateOverYStaggeredSouthFace ( v[active]@current * rho[active]@current )
 
-		Val flow_t@current : Real = integrateOverYStaggeredTopFace ( w[active]@current * rho[active]@current )
-		Val flow_b@current : Real = integrateOverYStaggeredBottomFace ( w[active]@current * rho[active]@current )
+		Val flow_t : Real = integrateOverYStaggeredTopFace ( w[active]@current * rho[active]@current )
+		Val flow_b : Real = integrateOverYStaggeredBottomFace ( w[active]@current * rho[active]@current )
 
 		Val diff_e : Real = integrateOverYStaggeredEastFace ( evalAtYStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[ 1,  0,  0]
 		Val diff_w : Real = integrateOverYStaggeredWestFace ( evalAtYStaggeredWestFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current
@@ -833,17 +833,17 @@ Function CompileStencil_v@finest (  ) : Unit {
 		Val diff_t : Real = integrateOverYStaggeredTopFace ( evalAtYStaggeredTopFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[ 0,  0,  1]
 		Val diff_b : Real = integrateOverYStaggeredBottomFace ( evalAtYStaggeredBottomFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current
 
-		AvStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e@current, diff_e ) + max ( 0.0, -1.0 * flow_e@current ) )
-		AvStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w@current, diff_w ) + max ( 0.0,        flow_w@current ) )
+		AvStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e, diff_e ) + max ( 0.0, -1.0 * flow_e ) )
+		AvStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w, diff_w ) + max ( 0.0,        flow_w ) )
 
-		AvStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n@current, diff_n ) + max ( 0.0, -1.0 * flow_n@current ) )
-		AvStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s@current, diff_s ) + max ( 0.0,        flow_s@current ) )
+		AvStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n, diff_n ) + max ( 0.0, -1.0 * flow_n ) )
+		AvStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s, diff_s ) + max ( 0.0,        flow_s ) )
 
-		AvStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t@current, diff_t ) + max ( 0.0, -1.0 * flow_t@current ) )
-		AvStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b@current, diff_b ) + max ( 0.0,        flow_b@current ) )
+		AvStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t, diff_t ) + max ( 0.0, -1.0 * flow_t ) )
+		AvStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b, diff_b ) + max ( 0.0,        flow_b ) )
 
 		Var smasa : Real = (
-			( flow_e@current - flow_w@current + flow_n@current - flow_s@current + flow_t@current - flow_b@current ) / vf_yStagCellVolume@current
+			( flow_e - flow_w + flow_n - flow_s + flow_t - flow_b ) / vf_yStagCellVolume@current
 			+ ( rho[active]@current - rho[previous]@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
@@ -877,14 +877,14 @@ Function CompileStencil_v@finest (  ) : Unit {
 
 Function CompileStencil_w@finest (  ) : Unit {
 	loop over AwStencil@current {
-		Val flow_e@current : Real = integrateOverZStaggeredEastFace ( u[active]@current * rho[active]@current )
-		Val flow_w@current : Real = integrateOverZStaggeredWestFace ( u[active]@current * rho[active]@current )
+		Val flow_e : Real = integrateOverZStaggeredEastFace ( u[active]@current * rho[active]@current )
+		Val flow_w : Real = integrateOverZStaggeredWestFace ( u[active]@current * rho[active]@current )
 
-		Val flow_n@current : Real = integrateOverZStaggeredNorthFace ( v[active]@current * rho[active]@current )
-		Val flow_s@current : Real = integrateOverZStaggeredSouthFace ( v[active]@current * rho[active]@current )
+		Val flow_n : Real = integrateOverZStaggeredNorthFace ( v[active]@current * rho[active]@current )
+		Val flow_s : Real = integrateOverZStaggeredSouthFace ( v[active]@current * rho[active]@current )
 
-		Val flow_t@current : Real = integrateOverZStaggeredTopFace ( w[active]@current * rho[active]@current )
-		Val flow_b@current : Real = integrateOverZStaggeredBottomFace ( w[active]@current * rho[active]@current )
+		Val flow_t : Real = integrateOverZStaggeredTopFace ( w[active]@current * rho[active]@current )
+		Val flow_b : Real = integrateOverZStaggeredBottomFace ( w[active]@current * rho[active]@current )
 
 		Val diff_e : Real = integrateOverZStaggeredEastFace ( evalAtZStaggeredEastFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[ 1,  0,  0]
 		Val diff_w : Real = integrateOverZStaggeredWestFace ( evalAtZStaggeredWestFace ( vis@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current
@@ -895,17 +895,17 @@ Function CompileStencil_w@finest (  ) : Unit {
 		Val diff_t : Real = integrateOverZStaggeredTopFace ( vis@current ) / vf_cellWidth_z@current
 		Val diff_b : Real = integrateOverZStaggeredBottomFace ( vis@current ) / vf_cellWidth_z@current@[ 0,  0, -1]
 
-		AwStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e@current, diff_e ) + max ( 0.0, -1.0 * flow_e@current ) )
-		AwStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w@current, diff_w ) + max ( 0.0,        flow_w@current ) )
+		AwStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e, diff_e ) + max ( 0.0, -1.0 * flow_e ) )
+		AwStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w, diff_w ) + max ( 0.0,        flow_w ) )
 
-		AwStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n@current, diff_n ) + max ( 0.0, -1.0 * flow_n@current ) )
-		AwStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s@current, diff_s ) + max ( 0.0,        flow_s@current ) )
+		AwStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n, diff_n ) + max ( 0.0, -1.0 * flow_n ) )
+		AwStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s, diff_s ) + max ( 0.0,        flow_s ) )
 
-		AwStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t@current, diff_t ) + max ( 0.0, -1.0 * flow_t@current ) )
-		AwStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b@current, diff_b ) + max ( 0.0,        flow_b@current ) )
+		AwStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t, diff_t ) + max ( 0.0, -1.0 * flow_t ) )
+		AwStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b, diff_b ) + max ( 0.0,        flow_b ) )
 
 		Var smasa : Real = (
-			( flow_e@current - flow_w@current + flow_n@current - flow_s@current + flow_t@current - flow_b@current ) / vf_zStagCellVolume@current
+			( flow_e - flow_w + flow_n - flow_s + flow_t - flow_b ) / vf_zStagCellVolume@current
 			+ ( rho[active]@current - rho[previous]@current ) / dt )
 		smasa = max ( 0.0, smasa )
 
@@ -966,14 +966,14 @@ Function CompileStencil_pc@finest (  ) : Unit {
 
 Function CompileStencil_t@finest (  ) : Unit {
 	loop over AtStencil@current {
-		Val flow_e@current : Real = integrateOverEastFace ( u[active]@current * rho[active]@current )
-		Val flow_w@current : Real = integrateOverWestFace ( u[active]@current * rho[active]@current )
+		Val flow_e : Real = integrateOverEastFace ( u[active]@current * rho[active]@current )
+		Val flow_w : Real = integrateOverWestFace ( u[active]@current * rho[active]@current )
 
-		Val flow_n@current : Real = integrateOverNorthFace ( v[active]@current * rho[active]@current )
-		Val flow_s@current : Real = integrateOverSouthFace ( v[active]@current * rho[active]@current )
+		Val flow_n : Real = integrateOverNorthFace ( v[active]@current * rho[active]@current )
+		Val flow_s : Real = integrateOverSouthFace ( v[active]@current * rho[active]@current )
 
-		Val flow_t@current : Real = integrateOverTopFace ( w[active]@current * rho[active]@current )
-		Val flow_b@current : Real = integrateOverBottomFace ( w[active]@current * rho[active]@current )
+		Val flow_t : Real = integrateOverTopFace ( w[active]@current * rho[active]@current )
+		Val flow_b : Real = integrateOverBottomFace ( w[active]@current * rho[active]@current )
 
 		Val diff_e : Real = integrateOverEastFace ( evalAtEastFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current@[ 1,  0,  0]
 		Val diff_w : Real = integrateOverWestFace ( evalAtWestFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_x@current
@@ -984,17 +984,17 @@ Function CompileStencil_t@finest (  ) : Unit {
 		Val diff_t : Real = integrateOverTopFace ( evalAtTopFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current@[ 0,  0,  1]
 		Val diff_b : Real = integrateOverBottomFace ( evalAtBottomFace ( gamma@current, "harmonicMean" ) ) / vf_stagCVWidth_z@current
 
-		AtStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e@current, diff_e ) + max ( 0.0, -1.0 * flow_e@current ) )
-		AtStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w@current, diff_w ) + max ( 0.0,        flow_w@current ) )
+		AtStencil@current:[ 1,  0,  0] = -1.0 * ( calc_diflow ( flow_e, diff_e ) + max ( 0.0, -1.0 * flow_e ) )
+		AtStencil@current:[-1,  0,  0] = -1.0 * ( calc_diflow ( flow_w, diff_w ) + max ( 0.0,        flow_w ) )
 
-		AtStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n@current, diff_n ) + max ( 0.0, -1.0 * flow_n@current ) )
-		AtStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s@current, diff_s ) + max ( 0.0,        flow_s@current ) )
+		AtStencil@current:[ 0,  1,  0] = -1.0 * ( calc_diflow ( flow_n, diff_n ) + max ( 0.0, -1.0 * flow_n ) )
+		AtStencil@current:[ 0, -1,  0] = -1.0 * ( calc_diflow ( flow_s, diff_s ) + max ( 0.0,        flow_s ) )
 
-		AtStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t@current, diff_t ) + max ( 0.0, -1.0 * flow_t@current ) )
-		AtStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b@current, diff_b ) + max ( 0.0,        flow_b@current ) )
+		AtStencil@current:[ 0,  0,  1] = -1.0 * ( calc_diflow ( flow_t, diff_t ) + max ( 0.0, -1.0 * flow_t ) )
+		AtStencil@current:[ 0,  0, -1] = -1.0 * ( calc_diflow ( flow_b, diff_b ) + max ( 0.0,        flow_b ) )
 
 		Var smasa : Real = (
-			( flow_e@current - flow_w@current + flow_n@current - flow_s@current + flow_t@current - flow_b@current ) / vf_cellVolume@current
+			( flow_e - flow_w + flow_n - flow_s + flow_t - flow_b ) / vf_cellVolume@current
 			+ ( rho[active]@current - rho[previous]@current ) / dt )
 		smasa = max ( 0.0, smasa )
 

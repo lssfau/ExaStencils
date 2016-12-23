@@ -8,12 +8,12 @@ import scala.util.control._
 import java.text.DecimalFormat
 
 import exastencils.base.ir._
+import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
-import exastencils.knowledge._
 import exastencils.logger._
+import exastencils.optimization.IR_IV_LoopCarriedCSBuffer
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
 import org.exastencils.schedopt.exploration.{ Exploration, PartialSchedule, ScheduleSpace, _ }
@@ -261,7 +261,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     scop.schedule = insertCst(scop.schedule, i)
     while (toMerge != null) {
       i += 1
-      if (scop.root.reduction != toMerge.root.reduction) {
+      if (scop.root.parallelization != toMerge.root.parallelization) {
         Logger.warn("[PolyOpt]  cannot merge two loops with different reduction clauses (maybe a bug in previous generation?)")
         scop.nextMerge = null
         return
@@ -340,13 +340,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     var readsToVec, readsNotVec : isl.UnionMap = empty
 
     writes.foreachMap { map : isl.Map =>
-      if (map.getTupleName(isl.DimType.Out).startsWith(iv.LoopCarriedCSBuffer.commonPrefix))
+      if (map.getTupleName(isl.DimType.Out).startsWith(IR_IV_LoopCarriedCSBuffer.commonPrefix))
         writesToVec = writesToVec.addMap(map)
       else
         writesNotVec = writesNotVec.addMap(map)
     }
     reads.foreachMap { map : isl.Map =>
-      if (map.getTupleName(isl.DimType.Out).startsWith(iv.LoopCarriedCSBuffer.commonPrefix))
+      if (map.getTupleName(isl.DimType.Out).startsWith(IR_IV_LoopCarriedCSBuffer.commonPrefix))
         readsToVec = readsToVec.addMap(map)
       else
         readsNotVec = readsNotVec.addMap(map)
@@ -401,17 +401,19 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val trans = scop.deps.flow.reverse().transitiveClosure(new Array[Int](1))
     live = live.union(live.apply(trans))
     live = live.intersect(scop.domain)
-    live = live.coalesce()
+    live = Isl.simplify(live)
 
-    if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old if possible
+    val domWCtx = scop.domain.intersectParams(scop.getContext())
+    val liveWCtx = live.intersectParams(scop.getContext())
+    if (!domWCtx.isEqual(liveWCtx)) // the new one could be more complex, so keep old if possible
       scop.domain = live
   }
 
   private def handleReduction(scop : Scop) : Unit = {
-    if (scop.root.reduction.isEmpty)
+    if (scop.root.parallelization.reduction.isEmpty)
       return
 
-    val name : String = Extractor.replaceSpecial(scop.root.reduction.get.target.prettyprint())
+    val name : String = Extractor.replaceSpecial(scop.root.parallelization.reduction.get.target.prettyprint())
     val stmts = mutable.Set[String]()
     scop.writes.foreachMap({ map : isl.Map =>
       if (map.getTupleName(T_OUT) == name)

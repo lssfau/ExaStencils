@@ -5,6 +5,7 @@ import scala.collection.mutable.Stack
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.input.PagedSeqReader
 
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.logger._
 import exastencils.parsers._
@@ -23,7 +24,7 @@ class ParserKnowledge extends ExaParser {
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
 
-    prevDirs.push(file.getAbsoluteFile().getParentFile())
+    prevDirs.push(file.getAbsoluteFile.getParentFile)
     parseTokens(scanner)
     prevDirs.pop()
   }
@@ -38,22 +39,22 @@ class ParserKnowledge extends ExaParser {
 
   def setParameter[T](ident : String, value : T) = {
     try {
-      UniversalSetter(exastencils.knowledge.Knowledge, ident, value)
+      UniversalSetter(Knowledge, ident, value)
     } catch {
-      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Knowledge.${ident} to ${value} but this parameter is undefined")
-      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ident} to ${value} but data types are incompatible")
+      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Knowledge.${ ident } to ${ value } but this parameter is undefined")
+      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ ident } to ${ value } but data types are incompatible")
     }
   }
 
   lazy val settingsfile = setting.*
 
-  lazy val setting = ("import" ~> stringLit ^^ { case path => parseFile(path) }
+  lazy val setting = ("import" ~> stringLit ^^ (path => parseFile(path))
     ||| ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => setParameter(id, ex) })
 
   lazy val expr = stringLit ^^ { _.toString } |
     "-".? ~ numericLit ^^ {
-      case s ~ n if (isInt(s.getOrElse("") + n)) => (s.getOrElse("") + n).toInt : AnyVal
-      case s ~ n                                 => (s.getOrElse("") + n).toDouble : AnyVal
+      case s ~ n if isInt(s.getOrElse("") + n) => (s.getOrElse("") + n).toInt : AnyVal
+      case s ~ n                               => (s.getOrElse("") + n).toDouble : AnyVal
     } |
     booleanLit ^^ { _.booleanValue() }
 }

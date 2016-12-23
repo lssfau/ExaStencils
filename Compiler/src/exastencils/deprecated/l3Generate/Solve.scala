@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Solve {
   def addFunction(printer : java.io.PrintWriter) = {
@@ -44,9 +44,8 @@ object Solve {
         printer.println(s"\t\tloop over Solution[currentSlot]@current where x > 0 && y > 0 with reduction( + : integral ) {")
       printer.println(s"\t\t\tintegral += Solution[currentSlot]@current")
       printer.println(s"\t\t}")
-      val numPoints : Double = (0 until Knowledge.dimensionality).map(dim =>
-        Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << Knowledge.maxLevel) + (if (Knowledge.l3tmp_genCellBasedDiscr) 0 else -1))
-        .reduce((a, b) => a * b)
+      val numPoints : Double = Knowledge.dimensions.map(dim =>
+        Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << Knowledge.maxLevel) + (if (Knowledge.l3tmp_genCellBasedDiscr) 0 else -1)).product
       printer.println(s"\t\tintegral /= $numPoints")
       printer.println(s"\t\tloop over Solution[currentSlot]@current {")
       printer.println(s"\t\t\tSolution[currentSlot]@current -= integral")
@@ -97,7 +96,7 @@ object Solve {
       printer.println("\tprint ( 'Mean time per vCycle: ', getMeanFromTimer ( 'cycle' ) )")
     }
     printer.println(s"}")
-    printer.println
+    printer.println()
 
     if (Knowledge.l3tmp_kelvin) {
       printer.println("Function Solve_GMRF ( ) : Unit {")
@@ -167,7 +166,7 @@ object Solve {
       printer.println(s"\t\tSolution_GMRF@finest = exp ( Solution_GMRF@finest / sqrt ( tau2 ) )")
       printer.println(s"\t}")
       printer.println(s"}")
-      printer.println
+      printer.println()
     }
   }
 }

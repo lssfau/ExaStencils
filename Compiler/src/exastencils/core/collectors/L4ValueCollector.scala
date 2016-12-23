@@ -1,6 +1,6 @@
 package exastencils.core.collectors
 
-import scala.collection.mutable.{ Node => _, _ }
+import scala.collection.mutable._
 
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
@@ -13,18 +13,17 @@ class L4ValueCollector extends Collector {
   override def enter(node : Node) : Unit = {
     node match {
       case x : L4_GlobalSection     => insideGlobals = true
-      case x : L4_Function          => { values.clear(); values.+=((new HashMap[String, L4_Expression]())) }
-      case x : L4_LoopOverFragments => values.+=((new HashMap[String, L4_Expression]()))
-      case x : L4_LoopOverField     => values.+=((new HashMap[String, L4_Expression]()))
-      case x : L4_ForLoop           => values.+=((new HashMap[String, L4_Expression]()))
-      case x : L4_UntilLoop         => values.+=((new HashMap[String, L4_Expression]()))
-      case x : L4_IfCondition       => values.+=((new HashMap[String, L4_Expression]()))
-      case x : L4_ValueDeclaration  => {
+      case x : L4_Function          => values.clear(); values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_LoopOverFragments => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_LoopOverField     => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_ForLoop           => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_UntilLoop         => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_IfCondition       => values.+=(new HashMap[String, L4_Expression]())
+      case x : L4_ValueDeclaration  =>
         x.identifier match { // ignore Values in Globals
           case v : L4_LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.initialValue))
           case _                        => if (!insideGlobals) values.last += ((x.identifier.name, x.initialValue))
         }
-      }
       case _                        =>
     }
   }

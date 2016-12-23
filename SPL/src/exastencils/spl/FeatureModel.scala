@@ -1,15 +1,13 @@
 package exastencils.spl
-import scala.io.Source
-import jp.kobe_u.copris._
-import jp.kobe_u.copris.dsl._
-import java.io.FileNotFoundException
-import java.io.IOException
+
 import scala.Array.canBuildFrom
+import scala.io.Source
+
+import java.io._
+
+import exastencils.config.Knowledge
+import jp.kobe_u.copris._
 import jp.kobe_u.copris.sugar.Sat4j
-import java.io.File
-import jp.kobe_u.copris.Term
-import scala.reflect.macros.blackbox
-import exastencils.knowledge.Knowledge
 
 object FeatureModel {
 
@@ -186,7 +184,7 @@ object FeatureModel {
       copris.init // = new sugar.Sugar()
       asPropositionalFormula()
       if (!a._2.isNumerical)
-        //copris.add(Imp(allF(a).defaultValue, Bool(allF(a).identifier)))         
+      //copris.add(Imp(allF(a).defaultValue, Bool(allF(a).identifier)))
         copris.add(Imp(TRUE, Bool(a._1)))
 
       if (copris.find) {
@@ -402,8 +400,8 @@ object FeatureModel {
       else if (!a._2.isNumerical && !a._2.isXorFeature)
         FeatureModel.copris.bool(Bool(a._1))
       else
-        // add xor features (for each feature value add a feature + add constraints between these features
-        //because only one of these features can be selected at a time
+      // add xor features (for each feature value add a feature + add constraints between these features
+      //because only one of these features can be selected at a time
         this.propositianlFormular_addXORFeature(a._2)
 
     }
@@ -411,11 +409,11 @@ object FeatureModel {
     parentChildRelationships
       .foreach(a =>
         if (a._1.isXorFeature)
-          //          addXorRelationship(copris, a._1, a._2)
+        //          addXorRelationship(copris, a._1, a._2)
           println("TODO")
         else
           addRelationship(copris, a._1, a._2) //           println("TODO")
-          )
+      )
 
     //    // add cross tree constaints
     //    featureModelConstraints
@@ -446,7 +444,7 @@ object FeatureModel {
 
   /**
     *
-    *  f1,..,fn alternative sub-features of f ->  (f1 v ... v fn <=> f) ^ \bigvee_{i<j} \lnot(fi ^ fj)
+    * f1,..,fn alternative sub-features of f ->  (f1 v ... v fn <=> f) ^ \bigvee_{i<j} \lnot(fi ^ fj)
     */
   def addXorRelationship(copris : jp.kobe_u.copris.sugar.Sugar, f : Feature, subFeatures : scala.collection.mutable.Set[Feature]) = {
 
@@ -673,13 +671,13 @@ object FeatureModel {
     * With this method, a set of [[exastencils.spl.Configuration]] can be filtered with a given set of [[exastencils.sp.Feature]].
     * All of the resulting configuration contain ALL features.
     *
-    * @param a set of configurations
+    * @param a   set of configurations
     * @param the set of white list boolean features
     * @return all configurations of the input set containing all feature of the white list
     *
     */
   def filterConfigurations(configurations : scala.collection.mutable.Set[exastencils.spl.Configuration],
-    selectedBooleanFeatures : scala.collection.mutable.Set[Feature]) : scala.collection.mutable.Set[exastencils.spl.Configuration] = {
+      selectedBooleanFeatures : scala.collection.mutable.Set[Feature]) : scala.collection.mutable.Set[exastencils.spl.Configuration] = {
     var matchingConfigs : scala.collection.mutable.Set[exastencils.spl.Configuration] = scala.collection.mutable.Set()
     configurations.foreach(x => {
       var allBooleanFeatures = true
@@ -691,7 +689,7 @@ object FeatureModel {
   }
 
   def filterConfigurations(configurations : scala.collection.mutable.Set[exastencils.spl.Configuration],
-    selectedNumericalFeatures : scala.collection.mutable.Map[Feature, Double]) : scala.collection.mutable.Set[exastencils.spl.Configuration] = {
+      selectedNumericalFeatures : scala.collection.mutable.Map[Feature, Double]) : scala.collection.mutable.Set[exastencils.spl.Configuration] = {
 
     var matchingConfigs : scala.collection.mutable.Set[exastencils.spl.Configuration] = scala.collection.mutable.Set()
     configurations.foreach(x => {
@@ -707,7 +705,7 @@ object FeatureModel {
   }
 
   def filterConfigurationsAtLeastOne(configurations : scala.collection.mutable.Set[exastencils.spl.Configuration],
-    selectedNumericalFeatures : scala.collection.mutable.Set[scala.collection.mutable.Map[Feature, Double]]) : scala.collection.mutable.Set[exastencils.spl.Configuration] = {
+      selectedNumericalFeatures : scala.collection.mutable.Set[scala.collection.mutable.Map[Feature, Double]]) : scala.collection.mutable.Set[exastencils.spl.Configuration] = {
 
     var matchingConfigs : scala.collection.mutable.Set[exastencils.spl.Configuration] = scala.collection.mutable.Set()
     configurations.foreach(x => {

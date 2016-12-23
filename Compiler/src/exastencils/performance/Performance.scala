@@ -1,17 +1,15 @@
 package exastencils.performance
 
-import scala.collection.mutable.{ Node => _, _ }
+import scala.collection.mutable._
 
 import java.io.PrintWriter
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.core.Settings
-import exastencils.data._
+import exastencils.config._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_MultiDimFieldAccess
-import exastencils.knowledge._
+import exastencils.field.ir._
 
 /// util classes
 
@@ -40,10 +38,9 @@ object CollectFunctionStatements extends DefaultStrategy("Collecting internal fu
   }
 
   this += new Transformation("Collecting", {
-    case fct : IR_Function => {
+    case fct : IR_Function =>
       internalFunctions += fct.name
       fct
-    }
   }, false)
 }
 
@@ -77,9 +74,9 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
 
     if (true) {
       // TODO: add flag to control behavior
-      var file = new java.io.File(Settings.performanceEstimateOutputFile)
-      if (!file.getParentFile().exists()) {
-        file.getParentFile().mkdirs()
+      val file = new java.io.File(Settings.performanceEstimateOutputFile)
+      if (!file.getParentFile.exists()) {
+        file.getParentFile.mkdirs()
       }
       outputStream = new PrintWriter(Settings.performanceEstimateOutputFile)
       val sep = Settings.csvSeparator
@@ -96,9 +93,8 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
   }
 
   this += new Transformation("Processing function statements", {
-    case fct : IR_Function if (
-      !completeFunctions.contains(fct.name) &&
-        CollectFunctionStatements.internalFunctions.contains(fct.name)) => {
+    case fct : IR_Function if !completeFunctions.contains(fct.name) &&
+      CollectFunctionStatements.internalFunctions.contains(fct.name) =>
       // process function body
       EvaluatePerformanceEstimates_SubAST.applyStandalone(fct.body)
 
@@ -119,7 +115,6 @@ object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performa
 
       }
       fct
-    }
   })
 }
 
@@ -164,22 +159,21 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
   this += new Transformation("Progressing key statements", {
     // function calls
-    case fct : IR_FunctionCall => {
+    case fct : IR_FunctionCall =>
       if (!CollectFunctionStatements.internalFunctions.contains(fct.name))
         () // external functions -> no estimate
       else if (EvaluatePerformanceEstimates.completeFunctions.contains(fct.name))
-        addTimeToStack(EvaluatePerformanceEstimates.completeFunctions.get(fct.name).get)
+        addTimeToStack(EvaluatePerformanceEstimates.completeFunctions(fct.name))
       else
         unknownFunctionCalls = true
       fct
-    }
 
-    case loop : IR_LoopOverDimensions => {
+    case loop : IR_LoopOverDimensions =>
       if (loop.hasAnnotation("perf_timeEstimate_host") || loop.hasAnnotation("perf_timeEstimate_device")) {
         addTimeToStack(loop)
         loop
       } else {
-        val maxIterations = loop.maxIterationCount.reduce(_ * _)
+        val maxIterations = loop.maxIterationCount().product
 
         EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.clear // has to be done manually
         EvaluatePerformanceEstimates_FieldAccess.applyStandalone(loop)
@@ -187,7 +181,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
 
         val coresPerRank = (Platform.hw_numNodes * Platform.hw_numHWThreadsPerNode).toDouble / Knowledge.mpi_numThreads // could be fractions of cores; regard SMT
 
-        val optimisticDataPerIt = EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._2.typicalByteSize).fold(0)(_ + _)
+        val optimisticDataPerIt = EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._2.typicalByteSize).sum
         val effectiveHostBW = Platform.hw_cpu_bandwidth / (coresPerRank * Knowledge.omp_numThreads) // assumes full parallelization - TODO: adapt values according to (OMP) parallel loops
         val optimisticTimeMem_host = (optimisticDataPerIt * maxIterations) / Platform.hw_cpu_bandwidth
         val optimisticTimeMem_device = (optimisticDataPerIt * maxIterations) / Platform.hw_gpu_bandwidth
@@ -200,7 +194,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         estimatedTimeOps_host /= Platform.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
         estimatedTimeOps_device /= Platform.hw_gpu_numCores // assumes perfect utilization - TODO: annotate max number of iterations in loop and use it here if smaller than number of cuda cores
 
-        var totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
+        val totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
         totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
 
         loop.annotate("perf_timeEstimate_host", totalEstimate.host)
@@ -215,12 +209,11 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
           IR_Comment(s"Optimistic host time for computational ops: ${ estimatedTimeOps_host * 1000.0 } ms"),
           IR_Comment(s"Optimistic device time for computational ops: ${ estimatedTimeOps_device * 1000.0 } ms"),
           IR_Comment(s"Assumed kernel call overhead: ${ Platform.sw_cuda_kernelCallOverhead * 1000.0 } ms"),
-          IR_Comment(s"Found accesses: ${ EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.map(_._1).mkString(", ") }"),
+          IR_Comment(s"Found accesses: ${ EvaluatePerformanceEstimates_FieldAccess.fieldAccesses.keys.mkString(", ") }"),
           loop)
       }
-    }
 
-    case loop : IR_ForLoop => {
+    case loop : IR_ForLoop =>
       if (loop.hasAnnotation("perf_timeEstimate_host") || loop.hasAnnotation("perf_timeEstimate_device")) {
         addLoopTimeToStack(loop)
       } else {
@@ -243,7 +236,6 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         }
       }
       loop
-    }
   }, false)
 }
 
@@ -259,7 +251,7 @@ object EvaluatePerformanceEstimates_FieldAccess extends QuietDefaultStrategy("Ev
 
     if (field.numSlots > 1) {
       access.fieldSelection.slot match {
-        case SlotAccess(_, offset)    => identifier += s"_o$offset"
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
         case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
       }
@@ -293,23 +285,23 @@ object EvaluatePerformanceEstimates_Ops extends QuietDefaultStrategy("Evaluating
     super.applyStandalone(node)
   }
 
+  // FIXME: incorporate number of operands
   this += new Transformation("Searching", {
-    case exp : IR_AdditionExpression       =>
+    case exp : IR_Addition       =>
       numAdd += 1
       exp
-    case exp : IR_SubtractionExpression    =>
+    case exp : IR_Subtraction    =>
       numAdd += 1
       exp
-    case exp : IR_MultiplicationExpression =>
+    case exp : IR_Multiplication =>
       numMul += 1
       exp
-    case exp : IR_DivisionExpression       =>
-      if (exp.right.isInstanceOf[IR_IntegerConstant])
-        numMul += 0 // ignore integer divs for now
-      else if (exp.right.isInstanceOf[IR_RealConstant]) // TODO: replace with eval float exp?
-        numMul += 1
-      else
-        numDiv += 1
+    case exp : IR_Division       =>
+      exp.right match {
+        case _ : IR_IntegerConstant => numMul += 0
+        case _ : IR_RealConstant    => numMul += 1
+        case _                      => numDiv += 1
+      }
       exp
   })
 }

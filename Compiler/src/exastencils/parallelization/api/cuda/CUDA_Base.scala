@@ -1,0 +1,34 @@
+package exastencils.parallelization.api.cuda
+
+import exastencils.base.ir._
+import exastencils.prettyprinting.PpStream
+
+/// CUDA_Init
+
+// TODO: case object
+case class CUDA_Init() extends CUDA_DeviceStatement {
+  override def prettyprint(out : PpStream) : Unit = out << "cuInit(0);"
+}
+
+/// CUDA_Finalize
+
+case class CUDA_Finalize() extends CUDA_DeviceStatement {
+  override def prettyprint(out : PpStream) : Unit = {
+    // has to be done after all other de-initialization statements
+    out << "cuCtxDestroy(cudaContext);"
+  }
+}
+
+/// CUDA_DeviceSynchronize
+
+case class CUDA_DeviceSynchronize() extends CUDA_HostStatement with IR_Expandable {
+  override def expand() = CUDA_CheckError(IR_FunctionCall("cudaDeviceSynchronize"))
+}
+
+/// CUDA_SyncThreads
+
+case class CUDA_SyncThreads() extends CUDA_HostStatement {
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "__syncthreads();"
+  }
+}

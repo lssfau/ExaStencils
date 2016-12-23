@@ -1,37 +1,61 @@
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Root
+import exastencils.base.ExaRootNode
+import exastencils.base.ir._
+import exastencils.base.l2.L2_ResolveLevelSpecifications
+import exastencils.base.l3._
 import exastencils.base.l4._
+import exastencils.baseExt.ir._
+import exastencils.baseExt.l3.L3_ResolveFunctionTemplates
 import exastencils.baseExt.l4._
 import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
+import exastencils.communication.ir._
+import exastencils.communication.l4._
+import exastencils.config._
 import exastencils.core._
-import exastencils.cuda._
-import exastencils.data._
+import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
+import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
-import exastencils.domain.{ l4 => _, _ }
-import exastencils.field.ir.IR_AddPaddingToFieldLayouts
+import exastencils.domain.ir.IR_DomainFunctions
+import exastencils.domain.l2._
+import exastencils.domain.l3.L3_DomainCollection
+import exastencils.field.ir._
+import exastencils.field.l2._
+import exastencils.field.l3._
 import exastencils.field.l4._
-import exastencils.globals._
+import exastencils.globals.ir._
+import exastencils.grid._
+import exastencils.grid.l3.L3_ResolveVirtualFieldAccesses
 import exastencils.grid.l4._
-import exastencils.grid.{ l4 => _, _ }
-import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
+import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
+import exastencils.hack.l4._
+import exastencils.interfacing.ir._
+import exastencils.knowledge.l3.L3_FieldCollection
 import exastencils.knowledge.l4._
-import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
-import exastencils.mpi._
-import exastencils.multiGrid._
-import exastencils.omp._
+import exastencils.operator.l2._
+import exastencils.operator.l3._
+import exastencils.operator.l4._
 import exastencils.optimization._
+import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.l4.L4_GeneralSimplify
+import exastencils.parallelization.api.cuda._
+import exastencils.parallelization.api.mpi._
+import exastencils.parallelization.api.omp._
+import exastencils.parsers.InputReader
+import exastencils.parsers.l2.L2_Parser
+import exastencils.parsers.l3.L3_Parser
 import exastencils.parsers.l4._
 import exastencils.parsers.settings._
 import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
-import exastencils.solver.ir.IR_ResolveLocalSolve
+import exastencils.solver.ir._
+import exastencils.stencil.ir._
 import exastencils.stencil.l4._
-import exastencils.strategies._
+import exastencils.timing.ir._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
 import exastencils.util.l4._
@@ -40,6 +64,8 @@ object Main {
   def initialize(args : Array[String]) = {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
+
+    StateManager.setRoot(ExaRootNode)
 
     // check from where to read input
     val settingsParser = new ParserSettings()
@@ -75,7 +101,7 @@ object Main {
     Platform.update()
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.getOutputPath)).exists()) {
+      if (new java.io.File(Settings.getOutputPath).exists()) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
@@ -123,6 +149,27 @@ object Main {
           level => l3Generate.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
     }
 
+    if (Knowledge.experimental_layerExtension) {
+      ExaRootNode.l2_root = L2_Parser.parseFile(Settings.getL2file)
+
+      L2_ResolveLevelSpecifications.apply() // before processing declarations ...
+
+      L2_ProcessDomainDeclarations.apply()
+      L2_ProcessFieldDeclarations.apply()
+      L2_ProcessStencilDeclarations.apply()
+      L2_ProcessStencilTemplateDeclarations.apply()
+
+      L2_ResolveLevelSpecifications.apply() // ... and again afterwards
+
+      //L2_ResolveVirtualFieldAccesses.apply()
+
+      // progress knowledge to l3
+      L2_DomainCollection.progress()
+      L2_FieldCollection.progress()
+      L2_StencilCollection.progress()
+      L2_StencilTemplateCollection.progress()
+    }
+
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 2")
   }
@@ -131,11 +178,42 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 3")
 
-    // Looking for other L3 related code? Check MainL3.scala!
+    if (Knowledge.experimental_layerExtension) {
+      ExaRootNode.l3_root = L3_Parser.parseFile(Settings.getL3file)
 
-    if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = l3Generate.Root()
-      StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
+      L3_ResolveLevelSpecifications.apply() // before processing declarations ...
+
+      //      L3_ProcessDomainDeclarations.apply()
+      L3_ProcessFieldDeclarations.apply()
+      L3_ProcessStencilDeclarations.apply()
+      L3_ProcessStencilTemplateDeclarations.apply()
+
+      L3_ResolveFunctionTemplates.apply()
+
+      L3_ResolveLevelSpecifications.apply() // ... and again afterwards
+      L3_UnfoldFunctionDeclarations.apply()
+
+      L3_ProcessFieldOverrides.apply()
+
+      L3_ResolveVirtualFieldAccesses.apply()
+      L3_ResolveFieldAccesses.apply()
+      L3_ResolveStencilAccesses.apply()
+      L3_ResolveStencilTemplateAccesses.apply()
+      L3_ResolveFieldFieldConvolutions.apply()
+      L3_ResolveStencilConvolutions.apply()
+      L3_ResolveStencilTemplateConvolutions.apply()
+
+      L3_FieldCollection.addInitFieldsFunction()
+
+      // progress knowledge to l4
+      L3_DomainCollection.progress()
+      L3_FieldCollection.prepareFieldLayouts() // prepare field layout knowledge for fields
+      L3_FieldCollection.progress() // progress field knowledge
+      L3_StencilCollection.progress() // process stencil knowledge
+      L3_StencilTemplateCollection.progress() // process stencil knowledge
+    } else if (Knowledge.l3tmp_generateL4) {
+      var l3gen_root = l3Generate.Root()
+      l3gen_root.printToL4(Settings.getL4file)
     }
 
     if (Settings.timeStrategies)
@@ -146,27 +224,58 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
+    // store the l3 root
+    val l3root = if (Knowledge.experimental_layerExtension)
+      ExaRootNode.l3_root
+    else
+      null
+
     if (Settings.inputFromJson) {
-      StateManager.root_ = (new ParserL4).parseFile(InputReader.layer4)
+      ExaRootNode.l4_root = (new ParserL4).parseFile(InputReader.layer4)
     } else {
-      StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
+      ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
     }
 
-    StateManager.root.asInstanceOf[L4_Root].flatten()
+    ExaRootNode.l4_root.flatten()
 
     ValidationL4.apply()
 
-    // re-print the merged L4 state
-    if (false) {
-      val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
+    if (Knowledge.experimental_layerExtension) {
+      // add some extra nodes to test functionalities
+      val newL4Root = l3root.progress // progress root
+      L4_IntroduceSlots.apply(Some(newL4Root))
+      L4_WrapFieldFieldConvolutions.apply(Some(newL4Root))
+      L4_AddLoopsToFieldAssignments.apply(Some(newL4Root))
+      L4_AddCommunicationToLoops.apply(Some(newL4Root))
+      L4_AdaptFieldLayoutsForComm.apply(Some(newL4Root))
 
-      val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(L4_printed)))
+      ExaRootNode.l4_root.nodes ++= newL4Root.nodes // TODO: other collections
+
+      if (true) {
+        L4_UnresolveStencilFieldConvolutions.apply()
+        L4_UnresolveFieldFieldConvolutions.apply()
+        L4_UnresolveStencilAccesses.apply()
+        L4_UnresolveStencilFieldAccesses.apply()
+        L4_UnresolveFieldAccesses.apply()
+        L4_ReplaceLevelsInFunctions.apply()
+        L4_CombineLeveledFunctions.apply()
+        // L4_GenerateLeveledKnowledgeDecls.apply()
+      }
+    }
+
+    // re-print the merged L4 state
+    if (Knowledge.experimental_layerExtension) {
+      val repFileName = { val tmp = Settings.getL4file.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
+      val l4_printed = ExaRootNode.l4_root.prettyprint()
+
+      val outFile = new java.io.FileWriter(repFileName)
+      outFile.write(Indenter.addIndentations(l4_printed))
       outFile.close()
 
-      // re-parse the file to check for errors
-      val parserl4 = new ParserL4()
-      StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
+      // re-parse the file to check for errors - also clear knowledge collections
+      L4_ClearKnowledge.apply()
+
+      ExaRootNode.l4_root = (new ParserL4).parseFile(repFileName)
       ValidationL4.apply()
     }
 
@@ -196,6 +305,7 @@ object Main {
       // resolve globals AFTER L4_InlineValueDeclarations (lower precedence than local values!)
       L4_InlineGlobalValueDeclarations.apply()
     }
+
     L4_ResolveVirtualFieldAccesses.apply()
     L4_ResolveVariableAccesses.apply()
     L4_ResolveFunctionAccesses.apply()
@@ -206,16 +316,23 @@ object Main {
     L4_ResolveLoopItAccesses.apply()
     L4_ResolveSpecialConstants.apply()
     HACK_L4_ResolveNativeFunctions.apply()
+    L4_ResolvePrintFunctions.apply()
+    L4_ResolveBuildStringFunctions.apply()
     L4_ResolveKnowledgeParameterAccess.apply()
+
+    L4_GeneralSimplify.doUntilDone()
 
     L4_ProcessKnowledgeDeclarations.apply()
 
-    if (Knowledge.ir_genSepLayoutsPerField)
+    if (Knowledge.l4_genSepLayoutsPerField)
       L4_DuplicateFieldLayoutsForFields.apply()
 
     L4_ResolveFieldAccesses.apply()
     L4_ResolveStencilAccesses.apply()
     L4_ResolveStencilFieldAccesses.apply()
+
+    // after L4_ResolveFieldAccesses
+    L4_ResolvePrintFieldFunctions.apply()
 
     /// BEGIN HACK: progress expression in knowledge
     {
@@ -246,7 +363,7 @@ object Main {
     if (Knowledge.data_alignFieldPointers)
       IR_AddPaddingToFieldLayouts.apply()
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
+    ExaRootNode.ProgressToIR()
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")
@@ -254,53 +371,57 @@ object Main {
 
   def handleIR() = {
     // add some more nodes
-    AddDefaultGlobals.apply()
-    SetupDataStructures.apply()
+    IR_AddDefaultGlobals.apply()
+
+    DefaultNeighbors.setup()
+    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, DefaultNeighbors.neighbors)
+    IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
     // add remaining nodes
-    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
+    ExaRootNode.ir_root.nodes ++= List(
       // FunctionCollections
-      DomainFunctions(),
-      CommunicationFunctions(),
+      IR_DomainFunctions(),
+      IR_CommunicationFunctions(),
 
       // Util
-      Stopwatch(),
-      TimerFunctions(),
-      Vector(),
-      Matrix(), // TODO: only if required
+      IR_Stopwatch(),
+      IR_TimerFunctions(),
+      IR_Matrix(), // TODO: only if required
       CImg() // TODO: only if required
     )
 
     if (Knowledge.cuda_enabled)
-      StateManager.root_.asInstanceOf[IR_Root].nodes += KernelFunctions()
+      ExaRootNode.ir_root.nodes += CUDA_KernelFunctions()
 
     if (Knowledge.experimental_mergeCommIntoLoops)
-      MergeCommunicatesAndLoops.apply()
-    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
-    SetupCommunication.firstCall = true
-    SetupCommunication.apply()
+      IR_MergeCommunicateAndLoop.apply()
+    IR_GeneralSimplify.doUntilDone() // removes (conditional) calls to communication functions that are not possible
+    IR_SetupCommunication.firstCall = true
+    IR_SetupCommunication.apply()
 
-    ResolveSpecialFunctionsAndConstants.apply()
+    HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
+    IR_AdaptTimerFunctions.apply()
 
-    ResolveLoopOverPoints.apply()
-    ResolveIntergridIndices.apply()
+    IR_ResolveLoopOverPoints.apply()
+    IR_ResolveIntergridIndices.apply()
 
     var convChanged = false
     do {
-      FindStencilConvolutions.changed = false
-      FindStencilConvolutions.apply()
-      convChanged = FindStencilConvolutions.changed
+      IR_FindStencilConvolutions.changed = false
+      IR_FindStencilConvolutions.apply()
+      convChanged = IR_FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
-        ExpandOnePassStrategy.apply()
+        IR_ExpandInOnePass.apply()
       else
-        ExpandStrategy.doUntilDone()
+        IR_Expand.doUntilDone()
     } while (convChanged)
 
-    ResolveDiagFunction.apply()
+    IR_ResolveStencilFunction.apply()
+
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
     if (Knowledge.domain_rect_generate && Knowledge.maxLevel <= 0) {
-      val fLayout : Array[FieldLayoutPerDim] = FieldCollection.fields.head.fieldLayout.layoutsPerDim
+      val fLayout : Array[IR_FieldLayoutPerDim] = IR_FieldCollection.objects.head.fieldLayout.layoutsPerDim
       Knowledge.discr_hx = Array[Double](l3Generate.Domains.getGlobalWidths(0) /
         (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * fLayout(0).numInnerLayers))
       if (Knowledge.dimensionality > 1)
@@ -315,18 +436,19 @@ object Main {
 
     IR_ResolveLocalSolve.apply()
 
-    ResolveLoopOverPointsInOneFragment.apply()
+    IR_ResolveLoopOverPointsInOneFragment.apply()
 
-    SetupCommunication.apply() // handle communication statements generated by loop resolution
+    IR_SetupCommunication.apply() // handle communication statements generated by loop resolution
 
     TypeInference.warnMissingDeclarations = false
     TypeInference.apply() // first sweep to allow for VariableAccess extraction in SplitLoopsForHostAndDevice
 
     if (Knowledge.experimental_memoryDistanceAnalysis) {
-      AnalyzeIterationDistance.apply()
+      //AnalyzeIterationDistance.apply()
+      KernelSubscriptAnalysis.apply()
     }
 
-    if (Knowledge.kerncraftExport) {
+    if (Knowledge.experimental_kerncraftExport) {
       KerncraftExport.apply()
     }
 
@@ -336,27 +458,30 @@ object Main {
     // ContractingLoops to guarantee that memory transfer statements appear only before and after a resolved
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
     if (Knowledge.cuda_enabled) {
-      PrepareCudaRelevantCode.apply()
+      CUDA_PrepareHostCode.apply()
     }
 
-    ResolveContractingLoop.apply()
+    IR_ResolveContractingLoop.apply()
 
-    SetupCommunication.apply() // handle communication statements generated by loop resolution
+    IR_SetupCommunication.apply() // handle communication statements generated by loop resolution
 
-    MapStencilAssignments.apply()
-    ResolveFieldAccess.apply()
+    IR_MapStencilAssignments.apply()
+    IR_ResolveFieldAccess.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
+
+    IR_ResolveLoopOverFragments.apply()
 
     // resolve constant IVs before applying poly opt
-    ResolveConstInternalVariables.apply()
-    SimplifyStrategy.doUntilDone()
+    IR_ResolveConstIVs.apply()
+    IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
-      new DuplicateNodes().apply() // FIXME: only debug
+      DuplicateNodes.instances.clear()
+      DuplicateNodes.apply() // FIXME: only debug
       Inlining.apply(true)
       CommonSubexpressionElimination.apply()
     }
@@ -364,38 +489,43 @@ object Main {
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()
-    ResolveLoopOverDimensions.apply()
+    IR_ResolveLoopOverDimensions.apply()
 
     TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
     // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
     if (Knowledge.cuda_enabled) {
-      CalculateCudaLoopsAnnotations.apply()
-      ExtractHostAndDeviceCode.apply()
-      AdaptKernelDimensionalities.apply()
-      HandleKernelReductions.apply()
+      CUDA_AnnotateLoop.apply()
+      CUDA_ExtractHostAndDeviceCode.apply()
+      CUDA_AdaptKernelDimensionality.apply()
+      CUDA_HandleReductions.apply()
     }
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
 
-    LinearizeFieldAccesses.apply() // before converting kernel functions -> requires linearized accesses
+    // before converting kernel functions -> requires linearized accesses
+    IR_LinearizeDirectFieldAccess.apply()
+    IR_LinearizeExternalFieldAccess.apply()
+    IR_LinearizeTempBufferAccess.apply()
+    CUDA_LinearizeReductionDeviceDataAccess.apply()
+    IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.cuda_enabled)
-      StateManager.findFirst[KernelFunctions]().get.convertToFunctions
+      CUDA_KernelFunctions.get.convertToFunctions()
 
-    ResolveBoundedExpressions.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
-    ResolveSlotOperationsStrategy.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
+    IR_ResolveBoundedScalar.apply() // after converting kernel functions -> relies on (unresolved) index offsets to determine loop iteration counts
+    IR_ResolveSlotOperations.apply() // after converting kernel functions -> relies on (unresolved) slot accesses
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     if (!Knowledge.mpi_enabled)
-      RemoveMPIReferences.apply()
+      MPI_RemoveMPI.apply()
 
-    SimplifyStrategy.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
@@ -412,42 +542,55 @@ object Main {
       RemoveDupSIMDLoads.apply()
 
     if (Knowledge.data_genVariableFieldSizes)
-      GenerateIndexManipFcts.apply()
-    AddInternalVariables.apply()
+      IR_GenerateIndexManipFcts.apply()
+
+    IR_AddInternalVariables.apply()
     // resolve possibly newly added constant IVs
-    ResolveConstInternalVariables.apply()
+    IR_ResolveConstIVs.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
-    if (Knowledge.mpi_enabled)
-      AddMPIDatatypes.apply()
+    // resolve newly added fragment loops
+    IR_ResolveLoopOverFragments.apply()
 
-    if (Knowledge.omp_enabled)
-      AddOMPPragmas.apply()
+    if (Knowledge.mpi_enabled) {
+      MPI_AddDatatypeSetup.apply()
+      MPI_AddReductions.apply()
+    }
+
+    if (Knowledge.omp_enabled) {
+      OMP_AddParallelSections.apply()
+
+      // resolve min/max reductions for omp versions not supporting them inherently
+      if (Platform.omp_version < 3.1)
+        OMP_ResolveMinMaxReduction.apply()
+
+      if (Platform.omp_requiresCriticalSections)
+        OMP_AddCriticalSections.apply()
+    }
 
     // one last time
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
-    SimplifyStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     exastencils.workaround.Compiler.apply()
 
-    if (Knowledge.ir_maxInliningSize > 0)
+    if (Knowledge.opt_maxInliningSize > 0)
       Inlining.apply()
-    CleanUnusedStuff.apply()
 
     if (Knowledge.generateFortranInterface)
-      Fortranify.apply()
+      IR_Fortranify.apply()
   }
 
   def print() = {
-    Logger.dbg("Prettyprinting to folder " + (new java.io.File(Settings.getOutputPath)).getAbsolutePath)
-    PrintStrategy.apply()
+    Logger.dbg("Prettyprinting to folder " + new java.io.File(Settings.getOutputPath).getAbsolutePath)
+    PrintToFile.apply()
     PrettyprintingManager.finish()
   }
 
@@ -468,7 +611,7 @@ object Main {
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    (new CountingStrategy("number of printed nodes")).apply()
+    new CountNodes("number of printed nodes").apply()
 
     shutdown()
   }

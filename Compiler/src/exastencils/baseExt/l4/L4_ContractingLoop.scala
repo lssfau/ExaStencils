@@ -35,7 +35,7 @@ case class L4_ContractingLoop(
     out << "repeat " << number << " times"
     if (iterator.isDefined) out << " count " << iterator.get
     out << " with contraction " << contraction
-    out << " {\n" <<< body << "}\n"
+    out << " {\n" <<< (body, "\n") << "\n}"
   }
 
   override def progress = IR_ContractingLoop(number, L4_ProgressOption(iterator)(_.progress), body.map(_.progress), contraction.progress)

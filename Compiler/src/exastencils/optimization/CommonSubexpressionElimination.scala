@@ -5,21 +5,24 @@ import scala.collection.mutable.{ ArrayBuffer, BitSet, Buffer, HashMap, ListBuff
 import scala.reflect.ClassTag
 import scala.util.Sorting
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.IR_TempBufferAccess
+import exastencils.communication.ir.IR_TempBufferAccess
+import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
-import exastencils.datastructures.ir._
+import exastencils.deprecated.ir.IR_DimToString
+import exastencils.domain.ir.IR_IV_FragmentPosition
+import exastencils.domain.ir.IR_IV_FragmentPositionBegin
+import exastencils.domain.ir.IR_IV_FragmentPositionEnd
 import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.hack.ir.HACK_IR_ConcatenationExpression
-import exastencils.knowledge._
 import exastencils.logger.Logger
-import exastencils.omp.OMP_PotentiallyParallel
+import exastencils.optimization.ir._
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting._
-import exastencils.strategies.SimplifyStrategy
-import exastencils.util._
+import exastencils.util.ir.IR_Print
 
 object CommonSubexpressionElimination extends CustomStrategy("Common subexpression elimination") {
   private final val REPLACE_ANNOT : String = "CSE_repl"
@@ -43,8 +46,8 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       case l : IR_LoopOverDimensions =>
         val incr = (0 until l.stepSize.length - Knowledge.opt_loopCarriedCSE_skipOuter).view.map { d =>
           l.stepSize(d) match {
-            case IR_IntegerConstant(i) if (i > 0) => (dimToString(d), l.indices.begin(d), l.indices.end(d), i)
-            case _                                => null
+            case IR_IntegerConstant(i) if i > 0 => (IR_DimToString(d), l.indices.begin(d), l.indices.end(d), i)
+            case _                              => null
           }
         }.toArray
         scopes += ((curFunc, l, incr, l.body _))
@@ -95,28 +98,28 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         usageIn(vName).clear()
         assignTo = vName
         ass
-      case inc @ IR_PreDecrementExpression(IR_VariableAccess(vName, _))            =>
+      case inc @ IR_PreDecrement(IR_VariableAccess(vName, _))                      =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PreIncrementExpression(IR_VariableAccess(vName, _))            =>
+      case inc @ IR_PreIncrement(IR_VariableAccess(vName, _))                      =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostIncrementExpression(IR_VariableAccess(vName, _))           =>
+      case inc @ IR_PostIncrement(IR_VariableAccess(vName, _))                     =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostDecrementExpression(IR_VariableAccess(vName, _))           =>
+      case inc @ IR_PostDecrement(IR_VariableAccess(vName, _))                     =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
@@ -138,12 +141,12 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     }
 
     this.execute(new Transformation("inline removable declarations", {
-      case n if (n.removeAnnotation(REMOVE_ANNOT).isDefined) => List()
-      case n if (n.hasAnnotation(REPLACE_ANNOT))             => Duplicate(n.getAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]) // duplicate here
+      case n if n.removeAnnotation(REMOVE_ANNOT).isDefined => List()
+      case n if n.hasAnnotation(REPLACE_ANNOT)             => Duplicate(n.getAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]) // duplicate here
     }), Some(parent)) // modifications in a list result in a new list created, so work with original parent and not with wrapped body
 
     SimplifyFloatExpressions.applyStandalone(parent)
-    SimplifyStrategy.doUntilDoneStandalone(parent, true)
+    IR_GeneralSimplify.doUntilDoneStandalone(parent, true)
   }
 
   private def loopCarriedCSE(curFunc : String, loop : IR_LoopOverDimensions,
@@ -155,9 +158,6 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     val currItBody = IR_Scope(loop.body)
     var maxID : Int = 0
     this.execute(new Transformation("number nodes", {
-      case _ : HACK_IR_ConcatenationExpression =>
-        Logger.warn(s"cannot perform loopCarriedCSE, because ConcatenationExpression are too difficult to analyze")
-        return Nil // don't do anything, since we cannot ensure the transformation is correct
       // there are some singleton datatypes, so don't enumerate them
       case d : IR_Datatype   => d
       case IR_NullStatement  => IR_NullStatement
@@ -181,14 +181,14 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     for (((loopItVar, loopBegin, loopEnd, loopIncr), dim) <- loopIt.zipWithIndex) {
       val prevItBody = IR_Scope(Duplicate(currItBody.body)) // prevItBody does not get an ID (to distinguish between curr and prev)
       this.execute(new Transformation("create previous iteration body", {
-        case varAcc : IR_VariableAccess if (varAcc.name == loopItVar) =>
-          IR_SubtractionExpression(varAcc, IR_IntegerConstant(loopIncr))
-        case strLit : IR_StringLiteral if (strLit.value == loopItVar) =>
-          IR_SubtractionExpression(strLit, IR_IntegerConstant(loopIncr))
+        case varAcc : IR_VariableAccess if varAcc.name == loopItVar =>
+          IR_Subtraction(varAcc, IR_IntegerConstant(loopIncr))
+        case strLit : IR_StringLiteral if strLit.value == loopItVar =>
+          IR_Subtraction(strLit, IR_IntegerConstant(loopIncr))
       }, false), Some(prevItBody))
 
       SimplifyFloatExpressions.applyStandalone(prevItBody)
-      SimplifyStrategy.doUntilDoneStandalone(prevItBody, true)
+      IR_GeneralSimplify.doUntilDoneStandalone(prevItBody, true)
 
       val coll = new CollectBaseCSes(curFunc)
       this.register(coll)
@@ -231,36 +231,36 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
             val njuExpr : IR_Expression = commonExp.getReplOrModify(posHead)
             if (njuExpr != null)
               this.execute(new Transformation("replace common subexpressions", {
-                case x if (x eq posHead) => njuExpr
+                case x if x eq posHead => njuExpr
               }, false), Some(pos(1)))
           }
 
           var csNext : IR_Expression = Duplicate(commonExp.witness)
           this.execute(new Transformation("create subsequent iteration body", {
-            case varAcc : IR_VariableAccess if (varAcc.name == loopItVar) =>
-              IR_AdditionExpression(varAcc, IR_IntegerConstant(loopIncr))
-            case strLit : IR_StringLiteral if (strLit.value == loopItVar) =>
-              IR_AdditionExpression(strLit, IR_IntegerConstant(loopIncr))
+            case varAcc : IR_VariableAccess if varAcc.name == loopItVar =>
+              IR_Addition(varAcc, IR_IntegerConstant(loopIncr))
+            case strLit : IR_StringLiteral if strLit.value == loopItVar =>
+              IR_Addition(strLit, IR_IntegerConstant(loopIncr))
           }, false), Some(csNext))
-          csNext = SimplifyExpression.simplifyFloatingExpr(csNext)
+          csNext = IR_SimplifyExpression.simplifyFloatingExpr(csNext)
           val csNextWrap = IR_ExpressionStatement(csNext)
-          SimplifyStrategy.doUntilDoneStandalone(csNextWrap, true)
+          IR_GeneralSimplify.doUntilDoneStandalone(csNextWrap, true)
           csNext = csNextWrap.expression
 
           // FIXME: fix datatypes
           val decl : IR_VariableDeclaration = commonExp.declaration
-          val tmpBuf = new iv.LoopCarriedCSBuffer(bufferCounter, decl.datatype, IR_ExpressionIndex(Duplicate(tmpBufLen)))
+          val tmpBuf = new IR_IV_LoopCarriedCSBuffer(bufferCounter, decl.datatype, IR_ExpressionIndex(Duplicate(tmpBufLen)))
           bufferCounter += 1
-          val tmpBufAcc = new IR_LoopCarriedCSBufferAccess(tmpBuf, IR_ExpressionIndex(Duplicate(tmpBufInd)))
+          val tmpBufAcc = IR_LoopCarriedCSBufferAccess(tmpBuf, IR_ExpressionIndex(Duplicate(tmpBufInd)))
           decl.initialValue = Some(tmpBufAcc)
           decls += decl
 
-          firstInits += new IR_Assignment(Duplicate(tmpBufAcc), Duplicate(commonExp.witness), "=")
-          nextUpdates += new IR_Assignment(Duplicate(tmpBufAcc), csNext, "=")
+          firstInits += IR_Assignment(Duplicate(tmpBufAcc), Duplicate(commonExp.witness), "=")
+          nextUpdates += IR_Assignment(Duplicate(tmpBufAcc), csNext, "=")
         }
       }
 
-      if (!decls.isEmpty) {
+      if (decls.nonEmpty) {
         val (stmts, annots) = loop.at1stIt(dim)
         stmts ++= firstInits
         annots += ((Vectorization.COND_VECTABLE, None))
@@ -271,7 +271,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           nextUpdates ++=:
           loop.body
         njuScopes += stmts
-        if (loop.parDims.contains(dim) && loop.isInstanceOf[OMP_PotentiallyParallel])
+        if (loop.parDims.contains(dim) && loop.parallelization.potentiallyParallel)
           loop.isVectorizable = true
         loop.parDims -= dim
         loop.lcCSEApplied = true
@@ -279,13 +279,13 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
 
       val loopBeginOpt =
         try {
-          IR_IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopBegin)._1)
+          IR_IntegerConstant(IR_SimplifyExpression.evalIntegralExtrema(loopBegin)._1)
         } catch {
           case ex : EvaluationException => Duplicate(loopBegin)
         }
       val loopEndOpt =
         try {
-          IR_IntegerConstant(SimplifyExpression.evalIntegralExtrema(loopEnd)._2)
+          IR_IntegerConstant(IR_SimplifyExpression.evalIntegralExtrema(loopEnd)._2)
         } catch {
           case ex : EvaluationException => loopEnd // must not be duplicated, since it is not used elsewhere
         }
@@ -299,7 +299,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       tmpBufLen(len) = loopEndOpt - loopBeginOpt
       if (Knowledge.data_alignFieldPointers)
         try {
-          val (_, size : Long) = SimplifyExpression.evalIntegralExtrema(tmpBufLen(len))
+          val (_, size : Long) = IR_SimplifyExpression.evalIntegralExtrema(tmpBufLen(len))
           val vecSize : Long = Platform.simd_vectorSize
           tmpBufLen(len) = IR_IntegerConstant((size + vecSize) & ~(vecSize - 1))
         } catch {
@@ -307,7 +307,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         }
     }
 
-    return njuScopes
+    njuScopes
   }
 
   private def collectIDs(node : Node, bs : BitSet) : Boolean = {
@@ -318,7 +318,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           disjunct &= bs.add(id.asInstanceOf[Int])
         n
     }), Some(IR_Root(ListBuffer(node)))) // wrap to ensure node itself is also accessed by the trafo
-    return disjunct
+    disjunct
   }
 
   private def conventionalCSE(curFunc : String, body : ListBuffer[IR_Statement], orderMap : Map[Any, Int]) : Unit = {
@@ -331,7 +331,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       val commonSubs : Map[Node, Subexpression] = coll.commonSubs
       commonSubs.retain { (_, cs) => cs != null && cs.getPositions().size > 1 }
       repeat = false
-      if (!commonSubs.isEmpty) {
+      if (commonSubs.nonEmpty) {
         findCommonSubs(curFunc, commonSubs, orderMap)
         repeat = updateAST(body, commonSubs)
       }
@@ -352,7 +352,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     }
 
     var todo : ArrayBuffer[List[Node]] = new ArrayBuffer[List[Node]]()
-    while (!nju.isEmpty) {
+    while (nju.nonEmpty) {
       val tmp = nju
       nju = todo
       todo = tmp
@@ -369,7 +369,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
                   registerCS(func, childCSes.map(_.get.prio).sum + 1, 3, pos, true, List.empty)
               }
 
-            case _ : IR_VectorExpression | _ : IR_MatrixExpression | _ : PrintExpression =>
+            case _ : IR_VectorExpression | _ : IR_MatrixExpression | _ : IR_Print =>
             // don't do anything, these are never common subexpressions
 
             case parent : Product =>
@@ -429,12 +429,12 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
     }
     if (repl)
       this.execute(new Transformation("replace common subexpressions", {
-        case x if (x.hasAnnotation(REPLACE_ANNOT)) => x.removeAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]
+        case x if x.hasAnnotation(REPLACE_ANNOT) => x.removeAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]
       }), Some(IR_Scope(body)))
 
     // add declaration after transformation to prevent modifying it
     commSub.declaration +=: body
-    return true
+    true
   }
 
   private def splitIt3[A : ClassTag, B : ClassTag, C : ClassTag](it : TraversableOnce[_]) : (Seq[A], Seq[B], Seq[C], Seq[Any]) = {
@@ -449,7 +449,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       case c : C => listC += c
       case any   => listZ += any
     }
-    return (listA, listB, listC, listZ)
+    (listA, listB, listC, listZ)
   }
 
   /**
@@ -514,15 +514,15 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
         startInds += ls
       }
     }
-    return dups
+    dups
   }
 
   private def removeAnnotations(body : ListBuffer[IR_Statement]) : Unit = {
     this.execute(new Transformation("remove old CSE annotations", {
       // eager `or` is required, since we want to remove ALL, not only the first available
-      case node if (node.removeAnnotation(ID_ANNOT).isDefined |
+      case node if node.removeAnnotation(ID_ANNOT).isDefined |
         node.removeAnnotation(REMOVE_ANNOT).isDefined |
-        node.removeAnnotation(REPLACE_ANNOT).isDefined) =>
+        node.removeAnnotation(REPLACE_ANNOT).isDefined =>
         // match nodes for which we removed something (so the number of nodes modifed is counted by the statemanager)
         node
     }), Some(IR_Scope(body)))
@@ -543,33 +543,30 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
       return
 
     node match {
-      // blacklist concat
-      case _ : HACK_IR_ConcatenationExpression =>
-        skip = true // skip everything from now on...
-        commonSubs.clear()
-        Logger.warn(s"cannot perform CSE, because ${ node.getClass } is too difficult to analyze")
-
       case c : IR_IfCondition =>
         c.annotate(SKIP_ANNOT)
         skip = true
 
-      case IR_VariableDeclaration(dt, name, _)                                    =>
+      case IR_VariableDeclaration(dt, name, _)                                 =>
         commonSubs(IR_VariableAccess(name, dt)) = null
-      case IR_Assignment(vAcc : IR_VariableAccess, _, _)                          =>
+      case IR_Assignment(vAcc : IR_VariableAccess, _, _)                       =>
         commonSubs(vAcc) = null
-      case IR_Assignment(IR_ArrayAccess(vAcc : IR_VariableAccess, _, _), _, _)    =>
+      case IR_Assignment(IR_ArrayAccess(vAcc : IR_VariableAccess, _, _), _, _) =>
         commonSubs(vAcc) = null
       case IR_Assignment(IR_ArrayAccess(iv : IR_InternalVariable, _, _), _, _) =>
         commonSubs(iv) = null
-      case IR_Assignment(dfa : IR_DirectFieldAccess, _, _)                        =>
+      case IR_Assignment(dfa : IR_DirectFieldAccess, _, _)                     =>
         commonSubs(dfa) = null
-      case IR_Assignment(tba : IR_TempBufferAccess, _, _)                         =>
+      case IR_Assignment(tba : IR_TempBufferAccess, _, _)                      =>
         commonSubs(tba) = null
 
       case _ : IR_IntegerConstant
            | _ : IR_RealConstant
            | _ : IR_BooleanConstant
            | _ : IR_VariableAccess
+           | _ : IR_IV_FragmentPosition
+           | _ : IR_IV_FragmentPositionBegin
+           | _ : IR_IV_FragmentPositionEnd
            | _ : IR_StringLiteral
            | _ : IR_ArrayAccess
            | _ : IR_DirectFieldAccess
@@ -612,7 +609,7 @@ object Subexpression {
   def getNewCseName(func : String) : String = {
     val c = cseCounter.getOrElse(func, 0)
     cseCounter(func) = c + 1
-    return "_ce%03d".format(c)
+    "_ce%03d".format(c)
   }
 }
 
@@ -627,11 +624,11 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
   lazy val ppString : String = witness.prettyprint()
 
   def addPosition(nju : List[Node]) : Boolean = {
-    return positions.put(nju, this) == null
+    positions.put(nju, this) == null
   }
 
   def getPositions() : Set[List[Node]] = {
-    return new JSetWrapper(positions.keySet())
+    JSetWrapper(positions.keySet())
   }
 
   def getReplOrModify(old : IR_Expression with Product) : IR_Expression = {
@@ -650,14 +647,106 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
   }
 }
 
-case class IR_LoopCarriedCSBufferAccess(var buffer : iv.LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access {
+/// IR_LoopCarriedCSBufferAccess
+
+case class IR_LoopCarriedCSBufferAccess(var buffer : IR_IV_LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access with IR_SpecialExpandable {
   override def datatype = buffer.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"
 
   def linearize : IR_ArrayAccess = {
     if (buffer.dimSizes.isEmpty)
       IR_ArrayAccess(buffer, IR_IntegerConstant(0), Knowledge.data_alignFieldPointers)
     else
-      IR_ArrayAccess(buffer, Mapping.resolveMultiIdx(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
+      IR_ArrayAccess(buffer, IR_Linearization.linearizeIndex(index, buffer.dimSizes), Knowledge.data_alignFieldPointers)
   }
 }
+
+/// IR_LinearizeLoopCarriedCSBufferAccess
+
+object IR_LinearizeLoopCarriedCSBufferAccess extends DefaultStrategy("Linearize LoopCarriedCSBufferAccess nodes") {
+  this += new Transformation("Linearize", {
+    case access : IR_LoopCarriedCSBufferAccess => access.linearize
+  })
+}
+
+/// IR_IV_AbstractLoopCarriedCSBuffer
+
+abstract class IR_IV_AbstractLoopCarriedCSBuffer(var namePostfix : String, var freeInDtor : Boolean) extends IR_UnduplicatedVariable {
+
+  def identifier : Int
+  def baseDatatype : IR_Datatype
+
+  override def getDeclaration() : IR_VariableDeclaration = {
+    val superDecl = super.getDeclaration()
+    if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
+      superDecl.datatype = IR_ArrayDatatype(superDecl.datatype, Knowledge.omp_numThreads)
+    superDecl
+  }
+
+  override def wrapInLoops(body : IR_Statement) : IR_Statement = {
+    var wrappedBody = super.wrapInLoops(body)
+    if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1) {
+      val begin = IR_VariableDeclaration(IR_IntegerDatatype, IR_LoopOverDimensions.threadIdxName, IR_IntegerConstant(0))
+      val end = IR_Lower(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype), IR_IntegerConstant(Knowledge.omp_numThreads))
+      val inc = IR_PreIncrement(IR_VariableAccess(IR_LoopOverDimensions.threadIdxName, IR_IntegerDatatype))
+      wrappedBody = IR_ForLoop(begin, end, inc, ListBuffer(wrappedBody), IR_ParallelizationInfo.PotentiallyParallel())
+    }
+    wrappedBody
+  }
+
+  override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
+    var access = baseAccess
+    if (Knowledge.omp_enabled && Knowledge.omp_numThreads > 1)
+      access = IR_ArrayAccess(access, IR_StringLiteral("omp_get_thread_num()")) // access specific element of the outer "OMP-dim" first
+    super.resolveAccess(access, fragment, domain, field, level, neigh)
+  }
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << resolveAccess(resolveName(), null, null, null, null, null)
+  }
+
+  override def resolveName() : String = {
+    IR_IV_LoopCarriedCSBuffer.commonPrefix + identifier + namePostfix
+  }
+
+  override def resolveDatatype() : IR_Datatype = {
+    IR_PointerDatatype(baseDatatype)
+  }
+
+  override def resolveDefValue() : Option[IR_Expression] = {
+    Some(0)
+  }
+
+  override def getDtor() : Option[IR_Statement] = {
+    val ptrExpr = resolveAccess(resolveName(), null, null, null, null, null)
+    if (freeInDtor)
+      Some(wrapInLoops(
+        IR_IfCondition(ptrExpr,
+          ListBuffer[IR_Statement](
+            IR_ArrayFree(ptrExpr),
+            IR_Assignment(ptrExpr, 0)))))
+    else
+      Some(wrapInLoops(IR_Assignment(ptrExpr, 0)))
+  }
+}
+
+/// IR_IV_LoopCarriedCSBuffer
+
+object IR_IV_LoopCarriedCSBuffer {
+  final val commonPrefix = "_lcs"
+}
+
+case class IR_IV_LoopCarriedCSBuffer(var identifier : Int, var baseDatatype : IR_Datatype, var dimSizes : IR_ExpressionIndex)
+  extends IR_IV_AbstractLoopCarriedCSBuffer("", !Knowledge.data_alignFieldPointers) {
+
+  lazy val basePtr = IR_IV_LoopCarriedCSBufferBasePtr(identifier, baseDatatype)
+
+  override def registerIV(declarations : HashMap[String, IR_VariableDeclaration], ctors : HashMap[String, IR_Statement], dtors : HashMap[String, IR_Statement]) = {
+    super.registerIV(declarations, ctors, dtors)
+    if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned -> register corresponding base pointer
+      basePtr.registerIV(declarations, ctors, dtors)
+  }
+}
+
+/// IR_IV_LoopCarriedCSBufferBasePtr
+case class IR_IV_LoopCarriedCSBufferBasePtr(var identifier : Int, var baseDatatype : IR_Datatype)
+  extends IR_IV_AbstractLoopCarriedCSBuffer("_base", true)

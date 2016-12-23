@@ -1,14 +1,13 @@
 package exastencils.field.l4
 
-import exastencils._
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
-import exastencils.datastructures.ir.iv
-import exastencils.datastructures.{ ir => _, _ }
-import exastencils.field.ir.IR_FieldAccess
-import exastencils.knowledge._
+import exastencils.config._
+import exastencils.datastructures._
+import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.field.ir._
 import exastencils.knowledge.l4.L4_KnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -19,12 +18,12 @@ object L4_FieldAccess {
   def apply(fieldName : String, level : Int, slot : L4_SlotSpecification, arrayIndex : Option[Int], offset : Option[L4_ExpressionIndex]) =
     new L4_FieldAccess(L4_FieldCollection.getByIdentifier(fieldName, level).get, slot, arrayIndex, offset)
 
-  def resolveSlot(field : Field, slot : L4_SlotSpecification) = {
+  def resolveSlot(field : IR_Field, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)
     else slot match {
-      case L4_ActiveSlot       => data.SlotAccess(iv.CurrentSlot(field), 0)
-      case L4_NextSlot         => data.SlotAccess(iv.CurrentSlot(field), 1)
-      case L4_PreviousSlot     => data.SlotAccess(iv.CurrentSlot(field), -1)
+      case L4_ActiveSlot       => IR_SlotAccess(IR_IV_ActiveSlot(field), 0)
+      case L4_NextSlot         => IR_SlotAccess(IR_IV_ActiveSlot(field), 1)
+      case L4_PreviousSlot     => IR_SlotAccess(IR_IV_ActiveSlot(field), -1)
       case x : L4_ConstantSlot => IR_IntegerConstant(x.number)
       case _                   => Logger.error("Unknown slot modifier " + slot)
     }
@@ -39,7 +38,7 @@ case class L4_FieldAccess(
 
   override def prettyprint(out : PpStream) = {
     // FIXME: omit slot if numSlots of target field is 1
-    out << target.identifier
+    out << target.name
     if (target.numSlots > 1) out << '[' << slot << ']'
     out << '@' << target.level
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
@@ -59,8 +58,8 @@ case class L4_FieldAccess(
       multiIndex += progressedOffset
     }
 
-    val field = target.getProgressedObject
-    IR_FieldAccess(FieldSelection(field, IR_IntegerConstant(field.level), L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
+    val field = target.getProgressedObject()
+    IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
   }
 }
 
@@ -70,6 +69,17 @@ object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fiel
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L4_UnresolvedAccess if L4_FieldCollection.exists(access.name) =>
       if (access.dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
+      if (access.level.isEmpty) Logger.warn(s"Encountered field access without level (field ${ access.name })")
       L4_FieldAccess(access.name, access.level.get.resolveLevel, access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
+  })
+}
+
+/// L4_UnresolveFieldAccesses
+
+object L4_UnresolveFieldAccesses extends DefaultStrategy("Revert field accesses to unresolved accesses") {
+  this += new Transformation("Replace", {
+    case L4_FieldAccess(target, slot, arrayIndex, offset) =>
+      val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
+      L4_UnresolvedAccess(target.name, newSlot, Some(L4_SingleLevel(target.level)), offset, arrayIndex, None)
   })
 }

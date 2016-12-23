@@ -1,27 +1,38 @@
 import java.util.Locale
 
-import exastencils.base.ir.IR_Root
+import exastencils.base.ExaRootNode
+import exastencils.base.ir._
 import exastencils.base.l4._
+import exastencils.baseExt.ir._
 import exastencils.baseExt.l4._
 import exastencils.communication._
+import exastencils.communication.ir._
+import exastencils.config._
 import exastencils.core._
-import exastencils.data._
+import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
-import exastencils.deprecated.l3Generate
-import exastencils.domain.{ l4 => _, _ }
-import exastencils.globals._
+import exastencils.deprecated._
+import exastencils.deprecated.domain._
+import exastencils.deprecated.ir._
+import exastencils.domain.ir._
+import exastencils.field.ir._
+import exastencils.globals.ir._
+import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
+import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
-import exastencils.knowledge.{ l4 => _, _ }
 import exastencils.logger._
-import exastencils.mpi._
-import exastencils.multiGrid._
-import exastencils.omp._
+import exastencils.operator.l4.L4_ProcessStencilDeclarations
 import exastencils.optimization._
+import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
+import exastencils.parallelization.api.mpi._
+import exastencils.parallelization.api.omp._
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
-import exastencils.stencil.l4.L4_ProcessStencilDeclarations
-import exastencils.strategies._
+import exastencils.solver.ir.IR_ResolveIntergridIndices
+import exastencils.stencil.ir._
+import exastencils.timing.ir._
 import exastencils.util._
 import exastencils.util.l4.L4_ResolveSpecialConstants
 
@@ -33,6 +44,8 @@ object MainJeremias {
     // for runtime measurement
     val start : Long = System.nanoTime()
 
+    StateManager.setRoot(ExaRootNode)
+
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
     println(Knowledge.domain_readFromFile)
@@ -43,10 +56,10 @@ object MainJeremias {
     }
 
     if (Settings.produceHtmlLog)
-      Logger_HTML.init
+      Logger_HTML.init()
 
     if (Settings.cancelIfOutFolderExists) {
-      if ((new java.io.File(Settings.getOutputPath)).exists) {
+      if (new java.io.File(Settings.getOutputPath).exists) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
         sys.exit(0)
       }
@@ -70,7 +83,7 @@ object MainJeremias {
 
     if (Knowledge.domain_readFromFile) {
       if (args.length >= 3) {
-        val d = new exastencils.parsers.settings.ParserDomainFile
+        val d = new ParserDomainFile
         d.parseHeader(args(2))
         DomainFileHeader.updateKnowledge()
       } else Logger.error("No file for domain configuration has been commited as third argument")
@@ -108,8 +121,8 @@ object MainJeremias {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      StateManager.root_ = l3Generate.Root()
-      StateManager.root_.asInstanceOf[l3Generate.Root].printToL4(Settings.getL4file)
+      var l3gen_root = l3Generate.Root()
+      l3gen_root.printToL4(Settings.getL4file)
     }
 
     if (Settings.timeStrategies)
@@ -120,21 +133,21 @@ object MainJeremias {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
-    StateManager.root_ = (new ParserL4).parseFile(Settings.getL4file)
-    ValidationL4.apply
+    ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
+    ValidationL4.apply()
 
     if (false) // re-print the merged L4 state
     {
-      val L4_printed = StateManager.root_.asInstanceOf[L4_Root].prettyprint()
+      val L4_printed = ExaRootNode.l4_root.prettyprint()
 
       val outFile = new java.io.FileWriter(Settings.getL4file + "_rep.exa")
-      outFile.write((Indenter.addIndentations(L4_printed)))
-      outFile.close
+      outFile.write(Indenter.addIndentations(L4_printed))
+      outFile.close()
 
       // re-parse the file to check for errors
       var parserl4 = new ParserL4
-      StateManager.root_ = parserl4.parseFile(Settings.getL4file + "_rep.exa")
-      ValidationL4.apply
+      ExaRootNode.l4_root = parserl4.parseFile(Settings.getL4file + "_rep.exa")
+      ValidationL4.apply()
     }
 
     if (Settings.timeStrategies)
@@ -156,24 +169,24 @@ object MainJeremias {
 
     L4_ProcessStencilDeclarations.apply()
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
+    ExaRootNode.ProgressToIR()
 
     if (!Knowledge.domain_rect_generate) {
       if (Knowledge.domain_readFromFile) {
-        val d = new exastencils.parsers.settings.ParserDomainFile
+        val d = new ParserDomainFile
         d.parseBody(args(2))
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
       } else if (Knowledge.domain_onlyRectangular) {
         Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
         Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
       } else if (Knowledge.domain_useCase == "L-Shape") {
         Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
         Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
         val tmp = Knowledge.mpi_numThreads
         Knowledge.mpi_numThreads = (Knowledge.domain_numBlocks.toDouble - Knowledge.domain_numBlocks.toDouble / 4.0).round.toInt
         Logger.debug("Changed mpi_numThreads (to work with L-shaped Domain) from " + tmp + " to " + Knowledge.mpi_numThreads)
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
         Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
       } else if (Knowledge.domain_useCase == "2-L-Shape") {
         Knowledge.domain_numBlocks = Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y * Knowledge.domain_rect_numBlocks_z
@@ -181,7 +194,7 @@ object MainJeremias {
         val tmp = Knowledge.mpi_numThreads
         Knowledge.mpi_numThreads = (Knowledge.domain_numBlocks.toDouble - Knowledge.domain_numBlocks.toDouble / 2.0).round.toInt
         Logger.debug("Changed mpi_numThreads (to work with 2-L-shaped Domain) from " + tmp + " to " + Knowledge.mpi_numThreads)
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
         Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
       } else if (Knowledge.domain_useCase == "X-Shape") {
         Knowledge.domain_rect_numBlocks_x = 2
@@ -195,85 +208,93 @@ object MainJeremias {
         Knowledge.domain_rect_numFragsPerBlock_z = 1
         Knowledge.domain_numFragmentsPerBlock = Knowledge.domain_rect_numFragsPerBlock_x * Knowledge.domain_rect_numFragsPerBlock_y * Knowledge.domain_rect_numFragsPerBlock_z
         Knowledge.mpi_numThreads = 4
-        DomainCollection.initFragments()
+        IR_DomainCollection.initFragments()
         Knowledge.domain_numBlocks = Knowledge.mpi_numThreads
       }
-      if (Knowledge.domain_generateDomainFile) DomainFileWriter.write
+      if (Knowledge.domain_generateDomainFile) DomainFileWriter.write()
     }
 
     // add remaining nodes
-    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
+    ExaRootNode.ir_root.nodes ++= List(
       // FunctionCollections
-      DomainFunctions(),
-      CommunicationFunctions(),
+      IR_DomainFunctions(),
+      IR_CommunicationFunctions(),
 
       // Util
-      Stopwatch(),
-      TimerFunctions(),
-      Vector(),
-      Matrix())
+      IR_Stopwatch(),
+      IR_TimerFunctions(),
+      IR_Matrix())
 
     // apply strategies
 
-    AddDefaultGlobals.apply()
+    IR_AddDefaultGlobals.apply()
 
-    SimplifyStrategy.doUntilDone() // removes (conditional) calls to communication functions that are not possible
+    IR_GeneralSimplify.doUntilDone() // removes (conditional) calls to communication functions that are not possible
 
-    SetupDataStructures.apply()
-    SetupCommunication.apply()
+    DefaultNeighbors.setup()
+    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, DefaultNeighbors.neighbors)
+    IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
-    ResolveSpecialFunctionsAndConstants.apply()
+    IR_SetupCommunication.apply()
 
-    ResolveLoopOverPoints.apply()
-    ResolveIntergridIndices.apply()
+    HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
+
+    IR_ResolveLoopOverPoints.apply()
+    IR_ResolveIntergridIndices.apply()
 
     var convChanged = false
     do {
-      FindStencilConvolutions.changed = false
-      FindStencilConvolutions.apply()
-      convChanged = FindStencilConvolutions.changed
+      IR_FindStencilConvolutions.changed = false
+      IR_FindStencilConvolutions.apply()
+      convChanged = IR_FindStencilConvolutions.changed
       if (Knowledge.useFasterExpand)
-        ExpandOnePassStrategy.apply()
+        IR_ExpandInOnePass.apply()
       else
-        ExpandStrategy.doUntilDone()
+        IR_Expand.doUntilDone()
     } while (convChanged)
 
-    ResolveDiagFunction.apply()
+    IR_ResolveStencilFunction.apply()
     CreateGeomCoordinates.apply()
-    ResolveLoopOverPointsInOneFragment.apply()
-    ResolveContractingLoop.apply()
+    IR_ResolveLoopOverPointsInOneFragment.apply()
+    IR_ResolveContractingLoop.apply()
 
-    MapStencilAssignments.apply()
-    ResolveFieldAccess.apply()
+    IR_MapStencilAssignments.apply()
+    IR_ResolveFieldAccess.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()
-    ResolveLoopOverDimensions.apply()
+    IR_ResolveLoopOverDimensions.apply()
 
     TypeInference.apply()
 
     if (Knowledge.opt_useColorSplitting)
       ColorSplitting.apply()
 
-    ResolveSlotOperationsStrategy.apply()
-    ResolveBoundedExpressions.apply()
-    LinearizeFieldAccesses.apply()
+    IR_ResolveSlotOperations.apply()
+    IR_ResolveBoundedScalar.apply()
+
+    // before converting kernel functions -> requires linearized accesses
+    IR_LinearizeDirectFieldAccess.apply()
+    IR_LinearizeExternalFieldAccess.apply()
+    IR_LinearizeTempBufferAccess.apply()
+    CUDA_LinearizeReductionDeviceDataAccess.apply()
+    IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     if (!Knowledge.mpi_enabled)
-      RemoveMPIReferences.apply()
+      MPI_RemoveMPI.apply()
 
-    SimplifyStrategy.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_useAddressPrecalc)
       AddressPrecalculation.apply()
@@ -289,45 +310,52 @@ object MainJeremias {
     if (Knowledge.opt_vectorize)
       RemoveDupSIMDLoads.apply()
 
-    AddInternalVariables.apply()
+    IR_AddInternalVariables.apply()
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
 
     if (Knowledge.mpi_enabled)
-      AddMPIDatatypes.apply()
+      MPI_AddDatatypeSetup.apply()
 
-    if (Knowledge.omp_enabled)
-      AddOMPPragmas.apply()
+    if (Knowledge.omp_enabled) {
+      OMP_AddParallelSections.apply()
+
+      // resolve min/max reductions if omp version does not support them inherently
+      if (Platform.omp_version < 3.1)
+        OMP_ResolveMinMaxReduction.apply()
+
+      if (Platform.omp_requiresCriticalSections)
+        OMP_AddCriticalSections.apply()
+    }
 
     // one last time
     if (Knowledge.useFasterExpand)
-      ExpandOnePassStrategy.apply()
+      IR_ExpandInOnePass.apply()
     else
-      ExpandStrategy.doUntilDone()
-    SimplifyStrategy.doUntilDone()
+      IR_Expand.doUntilDone()
+    IR_GeneralSimplify.doUntilDone()
 
-    if (Knowledge.ir_maxInliningSize > 0)
+    if (Knowledge.opt_maxInliningSize > 0)
       Inlining.apply()
-    CleanUnusedStuff.apply()
 
-    PrintStrategy.apply()
-    PrettyprintingManager.finish
+    PrintToFile.apply()
+    PrettyprintingManager.finish()
     if (!Knowledge.domain_rect_generate) {
-      exastencils.domain.FragmentKnowledge.saveFragmentData()
+      FragmentKnowledge.saveFragmentData()
       FragmentCollection.fragments.clear()
     }
 
     Logger.dbg("Done!")
 
     Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    (new CountingStrategy("number of printed nodes")).apply()
+    new CountNodes("number of printed nodes").apply()
 
     if (Settings.timeStrategies)
-      StrategyTimer.print
+      StrategyTimer.print()
 
     if (Settings.produceHtmlLog)
-      Logger_HTML.finish
+      Logger_HTML.finish()
   }
 }

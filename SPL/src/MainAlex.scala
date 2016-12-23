@@ -1,21 +1,28 @@
-import exastencils.base.ir.IR_Root
+import exastencils.base.ExaRootNode
+import exastencils.base.ir._
 import exastencils.base.l4._
+import exastencils.baseExt.ir._
 import exastencils.baseExt.l4._
 import exastencils.communication._
+import exastencils.communication.ir._
+import exastencils.config._
 import exastencils.core._
-import exastencils.data._
 import exastencils.datastructures._
-import exastencils.domain._
-import exastencils.globals._
-import exastencils.knowledge._
+import exastencils.domain.ir.IR_DomainFunctions
+import exastencils.field.ir._
+import exastencils.globals.ir._
+import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
+import exastencils.interfacing.ir._
 import exastencils.knowledge.l4.L4_UnfoldLeveledKnowledgeDecls
-import exastencils.mpi._
-import exastencils.multiGrid._
-import exastencils.omp._
+import exastencils.optimization.IR_LinearizeLoopCarriedCSBufferAccess
+import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
+import exastencils.parallelization.api.mpi.MPI_RemoveMPI
+import exastencils.parallelization.api.omp._
 import exastencils.parsers.l4._
 import exastencils.prettyprinting._
-import exastencils.strategies._
-import exastencils.util._
+import exastencils.stencil.ir.IR_FindStencilConvolutions
+import exastencils.timing.ir.IR_Stopwatch
 
 object MainAlex {
   def main(args : Array[String]) : Unit = {
@@ -45,7 +52,7 @@ object MainAlex {
 
     // HACK: this tests the new L4 capabilities
     var parserl4 = new ParserL4
-    StateManager.root_ = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
+    ExaRootNode.l4_root = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
     ValidationL4.apply
     L4_ResolveFunctionInstantiations.apply()
 
@@ -58,32 +65,31 @@ object MainAlex {
 
     L4_ResolveCurrentLevels.apply()
 
-    StateManager.root_ = StateManager.root_.asInstanceOf[L4_Progressable].progress.asInstanceOf[Node]
+    ExaRootNode.ProgressToIR()
 
     // Setup tree
-    StateManager.root_.asInstanceOf[IR_Root].nodes ++= List(
+    ExaRootNode.ir_root.nodes ++= List(
       // FunctionCollections
-      new DomainFunctions,
-      new CommunicationFunctions,
+      IR_DomainFunctions(),
+      IR_CommunicationFunctions(),
 
       // Util
-      new Stopwatch,
-      new Vector,
+      new IR_Stopwatch,
 
       // Globals
-      new Globals)
+      new IR_GlobalCollection)
 
     // FIXME: set fields in L4
     /*var fieldCollection = StateManager.findFirst[FieldCollection]().get
     for (level <- 0 to Knowledge.maxLevel) {
       { // fields requiring (ghost-layer) communication
-        val layout = (0 until Knowledge.dimensionality).toArray.map(dim => new FieldLayoutPerDim(if (0 == dim) 1 else 0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)) ++
+        val layout = Knowledge.dimensions.map(dim => new FieldLayoutPerDim(if (0 == dim) 1 else 0, Knowledge.data_numGhostLayers, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, Knowledge.data_numGhostLayers, 0)) ++
           (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
         fieldCollection.fields += new Field("Solution", 0, "solData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), true)
         fieldCollection.fields += new Field("Residual", 0, "resData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false)
       }
       { // fields without ghost layers
-        val layout = (0 until Knowledge.dimensionality).toArray.map(dim => new FieldLayoutPerDim(0, 0, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, 0, 0)) ++
+        val layout = Knowledge.dimensions.map(dim => new FieldLayoutPerDim(0, 0, 1, ((Knowledge.domain_fragLengthPerDim(dim) * (1 << level)) + 1) - 2 /*dup*/ , 1, 0, 0)) ++
           (Knowledge.dimensionality until 3).toArray.map(dim => new FieldLayoutPerDim(0, 0, 0, 1, 0, 0, 0))
         fieldCollection.fields += new Field("RHS", 0, "rhsData", "double", layout, level, Knowledge.data_numSolSlots, new MultiIndex(layout.map(l => l.idxDupLeftBegin)), false)
       }
@@ -160,41 +166,50 @@ object MainAlex {
 
     // Strategies
 
-    FindStencilConvolutions.apply()
+    IR_FindStencilConvolutions.apply()
 
-    ResolveSpecialFunctionsAndConstants.apply()
+    HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
 
-    SetupDataStructures.apply()
+    DefaultNeighbors.setup()
+    IR_GlobalCollection.get += IR_AllocateDataFunction(IR_FieldCollection.objects, DefaultNeighbors.neighbors)
+    IR_ExternalFieldCollection.generateCopyFunction().foreach(IR_UserFunctions.get += _)
 
-    do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    do { IR_Expand.apply() }
+    while (IR_Expand.results.last._2.matches > 0) // FIXME: cleaner code
 
-    do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    do { IR_Expand.apply() }
+    while (IR_Expand.results.last._2.matches > 0) // FIXME: cleaner code
 
     //    PolyOpt.apply()
 
-    ResolveLoopOverDimensions.apply()
+    IR_ResolveLoopOverDimensions.apply()
 
-    LinearizeFieldAccesses.apply()
+    // before converting kernel functions -> requires linearized accesses
+    IR_LinearizeDirectFieldAccess.apply()
+    IR_LinearizeExternalFieldAccess.apply()
+    IR_LinearizeTempBufferAccess.apply()
+    CUDA_LinearizeReductionDeviceDataAccess.apply()
+    IR_LinearizeLoopCarriedCSBufferAccess.apply()
 
-    do { ExpandStrategy.apply() }
-    while (ExpandStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    do { IR_Expand.apply() }
+    while (IR_Expand.results.last._2.matches > 0) // FIXME: cleaner code
 
     if (!Knowledge.mpi_enabled) {
-      RemoveMPIReferences.apply()
+      MPI_RemoveMPI.apply()
     }
 
-    do { SimplifyStrategy.apply() }
-    while (SimplifyStrategy.results.last._2.matches > 0) // FIXME: cleaner code
+    do { IR_GeneralSimplify.apply() }
+    while (IR_GeneralSimplify.results.last._2.matches > 0) // FIXME: cleaner code
 
-    AddInternalVariables.apply()
+    IR_AddInternalVariables.apply()
 
     if (Knowledge.omp_enabled) {
-      AddOMPPragmas.apply()
+      OMP_AddParallelSections.apply()
+      if (Platform.omp_requiresCriticalSections)
+        OMP_AddCriticalSections.apply()
     }
 
-    PrintStrategy.apply()
+    PrintToFile.apply()
     PrettyprintingManager.finish
 
     println("Done!")

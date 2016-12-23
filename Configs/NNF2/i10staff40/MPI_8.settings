@@ -1,0 +1,17 @@
+user						= "Sebastian"
+
+buildfileGenerators			= { "ProjectfileGenerator" } // may be "ProjectfileGenerator", "MakefileGenerator", "CMakeGenerator"
+
+basePathPrefix				= ""
+outputPath					= ".\gen_MPI_8\"
+l4file						= ".\Configs\NNF2\ExaFluids.exa4"
+htmlLogFile					= ".\Compiler\log\log.html"
+
+produceHtmlLog				= true
+timeStrategies				= true
+timeStratPercentThreshold	= 0
+
+pathsInc					+= "$(MSMPI_INC)"
+pathsLib					+= "$(MSMPI_LIB64)"
+
+additionalLibs				+= "msmpi.lib"

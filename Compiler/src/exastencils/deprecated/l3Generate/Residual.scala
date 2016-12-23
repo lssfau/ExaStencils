@@ -1,6 +1,6 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.knowledge._
+import exastencils.config._
 
 object Residual {
   def addUpdateBody(printer : java.io.PrintWriter, postfix : String, stencil : String) = {
@@ -60,7 +60,7 @@ object Residual {
         printer.println(s"\t}")
       printer.println(s"\treturn sqrt ( res )")
       printer.println(s"}")
-      printer.println
+      printer.println()
 
       if (Knowledge.l3tmp_useMaxNorm) {
         printer.println(s"Function NormResidual${ postfix }_$vecDim@(finest) ( ) : Real {")
@@ -78,7 +78,7 @@ object Residual {
           printer.println(s"\t}")
         printer.println(s"\treturn res")
         printer.println(s"}")
-        printer.println
+        printer.println()
       }
     }
   }

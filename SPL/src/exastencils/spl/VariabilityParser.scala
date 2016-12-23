@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets
 import java.nio.file._
 
 import exastencils.core._
-import exastencils.knowledge._
+import exastencils.config._
 import exastencils.spl.learning._
 import exastencils.spl.samplingStrategies.doe._
 import exastencils.spl.test._

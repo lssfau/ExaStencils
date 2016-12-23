@@ -1,8 +1,8 @@
 package exastencils.datastructures
 
-import scala.collection.mutable.Buffer
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ Buffer, ListBuffer }
 
+import exastencils.config.Settings
 import exastencils.core._
 import exastencils.logger._
 
@@ -55,7 +55,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     *
     * @return The list of [[exastencils.datastructures.TransformationResult]]s of the last [[exastencils.datastructures.Transformation]] that has been executed
     */
-  def lastResult = { if (!results.isEmpty) Logger.error("No transformation has been executed!"); results_.last._2 }
+  def lastResult = { if (results.nonEmpty) Logger.error("No transformation has been executed!"); results_.last._2 }
 
   /**
     * Returns the [[exastencils.datastructures.TransformationResult]] of the given [[exastencils.datastructures.Transformation]].
@@ -98,20 +98,19 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 
     this.transaction()
     this.resetCollectors()
-    Logger.info(s"""Applying strategy "${name}"""")
+    Logger.info(s"""Applying strategy "${ name }"""")
     try {
       transformations_.foreach(transformation => {
         executeInternal(transformation, applyAtNode)
       })
       this.commit()
     } catch {
-      case x : TransformationException => {
-        Logger.warn(s"""Strategy "${name}" did not apply successfully""")
-        Logger.warn(s"""Error in Transformation ${x.transformation.name}""")
-        Logger.warn(s"Message: ${x.msg}")
+      case x : TransformationException =>
+        Logger.warn(s"""Strategy "${ name }" did not apply successfully""")
+        Logger.warn(s"""Error in Transformation ${ x.transformation.name }""")
+        Logger.warn(s"Message: ${ x.msg }")
         Logger.warn(s"Rollback will be performed")
         this.abort()
-      }
     }
 
     //    if ("Counting " + "Before" != name && "Counting " + "After" != name) {
@@ -121,7 +120,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
   }
 
   protected override def executeInternal(transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
-    Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
+    Logger.info(s"""Applying strategy "${ name }::${ transformation.name }"""")
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
@@ -132,14 +131,14 @@ class DefaultStrategy(name : String) extends Strategy(name) {
       StrategyTimer.stopTiming(name)
     }
     if (Settings.logStrategyResults) {
-      Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
+      Logger.debug(s"""Result of strategy "${ name }::${ transformation.name }": $result""")
     }
     results_ += ((transformation, result))
     result
   }
 
   def applyStandalone(node : Node) : Unit = {
-    Logger.info(s"""Applying strategy "${name}" in standalone mode""")
+    Logger.info(s"""Applying strategy "${ name }" in standalone mode""")
 
     this.resetCollectors()
     try {
@@ -147,11 +146,10 @@ class DefaultStrategy(name : String) extends Strategy(name) {
         executeStandaloneInternal(transformation, node)
       })
     } catch {
-      case x : TransformationException => {
-        Logger.warn(s"""Strategy "${name}" as standalone did not apply successfully""")
-        Logger.warn(s"""Error in Transformation ${x.transformation.name}""")
-        Logger.warn(s"Message: ${x.msg}")
-      }
+      case x : TransformationException =>
+        Logger.warn(s"""Strategy "${ name }" as standalone did not apply successfully""")
+        Logger.warn(s"""Error in Transformation ${ x.transformation.name }""")
+        Logger.warn(s"Message: ${ x.msg }")
     }
   }
 
@@ -173,7 +171,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
   }
 
   protected def executeStandaloneInternal(transformation : Transformation, node : Node) : TransformationResult = {
-    Logger.info(s"""Applying strategy "${name}::${transformation.name}" in standalone mode""")
+    Logger.info(s"""Applying strategy "${ name }::${ transformation.name }" in standalone mode""")
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
@@ -182,7 +180,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
     if (Settings.logStrategyResults) {
-      Logger.debug(s"""Result of strategy "${name}::${transformation.name}" in standalone mode: $result""")
+      Logger.debug(s"""Result of strategy "${ name }::${ transformation.name }" in standalone mode: $result""")
     }
     results_ += ((transformation, result))
     result
@@ -201,7 +199,7 @@ object DefaultStrategy {
   /**
     * A Strategy that executes its [[exastencils.datastructures.Transformation]]s sequentially.
     *
-    * @param name name The name of the Strategy. Used for traceability and debugging purposes.
+    * @param name            name The name of the Strategy. Used for traceability and debugging purposes.
     * @param transformations List of transformations for the strategy.
     */
   def apply(name : String, transformations : List[Transformation]) = {

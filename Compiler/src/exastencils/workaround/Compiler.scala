@@ -4,8 +4,8 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.config.Platform
 import exastencils.datastructures._
-import exastencils.knowledge.Platform
 
 object Compiler extends DefaultStrategy("Compiler workarounds") {
   private val compiler = Platform.targetCompiler

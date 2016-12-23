@@ -39,11 +39,11 @@ class Scop(val root : IR_LoopOverDimensions with PolyhedronAccessible, var local
 
     def flow : isl.UnionMap = {
       if (flowParVec == null)
-        return flowPar
+        flowPar
       else if (flowPar == null)
-        return flowParVec
+        flowParVec
       else
-        return Isl.simplify(flowParVec.union(flowPar))
+        Isl.simplify(flowParVec.union(flowPar))
     }
 
     private var inputCache : isl.UnionMap = null
@@ -75,19 +75,19 @@ class Scop(val root : IR_LoopOverDimensions with PolyhedronAccessible, var local
       while (it.hasNext && inputCache != null)
         inputCache = it.next()(inputCache)
       lazyUpdateInputs.clear()
-      return inputCache
+      inputCache
     }
 
     def validity() : isl.UnionMap = {
-      return Isl.simplify(flowParVec.union(flowPar).union(antiOutParVec).union(antiOutPar))
+      Isl.simplify(flowParVec.union(flowPar).union(antiOutParVec).union(antiOutPar))
     }
 
     def validityParVec() : isl.UnionMap = {
-      return Isl.simplify(flowParVec.union(antiOutParVec))
+      Isl.simplify(flowParVec.union(antiOutParVec))
     }
 
     def validityPar() : isl.UnionMap = {
-      return Isl.simplify(flowPar.union(antiOutPar))
+      Isl.simplify(flowPar.union(antiOutPar))
     }
   }
 
@@ -112,18 +112,18 @@ object ScopNameMapping {
   private final val expr2id = new HashMap[IR_Expression, String]()
 
   def id2expr(id : String) : Option[IR_Expression] = {
-    return id2expr.get(id)
+    id2expr.get(id)
   }
 
   def expr2id(expr : IR_Expression, alias : IR_Expression = null) : String = {
-    return expr2id.getOrElseUpdate(expr, {
+    expr2id.getOrElseUpdate(expr, {
       val id : String =
         if (alias != null && expr2id.contains(alias))
           expr2id(alias)
         else expr match {
-          case IR_VariableAccess(str, _) if (str.length() < 5) =>
+          case IR_VariableAccess(str, _) if str.length() < 5 =>
             str
-          case _                                               =>
+          case _                                             =>
             count += 1
             "p" + count
         }
