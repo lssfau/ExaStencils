@@ -208,34 +208,32 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     // FIXME: IR_UserFunctionAccess's
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnBoundaryOf", _), args) =>
-      IR_IsOnBoundary(
-        args(0).asInstanceOf[IR_FieldAccess].fieldSelection,
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid)
-      )
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnBoundary(fieldAccess.fieldSelection, fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnEastBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnWestBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(-1, 0, 0)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnNorthBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 1, 0)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 1, 0)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnSouthBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, -1, 0)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, -1, 0)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnTopBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, 1)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, 1)), fieldAccess.index)
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnBottomBoundaryOf", _), args) =>
-      IR_IsOnSpecBoundary(args(0).asInstanceOf[IR_FieldAccess].fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)),
-        IR_LoopOverDimensions.defIt(args(0).asInstanceOf[IR_FieldAccess].fieldSelection.field.fieldLayout.numDimsGrid))
+      val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)), fieldAccess.index)
 
     case IR_ElementwiseAddition(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
     case IR_ElementwiseSubtraction(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
@@ -285,22 +283,29 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_UserFunctionAccess("showImage", _), args)) =>
-      if (args.size != 1 || !args(0).isInstanceOf[IR_FieldAccess]) {
-        Logger.warn("Malformed call to showImage; usage: showImage ( field )")
+      if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
+        Logger.warn("Malformed call to showImage; usage: showImage ( field.* )")
         IR_NullStatement
       } else {
-        val field = args(0).asInstanceOf[IR_FieldAccess]
-        val fieldLayout = field.fieldSelection.field.fieldLayout
-        val numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
-          fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight)
+        val fields = args.map(_.asInstanceOf[IR_FieldAccess])
+        val fieldLayouts = fields.map(_.fieldSelection.field.fieldLayout)
+        val numPoints = fieldLayouts.map(fieldLayout => (0 until fieldLayout.numDimsGrid).map(dim =>
+          fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight))
+
+        val tmpImgs = fields.indices.map(i => s"imageShow$i")
+        val displays = fields.indices.map(i => s"cImgDisp$i")
 
         val stmts = ListBuffer[IR_Statement]()
 
-        stmts += HACK_IR_Native("cimg_library::CImg< double > imageShow ( " + numPoints.mkString(", ") + " )")
-        stmts += IR_LoopOverPoints(field.fieldSelection.field,
-          IR_Assignment(HACK_IR_Native("*imageShow.data(x,y)"), field))
-        stmts += HACK_IR_Native("cimg_library::CImgDisplay cImgDisp(imageShow, \"" + field.fieldSelection.field.name + "\")")
-        stmts += HACK_IR_Native("while (!cImgDisp.is_closed()) { cImgDisp.wait( ); }")
+        for (i <- fields.indices) {
+          stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + " )")
+          stmts += IR_LoopOverPoints(fields(i).fieldSelection.field,
+            IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(x,y)"), fields(i)))
+          val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
+          stmts += HACK_IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
+        }
+        stmts += IR_WhileLoop(fields.indices.map(i => IR_Negation(IR_MemberFunctionCall(displays(i), "is_closed")) : IR_Expression).reduceLeft(IR_OrOr),
+          fields.indices.map(i => IR_MemberFunctionCall(displays(i), "wait") : IR_Statement).to[ListBuffer])
 
         IR_Scope(stmts)
       }
