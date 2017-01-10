@@ -3,7 +3,9 @@ package exastencils.baseExt.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
+import exastencils.baseExt.ir.IR_MatrixExpression
 import exastencils.baseExt.ir.IR_VectorExpression
+import exastencils.config.Knowledge
 import exastencils.datastructures.Node
 import exastencils.prettyprinting.PpStream
 
@@ -40,7 +42,15 @@ case class L4_VectorExpression(
     if (!rowVector.getOrElse(true)) out << 'T'
   }
 
-  def progress = IR_VectorExpression(L4_ProgressOption(datatype)(_.progress), expressions.map(_.progress), rowVector)
+  def progress = {
+    if(Knowledge.experimental_internalHighDimTypes) {
+      val rows = if(rowVector.getOrElse(true)) expressions.length else 1
+      val cols = if(!rowVector.getOrElse(true)) expressions.length else 1
+      IR_MatrixExpression(L4_ProgressOption(datatype)(_.progress), rows, cols, expressions.map(_.progress).toArray)
+    } else {
+      IR_VectorExpression(L4_ProgressOption(datatype)(_.progress), expressions.map(_.progress), rowVector)
+    }
+  }
 
   def length = expressions.length
 

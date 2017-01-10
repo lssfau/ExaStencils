@@ -401,9 +401,6 @@ object Main {
     IR_SetupCommunication.firstCall = true
     IR_SetupCommunication.apply()
 
-    if(Knowledge.experimental_internalHighDimTypes)
-      IR_ResolveMatrices.apply()
-
     HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
     IR_AdaptTimerFunctions.apply()
 
@@ -422,6 +419,9 @@ object Main {
     } while (convChanged)
 
     IR_ResolveStencilFunction.apply()
+
+    if(Knowledge.experimental_internalHighDimTypes)
+      IR_ResolveMatrices.apply()
 
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized

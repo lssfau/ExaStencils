@@ -35,6 +35,7 @@ case class IR_ArrayDatatype_VS(datatype : IR_Datatype, numElements : IR_Expressi
   override def typicalByteSize = ???
 }
 
+@deprecated("Switch to IR_MatrixDatatype")
 case class IR_VectorDatatype(var datatype : IR_Datatype, var size : Int, var isRow : Option[Boolean] = Some(true)) extends IR_HigherOrderDatatype {
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
   override def prettyprint(out : PpStream) : Unit = {

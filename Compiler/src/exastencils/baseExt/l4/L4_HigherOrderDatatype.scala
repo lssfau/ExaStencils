@@ -2,6 +2,7 @@ package exastencils.baseExt.l4
 
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
 trait L4_HigherOrderDatatype extends L4_Datatype {
@@ -41,7 +42,13 @@ case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, 
       out << "ColumnVector"
     out << "<" << datatype << ',' << numElements << '>'
   }
-  override def progress = IR_VectorDatatype(datatype.progress, numElements, isRow)
+  override def progress = {
+    if(Knowledge.experimental_internalHighDimTypes) {
+      IR_MatrixDatatype(datatype.progress, if(isRow.getOrElse(true)) numElements else 1, if(isRow.getOrElse(true)) 1 else numElements)
+    } else {
+      IR_VectorDatatype(datatype.progress, numElements, isRow)
+    }
+  }
 
   override def dimensionality : Int = 1 + datatype.dimensionality
   override def getSizeArray : Array[Int] = Array(numElements) ++ datatype.getSizeArray
