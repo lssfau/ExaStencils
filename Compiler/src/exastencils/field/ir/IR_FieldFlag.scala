@@ -12,8 +12,8 @@ abstract class IR_IV_FieldFlag extends IR_InternalVariable(true, false, true, tr
   var fragmentIdx : IR_Expression
 
   override def resolveAccess(baseAccess : IR_Expression, fragment : IR_Expression, domain : IR_Expression, field : IR_Expression, level : IR_Expression, neigh : IR_Expression) : IR_Expression = {
-    val access = if (this.field.numSlots > 1) IR_ArrayAccess(baseAccess, slot) else baseAccess
-    super.resolveAccess(access, fragment, domain, field, level, neigh)
+    val access = super.resolveAccess(baseAccess, fragment, domain, field, level, neigh)
+    if (this.field.numSlots > 1) IR_ArrayAccess(access, slot) else access
   }
 
   override def resolveDatatype() = {
