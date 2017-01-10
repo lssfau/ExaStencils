@@ -1,7 +1,7 @@
 package exastencils.parallelization.api.cuda
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.collection.{ Iterable, mutable }
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -24,55 +24,95 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   val collector = new FctNameCollector
   this.register(collector)
 
-  def getHostDeviceSyncStmts(loop : IR_LoopOverDimensions, isParallel : Boolean) = {
+  def syncBeforeHost(access : String, others : Iterable[String]) = {
+    var sync = true
+    if (access.startsWith("write") && !Knowledge.cuda_syncHostForWrites)
+      sync = false // skip write accesses if demanded
+    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
+      sync = false // skip write access for read/write accesses
+    sync
+  }
+
+  def syncAfterHost(access : String, others : Iterable[String]) = {
+    access.startsWith("write")
+  }
+
+  def syncBeforeDevice(access : String, others : Iterable[String]) = {
+    var sync = true
+    if (access.startsWith("write") && !Knowledge.cuda_syncDeviceForWrites)
+      sync = false // skip write accesses if demanded
+    if (access.startsWith("write") && others.exists(_ == "read" + access.substring("write".length)))
+      sync = false // skip write access for read/write accesses
+    sync
+  }
+
+  def syncAfterDevice(access : String, others : Iterable[String]) = {
+    access.startsWith("write")
+  }
+
+  def getHostDeviceSyncStmts(body : ListBuffer[IR_Statement], isParallel : Boolean) = {
     val (beforeHost, afterHost) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
-    CUDA_GatherFieldAccess.fieldAccesses.clear
-    CUDA_GatherFieldAccess.applyStandalone(IR_Scope(loop.body))
+    CUDA_GatherFieldAccess.clear()
+    CUDA_GatherFieldAccess.applyStandalone(IR_Scope(body))
+    CUDA_GatherBufferAccess.clear()
+    CUDA_GatherBufferAccess.applyStandalone(IR_Scope(body))
 
     // host sync stmts
 
-    // add data sync statements
-    for (access <- CUDA_GatherFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-      var sync = true
-      if (access._1.startsWith("write") && !Knowledge.cuda_syncHostForWrites)
-        sync = false // skip write accesses if demanded
-      if (access._1.startsWith("write") && CUDA_GatherFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
-        sync = false // skip write access for read/write accesses
-      if (sync)
-        beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
-    }
-
-    // update flags for written fields
     for (access <- CUDA_GatherFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
       val fieldSelection = access._2.fieldSelection
-      if (access._1.startsWith("write"))
+
+      // add data sync statements
+      if (syncBeforeHost(access._1, CUDA_GatherFieldAccess.fieldAccesses.keys))
+        beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+
+      // update flags for written fields
+      if (syncAfterHost(access._1, CUDA_GatherFieldAccess.fieldAccesses.keys))
         afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+    }
+
+    for (access <- CUDA_GatherBufferAccess.bufferAccesses.toSeq.sortBy(_._1)) {
+      val buffer = access._2
+
+      // add buffer sync statements
+      if (syncBeforeHost(access._1, CUDA_GatherBufferAccess.bufferAccesses.keys))
+        beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+
+      // update flags for written buffers
+      if (syncAfterHost(access._1, CUDA_GatherBufferAccess.bufferAccesses.keys))
+        afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(true))
     }
 
     // device sync stmts
 
     if (isParallel) {
-      // before: add data sync statements
-      for (access <- CUDA_GatherFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-        var sync = true
-        if (access._1.startsWith("write") && !Knowledge.cuda_syncDeviceForWrites)
-          sync = false // skip write accesses if demanded
-        if (access._1.startsWith("write") && CUDA_GatherFieldAccess.fieldAccesses.contains("read" + access._1.substring("write".length)))
-          sync = false // skip write access for read/write accesses
-        if (sync)
-          beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
-      }
-
       if (Knowledge.cuda_syncDeviceAfterKernelCalls)
         afterDevice += CUDA_DeviceSynchronize()
 
-      // update flags for written fields
       for (access <- CUDA_GatherFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
         val fieldSelection = access._2.fieldSelection
-        if (access._1.startsWith("write"))
+
+        // add data sync statements
+        if (syncBeforeDevice(access._1, CUDA_GatherFieldAccess.fieldAccesses.keys))
+          beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+
+        // update flags for written fields
+        if (syncAfterDevice(access._1, CUDA_GatherFieldAccess.fieldAccesses.keys))
           afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+      }
+
+      for (access <- CUDA_GatherBufferAccess.bufferAccesses.toSeq.sortBy(_._1)) {
+        val buffer = access._2
+
+        // add data sync statements
+        if (syncBeforeDevice(access._1, CUDA_GatherBufferAccess.bufferAccesses.keys))
+          beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
+
+        // update flags for written fields
+        if (syncAfterDevice(access._1, CUDA_GatherBufferAccess.bufferAccesses.keys))
+          afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(true))
       }
     }
 
@@ -94,8 +134,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
     }
   }
 
-  this += new Transformation("Processing ContractingLoop and LoopOverDimensions nodes", {
-    case cl : IR_ContractingLoop      =>
+  this += new Transformation("Process ContractingLoop and LoopOverDimensions nodes", {
+    case cl : IR_ContractingLoop =>
       var hostStmts = new ListBuffer[IR_Statement]()
       var deviceStmts = new ListBuffer[IR_Statement]()
       val fieldOffset = new mutable.HashMap[(String, Int), Int]()
@@ -124,7 +164,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val isParallel = containedLoop.isInstanceOf[PolyhedronAccessible] && containedLoop.parallelization.potentiallyParallel
 
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop, isParallel)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
@@ -160,7 +200,8 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
                   }
                 case _                                     =>
               }
-            case l : IR_LoopOverDimensions                                                       =>
+
+            case l : IR_LoopOverDimensions =>
               val loop = cl.processLoopOverDimensions(l, cl.number - i, fieldOffset)
               hostStmts += loop
 
@@ -182,6 +223,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       }
 
       res
+
     case loop : IR_LoopOverDimensions =>
       val hostStmts = ListBuffer[IR_Statement]()
       val deviceStmts = ListBuffer[IR_Statement]()
@@ -194,7 +236,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       val isParallel = loop.isInstanceOf[PolyhedronAccessible] && loop.parallelization.potentiallyParallel
 
       // calculate memory transfer statements for host and device
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop, isParallel)
+      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)
 
       hostStmts ++= beforeHost
       deviceStmts ++= beforeDevice
