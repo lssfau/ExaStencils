@@ -17,9 +17,10 @@ object CUDA_GatherVariableAccess extends QuietDefaultStrategy("Gather local Vari
   }
 
   this += new Transformation("Searching", {
-    case decl : IR_VariableDeclaration                                        =>
+    case decl : IR_VariableDeclaration =>
       ignoredAccesses += decl.name
       decl
+
     case access : IR_VariableAccess if !ignoredAccesses.contains(access.name) =>
       accesses.put(access.name, access)
       access
