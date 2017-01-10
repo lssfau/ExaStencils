@@ -101,6 +101,14 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
       field
 
+    case buf : CUDA_BufferDeviceData =>
+      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+      val size = IR_SimplifyExpression.evalIntegral(buf.size)
+
+      deviceBufferSizes += (id -> (size max deviceBufferSizes.getOrElse(id, IR_IntegerConstant(0)).asInstanceOf[IR_IntegerConstant].v))
+
+      buf
+
     case field : CUDA_FieldDeviceData =>
       val cleanedField = Duplicate(field)
       cleanedField.slot = "slot"
@@ -176,6 +184,14 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       } else {
         bufferAllocs += (id -> IR_LoopOverFragments(IR_ArrayAllocation(buf, IR_RealDatatype, size), IR_ParallelizationInfo.PotentiallyParallel()))
       }
+
+      buf
+
+    case buf : CUDA_BufferDeviceData =>
+      val id = buf.resolveAccess(buf.resolveName(), IR_LoopOverFragments.defIt, IR_NullExpression, buf.field.index, buf.field.level, buf.neighIdx).prettyprint
+      val size = deviceBufferSizes(id)
+
+      deviceBufferAllocs += (id -> IR_LoopOverFragments(CUDA_Allocate(buf, size, IR_RealDatatype /*FIXME*/), IR_ParallelizationInfo.PotentiallyParallel()))
 
       buf
 

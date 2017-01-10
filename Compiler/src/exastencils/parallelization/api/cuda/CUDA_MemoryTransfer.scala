@@ -4,6 +4,8 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.communication.ir._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir._
 
@@ -44,5 +46,39 @@ case class CUDA_UpdateDeviceData(var fieldAccess : IR_MultiDimFieldAccess) exten
             * IR_SizeOf(field.resolveBaseDatatype),
           "cudaMemcpyHostToDevice"),
         IR_Assignment(CUDA_HostDataUpdated(field, fieldSelection.slot), IR_BooleanConstant(false))))
+  }
+}
+
+/// CUDA_UpdateHostBufferData
+
+case class CUDA_UpdateHostBufferData(var buffer : IR_IV_CommBuffer) extends CUDA_HostStatement with IR_Expandable {
+  override def expand() : Output[IR_IfCondition] = {
+    val field = buffer.field
+    IR_IfCondition(
+      CUDA_DeviceBufferDataUpdated(field, buffer.direction, buffer.neighIdx),
+      ListBuffer[IR_Statement](
+        CUDA_Memcpy(
+          Duplicate(buffer),
+          CUDA_BufferDeviceData(field, buffer.direction, buffer.size, buffer.neighIdx),
+          buffer.size * IR_SizeOf(field.resolveBaseDatatype),
+          "cudaMemcpyDeviceToHost"),
+        IR_Assignment(CUDA_DeviceBufferDataUpdated(field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(false))))
+  }
+}
+
+/// CUDA_UpdateDeviceData
+
+case class CUDA_UpdateDeviceBufferData(var buffer : IR_IV_CommBuffer) extends CUDA_HostStatement with IR_Expandable {
+  override def expand() : Output[IR_IfCondition] = {
+    val field = buffer.field
+    IR_IfCondition(
+      CUDA_HostBufferDataUpdated(field, buffer.direction, buffer.neighIdx),
+      ListBuffer[IR_Statement](
+        CUDA_Memcpy(
+          CUDA_BufferDeviceData(field, buffer.direction, buffer.size, buffer.neighIdx),
+          Duplicate(buffer),
+          buffer.size * IR_SizeOf(field.resolveBaseDatatype),
+          "cudaMemcpyHostToDevice"),
+        IR_Assignment(CUDA_HostBufferDataUpdated(field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(false))))
   }
 }
