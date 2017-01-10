@@ -1,15 +1,17 @@
 import exastencils.base.ir._
-import exastencils.base.l4.{L4_FunctionCall, L4_Node, L4_Progressable}
-import exastencils.baseExt.ir.{IR_ResolveMatrices, IR_UserFunctions}
+import exastencils.base.l4._
+import exastencils.baseExt.ir._
 import exastencils.baseExt.l4.L4_MatrixExpression
-import exastencils.datastructures.{DefaultStrategy, Node, RootNode, Transformation}
+import exastencils.datastructures._
 import exastencils.core.StateManager
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.logger.Logger
-import exastencils.optimization.ir.{IR_GeneralSimplify, IR_SimplifyExpression}
+import exastencils.optimization.ir._
 import exastencils.util.DuplicateNodes
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.base.l4.L4_ResolveVariableAccesses
+import exastencils.prettyprinting.PrettyPrintable
 
 object MainChristian {
 
@@ -26,9 +28,20 @@ object MainChristian {
     //var tpdl = scala.xml.XML.loadFile("")
     var parser = new exastencils.parsers.l4.ParserL4()
     var prog = "Function Application() : Unit { \n" +
-//      "Var m : Matrix<Real, 2, 2>\n"+
-      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}} * {{2.0, 2.0}, {2.0, 2.0}} * {{1,1},{1,1}}\n" +
-      "}\n"
+      "Var m : Matrix<Real, 2, 2>\n"+
+      "//Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}} //+ {{2.0, 2.0}, {2.0, 2.0}} * {{2,2},{2,2}}\n" +
+      "Var m2 : Matrix<Real, 2, 2> = Bla(m)\n" +
+      "Bla(m)\n" +
+      "Bla( {{1.0, 2.0}, {3.0, 4.0}})\n" +
+      "m2 = m\n" +
+      "}" +
+      "Function Bla(blubb : Matrix<Real, 2, 2>) : Matrix<Real, 2, 2> {\n" +
+      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
+      "m = Bla(m)\n" +
+      "return(m)\n" +
+      "//return {{2,2},{2,2}}\n" +
+      "}\n" +
+      "\n"
 
 //    var prog = "Function Application() : Unit { \n" +
 //      "Var m : Matrix<Real, 3, 3> = {{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}, {7.0, 8.0, 2.0}}\n" +
@@ -47,14 +60,20 @@ object MainChristian {
     var ast = parser.parse(prog)
     var root = MyRoot(ListBuffer(ast))
     StateManager.setRoot(root)
-    System.out.println(root)
+    L4_ResolveVariableAccesses.apply()
+    L4_ResolveFunctionAccesses.apply()
     root.progress
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].baseName = ""
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].externalDependencies.clear()
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].internalDependencies.clear()
+    System.out.println(root)
     IR_GeneralSimplify.doUntilDone(Some(root))
     IR_ResolveMatrices.apply()
     System.out.println(root)
+    root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].functions.foreach(x => x match {
+      case y : PrettyPrintable => System.out.println(y.prettyprint)
+      case _ => System.out.println(x)
+    })
 
 
 
