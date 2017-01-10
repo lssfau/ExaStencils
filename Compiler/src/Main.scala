@@ -459,6 +459,7 @@ object Main {
     // ContractingLoop (required for temporal blocking). Leads to better device memory occupancy.
     if (Knowledge.cuda_enabled) {
       CUDA_PrepareHostCode.apply()
+      CUDA_PrepareMPICode.apply()
     }
 
     IR_ResolveContractingLoop.apply()
@@ -481,6 +482,7 @@ object Main {
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
       DuplicateNodes.instances.clear()
+      DuplicateNodes.printStack = true
       DuplicateNodes.apply() // FIXME: only debug
       Inlining.apply(true)
       CommonSubexpressionElimination.apply()
