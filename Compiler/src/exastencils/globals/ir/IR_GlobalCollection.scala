@@ -17,7 +17,7 @@ object IR_GlobalCollection {
 
 case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration] = ListBuffer()) extends IR_FunctionCollection("Globals/Globals",
   ListBuffer("algorithm"), // provides commonly used functions like min/max
-  ListBuffer("Util/Matrix.h"),
+  ListBuffer(),
   ListBuffer(
     IR_Function(IR_UnitDatatype, "initGlobals"),
     IR_Function(IR_UnitDatatype, "destroyGlobals"))) {
@@ -36,6 +36,8 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
   internalDependencies += "Util/Stopwatch.h"
   if (Knowledge.library_CImg)
     internalDependencies += "Util/CImg.h"
+  if (!Knowledge.experimental_internalHighDimTypes)
+    internalDependencies += "Util/Matrix.h"
 
   def initGlobals = functions.find(_.name == "initGlobals").get
   def destroyGlobals = functions.find(_.name == "destroyGlobals").get

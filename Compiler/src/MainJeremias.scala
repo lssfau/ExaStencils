@@ -222,8 +222,10 @@ object MainJeremias {
 
       // Util
       IR_Stopwatch(),
-      IR_TimerFunctions(),
-      IR_Matrix())
+      IR_TimerFunctions())
+
+    if (!Knowledge.experimental_internalHighDimTypes)
+      ExaRootNode.ir_root.nodes += IR_Matrix()
 
     // apply strategies
 

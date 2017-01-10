@@ -15,7 +15,7 @@ object IR_CommunicationFunctions {
 
 case class IR_CommunicationFunctions() extends IR_FunctionCollection("CommFunctions/CommFunctions",
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "Util/Matrix.h", "MultiGrid/MultiGrid.h")) {
+  ListBuffer("Globals/Globals.h", "MultiGrid/MultiGrid.h")) {
 
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
@@ -25,6 +25,9 @@ case class IR_CommunicationFunctions() extends IR_FunctionCollection("CommFuncti
 
   if (Knowledge.cuda_enabled)
     internalDependencies += "KernelFunctions/KernelFunctions.h"
+
+  if (!Knowledge.experimental_internalHighDimTypes)
+    internalDependencies += "Util/Matrix.h"
 
   if (Knowledge.opt_vectorize)
     if (Platform.simd_header != null) externalDependencies += Platform.simd_header

@@ -227,9 +227,11 @@ object MainChristoph {
       // Util
       IR_Stopwatch(),
       IR_TimerFunctions(),
-      IR_Matrix(), // TODO: only if required
       CImg() // TODO: only if required
     )
+
+    if (!Knowledge.experimental_internalHighDimTypes)
+      ExaRootNode.ir_root.nodes += IR_Matrix()
 
     if (Knowledge.cuda_enabled)
       ExaRootNode.ir_root.nodes += CUDA_KernelFunctions()

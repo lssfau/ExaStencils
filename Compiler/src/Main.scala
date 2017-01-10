@@ -386,9 +386,11 @@ object Main {
       // Util
       IR_Stopwatch(),
       IR_TimerFunctions(),
-      IR_Matrix(), // TODO: only if required
       CImg() // TODO: only if required
     )
+
+    if (!Knowledge.experimental_internalHighDimTypes)
+      ExaRootNode.ir_root.nodes += IR_Matrix()
 
     if (Knowledge.cuda_enabled)
       ExaRootNode.ir_root.nodes += CUDA_KernelFunctions()
@@ -398,6 +400,9 @@ object Main {
     IR_GeneralSimplify.doUntilDone() // removes (conditional) calls to communication functions that are not possible
     IR_SetupCommunication.firstCall = true
     IR_SetupCommunication.apply()
+
+    if(Knowledge.experimental_internalHighDimTypes)
+      IR_ResolveMatrices.apply()
 
     HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
     IR_AdaptTimerFunctions.apply()
