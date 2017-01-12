@@ -550,14 +550,14 @@ object StateManager {
   /**
     * Finds all instances of a certain type meeting a certain condition in the current program state.
     *
-    * @param check The condition a node instance has to meet.
+    * @param predicate The predicate to test a node instance for.
     * @param node  The node where to start the recursive search.
     * @return A List containing all instances of Nodes of type T.
     */
-  def findAll[T <: AnyRef : ClassTag](check : T => Boolean, node : Node = root) : List[T] = {
+  def findAll[T <: AnyRef : ClassTag](predicate : T => Boolean, node : Node = root) : List[T] = {
     var retVal = new ListBuffer[T]()
     var t = new Transformation("StatemanagerInternalFindAll", {
-      case hit : T if check(hit) => retVal += hit; new Output(hit)
+      case hit : T if predicate(hit) => retVal += hit; new Output(hit)
     }, true)
 
     progresses_.+=((t, new TransformationProgress))

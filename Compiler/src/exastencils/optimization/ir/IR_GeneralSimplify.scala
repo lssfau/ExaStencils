@@ -184,8 +184,8 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
                 Logger.error("Vector types must match for addition")
               if (vecExpr.length != v.length)
                 Logger.error("Vector sizes must match for addition")
-              val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => IR_Negation(x) }
-              val vExprs = if (pos) v.expressions else v.expressions.view.map { x => IR_Negation(x) }
+              val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => IR_Negative(x) }
+              val vExprs = if (pos) v.expressions else v.expressions.view.map { x => IR_Negative(x) }
               vecExpr =
                 IR_VectorExpression(
                   Some(IR_ResultingDatatype(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
@@ -199,8 +199,8 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
               matExpr = m
             } else {
               if(matExpr.rows != m.rows || matExpr.columns != m.columns) Logger.error("Matrix sizes must match for addition")
-              val matExprsView = if(matPos) matExpr.expressions.view else matExpr.expressions.view.map { x => IR_Negation(x) }
-              val mExprs = if (pos) m.expressions.toSeq else m.expressions.view.map { x => IR_Negation(x) }
+              val matExprsView = if(matPos) matExpr.expressions.view else matExpr.expressions.view.map { x => IR_Negative(x) }
+              val mExprs = if (pos) m.expressions.toSeq else m.expressions.view.map { x => IR_Negative(x) }
               matExpr = IR_MatrixExpression(Some(IR_ResultingDatatype(matExpr.innerDatatype.getOrElse(IR_RealDatatype), m.innerDatatype.getOrElse(IR_RealDatatype))), m.rows, m.columns, matExprsView.zip(mExprs).map { x => x._1 + x._2 : IR_Expression }.to[Array])
             }
           case e : IR_Expression       =>

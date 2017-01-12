@@ -29,11 +29,12 @@ object MainChristian {
     var parser = new exastencils.parsers.l4.ParserL4()
     var prog = "Function Application() : Unit { \n" +
       "Var m : Matrix<Real, 2, 2>\n"+
+      "Var m2 : Matrix<Real, 2, 2>\n"+
       "//Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}} //+ {{2.0, 2.0}, {2.0, 2.0}} * {{2,2},{2,2}}\n" +
-      "Var m2 : Matrix<Real, 2, 2> = Bla(m)\n" +
-      "Bla(m)\n" +
-      "Bla( {{1.0, 2.0}, {3.0, 4.0}})\n" +
-      "m2 = m\n" +
+      "m2 = Bla(m) - {{1.0,1.0},{1.0,1.0}}\n" +
+      "//Bla(m)\n" +
+      "//Bla( {{1.0, 2.0}, {3.0, 4.0}})\n" +
+      "//m2 = m\n" +
       "}" +
       "Function Bla(blubb : Matrix<Real, 2, 2>) : Matrix<Real, 2, 2> {\n" +
       "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
@@ -67,6 +68,8 @@ object MainChristian {
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].externalDependencies.clear()
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].internalDependencies.clear()
     System.out.println(root)
+//    IR_GeneralSimplify.doUntilDone(Some(root))
+    IR_ResolveMatrices.apply()
     IR_GeneralSimplify.doUntilDone(Some(root))
     IR_ResolveMatrices.apply()
     System.out.println(root)

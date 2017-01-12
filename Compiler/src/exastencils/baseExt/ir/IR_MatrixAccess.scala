@@ -3,8 +3,10 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.core.StateManager
 import exastencils.config._
-import exastencils.datastructures.{ DefaultStrategy, Transformation }
+import exastencils.core.Duplicate
+import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
@@ -74,6 +76,38 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
 }
 
 case object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars") {
+  val annotationFctCallCounter = "IR_ResolveMatrices.fctCallCounter"
+  var fctCallCounter = 0 // temporary variable used to replace function calls in expressions
+
+  this += new Transformation("remove function calls 1/2", { // prepare function calls returning IR_MatrixDatatype to replaced by separate accesses
+    case stmt @ IR_Assignment(_, src, _) => {
+      val calls = StateManager.findAll[IR_FunctionCall](src).filter(_.datatype.isInstanceOf[IR_MatrixDatatype])
+      var newStmts = ListBuffer[IR_Statement]()
+      calls.foreach(c => {
+        newStmts += IR_VariableDeclaration(c.function.datatype, "_fct" + fctCallCounter + "_" + c.function.name, Some(Duplicate(c)))
+        c.annotate(annotationFctCallCounter, fctCallCounter)
+      })
+      newStmts += stmt
+      newStmts
+    }
+    case stmt @ IR_VariableDeclaration(_, _, Some(src)) => {
+      val calls = StateManager.findAll[IR_FunctionCall](src).filter(_.datatype.isInstanceOf[IR_MatrixDatatype])
+      var newStmts = ListBuffer[IR_Statement]()
+      calls.foreach(c => {
+        newStmts += IR_VariableDeclaration(c.function.datatype, "_fct" + fctCallCounter + "_" + c.function.name, Some(Duplicate(c)))
+        c.annotate(annotationFctCallCounter, fctCallCounter)
+      })
+      newStmts += stmt
+      newStmts
+    }
+  })
+
+  this += new Transformation("remove function calls 2/2", {
+    case call : IR_FunctionCall if(call.hasAnnotation(annotationFctCallCounter)) => {
+      IR_VariableAccess("_fct" + fctCallCounter + "_" + call.function.name, call.function.datatype)
+    }
+  })
+
   this += new Transformation("declarations 1/2", {
     case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(func : IR_FunctionCall)) => {
       var newDecls = ListBuffer[IR_Statement]()
@@ -256,7 +290,29 @@ case object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into sc
 
       IR_ExpressionStatement(func)
     }
+    case IR_Assignment(dst : IR_MatrixExpression, src : IR_MatrixExpression, _) => {
+      if(dst.rows != src.rows || dst.columns != src.columns) {
+        Logger.error("Matrix expression dimensions must match for assignment")
+      }
+      var stmts = ListBuffer[IR_Assignment]()
+      for(row <- 0 until dst.rows) {
+        for (col <- 0 until dst.columns) {
+          stmts += IR_Assignment(dst.get(row, col), src.get(row, col))
+        }
+      }
+      stmts.toList
+    }
   })
 
-
+  this += new Transformation("VariableAccesses", {
+    case IR_VariableAccess(name, matrix : IR_MatrixDatatype) => {
+      var exps = ListBuffer[IR_Expression]()
+      for(row <- 0 until matrix.sizeM) {
+        for (col <- 0 until matrix.sizeN) {
+          exps += IR_VariableAccess("_matrix_" + name + "_" + row + "_" + col, matrix.datatype)
+        }
+      }
+      IR_MatrixExpression(Some(matrix.datatype), matrix.sizeM, matrix.sizeN, exps.toArray)
+    }
+  })
 }
