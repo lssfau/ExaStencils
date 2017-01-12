@@ -1,8 +1,9 @@
 user						= "Sebastian"
 
 basePathPrefix				= ""
-outputPath					= "\\i10home\home-staff\kuckuk\cuda\"
+outputPath					= "\\i10home\home-staff\kuckuk\cuda_mpi\"
 l4file						= ".\Compiler\dsl\Layer4.exa"
+//l4file						= "Testing\Application\ExaFluids.exa4"
 htmlLogFile					= ".\Compiler\log\log.html"
 
 produceHtmlLog				= true
@@ -11,3 +12,8 @@ timeStratPercentThreshold	= 0
 
 pathsInc					+= "$(CUDA_INC_PATH)"
 pathsLib					+= "$(CUDA_LIB_PATH)"
+
+pathsInc					+= "/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent"
+pathsInc					+= "/usr/lib/openmpi/include/openmpi/opal/mca/event/libevent2021/libevent/include"
+pathsInc					+= "/usr/lib/openmpi/include"
+pathsInc					+= "/usr/lib/openmpi/include/openmpi"
