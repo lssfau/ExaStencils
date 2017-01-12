@@ -311,8 +311,10 @@ object Knowledge {
   var cuda_enabled : Boolean = false
   // device id of the CUDA device to be used; only relevant in multi-GPU systems
   var cuda_deviceId : Int = 0
-  // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
+  // specifies where kernels should be executed by default; may be "Host", "Device", "Performance" or "Condition"
   var cuda_preferredExecution : String = "Performance"
+  // specifies a condition to be used to branch for CPU (true) or GPU (false) execution; only used if cuda_preferredExecution == Condition
+  var cuda_executionCondition : String = "true"
   // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
   var cuda_syncDeviceAfterKernelCalls : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions

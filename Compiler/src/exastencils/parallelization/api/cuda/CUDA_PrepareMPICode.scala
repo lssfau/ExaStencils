@@ -60,7 +60,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       case buffer : IR_IV_CommBuffer =>
         CUDA_GatherBufferAccess.mapBuffer(buffer)
 
+      case IR_AddressOf(access : IR_MultiDimFieldAccess) => // occurs when using MPI data types
+        CUDA_GatherFieldAccess.mapFieldAccess(access)
+
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
+      case IR_VariableAccess("timesToPrint", _)                             => // ignore
 
       case other =>
         Logger.warn("Found unexpected expression: " + other)
@@ -79,7 +83,13 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
         CUDA_GatherBufferAccess.mapBuffer(buffer)
         CUDA_GatherBufferAccess.inWriteOp = false
 
+      case IR_AddressOf(access : IR_MultiDimFieldAccess) => // occurs when using MPI data types
+        CUDA_GatherFieldAccess.inWriteOp = true
+        CUDA_GatherFieldAccess.mapFieldAccess(access)
+        CUDA_GatherFieldAccess.inWriteOp = false
+
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
+      case IR_VariableAccess("timesToPrint", _)                             => // ignore
 
       case other =>
         Logger.warn("Found unexpected expression: " + other)
@@ -110,9 +120,6 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
           processRead(reduce.recvbuf)
         else
           processRead(reduce.sendbuf)
-
-      case MPI_Init | MPI_Finalize => // nothing to do here
-
     }
 
     // host sync stmts
@@ -178,10 +185,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       hostStmts
     } else {
       /// compile final switch
-      val defaultChoice = Knowledge.cuda_preferredExecution match {
+      val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
         case "Host"        => 1 // CPU by default
         case "Device"      => 0 // GPU by default
         case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
+        case "Condition"   => Knowledge.cuda_executionCondition
       }
 
       ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
@@ -190,35 +198,52 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
   this += new Transformation("Process MPI statements", {
     case mpiStmt : MPI_Statement =>
-      val hostStmts = ListBuffer[IR_Statement]()
-      val deviceStmts = ListBuffer[IR_Statement]()
-
-      val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(mpiStmt)
-
-      hostStmts ++= beforeHost
-      deviceStmts ++= beforeDevice
-
-      object CUDA_ReplaceAccessesInDeviceSpecMPI extends QuietDefaultStrategy("Replace accesses to fields and buffers to prepare device variants of MPI calls") {
-        this += new Transformation("Search", {
-          case buffer : IR_IV_CommBuffer => CUDA_BufferDeviceData(buffer.field, buffer.direction, buffer.size, buffer.neighIdx, buffer.fragmentIdx)
-        })
+      val skip = mpiStmt match {
+        case MPI_Init | MPI_Finalize | MPI_Barrier => true
+        case _                                     => false
       }
 
-      hostStmts += mpiStmt
-      val mpiDeviceStmt = Duplicate(mpiStmt)
-      CUDA_ReplaceAccessesInDeviceSpecMPI.applyStandalone(mpiDeviceStmt)
-      deviceStmts += mpiDeviceStmt
+      if (skip) {
+        mpiStmt
+      } else {
+        val hostStmts = ListBuffer[IR_Statement]()
+        val deviceStmts = ListBuffer[IR_Statement]()
 
-      hostStmts ++= afterHost
-      deviceStmts ++= afterDevice
+        val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(mpiStmt)
 
-      /// compile final switch
-      val defaultChoice = Knowledge.cuda_preferredExecution match {
-        case "Host"        => 1 // CPU by default
-        case "Device"      => 0 // GPU by default
-        case "Performance" => 1 // FIXME: Knowledge flag
+        hostStmts ++= beforeHost
+        deviceStmts ++= beforeDevice
+
+        object CUDA_ReplaceAccessesInDeviceSpecMPI extends QuietDefaultStrategy("Replace accesses to fields and buffers to prepare device variants of MPI calls") {
+          this += new Transformation("Search", {
+            case access : IR_DirectFieldAccess =>
+              val linearized = access.linearize
+              val fieldSel = linearized.fieldSelection
+              val devField = CUDA_FieldDeviceData(fieldSel.field, fieldSel.level, fieldSel.slot, fieldSel.fragIdx)
+              IR_ArrayAccess(devField, linearized.index)
+
+            case buffer : IR_IV_CommBuffer =>
+              CUDA_BufferDeviceData(buffer.field, buffer.direction, buffer.size, buffer.neighIdx, buffer.fragmentIdx)
+          })
+        }
+
+        hostStmts += mpiStmt
+        val mpiDeviceStmt = Duplicate(mpiStmt)
+        CUDA_ReplaceAccessesInDeviceSpecMPI.applyStandalone(mpiDeviceStmt)
+        deviceStmts += mpiDeviceStmt
+
+        hostStmts ++= afterHost
+        deviceStmts ++= afterDevice
+
+        /// compile final switch
+        val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
+          case "Host"        => 1 // CPU by default
+          case "Device"      => 0 // GPU by default
+          case "Performance" => 1 // FIXME: Knowledge flag
+          case "Condition"   => Knowledge.cuda_executionCondition
+        }
+
+        ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
       }
-
-      ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
   }, false)
 }

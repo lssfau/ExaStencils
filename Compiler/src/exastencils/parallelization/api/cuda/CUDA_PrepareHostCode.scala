@@ -124,10 +124,11 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       hostStmts
     } else {
       /// compile final switch
-      val defaultChoice = Knowledge.cuda_preferredExecution match {
+      val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
         case "Host"        => 1 // CPU by default
         case "Device"      => 0 // GPU by default
         case "Performance" => if (loop.getAnnotation("perf_timeEstimate_host").get.asInstanceOf[Double] > loop.getAnnotation("perf_timeEstimate_device").get.asInstanceOf[Double]) 0 else 1 // decide according to performance estimates
+        case "Condition"   => Knowledge.cuda_executionCondition
       }
 
       ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
