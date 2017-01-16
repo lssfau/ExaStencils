@@ -175,6 +175,10 @@ Stencil CorrectionFaceZ@all {
 	[ 0,  0, z % 2] => 0.5
 }
 
+Globals {
+	Var useVanka : Boolean = false
+}
+
 /// BC functions
 
 Function ApplyBC_u@finest ( ) : Unit {
@@ -242,7 +246,7 @@ Function Solve@finest ( ) : Unit {
 	startTimer ( 'timeToSolve' )
 
 	// TODO: check with Lisa
-	repeat until ( curRes <= 1e-6 /* initRes */ || numIt >= 10 ) {
+	repeat until ( curRes <= 1e-8 * initRes || numIt >= 100 ) {
 		startTimer ( 'cycle' )
 		VCycle@finest (  )
 		stopTimer ( 'cycle' )
@@ -320,169 +324,127 @@ Function NormResidual_max@finest ( ) : Real {
 }
 
 Function VCycle@((coarsest + 1) to finest) ( ) : Unit {
-	repeat 8 times {
-		Smoother@current ( )
-	}
+	Smoother@current ( )
 	UpdateResidual@current ( )
 	Restriction@current ( )
 	SetSolution@coarser ( 0 )
 	VCycle@coarser ( )
 	Correction@current ( )
-	repeat 8 times {
-		Smoother@current ( )
-	}
+	Smoother@current ( )
 }
 
 Function VCycle@coarsest ( ) : Unit {
 	// TODO: implement real cgs
-	repeat 64 times {
+	repeat 4 times {
 		Smoother@current ( )
 	}
 }
 
 Function Smoother@all ( ) : Unit {
-	if ( 0 ) {
-		Vanka@current ( )
+	if ( useVanka ) {
+		repeat 2 times {
+			Vanka@current ( )
+		}
 	} else {
-		Distribute@current ( )
+		repeat 4 times {
+			Distribute@current ( )
+		}
 	}
 }
 
 Function Distribute@all ( ) : Unit {
-	loop over u@current where ( 0 == ( x + y + z ) % 2 ) {
-		u@current += ( ( rhs_u@current - dxLeft@current * p@current - Laplace@current * u@current ) / Laplace@current:[0, 0, 0] )
+	color with {
+		0 == ( x + y + z ) % 2,
+		1 == ( x + y + z ) % 2,
+
+		loop over u@current {
+			u@current += ( ( rhs_u@current - dxLeft@current * p@current - Laplace@current * u@current ) / Laplace@current:[0, 0, 0] )
+		}
+
+		communicate u@current
+		apply bc to u@current
 	}
-	communicate u@current
-	apply bc to u@current
-	loop over u@current where ( 1 == ( x + y + z ) % 2 ) {
-		u@current += ( ( rhs_u@current - dxLeft@current * p@current - Laplace@current * u@current ) / Laplace@current:[0, 0, 0] )
+
+	color with {
+		0 == ( x + y + z ) % 2,
+		1 == ( x + y + z ) % 2,
+
+		loop over v@current {
+			v@current += ( ( rhs_v@current - dyLeft@current * p@current - Laplace@current * v@current ) / Laplace@current:[0, 0, 0] )
+		}
+
+		communicate v@current
+		apply bc to v@current
 	}
-	communicate u@current
-	apply bc to u@current
 
-	loop over v@current where ( 0 == ( x + y + z ) % 2 ) {
-		v@current += ( ( rhs_v@current - dyLeft@current * p@current - Laplace@current * v@current ) / Laplace@current:[0, 0, 0] )
+	color with {
+		0 == ( x + y + z ) % 2,
+		1 == ( x + y + z ) % 2,
+
+		loop over w@current {
+			w@current += ( ( rhs_w@current - dzLeft@current * p@current - Laplace@current * w@current ) / Laplace@current:[0, 0, 0] )
+		}
+
+		communicate w@current
+		apply bc to w@current
 	}
-	communicate v@current
-	apply bc to v@current
-	loop over v@current where ( 1 == ( x + y + z ) % 2 ) {
-		v@current += ( ( rhs_v@current - dyLeft@current * p@current - Laplace@current * v@current ) / Laplace@current:[0, 0, 0] )
+
+	color with {
+		0 == ( x + y + z ) % 2,
+		1 == ( x + y + z ) % 2,
+
+		loop over p@current {
+			Var delta : Real = rhs_p@current - ( dxRight@current * u@current + dyRight@current * v@current + dzRight@current * w@current )
+
+			Var numNeigh : Int = 6
+			//if ( isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 1,  0,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 0, -1,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 0,  1,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 0,  0, -1] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 0,  0,  1] ) ) { numNeigh -= 1 }
+				
+			delta /= numNeigh
+
+			//if ( !isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) {
+				u@current@[ 0,  0,  0] -= delta * vf_gridWidth_x@current
+				p@current@[-1,  0,  0] -= delta
+			//}
+			//if ( !isOnBoundaryOf ( p@current@[ 1,  0,  0] ) ) {
+				u@current@[ 1,  0,  0] += delta * vf_gridWidth_x@current
+				p@current@[ 1,  0,  0] -= delta
+			//}
+
+			//if ( !isOnBoundaryOf ( p@current@[ 0, -1,  0] ) ) {
+				v@current@[ 0,  0,  0] -= delta * vf_gridWidth_y@current
+				p@current@[ 0, -1,  0] -= delta
+			//}
+			//if ( !isOnBoundaryOf ( p@current@[ 0,  1,  0] ) ) {
+				v@current@[ 0,  1,  0] += delta * vf_gridWidth_y@current
+				p@current@[ 0,  1,  0] -= delta
+			//}
+
+			//if ( !isOnBoundaryOf ( p@current@[ 0,  0, -1] ) ) {
+				w@current@[ 0,  0,  0] -= delta * vf_gridWidth_z@current
+				p@current@[ 0,  0, -1] -= delta
+			//}
+			//if ( !isOnBoundaryOf ( p@current@[ 0,  0,  1] ) ) {
+				w@current@[ 0,  0,  1] += delta * vf_gridWidth_z@current
+				p@current@[ 0,  0,  1] -= delta
+			//}
+
+			p@current@[ 0,  0,  0] += numNeigh * delta
+		}
+
+		communicate u@current
+		apply bc to u@current
+		communicate v@current
+		apply bc to v@current
+		communicate w@current
+		apply bc to w@current
+		communicate p@current
+		apply bc to p@current
 	}
-	communicate v@current
-	apply bc to v@current
-
-	loop over w@current where ( 0 == ( x + y + z ) % 2 ) {
-		w@current += ( ( rhs_w@current - dzLeft@current * p@current - Laplace@current * w@current ) / Laplace@current:[0, 0, 0] )
-	}
-	communicate w@current
-	apply bc to w@current
-	loop over w@current where ( 1 == ( x + y + z ) % 2 ) {
-		w@current += ( ( rhs_w@current - dzLeft@current * p@current - Laplace@current * w@current ) / Laplace@current:[0, 0, 0] )
-	}
-	communicate w@current
-	apply bc to w@current
-
-	loop over p@current where ( 0 == ( x + y + z ) % 2 ) {
-		Var delta : Real = rhs_p@current - ( dxRight@current * u@current + dyRight@current * v@current + dzRight@current * w@current )
-
-		Var numNeigh : Int = 6
-		//if ( isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 1,  0,  0] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 0, -1,  0] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 0,  1,  0] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 0,  0, -1] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 0,  0,  1] ) ) { numNeigh -= 1 }
-			
-		delta /= numNeigh
-
-		if ( !isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) {
-			u@current@[ 0,  0,  0] -= delta * vf_gridWidth_x@current
-			p@current@[-1,  0,  0] -= delta
-		}
-		if ( !isOnBoundaryOf ( p@current@[ 1,  0,  0] ) ) {
-			u@current@[ 1,  0,  0] += delta * vf_gridWidth_x@current
-			p@current@[ 1,  0,  0] -= delta
-		}
-
-		if ( !isOnBoundaryOf ( p@current@[ 0, -1,  0] ) ) {
-			v@current@[ 0,  0,  0] -= delta * vf_gridWidth_y@current
-			p@current@[ 0, -1,  0] -= delta
-		}
-		if ( !isOnBoundaryOf ( p@current@[ 0,  1,  0] ) ) {
-			v@current@[ 0,  1,  0] += delta * vf_gridWidth_y@current
-			p@current@[ 0,  1,  0] -= delta
-		}
-
-		if ( !isOnBoundaryOf ( p@current@[ 0,  0, -1] ) ) {
-			w@current@[ 0,  0,  0] -= delta * vf_gridWidth_z@current
-			p@current@[ 0,  0, -1] -= delta
-		}
-		if ( !isOnBoundaryOf ( p@current@[ 0,  0,  1] ) ) {
-			w@current@[ 0,  0,  1] += delta * vf_gridWidth_z@current
-			p@current@[ 0,  0,  1] -= delta
-		}
-
-		p@current@[ 0,  0,  0] += numNeigh * delta
-	}
-	communicate u@current
-	apply bc to u@current
-	communicate v@current
-	apply bc to v@current
-	communicate w@current
-	apply bc to w@current
-	communicate p@current
-	apply bc to p@current
-
-	loop over p@current where ( 1 == ( x + y + z ) % 2 ) {
-		Var delta : Real = rhs_p@current - ( dxRight@current * u@current + dyRight@current * v@current + dzRight@current * w@current )
-
-		Var numNeigh : Int = 6
-		//if ( isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 1,  0,  0] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 0, -1,  0] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 0,  1,  0] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 0,  0, -1] ) ) { numNeigh -= 1 }
-		//if ( isOnBoundaryOf ( p@current@[ 0,  0,  1] ) ) { numNeigh -= 1 }
-		
-		delta /= numNeigh
-
-		if ( !isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) {
-			u@current@[ 0,  0,  0] -= delta * vf_gridWidth_x@current
-			p@current@[-1,  0,  0] -= delta
-		}
-		if ( !isOnBoundaryOf ( p@current@[ 1,  0,  0] ) ) {
-			u@current@[ 1,  0,  0] += delta * vf_gridWidth_x@current
-			p@current@[ 1,  0,  0] -= delta
-		}
-
-		if ( !isOnBoundaryOf ( p@current@[ 0, -1,  0] ) ) {
-			v@current@[ 0,  0,  0] -= delta * vf_gridWidth_y@current
-			p@current@[ 0, -1,  0] -= delta
-		}
-		if ( !isOnBoundaryOf ( p@current@[ 0,  1,  0] ) ) {
-			v@current@[ 0,  1,  0] += delta * vf_gridWidth_y@current
-			p@current@[ 0,  1,  0] -= delta
-		}
-
-		if ( !isOnBoundaryOf ( p@current@[ 0,  0, -1] ) ) {
-			w@current@[ 0,  0,  0] -= delta * vf_gridWidth_z@current
-			p@current@[ 0,  0, -1] -= delta
-		}
-		if ( !isOnBoundaryOf ( p@current@[ 0,  0,  1] ) ) {
-			w@current@[ 0,  0,  1] += delta * vf_gridWidth_z@current
-			p@current@[ 0,  0,  1] -= delta
-		}
-
-		p@current@[ 0,  0,  0] += numNeigh * delta
-	}
-	communicate u@current
-	apply bc to u@current
-	communicate v@current
-	apply bc to v@current
-	communicate w@current
-	apply bc to w@current
-	communicate p@current
-	apply bc to p@current
 }
 
 Function Vanka@all ( ) : Unit {
@@ -492,8 +454,11 @@ Function Vanka@all ( ) : Unit {
 	Val stride_z : Int = 1
 
 	if ( 1 == stride_x && 1 == stride_y && 1 == stride_z ) {
-		/*color with {
-			( 0 == x % 3 && 0 == y % 3 && 0 == z % 3 ) ,
+		color with {
+			0 == ( x + y + z ) % 2,
+			1 == ( x + y + z ) % 2,
+
+			/*( 0 == x % 3 && 0 == y % 3 && 0 == z % 3 ) ,
 			( 1 == x % 3 && 0 == y % 3 && 0 == z % 3 ) ,
 			( 2 == x % 3 && 0 == y % 3 && 0 == z % 3 ) ,
 			( 0 == x % 3 && 1 == y % 3 && 0 == z % 3 ) ,
@@ -532,7 +497,17 @@ Function Vanka@all ( ) : Unit {
 					p@current@[0, 0, 0] => dxRight@current * u@current@[0, 0, 0] + dyRight@current * v@current@[0, 0, 0] + dzRight@current * w@current@[0, 0, 0] == rhs_p@current@[0, 0, 0]
 				}
 			}
-		//}
+
+			communicate u@current
+			communicate v@current
+			communicate w@current
+			communicate p@current
+
+			apply bc to u@current
+			apply bc to v@current
+			apply bc to w@current
+			apply bc to p@current
+		}
 	} else if ( 2 == stride_x && 1 == stride_y && 1 == stride_z ) {
 		loop over p@current stepping [2, 1, 1] {
 			solve locally {
@@ -608,7 +583,7 @@ Function Vanka@all ( ) : Unit {
 		}
 	}
 	
-	communicate u@current
+	/*communicate u@current
 	communicate v@current
 	communicate w@current
 	communicate p@current
@@ -616,7 +591,7 @@ Function Vanka@all ( ) : Unit {
 	apply bc to u@current
 	apply bc to v@current
 	apply bc to w@current
-	apply bc to p@current
+	apply bc to p@current*/
 }
 
 Function UpdateResidual@all ( ) : Unit {
