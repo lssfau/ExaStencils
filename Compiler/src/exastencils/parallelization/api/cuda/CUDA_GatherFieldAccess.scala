@@ -26,7 +26,7 @@ object CUDA_GatherFieldAccess extends QuietDefaultStrategy("Gather local FieldAc
       access.fieldSelection.slot match {
         case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case other                    => identifier += s"_s${ other.prettyprint }"
       }
     }
 

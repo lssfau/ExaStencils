@@ -58,5 +58,5 @@ case class IR_MultiDimArrayAccess(var base : IR_Expression, var index : IR_Expre
 case class IR_DerefAccess(var base : IR_Access) extends IR_Access {
   // FIXME: deref datatype
   override def datatype = base.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
+  override def prettyprint(out : PpStream) : Unit = out << "(*(" << base << "))"
 }

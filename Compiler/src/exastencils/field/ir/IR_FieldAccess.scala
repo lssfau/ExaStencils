@@ -60,4 +60,3 @@ case class IR_LinearizedFieldAccess(var fieldSelection : IR_FieldSelection, var 
       Knowledge.data_alignFieldPointers)
   }
 }
-

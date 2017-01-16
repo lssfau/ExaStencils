@@ -1,7 +1,7 @@
 package exastencils.parallelization.api.cuda
 
 import scala.collection.Iterable
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable._
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -17,14 +17,13 @@ import exastencils.parallelization.api.mpi._
 
 /// CUDA_PrepareMPICode
 
-/**
-  * This transformation annotates LoopOverDimensions and LoopOverDimensions enclosed within ContractingLoops.
-  * Additionally required statements for memory transfer are added.
-  */
 object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
   val collector = new FctNameCollector
   this.register(collector)
+
+  var fieldAccesses = HashMap[String, IR_IV_FieldData]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
 
   def syncBeforeHost(access : String, others : Iterable[String]) = {
     var sync = true
@@ -52,47 +51,76 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     access.startsWith("write")
   }
 
+  def mapFieldAccess(access : IR_MultiDimFieldAccess, inWriteOp : Boolean) = {
+    val field = access.fieldSelection.field
+    var identifier = field.codeName
+
+    identifier = (if (inWriteOp) "write_" else "read_") + identifier
+
+    // TODO: array fields
+    if (field.numSlots > 1) {
+      access.fieldSelection.slot match {
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case other                    => identifier += s"_s${ other.prettyprint }"
+      }
+    }
+
+    val fieldSelection = access.fieldSelection
+    val fieldData = IR_IV_FieldData(fieldSelection.field, fieldSelection.level, fieldSelection.slot, fieldSelection.fragIdx)
+    fieldAccesses.put(identifier, fieldData)
+  }
+
+  def mapFieldPtrAccess(fieldData : IR_IV_FieldData, inWriteOp : Boolean) {
+    val field = fieldData.field
+    var identifier = field.codeName
+
+    identifier = (if (inWriteOp) "write_" else "read_") + identifier
+
+    // TODO: array fields
+    if (field.numSlots > 1) {
+      fieldData.slot match {
+        case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
+        case IR_IntegerConstant(slot) => identifier += s"_s$slot"
+        case other                    => identifier += s"_s${ other.prettyprint }"
+      }
+    }
+
+    fieldAccesses.put(identifier, fieldData)
+  }
+
+  def mapBuffer(buffer : IR_IV_CommBuffer, inWriteOp : Boolean) = {
+    var identifier = buffer.resolveName()
+    identifier = (if (inWriteOp) "write_" else "read_") + identifier
+
+    bufferAccesses.put(identifier, buffer)
+  }
+
   def processRead(expr : IR_Expression) {
     expr match {
-      case access : IR_MultiDimFieldAccess =>
-        CUDA_GatherFieldAccess.mapFieldAccess(access)
-
-      case buffer : IR_IV_CommBuffer =>
-        CUDA_GatherBufferAccess.mapBuffer(buffer)
-
-      case IR_AddressOf(access : IR_MultiDimFieldAccess) => // occurs when using MPI data types
-        CUDA_GatherFieldAccess.mapFieldAccess(access)
+      case access : IR_MultiDimFieldAccess => mapFieldAccess(access, false)
+      case field : IR_IV_FieldData         => mapFieldPtrAccess(field, false)
+      case buffer : IR_IV_CommBuffer       => mapBuffer(buffer, false)
+      case IR_PointerOffset(base, _)       => processRead(base)
 
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
       case IR_VariableAccess("timesToPrint", _)                             => // ignore
 
-      case other =>
-        Logger.warn("Found unexpected expression: " + other)
+      case other => Logger.warn("Found unexpected expression: " + other)
     }
   }
 
   def processWrite(expr : IR_Expression) {
     expr match {
-      case access : IR_MultiDimFieldAccess =>
-        CUDA_GatherFieldAccess.inWriteOp = true
-        CUDA_GatherFieldAccess.mapFieldAccess(access)
-        CUDA_GatherFieldAccess.inWriteOp = false
-
-      case buffer : IR_IV_CommBuffer =>
-        CUDA_GatherBufferAccess.inWriteOp = true
-        CUDA_GatherBufferAccess.mapBuffer(buffer)
-        CUDA_GatherBufferAccess.inWriteOp = false
-
-      case IR_AddressOf(access : IR_MultiDimFieldAccess) => // occurs when using MPI data types
-        CUDA_GatherFieldAccess.inWriteOp = true
-        CUDA_GatherFieldAccess.mapFieldAccess(access)
-        CUDA_GatherFieldAccess.inWriteOp = false
+      case access : IR_MultiDimFieldAccess => mapFieldAccess(access, true)
+      case field : IR_IV_FieldData         => mapFieldPtrAccess(field, true)
+      case buffer : IR_IV_CommBuffer       => mapBuffer(buffer, true)
+      case IR_PointerOffset(base, _)       => processWrite(base)
 
       case IR_AddressOf(IR_VariableAccess("timerValue", IR_DoubleDatatype)) => // ignore
       case IR_VariableAccess("timesToPrint", _)                             => // ignore
 
-      case other =>
-        Logger.warn("Found unexpected expression: " + other)
+      case other => Logger.warn("Found unexpected expression: " + other)
     }
   }
 
@@ -101,8 +129,8 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     val (beforeDevice, afterDevice) = (ListBuffer[IR_Statement](), ListBuffer[IR_Statement]())
     // don't filter here - memory transfer code is still required
 
-    CUDA_GatherFieldAccess.clear()
-    CUDA_GatherBufferAccess.clear()
+    fieldAccesses.clear()
+    bufferAccesses.clear()
 
     mpiStmt match {
       case send : MPI_Send        => processRead(send.buffer)
@@ -124,27 +152,30 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
     // host sync stmts
 
-    for (access <- CUDA_GatherFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldSelection = access._2.fieldSelection
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)
+    ) {
+      val field = access._2
 
       // add data sync statements
-      if (syncBeforeHost(access._1, CUDA_GatherFieldAccess.fieldAccesses.keys))
+      if (syncBeforeHost(access._1, fieldAccesses.keys)
+      )
         beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
-      if (syncAfterHost(access._1, CUDA_GatherFieldAccess.fieldAccesses.keys))
-        afterHost += IR_Assignment(CUDA_HostDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+      if (syncAfterHost(access._1, fieldAccesses.keys)
+      )
+        afterHost += IR_Assignment(CUDA_HostDataUpdated(field.field, field.slot), IR_BooleanConstant(true))
     }
 
-    for (access <- CUDA_GatherBufferAccess.bufferAccesses.toSeq.sortBy(_._1)) {
+    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
 
       // add buffer sync statements
-      if (syncBeforeHost(access._1, CUDA_GatherBufferAccess.bufferAccesses.keys))
+      if (syncBeforeHost(access._1, bufferAccesses.keys))
         beforeHost += CUDA_UpdateHostBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written buffers
-      if (syncAfterHost(access._1, CUDA_GatherBufferAccess.bufferAccesses.keys))
+      if (syncAfterHost(access._1, bufferAccesses.keys))
         afterHost += IR_Assignment(CUDA_HostBufferDataUpdated(buffer.field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(true))
     }
 
@@ -153,27 +184,30 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
     if (Knowledge.cuda_syncDeviceAfterKernelCalls)
       afterDevice += CUDA_DeviceSynchronize()
 
-    for (access <- CUDA_GatherFieldAccess.fieldAccesses.toSeq.sortBy(_._1)) {
-      val fieldSelection = access._2.fieldSelection
+    for (access <- fieldAccesses.toSeq.sortBy(_._1)
+    ) {
+      val field = access._2
 
       // add data sync statements
-      if (syncBeforeDevice(access._1, CUDA_GatherFieldAccess.fieldAccesses.keys))
+      if (syncBeforeDevice(access._1, fieldAccesses.keys)
+      )
         beforeDevice += CUDA_UpdateDeviceData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
-      if (syncAfterDevice(access._1, CUDA_GatherFieldAccess.fieldAccesses.keys))
-        afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(fieldSelection.field, fieldSelection.slot), IR_BooleanConstant(true))
+      if (syncAfterDevice(access._1, fieldAccesses.keys)
+      )
+        afterDevice += IR_Assignment(CUDA_DeviceDataUpdated(field.field, field.slot), IR_BooleanConstant(true))
     }
 
-    for (access <- CUDA_GatherBufferAccess.bufferAccesses.toSeq.sortBy(_._1)) {
+    for (access <- bufferAccesses.toSeq.sortBy(_._1)) {
       val buffer = access._2
 
       // add data sync statements
-      if (syncBeforeDevice(access._1, CUDA_GatherBufferAccess.bufferAccesses.keys))
+      if (syncBeforeDevice(access._1, bufferAccesses.keys))
         beforeDevice += CUDA_UpdateDeviceBufferData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
-      if (syncAfterDevice(access._1, CUDA_GatherBufferAccess.bufferAccesses.keys))
+      if (syncAfterDevice(access._1, bufferAccesses.keys))
         afterDevice += IR_Assignment(CUDA_DeviceBufferDataUpdated(buffer.field, buffer.direction, buffer.neighIdx), IR_BooleanConstant(true))
     }
 
@@ -221,6 +255,9 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
               val fieldSel = linearized.fieldSelection
               val devField = CUDA_FieldDeviceData(fieldSel.field, fieldSel.level, fieldSel.slot, fieldSel.fragIdx)
               IR_ArrayAccess(devField, linearized.index)
+
+            case fieldData : IR_IV_FieldData =>
+              CUDA_FieldDeviceData(fieldData.field, fieldData.level, fieldData.slot, fieldData.fragmentIdx)
 
             case buffer : IR_IV_CommBuffer =>
               CUDA_BufferDeviceData(buffer.field, buffer.direction, buffer.size, buffer.neighIdx, buffer.fragmentIdx)

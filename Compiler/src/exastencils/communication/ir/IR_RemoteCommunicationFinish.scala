@@ -40,9 +40,13 @@ case class IR_RemoteCommunicationFinish(
       val maxCnt = indices.getTotalSize
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
       if (!Knowledge.data_genVariableFieldSizes && 1 == IR_SimplifyExpression.evalIntegral(cnt)) {
-        IR_RemoteRecv(Duplicate(field), neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
+        val arrayAccess = IR_DirectFieldAccess(field, indices.begin).linearize.expand().inner
+        val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
+        IR_RemoteRecv(Duplicate(field), neighbor, offsetAccess, 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(field, indices, condition)) {
-        IR_RemoteRecv(Duplicate(field), neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
+        val arrayAccess = IR_DirectFieldAccess(field, indices.begin).linearize.expand().inner
+        val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
+        IR_RemoteRecv(Duplicate(field), neighbor, offsetAccess, 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
         IR_RemoteRecv(Duplicate(field), neighbor, IR_IV_CommBuffer(field.field, s"Recv_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
