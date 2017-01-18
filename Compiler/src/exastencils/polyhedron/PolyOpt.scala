@@ -509,7 +509,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       validity = validity.gistDomain(domain)
     }
 
-    val depList : ArrayBuffer[isl.BasicMap] = Exploration.preprocess(validity)
+    val depList : ArrayBuffer[isl.BasicMap] = Exploration.preprocess(domain, validity)
 
     val domInfo = DomainCoeffInfo(domain)
     val sched = new PartialSchedule(domInfo, depList)
