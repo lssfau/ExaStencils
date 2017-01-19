@@ -240,6 +240,9 @@ object Knowledge {
   // [(-1)~inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
   var poly_maxCoefficient : Int = -1
 
+  // temporary hack to fix some isl bugs until a newer version could be prepared and integrated
+  var poly_HACK : Boolean = false
+
   // --- general optimization ---
 
   // inlines functions containing less or equal number of statement nodes (0 disables inlining)
