@@ -16,9 +16,11 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
+import exastencils.deprecated.domain.RectangularDomain
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
-import exastencils.domain.ir.IR_DomainFunctions
+import exastencils.domain.AABB
+import exastencils.domain.ir._
 import exastencils.domain.l2._
 import exastencils.domain.l3.L3_DomainCollection
 import exastencils.field.ir._
@@ -420,7 +422,7 @@ object Main {
 
     IR_ResolveStencilFunction.apply()
 
-    if(Knowledge.experimental_internalHighDimTypes)
+    if (Knowledge.experimental_internalHighDimTypes)
       IR_ResolveMatrices.apply()
 
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
@@ -435,6 +437,19 @@ object Main {
       if (Knowledge.dimensionality > 2)
         Knowledge.discr_hz = Array[Double](l3Generate.Domains.getGlobalWidths(2) /
           (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * fLayout(2).numInnerLayers))
+    } else {
+      def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
+
+      if (Knowledge.domain_rect_generate) {
+        Knowledge.discr_hx = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
+          level => globalSize.width(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
+        if (Knowledge.dimensionality > 1)
+          Knowledge.discr_hy = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
+            level => globalSize.width(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
+        if (Knowledge.dimensionality > 2)
+          Knowledge.discr_hz = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
+            level => globalSize.width(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
+      }
     }
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
@@ -487,7 +502,7 @@ object Main {
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
       DuplicateNodes.instances.clear()
-      DuplicateNodes.printStack = true
+      DuplicateNodes.printStack = false
       DuplicateNodes.apply() // FIXME: only debug
       Inlining.apply(true)
       CommonSubexpressionElimination.apply()
@@ -573,10 +588,9 @@ object Main {
 
       // resolve min/max reductions for omp versions not supporting them inherently
       if (Platform.omp_version < 3.1)
-        OMP_ResolveMinMaxReduction.apply()
 
-      if (Platform.omp_requiresCriticalSections)
-        OMP_AddCriticalSections.apply()
+        if (Platform.omp_requiresCriticalSections)
+          OMP_AddCriticalSections.apply()
     }
 
     // one last time

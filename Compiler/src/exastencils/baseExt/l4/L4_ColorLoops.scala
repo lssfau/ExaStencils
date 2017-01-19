@@ -32,6 +32,7 @@ case class L4_ColorLoops(var colors : ListBuffer[L4_Expression], var stmts : Lis
         Logger.warn("Ignoring statement while coloring: " + other)
         other
     }
+    newStmts
   }
 
   override def progress : IR_Scope = {
