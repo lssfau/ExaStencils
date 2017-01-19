@@ -38,10 +38,10 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
 
         field.fieldLayout.discretization match {
           // TODO: adapt for grids that are not axis-parallel
-          case "node" => virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
-          //case d if         || ("face_x" == d && 0 != neigh.dir(0))         || ("face_y" == d && 0 != neigh.dir(1))         || ("face_z" == d && 0 != neigh.dir(2))
+          case discr if "node" == discr || ("face_x" == discr && 0 == evalDim) || ("face_y" == discr && 1 == evalDim) || ("face_z" == discr && 2 == evalDim) =>
+            virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
 
-          case "cell" =>
+          case discr if "cell" == discr || ("face_x" == discr && 0 != evalDim) || ("face_y" == discr && 1 != evalDim) || ("face_z" == discr && 2 != evalDim) =>
             if (0 == neigh.dir(evalDim)) { // simple projection
               virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "cellCenter")
             } else if (neigh.dir(evalDim) < 0) { // snap to left boundary
