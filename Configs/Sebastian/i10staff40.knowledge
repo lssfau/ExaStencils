@@ -5,7 +5,7 @@ generateFortranInterface			= false
 dimensionality						= 3
 
 minLevel							= 1
-maxLevel							= 5
+maxLevel							= 8
 
 experimental_Neumann				= true
 experimental_NeumannOrder			= 1
@@ -14,7 +14,7 @@ grid_isUniform						= false
 grid_isStaggered					= true
 grid_isAxisAligned					= true
 
-grid_spacingModel					= "diego"
+grid_spacingModel					= "linearFct"
 
 // code generation
 
@@ -57,12 +57,18 @@ omp_parallelizeLoopOverDimensions	= true
 
 mpi_useCustomDatatypes				= false
 poly_optLevel_fine					= 0
-opt_useAddressPrecalc				= false
+opt_useAddressPrecalc				= true
 opt_vectorize						= false
 opt_unroll							= 1
 
 // other
 
-experimental_resolveUnreqFragmentLoops		= true
-experimental_trimBoundsForReductionLoops	= true
-experimental_layerExtension					= true
+experimental_applySchurCompl		= true
+
+experimental_trimBoundsForReductionLoops = true
+experimental_generateParaviewFiles	= true
+
+opt_conventionalCSE					= false
+opt_loopCarriedCSE					= false
+
+//opt_maxInliningSize					= 0

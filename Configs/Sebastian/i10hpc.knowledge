@@ -4,8 +4,8 @@ generateFortranInterface			= false
 
 dimensionality						= 3
 
-minLevel							= 1
-maxLevel							= 5
+minLevel							= 0
+maxLevel							= 7
 
 experimental_Neumann				= true
 experimental_NeumannOrder			= 1
@@ -14,7 +14,7 @@ grid_isUniform						= false
 grid_isStaggered					= true
 grid_isAxisAligned					= true
 
-grid_spacingModel					= "diego"
+grid_spacingModel					= "linearFct"
 
 // code generation
 
@@ -33,9 +33,9 @@ domain_fragmentLength_y				= 1
 domain_fragmentLength_z				= 1
 
 domain_rect_generate				= true
-domain_rect_numBlocks_x				= 1
-domain_rect_numBlocks_y				= 1
-domain_rect_numBlocks_z				= 1
+domain_rect_numBlocks_x				= 2
+domain_rect_numBlocks_y				= 2
+domain_rect_numBlocks_z				= 2
 domain_rect_numFragsPerBlock_x		= 1
 domain_rect_numFragsPerBlock_y		= 1
 domain_rect_numFragsPerBlock_z		= 1
@@ -45,10 +45,10 @@ domain_rect_numFragsPerBlock_z		= 1
 comm_strategyFragment				= 6
 
 omp_enabled							= true
-omp_numThreads						= 8
+omp_numThreads						= 4
 
-mpi_enabled							= false
-mpi_numThreads						= 1
+mpi_enabled							= true
+mpi_numThreads						= 8
 
 omp_parallelizeLoopOverFragments	= false
 omp_parallelizeLoopOverDimensions	= true
@@ -57,14 +57,18 @@ omp_parallelizeLoopOverDimensions	= true
 
 mpi_useCustomDatatypes				= false
 poly_optLevel_fine					= 0
-opt_useAddressPrecalc				= false
+opt_useAddressPrecalc				= true
 opt_vectorize						= false
 opt_unroll							= 1
 
 // other
 
+experimental_applySchurCompl		= true
+
 experimental_trimBoundsForReductionLoops = true
+experimental_generateParaviewFiles	= true
 
-experimental_cuda_enabled				= true
-experimental_cuda_preferredExecution	= "Performance"
+opt_conventionalCSE					= false
+opt_loopCarriedCSE					= false
 
+//opt_maxInliningSize					= 0

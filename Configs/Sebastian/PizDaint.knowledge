@@ -49,7 +49,7 @@ l3tmp_useMaxNormForError			= true
 
 cuda_enabled						= true
 cuda_syncHostForWrites				= true
-cuda_preferredExecution				= "Condition"
+cuda_preferredExecution				= "Device"
 cuda_executionCondition				= "0 == mpiRank % 4"
 
 experimental_addPerformanceEstimate	= true

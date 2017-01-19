@@ -547,7 +547,6 @@ Function Distributive@all ( ) : Unit {
 }
 
 Function Vanka@all ( ) : Unit {
-	if (false) {
 	// currently allowed: [1,1,1]|[2,1,1]|[2,2,2] -> TODO: improve code through summarizing equations
 	Val stride_x : Int = 1
 	Val stride_y : Int = 1
@@ -680,7 +679,7 @@ Function Vanka@all ( ) : Unit {
 				p@current@[1, 1, 1] => dxRight@current * u@current@[1, 1, 1] + dyRight@current * v@current@[1, 1, 1] + dzRight@current * w@current@[1, 1, 1] == rhs_p@current@[1, 1, 1]
 			}
 		}
-	}}
+	}
 
 	/*communicate u@current
 	communicate v@current

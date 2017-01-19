@@ -327,7 +327,7 @@ Globals {
 
 	Var maxNumIt : Int          = 1000
 
-	Var adaptFreq : Int         = 3
+	Var adaptFreq : Int         = 2
 	Var adaptThres : Real       = 1e-3
 	Var adaptFactor : Real      = 0.985
 	Var adaptProlong : Real     = 2.5
@@ -622,7 +622,7 @@ Function NonLinearSmooth@all ( ) : Unit {
 			Smooth_uvwp_Vanka@current ( )
 		}
 	} else {
-		repeat 20 times {
+		repeat 4 times {
 			Smooth_uvwp_Distributive@current ( )
 		}
 	}

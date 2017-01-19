@@ -1,9 +1,12 @@
 user						= "Sebastian"
 
 basePathPrefix				= ""
-outputPath					= "\\i10home\home-staff\kuckuk\cuda_mpi\"
-l4file						= ".\Compiler\dsl\Layer4.exa"
+outputPath					= "\\i10home\home-staff\kuckuk\stokes"
+//l4file						= ".\Compiler\dsl\Layer4.exa"
 //l4file						= "Testing\Application\ExaFluids.exa4"
+//l4file						= "Configs\Sebastian\Stokes_Distributed.exa4"
+//l4file						= "Configs\Sebastian\Stokes_HHG.exa4"
+l4file						= "Configs\Sebastian\ExaFluids_Ext.exa4"
 htmlLogFile					= ".\Compiler\log\log.html"
 
 produceHtmlLog				= true

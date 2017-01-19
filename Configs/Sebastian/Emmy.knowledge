@@ -28,14 +28,14 @@ domain_numFragmentsPerBlock			= 1
 
 domain_onlyRectangular				= true
 
-domain_fragmentLength_x				= 2
-domain_fragmentLength_y				= 2
-domain_fragmentLength_z				= 2
+domain_fragmentLength_x				= 1
+domain_fragmentLength_y				= 1
+domain_fragmentLength_z				= 1
 
 domain_rect_generate				= true
-domain_rect_numBlocks_x				= 2
-domain_rect_numBlocks_y				= 2
-domain_rect_numBlocks_z				= 2
+domain_rect_numBlocks_x				= 4
+domain_rect_numBlocks_y				= 4
+domain_rect_numBlocks_z				= 4
 domain_rect_numFragsPerBlock_x		= 1
 domain_rect_numFragsPerBlock_y		= 1
 domain_rect_numFragsPerBlock_z		= 1
@@ -45,10 +45,10 @@ domain_rect_numFragsPerBlock_z		= 1
 comm_strategyFragment				= 6
 
 omp_enabled							= true
-omp_numThreads						= 40
+omp_numThreads						= 5
 
 mpi_enabled							= true
-mpi_numThreads						= 8
+mpi_numThreads						= 64
 
 omp_parallelizeLoopOverFragments	= false
 omp_parallelizeLoopOverDimensions	= true
@@ -72,8 +72,9 @@ opt_conventionalCSE					= false
 opt_loopCarriedCSE					= false
 
 //opt_maxInliningSize					= 0
-
+/*
 cuda_enabled						= true
 cuda_syncHostForWrites				= true
 cuda_preferredExecution				= "Device"
 cuda_executionCondition				= "0 == mpiRank % 4"
+*/
