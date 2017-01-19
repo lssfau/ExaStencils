@@ -84,9 +84,11 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
       var prependStmts = ListBuffer[IR_Statement]()
       var appendStmts = ListBuffer[IR_Statement]()
 
+      var toRemove = ListBuffer[OMP_Clause]()
       ompSection.additionalOMPClauses.map {
         case reduction : OMP_Reduction if "min" == reduction.op || "max" == reduction.op =>
           hasApplicableReduction = true
+          toRemove += reduction
 
           // resolve max reductions
           val redOp = reduction.op
@@ -111,6 +113,8 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
 
         case _ =>
       }
+
+      ompSection.additionalOMPClauses --= toRemove
 
       if (hasApplicableReduction) {
         ompSection.loop.body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
