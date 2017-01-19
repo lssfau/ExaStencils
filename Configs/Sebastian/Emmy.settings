@@ -1,0 +1,12 @@
+user						= "Sebastian"
+
+basePathPrefix				= ""
+outputPath					= "generated_Emmy/"
+l4file						= "Configs\Sebastian\Stokes_HHG.exa4"
+htmlLogFile					= ".\Compiler\log\log.html"
+
+produceHtmlLog				= true
+timeStrategies				= true
+timeStratPercentThreshold	= 0
+
+pathsLib					+= "/apps/NVIDIA/driver-367.48/lib64"
