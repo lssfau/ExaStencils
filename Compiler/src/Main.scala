@@ -588,9 +588,10 @@ object Main {
 
       // resolve min/max reductions for omp versions not supporting them inherently
       if (Platform.omp_version < 3.1)
+        OMP_ResolveMinMaxReduction.apply()
 
-        if (Platform.omp_requiresCriticalSections)
-          OMP_AddCriticalSections.apply()
+      if (Platform.omp_requiresCriticalSections)
+        OMP_AddCriticalSections.apply()
     }
 
     // one last time
