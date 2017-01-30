@@ -215,6 +215,19 @@ Function InitFields@finest ( ) : Unit {
 		rhs_p@current = 0.0
 	}
 
+	/*loop over u@current {
+		u@current = ( -4.0 * cos ( 4.0 * vf_cellCenter_z@current ) )
+	}
+	loop over v@current {
+		v@current = ( 8.0 * cos ( 8.0 * vf_cellCenter_x@current ) )
+	}
+	loop over w@current {
+		w@current = ( -2.0 * cos ( 2.0 * vf_cellCenter_y@current ) )
+	}
+	loop over p@current {
+		p@current = ( sin ( 4.0 * vf_cellCenter_x@current ) * sin ( 8.0 * vf_cellCenter_y@current ) * sin ( 2.0 * vf_cellCenter_z@current ) )
+	}*/
+
 	// inital application of solution's bc
 
 	apply bc to u@current

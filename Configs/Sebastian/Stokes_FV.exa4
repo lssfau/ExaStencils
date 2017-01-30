@@ -202,7 +202,7 @@ Stencil CorrectionFaceZ@all {
 }
 
 Globals {
-	Var useVanka : Boolean = true
+	Var useVanka : Boolean = false
 	Var vankaRelax : Real = 0.8
 }
 
@@ -243,7 +243,7 @@ Function InitFields@finest ( ) : Unit {
 		rhs_p@current *= vf_cellVolume@current
 	}
 
-	loop over u@current {
+	/*loop over u@current {
 		u@current = ( -4.0 * cos ( 4.0 * vf_cellCenter_z@current ) )
 	}
 	loop over v@current {
@@ -254,7 +254,7 @@ Function InitFields@finest ( ) : Unit {
 	}
 	loop over p@current {
 		p@current = ( sin ( 4.0 * vf_cellCenter_x@current ) * sin ( 8.0 * vf_cellCenter_y@current ) * sin ( 2.0 * vf_cellCenter_z@current ) )
-	}
+	}*/
 
 	// inital application of solution's bc
 
