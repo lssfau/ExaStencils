@@ -162,8 +162,8 @@ object IR_SimplifyExpression {
     extractIntegralSumRec(expr)
   }
 
-  private def extractIntegralSumDivision(l : IR_Expression, r : IR_Expression) : HashMap[IR_Expression, Long] = {
-    val tmp = extractIntegralSumRec(r)
+  private def extractIntegralSumDivision(l : IR_Expression, r : IR_Expression, floor : Boolean) : HashMap[IR_Expression, Long] = {
+    var tmp = extractIntegralSumRec(r)
     if (tmp.isEmpty)
       throw EvaluationException("BOOM! (divide by zero)")
     if (!(tmp.size == 1 && tmp.contains(constName)))
@@ -172,32 +172,53 @@ object IR_SimplifyExpression {
     tmp.clear()
     val res = new HashMap[IR_Expression, Long]()
     val mapL = extractIntegralSumRec(l)
-    for ((name : IR_Expression, value : Long) <- mapL)
-      if (value % divs == 0L) res(name) = value / divs
-      else tmp(name) = value
-    val cstOpt = tmp.remove(constName) // const part in remaining dividend must not be larger then divisor
-    if (cstOpt.isDefined) {
-      val cst = cstOpt.get
-      val cstMod = (cst % divs + divs) % divs // mathematical modulo
-      val cstRes = (cst - cstMod) / divs
-      tmp(constName) = cstMod
-      res(constName) = cstRes
-    }
+    if (floor) { // do only remove parts of the dividend when the rounding direction is "uniform" (truncate rounds towards 0)
+      for ((name : IR_Expression, value : Long) <- mapL)
+        if (value % divs == 0L) res(name) = value / divs
+        else tmp(name) = value
+      val cstOpt = tmp.remove(constName) // const part in remaining dividend must not be larger then divisor
+      if (cstOpt.isDefined) {
+        val cst = cstOpt.get
+        val cstMod = (cst % divs + divs) % divs // mathematical modulo
+        val cstRes = (cst - cstMod) / divs
+        tmp(constName) = cstMod
+        res(constName) = cstRes
+      }
+    } else
+      tmp = mapL
     val dividend = recreateExprFromIntSum(tmp)
     val (name, update) : (IR_Expression, Long) = dividend match {
-      case IR_IntegerConstant(x)                                                                                                                                => (constName, x / divs)
-      case IR_Division(x, IR_IntegerConstant(divs2))                                                                                                            => (IR_Division(x, IR_IntegerConstant(divs * divs2)), 1L)
-      case IR_Addition(ListBuffer(IR_Division(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const)))                                                        =>
+      case IR_IntegerConstant(x)                                                                                                                                         =>
+        val res =
+          if (floor) {
+            if (x < 0 && divs > 0)
+              (x - divs + 1) / divs
+            else if (x > 0 && divs < 0)
+              (x - divs - 1) / divs
+            else
+              x / divs
+          } else
+            x / divs
+        (constName, res)
+
+      case IR_Division(x, IR_IntegerConstant(divs2)) if !floor                                                                                                           =>
+        (IR_Division(x, IR_IntegerConstant(divs * divs2)), 1L)
+      case IR_Addition(ListBuffer(IR_Division(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const))) if !floor                                                       =>
         (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_Division(x, IR_IntegerConstant(divs2))))                                                        =>
+      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_Division(x, IR_IntegerConstant(divs2)))) if !floor                                                       =>
         (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))) if "floord" == function.name                                                     =>
+
+      case IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))) if floor && "floord" == function.name                                                     =>
         (IR_FunctionCall("floord", ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_Addition(ListBuffer(IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) if "floord" == function.name =>
+      case IR_Addition(ListBuffer(IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) if floor && "floord" == function.name =>
         (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))))) if "floord" == function.name =>
+      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))))) if floor && "floord" == function.name =>
         (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case divd                                                                                                                                                 => (IR_Division(divd, IR_IntegerConstant(divs)), 1L)
+      case divd                                                                                                                                                          =>
+        if (floor)
+          (IR_FunctionCall("floord", divd, IR_IntegerConstant(divs)), 1L)
+        else
+          (IR_Division(divd, IR_IntegerConstant(divs)), 1L)
     }
     res(name) = res.getOrElse(name, 0L) + update
     res
@@ -297,10 +318,10 @@ object IR_SimplifyExpression {
           res(IR_Multiplication(nonCst.sortBy(_.prettyprint()))) = coeff
 
       case IR_Division(l, r) =>
-        res = extractIntegralSumDivision(l, r)
+        res = extractIntegralSumDivision(l, r, false)
 
       case IR_FunctionCall(function, ListBuffer(l, r)) if "floord" == function.name =>
-        res = extractIntegralSumDivision(l, r)
+        res = extractIntegralSumDivision(l, r, true)
 
       case IR_Modulo(l, r) =>
         val tmp = extractIntegralSumRec(r)
