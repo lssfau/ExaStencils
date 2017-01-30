@@ -193,9 +193,10 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
       try {
         size = IR_SimplifyExpression.simplifyIntegralExpr(size)
       } catch {
-        case ex : EvaluationException =>
+        case _ : EvaluationException =>
       }
-      if (Knowledge.data_alignFieldPointers) // align this buffer iff field pointers are aligned
+      if (Knowledge.data_alignFieldPointers) { // align this buffer iff field pointers are aligned
+        counter += 1
         bufferAllocs += (id -> buf.wrapInLoops(IR_Scope(ListBuffer[IR_Statement](
           IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"vs_$counter",
             Some(Platform.simd_vectorSize * IR_SizeOf(IR_RealDatatype))),
@@ -203,8 +204,9 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
           IR_VariableDeclaration(IR_SpecialDatatype("ptrdiff_t"), s"offset_$counter",
             Some(((s"vs_$counter" - (IR_Cast(IR_SpecialDatatype("ptrdiff_t"), buf.basePtr) Mod s"vs_$counter")) Mod s"vs_$counter") / IR_SizeOf(IR_RealDatatype))),
           IR_Assignment(buf, buf.basePtr + s"offset_$counter")))))
-      else
+      } else {
         bufferAllocs += (id -> buf.wrapInLoops(IR_ArrayAllocation(buf, buf.baseDatatype, size)))
+      }
       buf
   })
 
