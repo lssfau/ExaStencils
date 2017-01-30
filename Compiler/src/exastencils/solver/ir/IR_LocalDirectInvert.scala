@@ -12,10 +12,12 @@ import exastencils.field.ir.IR_FieldAccess
 /// IR_LocalDirectInvert
 
 object IR_LocalDirectInvert {
-  def apply(AVals : ListBuffer[ListBuffer[IR_Addition]], fVals : ListBuffer[IR_Addition], unknowns : ListBuffer[IR_FieldAccess]) =
-    invert(AVals, fVals, unknowns)
+  def apply(AVals : ListBuffer[ListBuffer[IR_Addition]], fVals : ListBuffer[IR_Addition], unknowns : ListBuffer[IR_FieldAccess],
+      relax : Option[IR_Expression]) =
+    invert(AVals, fVals, unknowns, relax)
 
-  def invert(AVals : ListBuffer[ListBuffer[IR_Addition]], fVals : ListBuffer[IR_Addition], unknowns : ListBuffer[IR_FieldAccess]) : ListBuffer[IR_Statement] = {
+  def invert(AVals : ListBuffer[ListBuffer[IR_Addition]], fVals : ListBuffer[IR_Addition], unknowns : ListBuffer[IR_FieldAccess],
+      relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
     val stmts = ListBuffer[IR_Statement]()
 
     def u = IR_VariableAccess("_local_unknowns", IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false)))
@@ -59,7 +61,11 @@ object IR_LocalDirectInvert {
     for (i <- unknowns.indices)
       stmts += IR_IfCondition(// don't write back result on boundaries
         IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
-        IR_Assignment(Duplicate(unknowns(i)), IR_HackVecComponentAccess(u, i)))
+        if (relax.isEmpty)
+          IR_Assignment(Duplicate(unknowns(i)), IR_HackVecComponentAccess(u, i))
+        else
+          IR_Assignment(Duplicate(unknowns(i)), Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * IR_HackVecComponentAccess(u, i))
+      )
 
     stmts
   }

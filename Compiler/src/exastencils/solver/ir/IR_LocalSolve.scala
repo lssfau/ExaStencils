@@ -26,7 +26,7 @@ case class IR_Equation(var lhs : IR_Expression, var rhs : IR_Expression) extends
 
 /// IR_LocalSolve
 
-case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[IR_Equation]) extends IR_Statement with IR_SpecialExpandable {
+case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[IR_Equation], var relax : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
   var fVals = ListBuffer[IR_Addition]()
   var AVals = ListBuffer[ListBuffer[IR_Addition]]()
 
@@ -129,7 +129,7 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
     zeroEqs = zeroEqs.map(IR_SimplifyExpression.simplifyFloatingExpr)
 
     // flatten computations to facilitate further processing
-//    zeroEqs.foreach(eq => IR_FlattenComputation.doUntilDoneStandalone(IR_ExpressionStatement(eq)))
+    // zeroEqs.foreach(eq => IR_FlattenComputation.doUntilDoneStandalone(IR_ExpressionStatement(eq)))
     // for (_ <- 0 until 10)
     // zeroEqs.foreach(eq => IR_FlattenComputation.applyStandalone(IR_ExpressionStatement(eq)))
     //IR_FlattenComputation.applyStandalone(zeroEqs)
@@ -148,8 +148,8 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
 
     // choose strategy used for inverting local matrix
     if (Knowledge.experimental_applySchurCompl && IR_LocalSchurCompl.suitable(AVals))
-      IR_Scope(IR_LocalSchurCompl(AVals, fVals, unknowns))
+      IR_Scope(IR_LocalSchurCompl(AVals, fVals, unknowns, relax))
     else
-      IR_Scope(IR_LocalDirectInvert(AVals, fVals, unknowns))
+      IR_Scope(IR_LocalDirectInvert(AVals, fVals, unknowns, relax))
   }
 }
