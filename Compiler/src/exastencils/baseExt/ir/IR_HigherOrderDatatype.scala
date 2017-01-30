@@ -52,7 +52,11 @@ case class IR_VectorDatatype(var datatype : IR_Datatype, var size : Int, var isR
 }
 
 case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var sizeN : Int) extends IR_HigherOrderDatatype {
-  override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
+  override def prettyprint(out : PpStream) : Unit = if(exastencils.config.Knowledge.experimental_internalHighDimTypes) {
+    out << datatype << '[' << sizeM << "][" << sizeN << ']'
+  } else {
+    out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
+  }
   override def prettyprint_mpi = s"INVALID DATATYPE: " + this.prettyprint()
 
   override def dimensionality : Int = 2 + datatype.dimensionality
