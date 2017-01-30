@@ -410,6 +410,9 @@ object Knowledge {
 
   var experimental_resolveUnreqFragmentLoops : Boolean = false
 
+  // eliminates conditions of the form IR_IfCondition(IR_IntegerConstant(_), _, _)
+  var experimental_emliminateIntConditions : Boolean = false
+
   var experimental_allowCommInFragLoops : Boolean = false
 
   var experimental_generateParaviewFiles : Boolean = false
