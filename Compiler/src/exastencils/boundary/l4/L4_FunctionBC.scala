@@ -7,7 +7,7 @@ import exastencils.prettyprinting.PpStream
 /// L4_FunctionBC
 
 // wraps a user-provided function implementing boundary handling
-case class L4_FunctionBC(boundaryFunction : L4_FunctionCall) extends L4_BoundaryCondition {
+case class L4_FunctionBC(var boundaryFunction : L4_FunctionCall) extends L4_BoundaryCondition {
   override def prettyprint(out : PpStream) = out << boundaryFunction
   override def progress = IR_FunctionBC(boundaryFunction.progress)
 }

@@ -4,4 +4,4 @@ import exastencils.base.ir.IR_Expression
 
 /// IR_DirichletBC
 
-case class IR_DirichletBC(boundaryValue : IR_Expression) extends IR_BoundaryCondition {}
+case class IR_DirichletBC(var boundaryValue : IR_Expression, var order : Int) extends IR_BoundaryCondition {}

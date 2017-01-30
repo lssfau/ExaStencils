@@ -395,6 +395,9 @@ object Knowledge {
   // normalize solution after each v-cycle
   var experimental_NeumannNormalize : Boolean = false
 
+  // allows setting the interpolation order for Dirichlet BCs for cell or face localized quantities
+  var experimental_DirichletOrder : Int = 1
+
   // generates call stacks for all employed timers
   var experimental_timerEnableCallStacks : Boolean = false
 

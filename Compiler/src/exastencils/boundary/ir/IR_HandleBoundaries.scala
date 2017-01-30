@@ -67,7 +67,7 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
     def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
 
     bc match {
-      case IR_NeumannBC(order)          =>
+      case IR_NeumannBC(order)                 =>
         // TODO: move this logic to the appropriate bc classes
         field.fieldLayout.discretization match {
           case d if "node" == d
@@ -90,11 +90,10 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
             || ("face_y" == d && 0 == neigh.dir(1))
             || ("face_z" == d && 0 == neigh.dir(2)) =>
             order match {
-              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
-                IR_FieldAccess(fieldSel, index))
+              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex), IR_FieldAccess(fieldSel, index))
             }
         }
-      case IR_DirichletBC(boundaryExpr) =>
+      case IR_DirichletBC(boundaryExpr, order) =>
         field.fieldLayout.discretization match {
           case d if "node" == d
             || ("face_x" == d && 0 != neigh.dir(0))
@@ -105,8 +104,12 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
             || ("face_x" == d && 0 == neigh.dir(0))
             || ("face_y" == d && 0 == neigh.dir(1))
             || ("face_z" == d && 0 == neigh.dir(2)) =>
-            statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
-              (2.0 * boundaryExpr) - IR_FieldAccess(fieldSel, index))
+            order match {
+              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
+                (2.0 * boundaryExpr) - IR_FieldAccess(fieldSel, index))
+              case 2 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
+                ((8.0 / 3.0) * boundaryExpr) - 2.0 * IR_FieldAccess(fieldSel, index) + (1.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+            }
         }
     }
 
