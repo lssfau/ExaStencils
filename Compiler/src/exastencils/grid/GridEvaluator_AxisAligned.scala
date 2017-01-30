@@ -135,9 +135,14 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
   }
 
   // integration over faces of staggered CVs is done by defining stagDim - the dimension in which the grid is staggered
-  def integrateOverRFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
+  // expS instead of exp : IR_Expression to allow for match and replace of the original expression
+  def integrateOverRFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression =
+  integrateOverRFace(IR_ExpressionStatement(exp), faceDim, stagDim)
+  def integrateOverRFace(expS : IR_ExpressionStatement, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
+    def exp = expS.expression
+
     // check if there are any field accesses in the current (sub-)expression
-    IR_CollectFieldAccess.applyStandalone(IR_Scope(exp))
+    IR_CollectFieldAccess.applyStandalone(expS)
 
     // TODO: find a way to handle constants
     if (0 == IR_CollectFieldAccess.fieldAccesses.size) {
@@ -238,10 +243,10 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           Logger.error("Integration functions called inside other integration functions are currently not supported")
       }, false) // not recursive -> don't look inside eval functions
     }
-    WrappingFieldAccesses.applyStandalone(IR_Scope(exp))
+    WrappingFieldAccesses.applyStandalone(expS)
 
     // step 2: check if integration by parts is required
-    var piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, IR_Scope(exp)).isDefined
+    val piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, expS).isDefined
 
     // step 3: apply chosen integration
     object ShiftFieldAccessIndices_ extends QuietDefaultStrategy("Shifting indices of field accesses") {
