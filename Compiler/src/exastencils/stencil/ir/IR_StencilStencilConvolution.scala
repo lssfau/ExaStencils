@@ -21,8 +21,11 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_StencilStencilConvolution
 
-case class IR_StencilStencilConvolution(var stencilLeft : IR_Stencil, var stencilRight : IR_Stencil) extends IR_Expression with IR_Expandable {
-  override def datatype = IR_ResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
+case class IR_StencilStencilConvolution(var left : IR_StencilAccess, var right : IR_StencilAccess) extends IR_Expression with IR_Expandable {
+  override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
+
+  def stencilLeft = left.stencil
+  def stencilRight = right.stencil
 
   override def expand() : Output[IR_StencilAccess] = {
     var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
@@ -56,31 +59,39 @@ case class IR_StencilStencilConvolution(var stencilLeft : IR_Stencil, var stenci
       }
     }
 
-    IR_StencilAccess(IR_Stencil(stencilLeft.name + "_" + stencilRight.name, stencilLeft.level, entries))
+    if (left.offset.isDefined)
+      Logger.warn("Ignoring unsupported offset access in stencil stencil convolution: " + left.offset.get)
+    if (right.offset.isDefined)
+      Logger.warn("Ignoring unsupported offset access in stencil stencil convolution: " + right.offset.get)
+
+    IR_StencilAccess(IR_Stencil(stencilLeft.name + "_" + stencilRight.name, stencilLeft.level, entries), None)
   }
 }
 
 /// IR_StencilFieldStencilConvolution
 
-case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAccess, var stencilRight : IR_Stencil) extends IR_Expression with IR_Expandable {
-  override def datatype = IR_ResultingDatatype(stencilLeft.datatype, stencilRight.datatype)
+case class IR_StencilFieldStencilConvolution(var left : IR_StencilFieldAccess, var right : IR_StencilAccess) extends IR_Expression with IR_Expandable {
+  override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
+
+  def stencilLeft = left.stencilFieldSelection
+  def stencilRight = right.stencil
 
   override def expand() : Output[IR_StencilAccess] = {
     var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
 
     for (re <- stencilRight.entries) {
-      for (e <- stencilLeft.stencilFieldSelection.offsets.indices) {
-        val stencilFieldIdx = Duplicate(stencilLeft.index)
+      for (e <- stencilLeft.offsets.indices) {
+        val stencilFieldIdx = Duplicate(left.index)
         stencilFieldIdx(Knowledge.dimensionality) = e
         for (dim <- 0 until Knowledge.dimensionality)
           stencilFieldIdx(dim) += re.offset(dim)
-        val fieldSel = stencilLeft.stencilFieldSelection.toFieldSelection
+        val fieldSel = stencilLeft.toFieldSelection
         fieldSel.arrayIndex = Some(e)
 
         val rightOffset = Duplicate(re.offset)
 
-        val leftOffset = Duplicate(stencilLeft.stencilFieldSelection.offsets(e))
-        if (stencilRight.level > stencilLeft.stencilFieldSelection.stencilField.level) {
+        val leftOffset = Duplicate(stencilLeft.offsets(e))
+        if (stencilRight.level > stencilLeft.stencilField.level) {
           for (d <- 0 until Knowledge.dimensionality)
             leftOffset(d) = (IR_DimToString(d) : IR_Expression) / 2 + leftOffset(d)
         } else {
@@ -107,7 +118,10 @@ case class IR_StencilFieldStencilConvolution(var stencilLeft : IR_StencilFieldAc
       }
     }
 
-    IR_StencilAccess(IR_Stencil(stencilLeft.stencilFieldSelection.stencilField.name + "_" + stencilRight.name, stencilLeft.stencilFieldSelection.stencilField.level, entries))
+    if (right.offset.isDefined)
+      Logger.warn("Ignoring unsupported offset access in stencil stencil convolution: " + right.offset.get)
+
+    IR_StencilAccess(IR_Stencil(stencilLeft.stencilField.name + "_" + stencilRight.name, stencilLeft.stencilField.level, entries), None)
   }
 }
 

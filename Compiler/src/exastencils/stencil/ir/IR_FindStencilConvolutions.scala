@@ -22,13 +22,13 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (IR_StencilAccess(stencil), fieldAccess : IR_FieldAccess)                  =>
-          result += IR_StencilConvolution(stencil, fieldAccess)
+        case (left : IR_StencilAccess, right : IR_FieldAccess)      =>
+          result += IR_StencilConvolution(left, right)
           prev = null
-        case (stencilFieldAccess : IR_StencilFieldAccess, fieldAccess : IR_FieldAccess) =>
-          result += IR_StencilFieldConvolution(stencilFieldAccess, fieldAccess)
+        case (left : IR_StencilFieldAccess, right : IR_FieldAccess) =>
+          result += IR_StencilFieldConvolution(left, right)
           prev = null
-        case _                                                                          =>
+        case _                                                      =>
           if (prev != null) result += prev
           prev = f
       }
@@ -43,13 +43,13 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (IR_StencilAccess(stencilLeft), IR_StencilAccess(stencilRight))       =>
-          result += IR_StencilStencilConvolution(stencilLeft, stencilRight)
+        case (left : IR_StencilAccess, right : IR_StencilAccess)      =>
+          result += IR_StencilStencilConvolution(left, right)
           prev = null
-        case (stencilLeft : IR_StencilFieldAccess, IR_StencilAccess(stencilRight)) =>
-          result += IR_StencilFieldStencilConvolution(stencilLeft, stencilRight)
+        case (left : IR_StencilFieldAccess, right : IR_StencilAccess) =>
+          result += IR_StencilFieldStencilConvolution(left, right)
           prev = null
-        case _                                                                     =>
+        case _                                                        =>
           if (prev != null) result += prev
           prev = f
       }
@@ -64,11 +64,11 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
     prev = null
     for (f <- facts)
       (prev, f) match {
-        case (IR_StencilAccess(stencilLeft), stencilRight : IR_StencilFieldAccess)       =>
+        case (left : IR_StencilAccess, right : IR_StencilFieldAccess)      =>
           ??? // TODO
-        case (stencilLeft : IR_StencilFieldAccess, stencilRight : IR_StencilFieldAccess) =>
+        case (left : IR_StencilFieldAccess, right : IR_StencilFieldAccess) =>
           ??? // TODO
-        case _                                                                           =>
+        case _                                                             =>
           if (prev != null) result += prev
           prev = f
       }
