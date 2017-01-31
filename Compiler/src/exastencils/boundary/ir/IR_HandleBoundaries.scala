@@ -6,10 +6,11 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.grid._
@@ -107,8 +108,32 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
             order match {
               case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
                 (2.0 * boundaryExpr) - IR_FieldAccess(fieldSel, index))
-              case 2 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
-                ((8.0 / 3.0) * boundaryExpr) - 2.0 * IR_FieldAccess(fieldSel, index) + (1.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+              case 2 =>
+                // determine weights for interpolation
+                var w_0_5, w_1, w_2 : IR_Expression = 0
+                if (Knowledge.grid_isUniform) {
+                  w_0_5 = 8.0 / 3.0
+                  w_1 = -2
+                  w_2 = 1.0 / 3.0
+                } else {
+                  // non-linear => use Lagrange polynomials
+                  val nonZero = neigh.dir.zipWithIndex.filter(_._1 != 0)
+                  if (nonZero.length != 1) Logger.error("Malformed neighbor index vector " + neigh.dir.mkString(", "))
+                  val dim = nonZero(0)._2
+                  def x = IR_VirtualFieldAccess(s"vf_cellCenter_${ IR_DimToString(dim) }", field.level, index + offsetIndex)
+                  def x_0_5 =
+                    if (neigh.dir(dim) > 0)
+                      IR_VirtualFieldAccess(s"vf_nodePosition_${ IR_DimToString(dim) }", field.level, index + offsetIndex)
+                    else
+                      IR_VirtualFieldAccess(s"vf_nodePosition_${ IR_DimToString(dim) }", field.level, index)
+                  def x_1 = IR_VirtualFieldAccess(s"vf_cellCenter_${ IR_DimToString(dim) }", field.level, index)
+                  def x_2 = IR_VirtualFieldAccess(s"vf_cellCenter_${ IR_DimToString(dim) }", field.level, index + offsetIndexWithTrafo(i => -i))
+                  w_0_5 = ((x - x_1) * (x - x_2)) / ((x_0_5 - x_1) * (x_0_5 - x_2))
+                  w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
+                  w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))
+                }
+                statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
+                  w_0_5 * boundaryExpr + w_1 * IR_FieldAccess(fieldSel, index) + w_2 * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
             }
         }
     }
