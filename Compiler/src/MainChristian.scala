@@ -30,7 +30,7 @@ object MainChristian {
     val prog = "Function Application() : Unit { \n" +
       "//Var m : Matrix<Real, 2, 2>\n"+
       "Var m2 : Matrix<Real, 2, 2>\n"+
-      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}} + {{2.0, 2.0}, {2.0, 2.0}} * {{2,2},{2,2}}\n" +
+      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}// + {{2.0, 2.0}, {2.0, 2.0}} * {{2,2},{2,2}}\n" +
       "//m2 = Bla(m) + {{1.0,1.0},{1.0,1.0}}\n" +
       "m = Bla(m)\n" +
       "Bla( {{1.0, 2.0}, {3.0, 4.0}})\n" +
@@ -71,8 +71,8 @@ object MainChristian {
 //    IR_GeneralSimplify.doUntilDone(Some(root))
     IR_ResolveMatrices.apply()
 //    IR_GeneralSimplify.doUntilDone(Some(root))
-    IR_ResolveMatrices.apply()
-    System.out.println(root)
+//    IR_ResolveMatrices.apply()
+//    System.out.println(root)
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].functions.foreach(x => x match {
       case y : PrettyPrintable => System.out.println(y.prettyprint)
       case _ => System.out.println(x)

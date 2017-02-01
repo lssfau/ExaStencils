@@ -1,6 +1,9 @@
 package exastencils.baseExt.ir
 
 import exastencils.base.ir._
+import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Transformation
+import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.prettyprinting.PpStream
 
 /// higher order data types
@@ -9,6 +12,10 @@ trait IR_HigherOrderDatatype extends IR_Datatype {
   def datatype : IR_Datatype
   // encapsulated data type
   override def resolveBaseDatatype : IR_Datatype = datatype.resolveBaseDatatype
+}
+
+trait IR_HasTypeAlias {
+  def aliasFor : String
 }
 
 case class IR_ArrayDatatype(datatype : IR_Datatype, numElements : Int) extends IR_HigherOrderDatatype {
@@ -51,9 +58,9 @@ case class IR_VectorDatatype(var datatype : IR_Datatype, var size : Int, var isR
   override def typicalByteSize = size * datatype.typicalByteSize
 }
 
-case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var sizeN : Int) extends IR_HigherOrderDatatype {
+case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var sizeN : Int) extends IR_HigherOrderDatatype with IR_HasTypeAlias {
   override def prettyprint(out : PpStream) : Unit = if(exastencils.config.Knowledge.experimental_internalHighDimTypes) {
-    out << datatype << '[' << sizeM << "][" << sizeN << ']'
+    out << "__matrix_" << datatype << '_' << sizeM << "_" << sizeN << "_t"
   } else {
     out << "Matrix<" << datatype << ',' << sizeM << ',' << sizeN << '>'
   }
@@ -65,4 +72,15 @@ case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var si
   override def resolveDeclPostscript : String = ""
   override def resolveFlattendSize : Int = sizeM * sizeN * datatype.resolveFlattendSize
   override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
+
+  override def aliasFor = datatype.prettyprint + '[' + sizeM + ']' + '[' + sizeN + ']'
 }
+
+object IR_HACK_TypeAliases extends DefaultStrategy("Register type aliases") { // FIXME remove this hack for a better data layout
+  val global = IR_GlobalCollection.get
+
+  this += new Transformation("do", {
+    case t : IR_HasTypeAlias => global.registerTypeAlias(t.asInstanceOf[IR_Datatype], t.aliasFor); t
+  })
+}
+

@@ -7,6 +7,8 @@ import exastencils.core.StateManager
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
@@ -168,23 +170,23 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
   })
 
   this += new Transformation("expressions 1/X", {
-    case stmt : IR_Assignment if(stmt.dest.datatype.isInstanceOf[IR_MatrixDatatype] && !stmt.hasAnnotation(annotationMatrixRow)) => {
+    case stmt : IR_Assignment if(stmt.dest.datatype.isInstanceOf[IR_MatrixDatatype]
+                                  && !stmt.hasAnnotation(annotationMatrixRow)
+                                  && !stmt.dest.isInstanceOf[IR_HighDimAccess]) => {
       // annotate all nodes of this expression
       val matrix = stmt.dest.datatype.asInstanceOf[IR_MatrixDatatype]
       var newStmts = ListBuffer[IR_Statement]()
       for (row <- 0 until matrix.sizeM) {
         for (col <- 0 until matrix.sizeN) {
           var cloned = Duplicate(stmt)
-          StateManager.findAll[IR_Expression](cloned).foreach(x => x match {
-            case x : IR_FunctionArgument => // do not mark function arguments to be resolved into indivual accesses
-            case x if(x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+          StateManager.findAll[IR_Expression](cloned).foreach(exp => {System.out.println("found " + exp);exp match {
+            case x : IR_FunctionArgument                                                                                                    => // do not mark function arguments to be resolved into indivual accesses
+            case x @ (_  : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_FieldAccess | _ : IR_MultiDimFieldAccess) if(x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
               x.annotate(annotationMatrixRow, row)
               x.annotate(annotationMatrixCol, col)
             }
-            case _ =>
-          })
-          cloned.annotate(annotationMatrixRow, row)
-          cloned.annotate(annotationMatrixCol, col)
+            case _                                                                                                                          =>
+          }})
           newStmts += cloned
         }
       }
@@ -198,7 +200,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
     case exp : IR_MatrixExpression if(exp.hasAnnotation(annotationMatrixRow)) => {
       exp.get(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])
     }
-    case exp : IR_VariableAccess if(exp.hasAnnotation(annotationMatrixRow)) => {
+    case exp : IR_Expression if(exp.hasAnnotation(annotationMatrixRow)) => {
       IR_HighDimAccess(exp, IR_ConstIndex(Array(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])))
     }
   })
