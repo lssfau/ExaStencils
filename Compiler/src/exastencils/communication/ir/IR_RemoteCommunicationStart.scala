@@ -41,7 +41,9 @@ case class IR_RemoteCommunicationStart(
         IR_IV_CommBufferIterator(field.field, s"Send_${ concurrencyId }", neighbor.index)
       else
         maxCnt
-      if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == IR_SimplifyExpression.evalIntegral(cnt))) {
+      if (!Knowledge.data_genVariableFieldSizes && IR_SimplifyExpression.evalIntegral(maxCnt) <= 0) {
+        IR_NullStatement // nothing to do for empty data ranges
+      } else if (!Knowledge.data_genVariableFieldSizes && (condition.isEmpty && 1 == IR_SimplifyExpression.evalIntegral(maxCnt))) {
         val arrayAccess = IR_DirectFieldAccess(field, indices.begin).linearize.expand().inner
         val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
         IR_RemoteSend(Duplicate(field), neighbor, offsetAccess, 1, IR_RealDatatype, concurrencyId)

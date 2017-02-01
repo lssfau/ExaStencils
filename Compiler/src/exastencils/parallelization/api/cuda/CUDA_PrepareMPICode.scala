@@ -157,13 +157,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
       val field = access._2
 
       // add data sync statements
-      if (syncBeforeHost(access._1, fieldAccesses.keys)
-      )
+      if (syncBeforeHost(access._1, fieldAccesses.keys))
         beforeHost += CUDA_UpdateHostData(Duplicate(access._2)).expand().inner // expand here to avoid global expand afterwards
 
       // update flags for written fields
-      if (syncAfterHost(access._1, fieldAccesses.keys)
-      )
+      if (syncAfterHost(access._1, fieldAccesses.keys))
         afterHost += IR_Assignment(CUDA_HostDataUpdated(field.field, field.slot), IR_BooleanConstant(true))
     }
 

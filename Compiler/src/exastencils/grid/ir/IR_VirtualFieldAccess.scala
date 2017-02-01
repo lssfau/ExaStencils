@@ -1,6 +1,5 @@
 package exastencils.grid.ir
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.datastructures._
@@ -8,7 +7,8 @@ import exastencils.grid.GridGeometry
 
 /// IR_VirtualFieldAccess
 
-case class IR_VirtualFieldAccess(var fieldName : String,
+case class IR_VirtualFieldAccess(
+    var fieldName : String,
     var level : Int,
     var index : IR_ExpressionIndex,
     var arrayIndex : Option[Int] = None,

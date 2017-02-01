@@ -259,8 +259,8 @@ class ParserL4 extends ExaParser with PackratParsers {
 
   lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
   lazy val solveLocallyComponent = /*locationize*/ (genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) }
-  lazy val solveLocallyStatement = locationize(("solve" ~ "locally" ~ "{") ~> solveLocallyComponent.* <~ "}"
-    ^^ (stmts => L4_LocalSolve(stmts.map(_._1), stmts.map(_._2))))
+  lazy val solveLocallyStatement = locationize((("solve" ~ "locally") ~> ("relax" ~> binaryexpression).? <~ "{") ~ solveLocallyComponent.* <~ "}"
+    ^^ { case relax ~ stmts => L4_LocalSolve(stmts.map(_._1), stmts.map(_._2), relax) })
 
   lazy val colorWithStatement = locationize(("color" ~ "with" ~ "{") ~> (booleanexpression <~ ",").+ ~ statement.* <~ "}"
     ^^ { case colors ~ stmts => L4_ColorLoops(colors, stmts) })
@@ -299,7 +299,7 @@ class ParserL4 extends ExaParser with PackratParsers {
   lazy val fieldBoundary = (
     "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L4_NeumannBC(_) }
       ||| "None" ^^ { _ => L4_NoBC }
-      ||| binaryexpression ^^ { L4_DirichletBC }
+      ||| binaryexpression ^^ (L4_DirichletBC(_))
     )
 
   lazy val index : PackratParser[L4_ConstIndex] = (

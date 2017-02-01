@@ -11,7 +11,7 @@ import exastencils.operator.ir._
 
 /// IR_StencilAccess
 
-case class IR_StencilAccess(var stencil : IR_Stencil) extends IR_Expression with IR_SpecialExpandable {
+case class IR_StencilAccess(var stencil : IR_Stencil, var offset : Option[IR_ExpressionIndex]) extends IR_Expression with IR_SpecialExpandable {
   override def datatype = stencil.datatype
 }
 

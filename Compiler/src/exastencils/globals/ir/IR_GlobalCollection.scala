@@ -28,6 +28,7 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
   if (Knowledge.omp_enabled)
     externalDependencies += "omp.h"
   if (Knowledge.cuda_enabled) {
+    externalDependencies += "iostream" // required for error messages
     externalDependencies += "cuda.h"
     externalDependencies += "cuda_runtime.h"
   }

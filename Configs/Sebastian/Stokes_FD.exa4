@@ -53,79 +53,55 @@ Field rhs_p < global, DefCellLayout, None > @all
 
 // stencils and stencils templates
 
-// Stencil Operator_AppliedTo_WRT
-
-Stencil Laplace_xStag_xStag@all {
-  [ 0,  0,  0] => ( 1.0 / vf_gridWidth_x@current + 1.0 / vf_gridWidth_x@current@[1, 0, 0] ) * vf_gridWidth_y@current * vf_gridWidth_z@current + ( 1.0 / vf_stagCVWidth_y@current + 1.0 / vf_stagCVWidth_y@current@[0, 1, 0] ) * vf_stagCVWidth_x@current * vf_gridWidth_z@current + ( 1.0 / vf_stagCVWidth_z@current + 1.0 / vf_stagCVWidth_z@current@[0, 0, 1] ) * vf_stagCVWidth_x@current * vf_gridWidth_y@current
-  [-1,  0,  0] => ( -1.0 / vf_gridWidth_x@current@[0, 0, 0] ) * vf_gridWidth_y@current * vf_gridWidth_z@current
-  [ 1,  0,  0] => ( -1.0 / vf_gridWidth_x@current@[1, 0, 0] ) * vf_gridWidth_y@current * vf_gridWidth_z@current
-  [ 0, -1,  0] => ( -1.0 / vf_stagCVWidth_y@current@[0, 0, 0] ) * vf_stagCVWidth_x@current * vf_gridWidth_z@current
-  [ 0,  1,  0] => ( -1.0 / vf_stagCVWidth_y@current@[0, 1, 0] ) * vf_stagCVWidth_x@current * vf_gridWidth_z@current
-  [ 0,  0, -1] => ( -1.0 / vf_stagCVWidth_z@current@[0, 0, 0] ) * vf_stagCVWidth_x@current * vf_gridWidth_y@current
-  [ 0,  0,  1] => ( -1.0 / vf_stagCVWidth_z@current@[0, 0, 1] ) * vf_stagCVWidth_x@current * vf_gridWidth_y@current
+Stencil Laplace@all {
+	[ 0,  0,  0] =>  2.0 / ( vf_gridWidth_x@current ** 2 ) + 2.0 / ( vf_gridWidth_y@current ** 2 ) + 2.0 / ( vf_gridWidth_z@current ** 2 )
+	[-1,  0,  0] => -1.0 / ( vf_gridWidth_x@current ** 2 )
+	[ 1,  0,  0] => -1.0 / ( vf_gridWidth_x@current ** 2 )
+	[ 0, -1,  0] => -1.0 / ( vf_gridWidth_y@current ** 2 )
+	[ 0,  1,  0] => -1.0 / ( vf_gridWidth_y@current ** 2 )
+	[ 0,  0, -1] => -1.0 / ( vf_gridWidth_z@current ** 2 )
+	[ 0,  0,  1] => -1.0 / ( vf_gridWidth_z@current ** 2 )
 }
 
-Stencil dx_Cell_xStag@all {
-  [ 0,  0,  0] =>  vf_gridWidth_y@current * vf_gridWidth_z@current
-  [-1,  0,  0] => -vf_gridWidth_y@current * vf_gridWidth_z@current
+Stencil dxLeft@all {
+	[-1,  0,  0] => -1.0 / vf_gridWidth_x@current
+	[ 0,  0,  0] =>  1.0 / vf_gridWidth_x@current
 }
 
-
-Stencil Laplace_yStag_yStag@all {
-  [ 0,  0,  0] => ( 1.0 / vf_stagCVWidth_x@current + 1.0 / vf_stagCVWidth_x@current@[1, 0, 0] ) * vf_stagCVWidth_y@current * vf_gridWidth_z@current + ( 1.0 / vf_gridWidth_y@current + 1.0 / vf_gridWidth_y@current@[0, 1, 0] ) * vf_gridWidth_x@current * vf_gridWidth_z@current + ( 1.0 / vf_stagCVWidth_z@current + 1.0 / vf_stagCVWidth_z@current@[0, 0, 1] ) * vf_gridWidth_x@current * vf_stagCVWidth_y@current
-  [-1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@current@[0, 0, 0] ) * vf_stagCVWidth_y@current * vf_gridWidth_z@current
-  [ 1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@current@[1, 0, 0] ) * vf_stagCVWidth_y@current * vf_gridWidth_z@current
-  [ 0, -1,  0] => ( -1.0 / vf_gridWidth_y@current@[0, 0, 0] ) * vf_gridWidth_x@current * vf_gridWidth_z@current
-  [ 0,  1,  0] => ( -1.0 / vf_gridWidth_y@current@[0, 1, 0] ) * vf_gridWidth_x@current * vf_gridWidth_z@current
-  [ 0,  0, -1] => ( -1.0 / vf_stagCVWidth_z@current@[0, 0, 0] ) * vf_gridWidth_x@current * vf_stagCVWidth_y@current
-  [ 0,  0,  1] => ( -1.0 / vf_stagCVWidth_z@current@[0, 0, 1] ) * vf_gridWidth_x@current * vf_stagCVWidth_y@current
+Stencil dxRight@all {
+	[ 0,  0,  0] => -1.0 / vf_gridWidth_x@current
+	[ 1,  0,  0] =>  1.0 / vf_gridWidth_x@current
 }
 
-Stencil dy_Cell_yStag@all {
-  [ 0,  0,  0] =>  vf_gridWidth_x@current * vf_gridWidth_z@current
-  [ 0, -1,  0] => -vf_gridWidth_x@current * vf_gridWidth_z@current
+Stencil dyLeft@all {
+	[ 0, -1,  0] => -1.0 / vf_gridWidth_y@current
+	[ 0,  0,  0] =>  1.0 / vf_gridWidth_y@current
 }
 
-
-Stencil Laplace_zStag_zStag@all {
-  [ 0,  0,  0] => ( 1.0 / vf_stagCVWidth_x@current + 1.0 / vf_stagCVWidth_x@current@[1, 0, 0] ) * vf_gridWidth_y@current * vf_stagCVWidth_z@current + ( 1.0 / vf_stagCVWidth_y@current + 1.0 / vf_stagCVWidth_y@current@[0, 1, 0] ) * vf_gridWidth_x@current * vf_stagCVWidth_z@current + ( 1.0 / vf_gridWidth_z@current + 1.0 / vf_gridWidth_z@current@[0, 0, 1] ) * vf_gridWidth_x@current * vf_gridWidth_y@current
-  [-1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@current@[0, 0, 0] ) * vf_gridWidth_y@current * vf_stagCVWidth_z@current
-  [ 1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@current@[1, 0, 0] ) * vf_gridWidth_y@current * vf_stagCVWidth_z@current
-  [ 0, -1,  0] => ( -1.0 / vf_stagCVWidth_y@current@[0, 0, 0] ) * vf_gridWidth_x@current * vf_stagCVWidth_z@current
-  [ 0,  1,  0] => ( -1.0 / vf_stagCVWidth_y@current@[0, 1, 0] ) * vf_gridWidth_x@current * vf_stagCVWidth_z@current
-  [ 0,  0, -1] => ( -1.0 / vf_gridWidth_z@current@[0, 0, 0] ) * vf_gridWidth_x@current * vf_gridWidth_y@current
-  [ 0,  0,  1] => ( -1.0 / vf_gridWidth_z@current@[0, 0, 1] ) * vf_gridWidth_x@current * vf_gridWidth_y@current
+Stencil dyRight@all {
+	[ 0,  0,  0] => -1.0 / vf_gridWidth_y@current
+	[ 0,  1,  0] =>  1.0 / vf_gridWidth_y@current
 }
 
-Stencil dz_Cell_zStag@all {
-  [ 0,  0,  0] =>  vf_gridWidth_x@current * vf_gridWidth_y@current
-  [ 0,  0, -1] => -vf_gridWidth_x@current * vf_gridWidth_y@current
+Stencil dzLeft@all {
+	[ 0,  0, -1] => -1.0 / vf_gridWidth_z@current
+	[ 0,  0,  0] =>  1.0 / vf_gridWidth_z@current
 }
 
-
-Stencil dx_xStag_Cell@all {
-  [ 0,  0,  0] => -vf_gridWidth_y@current * vf_gridWidth_z@current
-  [ 1,  0,  0] =>  vf_gridWidth_y@current * vf_gridWidth_z@current
+Stencil dzRight@all {
+	[ 0,  0,  0] => -1.0 / vf_gridWidth_z@current
+	[ 0,  0,  1] =>  1.0 / vf_gridWidth_z@current
 }
-Stencil dy_yStag_Cell@all {
-  [ 0,  0,  0] => -vf_gridWidth_x@current * vf_gridWidth_z@current
-  [ 0,  1,  0] =>  vf_gridWidth_x@current * vf_gridWidth_z@current
-}
-Stencil dz_zStag_Cell@all {
-  [ 0,  0,  0] => -vf_gridWidth_x@current * vf_gridWidth_y@current
-  [ 0,  0,  1] =>  vf_gridWidth_x@current * vf_gridWidth_y@current
-}
-
 
 Stencil RestrictionCell@all {
-	[ 0,  0,  0] => 1.0
-    [ 0,  0,  1] => 1.0
-    [ 0,  1,  0] => 1.0
-    [ 1,  0,  0] => 1.0
-    [ 0,  1,  1] => 1.0
-    [ 1,  0,  1] => 1.0
-    [ 1,  1,  0] => 1.0
-    [ 1,  1,  1] => 1.0
+	[ 0,  0,  0] => 0.125
+    [ 0,  0,  1] => 0.125
+    [ 0,  1,  0] => 0.125
+    [ 1,  0,  0] => 0.125
+    [ 0,  1,  1] => 0.125
+    [ 1,  0,  1] => 0.125
+    [ 1,  1,  0] => 0.125
+    [ 1,  1,  1] => 0.125
 }
 
 Stencil CorrectionCell@all {
@@ -133,21 +109,21 @@ Stencil CorrectionCell@all {
 }
 
 Stencil RestrictionFaceX@all {
-	[ 0,  0,  0] => 1.0
-	[-1,  0,  0] => 0.5
-	[ 1,  0,  0] => 0.5
+	[ 0,  0,  0] => 0.125
+	[-1,  0,  0] => 0.0625
+	[ 1,  0,  0] => 0.0625
 
-	[ 0,  1,  0] => 1.0
-	[-1,  1,  0] => 0.5
-	[ 1,  1,  0] => 0.5
+	[ 0,  1,  0] => 0.125
+	[-1,  1,  0] => 0.0625
+	[ 1,  1,  0] => 0.0625
 
-	[ 0,  0,  1] => 1.0
-	[-1,  0,  1] => 0.5
-	[ 1,  0,  1] => 0.5
+	[ 0,  0,  1] => 0.125
+	[-1,  0,  1] => 0.0625
+	[ 1,  0,  1] => 0.0625
 
-	[ 0,  1,  1] => 1.0
-	[-1,  1,  1] => 0.5
-	[ 1,  1,  1] => 0.5
+	[ 0,  1,  1] => 0.125
+	[-1,  1,  1] => 0.0625
+	[ 1,  1,  1] => 0.0625
 }
 
 Stencil CorrectionFaceX@all {
@@ -156,21 +132,21 @@ Stencil CorrectionFaceX@all {
 }
 
 Stencil RestrictionFaceY@all {
-	[ 0,  0,  0] => 1.0
-	[ 0, -1,  0] => 0.5
-	[ 0,  1,  0] => 0.5
+	[ 0,  0,  0] => 0.125
+	[ 0, -1,  0] => 0.0625
+	[ 0,  1,  0] => 0.0625
 
-	[ 0,  0,  1] => 1.0
-	[ 0, -1,  1] => 0.5
-	[ 0,  1,  1] => 0.5
+	[ 0,  0,  1] => 0.125
+	[ 0, -1,  1] => 0.0625
+	[ 0,  1,  1] => 0.0625
 
-	[ 1,  0,  0] => 1.0
-	[ 1, -1,  0] => 0.5
-	[ 1,  1,  0] => 0.5
+	[ 1,  0,  0] => 0.125
+	[ 1, -1,  0] => 0.0625
+	[ 1,  1,  0] => 0.0625
 
-	[ 1,  0,  1] => 1.0
-	[ 1, -1,  1] => 0.5
-	[ 1,  1,  1] => 0.5
+	[ 1,  0,  1] => 0.125
+	[ 1, -1,  1] => 0.0625
+	[ 1,  1,  1] => 0.0625
 }
 
 Stencil CorrectionFaceY@all {
@@ -179,21 +155,21 @@ Stencil CorrectionFaceY@all {
 }
 
 Stencil RestrictionFaceZ@all {
-	[ 0,  0,  0] => 1.0
-	[ 0,  0, -1] => 0.5
-	[ 0,  0,  1] => 0.5
+	[ 0,  0,  0] => 0.125
+	[ 0,  0, -1] => 0.0625
+	[ 0,  0,  1] => 0.0625
 
-	[ 1,  0,  0] => 1.0
-	[ 1,  0, -1] => 0.5
-	[ 1,  0,  1] => 0.5
+	[ 1,  0,  0] => 0.125
+	[ 1,  0, -1] => 0.0625
+	[ 1,  0,  1] => 0.0625
 
-	[ 0,  1,  0] => 1.0
-	[ 0,  1, -1] => 0.5
-	[ 0,  1,  1] => 0.5
+	[ 0,  1,  0] => 0.125
+	[ 0,  1, -1] => 0.0625
+	[ 0,  1,  1] => 0.0625
 
-	[ 1,  1,  0] => 1.0
-	[ 1,  1, -1] => 0.5
-	[ 1,  1,  1] => 0.5
+	[ 1,  1,  0] => 0.125
+	[ 1,  1, -1] => 0.0625
+	[ 1,  1,  1] => 0.0625
 }
 
 Stencil CorrectionFaceZ@all {
@@ -228,19 +204,15 @@ Function Application ( ) : Unit {
 Function InitFields@finest ( ) : Unit {
 	loop over rhs_u@current {
 		rhs_u@current = 4.0 * sin ( 8.0 * vf_cellCenter_y@current ) * sin ( 2.0 * vf_cellCenter_z@current ) * cos ( 4.0 * vf_nodePosition_x@current ) - 64.0 * cos ( 4.0 * vf_cellCenter_z@current )
-		rhs_u@current *= vf_xStagCellVolume@current
 	}
 	loop over rhs_v@current {
 		rhs_v@current = 8.0 * sin ( 4.0 * vf_cellCenter_x@current ) * sin ( 2.0 * vf_cellCenter_z@current ) * cos ( 8.0 * vf_nodePosition_y@current ) + 512.0 * cos ( 8.0 * vf_cellCenter_x@current )
-		rhs_v@current *= vf_yStagCellVolume@current
 	}
 	loop over rhs_w@current {
 		rhs_w@current = 2.0 * sin ( 4.0 * vf_cellCenter_x@current ) * sin ( 8.0 * vf_cellCenter_y@current ) * cos ( 2.0 * vf_nodePosition_z@current ) - 8.0 * cos ( 2.0 * vf_cellCenter_y@current )
-		rhs_w@current *= vf_zStagCellVolume@current
 	}
 	loop over rhs_p@current {
 		rhs_p@current = 0.0
-		rhs_p@current *= vf_cellVolume@current
 	}
 
 	/*loop over u@current {
@@ -500,7 +472,7 @@ Function Distributive@all ( ) : Unit {
 		1 == ( x + y + z ) % 2,
 
 		loop over u@current {
-			u@current += ( ( rhs_u@current - dx_Cell_xStag@current * p@current - Laplace_xStag_xStag@current * u@current ) / Laplace_xStag_xStag@current:[0, 0, 0] )
+			u@current += ( ( rhs_u@current - dxLeft@current * p@current - Laplace@current * u@current ) / Laplace@current:[0, 0, 0] )
 		}
 
 		communicate u@current
@@ -512,7 +484,7 @@ Function Distributive@all ( ) : Unit {
 		1 == ( x + y + z ) % 2,
 
 		loop over v@current {
-			v@current += ( ( rhs_v@current - dy_Cell_yStag@current * p@current - Laplace_yStag_yStag@current * v@current ) / Laplace_yStag_yStag@current:[0, 0, 0] )
+			v@current += ( ( rhs_v@current - dyLeft@current * p@current - Laplace@current * v@current ) / Laplace@current:[0, 0, 0] )
 		}
 
 		communicate v@current
@@ -524,7 +496,7 @@ Function Distributive@all ( ) : Unit {
 		1 == ( x + y + z ) % 2,
 
 		loop over w@current {
-			w@current += ( ( rhs_w@current - dz_Cell_zStag@current * p@current - Laplace_zStag_zStag@current * w@current ) / Laplace_zStag_zStag@current:[0, 0, 0] )
+			w@current += ( ( rhs_w@current - dzLeft@current * p@current - Laplace@current * w@current ) / Laplace@current:[0, 0, 0] )
 		}
 
 		communicate w@current
@@ -536,8 +508,7 @@ Function Distributive@all ( ) : Unit {
 		1 == ( x + y + z ) % 2,
 
 		loop over p@current {
-			Var delta : Real = rhs_p@current - ( dx_xStag_Cell@current * u@current + dy_yStag_Cell@current * v@current + dz_zStag_Cell@current * w@current )
-			delta /= vf_cellVolume@current
+			Var delta : Real = rhs_p@current - ( dxRight@current * u@current + dyRight@current * v@current + dzRight@current * w@current )
 
 			Var numNeigh : Int = 6
 			//if ( isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) { numNeigh -= 1 }
@@ -549,29 +520,29 @@ Function Distributive@all ( ) : Unit {
 
 			delta /= numNeigh
 			//if ( !isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) {
-				u@current@[ 0,  0,  0] -= delta * vf_cellWidth_x@current@[ 0,  0,  0]
+				u@current@[ 0,  0,  0] -= delta * vf_gridWidth_x@current
 				p@current@[-1,  0,  0] -= delta
 			//}
 			//if ( !isOnBoundaryOf ( p@current@[ 1,  0,  0] ) ) {
-				u@current@[ 1,  0,  0] += delta * vf_cellWidth_x@current@[ 1,  0,  0]
+				u@current@[ 1,  0,  0] += delta * vf_gridWidth_x@current
 				p@current@[ 1,  0,  0] -= delta
 			//}
 
 			//if ( !isOnBoundaryOf ( p@current@[ 0, -1,  0] ) ) {
-				v@current@[ 0,  0,  0] -= delta * vf_cellWidth_y@current@[ 0,  0,  0]
+				v@current@[ 0,  0,  0] -= delta * vf_gridWidth_y@current
 				p@current@[ 0, -1,  0] -= delta
 			//}
 			//if ( !isOnBoundaryOf ( p@current@[ 0,  1,  0] ) ) {
-				v@current@[ 0,  1,  0] += delta * vf_cellWidth_y@current@[ 0,  1,  0]
+				v@current@[ 0,  1,  0] += delta * vf_gridWidth_y@current
 				p@current@[ 0,  1,  0] -= delta
 			//}
 
 			//if ( !isOnBoundaryOf ( p@current@[ 0,  0, -1] ) ) {
-				w@current@[ 0,  0,  0] -= delta * vf_cellWidth_z@current@[ 0,  0,  0]
+				w@current@[ 0,  0,  0] -= delta * vf_gridWidth_z@current
 				p@current@[ 0,  0, -1] -= delta
 			//}
 			//if ( !isOnBoundaryOf ( p@current@[ 0,  0,  1] ) ) {
-				w@current@[ 0,  0,  1] += delta * vf_cellWidth_z@current@[ 0,  0,  1]
+				w@current@[ 0,  0,  1] += delta * vf_gridWidth_z@current
 				p@current@[ 0,  0,  1] -= delta
 			//}
 
@@ -590,7 +561,7 @@ Function Distributive@all ( ) : Unit {
 }
 
 Function Vanka@all ( ) : Unit {
-	// currently allowed: [1,1,1]|[2,1,1] -> TODO: improve code through summarizing equations
+	// currently allowed: [1,1,1]|[2,1,1]|[2,2,2] -> TODO: improve code through summarizing equations
 	Val stride_x : Int = 1
 	Val stride_y : Int = 1
 	Val stride_z : Int = 1
@@ -630,18 +601,13 @@ Function Vanka@all ( ) : Unit {
 
 			loop over p@current {
 				solve locally relax vankaRelax {
-					// FIXME: inherit field access offset in stencil convolution
-					
-					u@current@[0, 0, 0] => Laplace_xStag_xStag@current * u@current@[0, 0, 0] + dx_Cell_xStag@current * p@current@[0, 0, 0] == rhs_u@current@[0, 0, 0]
-					u@current@[1, 0, 0] => Laplace_xStag_xStag@current * u@current@[1, 0, 0] + dx_Cell_xStag@current * p@current@[1, 0, 0] == rhs_u@current@[1, 0, 0]
-
-					v@current@[0, 0, 0] => Laplace_yStag_yStag@current * v@current@[0, 0, 0] + dy_Cell_yStag@current * p@current@[0, 0, 0] == rhs_v@current@[0, 0, 0]
-					v@current@[0, 1, 0] => Laplace_yStag_yStag@current * v@current@[0, 1, 0] + dy_Cell_yStag@current * p@current@[0, 1, 0] == rhs_v@current@[0, 1, 0]
-
-					w@current@[0, 0, 0] => Laplace_zStag_zStag@current * w@current@[0, 0, 0] + dz_Cell_zStag@current * p@current@[0, 0, 0] == rhs_w@current@[0, 0, 0]
-					w@current@[0, 0, 1] => Laplace_zStag_zStag@current * w@current@[0, 0, 1] + dz_Cell_zStag@current * p@current@[0, 0, 1] == rhs_w@current@[0, 0, 1]
-
-					p@current@[0, 0, 0] => dx_xStag_Cell@current * u@current@[0, 0, 0] + dy_yStag_Cell@current * v@current@[0, 0, 0] + dz_zStag_Cell@current * w@current@[0, 0, 0] == rhs_p@current@[0, 0, 0]
+					u@current@[0, 0, 0] => Laplace@current * u@current@[0, 0, 0] + dxLeft@current  * p@current@[0, 0, 0] == rhs_u@current@[0, 0, 0]
+					u@current@[1, 0, 0] => Laplace@current * u@current@[1, 0, 0] + dxLeft@current  * p@current@[1, 0, 0] == rhs_u@current@[1, 0, 0]
+					v@current@[0, 0, 0] => Laplace@current * v@current@[0, 0, 0] + dyLeft@current  * p@current@[0, 0, 0] == rhs_v@current@[0, 0, 0]
+					v@current@[0, 1, 0] => Laplace@current * v@current@[0, 1, 0] + dyLeft@current  * p@current@[0, 1, 0] == rhs_v@current@[0, 1, 0]
+					w@current@[0, 0, 0] => Laplace@current * w@current@[0, 0, 0] + dzLeft@current  * p@current@[0, 0, 0] == rhs_w@current@[0, 0, 0]
+					w@current@[0, 0, 1] => Laplace@current * w@current@[0, 0, 1] + dzLeft@current  * p@current@[0, 0, 1] == rhs_w@current@[0, 0, 1]
+					p@current@[0, 0, 0] => dxRight@current * u@current@[0, 0, 0] + dyRight@current * v@current@[0, 0, 0] + dzRight@current * w@current@[0, 0, 0] == rhs_p@current@[0, 0, 0]
 				}
 			}
 
@@ -657,22 +623,74 @@ Function Vanka@all ( ) : Unit {
 	} else if ( 2 == stride_x && 1 == stride_y && 1 == stride_z ) {
 		loop over p@current stepping [2, 1, 1] {
 			solve locally relax vankaRelax {
-				u@current@[0, 0, 0] => Laplace_xStag_xStag@current * u@current@[0, 0, 0] + dx_Cell_xStag@current * p@current@[0, 0, 0] == rhs_u@current@[0, 0, 0]
-				u@current@[1, 0, 0] => Laplace_xStag_xStag@current * u@current@[1, 0, 0] + dx_Cell_xStag@current * p@current@[1, 0, 0] == rhs_u@current@[1, 0, 0]
-				u@current@[2, 0, 0] => Laplace_xStag_xStag@current * u@current@[2, 0, 0] + dx_Cell_xStag@current * p@current@[2, 0, 0] == rhs_u@current@[2, 0, 0]
+				u@current@[0, 0, 0] => Laplace@current * u@current@[0, 0, 0] - dxLeft@current  * p@current@[0, 0, 0] == rhs_u@current@[0, 0, 0]
+				u@current@[1, 0, 0] => Laplace@current * u@current@[1, 0, 0] - dxLeft@current  * p@current@[1, 0, 0] == rhs_u@current@[1, 0, 0]
+				u@current@[2, 0, 0] => Laplace@current * u@current@[2, 0, 0] - dxLeft@current  * p@current@[2, 0, 0] == rhs_u@current@[2, 0, 0]
 
-				v@current@[0, 0, 0] => Laplace_yStag_yStag@current * v@current@[0, 0, 0] + dy_Cell_yStag@current * p@current@[0, 0, 0] == rhs_v@current@[0, 0, 0]
-				v@current@[0, 1, 0] => Laplace_yStag_yStag@current * v@current@[0, 1, 0] + dy_Cell_yStag@current * p@current@[0, 1, 0] == rhs_v@current@[0, 1, 0]
-				v@current@[1, 0, 0] => Laplace_yStag_yStag@current * v@current@[1, 0, 0] + dy_Cell_yStag@current * p@current@[1, 0, 0] == rhs_v@current@[1, 0, 0]
-				v@current@[1, 1, 0] => Laplace_yStag_yStag@current * v@current@[1, 1, 0] + dy_Cell_yStag@current * p@current@[1, 1, 0] == rhs_v@current@[1, 1, 0]
+				v@current@[0, 0, 0] => Laplace@current * v@current@[0, 0, 0] - dyLeft@current  * p@current@[0, 0, 0] == rhs_v@current@[0, 0, 0]
+				v@current@[0, 1, 0] => Laplace@current * v@current@[0, 1, 0] - dyLeft@current  * p@current@[0, 1, 0] == rhs_v@current@[0, 1, 0]
+				v@current@[1, 0, 0] => Laplace@current * v@current@[1, 0, 0] - dyLeft@current  * p@current@[1, 0, 0] == rhs_v@current@[1, 0, 0]
+				v@current@[1, 1, 0] => Laplace@current * v@current@[1, 1, 0] - dyLeft@current  * p@current@[1, 1, 0] == rhs_v@current@[1, 1, 0]
 
-				w@current@[0, 0, 0] => Laplace_zStag_zStag@current * w@current@[0, 0, 0] + dz_Cell_zStag@current * p@current@[0, 0, 0] == rhs_w@current@[0, 0, 0]
-				w@current@[0, 0, 1] => Laplace_zStag_zStag@current * w@current@[0, 0, 1] + dz_Cell_zStag@current * p@current@[0, 0, 1] == rhs_w@current@[0, 0, 1]
-				w@current@[1, 0, 0] => Laplace_zStag_zStag@current * w@current@[1, 0, 0] + dz_Cell_zStag@current * p@current@[1, 0, 0] == rhs_w@current@[0, 0, 0]
-				w@current@[1, 0, 1] => Laplace_zStag_zStag@current * w@current@[1, 0, 1] + dz_Cell_zStag@current * p@current@[1, 0, 1] == rhs_w@current@[0, 0, 1]
+				w@current@[0, 0, 0] => Laplace@current * w@current@[0, 0, 0] - dzLeft@current  * p@current@[0, 0, 0] == rhs_w@current@[0, 0, 0]
+				w@current@[0, 0, 1] => Laplace@current * w@current@[0, 0, 1] - dzLeft@current  * p@current@[0, 0, 1] == rhs_w@current@[0, 0, 1]
+				w@current@[1, 0, 0] => Laplace@current * w@current@[1, 0, 0] - dzLeft@current  * p@current@[1, 0, 0] == rhs_w@current@[1, 0, 0]
+				w@current@[1, 0, 1] => Laplace@current * w@current@[1, 0, 1] - dzLeft@current  * p@current@[1, 0, 1] == rhs_w@current@[1, 0, 1]
 
-				p@current@[0, 0, 0] => dx_xStag_Cell@current * u@current@[0, 0, 0] + dy_yStag_Cell@current * v@current@[0, 0, 0] + dz_zStag_Cell@current * w@current@[0, 0, 0] == rhs_p@current@[0, 0, 0]
-				p@current@[1, 0, 0] => dx_xStag_Cell@current * u@current@[1, 0, 0] + dy_yStag_Cell@current * v@current@[1, 0, 0] + dz_zStag_Cell@current * w@current@[1, 0, 0] == rhs_p@current@[1, 0, 0]
+				p@current@[0, 0, 0] => dxRight@current * u@current@[0, 0, 0] + dyRight@current * v@current@[0, 0, 0] + dzRight@current * w@current@[0, 0, 0] == rhs_p@current@[0, 0, 0]
+				p@current@[1, 0, 0] => dxRight@current * u@current@[1, 0, 0] + dyRight@current * v@current@[1, 0, 0] + dzRight@current * w@current@[1, 0, 0] == rhs_p@current@[1, 0, 0]
+			}
+		}
+	} else if ( 2 == stride_x && 2 == stride_y && 2 == stride_z ) {
+		loop over p@current stepping [2, 2, 2] {
+			solve locally relax vankaRelax {
+				u@current@[0, 0, 0] => Laplace@current * u@current@[0, 0, 0] - dxLeft@current  * p@current@[0, 0, 0] == rhs_u@current@[0, 0, 0]
+				u@current@[1, 0, 0] => Laplace@current * u@current@[1, 0, 0] - dxLeft@current  * p@current@[1, 0, 0] == rhs_u@current@[1, 0, 0]
+				u@current@[2, 0, 0] => Laplace@current * u@current@[2, 0, 0] - dxLeft@current  * p@current@[2, 0, 0] == rhs_u@current@[2, 0, 0]
+				u@current@[0, 1, 0] => Laplace@current * u@current@[0, 1, 0] - dxLeft@current  * p@current@[0, 1, 0] == rhs_u@current@[0, 1, 0]
+				u@current@[1, 1, 0] => Laplace@current * u@current@[1, 1, 0] - dxLeft@current  * p@current@[1, 1, 0] == rhs_u@current@[1, 1, 0]
+				u@current@[2, 1, 0] => Laplace@current * u@current@[2, 1, 0] - dxLeft@current  * p@current@[2, 1, 0] == rhs_u@current@[2, 1, 0]
+				u@current@[0, 0, 1] => Laplace@current * u@current@[0, 0, 1] - dxLeft@current  * p@current@[0, 0, 1] == rhs_u@current@[0, 0, 1]
+				u@current@[1, 0, 1] => Laplace@current * u@current@[1, 0, 1] - dxLeft@current  * p@current@[1, 0, 1] == rhs_u@current@[1, 0, 1]
+				u@current@[2, 0, 1] => Laplace@current * u@current@[2, 0, 1] - dxLeft@current  * p@current@[2, 0, 1] == rhs_u@current@[2, 0, 1]
+				u@current@[0, 1, 1] => Laplace@current * u@current@[0, 1, 1] - dxLeft@current  * p@current@[0, 1, 1] == rhs_u@current@[0, 1, 1]
+				u@current@[1, 1, 1] => Laplace@current * u@current@[1, 1, 1] - dxLeft@current  * p@current@[1, 1, 1] == rhs_u@current@[1, 1, 1]
+				u@current@[2, 1, 1] => Laplace@current * u@current@[2, 1, 1] - dxLeft@current  * p@current@[2, 1, 1] == rhs_u@current@[2, 1, 1]
+
+				v@current@[0, 0, 0] => Laplace@current * v@current@[0, 0, 0] - dyLeft@current  * p@current@[0, 0, 0] == rhs_v@current@[0, 0, 0]
+				v@current@[0, 1, 0] => Laplace@current * v@current@[0, 1, 0] - dyLeft@current  * p@current@[0, 1, 0] == rhs_v@current@[0, 1, 0]
+				v@current@[0, 2, 0] => Laplace@current * v@current@[0, 2, 0] - dyLeft@current  * p@current@[0, 2, 0] == rhs_v@current@[0, 2, 0]
+				v@current@[1, 0, 0] => Laplace@current * v@current@[1, 0, 0] - dyLeft@current  * p@current@[1, 0, 0] == rhs_v@current@[1, 0, 0]
+				v@current@[1, 1, 0] => Laplace@current * v@current@[1, 1, 0] - dyLeft@current  * p@current@[1, 1, 0] == rhs_v@current@[1, 1, 0]
+				v@current@[1, 2, 0] => Laplace@current * v@current@[1, 2, 0] - dyLeft@current  * p@current@[1, 2, 0] == rhs_v@current@[1, 2, 0]
+				v@current@[0, 0, 1] => Laplace@current * v@current@[0, 0, 1] - dyLeft@current  * p@current@[0, 0, 1] == rhs_v@current@[0, 0, 1]
+				v@current@[0, 1, 1] => Laplace@current * v@current@[0, 1, 1] - dyLeft@current  * p@current@[0, 1, 1] == rhs_v@current@[0, 1, 1]
+				v@current@[0, 2, 1] => Laplace@current * v@current@[0, 2, 1] - dyLeft@current  * p@current@[0, 2, 1] == rhs_v@current@[0, 2, 1]
+				v@current@[1, 0, 1] => Laplace@current * v@current@[1, 0, 1] - dyLeft@current  * p@current@[1, 0, 1] == rhs_v@current@[1, 0, 1]
+				v@current@[1, 1, 1] => Laplace@current * v@current@[1, 1, 1] - dyLeft@current  * p@current@[1, 1, 1] == rhs_v@current@[1, 1, 1]
+				v@current@[1, 2, 1] => Laplace@current * v@current@[1, 2, 1] - dyLeft@current  * p@current@[1, 2, 1] == rhs_v@current@[1, 2, 1]
+
+				w@current@[0, 0, 0] => Laplace@current * w@current@[0, 0, 0] - dzLeft@current  * p@current@[0, 0, 0] == rhs_w@current@[0, 0, 0]
+				w@current@[0, 0, 1] => Laplace@current * w@current@[0, 0, 1] - dzLeft@current  * p@current@[0, 0, 1] == rhs_w@current@[0, 0, 1]
+				w@current@[0, 0, 2] => Laplace@current * w@current@[0, 0, 2] - dzLeft@current  * p@current@[0, 0, 2] == rhs_w@current@[0, 0, 2]
+				w@current@[1, 0, 0] => Laplace@current * w@current@[1, 0, 0] - dzLeft@current  * p@current@[1, 0, 0] == rhs_w@current@[1, 0, 0]
+				w@current@[1, 0, 1] => Laplace@current * w@current@[1, 0, 1] - dzLeft@current  * p@current@[1, 0, 1] == rhs_w@current@[1, 0, 1]
+				w@current@[1, 0, 2] => Laplace@current * w@current@[1, 0, 2] - dzLeft@current  * p@current@[1, 0, 2] == rhs_w@current@[1, 0, 2]
+				w@current@[0, 1, 0] => Laplace@current * w@current@[0, 1, 0] - dzLeft@current  * p@current@[0, 1, 0] == rhs_w@current@[0, 1, 0]
+				w@current@[0, 1, 1] => Laplace@current * w@current@[0, 1, 1] - dzLeft@current  * p@current@[0, 1, 1] == rhs_w@current@[0, 1, 1]
+				w@current@[0, 1, 2] => Laplace@current * w@current@[0, 1, 2] - dzLeft@current  * p@current@[0, 1, 2] == rhs_w@current@[0, 1, 2]
+				w@current@[1, 1, 0] => Laplace@current * w@current@[1, 1, 0] - dzLeft@current  * p@current@[1, 1, 0] == rhs_w@current@[1, 1, 0]
+				w@current@[1, 1, 1] => Laplace@current * w@current@[1, 1, 1] - dzLeft@current  * p@current@[1, 1, 1] == rhs_w@current@[1, 1, 1]
+				w@current@[1, 1, 2] => Laplace@current * w@current@[1, 1, 2] - dzLeft@current  * p@current@[1, 1, 2] == rhs_w@current@[1, 1, 2]
+
+				p@current@[0, 0, 0] => dxRight@current * u@current@[0, 0, 0] + dyRight@current * v@current@[0, 0, 0] + dzRight@current * w@current@[0, 0, 0] == rhs_p@current@[0, 0, 0]
+				p@current@[1, 0, 0] => dxRight@current * u@current@[1, 0, 0] + dyRight@current * v@current@[1, 0, 0] + dzRight@current * w@current@[1, 0, 0] == rhs_p@current@[1, 0, 0]
+				p@current@[0, 1, 0] => dxRight@current * u@current@[0, 1, 0] + dyRight@current * v@current@[0, 1, 0] + dzRight@current * w@current@[0, 1, 0] == rhs_p@current@[0, 1, 0]
+				p@current@[1, 1, 0] => dxRight@current * u@current@[1, 1, 0] + dyRight@current * v@current@[1, 1, 0] + dzRight@current * w@current@[1, 1, 0] == rhs_p@current@[1, 1, 0]
+				p@current@[0, 0, 1] => dxRight@current * u@current@[0, 0, 1] + dyRight@current * v@current@[0, 0, 1] + dzRight@current * w@current@[0, 0, 1] == rhs_p@current@[0, 0, 1]
+				p@current@[1, 0, 1] => dxRight@current * u@current@[1, 0, 1] + dyRight@current * v@current@[1, 0, 1] + dzRight@current * w@current@[1, 0, 1] == rhs_p@current@[1, 0, 1]
+				p@current@[0, 1, 1] => dxRight@current * u@current@[0, 1, 1] + dyRight@current * v@current@[0, 1, 1] + dzRight@current * w@current@[0, 1, 1] == rhs_p@current@[0, 1, 1]
+				p@current@[1, 1, 1] => dxRight@current * u@current@[1, 1, 1] + dyRight@current * v@current@[1, 1, 1] + dzRight@current * w@current@[1, 1, 1] == rhs_p@current@[1, 1, 1]
 			}
 		}
 	}
@@ -698,7 +716,7 @@ Function UpdateResidual@all ( ) : Unit {
 
 Function UpdateResidual_u@all ( ) : Unit {
 	loop over residual_u@current {
-		residual_u@current = rhs_u@current - ( Laplace_xStag_xStag@current * u@current + dx_Cell_xStag@current * p@current )
+		residual_u@current = rhs_u@current - ( Laplace@current * u@current + dxLeft@current * p@current )
 	}
 
 	communicate residual_u@current
@@ -706,7 +724,7 @@ Function UpdateResidual_u@all ( ) : Unit {
 
 Function UpdateResidual_v@all ( ) : Unit {
 	loop over residual_v@current {
-		residual_v@current = rhs_v@current - ( Laplace_yStag_yStag@current * v@current + dy_Cell_yStag@current * p@current )
+		residual_v@current = rhs_v@current - ( Laplace@current * v@current + dyLeft@current * p@current )
 	}
 
 	communicate residual_v@current
@@ -714,7 +732,7 @@ Function UpdateResidual_v@all ( ) : Unit {
 
 Function UpdateResidual_w@all ( ) : Unit {
 	loop over residual_w@current {
-		residual_w@current = rhs_w@current - ( Laplace_zStag_zStag@current * w@current + dz_Cell_zStag@current * p@current )
+		residual_w@current = rhs_w@current - ( Laplace@current * w@current + dzLeft@current * p@current )
 	}
 
 	communicate residual_w@current
@@ -722,7 +740,7 @@ Function UpdateResidual_w@all ( ) : Unit {
 
 Function UpdateResidual_p@all ( ) : Unit {
 	loop over residual_p@current {
-		residual_p@current = rhs_p@current - ( dx_xStag_Cell@current * u@current + dy_yStag_Cell@current * v@current + dz_zStag_Cell@current * w@current )
+		residual_p@current = rhs_p@current - ( dxRight@current * u@current + dyRight@current * v@current + dzRight@current * w@current )
 	}
 
 	communicate residual_p@current

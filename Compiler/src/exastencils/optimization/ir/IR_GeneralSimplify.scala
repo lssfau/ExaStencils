@@ -4,6 +4,7 @@ import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -149,6 +150,13 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       } else {
         if (fBranch.isEmpty) IR_NullStatement else fBranch
       }
+
+    case IR_IfCondition(IR_IntegerConstant(cond), tBranch, fBranch) if Knowledge.experimental_emliminateIntConditions =>
+      if (cond != 0) {
+        if (tBranch.isEmpty) IR_NullStatement else tBranch
+      } else {
+        if (fBranch.isEmpty) IR_NullStatement else fBranch
+      }
   })
 
   private def simplifyAdd(sum : Seq[IR_Expression]) : IR_Expression = {
@@ -194,12 +202,12 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
                 )
             }
           case m : IR_MatrixExpression =>
-            if(matExpr == null) {
+            if (matExpr == null) {
               matPos = pos
               matExpr = m
             } else {
-              if(matExpr.rows != m.rows || matExpr.columns != m.columns) Logger.error("Matrix sizes must match for addition")
-              val matExprsView = if(matPos) matExpr.expressions.view else matExpr.expressions.view.map { x => IR_Negative(x) }
+              if (matExpr.rows != m.rows || matExpr.columns != m.columns) Logger.error("Matrix sizes must match for addition")
+              val matExprsView = if (matPos) matExpr.expressions.view else matExpr.expressions.view.map { x => IR_Negative(x) }
               val mExprs = if (pos) m.expressions.toSeq else m.expressions.view.map { x => IR_Negative(x) }
               matExpr = IR_MatrixExpression(Some(IR_ResultingDatatype(matExpr.innerDatatype.getOrElse(IR_RealDatatype), m.innerDatatype.getOrElse(IR_RealDatatype))), m.rows, m.columns, matExprsView.zip(mExprs).map { x => x._1 + x._2 : IR_Expression }.to[Array])
             }
@@ -237,8 +245,8 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       else
         Logger.error("Unable to add VectorExpression with other Expression types")
 
-    } else if(matExpr != null) {
-      if(posSums.isEmpty && negSums.isEmpty) {
+    } else if (matExpr != null) {
+      if (posSums.isEmpty && negSums.isEmpty) {
         matExpr
       } else {
         Logger.error("Unable to add MatrixExpression with other Expression types")

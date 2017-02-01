@@ -21,6 +21,8 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
   ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
   ListBuffer("Globals/Globals.h")) {
 
+  externalDependencies += "iostream" // required for error messages
+
   if (Knowledge.mpi_enabled)
     externalDependencies += "mpi.h"
   if (Knowledge.omp_enabled)
