@@ -30,17 +30,17 @@ object MainChristian {
     var prog = "Function Application() : Unit { \n" +
       "//Var m : Matrix<Real, 2, 2>\n"+
       "Var m2 : Matrix<Real, 2, 2>\n"+
-      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}} //+ {{2.0, 2.0}, {2.0, 2.0}} * {{2,2},{2,2}}\n" +
-      "m2 = Bla(m) + {{1.0,1.0},{1.0,1.0}}\n" +
+      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}} + {{2.0, 2.0}, {2.0, 2.0}} * {{2,2},{2,2}}\n" +
+      "//m2 = Bla(m) + {{1.0,1.0},{1.0,1.0}}\n" +
       "m = Bla(m)\n" +
-      "//Bla( {{1.0, 2.0}, {3.0, 4.0}})\n" +
-      "//m2 = m\n" +
+      "Bla( {{1.0, 2.0}, {3.0, 4.0}})\n" +
+      "m2 = m\n" +
       "}" +
       "Function Bla(blubb : Matrix<Real, 2, 2>) : Matrix<Real, 2, 2> {\n" +
-      "Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
+      "//Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
       "//m = Bla(m)\n" +
-      "return(m)\n" +
-      "//return {{2,2},{2,2}}\n" +
+      "//return(m)\n" +
+      "return {{2,2},{2,2}}\n" +
       "}\n" +
       "\n"
 

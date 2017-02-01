@@ -98,6 +98,7 @@ case class IR_FunctionCall(var function : IR_FunctionAccess, var arguments : Lis
 /// IR_Return
 
 object IR_Return {
+  def apply() = new IR_Return(None)
   def apply(expr : IR_Expression) = new IR_Return(Option(expr))
 }
 
