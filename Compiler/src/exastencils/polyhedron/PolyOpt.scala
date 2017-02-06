@@ -55,6 +55,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
+    // macro is sufficient here (for isl) since both arguments are either constants, variables, or contain at most a single add/sub
     Settings.additionalMacros += "#define floord(n,d) (((n)>=0) ? (n)/(d) : (((n)-(d)+1)/(d)))"
 
     Isl.ctx.optionsSetTileScaleTileLoops(0)
