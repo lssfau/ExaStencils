@@ -93,25 +93,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       if (Knowledge.poly_performDCE)
         time(deadCodeElimination(scop), "po:deadCodeElimination")
       time(handleReduction(scop), "po:handleReduction")
-      // FIXME: HACK!! remove until ENDHACK after isl has been updated!!
-      if (Knowledge.poly_HACK) {
-        def hack(old : isl.UnionMap) : Unit = {
-          if (old != null) {
-            var nju : isl.UnionMap = null
-            old.foreachMap { m : isl.Map =>
-              m.foreachBasicMap { bm : isl.BasicMap =>
-                val bm2 = bm.coalesce()
-                nju = if (nju == null) bm2 else nju.union(bm2)
-              }
-            }
-          }
-        }
-        hack(scop.deps.flowPar)
-        hack(scop.deps.flowParVec)
-        hack(scop.deps.antiOutPar)
-        hack(scop.deps.antiOutParVec)
-      }
-      // ENDHACK
       time(simplifyModel(scop), "po:simplifyModel")
 
       if (scop.optLevel >= 2)
