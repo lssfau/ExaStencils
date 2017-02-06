@@ -100,17 +100,16 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       newStmts += IR_Assignment(IR_VariableAccess(decl), exp)
       newStmts
     }
-      // FIXME valueDeclarations?
   })
 
-  this += new Transformation("modify function calls and matrix expressions 1/X", {
+  this += new Transformation("modify assignments 1/3", {
     case stmt @ IR_Assignment(dest, src : IR_FunctionCall, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype] && src.datatype.isInstanceOf[IR_MatrixDatatype]) => {
       src.arguments += dest
       IR_ExpressionStatement(src)
     }
   })
 
-  this += new Transformation("bfejrfrk", {
+  this += new Transformation("modify assignments 2/3", {
     case stmt @ IR_Assignment(dest, src, _) => {
       var newStmts = ListBuffer[IR_Statement]()
       StateManager.findAll[IR_FunctionCall](src).filter(_.datatype.isInstanceOf[IR_MatrixDatatype]).foreach(exp => {
@@ -142,7 +141,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
     }
   })
 
-  this += new Transformation("fbergfej", {
+  this += new Transformation("modify assignments 3/3", {
     case exp : IR_FunctionCall if(exp.hasAnnotation(annotationFctCallCounter)) => {
       IR_VariableAccess("_fct" + exp.popAnnotation(annotationFctCallCounter).get.asInstanceOf[Int] + "_" + exp.function.name, exp.function.datatype.asInstanceOf[IR_MatrixDatatype].datatype)
     }
@@ -169,7 +168,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
     }
   })
 
-  this += new Transformation("expressions 1/X", {
+  this += new Transformation("expressions 1/2", {
     case stmt : IR_Assignment if(stmt.dest.datatype.isInstanceOf[IR_MatrixDatatype]
                                   && !stmt.hasAnnotation(annotationMatrixRow)
                                   && !stmt.dest.isInstanceOf[IR_HighDimAccess]) => {
@@ -179,14 +178,14 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       for (row <- 0 until matrix.sizeM) {
         for (col <- 0 until matrix.sizeN) {
           var cloned = Duplicate(stmt)
-          StateManager.findAll[IR_Expression](cloned).foreach(exp => {System.out.println("found " + exp);exp match {
+          StateManager.findAll[IR_Expression](cloned).foreach(exp => exp match {
             case x : IR_FunctionArgument                                                                                                    => // do not mark function arguments to be resolved into indivual accesses
             case x @ (_  : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_FieldAccess | _ : IR_MultiDimFieldAccess) if(x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
               x.annotate(annotationMatrixRow, row)
               x.annotate(annotationMatrixCol, col)
             }
             case _                                                                                                                          =>
-          }})
+          })
           newStmts += cloned
         }
       }
@@ -196,7 +195,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
 
   // FIXME correctly multiply IR_MatrixDatatype
 
-  this += new Transformation("expressions 2/X", {
+  this += new Transformation("expressions 2/2", {
     case exp : IR_MatrixExpression if(exp.hasAnnotation(annotationMatrixRow)) => {
       exp.get(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])
     }
@@ -204,7 +203,6 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       IR_HighDimAccess(exp, IR_ConstIndex(Array(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])))
     }
   })
-
 
 //  this += new Transformation("linearize HighDimAccesses", {
 //    case access @ IR_HighDimAccess(base : IR_VariableAccess, idx : IR_ConstIndex) => {
