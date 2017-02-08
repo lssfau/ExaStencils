@@ -331,13 +331,10 @@ object IR_SimplifyExpression {
           throw EvaluationException("only constant divisor allowed")
         val mod : Long = tmp(constName)
         res = new HashMap[IR_Expression, Long]()
-        val dividendMap : HashMap[IR_Expression, Long] = extractIntegralSumRec(l).filter(elem => elem._2 % mod != 0L)
-        val cstOpt = dividendMap.remove(constName) // const part can be reduced
-        if (cstOpt.isDefined)
-          dividendMap(constName) = (cstOpt.get % mod + mod) % mod // mathematical modulo
+        val dividendMap : HashMap[IR_Expression, Long] = extractIntegralSumRec(l)
       val dividend : IR_Expression = recreateExprFromIntSum(dividendMap)
         dividend match {
-          case IR_IntegerConstant(x) => res(constName) = x // const part is already result of modulo
+          case IR_IntegerConstant(x) => res(constName) = x % mod
           case _                     => res(IR_Modulo(dividend, IR_IntegerConstant(mod))) = 1L
         }
 
