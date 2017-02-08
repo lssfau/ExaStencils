@@ -188,7 +188,7 @@ object IR_SimplifyExpression {
       tmp = mapL
     val dividend = recreateExprFromIntSum(tmp)
     val (name, update) : (IR_Expression, Long) = dividend match {
-      case IR_IntegerConstant(x)                                                                                                                                         =>
+      case IR_IntegerConstant(x) =>
         val res =
           if (floor) {
             if (x < 0 && divs > 0)
@@ -201,11 +201,11 @@ object IR_SimplifyExpression {
             x / divs
         (constName, res)
 
-      case IR_Division(x, IR_IntegerConstant(divs2)) if !floor                                                                                                           =>
+      case IR_Division(x, IR_IntegerConstant(divs2)) if !floor                                                     =>
         (IR_Division(x, IR_IntegerConstant(divs * divs2)), 1L)
-      case IR_Addition(ListBuffer(IR_Division(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const))) if !floor                                                       =>
+      case IR_Addition(ListBuffer(IR_Division(x, IR_IntegerConstant(divs2)), IR_IntegerConstant(const))) if !floor =>
         (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
-      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_Division(x, IR_IntegerConstant(divs2)))) if !floor                                                       =>
+      case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_Division(x, IR_IntegerConstant(divs2)))) if !floor =>
         (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
 
       case IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))) if floor && "floord" == function.name                                                     =>
@@ -332,7 +332,7 @@ object IR_SimplifyExpression {
         val mod : Long = tmp(constName)
         res = new HashMap[IR_Expression, Long]()
         val dividendMap : HashMap[IR_Expression, Long] = extractIntegralSumRec(l)
-      val dividend : IR_Expression = recreateExprFromIntSum(dividendMap)
+        val dividend : IR_Expression = recreateExprFromIntSum(dividendMap)
         dividend match {
           case IR_IntegerConstant(x) => res(constName) = x % mod
           case _                     => res(IR_Modulo(dividend, IR_IntegerConstant(mod))) = 1L
