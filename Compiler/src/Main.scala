@@ -610,6 +610,9 @@ object Main {
 
     if (Knowledge.generateFortranInterface)
       IR_Fortranify.apply()
+
+    if(Knowledge.experimental_internalHighDimTypes)
+      IR_HACK_TypeAliases.apply()
   }
 
   def print() = {

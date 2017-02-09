@@ -554,7 +554,7 @@ object StateManager {
     * @param node  The node where to start the recursive search.
     * @return A List containing all instances of Nodes of type T.
     */
-  def findAll[T <: AnyRef : ClassTag](predicate : T => Boolean, node : Node = root) : List[T] = {
+  def findAll[T <: AnyRef : ClassTag](predicate : Node => Boolean, node : Node = root) : List[T] = {
     var retVal = new ListBuffer[T]()
     var t = new Transformation("StatemanagerInternalFindAll", {
       case hit : T if predicate(hit) => retVal += hit; new Output(hit)

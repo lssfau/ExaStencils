@@ -1,5 +1,6 @@
 package exastencils.globals.ir
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
@@ -47,6 +48,7 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
     super.printHeader()
     val writer = PrettyprintingManager.getPrinter(s"${ baseName }.h")
     Settings.additionalMacros.foreach(writer <<< _)
+    typeAliases.foreach(x => writer << s"using ${ x._2.prettyprint } = ${ x._1 };\n")
     variables.sortBy(_.name).foreach(variable => writer << s"extern ${ variable.prettyprintDeclaration() }\n")
   }
 
@@ -60,5 +62,11 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
     PrettyprintingManager.getPrinter(s"${ baseName }_initGlobals.cpp").addExternalDependency("cstdlib")
 
     super.printSources()
+  }
+
+  var typeAliases = mutable.HashMap[String, IR_Datatype]()
+
+  def registerTypeAlias(datatype : IR_Datatype, alias : String) = {
+    typeAliases += ((alias, datatype))
   }
 }

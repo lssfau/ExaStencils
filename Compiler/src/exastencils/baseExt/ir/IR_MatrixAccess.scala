@@ -7,6 +7,8 @@ import exastencils.core.StateManager
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir.IR_MultiDimFieldAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
@@ -39,6 +41,13 @@ object IR_MatrixExpression {
     }
     tmp
   }
+
+//  implicit def +(a : IR_MatrixExpression, b : IR_MatrixExpression) = {
+//    val ret = new IR_MatrixExpression(Some(IR_ResultingDatatype(a.innerDatatype.get, b.innerDatatype.get)), a.rows, a.columns)
+//    var xx = a.expressions.zip(b.expressions).map(x => x._1 + x._2).asInstanceOf[Array[IR_Expression]]
+//    ret.expressions = xx
+//    ret
+//  }
 }
 
 // FIXME: to be replaced/ updated
@@ -75,153 +84,83 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
   override def toString: String = {"IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "); Items: " + expressions.mkString(", ")}
 }
 
-case object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars") {
+object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars") {
   val annotationFctCallCounter = "IR_ResolveMatrices.fctCallCounter"
   var fctCallCounter = 0 // temporary variable used to replace function calls in expressions
+  val annotationMatExpCounter = "IR_ResolveMatrices.matrixExpressionCounter"
+  var matExpCounter = 0 // temporary variable used to replace matrix expressions in expressions
+  val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
+  val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
 
-  this += new Transformation("remove function calls 1/2", { // prepare function calls returning IR_MatrixDatatype to replaced by separate accesses
-    case stmt @ IR_Assignment(_, src, _) => {
-      val calls = StateManager.findAll[IR_FunctionCall](src).filter(_.datatype.isInstanceOf[IR_MatrixDatatype])
+  this += new Transformation("declarations", {
+    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(exp : IR_Expression)) => {
       var newStmts = ListBuffer[IR_Statement]()
-      calls.foreach(c => {
-        newStmts += IR_VariableDeclaration(c.function.datatype, "_fct" + fctCallCounter + "_" + c.function.name, Some(Duplicate(c)))
-        c.annotate(annotationFctCallCounter, fctCallCounter)
-      })
-      newStmts += stmt
-      newStmts
-    }
-    case stmt @ IR_VariableDeclaration(_, _, Some(src)) => {
-      val calls = StateManager.findAll[IR_FunctionCall](src).filter(_.datatype.isInstanceOf[IR_MatrixDatatype])
-      var newStmts = ListBuffer[IR_Statement]()
-      calls.foreach(c => {
-        newStmts += IR_VariableDeclaration(c.function.datatype, "_fct" + fctCallCounter + "_" + c.function.name, Some(Duplicate(c)))
-        c.annotate(annotationFctCallCounter, fctCallCounter)
-      })
-      newStmts += stmt
-      newStmts
-    }
-  })
-
-  this += new Transformation("remove function calls 2/2", {
-    case call : IR_FunctionCall if(call.hasAnnotation(annotationFctCallCounter)) => {
-      IR_VariableAccess("_fct" + fctCallCounter + "_" + call.function.name, call.function.datatype)
-    }
-  })
-
-  this += new Transformation("declarations 1/2", {
-    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(func : IR_FunctionCall)) => {
-      var newDecls = ListBuffer[IR_Statement]()
       // split declaration and definition so each part can be handled by subsequent transformations
-      newDecls += IR_VariableDeclaration(matrix, decl.name, None)
-      newDecls += IR_Assignment(IR_VariableAccess(decl.name, matrix), func)
-      newDecls
-    }
-  })
-  this += new Transformation("declarations 2/2", { // This code might look duplicated, but should be faster for different types of initial values
-    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, None) => {
-      var newDecls = ListBuffer[IR_VariableDeclaration]()
-      for(row <- 0 until matrix.sizeM) {
-        for(col <- 0 until matrix.sizeN) {
-          newDecls += new IR_VariableDeclaration(matrix.datatype, "_matrix_" + decl.name + "_" + row + "_" + col, None)
-        }
-      }
-      newDecls
-    }
-    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(x : IR_MatrixExpression)) => {
-      var newDecls = ListBuffer[IR_VariableDeclaration]()
-      for(row <- 0 until matrix.sizeM) {
-        for(col <- 0 until matrix.sizeN) {
-          var value : Option[IR_Expression] = None
-          if(decl.initialValue.isDefined) {
-            value = Some(x.get(row, col))
-          }
-          newDecls += new IR_VariableDeclaration(matrix.datatype, "_matrix_" + decl.name + "_" + row + "_" + col, value)
-        }
-      }
-      newDecls
+      newStmts += IR_VariableDeclaration(matrix, decl.name, None)
+      newStmts += IR_Assignment(IR_VariableAccess(decl), exp)
+      newStmts
     }
   })
 
-  this += new Transformation("function argument types", {
-    case func :  IR_Function => { // Resolve matrix types for function declarations
-      func.parameters = func.parameters.flatMap(param => {
-        param.datatype match {
-          case matrix : IR_MatrixDatatype => {
-            var resolvedParams = ListBuffer[IR_FunctionArgument]()
-            for(row <- 0 until matrix.sizeM) {
-              for(col <- 0 until matrix.sizeN) {
-                resolvedParams += IR_FunctionArgument("_matrix_" + param.name + "_" + row + "_" + col, matrix.datatype)
-              }
-            }
-            resolvedParams
-          }
-          case _ => List(param)
-        }
-      })
-      func
+  this += new Transformation("modify assignments 1/3", {
+    case stmt @ IR_Assignment(dest, src : IR_FunctionCall, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype] && src.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+      src.arguments += dest
+      IR_ExpressionStatement(src)
     }
-    case expstmt @ IR_ExpressionStatement(func : IR_FunctionCall) => { // Resolve matrix types for standalone function calls
-      if(func.function.datatype.isInstanceOf[IR_MatrixDatatype]) { // change function access type
-        func.function = IR_UserFunctionAccess(func.function.name, func.function.datatype.asInstanceOf[IR_MatrixDatatype].datatype)
-      }
-      func.arguments = func.arguments.flatMap(param => {
-        var resolvedParams = ListBuffer[IR_Expression]()
-        param match {
-          case matrix : IR_MatrixExpression => {
-            for(row <- 0 until matrix.rows) {
-              for(col <- 0 until matrix.columns) {
-                resolvedParams += matrix.get(row, col)
-              }
-            }
-          }
-          case access : IR_VariableAccess if(access.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-            val matrix = access.datatype.asInstanceOf[IR_MatrixDatatype]
-            for (row <- 0 until matrix.sizeM) {
-              for (col <- 0 until matrix.sizeN) {
-                resolvedParams += IR_VariableAccess("_matrix_" + access.name + "_" + row + "_" + col, matrix.datatype)
-              }
-            }
-          }
-          // No other IR_Expression with Datatype == IR_MatrixDatatype should exist here
-          case _ => resolvedParams += param
-        }
-        resolvedParams
+  })
+
+  this += new Transformation("modify assignments 2/3", {
+    case stmt @ IR_Assignment(dest, src, _) => {
+      var newStmts = ListBuffer[IR_Statement]()
+      StateManager.findAll[IR_FunctionCall](src).filter(_.datatype.isInstanceOf[IR_MatrixDatatype]).foreach(exp => {
+        newStmts += IR_VariableDeclaration(exp.function.datatype, "_fct" + fctCallCounter + "_" + exp.function.name, Some(Duplicate(exp)))
+        exp.annotate(annotationFctCallCounter, fctCallCounter)
+        fctCallCounter += 1
       })
-      expstmt
+      StateManager.findAll[IR_MatrixExpression](src).foreach(exp => {
+        var decl = IR_VariableDeclaration(exp.datatype, "_matrixExp" + matExpCounter, None)
+        newStmts += decl
+        newStmts += IR_Assignment(IR_VariableAccess(decl), Duplicate(exp))
+        exp.annotate(annotationMatExpCounter, matExpCounter)
+        matExpCounter += 1
+      })
+      newStmts += stmt
+      newStmts
+    }
+    case stmt @ IR_ExpressionStatement(src : IR_FunctionCall) => {
+      var newStmts = ListBuffer[IR_Statement]()
+      StateManager.findAll[IR_MatrixExpression](src).foreach(exp => {
+        var decl = IR_VariableDeclaration(exp.datatype, "_matrixExp" + matExpCounter, None)
+        newStmts += decl
+        newStmts += IR_Assignment(IR_VariableAccess(decl), Duplicate(exp))
+        exp.annotate(annotationMatExpCounter, matExpCounter)
+        matExpCounter += 1
+      })
+      newStmts += stmt
+      newStmts
+    }
+  })
+
+  this += new Transformation("modify assignments 3/3", {
+    case exp : IR_FunctionCall if(exp.hasAnnotation(annotationFctCallCounter)) => {
+      IR_VariableAccess("_fct" + exp.popAnnotation(annotationFctCallCounter).get.asInstanceOf[Int] + "_" + exp.function.name, exp.function.datatype.asInstanceOf[IR_MatrixDatatype].datatype)
+    }
+    case exp : IR_MatrixExpression if(exp.hasAnnotation(annotationMatExpCounter)) => {
+      IR_VariableAccess("_matrixExp" + exp.popAnnotation(annotationMatExpCounter).get.asInstanceOf[Int], exp.datatype)
     }
   })
 
   this += new Transformation("return types", {
     case func : IR_Function if(func.returntype.isInstanceOf[IR_MatrixDatatype]) => {
-      var matrix = func.returntype.asInstanceOf[IR_MatrixDatatype]
-      for(row <- 0 until matrix.sizeM) {
-        for(col <- 0 until matrix.sizeN) {
-          var arg = IR_FunctionArgument("_matrix_return_" + row + "_" + col, IR_ReferenceDatatype(matrix.datatype))
-          func.parameters += arg
-        }
-      }
+      val matrix = func.returntype.asInstanceOf[IR_MatrixDatatype]
+      func.parameters += IR_FunctionArgument("_matrix_return", IR_ReferenceDatatype(matrix))
       func.returntype = IR_UnitDatatype
+
       func.body = func.body.flatMap(stmt => stmt match {
-        case IR_Return(Some(exp : IR_MatrixExpression)) => {
-          if(exp.rows != matrix.sizeM || exp.columns != matrix.sizeN) {
-            Logger.error("Matrix dimension mismatch in function " + func.name)
-          }
-          var stmts = ListBuffer[IR_Statement]()
-          for(row <- 0 until matrix.sizeM) {
-            for (col <- 0 until matrix.sizeM) {
-              stmts += IR_Assignment(IR_VariableAccess("_matrix_return_" + row + "_" + col, exp.innerDatatype.getOrElse(matrix.datatype)), exp.get(row, col))
-            }
-          }
-          stmts
-        }
-        case IR_Return(Some(access : IR_VariableAccess)) if(access.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-          var stmts = ListBuffer[IR_Statement]()
-          for(row <- 0 until matrix.sizeM) {
-            for (col <- 0 until matrix.sizeM) {
-              stmts += IR_Assignment(IR_VariableAccess("_matrix_return_" + row + "_" + col, matrix.datatype), IR_VariableAccess("_matrix_" + access.name + "_" + row + "_" + col, matrix.datatype))
-            }
-          }
-          stmts
+        case IR_Return(Some(exp)) if(exp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+          List(
+            IR_Assignment(IR_VariableAccess("_matrix_return", matrix), exp),
+            IR_Return())
         }
         case _ => List(stmt)
       })
@@ -229,90 +168,59 @@ case object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into sc
     }
   })
 
-  this += new Transformation("assignments", {
-    case IR_Assignment(dst : IR_VariableAccess, src : IR_VariableAccess, _) if(dst.datatype.isInstanceOf[IR_MatrixDatatype] && src.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-      var dstdt = dst.datatype.asInstanceOf[IR_MatrixDatatype]
-      var srcdt = src.datatype.asInstanceOf[IR_MatrixDatatype]
-      if(dstdt.sizeM != srcdt.sizeM || dstdt.sizeN != srcdt.sizeN) {
-        Logger.error("Matrix dimension mismatch in assignment")
-      }
-      var newStmts = ListBuffer[IR_Assignment]()
-      for(row <- 0 until dstdt.sizeM) {
-        for(col <- 0 until dstdt.sizeN) {
-          newStmts += IR_Assignment(IR_VariableAccess("_matrix_" + dst.name + "_" + row + "_" + col, dstdt.datatype), IR_VariableAccess("_matrix_" + src.name + "_" + row + "_" + col, srcdt.datatype))
+  this += new Transformation("expressions 1/2", {
+    case stmt : IR_Assignment if(stmt.dest.datatype.isInstanceOf[IR_MatrixDatatype]
+                                  && !stmt.hasAnnotation(annotationMatrixRow)
+                                  && !stmt.dest.isInstanceOf[IR_HighDimAccess]) => {
+      // annotate all nodes of this expression
+      val matrix = stmt.dest.datatype.asInstanceOf[IR_MatrixDatatype]
+      var newStmts = ListBuffer[IR_Statement]()
+      for (row <- 0 until matrix.sizeM) {
+        for (col <- 0 until matrix.sizeN) {
+          var cloned = Duplicate(stmt)
+          StateManager.findAll[IR_Expression](cloned).foreach(exp => exp match {
+            case x : IR_FunctionArgument                                                                                                    => // do not mark function arguments to be resolved into indivual accesses
+            case x @ (_  : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_FieldAccess | _ : IR_MultiDimFieldAccess) if(x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+              x.annotate(annotationMatrixRow, row)
+              x.annotate(annotationMatrixCol, col)
+            }
+            case _                                                                                                                          =>
+          })
+          newStmts += cloned
         }
       }
       newStmts
     }
-    case IR_Assignment(dst : IR_VariableAccess, func : IR_FunctionCall, _) if(dst.datatype.isInstanceOf[IR_MatrixDatatype] && func.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-      var dstdt = dst.datatype.asInstanceOf[IR_MatrixDatatype]
-      var funcdt = func.datatype.asInstanceOf[IR_MatrixDatatype]
-      if(dstdt.sizeM != funcdt.sizeM || dstdt.sizeN != funcdt.sizeN) {
-        Logger.error("Matrix dimension mismatch in assignment")
-      }
+  }, false)
 
-      func.function = IR_UserFunctionAccess(func.function.name, funcdt.datatype)
-      func.arguments = func.arguments.flatMap(param => {
-        var resolvedParams = ListBuffer[IR_Expression]()
-        param match {
-          case matrix : IR_MatrixExpression => {
-            for(row <- 0 until matrix.rows) {
-              for(col <- 0 until matrix.columns) {
-                resolvedParams += matrix.get(row, col)
-              }
-            }
-          }
-          case access : IR_VariableAccess if(access.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-            val matrix = access.datatype.asInstanceOf[IR_MatrixDatatype]
-            for (row <- 0 until matrix.sizeM) {
-              for (col <- 0 until matrix.sizeN) {
-                resolvedParams += IR_VariableAccess("_matrix_" + access.name + "_" + row + "_" + col, matrix.datatype)
-              }
-            }
-          }
-          // Leave other arguments alone
-          case _ => resolvedParams += param
-        }
-        resolvedParams
-      })
+  // FIXME correctly multiply IR_MatrixDatatype
 
-      // add return variable to function call
-      for(row <- 0 until dstdt.sizeM) {
-        for(col <- 0 until dstdt.sizeN) {
-          var arg = IR_VariableAccess("_matrix_" + dst.name + "_" + row + "_" + col, dstdt.datatype)
-          func.arguments += arg
-        }
-      }
-
-      // FIXME this will result in invalid code if Function returns something, but is called without assignment!
-      // e.g.:  Function foo(bar : Matrix<Real,2,2>) : Matrix<Real,2,2> { ... }
-      //        Function Application() { foo(...); }
-
-      IR_ExpressionStatement(func)
+  this += new Transformation("expressions 2/2", {
+    case exp : IR_MatrixExpression if(exp.hasAnnotation(annotationMatrixRow)) => {
+      exp.get(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])
     }
-    case IR_Assignment(dst : IR_MatrixExpression, src : IR_MatrixExpression, _) => {
-      if(dst.rows != src.rows || dst.columns != src.columns) {
-        Logger.error("Matrix expression dimensions must match for assignment")
-      }
-      var stmts = ListBuffer[IR_Assignment]()
-      for(row <- 0 until dst.rows) {
-        for (col <- 0 until dst.columns) {
-          stmts += IR_Assignment(dst.get(row, col), src.get(row, col))
-        }
-      }
-      stmts.toList
+    case exp : IR_Expression if(exp.hasAnnotation(annotationMatrixRow)) => {
+      IR_HighDimAccess(exp, IR_ConstIndex(Array(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])))
     }
   })
 
-  this += new Transformation("VariableAccesses", {
-    case IR_VariableAccess(name, matrix : IR_MatrixDatatype) => {
-      var exps = ListBuffer[IR_Expression]()
-      for(row <- 0 until matrix.sizeM) {
-        for (col <- 0 until matrix.sizeN) {
-          exps += IR_VariableAccess("_matrix_" + name + "_" + row + "_" + col, matrix.datatype)
-        }
-      }
-      IR_MatrixExpression(Some(matrix.datatype), matrix.sizeM, matrix.sizeN, exps.toArray)
-    }
-  })
+//  this += new Transformation("linearize HighDimAccesses", {
+//    case access @ IR_HighDimAccess(base : IR_VariableAccess, idx : IR_ConstIndex) => {
+//      var matrix = access.datatype.asInstanceOf[IR_MatrixDatatype]
+//      var myidx = idx.toExpressionIndex
+//      base + IR_IntegerConstant((matrix.sizeM - 1)) * myidx.indices(0) + myidx.indices(1)
+//    }
+//  })
+
 }
+//
+//
+//object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
+//    this += new Transformation("linearize HighDimAccesses", {
+//      case access @ IR_HighDimAccess(base : IR_VariableAccess, idx : IR_ConstIndex) => {
+//        var matrix = access.datatype.asInstanceOf[IR_MatrixDatatype]
+//        var myidx = idx.toExpressionIndex
+//        base + IR_IntegerConstant((matrix.sizeM - 1)) * myidx.indices(0) + myidx.indices(1)
+//      }
+//    })
+//}
