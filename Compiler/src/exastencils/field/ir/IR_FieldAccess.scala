@@ -5,6 +5,7 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.logger.Logger
 
 /// IR_MultiDimFieldAccess
 
@@ -35,16 +36,34 @@ object IR_LinearizeDirectFieldAccess extends DefaultStrategy("Linearize DirectFi
 
 /// IR_FieldAccess
 
-case class IR_FieldAccess(var fieldSelection : IR_FieldSelection, var index : IR_ExpressionIndex) extends IR_MultiDimFieldAccess {
+case class IR_FieldAccess(
+    var fieldSelection : IR_FieldSelection,
+    var index : IR_ExpressionIndex,
+    var offset : Option[IR_ExpressionIndex] = None) extends IR_MultiDimFieldAccess {
+
   override def datatype = fieldSelection.fieldLayout.datatype
-  def expandSpecial = IR_DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
+  def expandSpecial = {
+    if (offset.isDefined) Logger.warn(s"IR_FieldAccess with unresolved offset ${ offset.get.prettyprint() } found")
+    IR_DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
+  }
 }
 
 /// IR_ResolveFieldAccess
 
 object IR_ResolveFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes") {
   this += new Transformation("Resolve", {
-    case loop : IR_FieldAccess => loop.expandSpecial
+    case access : IR_FieldAccess => access.expandSpecial
+  })
+}
+
+/// IR_ResolveFieldAccess
+
+object IR_ApplyOffsetToFieldAccess extends DefaultStrategy("Apply offsets to FieldAccess nodes") {
+  this += new Transformation("Resolve", {
+    case access : IR_FieldAccess if access.offset.isDefined =>
+      access.index += access.offset.get
+      access.offset = None
+      access
   })
 }
 
