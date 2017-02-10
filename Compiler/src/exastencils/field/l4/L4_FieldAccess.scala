@@ -46,20 +46,23 @@ case class L4_FieldAccess(
   }
 
   def progress : IR_FieldAccess = {
+    val field = target.getProgressedObject()
+
     // TODO: extract common index stuff from here and VirtualFieldAccess, StencilFieldAccess, etc
     var numDims = Knowledge.dimensionality // TODO: resolve field info
     if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
     var multiIndex = IR_LoopOverDimensions.defIt(numDims)
     if (arrayIndex.isDefined)
       multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
-    if (offset.isDefined) {
+    val progOffset = if (offset.isDefined) {
       var progressedOffset = offset.get.progress
       while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
-      multiIndex += progressedOffset
+      Some(progressedOffset)
+    } else {
+      None
     }
 
-    val field = target.getProgressedObject()
-    IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
+    IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex, progOffset)
   }
 }
 

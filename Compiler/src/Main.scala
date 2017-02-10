@@ -408,6 +408,8 @@ object Main {
 
     IR_ResolveLoopOverPoints.apply()
     IR_ResolveIntergridIndices.apply()
+    IR_ApplyOffsetToFieldAccess.apply()
+    IR_ApplyOffsetToStencilFieldAccess.apply()
 
     var convChanged = false
     do {

@@ -61,18 +61,20 @@ case class L4_StencilFieldAccess(
     else
       multiIndex(numDims - 1) = IR_IntegerConstant(accessIndex)
 
-    if (offset.isDefined) {
+    val progOffset = if (offset.isDefined) {
       var progressedOffset = offset.get.progress
       while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
-      multiIndex += progressedOffset
+      Some(progressedOffset)
+    } else {
+      None
     }
 
     if (accessIndex < 0)
       IR_StencilFieldAccess(IR_StencilFieldSelection(stencilField, stencilField.field.level, L4_FieldAccess.resolveSlot(stencilField.field, slot), None),
-        multiIndex)
+        multiIndex, progOffset)
     else
       IR_FieldAccess(IR_FieldSelection(stencilField.field, stencilField.field.level, L4_FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
-        multiIndex)
+        multiIndex, progOffset)
   }
 }
 
