@@ -62,7 +62,7 @@ case class L4_StencilFieldAccess(
       multiIndex(numDims - 1) = IR_IntegerConstant(accessIndex)
 
     val progOffset = if (offset.isDefined) {
-      var progressedOffset = offset.get.progress
+      val progressedOffset = offset.get.progress
       while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
       Some(progressedOffset)
     } else {

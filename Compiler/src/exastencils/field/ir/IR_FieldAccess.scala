@@ -61,7 +61,8 @@ object IR_ResolveFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes"
 object IR_ApplyOffsetToFieldAccess extends DefaultStrategy("Apply offsets to FieldAccess nodes") {
   this += new Transformation("Resolve", {
     case access : IR_FieldAccess if access.offset.isDefined =>
-      access.index += access.offset.get
+      for (i <- 0 until access.offset.get.size)
+        access.index(i) += access.offset.get(i)
       access.offset = None
       access
   })

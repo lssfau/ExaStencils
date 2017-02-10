@@ -410,6 +410,8 @@ object Main {
     IR_ResolveIntergridIndices.apply()
     IR_ApplyOffsetToFieldAccess.apply()
     IR_ApplyOffsetToStencilFieldAccess.apply()
+    // simplify indices modified just now, otherwise equality checks will not work later on
+    IR_GeneralSimplify.apply()
 
     var convChanged = false
     do {
@@ -611,7 +613,7 @@ object Main {
     if (Knowledge.generateFortranInterface)
       IR_Fortranify.apply()
 
-    if(Knowledge.experimental_internalHighDimTypes)
+    if (Knowledge.experimental_internalHighDimTypes)
       IR_HACK_TypeAliases.apply()
   }
 

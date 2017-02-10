@@ -44,7 +44,8 @@ case class IR_StencilFieldAccess(var stencilFieldSelection : IR_StencilFieldSele
 object IR_ApplyOffsetToStencilFieldAccess extends DefaultStrategy("Apply offsets to StencilFieldAccess nodes") {
   this += new Transformation("Resolve", {
     case access : IR_StencilFieldAccess if access.offset.isDefined =>
-      access.index += access.offset.get
+      for (i <- 0 until access.offset.get.size)
+        access.index(i) += access.offset.get(i)
       access.offset = None
       access
   })
