@@ -7,9 +7,7 @@ import exastencils.core.StateManager
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.field.ir.IR_MultiDimFieldAccess
-import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
 
@@ -180,7 +178,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
           var cloned = Duplicate(stmt)
           StateManager.findAll[IR_Expression](cloned).foreach(exp => exp match {
             case x : IR_FunctionArgument                                                                                                    => // do not mark function arguments to be resolved into indivual accesses
-            case x @ (_  : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_FieldAccess | _ : IR_MultiDimFieldAccess) if(x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+            case x @ (_  : IR_VariableAccess | _ : IR_MatrixExpression | _ : IR_MultiDimFieldAccess) if(x.datatype.isInstanceOf[IR_MatrixDatatype]) => {
               x.annotate(annotationMatrixRow, row)
               x.annotate(annotationMatrixCol, col)
             }
@@ -204,13 +202,18 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
     }
   })
 
-//  this += new Transformation("linearize HighDimAccesses", {
-//    case access @ IR_HighDimAccess(base : IR_VariableAccess, idx : IR_ConstIndex) => {
-//      var matrix = access.datatype.asInstanceOf[IR_MatrixDatatype]
-//      var myidx = idx.toExpressionIndex
-//      base + IR_IntegerConstant((matrix.sizeM - 1)) * myidx.indices(0) + myidx.indices(1)
-//    }
-//  })
+  this += new Transformation("linearize HighDimAccesses", {
+    case access @ IR_HighDimAccess(base : IR_VariableAccess, idx : IR_ConstIndex)                                                                       => {
+      val matrix = access.datatype.asInstanceOf[IR_MatrixDatatype]
+      IR_ArrayAccess(base, IR_IntegerConstant(matrix.sizeM * idx.indices(0) + idx.indices(1)))
+    }
+    case access @ IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_ConstIndex) if(base.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+      val matrix = access.datatype.asInstanceOf[IR_MatrixDatatype]
+      val myidx = idx.toExpressionIndex
+      base.index.indices = base.index.indices :+ (IR_IntegerConstant(matrix.sizeM) * myidx.indices(0) + myidx.indices(1))
+      base
+    }
+  })
 
 }
 //
