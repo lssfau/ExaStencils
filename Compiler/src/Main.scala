@@ -34,6 +34,7 @@ import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4._
 import exastencils.interfacing.ir._
+import exastencils.knowledge.ir.IR_ClearKnowledge
 import exastencils.knowledge.l3.L3_FieldCollection
 import exastencils.knowledge.l4._
 import exastencils.logger._
@@ -121,6 +122,11 @@ object Main {
   }
 
   def shutdown() = {
+    StateManager.root.nodes.clear()
+    ExaRootNode.clear()
+    L4_ClearKnowledge.apply()
+    IR_ClearKnowledge.apply()
+
     if (Settings.timeStrategies)
       StrategyTimer.print()
 
