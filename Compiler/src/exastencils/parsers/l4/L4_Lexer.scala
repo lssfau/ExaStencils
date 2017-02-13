@@ -2,10 +2,12 @@ package exastencils.parsers.l4
 
 import exastencils.parsers.ExaLexer
 
+/// L4_Lexer
+
 /**
   * Defines a basic standard lexical parser for Layer 4
   */
-class LexerL4 extends ExaLexer {
+class L4_Lexer extends ExaLexer {
   // general delimiters
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 

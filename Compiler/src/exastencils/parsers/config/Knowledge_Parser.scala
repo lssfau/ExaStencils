@@ -1,18 +1,19 @@
-package exastencils.parsers.settings
+package exastencils.parsers.config
 
 import scala.collection.immutable.PagedSeq
 import scala.collection.mutable.Stack
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.input.PagedSeqReader
 
-import exastencils.config.Platform
+import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.logger._
 import exastencils.parsers._
 
-// TODO: this is awfully similar to the other settings parsers...
-class ParserPlatform extends ExaParser {
-  override val lexical : StdLexical = new LexerPlatform()
+/// Knowledge_Parser
+
+class Knowledge_Parser extends ExaParser {
+  override val lexical : StdLexical = new Knowledge_Lexer()
 
   def parse(s : String) : Unit = {
     parseTokens(new lexical.Scanner(s))
@@ -40,10 +41,10 @@ class ParserPlatform extends ExaParser {
 
   def setParameter[T](ident : String, value : T) = {
     try {
-      UniversalSetter(Platform, ident, value)
+      UniversalSetter(Knowledge, ident, value)
     } catch {
-      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Platform.${ ident } to ${ value } but this parameter is undefined")
-      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Platform.${ ident } to ${ value } but data types are incompatible")
+      case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Knowledge.${ ident } to ${ value } but this parameter is undefined")
+      case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ ident } to ${ value } but data types are incompatible")
     }
   }
 

@@ -10,7 +10,9 @@ import exastencils.datastructures._
 import exastencils.interfacing.l4.L4_ExternalFieldDecl
 import exastencils.logger._
 
-object ValidationL4 {
+/// L4_Validation
+
+object L4_Validation {
   val s = DefaultStrategy("Validate L4 Input")
   def apply() = s.apply()
 
@@ -69,9 +71,9 @@ object ValidationL4 {
       if (x.datatype.asInstanceOf[L4_VectorDatatype].numElements != x.initialValue.asInstanceOf[L4_VectorExpression].length) Logger.error("Sizes of vectors must match for assignments!"); x
     case x : L4_ValueDeclaration if x.datatype.isInstanceOf[L4_MatrixDatatype] && x.initialValue.isInstanceOf[L4_MatrixExpression] =>
       if (x.datatype.asInstanceOf[L4_MatrixDatatype].numRows != x.datatype.asInstanceOf[L4_MatrixDatatype].numRows || x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns != x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns) Logger.error("Sizes of matrices must match for assignments!"); x
-    case x : L4_VariableDeclaration if x.datatype.isInstanceOf[L4_VectorDatatype]                                                    =>
+    case x : L4_VariableDeclaration if x.datatype.isInstanceOf[L4_VectorDatatype]                                                  =>
       if (x.initialValue.isDefined && x.initialValue.get.isInstanceOf[L4_VectorExpression] && x.initialValue.get.asInstanceOf[L4_VectorExpression].length != x.initialValue.get.asInstanceOf[L4_VectorExpression].length) Logger.error("Sizes of vectors must match for assignments!"); x
-    case x : L4_VariableDeclaration /*(_, mat : L4_MatrixDatatype, exp)*/ if x.datatype.isInstanceOf[L4_MatrixDatatype]              =>
+    case x : L4_VariableDeclaration /*(_, mat : L4_MatrixDatatype, exp)*/ if x.datatype.isInstanceOf[L4_MatrixDatatype]            =>
       if (x.initialValue.isDefined && x.initialValue.get.isInstanceOf[L4_MatrixExpression] && (x.datatype.asInstanceOf[L4_MatrixDatatype].numRows != x.initialValue.get.asInstanceOf[L4_MatrixExpression].rows || x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns != x.initialValue.get.asInstanceOf[L4_MatrixExpression].columns)) Logger.error("Sizes of matrices must match for assignments!"); x
   })
 

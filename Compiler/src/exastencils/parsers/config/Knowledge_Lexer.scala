@@ -1,9 +1,10 @@
-package exastencils.parsers.settings
+package exastencils.parsers.config
 
 import exastencils.parsers.ExaLexer
 import scala.util.parsing.combinator.lexical.StdLexical
 
-class LexerKnowledge extends ExaLexer {
+/// Knowledge_Lexer
+class Knowledge_Lexer extends ExaLexer {
   delimiters += ("=", "(", ")", "{", "}", "-", "+=")
   reserved += ("true", "false", "import")
 }

@@ -18,8 +18,10 @@ import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
 
-class ParserL4 extends ExaParser with PackratParsers {
-  override val lexical : ExaLexer = new LexerL4()
+/// L4_Parser
+
+class L4_Parser extends ExaParser with PackratParsers {
+  override val lexical : ExaLexer = new L4_Lexer()
 
   def parse(s : String) : Node = {
     parseTokens(new lexical.Scanner(s))
