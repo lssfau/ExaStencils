@@ -6,8 +6,6 @@ import exastencils.baseExt.l4._
 import exastencils.communication._
 import exastencils.communication.ir._
 import exastencils.config._
-import exastencils.core._
-import exastencils.datastructures._
 import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.field.ir._
 import exastencils.globals.ir._
@@ -19,6 +17,7 @@ import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
 import exastencils.parallelization.api.mpi.MPI_RemoveMPI
 import exastencils.parallelization.api.omp._
+import exastencils.parsers.config._
 import exastencils.parsers.l4._
 import exastencils.prettyprinting._
 import exastencils.stencil.ir.IR_FindStencilConvolutions
@@ -29,11 +28,11 @@ object MainAlex {
     // Init settings
 
     if (args.length >= 1) {
-      val s = new exastencils.parsers.settings.ParserSettings
+      val s = new Settings_Parser
       s.parseFile(args(0))
     }
     if (args.length >= 2) {
-      val k = new exastencils.parsers.settings.ParserKnowledge
+      val k = new Knowledge_Parser
       k.parseFile(args(1))
     }
 
@@ -51,9 +50,9 @@ object MainAlex {
     val outputfile = "main.cpp"
 
     // HACK: this tests the new L4 capabilities
-    var parserl4 = new ParserL4
+    var parserl4 = new L4_Parser
     ExaRootNode.l4_root = parserl4.parseFile(Settings.basePathPrefix + "/Compiler/dsl/newDSL4.exa")
-    ValidationL4.apply
+    L4_Validation.apply
     L4_ResolveFunctionInstantiations.apply()
 
     L4_ResolveLevelSpecifications.apply()

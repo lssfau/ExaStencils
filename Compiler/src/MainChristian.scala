@@ -26,7 +26,7 @@ object MainChristian {
 
 
     //var tpdl = scala.xml.XML.loadFile("")
-    val parser = new exastencils.parsers.l4.ParserL4()
+    val parser = new exastencils.parsers.l4.L4_Parser()
     val prog = "Function Application() : Unit { \n" +
       "//Var m : Matrix<Real, 2, 2>\n"+
       "Var m2 : Matrix<Real, 2, 2>\n"+

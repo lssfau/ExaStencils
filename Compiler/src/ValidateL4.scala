@@ -1,14 +1,14 @@
 import exastencils.base.ExaRootNode
 import exastencils.config._
-import exastencils.core.StateManager
 import exastencils.parsers.InputReader
+import exastencils.parsers.config._
 import exastencils.parsers.l4._
 
 object ValidateL4 {
   def main(args : Array[String]) : Unit = {
     // check from where to read input
-    val settingsParser = new exastencils.parsers.settings.ParserSettings
-    val knowledgeParser = new exastencils.parsers.settings.ParserKnowledge
+    val settingsParser = new Settings_Parser()
+    val knowledgeParser = new Knowledge_Parser()
     if (args.length == 1 && args(0) == "--json-stdin") {
       InputReader.read
       settingsParser.parse(InputReader.settings)
@@ -30,10 +30,10 @@ object ValidateL4 {
     Knowledge.update()
 
     if (Settings.inputFromJson) {
-      ExaRootNode.l4_root = (new ParserL4).parseFile(InputReader.layer4)
+      ExaRootNode.l4_root = (new L4_Parser).parseFile(InputReader.layer4)
     } else {
-      ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
+      ExaRootNode.l4_root = (new L4_Parser).parseFile(Settings.getL4file)
     }
-    ValidationL4.apply
+    L4_Validation.apply
   }
 }

@@ -47,10 +47,10 @@ import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
 import exastencils.parsers.InputReader
+import exastencils.parsers.config._
 import exastencils.parsers.l2.L2_Parser
 import exastencils.parsers.l3.L3_Parser
 import exastencils.parsers.l4._
-import exastencils.parsers.settings._
 import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
@@ -70,9 +70,9 @@ object Main {
     StateManager.setRoot(ExaRootNode)
 
     // check from where to read input
-    val settingsParser = new ParserSettings()
-    val knowledgeParser = new ParserKnowledge()
-    val platformParser = new ParserPlatform()
+    val settingsParser = new Settings_Parser()
+    val knowledgeParser = new Knowledge_Parser()
+    val platformParser = new Platform_Parser()
     if (args.length == 1 && args(0) == "--json-stdin") {
       InputReader.read()
       settingsParser.parse(InputReader.settings)
@@ -233,14 +233,14 @@ object Main {
       null
 
     if (Settings.inputFromJson) {
-      ExaRootNode.l4_root = (new ParserL4).parseFile(InputReader.layer4)
+      ExaRootNode.l4_root = (new L4_Parser).parseFile(InputReader.layer4)
     } else {
-      ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
+      ExaRootNode.l4_root = (new L4_Parser).parseFile(Settings.getL4file)
     }
 
     ExaRootNode.l4_root.flatten()
 
-    ValidationL4.apply()
+    L4_Validation.apply()
 
     if (Knowledge.experimental_layerExtension) {
       // add some extra nodes to test functionalities
@@ -277,8 +277,8 @@ object Main {
       // re-parse the file to check for errors - also clear knowledge collections
       L4_ClearKnowledge.apply()
 
-      ExaRootNode.l4_root = (new ParserL4).parseFile(repFileName)
-      ValidationL4.apply()
+      ExaRootNode.l4_root = (new L4_Parser).parseFile(repFileName)
+      L4_Validation.apply()
     }
 
     if (Settings.timeStrategies)
