@@ -15,7 +15,8 @@ object IR_AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
   this += new Transformation("Adding default global constants and variables", {
     case globals : IR_GlobalCollection =>
       if (Knowledge.cuda_enabled) {
-        globals.variables += IR_VariableDeclaration("CUcontext", "cudaContext")
+        if (!Knowledge.experimental_eliminateCudaContext)
+          globals.variables += IR_VariableDeclaration("CUcontext", "cudaContext")
         globals.variables += IR_VariableDeclaration("CUdevice", "cudaDevice")
       }
       if (Knowledge.mpi_enabled) {
@@ -45,7 +46,8 @@ object IR_AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
         }
 
         // create context
-        func.body += "cuCtxCreate(&cudaContext, 0, cudaDevice)"
+        if (!Knowledge.experimental_eliminateCudaContext)
+          func.body += "cuCtxCreate(&cudaContext, 0, cudaDevice)"
 
         // set L1 cache and shared memory configuration for this device
         if (Knowledge.cuda_useSharedMemory)

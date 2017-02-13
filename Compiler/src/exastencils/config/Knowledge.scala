@@ -441,6 +441,10 @@ object Knowledge {
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false
+
+  // eliminate occurrences of cudaContext - required for PizDaint
+  var experimental_eliminateCudaContext : Boolean = false
+
   /// paper project - SISC
 
   // [16~64§sisc2015_numNodes*2]
