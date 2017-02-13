@@ -6,6 +6,9 @@ import exastencils.logger._
 object Platform {
   /// target environment
 
+  // name of the target system; e.g. name of the cluster
+  var targetName : String = "i10staff40"
+
   // the target operating system: "Linux", "Windows", "OSX"
   var targetOS : String = "Windows"
 
