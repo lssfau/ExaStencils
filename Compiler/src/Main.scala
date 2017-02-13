@@ -102,6 +102,9 @@ object Main {
     Settings.update()
     Platform.update()
 
+    // resolve aliases in knowledge, settings and platform
+    ResolveAlias.apply()
+
     if (Settings.cancelIfOutFolderExists) {
       if (new java.io.File(Settings.getOutputPath).exists()) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")
