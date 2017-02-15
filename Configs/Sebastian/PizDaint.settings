@@ -1,7 +1,8 @@
 user						= "Sebastian"
 
 basePathPrefix				= ""
-outputPath					= "generated_PizDaint/"
+configName					= "$dimensionality$D_VC$l3tmp_genStencilFields$_$cuda_preferredExecution$_mpi$mpi_numThreads$"
+outputPath					= "generated_PizDaint/$configName$/"
 l4file						= ".\Compiler\dsl\Layer4.exa"
 htmlLogFile					= ".\Compiler\log\log.html"
 

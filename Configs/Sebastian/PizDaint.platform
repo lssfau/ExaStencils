@@ -1,3 +1,5 @@
+targetName					= "PizDaint"
+
 targetOS					= "Linux"
 targetCompiler				= "Cray"
 targetCompilerVersion		= 8
@@ -6,7 +8,8 @@ targetCompilerVersionMinor	= 5
 simd_instructionSet			= "AVX2"
 
 hw_numThreadsPerNode		= 12
-hw_numNodes					= 4400
+hw_numNodesAvailable		= 4400
+hw_numNodes					= 4
 
 hw_cpu_name					= "Intel Xeon E5-2690 v3"
 hw_cpu_numCoresPerCPU		= 12

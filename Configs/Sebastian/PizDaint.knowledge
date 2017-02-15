@@ -54,6 +54,8 @@ cuda_executionCondition				= "0 == mpiRank % 4"
 
 experimental_addPerformanceEstimate	= true
 
+experimental_eliminateCudaContext	= true
+
 //mpi_useCustomDatatypes				= true
 //poly_optLevel_fine					= 3
 //opt_useAddressPrecalc				= true
