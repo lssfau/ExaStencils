@@ -195,8 +195,8 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       //#endif""")
       //}
       if (Knowledge.cuda_enabled) {
-        func.body.prepend(CUDA_Init())
-        func.body.append(CUDA_Finalize())
+        func.body.prepend(CUDA_Init)
+        func.body.append(CUDA_Finalize)
       }
       if (Knowledge.mpi_enabled) {
         func.body.prepend(MPI_Init)

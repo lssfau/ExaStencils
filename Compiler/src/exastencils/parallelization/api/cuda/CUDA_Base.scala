@@ -6,14 +6,16 @@ import exastencils.prettyprinting.PpStream
 
 /// CUDA_Init
 
-// TODO: case object
-case class CUDA_Init() extends CUDA_DeviceStatement {
-  override def prettyprint(out : PpStream) : Unit = out << "cuInit(0);"
+case object CUDA_Init extends CUDA_DeviceStatement {
+  override def prettyprint(out : PpStream) : Unit = {
+    if (!Knowledge.experimental_eliminateCudaContext)
+      out << "cuInit(0);"
+  }
 }
 
 /// CUDA_Finalize
 
-case class CUDA_Finalize() extends CUDA_DeviceStatement {
+case object CUDA_Finalize extends CUDA_DeviceStatement {
   override def prettyprint(out : PpStream) : Unit = {
     // has to be done after all other de-initialization statements
     if (!Knowledge.experimental_eliminateCudaContext)
