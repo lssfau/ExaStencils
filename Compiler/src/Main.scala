@@ -127,8 +127,10 @@ object Main {
     L4_ClearKnowledge.apply()
     IR_ClearKnowledge.apply()
 
-    if (Settings.timeStrategies)
+    if (Settings.timeStrategies) {
       StrategyTimer.print()
+      StrategyTimer.clear()
+    }
 
     if (Settings.produceHtmlLog)
       Logger_HTML.finish()
