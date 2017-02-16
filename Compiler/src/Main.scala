@@ -635,24 +635,36 @@ object Main {
   }
 
   def main(args : Array[String]) : Unit = {
-    // for runtime measurement
-    val start : Long = System.nanoTime()
+    try {
+      // for runtime measurement
+      val start : Long = System.nanoTime()
 
-    initialize(args)
+      initialize(args)
 
-    handleL1()
-    handleL2()
-    handleL3()
-    handleL4()
-    handleIR()
+      handleL1()
+      handleL2()
+      handleL3()
+      handleL4()
 
-    print()
+      handleIR()
+      
+      print()
 
-    Logger.dbg("Done!")
+      Logger.dbg("Done!")
 
-    Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
-    new CountNodes("number of printed nodes").apply()
+      Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e8) / 10.0 + " seconds")
+      new CountNodes("number of printed nodes").apply()
 
-    shutdown()
+      shutdown()
+    } catch {
+      case e : Throwable =>
+        Logger.warn(s"Critical error: ${ e.getMessage }")
+        Logger.warn(s"Stack trace:\n${ e.getStackTrace.mkString("\n\tat ") }")
+
+        if (Settings.produceHtmlLog)
+          Logger_HTML.finish()
+
+        throw e
+    }
   }
 }
