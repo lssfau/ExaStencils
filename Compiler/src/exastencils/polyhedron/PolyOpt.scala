@@ -647,7 +647,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val configLine : String = lines.next()
     Logger.debug("[PolyOpt] Exploration: configuration found:")
     Logger.debug(" " + configLine)
-    val Array(_, bandsStr, scheduleStr, _) = configLine.split("\t")
+    val Array(_, bandsStr, scheduleStr, _, _) = configLine.split("\t")
 
     val bands : Array[Int] = bandsStr.split(",").map(str => Integer.parseInt(str))
     var schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx, scheduleStr)
