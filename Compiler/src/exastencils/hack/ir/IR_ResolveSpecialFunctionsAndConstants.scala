@@ -114,7 +114,8 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       }
     case x : IR_FunctionCall if x.name == "inverse" && exastencils.config.Knowledge.experimental_internalHighDimTypes                      =>
       if (x.arguments.size == 1) {
-        if (x.arguments(0).isInstanceOf[IR_MatrixExpression]) {
+        x.arguments(0) match {
+          case m : IR_MatrixExpression => {
           val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
           m.innerDatatype match {
             case Some(IR_IntegerDatatype)                     => {
@@ -169,8 +170,9 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
           } else {
             x
           }
-        } else {
-          x
+        }
+        case m : IR_Expression if(m.datatype.isInstanceOf[IR_MatrixExpression]) => m
+        case _ => x
         }
       } else {
         x

@@ -36,7 +36,7 @@ case class IR_HighDimAccess(var base : IR_Expression, var index : IR_ConstIndex)
   // TODO: modify this to use IR_HighDimIndex
 
   // Access to matrices, needs to be linearized before prettyprinting
-  override def datatype = base.datatype
+  override def datatype = base.datatype.resolveDeclType
 
   override def prettyprint(out : PpStream) : Unit = {
     out << '(' << '(' << base << ')' << index.map('[' + _.toString + ']').mkString("") << ')'

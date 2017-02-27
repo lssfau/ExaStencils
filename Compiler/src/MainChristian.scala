@@ -28,13 +28,15 @@ object MainChristian {
     //var tpdl = scala.xml.XML.loadFile("")
     val parser = new exastencils.parsers.l4.L4_Parser()
     val prog = "Function Application() : Unit { \n" +
-      "//Var m : Matrix<Real, 2, 2>\n"+
-      "Var m2 : Matrix<Real, 2, 2>\n"+
-      "Val m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}// + {{2.0, 2.0}, {2.0, 2.0}} * {{2,2},{2,2}}\n" +
+      "Var m : Matrix<Real, 2, 2>\n"+
+      "//Var m2 : Matrix<Real, 2, 2>\n"+
+      "//Var m : Matrix<Real, 3, 3> = {{1.0, 2.0,1},{1,1,1}, {3.0, 4.0,1}}// + {{2.0, 2.0}, {2.0, 2.0}} * {{2,2},{2,2}}\n" +
       "//m2 = Bla(m) + {{1.0,1.0},{1.0,1.0}}\n" +
-      "m = Bla(m)\n" +
-      "Bla( {{1.0, 2.0}, {3.0, 4.0}})\n" +
-      "m2 = m\n" +
+      "m = det(m + m)\n" +
+      "//Bla( Bla({{1.0, 2.0}, {3.0, 4.0}} + {{1.0, 2.0}, {3.0, 4.0}} ))\n" +
+      "//Var m : Real = dotProduct(m, m)\n" +
+      "//Var m : Real = inverse({{1.0, 2.0}, {3.0, 4.0}} + {{1.0, 2.0}, {3.0, 4.0}} )\n" +
+      "//m2 = m\n" +
       "}" +
       "Function Bla(blubb : Matrix<Real, 2, 2>) : Matrix<Real, 2, 2> {\n" +
       "//Var m : Matrix<Real, 2, 2> = {{1.0, 2.0}, {3.0, 4.0}}\n" +
@@ -68,15 +70,22 @@ object MainChristian {
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].externalDependencies.clear()
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].internalDependencies.clear()
     System.out.println(root)
-//    IR_GeneralSimplify.doUntilDone(Some(root))
+    IR_GeneralSimplify.doUntilDone(Some(root))
+//    IR_ResolveMatrixFunctions.apply()
     IR_ResolveMatrices.apply()
+//    HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
 //    IR_GeneralSimplify.doUntilDone(Some(root))
-//    IR_ResolveMatrices.apply()
-//    System.out.println(root)
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].functions.foreach(x => x match {
       case y : PrettyPrintable => System.out.println(y.prettyprint)
       case _ => System.out.println(x)
     })
+
+//    IR_ResolveMatrices.apply()
+////    System.out.println(root)
+//    root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].functions.foreach(x => x match {
+//      case y : PrettyPrintable => System.out.println(y.prettyprint)
+//      case _ => System.out.println(x)
+//    })
 
 
 

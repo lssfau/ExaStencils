@@ -85,6 +85,7 @@ object IR_ConstIndex {
   def apply(indices : Int*) = new IR_ConstIndex(indices.toArray)
   def apply(left : IR_ConstIndex, right : IR_ConstIndex, f : (Int, Int) => Int) =
     new IR_ConstIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
+  def apply(i1 : Int, i2 : Int) = new IR_ConstIndex(Array(i1, i2))
 }
 
 case class IR_ConstIndex(var indices : Array[Int]) extends IR_Index with IR_ArrayBasedIndex[Int] {
