@@ -394,6 +394,7 @@ class L4_Parser extends ExaParser with PackratParsers {
       ||| rowVectorExpression
       ||| columnVectorExpression
       ||| matrixExpression
+      ||| locationize("-" ~> matrixExpression ^^ { L4_Negative(_) })
       ||| locationize(stringLit ^^ (s => L4_StringConstant(s)))
       ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L4_IntegerConstant((s.getOrElse("") + n).toInt) else L4_RealConstant((s.getOrElse("") + n).toDouble) })
       ||| locationize("-" ~> functionCall ^^ { L4_Negative(_) })
