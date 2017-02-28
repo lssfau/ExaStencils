@@ -318,13 +318,6 @@ object Platform {
   def resolveLdFlags = {
     var flags : String = ""
 
-    if (Knowledge.library_CImg) {
-      targetOS match {
-        case "Windows"       => flags += " -lgdi32 "
-        case "Linux" | "OSX" => flags += " -lm -lpthread -lX11"
-      }
-    }
-
     targetCompiler match {
       case "IBMBG" | "IBMXL" =>
         flags += " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot

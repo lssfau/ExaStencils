@@ -3,6 +3,7 @@ package exastencils.prettyprinting
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config._
+import exastencils.util.CImg
 
 object MakefileGenerator extends BuildfileGenerator {
   override def write() : Unit = {
@@ -46,6 +47,11 @@ object MakefileGenerator extends BuildfileGenerator {
       Settings.pathsLib.map(path => s"-L$path"),
       Settings.additionalDefines.map(path => s"-D$path")
     )
+    printer <<< mkStringTrimFlat(
+      "LDLIBS =",
+      CImg.resolveLdLibs(),
+      Settings.additionalLibs.map(lib => s"-l$lib")
+    )
     printer <<< ""
 
     printer <<< mkStringTrimFlat("ALL_OBJ =", allObjectFiles)
@@ -77,14 +83,12 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     printer <<< mkStringTrimFlat("${BINARY}:", "${ALL_OBJ}")
-    printer <<< "\t" + mkStringTrimFlat(
-      "${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}", Settings.additionalLibs.map(lib => s"-l$lib")
-    )
+    printer <<< "\t" + mkStringTrimFlat(      "${CXX} -o ${BINARY}", "${LDFLAGS}", "${ALL_OBJ}", "${LDLIBS}")
     printer <<< ""
 
     if (Settings.makefile_makeLibs) {
       printer <<< mkStringTrimFlat("${BINARY}.a:", "${ALL_OBJ}")
-      printer <<< "\t" + mkStringTrimFlat("ar -cvr ${BINARY}.a", "${ALL_OBJ}")
+      printer <<< "\t" + mkStringTrimFlat("ar -cvr ${BINARY}.a", "${ALL_OBJ}", "${LDLIBS}")
       printer <<< ""
     }
     printer <<< ""
@@ -102,7 +106,7 @@ object MakefileGenerator extends BuildfileGenerator {
     printer <<< ""
 
     printer <<< "# begin: additionalFiles targets"
-    // no information about dependecies => just compiling is the best we can do
+    // no information about dependencies => just compiling is the best we can do
     Settings.additionalFiles.filter(file => file.endsWith(".cpp")).toList.sorted.foreach(file => {
       printer <<< mkStringTrimFlat(file.replace(".cpp", ".o"), ":", file)
     })
