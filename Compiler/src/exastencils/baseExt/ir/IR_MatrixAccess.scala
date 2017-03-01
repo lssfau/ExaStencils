@@ -62,16 +62,23 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
   }
 
   def prettyprintInner(out: PpStream): Unit = {
-    out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
-    innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
-    out << "[]){" << (expressions.map(_.prettyprint).mkString(",")) << "})"
+    if(Knowledge.experimental_internalHighDimTypes) {
+      out << "INVALID: IR_MatrixExpression"
+    } else {
+      out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
+      innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
+      out << "[]){" << (expressions.map(_.prettyprint).mkString(",")) << "})"
+    }
   }
   override def prettyprint(out: PpStream): Unit = {
-    val prec = if (Knowledge.useDblPrecision) "double" else "float"
-
-    out << "Matrix<" << (if (isInteger) "int" else prec) << ", " << rows << ", " << columns << "> ("
-    prettyprintInner(out)
-    out << ")"
+    if(Knowledge.experimental_internalHighDimTypes) {
+      out << "INVALID: IR_MatrixExpression"
+    } else {
+      val prec = if (Knowledge.useDblPrecision) "double" else "float"
+      out << "Matrix<" << (if (isInteger) "int" else prec) << ", " << rows << ", " << columns << "> ("
+      prettyprintInner(out)
+      out << ")"
+    }
   }
 
   def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
@@ -251,7 +258,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       var newStmts = ListBuffer[IR_Statement]()
 
       exp.arguments = exp.arguments.map(arg => arg match {
-        case argexp : IR_FieldAccess                                                     => argexp
+        case argexp : IR_MultiDimFieldAccess                                             => argexp
         case argexp : IR_VariableAccess                                                  => argexp
         case argexp : IR_Expression if (argexp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
           var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp" + matExpCounter, None)
@@ -269,7 +276,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       var newStmts = ListBuffer[IR_Statement]()
 
       exp.arguments = exp.arguments.map(arg => arg match {
-        case argexp : IR_FieldAccess                                                     => argexp
+        case argexp : IR_MultiDimFieldAccess                                             => argexp
         case argexp : IR_VariableAccess                                                  => argexp
         case argexp : IR_Expression if (argexp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
           var decl = IR_VariableDeclaration(argexp.datatype, "_matrixExp" + matExpCounter, None)
@@ -288,7 +295,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
   this += new Transformation("resolution of built-in functions 1/2", {
     case call : IR_FunctionCall if (builtInFunctions.contains(call.name)) => {
       call.arguments = call.arguments.map(arg => arg match {
-        case _ : IR_VariableAccess | _ : IR_FieldAccess => {
+        case _ : IR_VariableAccess | _ : IR_MultiDimFieldAccess => {
           val matrix = arg.datatype.asInstanceOf[IR_MatrixDatatype]
           var exps = ListBuffer[IR_Expression]()
           for (row <- 0 until matrix.sizeM) {
@@ -427,6 +434,35 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
     }
     case exp : IR_Expression if (exp.hasAnnotation(annotationMatrixRow))       => {
       IR_HighDimAccess(exp, IR_ConstIndex(Array(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])))
+    }
+  })
+
+//  this += new Transformation("linearize into array accesses", {
+//    case access @ IR_HighDimAccess(base : IR_VariableAccess, idx : IR_ConstIndex) => {
+//      val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
+//      val myidx = idx.toExpressionIndex
+//      IR_ArrayAccess(base, IR_IntegerConstant(matrix.sizeM) * myidx.indices(0) + myidx.indices(1))
+//    }
+//    case access @ IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_ConstIndex) => {
+//    // FIXME
+//    }
+//  })
+  this += Transformation("linearize HighDimAccesses", {
+    case access @ IR_HighDimAccess(base, idx : IR_ConstIndex) if(idx.indices.length == 2) => {
+      val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
+      idx.indices = List( matrix.sizeM * idx.indices(0) + idx.indices(1) ).toArray
+      access
+    }
+  })
+}
+
+
+object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
+  this += Transformation("Linearize", {
+    case access @ IR_HighDimAccess(base : IR_ArrayAccess, idx : IR_ConstIndex) => {
+      val myidx = idx.toExpressionIndex
+      base.index = base.index + myidx(0)
+      base
     }
   })
 }
