@@ -210,6 +210,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
               val matExprsView = if (matPos) matExpr.expressions.view else matExpr.expressions.view.map { x => IR_Negative(x) }
               val mExprs = if (pos) m.expressions.toSeq else m.expressions.view.map { x => IR_Negative(x) }
               matExpr = IR_MatrixExpression(Some(IR_ResultingDatatype(matExpr.innerDatatype.getOrElse(IR_RealDatatype), m.innerDatatype.getOrElse(IR_RealDatatype))), m.rows, m.columns, matExprsView.zip(mExprs).map { x => x._1 + x._2 : IR_Expression }.to[Array])
+              matPos = true
             }
           case e : IR_Expression       =>
             if (pos)
@@ -249,7 +250,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       if (posSums.isEmpty && negSums.isEmpty) {
         matExpr
       } else {
-        Logger.error("Unable to add MatrixExpression with other Expression types")
+        IR_Addition(ListBuffer(matExpr) ++ posSums ++ negSums.transform(IR_Negative(_)))
       }
 
     } else if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
@@ -361,10 +362,10 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
         List(IR_Addition(left.expressions.view.zip(right.expressions).map { x => x._1 * x._2 : IR_Expression }.to[ListBuffer]))
       case (left : IR_MatrixExpression, right : IR_MatrixExpression) => {
         if (left.columns != right.rows) Logger.error("Matrix sizes must match for multiplication")
-        var m = IR_MatrixExpression(IR_ResultingDatatype(left.innerDatatype.getOrElse(IR_RealDatatype), right.innerDatatype.getOrElse(IR_RealDatatype)), left.rows, right.columns)
+        val m = IR_MatrixExpression(IR_ResultingDatatype(left.innerDatatype.getOrElse(IR_RealDatatype), right.innerDatatype.getOrElse(IR_RealDatatype)), left.rows, right.columns)
         for (row <- 0 until m.rows) {
           for (col <- 0 until m.columns) {
-            var entry = IR_Addition()
+            val entry = IR_Addition()
             for (k <- 0 until m.columns) {
               entry.summands += left.get(row, k) * right.get(k, col)
             }
