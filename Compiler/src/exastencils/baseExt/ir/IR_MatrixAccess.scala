@@ -49,7 +49,6 @@ object IR_MatrixExpression {
 //  }
 }
 
-// FIXME: to be replaced/ updated
 case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows: Int, var columns: Int) extends IR_Expression {
   var expressions: Array[IR_Expression] = Array.ofDim[IR_Expression](rows * columns)
 
@@ -80,12 +79,11 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
   def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
   def get(row: Integer, column: Integer) = expressions(row * columns + column)
   def set(row: Integer, column: Integer, exp: IR_Expression) = expressions(row * columns + column) = exp
-  override def toString: String = {"IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "); Items: " + expressions.mkString(", ")}
+  override def toString: String = {"IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "; Items: " + expressions.mkString(", ") + ")"}
 }
 
 
 object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars") {
-  //  val annotationNoSplit = "IR_ResolveMatrices.noSplit"
   val annotationFctCallCounter = "IR_ResolveMatrices.fctCallCounter"
   var fctCallCounter = 0
   // temporary variable used to replace function calls in expressions
@@ -289,7 +287,6 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
 
   this += new Transformation("resolution of built-in functions 1/2", {
     case call : IR_FunctionCall if (builtInFunctions.contains(call.name)) => {
-      System.out.println("call:" + call)
       call.arguments = call.arguments.map(arg => arg match {
         case _ : IR_VariableAccess | _ : IR_FieldAccess => {
           val matrix = arg.datatype.asInstanceOf[IR_MatrixDatatype]
@@ -303,7 +300,6 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
         }
         case _                                          => arg
       })
-      System.out.println("call:" + call)
       call
     }
   })
