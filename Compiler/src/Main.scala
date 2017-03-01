@@ -609,6 +609,9 @@ object Main {
         OMP_AddCriticalSections.apply()
     }
 
+    if(Knowledge.experimental_internalHighDimTypes)
+      IR_LinearizeMatrices.apply()
+
     // one last time
     if (Knowledge.useFasterExpand)
       IR_ExpandInOnePass.apply()
