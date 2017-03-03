@@ -223,6 +223,8 @@ object Knowledge {
   var poly_scheduleAlgorithm : String = "isl"
   // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
   var poly_exploration_extended : Boolean = false
+  // [0~3] // specifies how many (heuristic) filters should be applied to reduce the number or generated schedules during the exploration
+  var poly_exploration_filterLevel : Int = 0
   // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_optimizeDeps : String = "raw"
   // [true|false] // specifies if the dependences to optimize should be filtered first
