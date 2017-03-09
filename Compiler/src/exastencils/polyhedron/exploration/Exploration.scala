@@ -574,7 +574,7 @@ class PartialSchedule(val domInfo : DomainCoeffInfo, val allDeps : ArrayBuffer[i
     remainingDeps = remainingDeps.filterNot(carried.contains)
     if (!noCheck)
       for (i <- 1 until bands.last)
-        if (this.filterCarriedDeps(carriedDeps(carriedDeps.length - i)) == null)
+        if (this.filterCarriedDeps(carriedDeps(carriedDeps.length - i - 1)) == null)
           return 1
     return 0
   }
