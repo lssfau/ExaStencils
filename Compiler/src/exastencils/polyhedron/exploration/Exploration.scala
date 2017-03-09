@@ -386,19 +386,18 @@ object Exploration {
     // build prefixes for modified schedule
     val newPrefixes = new ArrayBuffer[PartialSchedule]()
     for (((coeff : Int, index : Int)) <- offsetCoeffsBuffer) Breaks.breakable {
-      val newSchedVecs : ArrayBuffer[Array[Int]] = prefix.scheduleVectors.map { x => x.clone() } // deep clone
       val newPrefix = new PartialSchedule(prefix.domInfo, prefix.allDeps)
       newPrefix.allowedVectors = prefix.allowedVectors
       newPrefix.newBand()
       i = 0
-      while (i < newSchedVecs.length) {
+      while (i < sVecs.length) {
+        var schedVec = sVecs(i)
         if (i == index) {
           val actualOffset = Util.divEArrayPW(offsetArray, coeff, null)
           if (actualOffset == null)
             Breaks.break() // continue
-          Util.addArrayPW(newSchedVecs(index), actualOffset, newSchedVecs(index))
+          schedVec = Util.addArrayPW(schedVec, actualOffset, actualOffset)
         }
-        val schedVec = newSchedVecs(i)
         newPrefix.addScheduleVector(schedVec) match {
           case 0  => // valid schedule
             i += 1
