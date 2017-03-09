@@ -533,7 +533,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     eConfOut.println(Knowledge.poly_exploration_extended)
     eConfOut.println()
     var i : Int = 0
-    Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, {
+    Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, Console.out, {
       (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int]) =>
         i += 1
         eConfOut.print(df.format(i))

@@ -3,6 +3,8 @@ package exastencils.polyhedron.exploration
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ArrayStack
 
+import java.io.PrintStream
+
 import exastencils.config.Knowledge
 import exastencils.polyhedron.Isl
 import exastencils.polyhedron.Isl.TypeAliases._
@@ -102,28 +104,31 @@ object Exploration {
       }
   }
 
-  def guidedExploration(domain : isl.UnionSet, deps : isl.UnionMap, extended : Boolean,
+  def guidedExploration(domain : isl.UnionSet, deps : isl.UnionMap, extended : Boolean, progressOStream : PrintStream,
       resultsCallback : (isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int]) => Unit) : Unit = {
 
     val domInfo = DomainCoeffInfo(domain)
     val depList : ArrayBuffer[isl.BasicMap] = preprocess(domain, deps)
-    // print progress to console and update it every 10 schedules found
-    Console.print("0")
-    Console.flush()
+    if (progressOStream != null) {
+      // print progress to console and update it every 10 schedules found
+      progressOStream.print("0")
+      progressOStream.flush()
+    }
     var i : Int = 0
     completeScheduleGuided(new PartialSchedule(domInfo, depList), extended, {
       (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int]) =>
         i += 1
-        if (i % 10 == 0) {
-          Console.print("\r" + i)
-          Console.flush()
+        if (progressOStream != null && i % 10 == 0) {
+          progressOStream.print("\r" + i)
+          progressOStream.flush()
         }
         val remove : Boolean = Knowledge.poly_exploration_filterLevel >= 1 &&
           nrCarried.view.slice(1, bands(0)).exists(_ != 0) // remove those whose inner loops in the outer band are not parallel
         if (!remove)
           resultsCallback(sched, schedVect, bands, nrCarried)
     })
-    Console.print("\r")
+    if (progressOStream != null)
+      progressOStream.print("\r")
   }
 
   def completeScheduleGuided(prefix : PartialSchedule, extended : Boolean,
