@@ -1,5 +1,6 @@
 package exastencils.polyhedron.exploration
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.ArrayStack
 
@@ -115,6 +116,7 @@ object Exploration {
       progressOStream.flush()
     }
     var i : Int = 0
+    val previous = new mutable.HashSet[SchedVecWrapper]()
     completeScheduleGuided(new PartialSchedule(domInfo, depList), extended, {
       (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int]) =>
         i += 1
@@ -124,8 +126,11 @@ object Exploration {
         }
         val remove : Boolean = Knowledge.poly_exploration_filterLevel >= 1 &&
           nrCarried.view.slice(1, bands(0)).exists(_ != 0) // remove those whose inner loops in the outer band are not parallel
-        if (!remove)
+        val wrap = new SchedVecWrapper(schedVect)
+        if (!previous.contains(wrap) && !remove) {
+          previous += wrap
           resultsCallback(sched, schedVect, bands, nrCarried)
+        }
     })
     if (progressOStream != null)
       progressOStream.print("\r")
@@ -699,5 +704,30 @@ class PartialSchedule(val domInfo : DomainCoeffInfo, val allDeps : ArrayBuffer[i
     }
 
     return Isl.simplify(result)
+  }
+}
+
+private class SchedVecWrapper(scheduleVectors : Seq[Array[Int]]) {
+  val schedVects : Seq[Array[Int]] = scheduleVectors.map(_.clone())
+
+  override def equals(that : scala.Any) : Boolean = {
+    if (that == null || !that.isInstanceOf[SchedVecWrapper])
+      return false
+    val thatSchedVecs = that.asInstanceOf[SchedVecWrapper].schedVects
+    if (this.schedVects == thatSchedVecs)
+      return true
+    if (this.schedVects.length != thatSchedVecs.length)
+      return false
+    return this.schedVects.view.zip(thatSchedVecs).forall {
+      schedVecs : (Array[Int], Array[Int]) =>
+        java.util.Arrays.equals(schedVecs._1, schedVecs._2)
+    }
+  }
+
+  override def hashCode() : Int = {
+    var hash : Int = 1
+    for (vec <- schedVects)
+      hash = 31 * hash + java.util.Arrays.hashCode(vec)
+    return hash
   }
 }
