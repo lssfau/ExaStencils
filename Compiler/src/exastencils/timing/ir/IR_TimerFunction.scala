@@ -17,7 +17,7 @@ abstract class IR_TimerFunction extends IR_AbstractFunction
 /// IR_TimerFunctions
 
 case class IR_TimerFunctions() extends IR_FunctionCollection("Util/TimerFunctions",
-  ListBuffer("fstream"),
+  ListBuffer("fstream", "iostream"),
   ListBuffer("Globals/Globals.h", "Util/Stopwatch.h")) {
 
   functions += IR_StartTimer()
