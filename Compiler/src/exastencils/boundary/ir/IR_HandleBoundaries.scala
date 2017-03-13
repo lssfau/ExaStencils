@@ -23,6 +23,9 @@ import exastencils.polyhedron.PolyhedronAccessible
 
 // TODO: refactor
 case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : ListBuffer[(NeighborInfo, IR_ExpressionIndexRange)]) extends IR_Statement with IR_Expandable {
+  // TODO: inline after fully integrating experimental_internalHighDimTypes functionality
+  def numDims = if (!Knowledge.experimental_internalHighDimTypes) field.fieldLayout.numDimsData else field.fieldLayout.numDimsGrid
+
   def setupFieldUpdate(neigh : NeighborInfo) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
 
@@ -61,11 +64,11 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
 
     // FIXME: this works for now, but users may want to specify bc's per vector element
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
-    val index = IR_LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
+    val index = IR_LoopOverDimensions.defIt(numDims)
     def fieldSel = Duplicate(IR_FieldSelection(field.field, field.level, field.slot, None, field.fragIdx)) // TODO: check
 
-    def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
-    def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(field.fieldLayout.numDimsData - field.fieldLayout.numDimsGrid)(0))
+    def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))
+    def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))
 
     bc match {
       case IR_NeumannBC(order)                 =>
@@ -149,10 +152,10 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
         neighbors.map({ neigh =>
           val adaptedIndexRange = IR_ExpressionIndexRange(neigh._2.begin - field.referenceOffset, neigh._2.end - field.referenceOffset)
           // TODO: assumes equal bc's for all components
-          adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => 0 : IR_Expression)
-          adaptedIndexRange.end.indices ++= (layout.numDimsGrid until layout.numDimsData).map(dim => layout.idxById("TOT", dim))
+          adaptedIndexRange.begin.indices ++= (layout.numDimsGrid until numDims).map(dim => 0 : IR_Expression)
+          adaptedIndexRange.end.indices ++= (layout.numDimsGrid until numDims).map(dim => layout.idxById("TOT", dim))
           val loopOverDims = new IR_LoopOverDimensions(
-            field.fieldLayout.numDimsData,
+            numDims,
             adaptedIndexRange,
             setupFieldUpdate(neigh._1)) with PolyhedronAccessible
           loopOverDims.parallelization.potentiallyParallel = true
