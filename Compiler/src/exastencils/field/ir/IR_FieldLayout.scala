@@ -5,6 +5,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_Linearization
 import exastencils.config._
 import exastencils.knowledge.ir._
+import exastencils.logger.Logger
 
 /// IR_FieldLayout
 
@@ -82,6 +83,8 @@ case class IR_FieldLayout(
   }
 
   def linearizeIndex(index : IR_Index) : IR_Expression = {
+    if (numDimsData != index.length())
+      Logger.warn(s"Index length mismatch for $name@$level: ${ index.length() }, should be $numDimsData")
     IR_Linearization.linearizeIndex(index, IR_ExpressionIndex((0 until math.min(numDimsData, index.length())).map(idxById("TOT", _)).toArray))
   }
 }
