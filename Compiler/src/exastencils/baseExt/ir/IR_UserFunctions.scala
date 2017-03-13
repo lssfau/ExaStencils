@@ -46,5 +46,5 @@ case class IR_UserFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid
   if (!Knowledge.experimental_internalHighDimTypes)
     internalDependencies += "Util/Matrix.h"
 
-  override def toString: String = "IR_UserFunctions(" + baseName + ", " + externalDependencies + ", " + internalDependencies + ", " + functions + ")"
+  override def toString : String = "IR_UserFunctions(" + baseName + ", " + externalDependencies + ", " + internalDependencies + ", " + functions + ")"
 }

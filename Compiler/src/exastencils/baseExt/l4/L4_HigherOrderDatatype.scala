@@ -43,8 +43,8 @@ case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, 
     out << "<" << datatype << ',' << numElements << '>'
   }
   override def progress = {
-    if(Knowledge.experimental_internalHighDimTypes) {
-      IR_MatrixDatatype(datatype.progress, if(isRow.getOrElse(true)) numElements else 1, if(isRow.getOrElse(true)) 1 else numElements)
+    if (Knowledge.experimental_internalHighDimTypes) {
+      IR_MatrixDatatype(datatype.progress, if (isRow.getOrElse(true)) numElements else 1, if (isRow.getOrElse(true)) 1 else numElements)
     } else {
       IR_VectorDatatype(datatype.progress, numElements, isRow)
     }

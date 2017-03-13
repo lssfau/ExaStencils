@@ -3,9 +3,8 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.core.StateManager
 import exastencils.config._
-import exastencils.core.Duplicate
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
@@ -15,21 +14,21 @@ import exastencils.util.ir.IR_ResultingDatatype
 /// IR_HackMatComponentAccess
 
 // FIXME: update with actual accessors
-case class IR_HackMatComponentAccess(var mat: IR_VariableAccess, var i: IR_Expression, var j: IR_Expression) extends IR_Expression {
+case class IR_HackMatComponentAccess(var mat : IR_VariableAccess, var i : IR_Expression, var j : IR_Expression) extends IR_Expression {
   override def datatype = mat.datatype
-  override def prettyprint(out: PpStream): Unit = out << mat << "(" << i << ", " << j << ")"
+  override def prettyprint(out : PpStream) : Unit = out << mat << "(" << i << ", " << j << ")"
 }
 
 /// IR_MatrixExpression
 object IR_MatrixExpression {
   //def apply(innerDatatype : Option[IR_Datatype], rows : Integer, columns : Integer) : IR_MatrixExpression = new IR_MatrixExpression(innerDatatype, rows, columns)
   def apply(innerDatatype : IR_Datatype, rows : Integer, columns : Integer) : IR_MatrixExpression = new IR_MatrixExpression(Some(innerDatatype), rows, columns)
-  def apply(innerDatatype: Option[IR_Datatype], rows: Integer, columns: Integer, expressions: Array[IR_Expression]): IR_MatrixExpression = {
+  def apply(innerDatatype : Option[IR_Datatype], rows : Integer, columns : Integer, expressions : Array[IR_Expression]) : IR_MatrixExpression = {
     val tmp = new IR_MatrixExpression(innerDatatype, rows, columns)
     tmp.expressions = expressions
     tmp
   }
-  def apply(innerDatatype: Option[IR_Datatype], expressions: ListBuffer[ListBuffer[IR_Expression]]): IR_MatrixExpression = {
+  def apply(innerDatatype : Option[IR_Datatype], expressions : ListBuffer[ListBuffer[IR_Expression]]) : IR_MatrixExpression = {
     val rows = expressions.size
     val columns = expressions(0).size
     val tmp = new IR_MatrixExpression(innerDatatype, rows, columns)
@@ -49,8 +48,8 @@ object IR_MatrixExpression {
 //  }
 }
 
-case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows: Int, var columns: Int) extends IR_Expression {
-  var expressions: Array[IR_Expression] = Array.ofDim[IR_Expression](rows * columns)
+case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows : Int, var columns : Int) extends IR_Expression {
+  var expressions : Array[IR_Expression] = Array.ofDim[IR_Expression](rows * columns)
 
   override def datatype = {
     if (innerDatatype.isEmpty) {
@@ -61,8 +60,8 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
     IR_MatrixDatatype(innerDatatype.getOrElse(IR_RealDatatype), this.rows, this.columns)
   }
 
-  def prettyprintInner(out: PpStream): Unit = {
-    if(Knowledge.experimental_internalHighDimTypes) {
+  def prettyprintInner(out : PpStream) : Unit = {
+    if (Knowledge.experimental_internalHighDimTypes) {
       out << "INVALID: IR_MatrixExpression"
     } else {
       out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
@@ -70,8 +69,8 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
       out << "[]){" << (expressions.map(_.prettyprint).mkString(",")) << "})"
     }
   }
-  override def prettyprint(out: PpStream): Unit = {
-    if(Knowledge.experimental_internalHighDimTypes) {
+  override def prettyprint(out : PpStream) : Unit = {
+    if (Knowledge.experimental_internalHighDimTypes) {
       out << "INVALID: IR_MatrixExpression"
     } else {
       val prec = if (Knowledge.useDblPrecision) "double" else "float"
@@ -84,11 +83,10 @@ case class IR_MatrixExpression(var innerDatatype: Option[IR_Datatype], var rows:
   def isConstant = expressions.forall(e => e.isInstanceOf[IR_Number])
   def isInteger = expressions.forall(e => e.isInstanceOf[IR_IntegerConstant])
   def isReal = expressions.forall(e => e.isInstanceOf[IR_RealConstant])
-  def get(row: Integer, column: Integer) = expressions(row * columns + column)
-  def set(row: Integer, column: Integer, exp: IR_Expression) = expressions(row * columns + column) = exp
-  override def toString: String = {"IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "; Items: " + expressions.mkString(", ") + ")"}
+  def get(row : Integer, column : Integer) = expressions(row * columns + column)
+  def set(row : Integer, column : Integer, exp : IR_Expression) = expressions(row * columns + column) = exp
+  override def toString : String = { "IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "; Items: " + expressions.mkString(", ") + ")" }
 }
-
 
 object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars") {
   val annotationFctCallCounter = "IR_ResolveMatrices.fctCallCounter"
@@ -223,9 +221,6 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
     }
   })
 
-
-
-
   this += new Transformation("return types", {
     case func : IR_Function if (func.returntype.isInstanceOf[IR_MatrixDatatype]) => {
       val matrix = func.returntype.asInstanceOf[IR_MatrixDatatype]
@@ -251,7 +246,6 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       IR_ExpressionStatement(src)
     }
   })
-
 
   this += new Transformation("simplify function call arguments", {
     case stmt @ IR_ExpressionStatement(exp : IR_FunctionCall) => {
@@ -291,26 +285,25 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
     }
   })
 
-
   this += new Transformation("resolution of built-in functions 1/2", {
     case call : IR_FunctionCall if (builtInFunctions.contains(call.name)) => {
       call.arguments = call.arguments.map(arg => arg match {
         case _ : IR_VariableAccess | _ : IR_MultiDimFieldAccess => {
+          // FIXME: map fieldAccesses and the like to MatrixExpression in preparatory strategy?
           val matrix = arg.datatype.asInstanceOf[IR_MatrixDatatype]
           var exps = ListBuffer[IR_Expression]()
           for (row <- 0 until matrix.sizeM) {
             for (col <- 0 until matrix.sizeN) {
-              exps += IR_HighDimAccess(arg, IR_ConstIndex(row, col))
+              exps += IR_HighDimAccess(Duplicate(arg), IR_ConstIndex(row, col))
             }
           }
           IR_MatrixExpression(Some(matrix.resolveBaseDatatype), matrix.sizeM, matrix.sizeN, exps.toArray)
         }
-        case _                                          => arg
+        case _                                                  => arg
       })
       call
     }
   })
-
 
   this += new Transformation("resolution of built-in functions 2/2", {
     case call : IR_FunctionCall if (call.name == "dotProduct" || call.name == "dot") => {
@@ -448,21 +441,30 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
 //    }
 //  })
   this += Transformation("linearize HighDimAccesses", {
-    case access @ IR_HighDimAccess(base, idx : IR_ConstIndex) if(idx.indices.length == 2) => {
+    case access @ IR_HighDimAccess(base, idx : IR_ConstIndex) if (idx.indices.length == 2) => {
       val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
-      idx.indices = List( matrix.sizeM * idx.indices(0) + idx.indices(1) ).toArray
+      idx.indices = List(matrix.sizeM * idx.indices(0) + idx.indices(1)).toArray
       access
     }
   })
 }
 
-
 object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
   this += Transformation("Linearize", {
-    case access @ IR_HighDimAccess(base : IR_ArrayAccess, idx : IR_ConstIndex) => {
+    case access @ IR_HighDimAccess(base : IR_ArrayAccess, idx : IR_ConstIndex) =>
       val myidx = idx.toExpressionIndex
       base.index = base.index + myidx(0)
       base
-    }
+
+    case access @ IR_HighDimAccess(base : IR_FieldAccess, idx : IR_Index) =>
+      val hoIdx = idx.toExpressionIndex
+      val fieldLayout = base.fieldSelection.field.fieldLayout
+      for (dim <- fieldLayout.numDimsGrid until fieldLayout.numDimsData) {
+        if (base.index.indices.length <= dim)
+          base.index.indices :+= hoIdx(dim - fieldLayout.numDimsGrid)
+        else
+          base.index.indices(dim) += hoIdx(dim - fieldLayout.numDimsGrid)
+      }
+      base
   })
 }

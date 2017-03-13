@@ -437,8 +437,10 @@ object Main {
 
     IR_ResolveStencilFunction.apply()
 
-    if (Knowledge.experimental_internalHighDimTypes)
+    if (Knowledge.experimental_internalHighDimTypes) {
       IR_ResolveMatrices.apply()
+      IR_LinearizeMatrices.apply()
+    }
 
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
@@ -609,7 +611,7 @@ object Main {
         OMP_AddCriticalSections.apply()
     }
 
-    if(Knowledge.experimental_internalHighDimTypes)
+    if (Knowledge.experimental_internalHighDimTypes)
       IR_LinearizeMatrices.apply()
 
     // one last time
@@ -650,7 +652,7 @@ object Main {
       handleL4()
 
       handleIR()
-      
+
       print()
 
       Logger.dbg("Done!")
