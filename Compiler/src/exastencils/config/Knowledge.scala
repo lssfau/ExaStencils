@@ -217,14 +217,22 @@ object Knowledge {
   // [16~1000000000 $32§poly_tileSize_w+32]
   var poly_tileSize_w : Int = 0
 
+  // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
+  var poly_exploration_extended : Boolean = false
+  // [0~5] // specifies how many (heuristic) filters should be applied to reduce the number or generated schedules during the exploration
+  var poly_exploration_filterLevel : Int = 0
+  // the following filter levels are currently supported, filter from lower levels are also applied in addition to the one described:
+  //   0: no filter
+  //   1: only outer loop in should carry dependencies (textual dependencies are OK)
+  //   2: only linear memory accesses allowed (given that the original schedule had linear accesses)
+  //   3: traverse memory in the inner loop in the same direction as the original schedule
+  //   4: only schedules with textual dependencies (if any)
+  //   5: only positive schedule coefficients allowed
+
   // [true|false] // specify separately if the outermost loop should be tiled
   var poly_tileOuterLoop : Boolean = false
   // [isl|feautrier|exploration] // choose which schedule algorithm should be used in PolyOpt
   var poly_scheduleAlgorithm : String = "isl"
-  // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
-  var poly_exploration_extended : Boolean = false
-  // [0~3] // specifies how many (heuristic) filters should be applied to reduce the number or generated schedules during the exploration
-  var poly_exploration_filterLevel : Int = 0
   // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_optimizeDeps : String = "raw"
   // [true|false] // specifies if the dependences to optimize should be filtered first
