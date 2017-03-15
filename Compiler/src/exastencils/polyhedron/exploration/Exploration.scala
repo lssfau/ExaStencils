@@ -24,6 +24,12 @@ object Exploration {
 
   import scala.util.control.Breaks
 
+  private val filterInnerPar : Boolean = Knowledge.poly_exploration_filterLevel >= 1
+  private val filterLinMemAc : Boolean = Knowledge.poly_exploration_filterLevel >= 2
+  private val filterPosMemAc : Boolean = Knowledge.poly_exploration_filterLevel >= 3
+  private val filterTextDeps : Boolean = Knowledge.poly_exploration_filterLevel >= 4
+  private val filterPosCoeff : Boolean = Knowledge.poly_exploration_filterLevel >= 5
+
   def preprocess(domain : isl.UnionSet, deps : isl.UnionMap) : ArrayBuffer[isl.BasicMap] = {
 
     val res = new ArrayBuffer[isl.BasicMap]()
@@ -117,6 +123,7 @@ object Exploration {
     }
     var i : Int = 0
     val previous = new mutable.HashSet[SchedVecWrapper]()
+    var noTextDepsSchedules = new ArrayBuffer[(isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int])]()
     completeScheduleGuided(new PartialSchedule(domInfo, depList), extended, {
       (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int]) =>
         i += 1
@@ -124,14 +131,27 @@ object Exploration {
           progressOStream.print("\r" + i)
           progressOStream.flush()
         }
-        val remove : Boolean = Knowledge.poly_exploration_filterLevel >= 1 &&
-          nrCarried.view.slice(1, bands(0)).exists(_ != 0) // remove those whose inner loops in the outer band are not parallel
+        val remove : Boolean = filterInnerPar && nrCarried.view.slice(1, bands(0)).exists(_ != 0) // remove those whose inner loops in the outer band are not parallel
         val wrap = new SchedVecWrapper(schedVect)
         if (!previous.contains(wrap) && !remove) {
           previous += wrap
-          resultsCallback(sched, schedVect, bands, nrCarried)
+          if (filterTextDeps) {
+            val hasTextDep : Boolean = nrCarried.last > 0
+            if (noTextDepsSchedules != null) {
+              if (hasTextDep)
+                noTextDepsSchedules = null
+              else
+                noTextDepsSchedules += ((sched, schedVect, bands, nrCarried))
+            }
+            if (noTextDepsSchedules == null && hasTextDep)
+              resultsCallback(sched, schedVect, bands, nrCarried)
+          } else
+            resultsCallback(sched, schedVect, bands, nrCarried)
         }
     })
+    if (noTextDepsSchedules != null)
+      for (sched <- noTextDepsSchedules)
+        resultsCallback.tupled(sched)
     if (progressOStream != null)
       progressOStream.print("\r")
   }
@@ -229,29 +249,34 @@ object Exploration {
     }
 
     // filter out duplicates
-    val toRemove = new java.util.TreeSet[Int]()
+    val toRemove = new mutable.BitSet(coeffSpacePoints.length)
     for (i <- 0 until coeffSpacePoints.length)
       for (j <- i + 1 until coeffSpacePoints.length)
         if (java.util.Arrays.equals(coeffSpacePoints(i), coeffSpacePoints(j)))
           toRemove.add(j)
-    val descIt = toRemove.descendingIterator()
-    while (descIt.hasNext())
-      coeffSpacePoints.remove(descIt.next())
 
-    if (Knowledge.poly_exploration_filterLevel >= 3) {
-      // filter negative coefficients
-      toRemove.clear()
-      val nrIt : Int = prefix.domInfo.nrIt
+    if (filterPosCoeff) {
+      // remove those with negative coefficients
       for (i <- 0 until coeffSpacePoints.length)
         if (coeffSpacePoints(i).view.take(nrIt).exists(_ < 0))
           toRemove.add(i)
-      val descIt = toRemove.descendingIterator()
-      while (descIt.hasNext())
-        coeffSpacePoints.remove(descIt.next())
+    } else if (filterPosMemAc) {
+      // ensure positive linear memory access (linear already satisfied by other/previous filer)
+      for (i <- 0 until coeffSpacePoints.length) {
+        val vec : Array[Int] = coeffSpacePoints(i)
+        if (prefix.domInfo.stmtInfo.values.exists(sInfo => vec(sInfo.itStart + sInfo.nrIt - 1) < 0))
+          toRemove.add(i)
+      }
+    }
+
+    val filteredCoeffSpacePoints = new ArrayBuffer[Array[Int]]()
+    for (i <- 0 until coeffSpacePoints.length) {
+      if (!toRemove.contains(i))
+        filteredCoeffSpacePoints += coeffSpacePoints(i)
     }
 
     prefix.newBand()
-    completeScheduleGuidedTilable(prefix, coeffSpacePoints, extended, resultsCallback)
+    completeScheduleGuidedTilable(prefix, filteredCoeffSpacePoints, extended, resultsCallback)
   }
 
   def completeScheduleGuidedTilable(prefix : PartialSchedule, possibilities : ArrayBuffer[Array[Int]], extended : Boolean,
@@ -279,7 +304,7 @@ object Exploration {
             throw new Error("this should not happen!?")
           // filter for linear memory access; therefore: inner dimension of iteration domain has linear memory access
           var good : Boolean = true
-          if (Knowledge.poly_exploration_filterLevel >= 2) {
+          if (filterLinMemAc) {
             val nonCst = prefix.scheduleVectors.view.filter(sVec => sVec.view.take(prefix.domInfo.nrIt).exists(_ != 0)) // filter constant dimensions (no loop in corresponding AST)
             if (nonCst.size < Knowledge.dimensionality)
               good = prefix.domInfo.stmtInfo.values.forall(sInf => nonCst.last(sInf.itStart + sInf.nrIt - 1) == 0)
