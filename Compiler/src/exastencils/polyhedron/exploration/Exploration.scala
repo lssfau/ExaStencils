@@ -112,7 +112,7 @@ object Exploration {
   }
 
   def guidedExploration(domain : isl.UnionSet, deps : isl.UnionMap, extended : Boolean, progressOStream : PrintStream,
-      resultsCallback : (isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int]) => Unit) : Unit = {
+      resultsCallback : (isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int], Boolean) => Unit) : Unit = {
 
     val domInfo = DomainCoeffInfo(domain)
     val depList : ArrayBuffer[isl.BasicMap] = preprocess(domain, deps)
@@ -123,9 +123,9 @@ object Exploration {
     }
     var i : Int = 0
     val previous = new mutable.HashSet[SchedVecWrapper]()
-    var noTextDepsSchedules = new ArrayBuffer[(isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int])]()
+    var noTextDepsSchedules = new ArrayBuffer[(isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int], Boolean)]()
     completeScheduleGuided(new PartialSchedule(domInfo, depList), extended, {
-      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int]) =>
+      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int], cstVect : Boolean) =>
         i += 1
         if (progressOStream != null && i % 10 == 0) {
           progressOStream.print("\r" + i)
@@ -141,12 +141,12 @@ object Exploration {
               if (hasTextDep)
                 noTextDepsSchedules = null
               else
-                noTextDepsSchedules += ((sched, schedVect, bands, nrCarried))
+                noTextDepsSchedules += ((sched, schedVect, bands, nrCarried, cstVect))
             }
             if (noTextDepsSchedules == null && hasTextDep)
-              resultsCallback(sched, schedVect, bands, nrCarried)
+              resultsCallback(sched, schedVect, bands, nrCarried, cstVect)
           } else
-            resultsCallback(sched, schedVect, bands, nrCarried)
+            resultsCallback(sched, schedVect, bands, nrCarried, cstVect)
         }
     })
     if (noTextDepsSchedules != null)
@@ -157,7 +157,7 @@ object Exploration {
   }
 
   def completeScheduleGuided(prefix : PartialSchedule, extended : Boolean,
-      resultsCallback : (isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int]) => Unit) : Unit = {
+      resultsCallback : (isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int], Boolean) => Unit) : Unit = {
 
     var coeffSpace : isl.Set = prefix.computeLinIndepSpace()
     if (coeffSpace == null)
@@ -280,21 +280,17 @@ object Exploration {
   }
 
   def completeScheduleGuidedTilable(prefix : PartialSchedule, possibilities : ArrayBuffer[Array[Int]], extended : Boolean,
-      resultsCallback : (isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int]) => Unit) : Unit = {
+      resultsCallback : (isl.UnionMap, Seq[Array[Int]], Seq[Int], Seq[Int], Boolean) => Unit) : Unit = {
 
     val linDep : isl.Set = prefix.computeLinDepSpace()
     if (linDep != null && prefix.domInfo.universe.subtract(linDep).isEmpty()) {
-      prefix.newBand()
-      addConstDim(prefix, true) // to finalize schedule and ensure all deps are carried
-      resultsCallback(prefix.getSchedule(), prefix.scheduleVectors, prefix.bands, prefix.carriedDeps.map(_.size))
-      prefix.removeLastScheduleVector()
-
-      val vectPrefixes = createVectorizable(prefix)
-      for (vectPrefix <- vectPrefixes) {
-        vectPrefix.newBand()
-        addConstDim(vectPrefix, true) // to finalize schedule and ensure all deps are carried
-        resultsCallback(vectPrefix.getSchedule(), vectPrefix.scheduleVectors, vectPrefix.bands, vectPrefix.carriedDeps.map(_.size))
+      val prefixes = createVectorizable(prefix) // result contains prefix
+      for (pref <- prefixes) {
+        pref.newBand()
+        addConstDim(pref, true) // to finalize schedule and ensure all deps are carried
+        resultsCallback(pref.getSchedule(), pref.scheduleVectors, pref.bands, pref.carriedDeps.map(_.size), pref.cstVectable)
       }
+      prefix.removeLastScheduleVector()
     } else {
       var foundExt : Boolean = false
       for (point <- possibilities)
@@ -335,6 +331,9 @@ object Exploration {
 
   private def createVectorizable(prefix : PartialSchedule) : Seq[PartialSchedule] = {
 
+    val prefixes = new ArrayBuffer[PartialSchedule]()
+    prefixes += prefix
+
     // create array of indices to take care about later
     // return null, if memory is not traversed linearly -> vectorization impossible anyway
     val sVecs = prefix.scheduleVectors
@@ -349,9 +348,9 @@ object Exploration {
       }
       for (i <- 0 until sVecs.length - 1)
         if (sVecs(i)(lDimInd) != 0)
-          return Nil
+          return prefixes
       if (lastVec(lDimInd) == 0)
-        return Nil
+        return prefixes
     }
 
     val ctx = prefix.domInfo.ctx
@@ -394,7 +393,7 @@ object Exploration {
       offsetArray(i) = offsetPoint.getCoordinateVal(T_SET, i)
 
     if (offsetArray.forall(_ == 0))
-      return Nil // adding a zero vector is boring...
+      return prefixes // adding a zero vector is boring...
 
     // find possible dims (coeff not 0)
     val offsetCoeffsBuffer = new ArrayBuffer[(Int, Int)]()
@@ -404,8 +403,10 @@ object Exploration {
         offsetCoeffsBuffer += ((c, i))
     }
 
-    if (offsetCoeffsBuffer.isEmpty)
-      return Nil
+    if (offsetCoeffsBuffer.isEmpty) {
+      prefix.cstVectable = true
+      return prefixes
+    }
 
     val prefixBnds : Int =
       if (prefix.bands.last == 0) // last band may be empty (precisely: it is empty)
@@ -414,7 +415,6 @@ object Exploration {
         prefix.bands.size
 
     // build prefixes for modified schedule
-    val newPrefixes = new ArrayBuffer[PartialSchedule]()
     for (((coeff : Int, index : Int)) <- offsetCoeffsBuffer) Breaks.breakable {
       val newPrefix = new PartialSchedule(prefix.domInfo, prefix.allDeps)
       newPrefix.allowedVectors = prefix.allowedVectors
@@ -438,10 +438,11 @@ object Exploration {
             Breaks.break() // continue
         }
       }
+      newPrefix.cstVectable = true
       if (prefixBnds >= newPrefix.bands.size) // last band of newPrefix is not empty (by construction)
-        newPrefixes += newPrefix // do not add versions with smaller bands
+        prefixes += newPrefix // do not add versions with smaller bands
     }
-    return newPrefixes
+    return prefixes
   }
 }
 
@@ -563,6 +564,7 @@ class PartialSchedule(val domInfo : DomainCoeffInfo, val allDeps : ArrayBuffer[i
   var remainingDeps = ArrayBuffer(allDeps : _*)
   val carriedDeps = new ArrayBuffer[ArrayBuffer[isl.BasicMap]]()
   var allowedVectors : isl.Set = null
+  var cstVectable : Boolean = false
   private var lastDimSchedule : isl.UnionMap = null
 
   private var addedStmtGrps : Boolean = false
@@ -628,6 +630,7 @@ class PartialSchedule(val domInfo : DomainCoeffInfo, val allDeps : ArrayBuffer[i
       stmtGrpsStack.pop()
       addedStmtGrps = false
     }
+    cstVectable = false
   }
 
   def getSchedule() : isl.UnionMap = {
