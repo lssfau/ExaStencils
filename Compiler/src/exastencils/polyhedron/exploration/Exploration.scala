@@ -392,8 +392,10 @@ object Exploration {
     for (i <- 0 until offsetArray.length)
       offsetArray(i) = offsetPoint.getCoordinateVal(T_SET, i)
 
-    if (offsetArray.forall(_ == 0))
+    if (offsetArray.forall(_ == 0)) {
+      prefix.cstVectable = true
       return prefixes // adding a zero vector is boring...
+    }
 
     // find possible dims (coeff not 0)
     val offsetCoeffsBuffer = new ArrayBuffer[(Int, Int)]()
@@ -403,10 +405,8 @@ object Exploration {
         offsetCoeffsBuffer += ((c, i))
     }
 
-    if (offsetCoeffsBuffer.isEmpty) {
-      prefix.cstVectable = true
+    if (offsetCoeffsBuffer.isEmpty)
       return prefixes
-    }
 
     val prefixBnds : Int =
       if (prefix.bands.last == 0) // last band may be empty (precisely: it is empty)
