@@ -565,6 +565,7 @@ class PartialSchedule(val domInfo : DomainCoeffInfo, val allDeps : ArrayBuffer[i
   val carriedDeps = new ArrayBuffer[ArrayBuffer[isl.BasicMap]]()
   var allowedVectors : isl.Set = null
   var cstVectable : Boolean = false
+  private var preserveCstVectable : Boolean = false
   private var lastDimSchedule : isl.UnionMap = null
 
   private var addedStmtGrps : Boolean = false
@@ -577,6 +578,9 @@ class PartialSchedule(val domInfo : DomainCoeffInfo, val allDeps : ArrayBuffer[i
     * @return 0: schedule is valid, -1: uncarried dependence violated, 1: carried dependence (from current band) violated
     */
   def addCstScheduleVector(cstCoeffs : Array[Int], noCheck : Boolean = false) : Int = {
+    if (preserveCstVectable)
+      throw new Error("two subsequent constant dimensions are not allowed at the moment!")
+    preserveCstVectable = true // a const dimension does not effect vectorization
     val coeffs = PartialSchedule.expandCstCoeffVector(cstCoeffs, domInfo)
     val ok = this.addScheduleVector(coeffs, noCheck)
 
@@ -630,7 +634,10 @@ class PartialSchedule(val domInfo : DomainCoeffInfo, val allDeps : ArrayBuffer[i
       stmtGrpsStack.pop()
       addedStmtGrps = false
     }
-    cstVectable = false
+    if (preserveCstVectable)
+      preserveCstVectable = false
+    else
+      cstVectable = false
   }
 
   def getSchedule() : isl.UnionMap = {
