@@ -126,10 +126,7 @@ Function VCycle@((coarsest + 1) to finest) ( ) : Unit {
 Function Smoother@((coarsest + 1) to finest) ( ) : Unit {
 	communicate ghost of Solution[active]@current
 	loop over Solution@current {
-		Var id : Matrix<Real, 2, 2> = 0.8 * inverse ( diag ( Laplace@current ) )
-		Var res : CVector<Real, 2> = RHS@current - Laplace@current * Solution[active]@current
-		Var cor : CVector<Real, 2> = id * res
-		Solution[nextSlot]@current = Solution[active]@current + cor
+		Solution[nextSlot]@current = Solution[active]@current + 0.8 * inverse ( diag ( Laplace@current ) ) * ( RHS@current - Laplace@current * Solution[active]@current )
 	}
 	advance Solution@current
 }
