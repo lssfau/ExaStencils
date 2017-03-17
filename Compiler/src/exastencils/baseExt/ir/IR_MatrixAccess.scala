@@ -2,6 +2,7 @@ package exastencils.baseExt.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core._
@@ -248,7 +249,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
   })
 
   this += new Transformation("simplify function call arguments", {
-    case stmt @ IR_ExpressionStatement(exp : IR_FunctionCall) => {
+    case stmt @ IR_ExpressionStatement(exp : IR_FunctionCall)                                               => {
       var newStmts = ListBuffer[IR_Statement]()
 
       exp.arguments = exp.arguments.map(arg => arg match {
@@ -265,7 +266,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       newStmts += stmt
       newStmts
     }
-    case stmt @ IR_Assignment(_, exp : IR_FunctionCall, _)    => {
+    case stmt @ IR_Assignment(_, exp : IR_FunctionCall, _) if !builtInFunctions.contains(exp.function.name) => {
       // FIXME try to move this into case statement above
       var newStmts = ListBuffer[IR_Statement]()
 
@@ -285,40 +286,48 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
     }
   })
 
-  this += new Transformation("resolution of built-in functions 1/2", {
-    case call : IR_FunctionCall if (builtInFunctions.contains(call.name)) => {
-      call.arguments = call.arguments.map(arg => arg match {
-        case _ : IR_VariableAccess | _ : IR_MultiDimFieldAccess => {
-          // FIXME: map fieldAccesses and the like to MatrixExpression in preparatory strategy?
-          val matrix = arg.datatype.asInstanceOf[IR_MatrixDatatype]
-          var exps = ListBuffer[IR_Expression]()
-          for (row <- 0 until matrix.sizeM) {
-            for (col <- 0 until matrix.sizeN) {
-              exps += IR_HighDimAccess(Duplicate(arg), IR_ConstIndex(row, col))
-            }
-          }
-          IR_MatrixExpression(Some(matrix.resolveBaseDatatype), matrix.sizeM, matrix.sizeN, exps.toArray)
-        }
-        case _                                                  => arg
-      })
-      call
-    }
-  })
+//  this += new Transformation("resolution of built-in functions 1/2", {
+//    case call : IR_FunctionCall if (builtInFunctions.contains(call.name)) => {
+//      call.arguments = call.arguments.map(arg => arg match {
+//        case _ : IR_VariableAccess | _ : IR_MultiDimFieldAccess => {
+//          // FIXME: map fieldAccesses and the like to MatrixExpression in preparatory strategy?
+//          val matrix = arg.datatype.asInstanceOf[IR_MatrixDatatype]
+//          var exps = ListBuffer[IR_Expression]()
+//          for (row <- 0 until matrix.sizeM) {
+//            for (col <- 0 until matrix.sizeN) {
+//              exps += IR_HighDimAccess(Duplicate(arg), IR_ConstIndex(row, col))
+//            }
+//          }
+//          IR_MatrixExpression(Some(matrix.resolveBaseDatatype), matrix.sizeM, matrix.sizeN, exps.toArray)
+//        }
+//        case _                                                  => arg
+//      })
+//      call
+//    }
+//  })
 
   this += new Transformation("resolution of built-in functions 2/2", {
     case call : IR_FunctionCall if (call.name == "dotProduct" || call.name == "dot") => {
       if (call.arguments.length != 2) {
-        Logger.error("dotProduct() must have two arguments")
+        Logger.error(s"dotProduct() must have two arguments; has ${ call.arguments.length }")
       }
-      val m1 = call.arguments(0).asInstanceOf[IR_MatrixExpression]
-      val m2 = call.arguments(1).asInstanceOf[IR_MatrixExpression]
-      if (m1.rows != m2.rows || m1.columns != m2.columns) {
-        Logger.error("Matrix sizes must match for dotProduct()")
+      val left = call.arguments(0) match {
+        case me : IR_MatrixExpression => me
+        case other                    => Logger.error(s"Dot product argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+      val right = call.arguments(1) match {
+        case me : IR_MatrixExpression => me
+        case other                    => Logger.error(s"Dot product argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+      if (left.rows != right.rows || left.columns != right.columns) {
+        Logger.warn(left)
+        Logger.warn(right)
+        Logger.error(s"Matrix sizes must match for dotProduct() - attempting ${ left.rows }x${ left.columns } * ${ right.rows }x${ right.columns }")
       }
       var additions = ListBuffer[IR_Expression]()
-      for (row <- 0 until m1.rows) {
-        for (col <- 0 until m1.columns) {
-          additions += IR_Multiplication(m1.get(row, col), m2.get(row, col))
+      for (row <- 0 until left.rows) {
+        for (col <- 0 until left.columns) {
+          additions += IR_Multiplication(left.get(row, col), right.get(row, col))
         }
       }
       IR_Addition(additions)
@@ -422,13 +431,12 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
   })
 
   this += new Transformation("expressions 2/3", {
-    case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatrixRow)) => {
+    case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatrixRow)) =>
       exp.get(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])
-    }
-    case exp : IR_Expression if (exp.hasAnnotation(annotationMatrixRow))       => {
-      IR_HighDimAccess(exp, IR_ConstIndex(Array(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])))
-    }
-  })
+
+    case exp : IR_Expression if (exp.hasAnnotation(annotationMatrixRow)) =>
+      IR_HighDimAccess(Duplicate(exp), IR_ConstIndex(Array(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])))
+  }, false)
 
 //  this += new Transformation("linearize into array accesses", {
 //    case access @ IR_HighDimAccess(base : IR_VariableAccess, idx : IR_ConstIndex) => {
@@ -440,23 +448,50 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
 //    // FIXME
 //    }
 //  })
-  this += Transformation("linearize HighDimAccesses", {
-    case access @ IR_HighDimAccess(base, idx : IR_ConstIndex) if (idx.indices.length == 2) => {
-      val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
-      idx.indices = List(matrix.sizeM * idx.indices(0) + idx.indices(1)).toArray
-      access
-    }
-  })
+//  this += Transformation("linearize HighDimAccesses", {
+//    case access @ IR_HighDimAccess(base, idx : IR_ConstIndex) if (idx.indices.length == 2) => {
+//      val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
+//      idx.indices = List(matrix.sizeM * idx.indices(0) + idx.indices(1)).toArray
+//      access
+//    }
+//  })
+}
+
+object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to matrices and vectors to MatrixExpressions") {
+  def duplicateExpressions(access : IR_Expression, dt : IR_MatrixDatatype) = {
+    var expressions = ListBuffer[IR_Expression]()
+
+    for (row <- 0 until dt.sizeM)
+      for (col <- 0 until dt.sizeN)
+        expressions += IR_HighDimAccess(Duplicate(access), IR_ConstIndex(row, col))
+
+    expressions.toArray
+  }
+
+  this += Transformation("Wrap", {
+    case m : IR_MatrixExpression => m // no need to process further
+    case hda : IR_HighDimAccess  => hda // no need to process further
+
+    case access @ IR_VariableAccess(_, matrixDT : IR_MatrixDatatype) =>
+      IR_MatrixExpression(Some(matrixDT.datatype), matrixDT.sizeM, matrixDT.sizeN, duplicateExpressions(access, matrixDT))
+
+    case access : IR_MultiDimFieldAccess if access.fieldSelection.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
+      val matrixDT = access.datatype.asInstanceOf[IR_MatrixDatatype]
+      IR_MatrixExpression(Some(matrixDT.datatype), matrixDT.sizeM, matrixDT.sizeN, duplicateExpressions(access, matrixDT))
+
+    // FIXME: add support for stencil fields
+
+  }, false)
 }
 
 object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
   this += Transformation("Linearize", {
-    case access @ IR_HighDimAccess(base : IR_ArrayAccess, idx : IR_ConstIndex) =>
-      val myidx = idx.toExpressionIndex
-      base.index = base.index + myidx(0)
-      base
+//    case access @ IR_HighDimAccess(base : IR_ArrayAccess, idx : IR_ConstIndex) =>
+//      val myidx = idx.toExpressionIndex
+//      base.index = base.index + myidx(0)
+//      base
 
-    case access @ IR_HighDimAccess(base : IR_FieldAccess, idx : IR_Index) =>
+    case access @ IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_Index) =>
       val hoIdx = idx.toExpressionIndex
       val fieldLayout = base.fieldSelection.field.fieldLayout
       for (dim <- fieldLayout.numDimsGrid until fieldLayout.numDimsData) {
@@ -466,5 +501,9 @@ object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
           base.index.indices(dim) += hoIdx(dim - fieldLayout.numDimsGrid)
       }
       base
-  })
+
+    case access @ IR_HighDimAccess(base, idx : IR_Index) if idx.indices.length == 2 =>
+      val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
+      IR_ArrayAccess(base, matrix.sizeN * idx.indices(0) + idx.indices(1))
+  }, false)
 }

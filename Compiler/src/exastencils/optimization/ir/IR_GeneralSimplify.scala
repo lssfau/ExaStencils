@@ -360,21 +360,22 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
         if (left.length != right.length) Logger.error("Vector sizes must match for multiplication")
         if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for multiplication")
         List(IR_Addition(left.expressions.view.zip(right.expressions).map { x => x._1 * x._2 : IR_Expression }.to[ListBuffer]))
-      case (left : IR_MatrixExpression, right : IR_MatrixExpression) => {
-        if (left.columns != right.rows) Logger.error("Matrix sizes must match for multiplication")
+
+      case (left : IR_MatrixExpression, right : IR_MatrixExpression) =>
+        if (left.columns != right.rows) Logger.error(s"Matrix sizes must match for multiplication - attempting ${ left.rows }x${ left.columns } * ${ right.rows }x${ right.columns }")
         val m = IR_MatrixExpression(IR_ResultingDatatype(left.innerDatatype.getOrElse(IR_RealDatatype), right.innerDatatype.getOrElse(IR_RealDatatype)), left.rows, right.columns)
         for (row <- 0 until m.rows) {
           for (col <- 0 until m.columns) {
             val entry = IR_Addition()
-            for (k <- 0 until m.columns) {
-              entry.summands += left.get(row, k) * right.get(k, col)
+            for (k <- 0 until left.columns) {
+              entry.summands += Duplicate(left.get(row, k)) * Duplicate(right.get(k, col))
             }
             m.set(row, col, entry)
           }
         }
         List(m)
-      }
-      case _                                                         => List(le, ri)
+
+      case _ => List(le, ri)
     }
   }
 

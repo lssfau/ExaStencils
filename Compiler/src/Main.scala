@@ -438,7 +438,13 @@ object Main {
     IR_ResolveStencilFunction.apply()
 
     if (Knowledge.experimental_internalHighDimTypes) {
+      IR_SetupMatrixExpressions.apply()
+
+      // TODO: move matrix and vector specific parts of IR_GeneralSimplify to specialized strategy
+      IR_GeneralSimplify.apply()
+
       IR_ResolveMatrices.apply()
+
       IR_LinearizeMatrices.apply()
     }
 
@@ -610,9 +616,6 @@ object Main {
       if (Platform.omp_requiresCriticalSections)
         OMP_AddCriticalSections.apply()
     }
-
-    if (Knowledge.experimental_internalHighDimTypes)
-      IR_LinearizeMatrices.apply()
 
     // one last time
     if (Knowledge.useFasterExpand)
