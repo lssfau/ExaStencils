@@ -89,7 +89,7 @@ Function VCycle_0@coarsest ( ) : Unit {
 		}
 		Variable alphaDenom : Real = 0
 		loop over VecP@current where x > 0 && y > 0 && z > 0 with reduction( + : alphaDenom ) {
-			alphaDenom += VecP@current * VecGradP@current
+			alphaDenom += dot ( VecP@current, VecGradP@current )
 		}
 		Variable alpha : Real = res * res / alphaDenom
 		loop over Solution@current {
@@ -126,7 +126,10 @@ Function VCycle@((coarsest + 1) to finest) ( ) : Unit {
 Function Smoother@((coarsest + 1) to finest) ( ) : Unit {
 	communicate ghost of Solution[active]@current
 	loop over Solution@current {
-		Solution[nextSlot]@current = Solution[active]@current + 0.8 * inverse ( diag ( Laplace@current ) ) * ( RHS@current - Laplace@current * Solution[active]@current )
+		Var id : Matrix<Real, 2, 2> = 0.8 * inverse ( diag ( Laplace@current ) )
+		Var res : CVector<Real, 2> = RHS@current - Laplace@current * Solution[active]@current
+		Var cor : CVector<Real, 2> = id * res
+		Solution[nextSlot]@current = Solution[active]@current + cor
 	}
 	advance Solution@current
 }
