@@ -89,76 +89,14 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows
   override def toString : String = { "IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "; Items: " + expressions.mkString(", ") + ")" }
 }
 
-object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars") {
+object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expressions where necessary") {
   val annotationFctCallCounter = "IR_ResolveMatrices.fctCallCounter"
   var fctCallCounter = 0
   // temporary variable used to replace function calls in expressions
   val annotationMatExpCounter = "IR_ResolveMatrices.matrixExpressionCounter"
   var matExpCounter = 0
   // temporary variable used to replace matrix expressions in expressions
-  val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
-  val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
   val builtInFunctions = List("dotProduct", "dot", "inverse", "det")
-
-  def calculateDeterminant(m : IR_MatrixExpression) : IR_Expression = {
-    if (m.rows != m.columns) {
-      Logger.error("determinant for non-quadratic matrices not implemented")
-      // FIXME Nullzeilen/-spalten ergänzen
-    }
-    if (m.rows <= 0) {
-      Logger.error("MatrixExpression of size <= 0")
-    } else if (m.rows == 1) {
-      return Duplicate(m.get(0, 0))
-    } else if (m.rows == 2) {
-      return Duplicate(m.get(0, 0) * m.get(1, 1) - m.get(0, 1) * m.get(1, 0))
-    } else if (m.rows == 3) {
-      return Duplicate(m.get(0, 0) * m.get(1, 1) * m.get(2, 2) +
-        m.get(0, 1) * m.get(1, 2) * m.get(2, 0) +
-        m.get(0, 2) * m.get(1, 0) * m.get(2, 1) -
-        m.get(2, 0) * m.get(1, 1) * m.get(0, 2) -
-        m.get(2, 1) * m.get(1, 2) * m.get(0, 0) -
-        m.get(2, 2) * m.get(1, 0) * m.get(0, 1))
-    } else {
-      var det : IR_Expression = IR_IntegerConstant(0)
-      val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
-      // laplace expansion
-      for (i <- 0 until m.rows) {
-        var tmpRow = 0
-        for (row <- 0 until m.rows) {
-          if (row != i) {
-            for (col <- 1 until m.columns) {
-              tmp.set(tmpRow, col - 1, Duplicate(m.get(row, col)))
-            }
-            tmpRow += 1
-          }
-        }
-        det += m.get(i, 0) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
-      }
-      return det
-    }
-  }
-
-  def calculateMatrixOfMinorsElement(m : IR_MatrixExpression, forRow : Integer, forColumn : Integer) : IR_Expression = {
-    if (m.rows != m.columns) {
-      Logger.error("matrix of minors for non-quadratic matrices not implemented ")
-    }
-    var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
-    var tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
-    var tmpRow = 0
-    for (row <- 0 until m.rows) {
-      if (row != forRow) {
-        var tmpCol = 0
-        for (col <- 0 until m.columns) {
-          if (col != forColumn) {
-            tmp.set(tmpRow, tmpCol, m.get(row, col))
-            tmpCol += 1
-          }
-        }
-        tmpRow += 1
-      }
-    }
-    return calculateDeterminant(tmp)
-  }
 
   this += new Transformation("declarations", {
     // Definition of matrix variable including initialisation -> split into decl and assignment
@@ -166,7 +104,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       var newStmts = ListBuffer[IR_Statement]()
       // split declaration and definition so each part can be handled by subsequent transformations
       newStmts += IR_VariableDeclaration(matrix, decl.name, None)
-      newStmts += IR_Assignment(IR_VariableAccess(decl), exp)
+      newStmts += IR_Assignment(IR_VariableAccess(Duplicate(decl)), exp)
       newStmts
     }
   })
@@ -182,6 +120,7 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
         exp.annotate(annotationFctCallCounter, fctCallCounter)
         fctCallCounter += 1
       })
+      // FIXME: only do the following if necessary
       StateManager.findAll[IR_MatrixExpression](src).foreach(exp => {
         var decl = IR_VariableDeclaration(exp.datatype, "_matrixExp" + matExpCounter, None)
         newStmts += decl
@@ -285,6 +224,72 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       newStmts
     }
   })
+}
+
+object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix and vector functions") {
+  val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
+  val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
+  val builtInFunctions = List("dotProduct", "dot", "inverse", "det")
+
+  def calculateDeterminant(m : IR_MatrixExpression) : IR_Expression = {
+    if (m.rows != m.columns) {
+      Logger.error("determinant for non-quadratic matrices not implemented")
+      // FIXME Nullzeilen/-spalten ergänzen
+    }
+    if (m.rows <= 0) {
+      Logger.error("MatrixExpression of size <= 0")
+    } else if (m.rows == 1) {
+      return Duplicate(m.get(0, 0))
+    } else if (m.rows == 2) {
+      return Duplicate(m.get(0, 0) * m.get(1, 1) - m.get(0, 1) * m.get(1, 0))
+    } else if (m.rows == 3) {
+      return Duplicate(m.get(0, 0) * m.get(1, 1) * m.get(2, 2) +
+        m.get(0, 1) * m.get(1, 2) * m.get(2, 0) +
+        m.get(0, 2) * m.get(1, 0) * m.get(2, 1) -
+        m.get(2, 0) * m.get(1, 1) * m.get(0, 2) -
+        m.get(2, 1) * m.get(1, 2) * m.get(0, 0) -
+        m.get(2, 2) * m.get(1, 0) * m.get(0, 1))
+    } else {
+      var det : IR_Expression = IR_IntegerConstant(0)
+      val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
+      // laplace expansion
+      for (i <- 0 until m.rows) {
+        var tmpRow = 0
+        for (row <- 0 until m.rows) {
+          if (row != i) {
+            for (col <- 1 until m.columns) {
+              tmp.set(tmpRow, col - 1, Duplicate(m.get(row, col)))
+            }
+            tmpRow += 1
+          }
+        }
+        det += m.get(i, 0) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
+      }
+      return det
+    }
+  }
+
+  def calculateMatrixOfMinorsElement(m : IR_MatrixExpression, forRow : Integer, forColumn : Integer) : IR_Expression = {
+    if (m.rows != m.columns) {
+      Logger.error("matrix of minors for non-quadratic matrices not implemented ")
+    }
+    var matrixExps = ListBuffer[ListBuffer[IR_Expression]]()
+    var tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows - 1, m.columns - 1)
+    var tmpRow = 0
+    for (row <- 0 until m.rows) {
+      if (row != forRow) {
+        var tmpCol = 0
+        for (col <- 0 until m.columns) {
+          if (col != forColumn) {
+            tmp.set(tmpRow, tmpCol, m.get(row, col))
+            tmpCol += 1
+          }
+        }
+        tmpRow += 1
+      }
+    }
+    return calculateDeterminant(tmp)
+  }
 
 //  this += new Transformation("resolution of built-in functions 1/2", {
 //    case call : IR_FunctionCall if (builtInFunctions.contains(call.name)) => {
@@ -390,23 +395,12 @@ object IR_ResolveMatrices extends DefaultStrategy("Resolve matrices into scalars
       calculateDeterminant(m)
     }
   })
+}
 
-  //  this += new Transformation("put into matrix expressions", {
-  //    case stmt @ IR_Assignment(dest, src, _) if(dest.datatype.isInstanceOf[IR_MatrixDatatype]) => {
-  //      val matrix = dest.datatype.asInstanceOf[IR_MatrixDatatype]
-  //      dest match {
-  //        case v : IR_VariableAccess => {
-  //          var dexp = ListBuffer[IR_Expression]()
-  //          for (row <- 0 until matrix.sizeM) {
-  //            for (col <- 0 until matrix.sizeN) {
-  //              dexp += IR_HighDimAccess(v, IR_ConstIndex(row, col))
-  //            }
-  //          }
-  //          stmt.dest = IR_MatrixExpression(Some(matrix.resolveBaseDatatype), matrix.sizeM, matrix.sizeN, dexp.toArray)
-  //        }
-  //        case _ => Logger.warn("Unknown type in 'put into matrix expressions': " + dest)
-  //      }
-  //  })
+object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments to matrices") {
+  val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
+  val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
+  val builtInFunctions = List("dotProduct", "dot", "inverse", "det")
 
   this += new Transformation("scalarize 1/2", {
     case stmt @ IR_Assignment(dest, src, op) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) => {

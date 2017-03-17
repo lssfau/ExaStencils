@@ -14,8 +14,8 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions") {
   // hack: since Addition and Multiplication lead always to a match, we don't count these if nothing was changed
-  private var negMatches : Int = 0
-  private var compactAST : Boolean = false
+  var negMatches : Int = 0
+  var compactAST : Boolean = false
 
   def doUntilDone(node : Option[Node] = None) = {
     do {
