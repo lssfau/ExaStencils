@@ -437,27 +437,6 @@ object Main {
 
     IR_ResolveStencilFunction.apply()
 
-    if (Knowledge.experimental_internalHighDimTypes) {
-      IR_SetupMatrixExpressions.apply()
-
-      IR_ExtractMatrices.apply()
-
-      // repeat for new VariableAccesses TODO: generate the correct expressions directly
-      IR_SetupMatrixExpressions.apply()
-
-      var sthChanged = true
-      while (sthChanged) {
-        // TODO: move matrix and vector specific parts of IR_GeneralSimplify to specialized strategy
-        IR_GeneralSimplify.doUntilDone()
-
-        IR_ResolveMatrixFunctions.apply()
-        sthChanged = IR_ResolveMatrixFunctions.results.last._2.matches > 0
-      }
-
-      IR_ResolveMatrixAssignments.apply()
-      IR_LinearizeMatrices.apply()
-    }
-
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
     if (Knowledge.domain_rect_generate && Knowledge.maxLevel <= 0) {
@@ -488,6 +467,28 @@ object Main {
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
     IR_ResolveLocalSolve.apply()
+    IR_GeneralSimplify.doUntilDone()
+
+    if (Knowledge.experimental_internalHighDimTypes) {
+      IR_SetupMatrixExpressions.apply()
+
+      IR_ExtractMatrices.apply()
+
+      // repeat for new VariableAccesses TODO: generate the correct expressions directly
+      IR_SetupMatrixExpressions.apply()
+
+      var sthChanged = true
+      while (sthChanged) {
+        // TODO: move matrix and vector specific parts of IR_GeneralSimplify to specialized strategy
+        IR_GeneralSimplify.doUntilDone()
+
+        IR_ResolveMatrixFunctions.apply()
+        sthChanged = IR_ResolveMatrixFunctions.results.last._2.matches > 0
+      }
+
+      IR_ResolveMatrixAssignments.apply()
+      IR_LinearizeMatrices.apply()
+    }
 
     IR_ResolveLoopOverPointsInOneFragment.apply()
 
