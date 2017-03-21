@@ -48,7 +48,7 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
     super.printHeader()
     val writer = PrettyprintingManager.getPrinter(s"${ baseName }.h")
     Settings.additionalMacros.foreach(writer <<< _)
-    typeAliases.foreach(x => writer << s"using ${ x._2.prettyprint } = ${ x._1 };\n")
+    typeAliases.foreach(x => writer << s"using ${ x._1.prettyprint } = ${ x._2 };\n")
     variables.sortBy(_.name).foreach(variable => writer << s"extern ${ variable.prettyprintDeclaration() }\n")
   }
 
@@ -64,9 +64,9 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
     super.printSources()
   }
 
-  var typeAliases = mutable.HashMap[String, IR_Datatype]()
+  var typeAliases = mutable.HashMap[IR_Datatype, String]()
 
   def registerTypeAlias(datatype : IR_Datatype, alias : String) = {
-    typeAliases += ((alias, datatype))
+    typeAliases += ((datatype, alias))
   }
 }
