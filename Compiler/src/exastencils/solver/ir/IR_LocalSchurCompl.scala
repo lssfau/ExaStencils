@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
@@ -13,6 +14,22 @@ import exastencils.logger.Logger
 /// IR_LocalSchurCompl
 
 object IR_LocalSchurCompl {
+  // TODO: remove after successful integration of experimental_internalHighDimTypes
+  def vecComponentAccess(vec : IR_VariableAccess, i0 : Int) = {
+    if (Knowledge.experimental_internalHighDimTypes)
+      IR_HighDimAccess(vec, IR_ConstIndex(i0))
+    else
+      IR_HackVecComponentAccess(vec, i0)
+  }
+
+  // TODO: remove after successful integration of experimental_internalHighDimTypes
+  def matComponentAccess(mat : IR_VariableAccess, i0 : Int, i1 : Int) = {
+    if (Knowledge.experimental_internalHighDimTypes)
+      IR_HighDimAccess(mat, IR_ConstIndex(i0, i1))
+    else
+      IR_HackMatComponentAccess(mat, i0, i1)
+  }
+
   def apply(AVals : ListBuffer[ListBuffer[IR_Addition]], fVals : ListBuffer[IR_Addition], unknowns : ListBuffer[IR_FieldAccess],
       relax : Option[IR_Expression]) =
     invert(AVals, fVals, unknowns, relax)
@@ -88,62 +105,61 @@ object IR_LocalSchurCompl {
 
       // rhs for inner
       i match {
-        case 0 | 1 => innerStmts += IR_Assignment(IR_HackVecComponentAccess(f(i), i - 0), fVals(i))
-        case 2 | 3 => innerStmts += IR_Assignment(IR_HackVecComponentAccess(f(i), i - 2), fVals(i))
-        case 4 | 5 => innerStmts += IR_Assignment(IR_HackVecComponentAccess(f(i), i - 4), fVals(i))
-        case 6     => innerStmts += IR_Assignment(IR_HackVecComponentAccess(f(i), i - 6), fVals(i))
+        case 0 | 1 => innerStmts += IR_Assignment(vecComponentAccess(f(i), i - 0), fVals(i))
+        case 2 | 3 => innerStmts += IR_Assignment(vecComponentAccess(f(i), i - 2), fVals(i))
+        case 4 | 5 => innerStmts += IR_Assignment(vecComponentAccess(f(i), i - 4), fVals(i))
+        case 6     => innerStmts += IR_Assignment(vecComponentAccess(f(i), i - 6), fVals(i))
       }
 
       // sub-matrices for inner
-      // TODO: check for non-zero entries that are discarded
       i match {
         case 0 | 1 =>
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(A11, i - 0, 0), AVals(i)(0))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(A11, i - 0, 1), AVals(i)(1))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(B1, i - 0, 0), AVals(i)(6))
+          innerStmts += IR_Assignment(matComponentAccess(A11, i - 0, 0), AVals(i)(0))
+          innerStmts += IR_Assignment(matComponentAccess(A11, i - 0, 1), AVals(i)(1))
+          innerStmts += IR_Assignment(matComponentAccess(B1, i - 0, 0), AVals(i)(6))
         case 2 | 3 =>
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(A22, i - 2, 0), AVals(i)(2))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(A22, i - 2, 1), AVals(i)(3))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(B2, i - 2, 0), AVals(i)(6))
+          innerStmts += IR_Assignment(matComponentAccess(A22, i - 2, 0), AVals(i)(2))
+          innerStmts += IR_Assignment(matComponentAccess(A22, i - 2, 1), AVals(i)(3))
+          innerStmts += IR_Assignment(matComponentAccess(B2, i - 2, 0), AVals(i)(6))
         case 4 | 5 =>
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(A33, i - 4, 0), AVals(i)(4))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(A33, i - 4, 1), AVals(i)(5))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(B3, i - 4, 0), AVals(i)(6))
+          innerStmts += IR_Assignment(matComponentAccess(A33, i - 4, 0), AVals(i)(4))
+          innerStmts += IR_Assignment(matComponentAccess(A33, i - 4, 1), AVals(i)(5))
+          innerStmts += IR_Assignment(matComponentAccess(B3, i - 4, 0), AVals(i)(6))
         case 6     =>
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(C1, 0, 0 - 0), AVals(i)(0))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(C1, 0, 1 - 0), AVals(i)(1))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(C2, 0, 2 - 2), AVals(i)(2))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(C2, 0, 3 - 2), AVals(i)(3))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(C3, 0, 4 - 4), AVals(i)(4))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(C3, 0, 5 - 4), AVals(i)(5))
-          innerStmts += IR_Assignment(IR_HackMatComponentAccess(D, i - 6, 0), AVals(i)(6))
+          innerStmts += IR_Assignment(matComponentAccess(C1, 0, 0 - 0), AVals(i)(0))
+          innerStmts += IR_Assignment(matComponentAccess(C1, 0, 1 - 0), AVals(i)(1))
+          innerStmts += IR_Assignment(matComponentAccess(C2, 0, 2 - 2), AVals(i)(2))
+          innerStmts += IR_Assignment(matComponentAccess(C2, 0, 3 - 2), AVals(i)(3))
+          innerStmts += IR_Assignment(matComponentAccess(C3, 0, 4 - 4), AVals(i)(4))
+          innerStmts += IR_Assignment(matComponentAccess(C3, 0, 5 - 4), AVals(i)(5))
+          innerStmts += IR_Assignment(matComponentAccess(D, i - 6, 0), AVals(i)(6))
       }
 
       // rhs for boundary
-      boundaryStmts += IR_Assignment(IR_HackVecComponentAccess(f(i), i % 2), Duplicate(unknowns(i)))
+      boundaryStmts += IR_Assignment(vecComponentAccess(f(i), i % 2), Duplicate(unknowns(i)))
 
       // sub-matrices for inner
       i match {
         case 0 | 1 =>
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A11, i - 0, 0), if (0 == i - 0) 1 else 0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A11, i - 0, 1), if (1 == i - 0) 1 else 0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(B1, i - 0, 0), 0.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(A11, i - 0, 0), if (0 == i - 0) 1 else 0)
+          boundaryStmts += IR_Assignment(matComponentAccess(A11, i - 0, 1), if (1 == i - 0) 1 else 0)
+          boundaryStmts += IR_Assignment(matComponentAccess(B1, i - 0, 0), 0.0)
         case 2 | 3 =>
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A22, i - 2, 0), if (0 == i - 2) 1 else 0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A22, i - 2, 1), if (1 == i - 2) 1 else 0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(B2, i - 2, 0), 0.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(A22, i - 2, 0), if (0 == i - 2) 1 else 0)
+          boundaryStmts += IR_Assignment(matComponentAccess(A22, i - 2, 1), if (1 == i - 2) 1 else 0)
+          boundaryStmts += IR_Assignment(matComponentAccess(B2, i - 2, 0), 0.0)
         case 4 | 5 =>
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A33, i - 4, 0), if (0 == i - 4) 1 else 0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A33, i - 4, 1), if (1 == i - 4) 1 else 0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(B3, i - 4, 0), 0.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(A33, i - 4, 0), if (0 == i - 4) 1 else 0)
+          boundaryStmts += IR_Assignment(matComponentAccess(A33, i - 4, 1), if (1 == i - 4) 1 else 0)
+          boundaryStmts += IR_Assignment(matComponentAccess(B3, i - 4, 0), 0.0)
         case 6     =>
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(C1, 0, 0 - 0), 0.0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(C1, 0, 1 - 0), 0.0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(C2, 0, 2 - 2), 0.0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(C2, 0, 3 - 2), 0.0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(C3, 0, 4 - 4), 0.0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(C3, 0, 5 - 4), 0.0)
-          boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(D, i - 6, 0), 1.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(C1, 0, 0 - 0), 0.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(C1, 0, 1 - 0), 0.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(C2, 0, 2 - 2), 0.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(C2, 0, 3 - 2), 0.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(C3, 0, 4 - 4), 0.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(C3, 0, 5 - 4), 0.0)
+          boundaryStmts += IR_Assignment(matComponentAccess(D, i - 6, 0), 1.0)
       }
 
       // implement check if current unknown is on/ beyond boundary
@@ -160,9 +176,16 @@ object IR_LocalSchurCompl {
     def A22Inv = IR_VariableAccess("_local_A22Inv", IR_MatrixDatatype(IR_RealDatatype, 2, 2))
     def A33Inv = IR_VariableAccess("_local_A33Inv", IR_MatrixDatatype(IR_RealDatatype, 2, 2))
 
-    stmts += IR_VariableDeclaration(A11Inv, IR_MemberFunctionCall(A11, "inverse"))
-    stmts += IR_VariableDeclaration(A22Inv, IR_MemberFunctionCall(A22, "inverse"))
-    stmts += IR_VariableDeclaration(A33Inv, IR_MemberFunctionCall(A33, "inverse"))
+    if (Knowledge.experimental_internalHighDimTypes) {
+      // TODO: add return types
+      stmts += IR_VariableDeclaration(A11Inv, IR_FunctionCall("inverse", A11))
+      stmts += IR_VariableDeclaration(A22Inv, IR_FunctionCall("inverse", A22))
+      stmts += IR_VariableDeclaration(A33Inv, IR_FunctionCall("inverse", A33))
+    } else {
+      stmts += IR_VariableDeclaration(A11Inv, IR_MemberFunctionCall(A11, "inverse"))
+      stmts += IR_VariableDeclaration(A22Inv, IR_MemberFunctionCall(A22, "inverse"))
+      stmts += IR_VariableDeclaration(A33Inv, IR_MemberFunctionCall(A33, "inverse"))
+    }
 
     def S = IR_VariableAccess("_local_S", IR_MatrixDatatype(IR_RealDatatype, 1, 1))
     def GTilde = IR_VariableAccess("_local_GTilde", IR_MatrixDatatype(IR_RealDatatype, 1, 1))
@@ -170,19 +193,22 @@ object IR_LocalSchurCompl {
     stmts += IR_VariableDeclaration(S, D - (C1 * A11Inv * B1 + C2 * A22Inv * B2 + C3 * A33Inv * B3))
     stmts += IR_VariableDeclaration(GTilde, G - C1 * A11Inv * F1 - C2 * A22Inv * F2 - C3 * A33Inv * F3)
 
-    stmts += IR_Assignment(V, IR_MemberFunctionCall(S, "inverse") * GTilde)
+    if (Knowledge.experimental_internalHighDimTypes)
+      stmts += IR_Assignment(V, IR_FunctionCall("inverse", S) * GTilde)
+    else
+      stmts += IR_Assignment(V, IR_MemberFunctionCall(S, "inverse") * GTilde)
     stmts += IR_Assignment(U1, A11Inv * (F1 - B1 * V))
     stmts += IR_Assignment(U2, A22Inv * (F2 - B2 * V))
     stmts += IR_Assignment(U3, A33Inv * (F3 - B3 * V))
 
     // write back results
     for (i <- unknowns.indices)
-      stmts += IR_IfCondition(// don't write back result on boundaries
+      stmts += IR_IfCondition( // don't write back result on boundaries
         IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
         if (relax.isEmpty)
-          IR_Assignment(Duplicate(unknowns(i)), IR_HackVecComponentAccess(u(i), i % 2))
+          IR_Assignment(Duplicate(unknowns(i)), vecComponentAccess(u(i), i % 2))
         else
-          IR_Assignment(Duplicate(unknowns(i)), Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * IR_HackVecComponentAccess(u(i), i % 2))
+          IR_Assignment(Duplicate(unknowns(i)), Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
       )
 
     stmts
