@@ -26,9 +26,10 @@ object Exploration {
 
   private val filterInnerPar : Boolean = Knowledge.poly_exploration_filterLevel >= 1
   private val filterLinMemAc : Boolean = Knowledge.poly_exploration_filterLevel >= 2
-  private val filterPosMemAc : Boolean = Knowledge.poly_exploration_filterLevel >= 3
-  private val filterTextDeps : Boolean = Knowledge.poly_exploration_filterLevel >= 4
-  private val filterPosCoeff : Boolean = Knowledge.poly_exploration_filterLevel >= 5
+  private val filterTextDeps : Boolean = Knowledge.poly_exploration_filterLevel >= 3
+  private val filterAlignVec : Boolean = Knowledge.poly_exploration_filterLevel >= 4
+  private val filterPosMemAc : Boolean = Knowledge.poly_exploration_filterLevel >= 5
+  private val filterPosCoeff : Boolean = Knowledge.poly_exploration_filterLevel >= 6
 
   def preprocess(domain : isl.UnionSet, deps : isl.UnionMap) : ArrayBuffer[isl.BasicMap] = {
 
@@ -131,7 +132,8 @@ object Exploration {
           progressOStream.print("\r" + i)
           progressOStream.flush()
         }
-        val remove : Boolean = filterInnerPar && nrCarried.view.slice(1, bands(0)).exists(_ != 0) // remove those whose inner loops in the outer band are not parallel
+        val remove : Boolean = (filterAlignVec && !cstVect) || // remove those which cannot be vectorized without aligned memory accesses
+          (filterInnerPar && nrCarried.view.slice(1, bands(0)).exists(_ != 0)) // remove those whose inner loops in the outer band are not parallel
         val wrap = new SchedVecWrapper(schedVect)
         if (!previous.contains(wrap) && !remove) {
           previous += wrap

@@ -225,9 +225,10 @@ object Knowledge {
   //   0: no filter
   //   1: only outer loop in should carry dependencies (textual dependencies are OK)
   //   2: only linear memory accesses allowed (given that the original schedule had linear accesses)
-  //   3: traverse memory in the inner loop in the same direction as the original schedule
-  //   4: only schedules with textual dependencies (if any)
-  //   5: only positive schedule coefficients allowed
+  //   3: only schedules with textual dependencies (if any)
+  //   4: do not prevent aligned vectorization
+  //   5: traverse memory in the inner loop in the same direction as the original schedule
+  //   6: only positive schedule coefficients allowed
 
   // [true|false] // specify separately if the outermost loop should be tiled
   var poly_tileOuterLoop : Boolean = false
