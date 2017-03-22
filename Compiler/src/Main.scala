@@ -349,8 +349,7 @@ object Main {
 
     /// BEGIN HACK: progress expression in knowledge
     {
-      val oldLoggerLevel = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
+      Logger.pushLevel(Logger.WARNING)
       for (obj <- L4_StencilCollection.objects)
         for (entry <- obj.entries) {
           L4_ResolveFieldAccesses.apply(Some(entry))
@@ -362,7 +361,7 @@ object Main {
         L4_ResolveStencilAccesses.apply(Some(L4_Root(obj.boundary)))
         L4_ResolveStencilFieldAccesses.apply(Some(L4_Root(obj.boundary)))
       }
-      Logger.setLevel(oldLoggerLevel)
+      Logger.popLevel()
     }
     /// END HACK: progress expression in knowledge
 
