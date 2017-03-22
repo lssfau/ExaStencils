@@ -30,7 +30,7 @@ object IR_LocalSchurCompl {
       IR_HackMatComponentAccess(mat, i0, i1)
   }
 
-  def apply(AVals : ListBuffer[ListBuffer[IR_Addition]], fVals : ListBuffer[IR_Addition], unknowns : ListBuffer[IR_FieldAccess],
+  def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
       relax : Option[IR_Expression]) =
     invert(AVals, fVals, unknowns, relax)
 
@@ -57,7 +57,7 @@ object IR_LocalSchurCompl {
     onlyZeros
   }
 
-  def invert(AVals : ListBuffer[ListBuffer[IR_Addition]], fVals : ListBuffer[IR_Addition], unknowns : ListBuffer[IR_FieldAccess],
+  def invert(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
       relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
 
     val stmts = ListBuffer[IR_Statement]()
