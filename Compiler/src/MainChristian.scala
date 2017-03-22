@@ -1,7 +1,8 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.base.l4.{ L4_ResolveVariableAccesses, _ }
+import exastencils.base.l4.L4_ResolveVariableAccesses
+import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.core.StateManager
 import exastencils.datastructures._
@@ -26,7 +27,7 @@ object MainChristian {
       "//Var m : Matrix<Real, 2, 2>\n" +
       "//Var m2 : Matrix<Real, 2, 2>\n" +
       "//Var m : Matrix<Real, 2, 2> = {{1.0, 2.0},{1,1}} + {{2.0, 2.0}, {2.0, 2.0}} * {{2,2},{2,2}} - {{1,1},{1,1}}+{{2,2},{2,2}}\n" +
-      "//Var n : Vector<Real, 3> = {1 2 3}\n" +
+      "Var n : ColumnVector<Real, 4> = [1; 2; 3; 4]\n" +
       "Var l : Matrix<Real, 2, 2> = -inverse({{1,2},{3,4}} * {{1,2},{3,4}})\n" +
       "//m2 = Bla(m) + {{1.0,1.0},{1.0,1.0}}\n" +
       "//m = det(m * m)\n" +

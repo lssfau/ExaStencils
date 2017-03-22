@@ -12,6 +12,7 @@ trait L4_HigherOrderDatatype extends L4_Datatype {
   override def resolveBaseDatatype : L4_Datatype = datatype.resolveBaseDatatype
 }
 
+@deprecated("Please switch to Vector L4_VectorDatatype")
 case class L4_ArrayDatatype(datatype : L4_Datatype, numElements : Int) extends L4_HigherOrderDatatype {
   override def prettyprint(out : PpStream) = { out << "Array<" << datatype << "><" << numElements << '>' }
   override def progress = IR_ArrayDatatype(datatype.progress, numElements)
@@ -36,10 +37,14 @@ case class L4_ArrayDatatype_VS(datatype : L4_Datatype, numElements : L4_Expressi
 
 case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, var isRow : Option[Boolean]) extends L4_HigherOrderDatatype {
   override def prettyprint(out : PpStream) = {
-    if (isRow.getOrElse(true))
+    if (isRow.isEmpty)
       out << "Vector"
-    else
-      out << "ColumnVector"
+    else {
+      if (isRow.get)
+        out << "RowVector"
+      else
+        out << "ColumnVector"
+    }
     out << "<" << datatype << ',' << numElements << '>'
   }
   override def progress = {
