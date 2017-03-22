@@ -324,6 +324,11 @@ class L4_Parser extends ExaParser with PackratParsers {
       ||| locationize(("[" ~> binaryexpression <~ ",") ~ (binaryexpression <~ "]") ^^ { case n1 ~ n2 => L4_ExpressionIndex(n1, n2) })
       ||| locationize(("[" ~> binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ (binaryexpression <~ "]") ^^ { case n1 ~ n2 ~ n3 => L4_ExpressionIndex(n1, n2, n3) }))
 
+  lazy val rangeIndex1d = locationize(("[" ~> binaryexpression.? <~ ":") ~ (binaryexpression.? <~ "]") ^^ { case x ~ y => L4_RangeIndex(L4_Range(x, y)) })
+  lazy val rangeIndex2d = locationize("[" ~> binaryexpression.? ~ ":" ~ binaryexpression.? ~ "," ~ binaryexpression.? ~ ":" ~ binaryexpression.? <~ "]" ^^ {
+    case a ~ _ ~ b ~ _ ~ x ~ _ ~ y => L4_RangeIndex(Array(L4_Range(a, b), L4_Range(x, y)))
+  })
+
   lazy val stencil = locationize(("Stencil" ~> identifierWithOptDeclLevel) ~ ("{" ~> stencilEntries <~ "}")
     ^^ { case id ~ entries => L4_StencilDecl(id, entries) })
   lazy val stencilEntries = (
@@ -345,7 +350,7 @@ class L4_Parser extends ExaParser with PackratParsers {
   // ##### Object Access
   // ######################################
 
-  lazy val componentAccess = index1d ||| index2d
+  lazy val componentAccess = index1d ||| index2d ||| rangeIndex1d ||| rangeIndex2d
 
   lazy val slotAccess = locationize(
     "$" ~> slotModifier ^^ (s => s)
