@@ -155,8 +155,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       var lstStmt : Int = -1
       var stmts : mutable.Buffer[(String, (ListBuffer[IR_Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
       var i : Int = 0
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
+      Logger.pushLevel(Logger.WARNING)
       for ((lab, (stmt, _)) <- stmts) {
         found = false
         this.execute(search, Some(IR_Scope(stmt)))
@@ -167,7 +166,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         }
         i += 1
       }
-      Logger.setLevel(oldLvl)
+      Logger.popLevel()
       stmts = stmts.slice(fstStmt, lstStmt + 1)
       // check if all statements have the same iteration space
       val remDoms = new ArrayBuffer[isl.Set]()
@@ -531,14 +530,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private def recreateAndInsertAST() : Unit = {
 
     val replaceCallback = { (repl : mutable.Map[String, IR_Expression], applyAt : Node) =>
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
+      Logger.pushLevel(Logger.WARNING)
       this.execute(
         new Transformation("update loop iterator", {
           case IR_VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
           case IR_StringLiteral(str) if repl.isDefinedAt(str)     => Duplicate(repl(str))
         }), Some(applyAt))
-      Logger.setLevel(oldLvl)
+      Logger.popLevel()
     }
     this.execute(new ASTBuilderTransformation(replaceCallback))
   }

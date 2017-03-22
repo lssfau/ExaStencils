@@ -1,5 +1,7 @@
 package exastencils.logger
 
+import scala.collection.mutable.Stack
+
 /**
   * Logger object that currently writes to stdout.
   *
@@ -28,6 +30,7 @@ object Logger {
   val INFO = 4
 
   protected var current : Int = DEBUG
+  var levelStack = Stack[Int]()
 
   /**
     * Returns the current logging level.
@@ -42,6 +45,23 @@ object Logger {
     * @param level A numerical value denoting the logging level, i.e., one of the LEVEL_* values defined in this entity.
     */
   def setLevel(level : Int) = { current = level }
+
+  /**
+    * Sets the current logging level while pushing the old one to an internal stack.
+    *
+    * @param level A numerical value denoting the logging level, i.e., one of the LEVEL_* values defined in this entity.
+    */
+  def pushLevel(level : Int) = {
+    levelStack.push(current)
+    current = level
+  }
+
+  /**
+    * Sets the current logging level to the last logging level stored in the internal stack.
+    */
+  def popLevel() = {
+    current = levelStack.pop()
+  }
 
   /**
     * Outputs an error message and exits the program.

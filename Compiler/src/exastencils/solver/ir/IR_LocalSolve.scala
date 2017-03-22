@@ -146,10 +146,28 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
 
     sortEquations()
 
+    def mapToExp(add : IR_Addition) : IR_Expression = {
+      add match {
+        case IR_Addition(ListBuffer()) =>
+          IR_RealConstant(0) // empty entries means zero
+
+        case ex : IR_Expression =>
+          IR_GeneralSimplify.applyStandalone(IR_ExpressionStatement(ex))
+          ex
+      }
+    }
+
+    Logger.pushLevel(Logger.WARNING)
+
+    val fExp = fVals.map(mapToExp)
+    val AExp = AVals.map(_.map(mapToExp))
+
+    Logger.popLevel()
+
     // choose strategy used for inverting local matrix
     if (Knowledge.experimental_applySchurCompl && IR_LocalSchurCompl.suitable(AVals))
-      IR_Scope(IR_LocalSchurCompl(AVals, fVals, unknowns, relax))
+      IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, relax))
     else
-      IR_Scope(IR_LocalDirectInvert(AVals, fVals, unknowns, relax))
+      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, relax))
   }
 }

@@ -11,12 +11,11 @@ import exastencils.logger._
 class QuietDefaultStrategy(name : String) extends DefaultStrategy(name) {
 
   override def applyStandalone(node : Node) : Unit = {
-    val oldLvl = Logger.getLevel
-    Logger.setLevel(Logger.WARNING)
+    Logger.pushLevel(Logger.WARNING)
     try {
       super.applyStandalone(node)
     } finally {
-      Logger.setLevel(oldLvl)
+      Logger.popLevel()
     }
   }
 }
@@ -35,8 +34,7 @@ object QuietDefaultStrategy {
     * A Strategy that executes its [[exastencils.datastructures.Transformation]]s sequentially.
     * It suppresses all debug output, when called in standalone mode.
     *
-    *
-    * @param name name The name of the Strategy. Used for traceability and debugging purposes.
+    * @param name            name The name of the Strategy. Used for traceability and debugging purposes.
     * @param transformations List of transformations for the strategy.
     */
   def apply(name : String, transformations : List[Transformation]) = {

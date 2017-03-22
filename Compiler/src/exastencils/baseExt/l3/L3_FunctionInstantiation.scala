@@ -49,10 +49,9 @@ object L3_ResolveFunctionTemplates extends DefaultStrategy("Resolving function t
     var replacements : Map[String, L3_Expression] = Map()
 
     override def applyStandalone(node : Node) = {
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
+      Logger.pushLevel(Logger.WARNING)
       super.applyStandalone(node)
-      Logger.setLevel(oldLvl)
+      Logger.popLevel()
     }
 
     this += new Transformation("SearchAndReplace", {
