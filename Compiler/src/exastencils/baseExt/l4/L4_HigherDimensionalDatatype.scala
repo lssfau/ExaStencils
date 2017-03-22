@@ -5,7 +5,7 @@ import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.prettyprinting.PpStream
 
-trait L4_HigherOrderDatatype extends L4_Datatype {
+trait L4_HigherDimensionalDatatype extends L4_Datatype {
   // encapsulated data type
   def datatype : L4_Datatype
 
@@ -13,7 +13,7 @@ trait L4_HigherOrderDatatype extends L4_Datatype {
 }
 
 @deprecated("Please switch to Vector L4_VectorDatatype")
-case class L4_ArrayDatatype(datatype : L4_Datatype, numElements : Int) extends L4_HigherOrderDatatype {
+case class L4_ArrayDatatype(datatype : L4_Datatype, numElements : Int) extends L4_HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) = { out << "Array<" << datatype << "><" << numElements << '>' }
   override def progress = IR_ArrayDatatype(datatype.progress, numElements)
 
@@ -24,7 +24,7 @@ case class L4_ArrayDatatype(datatype : L4_Datatype, numElements : Int) extends L
   override def typicalByteSize = numElements * datatype.typicalByteSize
 }
 
-case class L4_ArrayDatatype_VS(datatype : L4_Datatype, numElements : L4_Expression) extends L4_HigherOrderDatatype {
+case class L4_ArrayDatatype_VS(datatype : L4_Datatype, numElements : L4_Expression) extends L4_HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) = { out << "Array[" << datatype << "][" << numElements << ']' }
   override def progress = IR_ArrayDatatype_VS(datatype.progress, numElements.progress)
 
@@ -35,7 +35,7 @@ case class L4_ArrayDatatype_VS(datatype : L4_Datatype, numElements : L4_Expressi
   override def typicalByteSize = ???
 }
 
-case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, var isRow : Option[Boolean]) extends L4_HigherOrderDatatype {
+case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, var isRow : Option[Boolean]) extends L4_HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) = {
     if (isRow.isEmpty)
       out << "Vector"
@@ -62,7 +62,7 @@ case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, 
   override def typicalByteSize = numElements * datatype.typicalByteSize
 }
 
-case class L4_MatrixDatatype(var datatype : L4_Datatype, var numRows : Int, var numColumns : Int) extends L4_HigherOrderDatatype {
+case class L4_MatrixDatatype(var datatype : L4_Datatype, var numRows : Int, var numColumns : Int) extends L4_HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) : Unit = out << "Matrix<" << datatype << ',' << numRows << ',' << numColumns << '>'
   override def progress = IR_MatrixDatatype(datatype.progress, numRows, numColumns)
 

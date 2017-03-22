@@ -4,14 +4,14 @@ import exastencils.base.l2._
 import exastencils.baseExt.l3._
 import exastencils.prettyprinting.PpStream
 
-trait L2_HigherOrderDatatype extends L2_Datatype {
+trait L2_HigherDimensionalDatatype extends L2_Datatype {
   // encapsulated data type
   def datatype : L2_Datatype
 
   override def resolveBaseDatatype : L2_Datatype = datatype.resolveBaseDatatype
 }
 
-case class L2_ArrayDatatype(datatype : L2_Datatype, numElements : Int) extends L2_HigherOrderDatatype {
+case class L2_ArrayDatatype(datatype : L2_Datatype, numElements : Int) extends L2_HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) = { out << "Array[" << datatype << "][" << numElements << ']' }
   override def progress = L3_ArrayDatatype(datatype.progress, numElements)
 
