@@ -9,6 +9,7 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
 import exastencils.util.ir.IR_ResultingDatatype
 
@@ -236,6 +237,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       Logger.error("determinant for non-quadratic matrices not implemented")
       // FIXME Nullzeilen/-spalten ergänzen
     }
+    Logger.pushLevel(Logger.WARNING)
     if (m.rows <= 0) {
       Logger.error("MatrixExpression of size <= 0")
     } else if (m.rows == 1) {
@@ -263,8 +265,12 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
             tmpRow += 1
           }
         }
-        det += m.get(i, 0) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
+        var tmpDet = m.get(i, 0) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
+        IR_GeneralSimplify.applyStandalone(tmpDet)
+        det += tmpDet
       }
+      IR_GeneralSimplify.applyStandalone(det)
+      Logger.popLevel()
       return det
     }
   }
@@ -288,7 +294,11 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         tmpRow += 1
       }
     }
-    return calculateDeterminant(tmp)
+    Logger.pushLevel(Logger.WARNING)
+    var ret = calculateDeterminant(tmp)
+    IR_GeneralSimplify.applyStandalone(ret)
+    Logger.popLevel()
+    ret
   }
 
 //  this += new Transformation("resolution of built-in functions 1/2", {
@@ -342,6 +352,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         Logger.error("inverse() must have one argument")
       }
       val m = call.arguments(0).asInstanceOf[IR_MatrixExpression]
+      Logger.pushLevel(Logger.WARNING)
       val ret = m.rows match {
         case 1 => IR_MatrixExpression(m.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), m.get(0, 0))))
         case 2 => {
@@ -372,7 +383,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           val H = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
           val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
           val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
-          IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
+          IR_MatrixExpression(m.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)))
         }
         case _ => {
           val inv_det = IR_IntegerConstant(1) / calculateDeterminant(m)
@@ -385,6 +396,8 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           tmp
         }
       }
+      IR_GeneralSimplify.applyStandalone(ret)
+      Logger.popLevel()
       ret
     }
     case call : IR_FunctionCall if (call.name == "det")                              => {
