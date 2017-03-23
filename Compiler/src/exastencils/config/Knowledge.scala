@@ -434,7 +434,7 @@ object Knowledge {
   var experimental_layerExtension : Boolean = false
 
   // enables internal handling of high-dimensional data type
-  var experimental_internalHighDimTypes : Boolean = false
+  var experimental_internalHighDimTypes : Boolean = true
 
   // tries to apply an inversion based on the Schur complement in local solve blocks
   var experimental_applySchurCompl : Boolean = false
