@@ -15,7 +15,7 @@ case class L4_ValueDeclaration(
     var datatype : L4_Datatype,
     var initialValue : L4_Expression) extends L4_Statement with L4_HasIdentifier {
 
-  (datatype, initialValue) match {
+  (datatype, initialValue) match { // FIXME does not work if initialValue is nested, e.g. inverse(L4_MatrixExpression)
     case (dt : L4_VectorDatatype, exp : L4_VectorExpression) => {
       initialValue.asInstanceOf[L4_VectorExpression].datatype = Some(dt.datatype)
       initialValue.asInstanceOf[L4_VectorExpression].convertConstants(dt.datatype)
@@ -51,7 +51,7 @@ case class L4_VariableDeclaration(
   }
 
   if(initialValue.isDefined) {
-    (datatype, initialValue.get) match {
+    (datatype, initialValue.get) match { // FIXME does not work if initialValue is nested, e.g. inverse(L4_MatrixExpression)
       case (dt : L4_VectorDatatype, exp : L4_VectorExpression) => {
         initialValue.get.asInstanceOf[L4_VectorExpression].datatype = Some(dt.datatype)
         initialValue.get.asInstanceOf[L4_VectorExpression].convertConstants(dt.datatype)
