@@ -20,7 +20,7 @@ object GridUtil {
 
   // helper functions of projecting indices and accesses
   def projectIdx(baseIndex : IR_ExpressionIndex, dim : Int) = {
-    val index = IR_ExpressionIndex(baseIndex, IR_ExpressionIndex(Array.fill(4) { 0 }), _ * _) // keeps null entries, sets non-null entries to 0
+    val index = IR_ExpressionIndex(baseIndex, IR_ExpressionIndex(Array.fill(baseIndex.length) { 0 }), _ * _) // keeps null entries, sets non-null entries to 0
     index(dim) = baseIndex(dim)
     index
   }

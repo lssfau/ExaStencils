@@ -4,7 +4,6 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
-import exastencils.config._
 import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.field.ir.IR_FieldAccess
@@ -43,7 +42,7 @@ case class L4_StencilFieldAccess(
     if (arrayIndex.isDefined && dirAccess.isDefined)
       Logger.warn(s"Access to stencil field ${ target.name } on level ${ target.level } has direction access and array subscript modifiers; array index will be given precedence, offset will be ignored")
 
-    val stencilField = target.getProgressedObject
+    val stencilField = target.getProgressedObject()
 
     var accessIndex = -1
 
@@ -52,14 +51,13 @@ case class L4_StencilFieldAccess(
     else if (dirAccess.isDefined)
       accessIndex = stencilField.findOffsetIndex(dirAccess.get.progress).get
 
-    var numDims = Knowledge.dimensionality // TODO: resolve field info
-    numDims += 1 // TODO: remove array index and update function after integration of vec types
+    var numDims = stencilField.field.fieldLayout.numDimsGrid
     var multiIndex = IR_LoopOverDimensions.defIt(numDims)
 
-    if (accessIndex < 0)
-      multiIndex(numDims - 1) = IR_IntegerConstant(0)
-    else
-      multiIndex(numDims - 1) = IR_IntegerConstant(accessIndex)
+    if (accessIndex >= 0) {
+      numDims += 1
+      multiIndex.indices :+= IR_IntegerConstant(accessIndex)
+    }
 
     val progOffset = if (offset.isDefined) {
       val progressedOffset = offset.get.progress

@@ -71,6 +71,8 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     }
   }
 
+  def HACK_numDims = Knowledge.dimensionality // TODO: fix dim
+
   def setupNodePos_Diego(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
     val expo = 1.5
     val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment
@@ -80,23 +82,23 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val zoneLength = 0.0095 //* 8 / zoneSize
 
     val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", level).get
-    val baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+    val baseIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
     val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
 
     val innerIt = IR_LoopOverDimensions.defItForDim(dim)
 
-    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     leftGhostIndex(dim) = -1
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
-    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     rightGhostIndex(dim) = numCells + 1
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
 
     val innerLoop = IR_LoopOverPoints(field, None,
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         IR_IfCondition(IR_LowerEqual(innerIt, 0),
@@ -145,18 +147,18 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     val innerIt = IR_LoopOverDimensions.defItForDim(dim)
 
-    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     leftGhostIndex(dim) = -1
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
-    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     rightGhostIndex(dim) = numCells + 1
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
 
     val innerLoop = IR_LoopOverPoints(field, None,
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         IR_IfCondition(IR_LowerEqual(innerIt, 0),
@@ -205,11 +207,11 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    val leftDir = Array(0, 0, 0)
+    val leftDir = Array.fill(HACK_numDims)(0)
     leftDir(dim) = -1
     val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
 
-    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     leftGhostIndex(dim) = -2
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
@@ -219,11 +221,11 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
         IR_Assignment(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
 
-    val rightDir = Array(0, 0, 0)
+    val rightDir = Array.fill(HACK_numDims)(0)
     rightDir(dim) = 1
     val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
 
-    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
@@ -235,8 +237,8 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // compile final loop
     val innerLoop = IR_LoopOverPoints(field, None,
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         innerItDecl,

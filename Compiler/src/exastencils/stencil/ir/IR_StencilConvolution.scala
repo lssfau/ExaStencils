@@ -2,7 +2,6 @@ package exastencils.stencil.ir
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_FieldAccess
@@ -49,7 +48,7 @@ case class IR_StencilFieldConvolution(var left : IR_StencilFieldAccess, var righ
 
   def resolveEntry(idx : Int) : IR_Expression = {
     val stencilFieldIdx = Duplicate(left.index)
-    stencilFieldIdx(Knowledge.dimensionality) = idx
+    stencilFieldIdx.indices :+= (idx : IR_Expression)
 
     // fill offset with zeros to match dimensionality of the field access
     val offset = Duplicate(left.stencilFieldSelection.offsets(idx))
