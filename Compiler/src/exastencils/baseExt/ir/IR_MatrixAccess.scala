@@ -237,7 +237,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       Logger.error("determinant for non-quadratic matrices not implemented")
       // FIXME Nullzeilen/-spalten ergänzen
     }
-    Logger.pushLevel(Logger.WARNING)
     if (m.rows <= 0) {
       Logger.error("MatrixExpression of size <= 0")
     } else if (m.rows == 1) {
@@ -266,9 +265,12 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           }
         }
         val tmpDet = m.get(i, 0) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
+        Logger.pushLevel(Logger.WARNING)
         IR_GeneralSimplify.applyStandalone(tmpDet)
+        Logger.popLevel()
         det += tmpDet
       }
+      Logger.pushLevel(Logger.WARNING)
       IR_GeneralSimplify.applyStandalone(det)
       Logger.popLevel()
       return det
@@ -348,7 +350,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         Logger.error("inverse() must have one argument")
       }
       val m = call.arguments(0).asInstanceOf[IR_MatrixExpression]
-      Logger.pushLevel(Logger.WARNING)
       val ret = m.rows match {
         case 1 => IR_MatrixExpression(m.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), m.get(0, 0))))
         case 2 => {
@@ -392,6 +393,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           tmp
         }
       }
+      Logger.pushLevel(Logger.WARNING)
       IR_GeneralSimplify.applyStandalone(ret)
       Logger.popLevel()
       ret
