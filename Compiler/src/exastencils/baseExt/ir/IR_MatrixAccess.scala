@@ -469,7 +469,7 @@ object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to ma
     case access @ IR_VariableAccess(_, matrixDT : IR_MatrixDatatype) =>
       IR_MatrixExpression(Some(matrixDT.datatype), matrixDT.sizeM, matrixDT.sizeN, duplicateExpressions(access, matrixDT))
 
-    case access : IR_MultiDimFieldAccess if access.fieldSelection.field.gridDatatype.isInstanceOf[IR_MatrixDatatype] =>
+    case access : IR_MultiDimFieldAccess if access.datatype.isInstanceOf[IR_MatrixDatatype] =>
       val matrixDT = access.datatype.asInstanceOf[IR_MatrixDatatype]
       IR_MatrixExpression(Some(matrixDT.datatype), matrixDT.sizeM, matrixDT.sizeN, duplicateExpressions(access, matrixDT))
 

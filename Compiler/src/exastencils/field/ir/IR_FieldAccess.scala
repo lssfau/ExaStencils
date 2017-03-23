@@ -22,7 +22,15 @@ case class IR_DirectFieldAccess(
     var fieldSelection : IR_FieldSelection,
     var index : IR_ExpressionIndex) extends IR_MultiDimFieldAccess {
 
-  override def datatype = fieldSelection.fieldLayout.datatype
+  override def datatype = {
+    val layout = fieldSelection.field.fieldLayout
+    if (index.length == layout.numDimsGrid)
+      layout.datatype
+    else if (index.length == layout.numDimsData)
+      layout.datatype.resolveBaseDatatype
+    else Logger.error(s"Trying to resolve data type with invalid index ${ index.prettyprint() }")
+  }
+
   def linearize = IR_LinearizedFieldAccess(fieldSelection, fieldSelection.fieldLayout.linearizeIndex(index))
 }
 
@@ -41,7 +49,15 @@ case class IR_FieldAccess(
     var index : IR_ExpressionIndex,
     var offset : Option[IR_ExpressionIndex] = None) extends IR_MultiDimFieldAccess {
 
-  override def datatype = fieldSelection.fieldLayout.datatype
+  override def datatype = {
+    val layout = fieldSelection.field.fieldLayout
+    if (index.length == layout.numDimsGrid)
+      layout.datatype
+    else if (index.length == layout.numDimsData)
+      layout.datatype.resolveBaseDatatype
+    else Logger.error(s"Trying to resolve data type with invalid index ${ index.prettyprint() }")
+  }
+
   def expandSpecial = {
     if (offset.isDefined) Logger.warn(s"IR_FieldAccess with unresolved offset ${ offset.get.prettyprint() } found")
     IR_DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
