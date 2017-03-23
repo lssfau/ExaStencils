@@ -265,7 +265,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
             tmpRow += 1
           }
         }
-        var tmpDet = m.get(i, 0) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
+        val tmpDet = m.get(i, 0) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
         IR_GeneralSimplify.applyStandalone(tmpDet)
         det += tmpDet
       }
@@ -294,11 +294,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         tmpRow += 1
       }
     }
-    Logger.pushLevel(Logger.WARNING)
-    var ret = calculateDeterminant(tmp)
-    IR_GeneralSimplify.applyStandalone(ret)
-    Logger.popLevel()
-    ret
+    return calculateDeterminant(tmp)
   }
 
 //  this += new Transformation("resolution of built-in functions 1/2", {
@@ -383,7 +379,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           val H = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
           val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
           val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
-          IR_MatrixExpression(m.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)))
+          IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
         }
         case _ => {
           val inv_det = IR_IntegerConstant(1) / calculateDeterminant(m)
