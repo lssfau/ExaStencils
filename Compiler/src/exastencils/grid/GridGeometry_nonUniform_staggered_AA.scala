@@ -71,8 +71,6 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     }
   }
 
-  def HACK_numDims = Knowledge.dimensionality // TODO: fix dim
-
   def setupNodePos_Diego(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
     val expo = 1.5
     val numCells = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) // number of cells per fragment

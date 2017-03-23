@@ -74,6 +74,8 @@ trait GridGeometry_nonUniform extends GridGeometry {
         L4_LeveledIdentifier("node_pos_z", L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
   }
 
+  def HACK_numDims = Knowledge.dimensionality // TODO: fix dim
+
   def setupNodePos_Uniform(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
     val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
     val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
@@ -85,7 +87,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // look up field and compile access to base element
     val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", level).get
-    val baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+    val baseIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
     val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
 
     // fix the inner iterator -> used for zone checks
@@ -101,11 +103,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
         IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    val leftDir = Array(0, 0, 0)
+    val leftDir = Array.fill(HACK_numDims)(0)
     leftDir(dim) = -1
     val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
 
-    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     leftGhostIndex(dim) = -2
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
@@ -117,11 +119,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
         IR_Assignment(Duplicate(leftGhostAccess),
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
-    val rightDir = Array(0, 0, 0)
+    val rightDir = Array.fill(HACK_numDims)(0)
     rightDir(dim) = 1
     val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
 
-    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
@@ -135,8 +137,8 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // compile final loop
     val innerLoop = IR_LoopOverPoints(field, None,
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -2, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -2, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         innerItDecl,
@@ -182,8 +184,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // look up field and compile access to base element
     val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", level).get
-    def baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality)
-    // TODO: dim
+    def baseIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
     def baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
 
     // fix the inner iterator -> used for zone checks
@@ -199,11 +200,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
         IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    val leftDir = Array(0, 0, 0)
+    val leftDir = Array.fill(HACK_numDims)(0)
     leftDir(dim) = -1
     val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
 
-    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     leftGhostIndex(dim) = -2
     def leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
@@ -215,11 +216,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
         IR_Assignment(Duplicate(leftGhostAccess),
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
-    val rightDir = Array(0, 0, 0)
+    val rightDir = Array.fill(HACK_numDims)(0)
     rightDir(dim) = 1
     val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
 
-    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     rightGhostIndex(dim) = numCellsPerFrag + 2
     def rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
@@ -233,8 +234,8 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // compile final loop
     val innerLoop = IR_LoopOverPoints(field, None,
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -2, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -2, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -2, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         innerItDecl,
@@ -262,18 +263,18 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // look up field and compile access to base element
     val coarseField = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", coarseLvl).get
-    val coarseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+    val coarseIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
     val coarseAccess = IR_FieldAccess(IR_FieldSelection(coarseField, coarseLvl, 0), coarseIndex)
     val fineField = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", fineLvl).get
-    val fineIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+    val fineIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
     val fineAccess = IR_FieldAccess(IR_FieldSelection(fineField, fineLvl, 0), fineIndex)
 
     // compile special boundary handling expressions
-    val leftDir = Array(0, 0, 0)
+    val leftDir = Array.fill(HACK_numDims)(0)
     leftDir(dim) = -1
     val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
 
-    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     leftGhostIndex(dim) = -2
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(coarseField, coarseLvl, 0), leftGhostIndex)
 
@@ -285,11 +286,11 @@ trait GridGeometry_nonUniform extends GridGeometry {
         IR_Assignment(Duplicate(leftGhostAccess),
           2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
 
-    val rightDir = Array(0, 0, 0)
+    val rightDir = Array.fill(HACK_numDims)(0)
     rightDir(dim) = 1
     val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
 
-    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     rightGhostIndex(dim) = coarseCellsPerFrag + 2
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(coarseField, coarseLvl, 0), rightGhostIndex)
 
@@ -306,8 +307,8 @@ trait GridGeometry_nonUniform extends GridGeometry {
     //val offset = -2
     def innerIt = IR_LoopOverDimensions.defItForDim(dim)
     val innerLoop = IR_LoopOverPoints(coarseField, None,
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), offset, dim),
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), offset, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), offset, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), offset, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         // simple injection strategy

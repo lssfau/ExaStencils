@@ -4,7 +4,7 @@
 #SBATCH --qos=norm
 #SBATCH -n 1
 #SBATCH -c 4
-#SBATCH --mem 10GB
+#SBATCH --mem=10G
 #SBATCH --nice=100
 #SBATCH --time=20
 #SBATCH --signal=INT@5
@@ -89,7 +89,7 @@ echo "Run generator:"
 echo "  Created  ${RESULT}: run generator and save its stdout and stderr."
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 set -o pipefail
-srun java -XX:+UseG1GC -Xmx8G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | sed 's|\(WARN:.*\)$|<span style="color: #FF8000">\1</span>|;s|\(ERROR:.*\)$|<span style="color: #E00000">\1</span>|;s|\(Exception in.*\)$|<span style="color: #E00000">\1</span>|;s|\(DBG:\s*Done!\)$|<span style="color: #00E000">\1</span>|' | tee "${RESULT}"
+srun --mem=10G java -XX:+UseG1GC -Xmx8G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | sed 's|\(WARN:.*\)$|<span style="color: #FF8000">\1</span>|;s|\(ERROR:.*\)$|<span style="color: #E00000">\1</span>|;s|\(Exception in.*\)$|<span style="color: #E00000">\1</span>|;s|\(DBG:\s*Done!\)$|<span style="color: #00E000">\1</span>|' | tee "${RESULT}"
 RETCODE=$?
     if grep -q "Bad file descriptor" ${RESULT}; then
       echo "restart generation..."
@@ -131,7 +131,7 @@ if [[ ! ${PATH} =~ cuda ]]; then
   fi
 fi
 echo "Call make:"
-srun make -C "${TEST_DIR}" -j ${SLURM_CPUS_ON_NODE}
+srun --mem=10G make -C "${TEST_DIR}" -j ${SLURM_CPUS_ON_NODE}
 RETCODE=$?
     if [[ ${RETCODE} -ne 0 ]]; then
       echo ""
