@@ -85,7 +85,7 @@ case class L4_ConstIndex(override var indices : Array[Int]) extends L4_Index wit
 /// L4_RangeIndex
 
 case class L4_Range(var begin : Option[L4_Expression], var end : Option[L4_Expression]) {
-  if (begin.isEmpty == end.isEmpty == true) {
+  if (begin.isEmpty && end.isEmpty) {
     Logger.warn("Empty L4_Range")
   }
 }
