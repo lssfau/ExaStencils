@@ -36,43 +36,37 @@ case class L4_StencilFieldAccess(
     if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
-  def progress : IR_Expression = {
-    // TODO: extract mapping to FieldAccess for cases where single entries are targeted into a separate strategy
-
-    if (arrayIndex.isDefined && dirAccess.isDefined)
-      Logger.warn(s"Access to stencil field ${ target.name } on level ${ target.level } has direction access and array subscript modifiers; array index will be given precedence, offset will be ignored")
-
-    val stencilField = target.getProgressedObject()
-
-    var accessIndex = -1
-
-    if (arrayIndex.isDefined)
-      accessIndex = arrayIndex.get
-    else if (dirAccess.isDefined)
-      accessIndex = stencilField.findOffsetIndex(dirAccess.get.progress).get
-
-    var numDims = stencilField.field.fieldLayout.numDimsGrid
-    var multiIndex = IR_LoopOverDimensions.defIt(numDims)
-
-    if (accessIndex >= 0) {
-      numDims += 1
-      multiIndex.indices :+= IR_IntegerConstant(accessIndex)
-    }
-
-    val progOffset = if (offset.isDefined) {
+  def progressOffset(numDims : Int) = {
+    if (offset.isDefined) {
       val progressedOffset = offset.get.progress
       while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
       Some(progressedOffset)
     } else {
       None
     }
+  }
 
-    if (accessIndex < 0)
+  def progress : IR_Expression = {
+    // TODO: extract mapping to FieldAccess for cases where single entries are targeted into a separate strategy
+
+    val stencilField = target.getProgressedObject()
+    val field = stencilField.field
+    val numDims = stencilField.field.fieldLayout.numDimsGrid
+    val index = IR_LoopOverDimensions.defIt(numDims)
+
+    if (arrayIndex.isDefined && dirAccess.isDefined)
+      Logger.warn(s"Access to stencil field ${ target.name } on level ${ target.level } has direction access and array subscript modifiers; array index will be given precedence, offset will be ignored")
+
+    if (arrayIndex.isDefined) {
+      index.indices :+= IR_IntegerConstant(arrayIndex.get)
+      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), None), index, progressOffset(index.length))
+    } else if (dirAccess.isDefined) {
+      index.indices :+= IR_IntegerConstant(stencilField.findOffsetIndex(dirAccess.get.progress).get)
+      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), None), index, progressOffset(index.length))
+    } else {
       IR_StencilFieldAccess(IR_StencilFieldSelection(stencilField, stencilField.field.level, L4_FieldAccess.resolveSlot(stencilField.field, slot), None),
-        multiIndex, progOffset)
-    else
-      IR_FieldAccess(IR_FieldSelection(stencilField.field, stencilField.field.level, L4_FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
-        multiIndex, progOffset)
+        index, progressOffset(index.length))
+    }
   }
 }
 

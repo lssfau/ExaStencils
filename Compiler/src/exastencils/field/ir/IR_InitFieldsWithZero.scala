@@ -24,7 +24,7 @@ case class IR_InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandabl
     var statements : ListBuffer[IR_Statement] = new ListBuffer
 
     for (field <- fields) {
-      val numDims = field.fieldLayout.numDimsGrid
+      val numDims = field.fieldLayout.numDimsData
       val index = IR_LoopOverDimensions.defIt(numDims)
 
       val loopOverDims = new IR_LoopOverDimensions(numDims, IR_ExpressionIndexRange(

@@ -83,6 +83,14 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     return calculateDeterminant(tmp)
   }
 
+  def getIndex(fieldAccess : IR_FieldAccess) = {
+    val index = fieldAccess.index
+    if (fieldAccess.offset.isDefined)
+      for (i <- 0 until Math.min(fieldAccess.index.length, fieldAccess.offset.get.length))
+        index(i) += fieldAccess.offset.get(i)
+    index
+  }
+
   this += new Transformation("SearchAndReplace", {
     // functions
     // FIXME: datatypes for function accesses
@@ -115,64 +123,64 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case x : IR_FunctionCall if x.name == "inverse" && exastencils.config.Knowledge.experimental_internalHighDimTypes                      =>
       if (x.arguments.size == 1) {
         x.arguments(0) match {
-          case m : IR_MatrixExpression => {
-          val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
-          m.innerDatatype match {
-            case Some(IR_IntegerDatatype)                     => {
-              Logger.warn("Converting matrix expression to real data type for inversion")
-              m.innerDatatype = Some(IR_RealDatatype)
-            }
-            case Some(IR_ComplexDatatype(IR_IntegerDatatype)) => {
-              Logger.warn("Converting matrix expression to real data type for inversion")
-              m.innerDatatype = Some(IR_ComplexDatatype(IR_RealDatatype))
-            }
-            case _                                            =>
-          }
-          if (m.rows == 1 && m.columns == 1) {
-            IR_MatrixExpression(m.innerDatatype, 1, 1, Array(1.0 / m.get(0, 0)))
-          } else if (m.rows == 2 && m.columns == 2) {
-            val a = m.get(0, 0)
-            val b = m.get(0, 1)
-            val c = m.get(1, 0)
-            val d = m.get(1, 1)
-            val det : IR_Expression = 1.0 / (a * d - b * c)
-            IR_MatrixExpression(m.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * (-1), Duplicate(det) * Duplicate(c) * (-1), Duplicate(det) * Duplicate(a)))
-          } else if (m.rows == 3 && m.columns == 3) {
-            val a = m.get(0, 0)
-            val b = m.get(0, 1)
-            val c = m.get(0, 2)
-            val d = m.get(1, 0)
-            val e = m.get(1, 1)
-            val f = m.get(1, 2)
-            val g = m.get(2, 0)
-            val h = m.get(2, 1)
-            val i = m.get(2, 2)
-            val A = Duplicate(e) * Duplicate(i) - Duplicate(f) * Duplicate(h)
-            val B = -1 * (Duplicate(d) * Duplicate(i) - Duplicate(f) * Duplicate(g))
-            val C = Duplicate(d) * Duplicate(h) - Duplicate(e) * Duplicate(g)
-            val D = -1 * (Duplicate(b) * Duplicate(i) - Duplicate(c) * Duplicate(h))
-            val E = Duplicate(a) * Duplicate(i) - Duplicate(c) * Duplicate(g)
-            val F = -1 * (Duplicate(a) * Duplicate(h) - Duplicate(b) * Duplicate(g))
-            val G = Duplicate(b) * Duplicate(f) - Duplicate(c) * Duplicate(e)
-            val H = -1 * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
-            val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
-            val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
-            IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
-          } else if (m.rows == m.columns) {
-            val inv_det = 1.0 / calculateDeterminant(m)
-            val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
-            for (row <- 0 until m.rows) {
-              for (col <- 0 until m.columns) {
-                tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * math.pow(-1, row + col) * inv_det)
+          case m : IR_MatrixExpression                                             => {
+            val m = x.arguments(0).asInstanceOf[IR_MatrixExpression]
+            m.innerDatatype match {
+              case Some(IR_IntegerDatatype)                     => {
+                Logger.warn("Converting matrix expression to real data type for inversion")
+                m.innerDatatype = Some(IR_RealDatatype)
               }
+              case Some(IR_ComplexDatatype(IR_IntegerDatatype)) => {
+                Logger.warn("Converting matrix expression to real data type for inversion")
+                m.innerDatatype = Some(IR_ComplexDatatype(IR_RealDatatype))
+              }
+              case _                                            =>
             }
-            tmp
-          } else {
-            x
+            if (m.rows == 1 && m.columns == 1) {
+              IR_MatrixExpression(m.innerDatatype, 1, 1, Array(1.0 / m.get(0, 0)))
+            } else if (m.rows == 2 && m.columns == 2) {
+              val a = m.get(0, 0)
+              val b = m.get(0, 1)
+              val c = m.get(1, 0)
+              val d = m.get(1, 1)
+              val det : IR_Expression = 1.0 / (a * d - b * c)
+              IR_MatrixExpression(m.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * (-1), Duplicate(det) * Duplicate(c) * (-1), Duplicate(det) * Duplicate(a)))
+            } else if (m.rows == 3 && m.columns == 3) {
+              val a = m.get(0, 0)
+              val b = m.get(0, 1)
+              val c = m.get(0, 2)
+              val d = m.get(1, 0)
+              val e = m.get(1, 1)
+              val f = m.get(1, 2)
+              val g = m.get(2, 0)
+              val h = m.get(2, 1)
+              val i = m.get(2, 2)
+              val A = Duplicate(e) * Duplicate(i) - Duplicate(f) * Duplicate(h)
+              val B = -1 * (Duplicate(d) * Duplicate(i) - Duplicate(f) * Duplicate(g))
+              val C = Duplicate(d) * Duplicate(h) - Duplicate(e) * Duplicate(g)
+              val D = -1 * (Duplicate(b) * Duplicate(i) - Duplicate(c) * Duplicate(h))
+              val E = Duplicate(a) * Duplicate(i) - Duplicate(c) * Duplicate(g)
+              val F = -1 * (Duplicate(a) * Duplicate(h) - Duplicate(b) * Duplicate(g))
+              val G = Duplicate(b) * Duplicate(f) - Duplicate(c) * Duplicate(e)
+              val H = -1 * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
+              val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
+              val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
+              IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
+            } else if (m.rows == m.columns) {
+              val inv_det = 1.0 / calculateDeterminant(m)
+              val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
+              for (row <- 0 until m.rows) {
+                for (col <- 0 until m.columns) {
+                  tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * math.pow(-1, row + col) * inv_det)
+                }
+              }
+              tmp
+            } else {
+              x
+            }
           }
-        }
-        case m : IR_Expression if(m.datatype.isInstanceOf[IR_MatrixExpression]) => m
-        case _ => x
+          case m : IR_Expression if (m.datatype.isInstanceOf[IR_MatrixExpression]) => m
+          case _                                                                   => x
         }
       } else {
         x
@@ -211,31 +219,31 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnBoundary(fieldAccess.fieldSelection, fieldAccess.index)
+      IR_IsOnBoundary(fieldAccess.fieldSelection, getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnEastBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)), fieldAccess.index)
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnWestBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), fieldAccess.index)
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnNorthBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 1, 0)), fieldAccess.index)
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 1, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnSouthBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, -1, 0)), fieldAccess.index)
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, -1, 0)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnTopBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, 1)), fieldAccess.index)
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, 1)), getIndex(fieldAccess))
 
     case IR_FunctionCall(IR_UserFunctionAccess("isOnBottomBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
-      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)), fieldAccess.index)
+      IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)), getIndex(fieldAccess))
 
     case IR_ElementwiseAddition(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
     case IR_ElementwiseSubtraction(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))

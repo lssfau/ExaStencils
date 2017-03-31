@@ -79,7 +79,7 @@ object IR_ResolveFieldAccess extends DefaultStrategy("Resolve FieldAccess nodes"
   })
 }
 
-/// IR_ResolveFieldAccess
+/// IR_ApplyOffsetToFieldAccess
 
 object IR_ApplyOffsetToFieldAccess extends DefaultStrategy("Apply offsets to FieldAccess nodes") {
   this += new Transformation("Resolve", {
