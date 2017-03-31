@@ -96,8 +96,8 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
   // temporary variable used to replace function calls in expressions
   val annotationMatExpCounter = "IR_ResolveMatrices.matrixExpressionCounter"
   var matExpCounter = 0
-  // temporary variable used to replace matrix expressions in expressions
-  val builtInFunctions = List("dotProduct", "dot", "inverse", "det")
+  var builtInFunctions = ListBuffer("dotProduct", "dot", "det")
+  if (Knowledge.experimental_resolveInverseFunctionCall != "Runtime") builtInFunctions += "inverse"
 
   this += new Transformation("declarations", {
     // Definition of matrix variable including initialisation -> split into decl and assignment
@@ -230,7 +230,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
 object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix and vector functions") {
   val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
   val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
-  val builtInFunctions = List("dotProduct", "dot", "inverse", "det")
+
 
   def calculateDeterminant(m : IR_MatrixExpression) : IR_Expression = {
     if (m.rows != m.columns) {
@@ -299,6 +299,25 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
     return calculateDeterminant(tmp)
   }
 
+  def findPivot(matrix : IR_MatrixExpression, startRow : Int) : Int = {
+    var myMax = (0, 0.0)
+    for (row <- startRow until matrix.rows) {
+      val myElem = matrix.get(row, startRow)
+      myElem match {
+        case x : IR_IntegerConstant => if (Math.abs(x.value) > myMax._2) myMax = (row, Math.abs(x.v))
+        case x : IR_RealConstant    => if (Math.abs(x.value) > myMax._2) myMax = (row, Math.abs(x.v))
+        case x : IR_FloatConstant   => if (Math.abs(x.value) > myMax._2) myMax = (row, Math.abs(x.v))
+        case _                      =>
+      }
+    }
+    if (myMax._2 == 0.0) {
+      // it's not constant 0 (or all the other stuff was 0 as well), so let's hope we gonna be fine...
+      return startRow
+    } else {
+      return myMax._1
+    }
+  }
+
 //  this += new Transformation("resolution of built-in functions 1/2", {
 //    case call : IR_FunctionCall if (builtInFunctions.contains(call.name)) => {
 //      call.arguments = call.arguments.map(arg => arg match {
@@ -320,7 +339,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 //  })
 
   this += new Transformation("resolution of built-in functions 2/2", {
-    case call : IR_FunctionCall if (call.name == "dotProduct" || call.name == "dot") => {
+    case call : IR_FunctionCall if (call.name == "dotProduct" || call.name == "dot")                                          => {
       if (call.arguments.length != 2) {
         Logger.error(s"dotProduct() must have two arguments; has ${ call.arguments.length }")
       }
@@ -345,7 +364,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
       IR_Addition(additions)
     }
-    case call : IR_FunctionCall if (call.name == "inverse")                          => {
+    case call : IR_FunctionCall if (Knowledge.experimental_resolveInverseFunctionCall != "Runtime" && call.name == "inverse") => {
       if (call.arguments.length != 1) {
         Logger.error("inverse() must have one argument")
       }
@@ -383,22 +402,82 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
         }
         case _ => {
-          val inv_det = IR_IntegerConstant(1) / calculateDeterminant(m)
-          val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
-          for (row <- 0 until m.rows) {
-            for (col <- 0 until m.columns) {
-              tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * IR_DoubleConstant(math.pow(-1, row + col)) * inv_det)
+          // TODO exploit knowledge about matrix structure
+          Knowledge.experimental_resolveInverseFunctionCall match {
+            case "Cofactors"   => {
+              val inv_det = IR_IntegerConstant(1) / calculateDeterminant(m)
+              val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
+              for (row <- 0 until m.rows) {
+                for (col <- 0 until m.columns) {
+                  tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * IR_DoubleConstant(math.pow(-1, row + col)) * inv_det)
+                }
+              }
+              tmp
+            }
+            case "GaussJordan" => {
+              val matrix = Duplicate(m)
+              val other = IR_MatrixExpression(matrix.datatype, matrix.rows, matrix.columns)
+              for (i <- 0 until other.rows) {
+                for (j <- 0 until other.columns) {
+                  if (i == j) other.set(i, j, 1.0); else other.set(i, j, 0.0)
+                }
+              }
+
+              for (i <- matrix.rows - 1 to 0) {
+                var swap = false
+                val topValue = matrix.get(i - 1, i)
+                val currentValue = matrix.get(i, i)
+                (topValue, currentValue) match {
+                  case (top : IR_Number, current : IR_Number) => swap = Math.abs(top.value.asInstanceOf[Number].doubleValue) > Math.abs(current.value.asInstanceOf[Number].doubleValue)
+                  case _                                      =>
+                }
+
+                if (swap) {
+                  for (j <- 0 until matrix.columns) {
+                    var d = matrix.get(i, j)
+                    matrix.set(i, j, matrix.get(i - 1, j))
+                    matrix.set(i - 1, j, d)
+                    d = other.get(i, j)
+                    other.set(i, j, other.get(i - 1, j))
+                    other.set(i - 1, j, d)
+                  }
+                }
+              }
+
+              for (i <- 0 until matrix.rows) {
+                for (j <- 0 until matrix.rows) {
+                  if (j != i) {
+                    val d = matrix.get(j, i) / matrix.get(i, i)
+                    for (k <- 0 until matrix.rows) {
+                      var newExp = matrix.get(j, k) - Duplicate(matrix.get(i, k)) * Duplicate(d)
+                      matrix.set(j, k, newExp)
+
+                      newExp = other.get(j, k) - Duplicate(other.get(i, k)) * Duplicate(d)
+                      other.set(j, k, newExp)
+                    }
+                  }
+                }
+              }
+
+              Logger.pushLevel(Logger.WARNING)
+              IR_GeneralSimplify.applyStandalone(matrix)
+              Logger.popLevel()
+
+              for (i <- 0 until matrix.rows) {
+                val d = matrix.get(i, i)
+                for (j <- 0 until matrix.rows) {
+                  val newExp = other.get(i, j) / Duplicate(d)
+                  other.set(i, j, newExp)
+                }
+              }
+              other
             }
           }
-          tmp
         }
       }
-      Logger.pushLevel(Logger.WARNING)
-      IR_GeneralSimplify.applyStandalone(ret)
-      Logger.popLevel()
       ret
     }
-    case call : IR_FunctionCall if (call.name == "det")                              => {
+    case call : IR_FunctionCall if (call.name == "det")                                                                       => {
       if (call.arguments.length != 1) {
         Logger.error("det() must have one argument")
       }
@@ -411,7 +490,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments to matrices") {
   val annotationMatrixRow = "IR_ResolveMatrices.matrixRow"
   val annotationMatrixCol = "IR_ResolveMatrices.matrixCol"
-  val builtInFunctions = List("dotProduct", "dot", "inverse", "det")
 
   this += new Transformation("scalarize 1/2", {
     case stmt @ IR_Assignment(dest, src, op) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) => {
