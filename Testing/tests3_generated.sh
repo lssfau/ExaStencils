@@ -5,6 +5,8 @@
 #SBATCH --time=15
 #SBATCH --signal=INT@5
 #SBATCH --open-mode=append
+#SBATCH --exclude=ett
+# temporary: exclude workstation with outdated slurm configuration
 
 
 BIN=${1}
