@@ -25,9 +25,8 @@ object IR_MapStencilAssignments extends DefaultStrategy("Map assignments to sten
 
       for (idx <- offsetsLeft.indices) {
         val fieldSelection = stencilFieldAccess.stencilFieldSelection.toFieldSelection
-        fieldSelection.arrayIndex = Some(idx)
-        val fieldIndex = Duplicate(stencilFieldAccess.index)
-        fieldIndex(Knowledge.dimensionality) = idx
+        val fieldIndex = Duplicate(stencilFieldAccess.index.toExpressionIndex)
+        fieldIndex.indices :+= (idx : IR_Expression)
         var coeff : IR_Expression = 0
         for (e <- stencilRight.entries) {
           if (flipEntries) {

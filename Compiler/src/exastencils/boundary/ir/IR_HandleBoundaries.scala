@@ -65,7 +65,7 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
     // FIXME: this works for now, but users may want to specify bc's per vector element
     // FIXME: (update) adapt for numDimsGrid once new vector and matrix data types are fully integrated
     val index = IR_LoopOverDimensions.defIt(numDims)
-    def fieldSel = Duplicate(IR_FieldSelection(field.field, field.level, field.slot, None, field.fragIdx)) // TODO: check
+    def fieldSel = Duplicate(IR_FieldSelection(field.field, field.level, field.slot, field.fragIdx)) // TODO: check
 
     def offsetIndex = IR_ExpressionIndex(neigh.dir ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))
     def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))

@@ -280,14 +280,18 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         val fieldLayout = field.fieldSelection.field.fieldLayout
         val numPoints = (0 until fieldLayout.numDimsGrid).map(dim =>
           fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight)
-        val filename = args(1).asInstanceOf[IR_StringConstant].value
+        val filename = args(1)//.asInstanceOf[IR_StringConstant].value
 
         val stmts = ListBuffer[IR_Statement]()
 
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + " )")
         stmts += IR_LoopOverPoints(field.fieldSelection.field,
           IR_Assignment(HACK_IR_Native("*imageOut.data(x,y)"), field))
-        stmts += HACK_IR_Native("imageOut.save( \"" + filename + "\" )")
+        filename match {
+          case va : IR_VariableAccess => stmts += IR_MemberFunctionCall("imageOut", "save", IR_MemberFunctionCall(va, "c_str"))
+          case other                  => stmts += IR_MemberFunctionCall("imageOut", "save", other)
+        }
+        //stmts += HACK_IR_Native("imageOut.save( \"" + filename.value + "\" )")
 
         IR_Scope(stmts)
       }

@@ -4,7 +4,6 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
-import exastencils.config._
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
@@ -47,39 +46,21 @@ case class L4_FieldAccess(
   def progress : IR_FieldAccess = {
     val field = target.getProgressedObject()
 
-    if (true) {
-      val numDims = field.fieldLayout.numDimsGrid
-      val index = IR_LoopOverDimensions.defIt(numDims)
+    val numDims = field.fieldLayout.numDimsGrid
+    val index = IR_LoopOverDimensions.defIt(numDims)
 
-      if (arrayIndex.isDefined)
-        index.indices :+= IR_IntegerConstant(arrayIndex.get)
+    if (arrayIndex.isDefined)
+      index.indices :+= IR_IntegerConstant(arrayIndex.get)
 
-      val progOffset = if (offset.isDefined) {
-        val progressedOffset = offset.get.progress
-        while (progressedOffset.indices.length < index.length) progressedOffset.indices :+= IR_IntegerConstant(0)
-        Some(progressedOffset)
-      } else {
-        None
-      }
-
-      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), None), index, progOffset)
+    val progOffset = if (offset.isDefined) {
+      val progressedOffset = offset.get.progress
+      while (progressedOffset.indices.length < index.length) progressedOffset.indices :+= IR_IntegerConstant(0)
+      Some(progressedOffset)
     } else {
-      // TODO: extract common index stuff from here and VirtualFieldAccess, StencilFieldAccess, etc
-      var numDims = Knowledge.dimensionality // TODO: resolve field info
-      if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
-      var multiIndex = IR_LoopOverDimensions.defIt(numDims)
-      if (arrayIndex.isDefined)
-        multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
-      val progOffset = if (offset.isDefined) {
-        val progressedOffset = offset.get.progress
-        while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
-        Some(progressedOffset)
-      } else {
-        None
-      }
-
-      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex, progOffset)
+      None
     }
+
+    IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot)), index, progOffset)
   }
 }
 
