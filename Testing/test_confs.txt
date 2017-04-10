@@ -25,7 +25,7 @@
 
 # 10 OMP threads
 Appl_ExaStokes_2D       Main  Application/ExaStokes_2D.knowledge        Application/ExaStokes_2D.exa4        Application/ExaStokes_2D.results        1  10
-Appl_ExaStokes_3D       Main  Application/ExaStokes_3D.knowledge        Application/ExaStokes_3D.exa4        Application/ExaStokes_3D.results        1  10
+#Appl_ExaStokes_3D       Main  Application/ExaStokes_3D.knowledge        Application/ExaStokes_3D.exa4        Application/ExaStokes_3D.results        1  10
 
 Appl_ExaFluids          Main  Application/ExaFluids.knowledge           Application/ExaFluids.exa4           Application/ExaFluids.results           1  10
 Appl_ExaFluids_PowerLaw Main  Application/ExaFluids.knowledge           Application/ExaFluids_PowerLaw.exa4  Application/ExaFluids_PowerLaw.results  1  10
