@@ -32,7 +32,6 @@ case class IR_StencilFieldAccess(var stencilFieldSelection : IR_StencilFieldSele
       val stencilFieldIdx = Duplicate(index)
       stencilFieldIdx(stencilFieldSelection.stencilField.field.fieldLayout.numDimsData - 1) = e // TODO: assumes last index is vector dimension
       val fieldSel = stencilFieldSelection.toFieldSelection
-      fieldSel.arrayIndex = Some(e)
       entries += IR_StencilEntry(stencilFieldSelection.offsets(e), IR_FieldAccess(fieldSel, stencilFieldIdx, None))
     }
     IR_Stencil("GENERATED_PLACEHOLDER_STENCIL", stencilFieldSelection.field.level, entries)

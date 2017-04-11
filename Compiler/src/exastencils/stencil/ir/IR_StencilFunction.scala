@@ -37,7 +37,7 @@ object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functi
               val centralOffset = IR_ExpressionIndex(Array.fill(Knowledge.dimensionality)(0))
               index.indices :+= (access.stencilFieldSelection.stencilField.findOffsetIndex(centralOffset).get : IR_Expression)
 
-              IR_FieldAccess(IR_FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, Some(0), access.stencilFieldSelection.fragIdx), index)
+              IR_FieldAccess(IR_FieldSelection(access.stencilFieldSelection.field, access.stencilFieldSelection.level, access.stencilFieldSelection.slot, access.stencilFieldSelection.fragIdx), index)
 
             case _ =>
               Logger.warn("diag with unknown arg " + args(0))

@@ -10,6 +10,7 @@ import exastencils.deprecated.ir._
 /// IR_Communicate
 
 case class IR_Communicate(
+    // FIXME: incorporate component accesses
     var field : IR_FieldSelection,
     var op : String,
     var targets : ListBuffer[IR_CommunicateTarget],

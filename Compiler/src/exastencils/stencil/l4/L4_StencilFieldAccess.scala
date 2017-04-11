@@ -59,12 +59,12 @@ case class L4_StencilFieldAccess(
 
     if (arrayIndex.isDefined) {
       index.indices :+= IR_IntegerConstant(arrayIndex.get)
-      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), None), index, progressOffset(index.length))
+      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot)), index, progressOffset(index.length))
     } else if (dirAccess.isDefined) {
       index.indices :+= IR_IntegerConstant(stencilField.findOffsetIndex(dirAccess.get.progress).get)
-      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot), None), index, progressOffset(index.length))
+      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot)), index, progressOffset(index.length))
     } else {
-      IR_StencilFieldAccess(IR_StencilFieldSelection(stencilField, stencilField.field.level, L4_FieldAccess.resolveSlot(stencilField.field, slot), None),
+      IR_StencilFieldAccess(IR_StencilFieldSelection(stencilField, stencilField.field.level, L4_FieldAccess.resolveSlot(stencilField.field, slot)),
         index, progressOffset(index.length))
     }
   }

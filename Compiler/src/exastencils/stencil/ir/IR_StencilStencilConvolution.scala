@@ -85,8 +85,8 @@ case class IR_StencilFieldStencilConvolution(var left : IR_StencilFieldAccess, v
         stencilFieldIdx(Knowledge.dimensionality) = e
         for (dim <- 0 until Knowledge.dimensionality)
           stencilFieldIdx(dim) += re.offset(dim)
+        stencilFieldIdx.indices :+= (e : IR_Expression)
         val fieldSel = stencilLeft.toFieldSelection
-        fieldSel.arrayIndex = Some(e)
 
         val rightOffset = Duplicate(re.offset)
 

@@ -96,7 +96,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
         case "finish" => s"finishExch${ communicateStatement.field.codeName }"
         case "both"   => s"exch${ communicateStatement.field.codeName }"
       }
-      functionName += s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +
+      functionName += /*s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +*/
         communicateStatement.targets.map(t => s"${ t.target }_${
           val begin : IR_ExpressionIndex = t.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)("a" : IR_Expression)))
           (0 until numDims).toArray.map(dim => begin(dim).prettyprint).mkString("_")

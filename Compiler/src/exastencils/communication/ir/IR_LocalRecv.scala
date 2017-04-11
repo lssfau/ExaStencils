@@ -28,7 +28,7 @@ case class IR_LocalRecv(
   override def expand() : Output[IR_Statement] = {
     var innerStmt : IR_Statement = IR_Assignment(
       IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims)),
-      IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot), None, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)),
+      IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot), IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)),
         IR_ExpressionIndex(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(numDims), src.begin, _ + _), dest.begin, _ - _)))
 
     if (condition.isDefined)

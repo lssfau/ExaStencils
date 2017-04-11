@@ -46,10 +46,8 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
-    // TODO: adapt to the new type system
-    val arrayIndexRange =
-      if (field.arrayIndex.isEmpty) 0 until field.field.gridDatatype.resolveFlattendSize
-      else field.arrayIndex.get to field.arrayIndex.get
+    // TODO: incorporate component accesses
+    val arrayIndexRange = 0 until field.field.gridDatatype.resolveFlattendSize
 
     def separator = IR_StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
 

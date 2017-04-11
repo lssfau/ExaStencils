@@ -23,10 +23,12 @@ import exastencils.logger._
 /// GridGeometry_nonUniform
 
 trait GridGeometry_nonUniform extends GridGeometry {
+  // FIXME: rename arrayIndex, use in index of FieldAccess
+
   // direct accesses
   override def nodePosition(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = IR_FieldCollection.getByIdentifierLevExp(s"node_pos_${ IR_DimToString(dim) }", level).get
-    IR_FieldAccess(IR_FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
+    IR_FieldAccess(IR_FieldSelection(field, field.level, 0/*, arrayIndex*/), GridUtil.projectIdx(index, dim))
   }
 
   // compound accesses
