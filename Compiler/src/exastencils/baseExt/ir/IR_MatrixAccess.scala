@@ -11,6 +11,7 @@ import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting.PpStream
+import exastencils.prettyprinting.PrettyPrintable
 import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_HackMatComponentAccess
@@ -90,19 +91,78 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows
   override def toString : String = { "IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "; Items: " + expressions.mkString(", ") + ")" }
 }
 
+case object IR_RuntimeInverseMatrix extends IR_AbstractFunction(false) with PrettyPrintable {
+  def name = "runtimeInverseMatrix"
+
+  //override def prettyprint_decl() : String = "template<size_t N, typename T> void runtimeInverseMatrix(T*, T*);\n"
+
+  override def prettyprint(out : PpStream) = {}
+
+  override def prettyprint_decl() : String = {
+    """
+            template<size_t N, typename T>
+            void runtimeInverseMatrix(T* in, T* out) {
+                T A[N * N];
+                size_t p[N];
+                std::copy(in, in + N * N, A);
+                std::fill(out, out + N * N, 0);
+                for(size_t i = 0; i < N * N; i += N + 1) out[i] = 1;
+                for(size_t i = 0; i < N; ++i) p[i] = i;
+
+                for ( size_t k = 0; k < N; ++k ) {
+                    T colmax ( 0 );
+                    size_t k0 = 0; // to determine if swapping is needed
+                    for ( size_t i = k; i < N; ++i ) {
+                        if ( std::abs ( A[i * N + k] ) > colmax ) {
+                            colmax = std::abs ( in[i * N + k] );
+                            k0 = i;
+                        }
+                    }
+                    if ( colmax < 1e-15 ) {
+                        // FIXME matrix singular -> throw error
+                    }
+                    if(k != k0) {
+                        std::swap ( p[k], p[k0] );
+                        std::swap_ranges ( A + k * N, A + (k + 1) * N, A + k0 * N );
+                        std::swap_ranges ( out + k * N, out + (k + 1) * N, out + k0 * N );
+                    }
+                }
+
+                for(size_t i = 0; i < N; ++i) {
+                    for(size_t j = 0; j < N; ++j) {
+                        if(j != i) {
+                            auto d = A[j * N + i] / A[i * N + i];
+                            for(size_t k = 0; k < N; ++k) {
+                                A[j * N + k] -= A[i * N + k] * d;
+                                out[j * N + k] -= out[i * N + k] * d;
+                            }
+                        }
+                    }
+                }
+
+                for(size_t i = 0; i < N; ++i) {
+                    auto d = A[i * N + i];
+                    for(size_t j = 0; j < N; ++j) {
+                        out[i * N + j] /= d;
+                    }
+                }
+            }
+          """
+  }
+}
+
 object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expressions where necessary") {
   val annotationFctCallCounter = "IR_ResolveMatrices.fctCallCounter"
   var fctCallCounter = 0
   // temporary variable used to replace function calls in expressions
   val annotationMatExpCounter = "IR_ResolveMatrices.matrixExpressionCounter"
   var matExpCounter = 0
-  var builtInFunctions = ListBuffer("dotProduct", "dot", "det")
-  if (Knowledge.experimental_resolveInverseFunctionCall != "Runtime") builtInFunctions += "inverse"
+  var builtInFunctions = ListBuffer("dotProduct", "dot", "det", "inverse")
 
   this += new Transformation("declarations", {
     // Definition of matrix variable including initialisation -> split into decl and assignment
     case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(exp : IR_Expression)) => {
-      var newStmts = ListBuffer[IR_Statement]()
+      val newStmts = ListBuffer[IR_Statement]()
       // split declaration and definition so each part can be handled by subsequent transformations
       newStmts += IR_VariableDeclaration(matrix, decl.name, None)
       newStmts += IR_Assignment(IR_VariableAccess(Duplicate(decl)), exp)
@@ -110,12 +170,27 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
     }
   })
 
+  if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
+    this += new Transformation("preparation", {
+      case call : IR_FunctionCall if (call.name == "inverse") => {
+        val m = call.arguments(0).datatype.asInstanceOf[IR_MatrixDatatype]
+        if (m.sizeM > 3) {
+          call.function = new IR_UserFunctionAccess("inverse", m)
+          if (IR_UserFunctions.get.functions.find(p => p.name == "runtimeInverseMatrix") == None) {
+            IR_UserFunctions.get.functions += IR_RuntimeInverseMatrix
+          }
+        }
+        call
+      }
+    })
+  }
+
   this += new Transformation("extract function calls 1/2", {
     case stmt @ IR_Assignment(dest, src, op) if (src.datatype.isInstanceOf[IR_MatrixDatatype]) => {
       // Extract all function calls into separate variables since any function could have unwanted side effects if called more than once
       var newStmts = ListBuffer[IR_Statement]()
       StateManager.findAll[IR_FunctionCall](src).foreach(exp => {
-        var decl = IR_VariableDeclaration(exp.datatype, "_fct" + fctCallCounter, None)
+        val decl = IR_VariableDeclaration(exp.datatype, "_fct" + fctCallCounter, None)
         newStmts += decl
         newStmts += IR_Assignment(IR_VariableAccess(decl), Duplicate(exp))
         exp.annotate(annotationFctCallCounter, fctCallCounter)
@@ -123,7 +198,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
       })
       // FIXME: only do the following if necessary
       StateManager.findAll[IR_MatrixExpression](src).foreach(exp => {
-        var decl = IR_VariableDeclaration(exp.datatype, "_matrixExp" + matExpCounter, None)
+        val decl = IR_VariableDeclaration(exp.datatype, "_matrixExp" + matExpCounter, None)
         newStmts += decl
         newStmts += IR_Assignment(IR_VariableAccess(decl), Duplicate(exp))
         exp.annotate(annotationMatExpCounter, matExpCounter)
@@ -135,14 +210,14 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
     case stmt @ IR_ExpressionStatement(src) if (src.datatype.isInstanceOf[IR_MatrixDatatype])  => {
       var newStmts = ListBuffer[IR_Statement]()
       StateManager.findAll[IR_FunctionCall](src).foreach(exp => {
-        var decl = IR_VariableDeclaration(exp.datatype, "_fct" + fctCallCounter, None)
+        val decl = IR_VariableDeclaration(exp.datatype, "_fct" + fctCallCounter, None)
         newStmts += decl
         newStmts += IR_Assignment(IR_VariableAccess(decl), Duplicate(exp))
         exp.annotate(annotationFctCallCounter, fctCallCounter)
         fctCallCounter += 1
       })
       StateManager.findAll[IR_MatrixExpression](src).foreach(exp => {
-        var decl = IR_VariableDeclaration(exp.datatype, "_matrixExp" + matExpCounter, None)
+        val decl = IR_VariableDeclaration(exp.datatype, "_matrixExp" + matExpCounter, None)
         newStmts += decl
         newStmts += IR_Assignment(IR_VariableAccess(decl), Duplicate(exp))
         exp.annotate(annotationMatExpCounter, matExpCounter)
@@ -155,10 +230,10 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
 
   this += new Transformation("extract function calls 2/2", {
     case exp : IR_FunctionCall if (exp.hasAnnotation(annotationFctCallCounter))    => {
-      IR_VariableAccess("_fct" + exp.popAnnotation(annotationFctCallCounter).get.asInstanceOf[Int] + "_" + exp.function.name, exp.function.datatype)
+      IR_VariableAccess("_fct" + exp.popAnnotation(annotationFctCallCounter).get + "_" + exp.function.name, exp.function.datatype)
     }
     case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatExpCounter)) => {
-      IR_VariableAccess("_matrixExp" + exp.popAnnotation(annotationMatExpCounter).get.asInstanceOf[Int], exp.datatype)
+      IR_VariableAccess("_matrixExp" + exp.popAnnotation(annotationMatExpCounter).get, exp.datatype)
     }
   })
 
@@ -339,7 +414,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 //  })
 
   this += new Transformation("resolution of built-in functions 2/2", {
-    case call : IR_FunctionCall if (call.name == "dotProduct" || call.name == "dot")                                          => {
+    case call : IR_FunctionCall if (call.name == "dotProduct" || call.name == "dot") => {
       if (call.arguments.length != 2) {
         Logger.error(s"dotProduct() must have two arguments; has ${ call.arguments.length }")
       }
@@ -364,9 +439,11 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
       IR_Addition(additions)
     }
-    case call : IR_FunctionCall if (Knowledge.experimental_resolveInverseFunctionCall != "Runtime" && call.name == "inverse") => {
-      if (call.arguments.length != 1) {
-        Logger.error("inverse() must have one argument")
+    case call : IR_FunctionCall if (call.name == "inverse")                          => {
+      if (Knowledge.experimental_resolveInverseFunctionCall != "Runtime") {
+        if (call.arguments.length != 1) {
+          Logger.error("inverse() must have one argument")
+        }
       }
       val m = call.arguments(0).asInstanceOf[IR_MatrixExpression]
       val ret = m.rows match {
@@ -404,7 +481,11 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         case _ => {
           // TODO exploit knowledge about matrix structure
           Knowledge.experimental_resolveInverseFunctionCall match {
-            case "Cofactors"   => {
+            case "Runtime"   => {
+              call.function.name = "runtimeInverseMatrix<" + m.rows + ">"
+              call
+            }
+            case "Cofactors" => {
               val inv_det = IR_IntegerConstant(1) / calculateDeterminant(m)
               val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
               for (row <- 0 until m.rows) {
