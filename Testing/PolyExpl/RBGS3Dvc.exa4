@@ -103,4 +103,5 @@ Function Application() : Unit {
     Benchmark()
     CheckSolution()
     destroyGlobals()
+    print('Done')
 }
