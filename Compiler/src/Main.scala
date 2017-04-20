@@ -64,6 +64,8 @@ import exastencils.util._
 import exastencils.util.l4._
 
 object Main {
+  private var polyOptExplID : Int = 0
+
   def initialize(args : Array[String]) = {
     //if (Settings.timeStrategies) -> right now this Schroedinger flag is neither true nor false
     StrategyTimer.startTiming("Initializing")
@@ -96,6 +98,8 @@ object Main {
         knowledgeParser.parseFile(args(1))
       if (args.length >= 3)
         platformParser.parseFile(args(2))
+      if (args.length >= 4)
+        polyOptExplID = args(3).toInt
     }
 
     // validate knowledge, etc.
@@ -543,7 +547,7 @@ object Main {
 
     MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
-      PolyOpt.apply()
+      PolyOpt.apply(polyOptExplID)
     IR_ResolveLoopOverDimensions.apply()
 
     TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
