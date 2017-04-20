@@ -52,6 +52,12 @@ RESULT=$(mktemp --tmpdir=/dev/shm || mktemp --tmpdir=/tmp) || {
     echo "${LINK}" >> "${LOG_ALL}"
     exit 0
   }
+EXPL_CFG=$(mktemp --tmpdir=/dev/shm || mktemp --tmpdir=/tmp) || {
+    echo "ERROR: Failed to create temporary file."
+    touch ${ERROR_MARKER}
+    echo "${LINK}" >> "${LOG_ALL}"
+    exit 0
+  }
 if [[ ! ${RESULT} =~ ^/dev/shm/* ]]; then
   echo "Problems with /dev/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /dev/shm" "kronast@fim.uni-passau.de"
 fi
@@ -67,8 +73,8 @@ trap killed SIGTERM
 STARTTIME=$(date +%s)
 
 function cleanup {
-  rm "${RESULT}"
-  echo "  Removed  ${RESULT}"
+  rm "${RESULT}" "${EXPL_CFG}"
+  echo "  Removed  ${RESULT} and ${EXPL_CFG}"
   ENDTIME=$(date +%s)
   echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (target code generation and compilation)"
   echo ""
@@ -84,6 +90,8 @@ touch "${SETTINGS}"
 echo "outputPath = \"${TEST_DIR}\"" >> "${SETTINGS}"
 echo "l4file = \"${L4FILE}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
+echo "poly_explorationConfig = \"${EXPL_CFG}\"" >> "${SETTINGS}"
+
 
 echo "Run generator:"
 echo "  Created  ${RESULT}: run generator and save its stdout and stderr."
@@ -105,6 +113,8 @@ RETCODE=$?
       echo "${LINK}" >> "${LOG_ALL}"
       exit 1
     fi
+echo ""
+head -n 14 "${EXPL_CFG}"
 echo ""
 echo ""
 echo "-----------------------------------------------------------------------------------------------"
