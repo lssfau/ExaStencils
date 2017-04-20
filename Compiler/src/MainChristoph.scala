@@ -307,7 +307,8 @@ object MainChristoph {
 
     TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
 
-    // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements
+    // Apply CUDA kernel extraction after polyhedral optimizations to work on optimized ForLoopStatements and to
+    // take advantage of the schedule exploration.
     if (Knowledge.cuda_enabled) {
       CUDA_AnnotateLoop.apply()
       CUDA_ExtractHostAndDeviceCode.apply()

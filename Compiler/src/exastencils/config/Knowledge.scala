@@ -141,7 +141,7 @@ object Knowledge {
 
   /// === Layer 4 ===
 
-  // specifies if shared field layouts should be duplicated when progressing from l4 to ir
+  // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
   var l4_genSepLayoutsPerField : Boolean = true
 
   /// === Post Layer 4 ===
@@ -217,12 +217,23 @@ object Knowledge {
   // [16~1000000000 $32§poly_tileSize_w+32]
   var poly_tileSize_w : Int = 0
 
+  // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
+  var poly_exploration_extended : Boolean = false
+  // [0~5] // specifies how many (heuristic) filters should be applied to reduce the number or generated schedules during the exploration
+  var poly_exploration_filterLevel : Int = 0
+  // the following filter levels are currently supported, filter from lower levels are also applied in addition to the one described:
+  //   0: no filter
+  //   1: only outer loop in should carry dependencies (textual dependencies are OK)
+  //   2: only linear memory accesses allowed (given that the original schedule had linear accesses)
+  //   3: only schedules with textual dependencies (if any)
+  //   4: do not prevent aligned vectorization
+  //   5: traverse memory in the inner loop in the same direction as the original schedule
+  //   6: only positive schedule coefficients allowed
+
   // [true|false] // specify separately if the outermost loop should be tiled
   var poly_tileOuterLoop : Boolean = false
   // [isl|feautrier|exploration] // choose which schedule algorithm should be used in PolyOpt
   var poly_scheduleAlgorithm : String = "isl"
-  // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
-  var poly_exploration_extended : Boolean = false
   // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_optimizeDeps : String = "raw"
   // [true|false] // specifies if the dependences to optimize should be filtered first
@@ -239,6 +250,7 @@ object Knowledge {
   var poly_maxConstantTerm : Int = -1
   // [(-1)~inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
   var poly_maxCoefficient : Int = -1
+  var poly_printDebug : Boolean = false
 
   // --- general optimization ---
 
@@ -756,8 +768,8 @@ object Knowledge {
     Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
 
-    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
-    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${ Platform.hw_cuda_capability }.${ Platform.hw_cuda_capabilityMinor }")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 512 && Platform.hw_cuda_capability <= 2, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
+    Constraints.condWarn(cuda_enabled && cuda_blockSizeTotal > 1024 && Platform.hw_cuda_capability >= 3, s"CUDA block size has been set to $cuda_blockSizeTotal, this is not supported by compute capability ${Platform.hw_cuda_capability}.${Platform.hw_cuda_capabilityMinor}")
 
     Constraints.condWarn(cuda_useSharedMemory && cuda_favorL1CacheOverSharedMemory, "If CUDA shared memory usage is enabled, it is not very useful to favor L1 cache over shared memory storage!")
     Constraints.condWarn(cuda_spatialBlockingWithSmem && !cuda_useSharedMemory, "Spatial blocking with shared memory can only be used if shared memory usage is enabled!")
