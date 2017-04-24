@@ -1,6 +1,7 @@
 package exastencils.polyhedron.exploration
 
 import exastencils.polyhedron.Isl.TypeAliases._
+import isl.Conversions._
 
 object DomainCoeffInfo {
   def apply(domain : isl.UnionSet) : DomainCoeffInfo = {
@@ -15,7 +16,9 @@ object DomainCoeffInfo {
       count += set.dim(T_SET)
       i += 1
     }
-    java.util.Arrays.sort(domainSets, (x : isl.Set, y : isl.Set) => x.getTupleName().compareTo(y.getTupleName()))
+    java.util.Arrays.sort(domainSets, new java.util.Comparator[isl.Set]() {
+      override def compare(x : isl.Set, y : isl.Set) : Int = x.getTupleName().compareTo(y.getTupleName())
+    })
 
     var stmtInfo : Map[String, StmtCoeffInfo] = Map.empty
 
