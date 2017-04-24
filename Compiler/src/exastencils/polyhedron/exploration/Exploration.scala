@@ -9,6 +9,7 @@ import java.io.PrintStream
 import exastencils.config.Knowledge
 import exastencils.polyhedron.Isl
 import exastencils.polyhedron.Isl.TypeAliases._
+import isl.Conversions._
 import org.exastencils.schedopt.chernikova.Chernikova
 import org.exastencils.schedopt.chernikova.Generators
 
