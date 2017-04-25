@@ -50,7 +50,7 @@ case class L4_VariableDeclaration(
     if (initialValue.isDefined) out << " = " << initialValue.get
   }
 
-  if(initialValue.isDefined) {
+  if (initialValue.isDefined) {
     (datatype, initialValue.get) match { // FIXME does not work if initialValue is nested, e.g. inverse(L4_MatrixExpression)
       case (dt : L4_VectorDatatype, exp : L4_VectorExpression) => {
         initialValue.get.asInstanceOf[L4_VectorExpression].datatype = Some(dt.datatype)
@@ -63,7 +63,7 @@ case class L4_VariableDeclaration(
         initialValue.get.asInstanceOf[L4_MatrixExpression].datatype = Some(dt.datatype)
         initialValue.get.asInstanceOf[L4_MatrixExpression].convertConstants(dt.datatype)
       }
-      case _ =>
+      case _                                                   =>
     }
   }
 
@@ -73,9 +73,14 @@ case class L4_VariableDeclaration(
 /// L4_UnfoldLeveledDeclarations
 
 object L4_UnfoldLeveledDeclarations extends DefaultStrategy("Unfold leveled declarations") {
+  val levelCollector = new L4_LevelCollector
+  register(levelCollector)
+
+  def getLevelScope = if (levelCollector.inLevelScope) Some(levelCollector.getCurrentLevel) else None
+
   this += new Transformation("Unfold value and variable declarations", {
-    case decl @ L4_ValueDeclaration(L4_LeveledIdentifier(_, levels), _, _)    => L4_Identifier.doDuplicate(decl, levels)
-    case decl @ L4_VariableDeclaration(L4_LeveledIdentifier(_, levels), _, _) => L4_Identifier.doDuplicate(decl, levels)
+    case decl @ L4_ValueDeclaration(L4_LeveledIdentifier(_, levels), _, _)    => L4_Identifier.doDuplicate(decl, levels, getLevelScope)
+    case decl @ L4_VariableDeclaration(L4_LeveledIdentifier(_, levels), _, _) => L4_Identifier.doDuplicate(decl, levels, getLevelScope)
   })
 }
 

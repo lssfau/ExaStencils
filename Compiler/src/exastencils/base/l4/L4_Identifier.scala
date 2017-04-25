@@ -17,7 +17,7 @@ trait L4_HasIdentifier {
 /// L4_Identifier
 
 object L4_Identifier {
-  def doDuplicate[T <: L4_HasIdentifier](toDuplicate : T, level : L4_LevelSpecification) : ListBuffer[T] = {
+  def doDuplicate[T <: L4_HasIdentifier](toDuplicate : T, level : L4_LevelSpecification, onlyFor : Option[Int] = None) : ListBuffer[T] = {
     def duplicateInstance(newLevel : L4_LevelSpecification) = {
       val newInstance = Duplicate(toDuplicate)
       newInstance.identifier = L4_LeveledIdentifier(newInstance.identifier.name, newLevel)
@@ -26,15 +26,27 @@ object L4_Identifier {
 
     var duplicated = ListBuffer[T]()
     level match {
+      case L4_SingleLevel(lvl) if onlyFor.isDefined =>
+        // only add declaration if filter is satisfied
+        if (lvl == onlyFor.get)
+          duplicated += duplicateInstance(level)
+
+      case level @ (L4_CurrentLevel | L4_CoarserLevel | L4_FinerLevel) if onlyFor.isDefined =>
+        Logger.warn("Level filter for declaration is required, but relative level is provided")
+        duplicated += duplicateInstance(level)
+
       case level @ (L4_SingleLevel(_) | L4_CurrentLevel | L4_CoarserLevel | L4_FinerLevel) =>
         duplicated += duplicateInstance(level)
-      case level : L4_LevelList                                                            =>
-        level.levels.foreach(level => duplicated ++= doDuplicate(toDuplicate, level))
-      case level : L4_LevelRange                                                           =>
+
+      case level : L4_LevelList =>
+        level.levels.foreach(level => duplicated ++= doDuplicate(toDuplicate, level, onlyFor))
+
+      case level : L4_LevelRange =>
         val (begin, end) = (level.begin.resolveLevel, level.end.resolveLevel)
         for (level <- math.min(begin, end) to math.max(begin, end))
-          duplicated += duplicateInstance(L4_SingleLevel(level))
-      case _                                                                               =>
+          duplicated ++= doDuplicate(toDuplicate, L4_SingleLevel(level), onlyFor)
+
+      case _ =>
         Logger.error(s"Invalid level specification for Value $toDuplicate: $level")
     }
 
