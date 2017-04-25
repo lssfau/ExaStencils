@@ -651,7 +651,6 @@ object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to ma
   this += Transformation("Wrap", {
     case m : IR_MatrixExpression => m // no need to process further
     case hda : IR_HighDimAccess  => hda // no need to process further
-    case call : IR_FunctionCall  => call
 
     case access @ IR_VariableAccess(_, matrixDT : IR_MatrixDatatype) =>
       IR_MatrixExpression(Some(matrixDT.datatype), matrixDT.sizeM, matrixDT.sizeN, duplicateExpressions(access, matrixDT))

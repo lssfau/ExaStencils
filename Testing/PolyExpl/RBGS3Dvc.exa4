@@ -1,16 +1,16 @@
 Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
 Layout LayoutSol< Real, Node >@finest {
-    innerPoints = [ 512, 512, 512 ]
+    innerPoints = [ 256, 256, 256 ]
     ghostLayers = [ 2, 2, 2 ]
     duplicateLayers = [ 1, 1, 1 ]
 }
 Layout LayoutRHS< Real, Node >@finest {
-    innerPoints = [ 512, 512, 512 ]
+    innerPoints = [ 256, 256, 256 ]
     ghostLayers = [ 1, 1, 1 ]
     duplicateLayers = [ 1, 1, 1 ]
 }
 Layout LayoutSF< Array<Real><7>, Node >@finest {
-    innerPoints = [ 512, 512, 512 ]
+    innerPoints = [ 256, 256, 256 ]
     ghostLayers = [ 2, 2, 2 ]
     duplicateLayers = [ 1, 1, 1 ]
 }
