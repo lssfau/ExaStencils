@@ -165,7 +165,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
 
   override def apply(applyAtNode : Option[Node]) : Unit = {
     resolveFunctions.clear()
-    resolveFunctions ++= ListBuffer("dotProduct", "dot", "det")
+    resolveFunctions ++= ListBuffer("dotProduct", "dot", "crossProduct", "cross", "det")
     runtimeFunctions.clear()
     if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
       runtimeFunctions += "inverse"
@@ -454,7 +454,33 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
       IR_Addition(additions)
     }
-    case call : IR_FunctionCall if (call.name == "inverse")                          => {
+
+    case call : IR_FunctionCall if call.name == "crossProduct" || call.name == "cross" =>
+      if (call.arguments.length != 2) {
+        Logger.error(s"Cross product must have two arguments; has ${ call.arguments.length }")
+      }
+      val left = call.arguments(0) match {
+        case me : IR_MatrixExpression => me
+        case other                    => Logger.error(s"Cross product argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+      val right = call.arguments(1) match {
+        case me : IR_MatrixExpression => me
+        case other                    => Logger.error(s"Cross product argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+      if (left.rows != right.rows || left.columns != 1 || right.columns != 1) {
+        Logger.warn(left)
+        Logger.warn(right)
+        Logger.error(s"Matrix sizes must match for cross product - attempting ${ left.rows }x${ left.columns } ; ${ right.rows }x${ right.columns }")
+      }
+      left.rows match {
+        case 2     => left.get(0, 0) * right.get(1, 0) - left.get(1, 0) * right.get(0, 0)
+        case 3     => ???
+        case other => Logger.error(s"Cross product is not defined for dimensionality $other")
+      }
+
+      // FIXME: other vec functions: length, normalize
+
+    case call : IR_FunctionCall if (call.name == "inverse") => {
       if (Knowledge.experimental_resolveInverseFunctionCall != "Runtime") {
         if (call.arguments.length != 1) {
           Logger.error("inverse() must have one argument")
@@ -573,7 +599,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
       ret
     }
-    case call : IR_FunctionCall if (call.name == "det")                              => {
+    case call : IR_FunctionCall if (call.name == "det")     => {
       if (call.arguments.length != 1) {
         Logger.error("det() must have one argument")
       }
