@@ -114,7 +114,10 @@ private[optimization] final class Analyze extends StackCollector {
           concShifts = new HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
           replaceAcc = new HashMap[String, String]()
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
-          hasOMPPragma = loop.parallelization.potentiallyParallel
+          hasOMPPragma = loop.parallelization.potentiallyParallel && !stack.exists { // TODO: is there a better way?
+            case l : IR_ForLoop => l.parallelization.potentiallyParallel
+            case _              => false
+          }
         }
 
       case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
