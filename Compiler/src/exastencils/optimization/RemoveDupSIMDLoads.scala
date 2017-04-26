@@ -3,6 +3,7 @@ package exastencils.optimization
 import scala.collection.mutable._
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
@@ -114,7 +115,7 @@ private[optimization] final class Analyze extends StackCollector {
           concShifts = new HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
           replaceAcc = new HashMap[String, String]()
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
-          hasOMPPragma = loop.parallelization.potentiallyParallel && !stack.exists { // TODO: is there a better way?
+          hasOMPPragma = Knowledge.omp_enabled && loop.parallelization.potentiallyParallel && !stack.exists { // TODO: is there a better way?
             case l : IR_ForLoop => l.parallelization.potentiallyParallel
             case _              => false
           }
