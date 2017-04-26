@@ -51,13 +51,12 @@ class L4VariableCollector extends Collector {
   }
 
   def getValue(name : String) : Option[L4_Datatype] = {
-    var dt : Option[L4_Datatype] = None
-    var i = values.length - 1
-    while (i >= 0 && dt.isEmpty) {
-      dt = values(i).get(name) // Local Vars will shadow global Vars
-      i = i - 1
+    var it = values.reverseIterator
+    while (it.hasNext) {
+      val dt = it.next.get(name)
+      if (dt.isDefined) return dt
     }
-    dt
+    return None
   }
 
   def exists(name : String) = getValue(name).isDefined
