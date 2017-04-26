@@ -36,7 +36,7 @@ case class L4_ArrayDatatype_VS(datatype : L4_Datatype, numElements : L4_Expressi
 }
 
 object L4_VectorDatatype {
-  def apply(datatype : L4_Datatype, numElements : Int) = new L4_VectorDatatype(datatype, numElements, true)
+  def apply(datatype : L4_Datatype, numElements : Int) = new L4_VectorDatatype(datatype, numElements, false)
 }
 
 case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, var isRow : Boolean) extends L4_HigherDimensionalDatatype {
