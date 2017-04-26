@@ -10,8 +10,7 @@ import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
-import exastencils.prettyprinting.PpStream
-import exastencils.prettyprinting.PrettyPrintable
+import exastencils.prettyprinting._
 import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_HackMatComponentAccess
