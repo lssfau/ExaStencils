@@ -142,6 +142,9 @@ class L4_Parser extends ExaParser with PackratParsers {
       ||| ("RowVector" ||| "RVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L4_VectorDatatype(x, s, true) }
       ||| ("ColumnVector" ||| "CVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L4_VectorDatatype(x, s, false) }
       ||| numericDatatype ~ ("<" ~> integerLit <~ ">") ^^ { case x ~ s => L4_VectorDatatype(x, s) }
+      ||| "Vec2" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 2) }
+      ||| "Vec3" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 3) }
+      ||| "Vec4" ^^ { _ => L4_VectorDatatype(L4_RealDatatype, 4) }
       ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => L4_MatrixDatatype(x, m, n) }
       ||| numericDatatype ~ ("<" ~> integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case x ~ m ~ n => L4_MatrixDatatype(x, m, n) }
       ||| numericDatatype)
