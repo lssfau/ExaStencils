@@ -19,9 +19,7 @@ case class L4_ValueDeclaration(
     case (dt : L4_VectorDatatype, exp : L4_VectorExpression) => {
       initialValue.asInstanceOf[L4_VectorExpression].datatype = Some(dt.datatype)
       initialValue.asInstanceOf[L4_VectorExpression].convertConstants(dt.datatype)
-      if (dt.isRow.isEmpty) dt.isRow = Some(exp.rowVector) else {
-        if (dt.isRow.get != exp.rowVector) Logger.error(s"Mismatch in assignment for Value ${ identifier.fullName }: incompatible vector types")
-      }
+      if (dt.isRow != exp.rowVector) Logger.error(s"Mismatch in assignment for Value ${ identifier.fullName }: incompatible vector types")
     }
     case (dt : L4_MatrixDatatype, exp : L4_MatrixExpression) => {
       initialValue.asInstanceOf[L4_MatrixExpression].datatype = Some(dt.datatype)
@@ -55,9 +53,7 @@ case class L4_VariableDeclaration(
       case (dt : L4_VectorDatatype, exp : L4_VectorExpression) => {
         initialValue.get.asInstanceOf[L4_VectorExpression].datatype = Some(dt.datatype)
         initialValue.get.asInstanceOf[L4_VectorExpression].convertConstants(dt.datatype)
-        if (dt.isRow.isEmpty) dt.isRow = Some(exp.rowVector) else {
-          if (dt.isRow.get != exp.rowVector) Logger.error(s"Mismatch in assignment for Variable ${ identifier.fullName }: incompatible vector types")
-        }
+        if (dt.isRow != exp.rowVector) Logger.error(s"Mismatch in assignment for Variable ${ identifier.fullName }: incompatible vector types")
       }
       case (dt : L4_MatrixDatatype, exp : L4_MatrixExpression) => {
         initialValue.get.asInstanceOf[L4_MatrixExpression].datatype = Some(dt.datatype)
