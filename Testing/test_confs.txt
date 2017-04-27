@@ -129,17 +129,17 @@ Par_Test_unrolli     Main  Opts/par_unrolli.knowledge    *  Opts/par.results  8 
 Par_Test_vectS       Main  Opts/par_vect.knowledge       *  Opts/par.results  8  4
 Par_Test_vectSAl     Main  Opts/par_vectAl.knowledge     *  Opts/par.results  8  4
 Par_Test_vectSAlAl   Main  Opts/par_vectAlAl.knowledge   *  Opts/par.results  8  4
-Par_Test_allS        Main  Opts/par_all.knowledge        *  Opts/par.results  8  4
+Par_Test_allS        Main  Opts/par_all.knowledge        *  Opts/par4.results  8  4
 # AVX
 Par_Test_vect        Main  Opts/par_vect.knowledge       *  Opts/par.results  8  4  AVX
 Par_Test_vectAl      Main  Opts/par_vectAl.knowledge     *  Opts/par.results  8  4  AVX
 Par_Test_vectAlAl    Main  Opts/par_vectAlAl.knowledge   *  Opts/par.results  8  4  AVX
-Par_Test_all         Main  Opts/par_all.knowledge        *  Opts/par.results  8  4  AVX
+Par_Test_all         Main  Opts/par_all.knowledge        *  Opts/par2.results  8  4  AVX
 # AVX2
 Par_Test_vect2       Main  Opts/par_vect.knowledge       *  Opts/par.results  8  4  AVX2
 Par_Test_vect2Al     Main  Opts/par_vectAl.knowledge     *  Opts/par.results  8  4  AVX2
 Par_Test_vect2AlAl   Main  Opts/par_vectAlAl.knowledge   *  Opts/par.results  8  4  AVX2
-Par_Test_all2        Main  Opts/par_all.knowledge        *  Opts/par.results  8  4  AVX2
+Par_Test_all2        Main  Opts/par_all.knowledge        *  Opts/par3.results  8  4  AVX2
 
 #################################################################################################
 # POLYHEDRAL SEARCH SPACE EXPLORATION TESTS                                                     #
