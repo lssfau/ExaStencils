@@ -350,7 +350,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     } else {
       // old AST will be replaced completely, so we can reuse the body once here (and duplicate later)
       val (boundsDecls, postLoop_) : (ListBuffer[IR_Statement], IR_Statement) =
-      Unrolling.getBoundsDeclAndPostLoop(itVar, begin, endExcl, incr, body, Duplicate(reduction))
+        Unrolling.getBoundsDeclAndPostLoop(itVar, begin, endExcl, incr, body, Duplicate(reduction))
       postLoop = postLoop_
       res = boundsDecls
     }
