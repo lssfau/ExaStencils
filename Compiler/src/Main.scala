@@ -507,6 +507,7 @@ object Main {
 
     if (Knowledge.experimental_kerncraftExport) {
       KerncraftExport.apply()
+      KerncraftExportYaml.export()
     }
 
     if (Knowledge.experimental_addPerformanceEstimate)
