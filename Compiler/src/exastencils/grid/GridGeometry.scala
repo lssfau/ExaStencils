@@ -31,6 +31,8 @@ abstract class GridGeometry() {
   // information always required
   def nodePosAsVec(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = ???
   def nodePosition(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
+
+  def cellCenAsVec(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = ???
   def cellCenter(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
 
   def cellWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression

@@ -23,40 +23,80 @@ import exastencils.logger.Logger
 /// GridGeometry_nonAA
 
 object GridGeometry_nonAA extends GridGeometry {
-  // direct accesses
-  override def nodePosAsVec(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) = {
-    val field = IR_FieldCollection.getByIdentifierLevExp("node_pos", level).get
-    val newIndex = Duplicate(index)
-    IR_FieldAccess(IR_FieldSelection(field, field.level, 0), newIndex)
+  def genDirectFieldAccess(fieldName : String, level : Int, index : IR_ExpressionIndex) = {
+    val field = IR_FieldCollection.getByIdentifierLevExp(fieldName, level).get
+    IR_FieldAccess(IR_FieldSelection(field, field.level, 0), Duplicate(index))
   }
 
-  // direct accesses
-  override def nodePosition(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
-    val field = IR_FieldCollection.getByIdentifierLevExp("node_pos", level).get
+  def genComponentAccess(fieldName : String, level : Int, index : IR_ExpressionIndex, dim : Int) = {
+    val field = IR_FieldCollection.getByIdentifierLevExp(fieldName, level).get
     val newIndex = Duplicate(index)
     // extra index for matrix expression
     newIndex.indices ++= Array[IR_Expression](dim, 0)
     IR_FieldAccess(IR_FieldSelection(field, field.level, 0), newIndex)
   }
 
-  override def cellCenter(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = ???
+  // direct accesses
+  override def nodePosAsVec(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) =
+    genDirectFieldAccess("node_pos", level, index)
+
+  // direct accesses
+  override def nodePosition(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) =
+    genComponentAccess("node_pos", level, index, dim)
+
+  // direct accesses
+  override def cellCenAsVec(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression =
+    genDirectFieldAccess("cell_center", level, index)
+
+  // direct accesses
+  override def cellCenter(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression =
+    genComponentAccess("cell_center", level, index, dim)
 
   override def cellWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression = ???
 
+  object VF_NodePosition extends VirtualField {
+    def datatype = L4_VectorDatatype(L4_RealDatatype, Knowledge.dimensionality)
+    def layout = s"NodePosVec${ Knowledge.dimensionality }Data"
+
+    def getLayoutDecl = {
+      L4_FieldLayoutDecl(
+        L4_LeveledIdentifier(layout, L4_AllLevels),
+        datatype, "node",
+        ListBuffer(
+          L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(2)), true),
+          L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(1)), true)))
+    }
+
+    def getFieldDecl = {
+      L4_FieldDecl(L4_LeveledIdentifier("node_pos", L4_AllLevels), "global", layout, L4_NoBC, 1, 0)
+    }
+  }
+
+  object VF_CellCenter extends VirtualField {
+    def datatype = L4_VectorDatatype(L4_RealDatatype, Knowledge.dimensionality)
+    def layout = s"CellCenVec${ Knowledge.dimensionality }Data"
+
+    def getLayoutDecl = {
+      L4_FieldLayoutDecl(
+        L4_LeveledIdentifier(layout, L4_AllLevels),
+        datatype, "cell",
+        ListBuffer(
+          L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(2)), true),
+          L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(0)), true)))
+    }
+
+    def getFieldDecl = {
+      L4_FieldDecl(L4_LeveledIdentifier("cell_center", L4_AllLevels), "global", layout, L4_NoBC, 1, 0)
+    }
+  }
+
   // injection of  missing l4 information for virtual fields and generation of setup code
   override def initL4() : Unit = {
-    val vecType = L4_VectorDatatype(L4_RealDatatype, Knowledge.dimensionality)
-    val layoutName = s"NodePosVec${ Knowledge.dimensionality }Data"
+    ExaRootNode.l4_root.nodes += VF_NodePosition.getLayoutDecl
+    ExaRootNode.l4_root.nodes += VF_NodePosition.getFieldDecl
 
-    ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
-      L4_LeveledIdentifier(layoutName, L4_AllLevels),
-      vecType, "node",
-      ListBuffer(
-        L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(2)), true),
-        L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(1)), true)))
-
-    ExaRootNode.l4_root.nodes += L4_FieldDecl(
-      L4_LeveledIdentifier("node_pos", L4_AllLevels), "global", layoutName, L4_NoBC, 1, 0)
+    ExaRootNode.l4_root.nodes += VF_CellCenter.getLayoutDecl
+    ExaRootNode.l4_root.nodes += VF_CellCenter.getFieldDecl
   }
 
   override def generateInitCode() : ListBuffer[IR_Statement] = {
