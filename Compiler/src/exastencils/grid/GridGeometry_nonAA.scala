@@ -100,16 +100,23 @@ object GridGeometry_nonAA extends GridGeometry {
   }
 
   override def generateInitCode() : ListBuffer[IR_Statement] = {
+    val stmts = ListBuffer[IR_Statement]()
+
     Knowledge.grid_spacingModel match {
       case "uniform" =>
-        (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
+        stmts ++= (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
           setupNodePos_Uniform(level)).reduceLeft(_ ++ _)
 
       case "random" =>
-        prepareRandomEngine ++
-          (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
-            setupNodePos_Random(level)).reduceLeft(_ ++ _)
+        stmts ++= prepareRandomEngine
+        stmts ++= (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
+          setupNodePos_Random(level)).reduceLeft(_ ++ _)
     }
+
+    stmts ++= (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
+      setupCellCen(level)).reduceLeft(_ ++ _)
+
+    stmts
   }
 
   def HACK_numDims = Knowledge.dimensionality // TODO: fix dim
@@ -203,5 +210,26 @@ object GridGeometry_nonAA extends GridGeometry {
     }
 
     stmts
+  }
+
+  def setupCellCen(level : Int) : ListBuffer[IR_Statement] = {
+    val field = IR_FieldCollection.getByIdentifier(s"cell_center", level).get
+    val baseIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
+    val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
+
+    var interpolateExps = ListBuffer[IR_FieldAccess](nodePosAsVec(level, baseIndex, None))
+    var factor = 1.0
+    for (dim <- Knowledge.dimensions) {
+      interpolateExps = interpolateExps.flatMap(fieldAccess =>
+        ListBuffer(Duplicate(fieldAccess), GridUtil.offsetAccess(fieldAccess, 1, dim)))
+      factor /= 2.0
+    }
+
+    ListBuffer[IR_Statement](
+      IR_LoopOverPoints(field, None,
+        IR_ExpressionIndex(Array.fill(HACK_numDims)(-1)),
+        IR_ExpressionIndex(Array.fill(HACK_numDims)(-1)),
+        IR_ExpressionIndex(1, 1, 1),
+        ListBuffer[IR_Statement](IR_Assignment(Duplicate(baseAccess), factor * IR_Addition(interpolateExps.map(e => e : IR_Expression))))))
   }
 }
