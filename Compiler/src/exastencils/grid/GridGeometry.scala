@@ -20,6 +20,8 @@ object GridGeometry {
       GridGeometry_nonUniform_nonStaggered_AA
     else if (!Knowledge.grid_isUniform && Knowledge.grid_isStaggered && Knowledge.grid_isAxisAligned)
       GridGeometry_nonUniform_staggered_AA
+    else if (!Knowledge.grid_isUniform && !Knowledge.grid_isStaggered && !Knowledge.grid_isAxisAligned)
+      GridGeometry_nonAA
     else
       Logger.error(s"Trying to get geometry for unsupported configuration of ( uniform : ${ Knowledge.grid_isUniform } ), ( staggered : ${ Knowledge.grid_isStaggered } ), ( axis-aligned : ${ Knowledge.grid_isAxisAligned } )")
   }
@@ -27,6 +29,7 @@ object GridGeometry {
 
 abstract class GridGeometry() {
   // information always required
+  def nodePosAsVec(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int]) : IR_Expression = ???
   def nodePosition(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
   def cellCenter(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) : IR_Expression
 

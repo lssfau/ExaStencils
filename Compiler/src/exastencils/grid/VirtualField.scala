@@ -10,6 +10,8 @@ object VirtualField {
     "vf_nodePosition_x", "vf_nodePosition_y", "vf_nodePosition_z",
     "nodePosition_x", "nodePosition_y", "nodePosition_z",
 
+    "vf_nodePosAsVec",
+
     "vf_cellCenter_x", "vf_cellCenter_y", "vf_cellCenter_z",
     "cellCenter_x", "cellCenter_y", "cellCenter_z",
 
