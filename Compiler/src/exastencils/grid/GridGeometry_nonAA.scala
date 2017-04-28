@@ -9,7 +9,6 @@ import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.baseExt.l4.L4_VectorDatatype
 import exastencils.boundary.l4.L4_NoBC
-import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.deprecated.domain.RectangularDomain
@@ -18,6 +17,7 @@ import exastencils.domain.AABB
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.field.l4._
+import exastencils.hack.ir.HACK_IR_Native
 import exastencils.logger.Logger
 
 /// GridGeometry_nonAA
@@ -103,94 +103,105 @@ object GridGeometry_nonAA extends GridGeometry {
     Knowledge.grid_spacingModel match {
       case "uniform" =>
         (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
-          Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_Uniform(dim, level)))
-          .reduceLeft(_ ++ _)
-//      case "linearFct" =>
-//        Logger.warn("LinearFct spacing model is currently not recommended for GridGeometry_nonUniform_nonStaggered_AA since grid point positions won't match across levels")
-//        (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
-//          Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, level)))
-//          .reduceLeft(_ ++ _)
+          setupNodePos_Uniform(level)).reduceLeft(_ ++ _)
+
+      case "random" =>
+        prepareRandomEngine ++
+          (Knowledge.maxLevel to Knowledge.minLevel by -1).map(level =>
+            setupNodePos_Random(level)).reduceLeft(_ ++ _)
     }
   }
 
   def HACK_numDims = Knowledge.dimensionality // TODO: fix dim
 
-  def setupNodePos_Uniform(dim : Int, level : Int) : ListBuffer[IR_Statement] = {
-    val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
-    val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
+  def setupNodePos_Uniform(level : Int) : ListBuffer[IR_Statement] = {
+    val stmts = ListBuffer[IR_Statement]()
 
-    // fix grid width to match domain size
-    if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
-    val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
-    val cellWidth = (domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal
+    for (dim <- Knowledge.dimensions) {
+      val numCellsPerFrag = (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim)
+      val numCellsTotal = numCellsPerFrag * Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
-    // look up field and compile access to base element
-    val field = IR_FieldCollection.getByIdentifier(s"node_pos", level).get
-    val baseIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
-    baseIndex.indices ++= Array[IR_Expression](dim, 0)
-    val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
+      // fix grid width to match domain size
+      if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
+      val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
+      val cellWidth = (domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal
 
-    // fix the inner iterator -> used for zone checks
-    def innerIt =
-      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        IR_LoopOverDimensions.defItForDim(dim)
-      else
-        IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
-    val innerItDecl =
-      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-        IR_NullStatement
-      else
-        IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
+      // look up field and compile access to base element
+      val field = IR_FieldCollection.getByIdentifier(s"node_pos", level).get
+      val baseIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
+      baseIndex.indices ++= Array[IR_Expression](dim, 0)
+      val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
 
-    // compile special boundary handling expressions
-    val leftDir = Array.fill(HACK_numDims)(0)
-    leftDir(dim) = -1
-    val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
+      // fix the inner iterator -> used for zone checks
+      def innerIt =
+        if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+          IR_LoopOverDimensions.defItForDim(dim)
+        else
+          IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+      val innerItDecl =
+        if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+          IR_NullStatement
+        else
+          IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
-    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims + 2)(0))
-    leftGhostIndex(dim) = -2
-    val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
+      // compile final loop
+      val innerLoop = IR_LoopOverPoints(field, None,
+        IR_ExpressionIndex(Array.fill(HACK_numDims)(-2)),
+        IR_ExpressionIndex(Array.fill(HACK_numDims)(-2)),
+        IR_ExpressionIndex(1, 1, 1),
+        ListBuffer[IR_Statement](
+          innerItDecl,
+          IR_Assignment(Duplicate(baseAccess),
+            domainBounds.lower(dim) + innerIt * cellWidth))
+      )
+      innerLoop.parallelization.potentiallyParallel = false
 
-    val leftBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, leftNeighIndex)),
-      ListBuffer[IR_Statement](
-        IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim),
-          2 * GridUtil.offsetAccess(leftGhostAccess, 2, dim) - GridUtil.offsetAccess(leftGhostAccess, 3, dim)),
-        IR_Assignment(Duplicate(leftGhostAccess),
-          2 * GridUtil.offsetAccess(leftGhostAccess, 1, dim) - GridUtil.offsetAccess(leftGhostAccess, 2, dim))))
+      stmts += innerLoop
+    }
 
-    val rightDir = Array.fill(HACK_numDims)(0)
-    rightDir(dim) = 1
-    val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
+    stmts
+  }
 
-    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims + 2)(0))
-    rightGhostIndex(dim) = numCellsPerFrag + 2
-    val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
+  def prepareRandomEngine : ListBuffer[IR_Statement] = {
+    val stmts = ListBuffer[IR_Statement]()
 
-    val rightBoundaryUpdate = IR_IfCondition(
-      IR_Negation(IR_IV_NeighborIsValid(field.domain.index, rightNeighIndex)),
-      ListBuffer[IR_Statement](
-        IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim),
-          2 * GridUtil.offsetAccess(rightGhostAccess, -2, dim) - GridUtil.offsetAccess(rightGhostAccess, -3, dim)),
-        IR_Assignment(Duplicate(rightGhostAccess),
-          2 * GridUtil.offsetAccess(rightGhostAccess, -1, dim) - GridUtil.offsetAccess(rightGhostAccess, -2, dim))))
+    stmts += HACK_IR_Native(s"static std::default_random_engine generator(${ Knowledge.maxLevel })")
+    stmts += HACK_IR_Native(s"static std::uniform_real_distribution <double> distribution(-0.1 * pow(2, -${ Knowledge.maxLevel }), 0.1 * pow(2, -${ Knowledge.maxLevel }))")
+    stmts += HACK_IR_Native(s"static auto randn = std::bind (distribution, generator)")
 
-    // compile final loop
-    val innerLoop = IR_LoopOverPoints(field, None,
-      IR_ExpressionIndex(Array.fill(HACK_numDims)(-2)),
-      IR_ExpressionIndex(Array.fill(HACK_numDims)(-2)),
-      IR_ExpressionIndex(1, 1, 1),
-      ListBuffer[IR_Statement](
-        innerItDecl,
-        IR_Assignment(Duplicate(baseAccess),
-          domainBounds.lower(dim) + innerIt * cellWidth))
-    )
-    innerLoop.parallelization.potentiallyParallel = false
+    stmts
+  }
 
-    ListBuffer[IR_Statement](
-      IR_LoopOverFragments(ListBuffer[IR_Statement](
-        innerLoop,
-        leftBoundaryUpdate,
-        rightBoundaryUpdate)))
+  def setupNodePos_Random(level : Int) : ListBuffer[IR_Statement] = {
+    val stmts = ListBuffer[IR_Statement]()
+
+    // init with uniform first
+    stmts ++= setupNodePos_Uniform(level)
+
+    // apply modification of positions
+    for (dim <- Knowledge.dimensions) {
+      // look up field and compile access to base element
+      val field = IR_FieldCollection.getByIdentifier(s"node_pos", level).get
+      val baseIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
+      baseIndex.indices ++= Array[IR_Expression](dim, 0)
+      val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
+
+      if (level == Knowledge.maxLevel) {
+        // on finest level: add random offset
+        val innerLoop = IR_LoopOverPoints(field, IR_CompoundAssignment(Duplicate(baseAccess), IR_FunctionCall("randn"), IR_BinaryOperators.Addition))
+        innerLoop.parallelization.potentiallyParallel = false
+        stmts += innerLoop
+      } else {
+        val finerField = IR_FieldCollection.getByIdentifier(s"node_pos", level + 1).get
+        val finerIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
+        finerIndex.indices ++= Array[IR_Expression](dim, 0)
+        val finerAccess = IR_FieldAccess(IR_FieldSelection(finerField, finerField.level, 0), finerIndex)
+
+        // on all levels but the finest: inject positions from finer level
+        stmts += IR_LoopOverPoints(field, IR_Assignment(Duplicate(baseAccess), finerAccess))
+      }
+    }
+
+    stmts
   }
 }
