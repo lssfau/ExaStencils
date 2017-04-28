@@ -439,7 +439,7 @@ object Knowledge {
   // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   var experimental_splitLoops_minInnerWidth : Int = 4
 
-  // TODO
+  // Export loop kernels to pseudo-C and kerncraft YAML kernel descriptions.
   var experimental_kerncraftExport : Boolean = false
 
   // enables support for layers 2 and 3
