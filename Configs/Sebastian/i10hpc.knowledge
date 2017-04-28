@@ -9,6 +9,7 @@ maxLevel							= 7
 
 experimental_Neumann				= true
 experimental_NeumannOrder			= 1
+experimental_DirichletOrder			= 2
 
 grid_isUniform						= false
 grid_isStaggered					= true
