@@ -420,6 +420,11 @@ object Main {
     HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
     IR_AdaptTimerFunctions.apply()
 
+    if (Knowledge.useFasterExpand)
+      IR_ExpandInOnePass.apply()
+    else
+      IR_Expand.doUntilDone()
+
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
     if (Knowledge.domain_rect_generate && Knowledge.maxLevel <= 0) {
@@ -468,6 +473,9 @@ object Main {
     } while (convChanged)
 
     IR_ResolveStencilFunction.apply()
+
+    // resolve new virtual field accesses
+    Grid.applyStrategies()
 
     IR_ResolveLocalSolve.apply()
     IR_GeneralSimplify.doUntilDone()
