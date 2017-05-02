@@ -115,7 +115,7 @@ private[optimization] final class Analyze extends StackCollector {
           concShifts = new HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
           replaceAcc = new HashMap[String, String]()
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
-          hasOMPPragma = Knowledge.omp_enabled && loop.parallelization.potentiallyParallel && !stack.exists { // TODO: is there a better way?
+          hasOMPPragma = Knowledge.omp_enabled && loop.parallelization.potentiallyParallel && !stack.tail.exists { // caution: stack.head == node // TODO: is there a better way?
             case l : IR_ForLoop => l.parallelization.potentiallyParallel
             case _              => false
           }
