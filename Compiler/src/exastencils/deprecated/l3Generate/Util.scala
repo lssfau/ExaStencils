@@ -13,28 +13,24 @@ object Util {
   }
 
   def addPrintAutoTestValueCode(printer : java.io.PrintWriter, toPrint : String) = {
-    printer.println(s"\t\tif ( $toPrint <= ${ if (Knowledge.useDblPrecision) 1e-12 else 1e-5 } ) {")
+    val maxPrec = Knowledge.l3tmp_autoTestMaxPrecision
+    var threshold = if (Knowledge.useDblPrecision) 1e-12 else 1e-5
+    var curPrec = 0
+
+    printer.println(s"\t\tif ( $toPrint <= $threshold ) {")
     printer.println("\t\t\tprint ( 'EFFECTIVELY ZERO' )")
-    printer.println(s"\t\t} else if ( $toPrint <= ${ if (Knowledge.useDblPrecision) 1e-11 else 1e-4 } ) {")
-    printer.println(s"\t\t\tnative ( 'std::streamsize oldPrec = std::cout.precision()' )")
-    printer.println(s"\t\t\tnative ( 'std::cout.precision(1)' )")
-    printer.println(s"\t\t\tprint ( $toPrint )")
-    printer.println(s"\t\t\tnative ( 'std::cout.precision(oldPrec)' )")
-    printer.println(s"\t\t} else if ( $toPrint <= ${ if (Knowledge.useDblPrecision) 1e-10 else 1e-3 } ) {")
-    printer.println(s"\t\t\tnative ( 'std::streamsize oldPrec = std::cout.precision()' )")
-    printer.println(s"\t\t\tnative ( 'std::cout.precision(2)' )")
-    printer.println(s"\t\t\tprint ( $toPrint )")
-    printer.println(s"\t\t\tnative ( 'std::cout.precision(oldPrec)' )")
-    printer.println(s"\t\t} else if ( $toPrint <= ${ if (Knowledge.useDblPrecision) 1e-9 else 1e-2 } ) {")
-    printer.println(s"\t\t\tnative ( 'std::streamsize oldPrec = std::cout.precision()' )")
-    printer.println(s"\t\t\tnative ( 'std::cout.precision(3)' )")
-    printer.println(s"\t\t\tprint ( $toPrint )")
-    printer.println(s"\t\t\tnative ( 'std::cout.precision(oldPrec)' )")
-    printer.println(s"\t\t} else {")
-    printer.println(s"\t\t\tnative ( 'std::streamsize oldPrec = std::cout.precision()' )")
-    printer.println(s"\t\t\tnative ( 'std::cout.precision(4)' )")
-    printer.println(s"\t\t\tprint ( $toPrint )")
-    printer.println(s"\t\t\tnative ( 'std::cout.precision(oldPrec)' )")
+    while (curPrec < maxPrec) {
+      threshold *= 10
+      curPrec += 1
+      if (curPrec == maxPrec)
+        printer.println(s"\t\t} else {")
+      else
+        printer.println(s"\t\t} else if ( $toPrint <= $threshold ) {")
+      printer.println(s"\t\t\tnative ( 'std::streamsize oldPrec = std::cout.precision()' )")
+      printer.println(s"\t\t\tnative ( 'std::cout.precision($curPrec)' )")
+      printer.println(s"\t\t\tprint ( $toPrint )")
+      printer.println(s"\t\t\tnative ( 'std::cout.precision(oldPrec)' )")
+    }
     printer.println(s"\t\t}")
   }
 }
