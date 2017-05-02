@@ -130,10 +130,10 @@ private[optimization] final class Analyze extends StackCollector {
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
           decl.annotate(REMOVE_ANNOT)
-          other.get._2 += stack.elems // super.stack
+          other.get._2 += stack // super.stack
 
         } else {
-          loads((base, indSum)) = (decl, ArrayBuffer(stack.elems)) // super.stack
+          loads((base, indSum)) = (decl, ArrayBuffer(stack)) // super.stack
 
           // test if the vector can be reused next iteration
           if (!hasOMPPragma) {
@@ -159,9 +159,9 @@ private[optimization] final class Analyze extends StackCollector {
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
           decl.annotate(REMOVE_ANNOT)
-          other.get._2 += stack.elems // super.stack
+          other.get._2 += stack // super.stack
         } else
-          load1s(load) = (decl, ArrayBuffer(stack.elems)) // super.stack
+          load1s(load) = (decl, ArrayBuffer(stack)) // super.stack
 
       case vAcc @ IR_VariableAccess(vecTmp, SIMD_RealDatatype) if replaceAcc != null =>
         val nju = replaceAcc.get(vecTmp)
@@ -180,9 +180,9 @@ private[optimization] final class Analyze extends StackCollector {
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
           decl.annotate(REMOVE_ANNOT)
-          other.get._2 += stack.elems // super.stack
+          other.get._2 += stack // super.stack
         } else
-          concShifts(cShift) = (decl, ArrayBuffer(stack.elems)) // super.stack
+          concShifts(cShift) = (decl, ArrayBuffer(stack)) // super.stack
 
       case _ => /* nothing to do */
     }

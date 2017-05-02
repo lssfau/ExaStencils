@@ -25,8 +25,8 @@ object DuplicateNodes extends DefaultStrategy("Eliminate multiple usage of node 
       if (printWarnings) {
         Logger.warn("Eliminated double reference by cloning: " + node)
         if (printStack) {
-          Logger.warn("Parents are:" + collector.stack.elems.map(n => n.getClass.getName).mkString(" => "))
-          collector.stack.elems.foreach(Logger.warn(_))
+          Logger.warn("Parents are:" + collector.stack.view.map(n => n.getClass.getName).mkString(" => "))
+          collector.stack.foreach(Logger.warn(_))
         }
       }
       Duplicate(node)

@@ -241,9 +241,9 @@ object Inlining extends CustomStrategy("Function inlining") {
             }
           }
 
-        case decl : IR_VariableDeclaration if stack.top.isInstanceOf[IR_Function] =>
+        case decl : IR_VariableDeclaration if stack.head.isInstanceOf[IR_Function] =>
           flatFunctionBody(curFunc) += decl
-          potConflicts(stack.top.asInstanceOf[IR_Function].name) += decl.name
+          potConflicts(stack.head.asInstanceOf[IR_Function].name) += decl.name
 
         case ret : IR_Return if ret ne allowedReturn =>
           flatFunctionBody(curFunc) += ret
