@@ -66,10 +66,10 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Isl.ctx.optionsSetTileShiftPointLoops(0)
 
     Knowledge.poly_scheduleAlgorithm match {
-      case "isl" => Isl.ctx.optionsSetScheduleAlgorithm(0)
-      case "feautrier" => Isl.ctx.optionsSetScheduleAlgorithm(1)
+      case "isl"         => Isl.ctx.optionsSetScheduleAlgorithm(0)
+      case "feautrier"   => Isl.ctx.optionsSetScheduleAlgorithm(1)
       case "exploration" => Isl.ctx.optionsSetScheduleAlgorithm(0)
-      case unknown => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
+      case unknown       => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
     }
 
     Isl.ctx.optionsSetScheduleSeparateComponents(if (Knowledge.poly_separateComponents) 1 else 0)
@@ -245,12 +245,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.writes = adjust(scop.writes)
 
       // update scop.deadAfterScop
-      var resurrect : Boolean = false
-      for (set <- remDoms)
-        if (scop.deadAfterScop.intersect(set).isEmpty)
-          resurrect = true
-      if (resurrect)
-        scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universe(remDoms(0).getSpace))
+      if (scop.deadAfterScop != null) {
+        var resurrect : Boolean = false
+        for (set <- remDoms)
+          if (scop.deadAfterScop.intersect(set).isEmpty)
+            resurrect = true
+        if (resurrect)
+          scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universe(remDoms(0).getSpace))
+      }
     }
   }
 
@@ -304,7 +306,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x
-      case (x, y) => x.union(y)
+      case (x, y)    => x.union(y)
     }
   }
 
@@ -312,7 +314,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x
-      case (x, y) => x.union(y)
+      case (x, y)    => x.union(y)
     }
   }
 
@@ -320,7 +322,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     (a, b) match {
       case (null, y) => y
       case (x, null) => x
-      case (x, y) => x.union(y)
+      case (x, y)    => x.union(y)
     }
   }
 
@@ -440,7 +442,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private def optimize(scop : Scop, confID : Int) : Unit = {
     Knowledge.poly_scheduleAlgorithm match {
       case "exploration" => optimizeExpl(scop, confID)
-      case _ => optimizeIsl(scop)
+      case _             => optimizeIsl(scop)
     }
   }
 
@@ -455,7 +457,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       case "all" => validity
       case "raw" => scop.deps.flow
       case "rar" => scop.deps.input
-      case _ =>
+      case _     =>
         Logger.debug("Don't know how to optimize for " + Knowledge.poly_optimizeDeps + "; falling back to \"all\"")
         validity
     }

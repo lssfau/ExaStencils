@@ -578,7 +578,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
         // all matched types are subclasses of Expression and Product
         val cs = commonSubs.getOrElseUpdate(node, new Subexpression(curFunc, node.asInstanceOf[IR_Expression with Product]))
         if (cs != null)
-          cs.addPosition(stack.elems) // extract internal (immutable) list from stack
+          cs.addPosition(stack) // stack (list) itself is immutable
 
         // skip subtree of this node
         node.annotate(SKIP_ANNOT)

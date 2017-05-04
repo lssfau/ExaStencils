@@ -3,6 +3,7 @@ package exastencils.optimization
 import scala.collection.mutable._
 
 import exastencils.base.ir._
+import exastencils.config.Knowledge
 import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
@@ -114,7 +115,10 @@ private[optimization] final class Analyze extends StackCollector {
           concShifts = new HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
           replaceAcc = new HashMap[String, String]()
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
-          hasOMPPragma = loop.parallelization.potentiallyParallel
+          hasOMPPragma = Knowledge.omp_enabled && loop.parallelization.potentiallyParallel && !stack.tail.exists { // caution: stack.head == node // TODO: is there a better way?
+            case l : IR_ForLoop => l.parallelization.potentiallyParallel
+            case _              => false
+          }
         }
 
       case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
@@ -126,10 +130,10 @@ private[optimization] final class Analyze extends StackCollector {
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
           decl.annotate(REMOVE_ANNOT)
-          other.get._2 += stack.elems // super.stack
+          other.get._2 += stack // super.stack
 
         } else {
-          loads((base, indSum)) = (decl, ArrayBuffer(stack.elems)) // super.stack
+          loads((base, indSum)) = (decl, ArrayBuffer(stack)) // super.stack
 
           // test if the vector can be reused next iteration
           if (!hasOMPPragma) {
@@ -155,9 +159,9 @@ private[optimization] final class Analyze extends StackCollector {
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
           decl.annotate(REMOVE_ANNOT)
-          other.get._2 += stack.elems // super.stack
+          other.get._2 += stack // super.stack
         } else
-          load1s(load) = (decl, ArrayBuffer(stack.elems)) // super.stack
+          load1s(load) = (decl, ArrayBuffer(stack)) // super.stack
 
       case vAcc @ IR_VariableAccess(vecTmp, SIMD_RealDatatype) if replaceAcc != null =>
         val nju = replaceAcc.get(vecTmp)
@@ -176,9 +180,9 @@ private[optimization] final class Analyze extends StackCollector {
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
           decl.annotate(REMOVE_ANNOT)
-          other.get._2 += stack.elems // super.stack
+          other.get._2 += stack // super.stack
         } else
-          concShifts(cShift) = (decl, ArrayBuffer(stack.elems)) // super.stack
+          concShifts(cShift) = (decl, ArrayBuffer(stack)) // super.stack
 
       case _ => /* nothing to do */
     }

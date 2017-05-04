@@ -35,23 +35,21 @@ case class L4_ArrayDatatype_VS(datatype : L4_Datatype, numElements : L4_Expressi
   override def typicalByteSize = ???
 }
 
-case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, var isRow : Option[Boolean]) extends L4_HigherDimensionalDatatype {
+object L4_VectorDatatype {
+  def apply(datatype : L4_Datatype, numElements : Int) = new L4_VectorDatatype(datatype, numElements, false)
+}
+
+case class L4_VectorDatatype(var datatype : L4_Datatype, var numElements : Int, var isRow : Boolean) extends L4_HigherDimensionalDatatype {
   override def prettyprint(out : PpStream) = {
-    if (isRow.isEmpty)
-      out << "Vector"
-    else {
-      if (isRow.get)
-        out << "RowVector"
-      else
-        out << "ColumnVector"
-    }
+    out << (if (isRow) "RowVector" else "ColumnVector")
     out << "<" << datatype << ',' << numElements << '>'
   }
+
   override def progress = {
     if (Knowledge.experimental_internalHighDimTypes) {
-      IR_MatrixDatatype(datatype.progress, if (isRow.getOrElse(true)) 1 else numElements, if (isRow.getOrElse(true)) numElements else 1)
+      IR_MatrixDatatype(datatype.progress, if (isRow) 1 else numElements, if (isRow) numElements else 1)
     } else {
-      IR_VectorDatatype(datatype.progress, numElements, isRow)
+      IR_VectorDatatype(datatype.progress, numElements, Some(isRow))
     }
   }
 

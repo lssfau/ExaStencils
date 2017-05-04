@@ -318,7 +318,7 @@ Globals {
 	Val e_den : Real            = -6.6213979e-7
 
 	// non-Newtonian parameters
-	Val useNonNewtonian : Bool	= false
+	Val useNonNewtonian : Bool	= true
 	Val n_index : Real			= 0.6 // 0.95 // required for power law
 	Val tau_y : Real			= 0.1 // 1.0e-4 // required for Bingham
 	
@@ -333,6 +333,9 @@ Globals {
 	Var adaptProlong : Real     = 2.5
 	
 	Var alwaysUseFMG : Bool		= false
+	
+	Var factor : Real = 8.0
+	Var useVanka : Boolean = true
 }
 
 /// specialized boundary handling functions
@@ -617,7 +620,7 @@ Function Solve@all ( ) : Unit {
 Function NonLinearSmooth@all ( ) : Unit {
 	CompileLSEs@current ( )
 	
-	if ( 1 ) {
+	if ( useVanka ) {
 		repeat 2 times {
 			Smooth_uvwp_Vanka@current ( )
 		}
@@ -682,86 +685,110 @@ Function Smooth_uvwp_Vanka@all ( ) : Unit {
 }
 
 Function Smooth_uvwp_Distributive@all ( ) : Unit {
-	loop over u@current where ( 0 == ( x + y + z ) % 2 ) {
-		u@current += ( ( rhs_u@current + vf_cellWidth_y@current * vf_cellWidth_z@current * ( p@current@[-1, 0, 0] - p@current@[0, 0, 0] ) - AuStencil@current * u@current ) / AuStencil@current:[0, 0, 0])
-	}
-	communicate u@current
-	apply bc to u@current
-	loop over u@current where ( 1 == ( x + y + z ) % 2 ) {
-		u@current += ( ( rhs_u@current + vf_cellWidth_y@current * vf_cellWidth_z@current * ( p@current@[-1, 0, 0] - p@current@[0, 0, 0] ) - AuStencil@current * u@current ) / AuStencil@current:[0, 0, 0])
-	}
-	communicate u@current
-	apply bc to u@current
+	color with {
+		0 == ( x + y + z ) % 2,
+		1 == ( x + y + z ) % 2,
 
-	loop over v@current where ( 0 == ( x + y + z ) % 2 ) {
-		v@current += ( ( rhs_v@current + vf_cellWidth_x@current * vf_cellWidth_z@current * ( p@current@[0, -1, 0] - p@current@[0, 0, 0] ) - AvStencil@current * v@current ) / AvStencil@current:[0, 0, 0])
-	}
-	communicate v@current
-	apply bc to v@current
-	loop over v@current where ( 1 == ( x + y + z ) % 2 ) {
-		v@current += ( ( rhs_v@current + vf_cellWidth_x@current * vf_cellWidth_z@current * ( p@current@[0, -1, 0] - p@current@[0, 0, 0] ) - AvStencil@current * v@current ) / AvStencil@current:[0, 0, 0])
-	}
-	communicate v@current
-	apply bc to v@current
-
-	loop over w@current where ( 0 == ( x + y + z ) % 2 ) {
-		w@current += ( ( rhs_w@current + vf_cellWidth_x@current * vf_cellWidth_y@current * ( p@current@[0, 0, -1] - p@current@[0, 0, 0] ) - AwStencil@current * w@current ) / AwStencil@current:[0, 0, 0])
-	}
-	communicate w@current
-	apply bc to w@current
-	loop over w@current where ( 1 == ( x + y + z ) % 2 ) {
-		w@current += ( ( rhs_w@current + vf_cellWidth_x@current * vf_cellWidth_y@current * ( p@current@[0, 0, -1] - p@current@[0, 0, 0] ) - AwStencil@current * w@current ) / AwStencil@current:[0, 0, 0])
-	}
-	communicate w@current
-	apply bc to w@current
-
-	loop over p@current /*where ( 0 == ( x + y + z ) % 2 )*/ {
-		Var delta : Real = rhs_p@current - (
-				integrateOverEastFace ( u@current * rho@current )
-				- integrateOverWestFace ( u@current * rho@current )
-				+ integrateOverNorthFace ( v@current * rho@current )
-				- integrateOverSouthFace ( v@current * rho@current )
-				+ integrateOverTopFace ( w@current * rho@current )
-				- integrateOverBottomFace ( w@current * rho@current )
-			)
-
-		Var fac_x : Real = vf_cellWidth_y@current * vf_cellWidth_z@current
-		Var fac_y : Real = vf_cellWidth_x@current * vf_cellWidth_z@current
-		Var fac_z : Real = vf_cellWidth_x@current * vf_cellWidth_y@current
-		Var area  : Real = 2.0 * ( fac_x + fac_y + fac_z )
-		fac_x /= area
-		fac_y /= area
-		fac_z /= area
-
-		if ( 1 ) {
-			fac_x = 1.0 / 6.0
-			fac_y = 1.0 / 6.0
-			fac_z = 1.0 / 6.0
+		loop over u@current {
+			u@current += ( ( rhs_u@current + vf_cellWidth_y@current * vf_cellWidth_z@current * ( p@current@[-1, 0, 0] - p@current@[0, 0, 0] ) - AuStencil@current * u@current ) / AuStencil@current:[0, 0, 0])
 		}
-		
-		u@current@[0, 0, 0] -= fac_x * delta / ( vf_cellWidth_y@current * vf_cellWidth_z@current * evalAtWestFace ( rho@current ) )
-		u@current@[1, 0, 0] += fac_x * delta / ( vf_cellWidth_y@current * vf_cellWidth_z@current * evalAtEastFace ( rho@current ) )
-		v@current@[0, 0, 0] -= fac_y * delta / ( vf_cellWidth_x@current * vf_cellWidth_z@current * evalAtSouthFace ( rho@current ) )
-		v@current@[0, 1, 0] += fac_y * delta / ( vf_cellWidth_x@current * vf_cellWidth_z@current * evalAtNorthFace ( rho@current ) )
-		w@current@[0, 0, 0] -= fac_z * delta / ( vf_cellWidth_x@current * vf_cellWidth_y@current * evalAtBottomFace ( rho@current ) )
-		w@current@[0, 0, 1] += fac_z * delta / ( vf_cellWidth_x@current * vf_cellWidth_y@current * evalAtTopFace ( rho@current ) )
-
-		p@current@[ 0,  0,  0] += delta
-		p@current@[-1,  0,  0] -= fac_x * delta
-		p@current@[ 1,  0,  0] -= fac_x * delta
-		p@current@[ 0, -1,  0] -= fac_y * delta
-		p@current@[ 0,  1,  0] -= fac_y * delta
-		p@current@[ 0,  0, -1] -= fac_z * delta
-		p@current@[ 0,  0,  1] -= fac_z * delta
+		communicate u@current
+		apply bc to u@current
 	}
-	communicate u@current
-	apply bc to u@current
-	communicate v@current
-	apply bc to v@current
-	communicate w@current
-	apply bc to w@current
-	communicate p@current
-	apply bc to p@current
+
+	color with {
+		0 == ( x + y + z ) % 2,
+		1 == ( x + y + z ) % 2,
+
+		loop over v@current {
+			v@current += ( ( rhs_v@current + vf_cellWidth_x@current * vf_cellWidth_z@current * ( p@current@[0, -1, 0] - p@current@[0, 0, 0] ) - AvStencil@current * v@current ) / AvStencil@current:[0, 0, 0])
+		}
+		communicate v@current
+		apply bc to v@current
+	}
+
+	color with {
+		0 == ( x + y + z ) % 2,
+		1 == ( x + y + z ) % 2,
+
+		loop over w@current {
+			w@current += ( ( rhs_w@current + vf_cellWidth_x@current * vf_cellWidth_y@current * ( p@current@[0, 0, -1] - p@current@[0, 0, 0] ) - AwStencil@current * w@current ) / AwStencil@current:[0, 0, 0])
+		}
+		communicate w@current
+		apply bc to w@current
+	}
+
+	color with {
+		0 == ( x + y + z ) % 2,
+		1 == ( x + y + z ) % 2,
+
+		loop over p@current {
+			Var delta : Real = rhs_p@current - (
+					integrateOverEastFace ( u@current * rho@current )
+					- integrateOverWestFace ( u@current * rho@current )
+					+ integrateOverNorthFace ( v@current * rho@current )
+					- integrateOverSouthFace ( v@current * rho@current )
+					+ integrateOverTopFace ( w@current * rho@current )
+					- integrateOverBottomFace ( w@current * rho@current )
+				)
+
+			delta /= vf_cellVolume@current
+
+			Var fac_x : Real = vf_cellWidth_y@current * vf_cellWidth_z@current
+			Var fac_y : Real = vf_cellWidth_x@current * vf_cellWidth_z@current
+			Var fac_z : Real = vf_cellWidth_x@current * vf_cellWidth_y@current
+			Var area  : Real = 2.0 * ( fac_x + fac_y + fac_z )
+			fac_x /= area
+			fac_y /= area
+			fac_z /= area
+
+			if ( 1 ) {
+				fac_x = 1.0 / 6.0
+				fac_y = 1.0 / 6.0
+				fac_z = 1.0 / 6.0
+			}
+
+			Var numNeigh : Int = 6
+			delta /= numNeigh
+			
+/*			u@current@[0, 0, 0] -= fac_x * delta / ( vf_cellWidth_y@current * vf_cellWidth_z@current * evalAtWestFace ( rho@current ) )
+			u@current@[1, 0, 0] += fac_x * delta / ( vf_cellWidth_y@current * vf_cellWidth_z@current * evalAtEastFace ( rho@current ) )
+			v@current@[0, 0, 0] -= fac_y * delta / ( vf_cellWidth_x@current * vf_cellWidth_z@current * evalAtSouthFace ( rho@current ) )
+			v@current@[0, 1, 0] += fac_y * delta / ( vf_cellWidth_x@current * vf_cellWidth_z@current * evalAtNorthFace ( rho@current ) )
+			w@current@[0, 0, 0] -= fac_z * delta / ( vf_cellWidth_x@current * vf_cellWidth_y@current * evalAtBottomFace ( rho@current ) )
+			w@current@[0, 0, 1] += fac_z * delta / ( vf_cellWidth_x@current * vf_cellWidth_y@current * evalAtTopFace ( rho@current ) )*/
+
+			u@current@[ 0,  0,  0] -= delta * vf_cellWidth_x@current@[ 0,  0,  0]
+			p@current@[-1,  0,  0] -= delta
+			u@current@[ 1,  0,  0] += delta * vf_cellWidth_x@current@[ 1,  0,  0]
+			p@current@[ 1,  0,  0] -= delta
+			v@current@[ 0,  0,  0] -= delta * vf_cellWidth_y@current@[ 0,  0,  0]
+			p@current@[ 0, -1,  0] -= delta
+			v@current@[ 0,  1,  0] += delta * vf_cellWidth_y@current@[ 0,  1,  0]
+			p@current@[ 0,  1,  0] -= delta
+			w@current@[ 0,  0,  0] -= delta * vf_cellWidth_z@current@[ 0,  0,  0]
+			p@current@[ 0,  0, -1] -= delta
+			w@current@[ 0,  0,  1] += delta * vf_cellWidth_z@current@[ 0,  0,  1]
+			p@current@[ 0,  0,  1] -= delta
+			p@current@[ 0,  0,  0] += numNeigh * delta
+
+			/*p@current@[ 0,  0,  0] += delta
+			p@current@[-1,  0,  0] -= fac_x * delta
+			p@current@[ 1,  0,  0] -= fac_x * delta
+			p@current@[ 0, -1,  0] -= fac_y * delta
+			p@current@[ 0,  1,  0] -= fac_y * delta
+			p@current@[ 0,  0, -1] -= fac_z * delta
+			p@current@[ 0,  0,  1] -= fac_z * delta*/
+		}
+		communicate u@current
+		apply bc to u@current
+		communicate v@current
+		apply bc to v@current
+		communicate w@current
+		apply bc to w@current
+		communicate p@current
+		apply bc to p@current
+	}
 /*
 	loop over p@current where ( 1 == ( x + y + z ) % 2 ) {
 		Var delta : Real = rhs_p@current - (
@@ -1092,25 +1119,25 @@ Function SetupCoarseSystem@((coarsest + 1) to finest) ( ) : Unit {
 
 Function SetupCoarseRHS@((coarsest + 1) to finest) ( ) : Unit {
 	loop over rhs_u@coarser {
-		rhs_u@coarser = RestrictionFaceX@current * residual_u@current + AuStencil@coarser * uApprox@coarser - vf_cellWidth_y@coarser * vf_cellWidth_z@coarser * ( pApprox@coarser@[-1, 0, 0] - pApprox@coarser@[0, 0, 0] )
+		rhs_u@coarser = factor * ( RestrictionFaceX@current * residual_u@current ) + AuStencil@coarser * uApprox@coarser - vf_cellWidth_y@coarser * vf_cellWidth_z@coarser * ( pApprox@coarser@[-1, 0, 0] - pApprox@coarser@[0, 0, 0] )
 	}
 	communicate rhs_u@coarser
 	apply bc to rhs_u@coarser
 
 	loop over rhs_v@coarser {
-		rhs_v@coarser = RestrictionFaceY@current * residual_v@current + AvStencil@coarser * vApprox@coarser - vf_cellWidth_x@coarser * vf_cellWidth_z@coarser * ( pApprox@coarser@[0, -1, 0] - pApprox@coarser@[0, 0, 0] )
+		rhs_v@coarser = factor * ( RestrictionFaceY@current * residual_v@current ) + AvStencil@coarser * vApprox@coarser - vf_cellWidth_x@coarser * vf_cellWidth_z@coarser * ( pApprox@coarser@[0, -1, 0] - pApprox@coarser@[0, 0, 0] )
 	}
 	communicate rhs_v@coarser
 	apply bc to rhs_v@coarser
 
 	loop over rhs_w@coarser {
-		rhs_w@coarser = RestrictionFaceZ@current * residual_w@current + AwStencil@coarser * wApprox@coarser - vf_cellWidth_x@coarser * vf_cellWidth_y@coarser * ( pApprox@coarser@[0, 0, -1] - pApprox@coarser@[0, 0, 0] )
+		rhs_w@coarser = factor * ( RestrictionFaceZ@current * residual_w@current ) + AwStencil@coarser * wApprox@coarser - vf_cellWidth_x@coarser * vf_cellWidth_y@coarser * ( pApprox@coarser@[0, 0, -1] - pApprox@coarser@[0, 0, 0] )
 	}
 	communicate rhs_w@coarser
 	apply bc to rhs_w@coarser
 
 	loop over rhs_p@coarser {
-		rhs_p@coarser = RestrictionCell@current * residual_p@current/* + ApStencil@coarser * pApprox@coarser*/ + (
+		rhs_p@coarser = factor * ( RestrictionCell@current * residual_p@current )/* + ApStencil@coarser * pApprox@coarser*/ + (
 				integrateOverEastFace ( uApprox@coarser * rho@coarser )
 				- integrateOverWestFace ( uApprox@coarser * rho@coarser )
 				+ integrateOverNorthFace ( vApprox@coarser * rho@coarser )
@@ -1123,7 +1150,7 @@ Function SetupCoarseRHS@((coarsest + 1) to finest) ( ) : Unit {
 	apply bc to rhs_p@coarser
 
 	loop over rhs_t@coarser {
-		rhs_t@coarser = RestrictionCell@current * residual_t@current + AtStencil@coarser * phi7Approx@coarser
+		rhs_t@coarser = factor * ( RestrictionCell@current * residual_t@current ) + AtStencil@coarser * phi7Approx@coarser
 	}
 	communicate rhs_t@coarser
 	apply bc to rhs_t@coarser
@@ -1485,7 +1512,7 @@ Function UpdatePropertiesNN@all ( ) : Unit {
 
 /// stencil compilation functions
 
-Function CompileStencil_u@all ( relax : Real ) : Unit {
+Function CompileStencil_u@all ( curRelax : Real ) : Unit {
 	loop over AuStencil@current {
 		Val flow_e : Real = integrateOverXStaggeredEastFace ( u[active]@current * rho[active]@current )
 		Val flow_w : Real = integrateOverXStaggeredWestFace ( u[active]@current * rho[active]@current )
@@ -1534,8 +1561,8 @@ Function CompileStencil_u@all ( relax : Real ) : Unit {
 		}
 
 		if (1) {
-			rhs_u@current -= ( 1.0 - 1.0 / relax ) * AuStencil@current:[ 0,  0,  0] * u[active]@current
-			AuStencil@current:[ 0,  0,  0] /= relax
+			rhs_u@current -= ( 1.0 - 1.0 / curRelax ) * AuStencil@current:[ 0,  0,  0] * u[active]@current
+			AuStencil@current:[ 0,  0,  0] /= curRelax
 		}
 	}
 
@@ -1546,7 +1573,7 @@ Function CompileStencil_u@all ( relax : Real ) : Unit {
 	apply bc to rhs_u@current	
 }
 
-Function CompileStencil_v@all ( relax : Real ) : Unit {
+Function CompileStencil_v@all ( curRelax : Real ) : Unit {
 	loop over AvStencil@current {
 		Val flow_e : Real = integrateOverYStaggeredEastFace ( u[active]@current * rho[active]@current )
 		Val flow_w : Real = integrateOverYStaggeredWestFace ( u[active]@current * rho[active]@current )
@@ -1596,8 +1623,8 @@ Function CompileStencil_v@all ( relax : Real ) : Unit {
 		}
 
 		if (1) {
-			rhs_v@current -= ( 1.0 - 1.0 / relax ) * AvStencil@current:[ 0,  0,  0] * v[active]@current
-			AvStencil@current:[ 0,  0,  0] /= relax
+			rhs_v@current -= ( 1.0 - 1.0 / curRelax ) * AvStencil@current:[ 0,  0,  0] * v[active]@current
+			AvStencil@current:[ 0,  0,  0] /= curRelax
 		}
 	}
 
@@ -1608,7 +1635,7 @@ Function CompileStencil_v@all ( relax : Real ) : Unit {
 	apply bc to rhs_v@current	
 }
 
-Function CompileStencil_w@all ( relax : Real ) : Unit {
+Function CompileStencil_w@all ( curRelax : Real ) : Unit {
 	loop over AwStencil@current {
 		Val flow_e : Real = integrateOverZStaggeredEastFace ( u[active]@current * rho[active]@current )
 		Val flow_w : Real = integrateOverZStaggeredWestFace ( u[active]@current * rho[active]@current )
@@ -1657,8 +1684,8 @@ Function CompileStencil_w@all ( relax : Real ) : Unit {
 		}
 
 		if (1) {
-			rhs_w@current -= ( 1.0 - 1.0 / relax ) * AwStencil@current:[ 0,  0,  0] * w[active]@current
-			AwStencil@current:[ 0,  0,  0] /= relax
+			rhs_w@current -= ( 1.0 - 1.0 / curRelax ) * AwStencil@current:[ 0,  0,  0] * w[active]@current
+			AwStencil@current:[ 0,  0,  0] /= curRelax
 		}
 	}
 
@@ -1669,7 +1696,7 @@ Function CompileStencil_w@all ( relax : Real ) : Unit {
 	apply bc to rhs_w@current	
 }
 
-Function CompileStencil_p@all ( relax : Real ) : Unit {
+Function CompileStencil_p@all ( curRelax : Real ) : Unit {
 	if ( curSolveLevel == levels@current ( ) ) {
 		loop over rhs_p@current {
 			rhs_p@current = vf_cellVolume@current * ( rho[previous]@current - rho[active]@current ) / dt
@@ -1691,7 +1718,7 @@ Function CompileStencil_p@all ( relax : Real ) : Unit {
 	apply bc to rhs_p@current	
 }
 
-Function CompileStencil_t@all ( relax : Real ) : Unit {
+Function CompileStencil_t@all ( curRelax : Real ) : Unit {
 	loop over AtStencil@current {
 		Val flow_e : Real = integrateOverEastFace ( u[active]@current * rho[active]@current )
 		Val flow_w : Real = integrateOverWestFace ( u[active]@current * rho[active]@current )
@@ -1740,8 +1767,8 @@ Function CompileStencil_t@all ( relax : Real ) : Unit {
 		}
 
 		if (1) {
-			rhs_t@current -= ( 1.0 - 1.0 / relax ) * AtStencil@current:[ 0,  0,  0] * phi7[active]@current
-			AtStencil@current:[ 0,  0,  0] /= relax
+			rhs_t@current -= ( 1.0 - 1.0 / curRelax ) * AtStencil@current:[ 0,  0,  0] * phi7[active]@current
+			AtStencil@current:[ 0,  0,  0] /= curRelax
 		}
 	}
 

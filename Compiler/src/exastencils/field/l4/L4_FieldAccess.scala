@@ -3,7 +3,7 @@ package exastencils.field.l4
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.baseExt.l4.L4_UnresolvedAccess
+import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
@@ -50,7 +50,15 @@ case class L4_FieldAccess(
     val index = IR_LoopOverDimensions.defIt(numDims)
 
     if (arrayIndex.isDefined)
-      index.indices :+= IR_IntegerConstant(arrayIndex.get)
+      target.fieldLayout.datatype match {
+        case v : L4_VectorDatatype if v.isRow  =>
+          index.indices :+= IR_IntegerConstant(0)
+          index.indices :+= IR_IntegerConstant(arrayIndex.get)
+        case v : L4_VectorDatatype if !v.isRow =>
+          index.indices :+= IR_IntegerConstant(arrayIndex.get)
+          index.indices :+= IR_IntegerConstant(0)
+        case other                             => Logger.warn(s"Ignoring component access for unsupported datatype $other")
+      }
 
     val progOffset = if (offset.isDefined) {
       val progressedOffset = offset.get.progress

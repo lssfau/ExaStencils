@@ -145,7 +145,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
       ListBuffer[IR_Statement](
         innerItDecl,
         IR_Assignment(Duplicate(baseAccess),
-          domainBounds.lower(dim) - innerIt * cellWidth))
+          domainBounds.lower(dim) + innerIt * cellWidth))
     )
     innerLoop.parallelization.potentiallyParallel = false
 

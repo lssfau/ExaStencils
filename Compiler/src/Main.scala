@@ -420,25 +420,10 @@ object Main {
     HACK_IR_ResolveSpecialFunctionsAndConstants.apply()
     IR_AdaptTimerFunctions.apply()
 
-    IR_ResolveLoopOverPoints.apply()
-    IR_ResolveIntergridIndices.apply()
-    IR_ApplyOffsetToFieldAccess.apply()
-    IR_ApplyOffsetToStencilFieldAccess.apply()
-    // simplify indices modified just now, otherwise equality checks will not work later on
-    IR_GeneralSimplify.apply()
-
-    var convChanged = false
-    do {
-      IR_FindStencilConvolutions.changed = false
-      IR_FindStencilConvolutions.apply()
-      convChanged = IR_FindStencilConvolutions.changed
-      if (Knowledge.useFasterExpand)
-        IR_ExpandInOnePass.apply()
-      else
-        IR_Expand.doUntilDone()
-    } while (convChanged)
-
-    IR_ResolveStencilFunction.apply()
+    if (Knowledge.useFasterExpand)
+      IR_ExpandInOnePass.apply()
+    else
+      IR_Expand.doUntilDone()
 
     // HACK: create discr_h* again if there are no multigrid level and the field size was defined explicitly
     //   currently this works only if all fields are equally sized
@@ -468,6 +453,29 @@ object Main {
     }
     Grid.applyStrategies()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
+
+    IR_ResolveLoopOverPoints.apply()
+    IR_ResolveIntergridIndices.apply()
+    IR_ApplyOffsetToFieldAccess.apply()
+    IR_ApplyOffsetToStencilFieldAccess.apply()
+    // simplify indices modified just now, otherwise equality checks will not work later on
+    IR_GeneralSimplify.apply()
+
+    var convChanged = false
+    do {
+      IR_FindStencilConvolutions.changed = false
+      IR_FindStencilConvolutions.apply()
+      convChanged = IR_FindStencilConvolutions.changed
+      if (Knowledge.useFasterExpand)
+        IR_ExpandInOnePass.apply()
+      else
+        IR_Expand.doUntilDone()
+    } while (convChanged)
+
+    IR_ResolveStencilFunction.apply()
+
+    // resolve new virtual field accesses
+    Grid.applyStrategies()
 
     IR_ResolveLocalSolve.apply()
     IR_GeneralSimplify.doUntilDone()
@@ -507,6 +515,7 @@ object Main {
 
     if (Knowledge.experimental_kerncraftExport) {
       KerncraftExport.apply()
+      KerncraftExportYaml.export()
     }
 
     if (Knowledge.experimental_addPerformanceEstimate)

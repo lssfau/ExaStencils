@@ -10,8 +10,12 @@ object VirtualField {
     "vf_nodePosition_x", "vf_nodePosition_y", "vf_nodePosition_z",
     "nodePosition_x", "nodePosition_y", "nodePosition_z",
 
+    "vf_nodePosAsVec",
+
     "vf_cellCenter_x", "vf_cellCenter_y", "vf_cellCenter_z",
     "cellCenter_x", "cellCenter_y", "cellCenter_z",
+
+    "vf_cellCenAsVec",
 
     "vf_boundaryCoord_x", "vf_boundaryCoord_y", "vf_boundaryCoord_z",
     "boundaryCoord_x", "boundaryCoord_y", "boundaryCoord_z",
@@ -30,3 +34,6 @@ object VirtualField {
 
     "vf_cellCenterToFace_x", "vf_cellCenterToFace_y", "vf_cellCenterToFace_z").map(_.toLowerCase())
 }
+
+/// trait for virtual field implementations
+trait VirtualField
