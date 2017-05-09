@@ -150,38 +150,58 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_LevelSpecification
   // ######################################
 
-  lazy val level = (
-    locationize("@" ~> (levelsingle ||| levelall) ^^ { l => l })
-      ||| locationize("@" ~ "(" ~> levellist <~ ")" ^^ { l => l }))
+  lazy val levelDecl = locationize("@" ~> (
+    directDeclLevel ||| ("(" ~> relativeDeclLevel <~ ")")
+      ||| allLevels ||| ("(" ~> (levelDeclRange ||| levelDeclList ||| levelDeclNegList) <~ ")")) ^^ { l => l })
 
-  lazy val levelAccess = (
-    locationize("@" ~> levelsingle ^^ { l => l })
-      ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { l => l }))
+  lazy val levelAccess = locationize("@" ~> (directAccessLevel ||| ("(" ~> relativeAccessLevel <~ ")")))
 
-  lazy val levellist = locationize(((levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation) <~ ("," ||| "and")).* ~ (levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation)
-    ^^ { case a ~ b => L2_LevelList(a :+ b) })
+  lazy val levelDeclGroup = (
+    levelDeclRange
+      ||| levelDeclList
+      ||| allLevels
+      ||| singleDeclLevel
+    )
 
-  lazy val levelsublist = locationize(((levelsingle ||| levelrange ||| levelrelative) <~ ("," ||| "and")).* ~ (levelsingle ||| levelrange ||| levelrelative)
-    ^^ { case a ~ b => L2_LevelList(a :+ b) })
+  lazy val allLevels = locationize("all" ^^ { _ => L2_AllLevels })
 
-  lazy val levelnegation = (locationize((("not" ||| "but") ~ "(") ~> levelsublist <~ ")" ^^ { l => L2_NegatedLevelList(l) })
-    ||| locationize(("not" ||| "but") ~> levelsingle ^^ { l => L2_NegatedLevelList(l) }))
+  lazy val levelDeclRange = locationize((singleDeclLevel <~ "to") ~ singleDeclLevel ^^ { case b ~ e => L2_LevelRange(b, e) })
 
-  lazy val levelrange = locationize((levelsingle ||| "(" ~> levelrelative <~ ")") ~ "to" ~ (levelsingle ||| "(" ~> levelrelative <~ ")")
-    ^^ { case b ~ _ ~ e => L2_LevelRange(b, e) })
+  lazy val levelDeclList : Parser[L2_DeclarationLevelSpecification] = (
+    locationize((singleDeclLevel <~ ("," ||| "and")).+ ~ singleDeclLevel ^^ { case a ~ b => L2_LevelList(a :+ b) })
+      ||| locationize("(" ~> levelDeclList <~ ")") ^^ { l => l })
 
-  lazy val levelrelative = locationize(levelsingle ~ ("+" ||| "-") ~ integerLit
-    ^^ { case l ~ op ~ i => L2_RelativeLevel(l, op, i) })
+  lazy val levelDeclNegList : Parser[L2_LevelList] = (
+    locationize((levelDeclGroup <~ ("but" ||| "not")) ~ levelDeclGroup ^^ { case in ~ out => L2_LevelList(List(in, L2_NegatedLevelList(out))) })
+      ||| locationize("(" ~> levelDeclNegList <~ ")") ^^ { l => l })
 
-  lazy val levelall = locationize("all" ^^ { _ => L2_AllLevels })
+  lazy val singleAccessLevel : Parser[L2_AccessLevelSpecification] = (
+    directAccessLevel
+      ||| relativeAccessLevel
+      ||| locationize("(" ~> singleAccessLevel <~ ")") ^^ { l => l })
 
-  lazy val levelsingle = (
+  lazy val singleDeclLevel : Parser[L2_DeclarationLevelSpecification] = (
+    directDeclLevel
+      ||| relativeDeclLevel
+      ||| locationize("(" ~> singleDeclLevel <~ ")") ^^ { l => l })
+
+  lazy val relativeAccessLevel = locationize(directAccessLevel ~ ("+" ||| "-") ~ integerLit ^^ { case l ~ op ~ i => L2_RelativeLevel(l, op, i) })
+  lazy val relativeDeclLevel = locationize(directDeclLevel ~ ("+" ||| "-") ~ integerLit ^^ { case l ~ op ~ i => L2_RelativeLevel(l, op, i) })
+
+  lazy val directAccessLevel : Parser[L2_AccessLevelSpecification] = (
     locationize("current" ^^ { _ => L2_CurrentLevel })
       ||| locationize("coarser" ^^ { _ => L2_CoarserLevel })
       ||| locationize("finer" ^^ { _ => L2_FinerLevel })
       ||| locationize("coarsest" ^^ { _ => L2_CoarsestLevel })
       ||| locationize("finest" ^^ { _ => L2_FinestLevel })
-      ||| locationize(integerLit ^^ { L2_SingleLevel }))
+      ||| locationize(integerLit ^^ { l => L2_SingleLevel(l) })
+      ||| locationize("(" ~> directAccessLevel <~ ")" ^^ { l => l }))
+
+  lazy val directDeclLevel : Parser[L2_DeclarationLevelSpecification] = (
+    locationize("coarsest" ^^ { _ => L2_CoarsestLevel })
+      ||| locationize("finest" ^^ { _ => L2_FinestLevel })
+      ||| locationize(integerLit ^^ { l => L2_SingleLevel(l) })
+      ||| locationize("(" ~> directDeclLevel <~ ")" ^^ { l => l }))
 
   // #############################################################################
   // ################################## BASE_EXT #################################
@@ -235,9 +255,9 @@ object L2_Parser extends ExaParser with PackratParsers {
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ (l => l))
 
-  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ level.? ~ ("with" ~> datatype).? ~ ("on" ~> localization) ~ ("of" ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("with" ~> datatype).? ~ ("on" ~> localization) ~ ("of" ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ levels ~ datatype ~ localization ~ domain ~ initial => L2_BaseFieldDecl(id, levels, datatype, localization, domain, initial) })
-  lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ level.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
+  lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ _ ~ bc => L2_BoundaryFieldDecl(id, levels, bc) })
 
   // #############################################################################
@@ -256,12 +276,14 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_StencilDecl
   // ######################################
 
-  lazy val stencilDeclaration = locationize(("Operator" ~> ident <~ ("from" ~ "Stencil")) ~ ("{" ~> stencilEntries <~ "}")
-    ^^ { case id ~ entries => L2_StencilDecl(id, entries) })
+  lazy val stencilDeclaration = locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "Stencil" ~ "{") ~> stencilEntries <~ "}")
+    ^^ { case id ~ levels ~ entries => L2_StencilDecl(id, levels, entries) })
   lazy val stencilEntries = (
     (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilEntry.+)
-  lazy val stencilEntry = locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_StencilEntry(offset, coeff) })
+  lazy val stencilEntry = (
+    locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_StencilOffsetEntry(offset, coeff) })
+      ||| locationize(((expressionIndex <~ "from") ~ expressionIndex ~ ("with" ~> binaryexpression)) ^^ { case row ~ col ~ coeff => L2_StencilMappingEntry(row, col, coeff) }))
 
   // ######################################
   // ##### L2_StencilTemplateDecl
