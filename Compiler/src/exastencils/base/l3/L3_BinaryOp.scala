@@ -38,6 +38,9 @@ object L3_BinaryOperators extends Enumeration {
   val Greater = Value(">")
   val GreaterEqual = Value(">=")
 
+  val Maximum = Value("max")
+  val Minimum = Value("min")
+
   //  Conversions for Enumeration:
   // BinaryOperators -> String:  op.toString()
   // String -> BinaryOperators:  BinaryOperators.withName(op)
@@ -68,6 +71,9 @@ object L3_BinaryOperators extends Enumeration {
     case LowerEqual             => L3_LowerEqual(left, right)
     case Greater                => L3_Greater(left, right)
     case GreaterEqual           => L3_GreaterEqual(left, right)
+
+    case Maximum => L3_Maximum(left, right)
+    case Minimum => L3_Minimum(left, right)
   }
 
   def progress(op : Value) : L4_BinaryOperators.BinaryOperators = {
@@ -192,4 +198,24 @@ case class L3_AndAnd(var left : L3_Expression, var right : L3_Expression) extend
 case class L3_OrOr(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
   override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
   override def progress = L4_OrOr(left.progress, right.progress)
+}
+
+/// min/max operations
+
+object L3_Minimum {
+  def apply(varargs : L3_Expression*) = new L3_Minimum(varargs.to[ListBuffer])
+}
+
+case class L3_Minimum(var args : ListBuffer[L3_Expression]) extends L3_Expression {
+  override def prettyprint(out : PpStream) = out << "min (" <<< (args, ", ") << ')'
+  override def progress = L4_Minimum(args.map(_.progress))
+}
+
+object L3_Maximum {
+  def apply(varargs : L3_Expression*) = new L3_Maximum(varargs.to[ListBuffer])
+}
+
+case class L3_Maximum(var args : ListBuffer[L3_Expression]) extends L3_Expression {
+  override def prettyprint(out : PpStream) = out << "max (" <<< (args, ", ") << ')'
+  override def progress = L4_Maximum(args.map(_.progress))
 }

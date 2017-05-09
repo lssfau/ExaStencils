@@ -110,4 +110,3 @@ case class IR_Return(var expr : Option[IR_Expression] = None) extends IR_Stateme
     out << ';'
   }
 }
-

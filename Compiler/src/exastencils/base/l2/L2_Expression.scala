@@ -3,6 +3,8 @@ package exastencils.base.l2
 import exastencils.base.l3._
 import exastencils.prettyprinting._
 
+/// L2_Expression
+
 trait L2_Expression extends L2_Node with L2_Progressable with PrettyPrintable {
   def progress : L3_Expression
 
@@ -37,6 +39,8 @@ trait L2_Expression extends L2_Node with L2_Progressable with PrettyPrintable {
   def >(other : L2_Expression) = L2_Greater(this, other)
   def >=(other : L2_Expression) = L2_GreaterEqual(this, other)
 }
+
+/// L2_NullExpression
 
 case object L2_NullExpression extends L2_Expression {
   exastencils.core.Duplicate.registerConstant(this)
