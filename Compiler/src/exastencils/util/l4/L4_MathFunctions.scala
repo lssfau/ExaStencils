@@ -4,6 +4,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.util.ir.IR_MathFunctionAccess
 
 /// L4_MathFunctions
 
@@ -38,14 +39,10 @@ object L4_MathFunctions {
 
 /// L4_MathFunctionAccess
 
-object L4_MathFunctionAccess {
-  def apply(name : String, datatype : L4_Datatype) =
-    new L4_MathFunctionAccess(name, None, datatype)
-  def apply(name : String, level : Int, datatype : L4_Datatype) =
-    new L4_MathFunctionAccess(name, Some(level), datatype)
+case class L4_MathFunctionAccess(var name : String, var datatype : L4_Datatype) extends L4_FunctionAccess {
+  override def level = None
+  override def progress = IR_MathFunctionAccess(name, datatype.progress)
 }
-
-case class L4_MathFunctionAccess(var name : String, level : Option[Int], var datatype : L4_Datatype) extends L4_FunctionAccess
 
 /// L4_ResolveMathFunctions
 
