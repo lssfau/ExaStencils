@@ -532,7 +532,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         case other => Logger.error(s"Cross product is not defined for dimensionality $other")
       }
 
-      // FIXME: other vec functions: length, normalize
+    // FIXME: other vec functions: length, normalize
 
     case call : IR_FunctionCall if (call.name == "inverse") => {
       if (Knowledge.experimental_resolveInverseFunctionCall != "Runtime") {
@@ -745,11 +745,6 @@ object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to ma
 
 object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
   this += Transformation("Linearize", {
-    //    case access @ IR_HighDimAccess(base : IR_ArrayAccess, idx : IR_ConstIndex) =>
-    //      val myidx = idx.toExpressionIndex
-    //      base.index = base.index + myidx(0)
-    //      base
-
     case access @ IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_Index) =>
       val hoIdx = idx.toExpressionIndex
       val fieldLayout = base.fieldSelection.field.fieldLayout
@@ -761,7 +756,11 @@ object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
       }
       base
 
-    case access @ IR_HighDimAccess(base, idx : IR_Index) if idx.indices.length == 2 =>
+    case access @ IR_HighDimAccess(base, idx : IR_ConstIndex) if idx.indices.length == 2 =>
+      val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
+      IR_ArrayAccess(base, matrix.sizeN * idx.indices(0) + idx.indices(1))
+
+    case access @ IR_HighDimAccess(base, idx : IR_ExpressionIndex) if idx.indices.length == 2 =>
       val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
       IR_ArrayAccess(base, matrix.sizeN * idx.indices(0) + idx.indices(1))
   }, false)
