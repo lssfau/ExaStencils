@@ -93,64 +93,118 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows
 }
 
 case object IR_RuntimeInverseMatrix extends IR_AbstractFunction(false) with PrettyPrintable {
-  def name = "runtimeInverseMatrix"
+  def name = "_runtimeInverseMatrix"
 
-  //override def prettyprint_decl() : String = "template<size_t N, typename T> void runtimeInverseMatrix(T*, T*);\n"
+  //override def prettyprint_decl() : String = "template<size_t N, typename T> void _runtimeInverseMatrix(T*, T*);\n"
 
   override def prettyprint(out : PpStream) = {}
 
   override def prettyprint_decl() : String = {
     """
-            template<size_t N, typename T>
-            void runtimeInverseMatrix(T* in, T* out) {
-                T A[N * N];
-                size_t p[N];
-                std::copy(in, in + N * N, A);
-                std::fill(out, out + N * N, 0);
-                for(size_t i = 0; i < N * N; i += N + 1) out[i] = 1;
-                for(size_t i = 0; i < N; ++i) p[i] = i;
+template<size_t N, typename T> void _printMatrix(std::ostream& stream, T* A) {
+    for(size_t i = 0; i < N; i++) {
+        for(size_t j = 0; j < N; ++j) {
+            stream << A[i * N + j] << "\t";
+        }
+        stream << "\n";
+    }
+    stream << std::endl;
+}
+template<size_t N, typename T>
+void _runtimeInverseMatrix(T* in, T* out) {
+    T L[N * N];
+    T U[N * N];
+    size_t p[N], q[N];
 
-                for ( size_t k = 0; k < N; ++k ) {
-                    T colmax ( 0 );
-                    size_t k0 = 0; // to determine if swapping is needed
-                    for ( size_t i = k; i < N; ++i ) {
-                        if ( std::abs ( A[i * N + k] ) > colmax ) {
-                            colmax = std::abs ( in[i * N + k] );
-                            k0 = i;
-                        }
-                    }
-                    if ( colmax < 1e-15 ) {
-                        // FIXME matrix singular -> throw error
-                    }
-                    if(k != k0) {
-                        std::swap ( p[k], p[k0] );
-                        std::swap_ranges ( A + k * N, A + (k + 1) * N, A + k0 * N );
-                        std::swap_ranges ( out + k * N, out + (k + 1) * N, out + k0 * N );
-                    }
-                }
+    std::copy(in, in + N * N, U);
+    std::fill(std::begin(L), std::end(L), 0);
+    for (size_t i = 0; i < N * N; i += N + 1)
+    {
+        L[i] = 1;
+    }
 
-                for(size_t i = 0; i < N; ++i) {
-                    for(size_t j = 0; j < N; ++j) {
-                        if(j != i) {
-                            auto d = A[j * N + i] / A[i * N + i];
-                            for(size_t k = 0; k < N; ++k) {
-                                A[j * N + k] -= A[i * N + k] * d;
-                                out[j * N + k] -= out[i * N + k] * d;
-                            }
-                        }
-                    }
-                }
+    for (size_t i = 0; i < N; ++i)
+    {
+        p[i] = i;
+        q[i] = i;
+    }
 
-                for(size_t i = 0; i < N; ++i) {
-                    auto d = A[i * N + i];
-                    for(size_t j = 0; j < N; ++j) {
-                        out[i * N + j] /= d;
-                    }
-                }
+    for (size_t k = 0; k < N - 1; ++k)
+    {
+        T colmax(0);
+        size_t /*maxrow = 0,*/ maxcol = 0; // will always be >= k
+        //for (size_t i = k; i < N; ++i) {
+        for (size_t j = k; j < N; ++j)
+        {
+            if (std::abs(U[k * N + j]) > colmax)
+            {
+                colmax = std::abs(U[k * N + j]);
+                //maxrow = i; // no row swapping for now
+                maxcol = j;
+            }
+        }
+        if (colmax < 1e-15)
+        {
+            // matrix singular -> print warning
+            std::cerr << "WARNING: matrix potentially singular:" << std::endl;
+            _printMatrix<N>(std::cerr, U);
+        }
+        //}
+        //std::swap ( p[k], p[maxrow] );
+        //std::swap_ranges(L + k * N, L + (k+1) * N, L + maxrow * N);
+        //std::swap_ranges(U + k * N, U + (k+1) * N, U + maxrow * N);
+
+        std::swap(q[k], q[maxcol]);
+        for (size_t i = 0; i < N; ++i)
+        {
+            std::swap(L[i * N + k], L[i * N + maxcol]);
+            std::swap(U[i * N + k], U[i * N + maxcol]);
+        }
+
+        for (size_t i = k + 1; i < N; ++i)
+        {
+            L[i * N + k] = U[i * N + k] / U[k * N + k];
+            for (size_t j = k; j < N; ++j)
+            {
+                U[i * N + j] -= L[i * N + k] * U[k * N + j];
+            }
+        }
+    }
+
+    T y[N * N];
+
+    for (size_t j = 0; j < N; ++j)
+    {
+        for (size_t i = 0; i < N; ++i)
+        {
+            T sum(0);
+            for (size_t k = 0; k < i; ++k)
+            {
+                sum += L[i * N + k] * y[k * N + j];
             }
 
+            if (p[i] == j)
+            {
+                y[i * N + j] = (1 - sum) / L[i * N + i];
+            }
+            else
+            {
+                y[i * N + j] = (0 - sum) / L[i * N + i];
+            }
+        }
 
-          """
+        for (size_t i = N - 1; i <= SIZE_MAX - 1; --i)
+        {
+            T sum = 0;
+            for (size_t k = N - 1; k > i; --k)
+            {
+                sum += U[i * N + k] * out[k * N + j];
+            }
+            out[i * N + j] = (y[i * N + j] - sum) / U[i * N + i];
+        }
+    }
+}
+    """
   }
 }
 
@@ -192,7 +246,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
     case call : IR_FunctionCall if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime" && call.name == "inverse") => {
       val m = call.arguments(0).datatype.asInstanceOf[IR_MatrixDatatype]
       if (m.sizeM > 3) {
-        call.function = new IR_UserFunctionAccess("runtimeInverseMatrix<" + m.sizeM + ">", m)
+        call.function = new IR_UserFunctionAccess("_runtimeInverseMatrix<" + m.sizeM + ">", m)
       }
       call
     }
@@ -523,7 +577,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           // TODO exploit knowledge about matrix structure
           Knowledge.experimental_resolveInverseFunctionCall match {
             case "Runtime"     => {
-              call.function.name = "runtimeInverseMatrix<" + m.rows + ">"
+              call.function.name = "_runtimeInverseMatrix<" + m.rows + ">"
               call
             }
             case "Cofactors"   => {
@@ -674,8 +728,9 @@ object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to ma
   }
 
   this += Transformation("Wrap", {
-    case m : IR_MatrixExpression => m // no need to process further
-    case hda : IR_HighDimAccess  => hda // no need to process further
+    case m : IR_MatrixExpression                                                => m // no need to process further
+    case hda : IR_HighDimAccess                                                 => hda // no need to process further
+    case x : IR_FunctionCall if (x.function.name.startsWith("_runtimeInverse")) => x // FIXME remove after inlining runtimeInverse()
 
     case access @ IR_VariableAccess(_, matrixDT : IR_MatrixDatatype) =>
       IR_MatrixExpression(Some(matrixDT.datatype), matrixDT.sizeM, matrixDT.sizeN, duplicateExpressions(access, matrixDT))
@@ -685,7 +740,6 @@ object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to ma
       IR_MatrixExpression(Some(matrixDT.datatype), matrixDT.sizeM, matrixDT.sizeN, duplicateExpressions(access, matrixDT))
 
     // FIXME: add support for stencil fields
-
   }, false)
 }
 
