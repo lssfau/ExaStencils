@@ -6,10 +6,12 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.logger.Logger
+import exastencils.optimization.Vectorization
 import exastencils.parallelization.api.cuda.CUDA_Util
 import exastencils.prettyprinting.PpStream
-import exastencils.util.ir.IR_ReplaceVariableAccess
 
 /// OMP_ParallelFor
 
@@ -55,6 +57,11 @@ case class OMP_ParallelFor(
 
 object OMP_AddParallelSections extends DefaultStrategy("Handle potentially parallel omp sections") {
   this += new Transformation("Adding OMP parallel for pragmas", {
+    case target : IR_ForLoop if target.parallelization.potentiallyParallel && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) &&
+      target.parallelization.reduction.isDefined && target.hasAnnotation(Vectorization.VECT_ANNOT)                                  =>
+      // FIXME: workaround for feature interaction
+      Logger.warn("Parallelizing and Vectorizing a loop with a redution is currently not supported! If required, contact Stefan.")
+      target
     case target : IR_ForLoop if target.parallelization.potentiallyParallel && !target.hasAnnotation(CUDA_Util.CUDA_LOOP_ANNOTATION) =>
       val additionalOMPClauses = ListBuffer[OMP_Clause]()
 
@@ -77,9 +84,11 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
       var prependStmts = ListBuffer[IR_Statement]()
       var appendStmts = ListBuffer[IR_Statement]()
 
+      var toRemove = ListBuffer[OMP_Clause]()
       ompSection.additionalOMPClauses.map {
         case reduction : OMP_Reduction if "min" == reduction.op || "max" == reduction.op =>
           hasApplicableReduction = true
+          toRemove += reduction
 
           // resolve max reductions
           val redOp = reduction.op
@@ -94,9 +103,9 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
           val redOperands = ListBuffer[IR_Expression](redExp) ++= (0 until Knowledge.omp_numThreads).map(fragIdx => IR_ArrayAccess(redExpLocal, fragIdx) : IR_Expression)
           val red = IR_Assignment(redExp, if ("min" == redOp) IR_Minimum(redOperands) else IR_Maximum(redOperands))
 
-          IR_ReplaceVariableAccess.toReplace = redExp.prettyprint
-          IR_ReplaceVariableAccess.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
-          IR_ReplaceVariableAccess.applyStandalone(ompSection.loop)
+          IR_ReplaceVariableAccessWoReduction.toReplace = redExp.prettyprint
+          IR_ReplaceVariableAccessWoReduction.replacement = IR_ArrayAccess(redExpLocal, IR_VariableAccess("omp_tid", IR_IntegerDatatype))
+          IR_ReplaceVariableAccessWoReduction.applyStandalone(IR_Scope(ompSection.loop.body))
 
           prependStmts += decl
           prependStmts ++= init
@@ -105,6 +114,8 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
         case _ =>
       }
 
+      ompSection.additionalOMPClauses --= toRemove
+
       if (hasApplicableReduction) {
         ompSection.loop.body.prepend(IR_VariableDeclaration(IR_IntegerDatatype, "omp_tid", "omp_get_thread_num()"))
         IR_Scope((prependStmts :+ ompSection) ++ appendStmts)
@@ -112,4 +123,17 @@ object OMP_ResolveMinMaxReduction extends DefaultStrategy("Resolve omp min and m
         ompSection
       }
   }, false) // switch off recursion due to wrapping mechanism
+
+  object IR_ReplaceVariableAccessWoReduction extends QuietDefaultStrategy("Replace something with something else but skip reductions") {
+    var toReplace : String = ""
+    var replacement : Node = IR_VariableAccess("", IR_UnknownDatatype) // to be overwritten
+
+    this += new Transformation("Search and replace", {
+      // TODO: rely only on IR_VariableAccess => eliminate IR_StringLiteral occurrences
+      case red : IR_Reduction                                     => red
+      case IR_StringLiteral(s) if s == toReplace                  => Duplicate(replacement)
+      case access : IR_VariableAccess if access.name == toReplace => Duplicate(replacement)
+    }, false)
+  }
+
 }

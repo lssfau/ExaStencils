@@ -1,6 +1,6 @@
 targetOS					= "Windows"
 targetCompiler				= "MSVC"
-targetCompilerVersion		= 12
+targetCompilerVersion		= 14
 targetCompilerVersionMinor	= 0
 
 simd_instructionSet			= "AVX"

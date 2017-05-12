@@ -141,7 +141,7 @@ object Knowledge {
 
   /// === Layer 4 ===
 
-  // specifies if shared field layouts should be duplicated when progressing from l4 to ir
+  // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
   var l4_genSepLayoutsPerField : Boolean = true
 
   /// === Post Layer 4 ===
@@ -217,12 +217,23 @@ object Knowledge {
   // [16~1000000000 $32§poly_tileSize_w+32]
   var poly_tileSize_w : Int = 0
 
+  // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
+  var poly_exploration_extended : Boolean = false
+  // [0~5] // specifies how many (heuristic) filters should be applied to reduce the number or generated schedules during the exploration
+  var poly_exploration_filterLevel : Int = 0
+  // the following filter levels are currently supported, filter from lower levels are also applied in addition to the one described:
+  //   0: no filter
+  //   1: only outer loop in should carry dependencies (textual dependencies are OK)
+  //   2: only linear memory accesses allowed (given that the original schedule had linear accesses)
+  //   3: only schedules with textual dependencies (if any)
+  //   4: do not prevent aligned vectorization
+  //   5: traverse memory in the inner loop in the same direction as the original schedule
+  //   6: only positive schedule coefficients allowed
+
   // [true|false] // specify separately if the outermost loop should be tiled
   var poly_tileOuterLoop : Boolean = false
   // [isl|feautrier|exploration] // choose which schedule algorithm should be used in PolyOpt
   var poly_scheduleAlgorithm : String = "isl"
-  // [true|false] // triggers an extended exploration (i.e. not only pairs of lines/rays are considered, but also combinations of three of them)
-  var poly_exploration_extended : Boolean = false
   // [all|raw|rar] // specifies which dependences should be optimized; "all" means all validity dependences (raw, war, waw)
   var poly_optimizeDeps : String = "raw"
   // [true|false] // specifies if the dependences to optimize should be filtered first
@@ -239,6 +250,7 @@ object Knowledge {
   var poly_maxConstantTerm : Int = -1
   // [(-1)~inf] // enforces that the coefficients for variable and parameter dimensions in the calculated schedule are not larger than the specified value (this can significantly increase the speed of the scheduling calculation; -1 means unlimited)
   var poly_maxCoefficient : Int = -1
+  var poly_printDebug : Boolean = false
 
   // --- general optimization ---
 
@@ -311,8 +323,10 @@ object Knowledge {
   var cuda_enabled : Boolean = false
   // device id of the CUDA device to be used; only relevant in multi-GPU systems
   var cuda_deviceId : Int = 0
-  // specifies where kernels should be executed by default; may be "Host", "Device" or "Performance"
+  // specifies where kernels should be executed by default; may be "Host", "Device", "Performance" or "Condition"
   var cuda_preferredExecution : String = "Performance"
+  // specifies a condition to be used to branch for CPU (true) or GPU (false) execution; only used if cuda_preferredExecution == Condition
+  var cuda_executionCondition : String = "true"
   // specifies if CUDA devices are to be synchronized after each (device) kernel call -> recommended to debug, required for reasonable performance measurements
   var cuda_syncDeviceAfterKernelCalls : Boolean = true
   // specifies if fields with (exclusive) write accesses should be synchronized before host kernel executions
@@ -390,6 +404,9 @@ object Knowledge {
   // normalize solution after each v-cycle
   var experimental_NeumannNormalize : Boolean = false
 
+  // allows setting the interpolation order for Dirichlet BCs for cell or face localized quantities
+  var experimental_DirichletOrder : Int = 1
+
   // generates call stacks for all employed timers
   var experimental_timerEnableCallStacks : Boolean = false
 
@@ -401,6 +418,9 @@ object Knowledge {
   var experimental_useStefanOffsets : Boolean = false
 
   var experimental_resolveUnreqFragmentLoops : Boolean = false
+
+  // eliminates conditions of the form IR_IfCondition(IR_IntegerConstant(_), _, _)
+  var experimental_emliminateIntConditions : Boolean = false
 
   var experimental_allowCommInFragLoops : Boolean = false
 
@@ -419,11 +439,22 @@ object Knowledge {
   // minimum width of inner dimension when splitting according to experimental_splitLoopsForAsyncComm; 0 to disable
   var experimental_splitLoops_minInnerWidth : Int = 4
 
-  // TODO
+  // Export loop kernels to pseudo-C and kerncraft YAML kernel descriptions.
   var experimental_kerncraftExport : Boolean = false
 
   // enables support for layers 2 and 3
   var experimental_layerExtension : Boolean = false
+
+  // enables internal handling of high-dimensional data type
+  var experimental_internalHighDimTypes : Boolean = true
+
+  var experimental_resolveInverseFunctionCall : String = "Cofactors" // [Cofactors|GaussJordan|Runtime] // how to resolve inverse() function calls for matrices:
+
+  // tries to apply an inversion based on the Schur complement in local solve blocks
+  var experimental_applySchurCompl : Boolean = false
+
+  // eliminate occurrences of cudaContext - required for PizDaint
+  var experimental_eliminateCudaContext : Boolean = false
 
   /// paper project - SISC
 
@@ -538,6 +569,8 @@ object Knowledge {
   // initializes the solution on the finest level with random values
   var l3tmp_genForAutoTests : Boolean = false
   // generates code for automatic testing purposes - if l3tmp_printError is activated NO residual is printed
+  var l3tmp_autoTestMaxPrecision : Int = 4
+  // maximum precision for printing values of, e.g., error norms
   var l3tmp_printError : Boolean = false
   // generates code that calculates and prints the error in each iteration
   var l3tmp_useMaxNormForError : Boolean = true // uses the maximum norm instead of the L2 norm when reducing the error
@@ -718,8 +751,8 @@ object Knowledge {
     Constraints.condEnsureValue(omp_parallelizeLoopOverDimensions, false, omp_enabled && omp_parallelizeLoopOverFragments, "omp_parallelizeLoopOverDimensions and omp_parallelizeLoopOverFragments are mutually exclusive")
 
     Constraints.condWarn(mpi_numThreads != domain_numBlocks, s"the number of mpi threads ($mpi_numThreads) differs from the number of blocks ($domain_numBlocks) -> this might lead to unexpected behavior!")
-    Constraints.condWarn(!omp_enabled && omp_numThreads > 1, s"The number of omp threads is larger than one ($omp_numThreads), but omp_enabled is false")
-    Constraints.condWarn(omp_enabled && omp_numThreads == 1, s"The number of omp threads is equal to one, but omp_enabled is true")
+    Constraints.condEnsureValue(omp_enabled, false, omp_numThreads == 1, s"The number of omp threads is equal to one, but omp_enabled is true")
+    Constraints.condEnsureValue(omp_numThreads, 1, !omp_enabled, s"The number of omp threads is larger than one ($omp_numThreads), but omp_enabled is false")
     Constraints.condWarn(omp_parallelizeLoopOverFragments && omp_numThreads > domain_numFragmentsPerBlock, s"the number of omp threads ($omp_numThreads) is higher than the number of fragments per block ($domain_numFragmentsPerBlock) -> this will result in idle omp threads!")
     Constraints.condWarn(omp_parallelizeLoopOverFragments && 0 != domain_numFragmentsPerBlock % omp_numThreads, s"the number of fragments per block ($domain_numFragmentsPerBlock) is not divisible by the number of omp threads ($omp_numThreads) -> this might result in a severe load imbalance!")
     Constraints.condWarn(omp_nameCriticalSections, s"omp_nameCriticalSections should always be deactivated")

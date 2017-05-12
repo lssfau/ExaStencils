@@ -4,6 +4,7 @@ import scala.collection.mutable.Map
 
 import exastencils.base.ir._
 import exastencils.config.Settings
+import exastencils.core.Duplicate
 import exastencils.core.collectors.ScopeCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
@@ -120,6 +121,6 @@ private final object CreateVariableAccesses extends PartialFunction[Node, Transf
         case IR_StringLiteral(name)     => name
         case IR_VariableAccess(name, _) => name
       }
-    IR_VariableAccess(varr, typee)
+    IR_VariableAccess(varr, Duplicate(typee))
   }
 }

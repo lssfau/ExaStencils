@@ -1,0 +1,80 @@
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
+Layout LayoutSol< Real, Node >@finest {
+    innerPoints = [ 8192, 8192 ]
+    ghostLayers = [ 5, 5 ]
+    duplicateLayers = [ 1, 1 ]
+}
+Layout LayoutRHS< Real, Node >@finest {
+    innerPoints = [ 8192, 8192 ]
+    ghostLayers = [ 4, 4 ]
+    duplicateLayers = [ 1, 1 ]
+}
+Stencil Laplace@finest {
+    [ 0, 0] => 3.2
+    [ 1, 0] => -0.8
+    [-1, 0] => -0.8
+    [ 0, 1] => -0.8
+    [ 0, -1] => -0.8
+}
+Field Solution< global, LayoutSol, 0.0 >[1]@finest
+Field RHS< global, LayoutRHS, None >@finest
+Globals {
+}
+Function Smoother() : Unit {
+    loop over fragments {
+        repeat 5 times with contraction [1, 1 ] {
+            loop over Solution@finest where 0 == ((x + y ) % 2) {
+                Solution[0]@finest = Solution[0]@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution[0]@finest))
+            }
+            loop over Solution@finest where 1 == ((x + y ) % 2) {
+                Solution[0]@finest = Solution[0]@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution[0]@finest))
+            }
+        }
+    }
+}
+Function InitFields() : Unit {
+    native('std::srand(42)')
+    loop over Solution@finest sequentially {
+        Solution[active]@finest = native('((double)std::rand()/RAND_MAX)')
+        Solution[nextSlot]@finest = native('((double)std::rand()/RAND_MAX)')
+    }
+    loop over RHS@finest sequentially {
+        RHS@finest = native('((double)std::rand()/RAND_MAX)')
+    }
+}
+Function Benchmark() : Unit {
+    print('Cache warmup')
+    repeat 1 times {
+        Smoother()
+    }
+    print('Starting benchmark (temporal blocking)')
+    startTimer(benchTimer)
+    repeat 3 times {
+        Smoother()
+    }
+    stopTimer(benchTimer)
+    Var time : Real = getTotalFromTimer(benchTimer)
+    // print('Runtime: ', time)
+    // print('MLUPs: ', (1.0 * 16384 * 16384 * 5 * 3) / time / 1e3)
+}
+Function CheckSolution() : Unit {
+    loop over Solution@finest sequentially {
+        Var s : Real = Solution[active]@finest * Solution[nextSlot]@finest
+        if (s == 0.0 || s == 1./0. || s == -1./0. || s != s) {
+            print('ERROR: value out of bounds found: ', s)
+        }
+    }
+}
+Function Application() : Unit {
+    startTimer(setupWatch)
+    initGlobals()
+    initDomain()
+    InitFields()
+    stopTimer(setupWatch)
+    // print('Total time to setup: ', getTotalFromTimer(setupWatch))
+    print('Setup done')
+    Benchmark()
+    CheckSolution()
+    destroyGlobals()
+    print('Done')
+}

@@ -3,8 +3,7 @@ package exastencils.field.l4
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
-import exastencils.baseExt.l4.L4_UnresolvedAccess
-import exastencils.config._
+import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
@@ -37,7 +36,6 @@ case class L4_FieldAccess(
     var offset : Option[L4_ExpressionIndex] = None) extends L4_KnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
-    // FIXME: omit slot if numSlots of target field is 1
     out << target.name
     if (target.numSlots > 1) out << '[' << slot << ']'
     out << '@' << target.level
@@ -46,20 +44,31 @@ case class L4_FieldAccess(
   }
 
   def progress : IR_FieldAccess = {
-    // TODO: extract common index stuff from here and VirtualFieldAccess, StencilFieldAccess, etc
-    var numDims = Knowledge.dimensionality // TODO: resolve field info
-    if (arrayIndex.isDefined) numDims += 1 // TODO: remove array index and update function after integration of vec types
-    var multiIndex = IR_LoopOverDimensions.defIt(numDims)
+    val field = target.getProgressedObject()
+
+    val numDims = field.fieldLayout.numDimsGrid
+    val index = IR_LoopOverDimensions.defIt(numDims)
+
     if (arrayIndex.isDefined)
-      multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
-    if (offset.isDefined) {
-      var progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
-      multiIndex += progressedOffset
+      target.fieldLayout.datatype match {
+        case v : L4_VectorDatatype if v.isRow  =>
+          index.indices :+= IR_IntegerConstant(0)
+          index.indices :+= IR_IntegerConstant(arrayIndex.get)
+        case v : L4_VectorDatatype if !v.isRow =>
+          index.indices :+= IR_IntegerConstant(arrayIndex.get)
+          index.indices :+= IR_IntegerConstant(0)
+        case other                             => Logger.warn(s"Ignoring component access for unsupported datatype $other")
+      }
+
+    val progOffset = if (offset.isDefined) {
+      val progressedOffset = offset.get.progress
+      while (progressedOffset.indices.length < index.length) progressedOffset.indices :+= IR_IntegerConstant(0)
+      Some(progressedOffset)
+    } else {
+      None
     }
 
-    val field = target.getProgressedObject()
-    IR_FieldAccess(IR_FieldSelection(field, IR_IntegerConstant(field.level), L4_FieldAccess.resolveSlot(field, slot), arrayIndex), multiIndex)
+    IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot)), index, progOffset)
   }
 }
 
@@ -69,6 +78,7 @@ object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fiel
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L4_UnresolvedAccess if L4_FieldCollection.exists(access.name) =>
       if (access.dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
+      if (access.level.isEmpty) Logger.warn(s"Encountered field access without level (field ${ access.name })")
       L4_FieldAccess(access.name, access.level.get.resolveLevel, access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
   })
 }

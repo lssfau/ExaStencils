@@ -11,7 +11,7 @@ object L4_NeumannBC {
   def apply(order : Option[Int]) = new L4_NeumannBC(order.getOrElse(Knowledge.experimental_NeumannOrder))
 }
 
-case class L4_NeumannBC(order : Int) extends L4_BoundaryCondition {
+case class L4_NeumannBC(var order : Int) extends L4_BoundaryCondition {
   override def prettyprint(out : PpStream) = out << "Neumann" << '(' << order << ')'
   override def progress = IR_NeumannBC(order)
 }

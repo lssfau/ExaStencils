@@ -71,7 +71,7 @@ object L4_ResolveCurrentLevels extends DefaultStrategy("Resolve current level re
   this.register(levelCollector)
 
   // resolve level specifications
-  this += new Transformation("Resolve RelativeLevelSpecifications", {
+  this += new Transformation("Resolve relative level specifications", {
     case L4_CurrentLevel => L4_SingleLevel(levelCollector.getCurrentLevel)
     case L4_CoarserLevel => L4_SingleLevel(levelCollector.getCurrentLevel - 1)
     case L4_FinerLevel   => L4_SingleLevel(levelCollector.getCurrentLevel + 1)

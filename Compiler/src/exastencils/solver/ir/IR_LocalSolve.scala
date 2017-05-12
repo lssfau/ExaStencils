@@ -2,16 +2,14 @@ package exastencils.solver.ir
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
-import exastencils.boundary.ir.IR_IsValidComputationPoint
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.ir._
 
 /// IR_ResolveLocalSolve
 
@@ -28,28 +26,52 @@ case class IR_Equation(var lhs : IR_Expression, var rhs : IR_Expression) extends
 
 /// IR_LocalSolve
 
-case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[IR_Equation]) extends IR_Statement with IR_SpecialExpandable {
+case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[IR_Equation], var relax : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
   var fVals = ListBuffer[IR_Addition]()
   var AVals = ListBuffer[ListBuffer[IR_Addition]]()
 
-  def validate() = {
-    // TODO
+  def matchUnknowns(other : IR_FieldAccess) : Int = {
+    for (i <- unknowns.indices)
+      if (other.fieldSelection.field.codeName == unknowns(i).fieldSelection.field.codeName && other.index == unknowns(i).index)
+        return i // match
+
+    -1 // no match => constant value
   }
 
-  def matchUnknowns(other : IR_FieldAccess) : Int = {
-    for (i <- unknowns.indices) {
-      if (other.fieldSelection.field.codeName == unknowns(i).fieldSelection.field.codeName
-        && other.index == unknowns(i).index)
-        return i // match
+  object IR_ContainsUnknownAccesses extends QuietDefaultStrategy("Check for (field) accesses to unknowns") {
+    var found : Boolean = false
+
+    def hasSome(node : Node) : Boolean = {
+      found = false
+      applyStandalone(node)
+      found
     }
-    -1 // no match => constant value
+
+    this += new Transformation("Match field accesses", {
+      case access : IR_FieldAccess if matchUnknowns(access) >= 0 =>
+        found = true
+        access
+    })
   }
 
   def processExpression(pos : Int, ex : IR_Expression, switchSign : Boolean) : Unit = {
     ex match {
-      case const : IR_Number => fVals(pos).summands += (if (switchSign) const else IR_Negative(const))
+      case const : IR_Number =>
+        fVals(pos).summands += (if (switchSign) const else IR_Negative(const))
 
-      case IR_Negative(exp) => processExpression(pos, exp, !switchSign)
+      case const : IR_Expression if !IR_ContainsUnknownAccesses.hasSome(IR_ExpressionStatement(const)) =>
+        // generic expression not relying on field accesses to unknown values => handle as const
+        fVals(pos).summands += (if (switchSign) const else IR_Negative(const))
+
+      case IR_Negative(exp) =>
+        processExpression(pos, exp, !switchSign)
+
+      case add : IR_Addition =>
+        add.summands.foreach(ex => processExpression(pos, ex, switchSign))
+
+      case sub : IR_Subtraction =>
+        processExpression(pos, sub.left, switchSign)
+        processExpression(pos, sub.right, !switchSign)
 
       case access : IR_FieldAccess =>
         val uPos = matchUnknowns(access)
@@ -58,12 +80,16 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
         else
           AVals(pos)(uPos).summands += IR_RealConstant(if (switchSign) -1 else 1) // match -> matrix
 
-      case multEx @ IR_Multiplication(factors) =>
+      case mult : IR_Multiplication =>
         // split into known and unknown
         var localFactors = ListBuffer[IR_Expression]()
         var localUnknowns = ListBuffer[IR_FieldAccess]()
-        for (ex <- factors) {
+        for (ex <- mult.factors) {
           ex match {
+            case const : IR_Expression if !IR_ContainsUnknownAccesses.hasSome(IR_ExpressionStatement(const)) =>
+              // generic expression not relying on field accesses to unknown values => handle as const
+              localFactors += const
+
             case access : IR_FieldAccess =>
               if (matchUnknowns(access) < 0)
                 localFactors += access
@@ -74,13 +100,18 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
             case e : IR_Addition         =>
               Logger.warn(s"Nested addition expressions are currently unsupported: $e")
               localFactors += e
-            case e : IR_Expression       => localFactors += e
+            case e : IR_Subtraction      =>
+              Logger.warn(s"Nested subtraction expressions are currently unsupported: $e")
+              localFactors += e
+            case e : IR_Expression       =>
+              Logger.warn(s"Unknown, currently unsupported nested expression found: $e")
+              localFactors += e
           }
         }
         if (localUnknowns.size > 1)
           Logger.warn("Non-linear equations are currently unsupported")
         if (localUnknowns.isEmpty) // no unknowns -> add to rhs
-          fVals(pos).summands += (if (switchSign) multEx else IR_Negative(multEx))
+          fVals(pos).summands += (if (switchSign) mult else IR_Negative(mult))
         else // unknowns detected -> add to matrix
           AVals(pos)(matchUnknowns(localUnknowns.head)).summands += (
             if (switchSign)
@@ -92,90 +123,51 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
     }
   }
 
-  def processEqSummands(pos : Int, summands : ListBuffer[IR_Expression], switchSign : Boolean = false) = {
-    for (ex <- summands)
-      processExpression(pos, ex, switchSign)
-  }
-
   def sortEquations() = {
     // preparation: bring all entries to left side and simplify
-    val zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : IR_Expression)
-    for (eq <- zeroEqs)
-      IR_GeneralSimplify.doUntilDoneStandalone(eq, true)
+    var zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : IR_Expression)
+    zeroEqs = zeroEqs.map(IR_SimplifyExpression.simplifyFloatingExpr)
 
-    // scan lhs for constants
-    for (eqNumber <- zeroEqs.indices) {
-      zeroEqs(eqNumber) match {
-        case IR_Addition(adds)        => processEqSummands(eqNumber, adds)
-        case IR_Subtraction(pos, neg) =>
-          pos match {
-            case IR_Addition(adds) => processEqSummands(eqNumber, adds)
-            case e : IR_Expression => processEqSummands(eqNumber, ListBuffer(e))
-          }
-          neg match {
-            case IR_Addition(adds) => processEqSummands(eqNumber, adds, true)
-            case e : IR_Expression => processEqSummands(eqNumber, ListBuffer(e), true)
-          }
-        case _                        => Logger.warn(s"Equation doesn't hold enough information (${ zeroEqs(eqNumber).getClass.getName })")
-      }
-    }
+    // flatten computations to facilitate further processing
+    // zeroEqs.foreach(eq => IR_FlattenComputation.doUntilDoneStandalone(IR_ExpressionStatement(eq)))
+    // for (_ <- 0 until 10)
+    // zeroEqs.foreach(eq => IR_FlattenComputation.applyStandalone(IR_ExpressionStatement(eq)))
+    //IR_FlattenComputation.applyStandalone(zeroEqs)
+    IR_FlattenComputation.doUntilDoneStandalone(zeroEqs)
 
-    // unknowns to the lhs, constants to the rhs
-
+    // process single expressions (parts of the equations) - build matrix and rhs
+    for (eqNumber <- zeroEqs.indices)
+      processExpression(eqNumber, zeroEqs(eqNumber), false)
   }
 
   def expandSpecial : Output[IR_Scope] = {
     fVals = ListBuffer.fill(unknowns.length)(IR_Addition())
     AVals = ListBuffer.fill(unknowns.length)(ListBuffer.fill(unknowns.length)(IR_Addition()))
 
-    validate()
     sortEquations()
 
-    var stmts = ListBuffer[IR_Statement]()
+    def mapToExp(add : IR_Addition) : IR_Expression = {
+      add match {
+        case IR_Addition(ListBuffer()) =>
+          IR_RealConstant(0) // empty entries means zero
 
-    def u = IR_VariableAccess("_local_unknowns", IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false)))
-    def f = IR_VariableAccess("_local_rhs", IR_VectorDatatype(IR_RealDatatype, unknowns.length, Some(false)))
-    def A = IR_VariableAccess("_local_matrix", IR_MatrixDatatype(IR_RealDatatype, unknowns.length, unknowns.length))
-
-    // declare local variables -> to be merged later
-    stmts += IR_VariableDeclaration(u)
-    stmts += IR_VariableDeclaration(f)
-    stmts += IR_VariableDeclaration(A)
-
-    // initialize with zero - TODO: adapt to new matrix types
-    stmts += IR_MemberFunctionCall(u, "set", ListBuffer[IR_Expression](0))
-    stmts += IR_MemberFunctionCall(f, "set", ListBuffer[IR_Expression](0))
-    stmts += IR_MemberFunctionCall(A, "set", ListBuffer[IR_Expression](0))
-
-    // construct rhs and matrix
-    for (i <- unknowns.indices) {
-      var innerStmts = ListBuffer[IR_Statement]()
-      var boundaryStmts = ListBuffer[IR_Statement]()
-
-      innerStmts += IR_Assignment(IR_HackVecComponentAccess(f, i), fVals(i))
-      for (j <- unknowns.indices)
-        innerStmts += IR_Assignment(IR_HackMatComponentAccess(A, i, j), AVals(i)(j))
-
-      boundaryStmts += IR_Assignment(IR_HackVecComponentAccess(f, i), unknowns(i))
-      for (j <- unknowns.indices)
-        boundaryStmts += IR_Assignment(IR_HackMatComponentAccess(A, i, j), if (i == j) 1 else 0)
-
-      // check if current unknown is on/ beyond boundary
-      stmts += IR_IfCondition(
-        IR_IsValidComputationPoint(unknowns(i).fieldSelection, unknowns(i).index),
-        innerStmts,
-        boundaryStmts)
+        case ex : IR_Expression =>
+          IR_GeneralSimplify.applyStandalone(IR_ExpressionStatement(ex))
+          ex
+      }
     }
 
-    // solve local system - TODO: replace inverse function call with internal function
-    stmts += IR_Assignment(u, IR_Multiplication(IR_MemberFunctionCall(A, "inverse"), f))
+    Logger.pushLevel(Logger.WARNING)
 
-    // write back results
-    for (i <- unknowns.indices)
-      stmts += IR_IfCondition(// don't write back result on boundaries
-        IR_IsValidComputationPoint(unknowns(i).fieldSelection, unknowns(i).index),
-        IR_Assignment(unknowns(i), IR_HackVecComponentAccess(u, i)))
+    val fExp = fVals.map(mapToExp)
+    val AExp = AVals.map(_.map(mapToExp))
 
-    IR_Scope(stmts)
+    Logger.popLevel()
+
+    // choose strategy used for inverting local matrix
+    if (Knowledge.experimental_applySchurCompl && IR_LocalSchurCompl.suitable(AVals))
+      IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, relax))
+    else
+      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, relax))
   }
 }

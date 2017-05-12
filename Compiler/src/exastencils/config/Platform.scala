@@ -6,10 +6,13 @@ import exastencils.logger._
 object Platform {
   /// target environment
 
+  // name of the target system; e.g. name of the cluster
+  var targetName : String = "i10staff40"
+
   // the target operating system: "Linux", "Windows", "OSX"
   var targetOS : String = "Windows"
 
-  // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG"
+  // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG", "CRAY", "PGI"
   var targetCompiler : String = "MSVC"
 
   // major version of the target compiler
@@ -32,7 +35,10 @@ object Platform {
       case "IBMXL" | "IBMBG" => false // TODO: does it support initializer lists? since which version?
       case "ICC"             => targetCompilerVersion >= 14
       case "CLANG"           => targetCompilerVersion >= 3 // TODO: check if some minor version fails to compile
-      case _                 => Logger.error("Unsupported target compiler"); false
+      case "Cray"            => targetCompilerVersion > 8 || (targetCompilerVersion == 8 && targetCompilerVersionMinor >= 4)
+      case "PGI"             => targetCompilerVersion >= 2015
+
+      case _ => Logger.error("Unsupported target compiler"); false
     }
   }
 
@@ -74,15 +80,46 @@ object Platform {
 
   /// OMP
 
-  // the maximum version of omp supported by the chosen compiler
+  // the omp version supported by the chosen compiler
   def omp_version : Double = {
     targetCompiler match {
-      case "MSVC"            => 2.0
-      case "GCC"             => 4.0
-      case "IBMXL" | "IBMBG" => 3.0
-      case "ICC"             => if (targetCompilerVersion >= 15) 4.0; else if (targetCompilerVersion >= 13) 3.1; else if (targetCompilerVersion >= 12 && targetCompilerVersionMinor >= 1) 3.1; else 3.0
-      case "CLANG"           => if (targetCompilerVersion >= 3 && targetCompilerVersionMinor >= 7) 3.1; else 0.0
-      case _                 => Logger.error("Unsupported target compiler"); 0.0
+      case "MSVC" => 2.0
+
+      case "GCC" =>
+        targetCompilerVersion + 0.1 * targetCompilerVersionMinor match {
+          case x if x >= 6.1 => 4.5
+          case x if x >= 4.9 => 4.0
+          case x if x >= 4.7 => 3.1
+          case x if x >= 4.4 => 3.0
+          case x if x >= 4.2 => 2.5
+          case _             => Logger.error(s"Unsupported $targetCompiler version"); 0.0
+        }
+
+      case "IBMXL" | "IBMBG" => 3.1
+
+      case "ICC" =>
+        targetCompilerVersion + 0.1 * targetCompilerVersionMinor match {
+          case x if x >= 17.0 => 4.5
+          case x if x >= 15.0 => 4.0
+          case x if x >= 12   => 3.0
+          case _              => Logger.error(s"Unsupported $targetCompiler version"); 0.0
+        }
+
+      case "CLANG" =>
+        targetCompilerVersion + 0.1 * targetCompilerVersionMinor match {
+          case x if x >= 3.7 => 3.1
+          case _             => Logger.error(s"Unsupported $targetCompiler version"); 0.0
+        }
+
+      case "Cray" =>
+        targetCompilerVersion + 0.1 * targetCompilerVersionMinor match {
+          case x if x >= 8.5 => 4.0
+          case _             => Logger.error(s"Unsupported $targetCompiler version"); 0.0
+        }
+
+      case "PGI" => 3.1
+
+      case _ => Logger.error("Unsupported target compiler"); 0.0
     }
   }
 
@@ -94,6 +131,8 @@ object Platform {
       case "IBMXL" | "IBMBG" => true // needs to be true since recently
       case "ICC"             => true
       case "CLANG"           => true
+      case "Cray"            => true
+      case "PGI"             => true
       case _                 => Logger.error("Unsupported target compiler"); true
     }
   }
@@ -171,6 +210,9 @@ object Platform {
         if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
       case "CLANG" =>
         "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
+      case "Cray"  =>
+        "CC" // no special wrapper required for PizDaint -> might need to be changed later
+      case "PGI"   => ???
     }
   }
 
@@ -201,7 +243,8 @@ object Platform {
       case "IBMBG" | "IBMXL" =>
         flags += " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
         if (Knowledge.omp_enabled) flags += " -qsmp=omp"
-      case "GCC"             =>
+
+      case "GCC" =>
         flags += " -O3 -DNDEBUG -std=c++11"
 
         if (Knowledge.omp_enabled) flags += " -fopenmp"
@@ -220,8 +263,10 @@ object Platform {
         if ("ARM" == targetHardware) {
           flags += " -mcpu=cortex-a9 -mhard-float -funsafe-math-optimizations -static"
         }
-      case "MSVC"            => // nothing to do
-      case "ICC"             =>
+
+      case "MSVC" => // nothing to do
+
+      case "ICC" =>
         flags += " -O3 -std=c++11"
 
         if (Knowledge.omp_enabled) {
@@ -240,7 +285,8 @@ object Platform {
             case "IMCI"   => flags += " -march=knc" // TODO: verify flag
           }
         }
-      case "CLANG"           =>
+
+      case "CLANG" =>
         flags += " -O3 -std=c++11"
 
         if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
@@ -254,6 +300,16 @@ object Platform {
             case "IMCI"   => Logger.error("clang does not support IMCI")
           }
         }
+
+      case "Cray" =>
+        flags += " -O3 -hstd=c++11"
+
+        if (Knowledge.omp_enabled)
+          flags += " -homp"
+        else
+          flags += " -hnoomp"
+
+      case "PGI" => ???
     }
 
     flags
@@ -262,30 +318,36 @@ object Platform {
   def resolveLdFlags = {
     var flags : String = ""
 
-    if (Knowledge.library_CImg) {
-      targetOS match {
-        case "Windows"       => flags += " -lgdi32 "
-        case "Linux" | "OSX" => flags += " -lm -lpthread -lX11"
-      }
-    }
-
     targetCompiler match {
       case "IBMBG" | "IBMXL" =>
         flags += " -O3 -qarch=qp -qtune=qp -DNDEBUG" // -qhot
         if (Knowledge.omp_enabled) flags += " -qsmp=omp"
-      case "GCC"             =>
+
+      case "GCC" =>
         if ("ARM" == targetHardware) flags += " -static"
         if (Knowledge.omp_enabled) flags += " -fopenmp"
-      case "MSVC"            => // nothing to do
-      case "ICC"             =>
+
+      case "MSVC" => // nothing to do
+
+      case "ICC" =>
         if (Knowledge.omp_enabled) {
           if (targetCompilerVersion >= 15)
             flags += " -qopenmp"
           else
             flags += " -openmp"
         }
-      case "CLANG"           =>
+
+      case "CLANG" =>
         if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
+
+      case "Cray" =>
+        if (Knowledge.omp_enabled)
+          flags += " -homp"
+        else
+          flags += " -hnoomp"
+
+      case "PGI" => ???
+
     }
 
     flags

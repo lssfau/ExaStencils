@@ -15,8 +15,8 @@ object IR_UserFunctions {
 }
 
 case class IR_UserFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid",
-  ListBuffer("cmath", "algorithm"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
-  ListBuffer("Globals/Globals.h", "Util/Matrix.h", "Util/TimerFunctions.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
+  ListBuffer("cmath", "algorithm", "iostream"), // provide math functions like sin, etc. as well as commonly used functions like min/max by default
+  ListBuffer("Globals/Globals.h", "Util/TimerFunctions.h", "CommFunctions/CommFunctions.h", "Domains/DomainGenerated.h")) {
 
   // add conditional dependencies - TODO: move to respective packages
   if (Knowledge.mpi_enabled)
@@ -42,4 +42,9 @@ case class IR_UserFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid
   // TODO: move to fields package
   if (Knowledge.data_initAllFieldsWithZero)
     functions += IR_InitFieldsWithZero()
+
+  if (!Knowledge.experimental_internalHighDimTypes)
+    internalDependencies += "Util/Matrix.h"
+
+  override def toString : String = "IR_UserFunctions(" + baseName + ", " + externalDependencies + ", " + internalDependencies + ", " + functions + ")"
 }

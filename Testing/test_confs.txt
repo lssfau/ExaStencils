@@ -25,7 +25,7 @@
 
 # 10 OMP threads
 Appl_ExaStokes_2D       Main  Application/ExaStokes_2D.knowledge        Application/ExaStokes_2D.exa4        Application/ExaStokes_2D.results        1  10
-Appl_ExaStokes_3D       Main  Application/ExaStokes_3D.knowledge        Application/ExaStokes_3D.exa4        Application/ExaStokes_3D.results        1  10
+#Appl_ExaStokes_3D       Main  Application/ExaStokes_3D.knowledge        Application/ExaStokes_3D.exa4        Application/ExaStokes_3D.results        1  10
 
 Appl_ExaFluids          Main  Application/ExaFluids.knowledge           Application/ExaFluids.exa4           Application/ExaFluids.results           1  10
 Appl_ExaFluids_PowerLaw Main  Application/ExaFluids.knowledge           Application/ExaFluids_PowerLaw.exa4  Application/ExaFluids_PowerLaw.results  1  10
@@ -140,6 +140,33 @@ Par_Test_vect2       Main  Opts/par_vect.knowledge       *  Opts/par.results  8 
 Par_Test_vect2Al     Main  Opts/par_vectAl.knowledge     *  Opts/par.results  8  4  AVX2
 Par_Test_vect2AlAl   Main  Opts/par_vectAlAl.knowledge   *  Opts/par.results  8  4  AVX2
 Par_Test_all2        Main  Opts/par_all.knowledge        *  Opts/par.results  8  4  AVX2
+
+#################################################################################################
+# POLYHEDRAL SEARCH SPACE EXPLORATION TESTS                                                     #
+#################################################################################################
+
+# Jacobi 2D constant coefficient 9-pt
+PolyExpl_Jac2Dccd_f0  Main  PolyExpl/2D_f0.knowledge  PolyExpl/Jac2Dccd.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_Jac2Dccd_f2  Main  PolyExpl/2D_f2.knowledge  PolyExpl/Jac2Dccd.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_Jac2Dccd_f4  Main  PolyExpl/2D_f4.knowledge  PolyExpl/Jac2Dccd.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_Jac2Dccd_f6  Main  PolyExpl/2D_f6.knowledge  PolyExpl/Jac2Dccd.exa4  PolyExpl/all.results  1  4  AVX
+# Jacobi 3D constant coefficient 7-pt
+PolyExpl_Jac3Dcc_f0  Main  PolyExpl/3D_f0.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_Jac3Dcc_f1  Main  PolyExpl/3D_f1.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_Jac3Dcc_f3  Main  PolyExpl/3D_f3.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_Jac3Dcc_f5  Main  PolyExpl/3D_f5.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_Jac3Dcc_f6  Main  PolyExpl/3D_f6.knowledge  PolyExpl/Jac3Dcc.exa4  PolyExpl/all.results  1  4  AVX
+# RBGS 2D constant coefficient 5-pt
+PolyExpl_RBGS2Dcc_f0  Main  PolyExpl/2D_f0.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_RBGS2Dcc_f1  Main  PolyExpl/2D_f1.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_RBGS2Dcc_f3  Main  PolyExpl/2D_f3.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_RBGS2Dcc_f5  Main  PolyExpl/2D_f5.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_RBGS2Dcc_f6  Main  PolyExpl/2D_f6.knowledge  PolyExpl/RBGS2Dcc.exa4  PolyExpl/all.results  1  4  AVX
+# RBGS 3D variable coefficient 7-pt
+PolyExpl_RBGS3Dvc_f0  Main  PolyExpl/3D_f0.knowledge  PolyExpl/RBGS3Dvc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_RBGS3Dvc_f2  Main  PolyExpl/3D_f2.knowledge  PolyExpl/RBGS3Dvc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_RBGS3Dvc_f4  Main  PolyExpl/3D_f4.knowledge  PolyExpl/RBGS3Dvc.exa4  PolyExpl/all.results  1  4  AVX
+PolyExpl_RBGS3Dvc_f6  Main  PolyExpl/3D_f6.knowledge  PolyExpl/RBGS3Dvc.exa4  PolyExpl/all.results  1  4  AVX
 
 #################################################################################################
 # SMOOTHER TESTS                                                                                #

@@ -6,21 +6,21 @@ import exastencils.datastructures.Node
 import exastencils.logger._
 
 class StackCollector extends Collector {
-  final val stack = new Stack[Node]()
+  var stack : List[Node] = Nil
 
   def isEmpty : Boolean = { stack.isEmpty }
   def head : Node = { stack.head }
 
   override def enter(node : Node) : Unit = {
-    stack.push(node)
+    stack ::= node
   }
 
   override def leave(node : Node) : Unit = {
     if (head ne node) Logger.error(s"StackCollector mismatch: Cannot leave(): head is not $node") // fatal error is fatal
-    stack.pop()
+    stack = stack.tail
   }
 
   override def reset() : Unit = {
-    stack.clear
+    stack = Nil
   }
 }

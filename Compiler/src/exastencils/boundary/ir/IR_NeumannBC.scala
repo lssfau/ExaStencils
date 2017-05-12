@@ -8,4 +8,4 @@ object IR_NeumannBC {
   def apply() = new IR_NeumannBC(Knowledge.experimental_NeumannOrder)
 }
 
-case class IR_NeumannBC(order : Int) extends IR_BoundaryCondition {}
+case class IR_NeumannBC(var order : Int) extends IR_BoundaryCondition {}

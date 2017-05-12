@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverFragments
 import exastencils.communication.DefaultNeighbors
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.domain.RectangularDomain
 import exastencils.deprecated.domain.ir.IR_ReadValueFrom
@@ -58,19 +59,19 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
 
   def connectLocalElement(localFragmentIdx : IR_Expression, neighFragmentIdx : IR_Expression, neighIdx : Int, domain : Int) = {
     ListBuffer[IR_Statement](
-      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, localFragmentIdx), true),
-      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, localFragmentIdx), false),
-      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, localFragmentIdx), neighFragmentIdx),
-      setIterationOffset(neighIdx, domain, localFragmentIdx))
+      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, Duplicate(localFragmentIdx)), true),
+      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, Duplicate(localFragmentIdx)), false),
+      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, Duplicate(localFragmentIdx)), neighFragmentIdx),
+      setIterationOffset(neighIdx, domain, Duplicate(localFragmentIdx)))
   }
 
   def connectRemoteElement(localFragmentIdx : IR_Expression, localNeighIdx : IR_Expression, remoteRank : IR_Expression, neighIdx : Int, domain : Int) = {
     ListBuffer[IR_Statement](
-      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, localFragmentIdx), true),
-      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, localFragmentIdx), true),
-      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, localFragmentIdx), localNeighIdx),
-      IR_Assignment(IR_IV_NeighborRemoteRank(domain, neighIdx, localFragmentIdx), remoteRank),
-      setIterationOffset(neighIdx, domain, localFragmentIdx))
+      IR_Assignment(IR_IV_NeighborIsValid(domain, neighIdx, Duplicate(localFragmentIdx)), true),
+      IR_Assignment(IR_IV_NeighborIsRemote(domain, neighIdx, Duplicate(localFragmentIdx)), true),
+      IR_Assignment(IR_IV_NeighborFragmentIdx(domain, neighIdx, Duplicate(localFragmentIdx)), localNeighIdx),
+      IR_Assignment(IR_IV_NeighborRemoteRank(domain, neighIdx, Duplicate(localFragmentIdx)), remoteRank),
+      setIterationOffset(neighIdx, domain, Duplicate(localFragmentIdx)))
   }
 
   override def expand() : Output[IR_LoopOverFragments] = {
@@ -104,10 +105,10 @@ case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
 
         // compile connect calls
 
-        def localConnect(domainIdx : Int) =
-          connectLocalElement(IR_LoopOverFragments.defIt, localFragmentIdxForPoint(offsetPos), neigh.index, domainIdx)
-        def remoteConnect(domainIdx : Int) =
-          connectRemoteElement(IR_LoopOverFragments.defIt, localFragmentIdxForPoint(offsetPos), owningRankForPoint(offsetPos, domains(domainIdx)), neigh.index, domainIdx)
+        def localConnect(domainIdx : Int) = connectLocalElement(IR_LoopOverFragments.defIt,
+          localFragmentIdxForPoint(offsetPos), neigh.index, domainIdx)
+        def remoteConnect(domainIdx : Int) = connectRemoteElement(IR_LoopOverFragments.defIt,
+          localFragmentIdxForPoint(offsetPos), owningRankForPoint(offsetPos, domains(domainIdx)), neigh.index, domainIdx)
 
         for (d <- domains.indices) {
           // for each domain: check if original point and neighbor point are valid and if true connect according to possible configurations

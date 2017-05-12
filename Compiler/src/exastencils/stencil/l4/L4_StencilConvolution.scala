@@ -11,16 +11,16 @@ import exastencils.stencil.ir._
 
 /// L4_StencilConvolution
 
-case class L4_StencilConvolution(var stencilAccess : L4_StencilAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {
-  def prettyprint(out : PpStream) = out << stencilAccess << " * " << fieldAccess
-  def progress = IR_StencilConvolution(stencilAccess.target.getProgressedObject(), fieldAccess.progress)
+case class L4_StencilConvolution(var left : L4_StencilAccess, var right : L4_FieldAccess) extends L4_Expression {
+  def prettyprint(out : PpStream) = out << left << " * " << right
+  def progress = IR_StencilConvolution(left.progress.asInstanceOf[IR_StencilAccess], right.progress)
 }
 
 /// L4_StencilFieldConvolution
 
-case class L4_StencilFieldConvolution(var stencilFieldAccess : L4_StencilFieldAccess, var fieldAccess : L4_FieldAccess) extends L4_Expression {
-  def prettyprint(out : PpStream) = out << stencilFieldAccess << " * " << fieldAccess
-  def progress = IR_StencilFieldConvolution(stencilFieldAccess.progress.asInstanceOf[IR_StencilFieldAccess], fieldAccess.progress)
+case class L4_StencilFieldConvolution(var left : L4_StencilFieldAccess, var right : L4_FieldAccess) extends L4_Expression {
+  def prettyprint(out : PpStream) = out << left << " * " << right
+  def progress = IR_StencilFieldConvolution(left.progress.asInstanceOf[IR_StencilFieldAccess], right.progress)
 }
 
 /// L4_UnresolveStencilFieldConvolutions

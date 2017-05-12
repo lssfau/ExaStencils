@@ -85,6 +85,7 @@ object IR_ConstIndex {
   def apply(indices : Int*) = new IR_ConstIndex(indices.toArray)
   def apply(left : IR_ConstIndex, right : IR_ConstIndex, f : (Int, Int) => Int) =
     new IR_ConstIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
+  def apply(i1 : Int, i2 : Int) = new IR_ConstIndex(Array(i1, i2))
 }
 
 case class IR_ConstIndex(var indices : Array[Int]) extends IR_Index with IR_ArrayBasedIndex[Int] {
@@ -107,3 +108,36 @@ case class IR_ConstIndex(var indices : Array[Int]) extends IR_Index with IR_Arra
 
   def toExpressionIndex = IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
 }
+
+/// IR_HighDimIndex
+
+/*
+Idea for later: High Dimensional Index: [start, stride, stop], e.g., to select subsets of matrices
+TODO: think about how to implement other selection, e.g. "take main diagonal" or "right upper matrix"
+
+object IR_HighDimIndex {
+  def apply(indices : (IR_Expression, IR_Expression, IR_Expression)*) = new IR_HighDimIndex(indices.toArray)
+  def apply(left : IR_HighDimIndex, right : IR_HighDimIndex, f : ((IR_Expression, IR_Expression, IR_Expression), (IR_Expression, IR_Expression, IR_Expression)) => (IR_Expression, IR_Expression, IR_Expression)) =
+    new IR_HighDimIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
+}
+
+case class IR_HighDimIndex(var indices : Array[(IR_Expression, IR_Expression, IR_Expression)]) extends IR_Index with IR_ArrayBasedIndex[(IR_Expression, IR_Expression, IR_Expression)] {
+  override def datatype = IR_UnitDatatype
+  override def prettyprint(out : PpStream) = {
+    out << "INVALID: IR_HighDimIndex("
+    indices.foreach(x => {x._1.prettyprint(out)
+      out << " : "
+      x._2.prettyprint(out)
+      out << " : "
+      x._3.prettyprint(out)})
+    out << ")"
+  }
+  override def +(that : IR_Index) = {
+
+  }
+
+  override def -(that : IR_Index) = {
+
+  }
+}
+*/

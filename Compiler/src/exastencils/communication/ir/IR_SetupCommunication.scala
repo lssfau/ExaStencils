@@ -96,7 +96,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
         case "finish" => s"finishExch${ communicateStatement.field.codeName }"
         case "both"   => s"exch${ communicateStatement.field.codeName }"
       }
-      functionName += s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +
+      functionName += /*s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +*/
         communicateStatement.targets.map(t => s"${ t.target }_${
           val begin : IR_ExpressionIndex = t.begin.getOrElse(IR_ExpressionIndex(Array.fill(numDims)("a" : IR_Expression)))
           (0 until numDims).toArray.map(dim => begin(dim).prettyprint).mkString("_")
@@ -115,7 +115,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       if (!addedFunctions.contains(functionName)) {
         addedFunctions += functionName
         val fieldSelection = Duplicate(communicateStatement.field)
-        fieldSelection.slot = "slot"
+        fieldSelection.slot = IR_VariableAccess("slot", IR_IntegerDatatype)
         commFunctions += IR_CommunicateFunction(functionName,
           fieldSelection, DefaultNeighbors.neighbors,
           "begin" == communicateStatement.op || "both" == communicateStatement.op,
@@ -127,8 +127,8 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       }
 
       communicateStatement.field.slot match {
-        case IR_SlotAccess(slot, _) if IR_StringLiteral(IR_LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _                                                                                          =>
+        case IR_SlotAccess(slot, _) if IR_LoopOverFragments.defIt == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _                                                                        =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()
@@ -156,8 +156,8 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       }
 
       applyBCsStatement.field.slot match {
-        case IR_SlotAccess(slot, _) if IR_StringLiteral(IR_LoopOverFragments.defIt) == slot.fragmentIdx => slot.fragmentIdx = 0
-        case _                                                                                          =>
+        case IR_SlotAccess(slot, _) if IR_LoopOverFragments.defIt == slot.fragmentIdx => slot.fragmentIdx = 0
+        case _                                                                        =>
       }
 
       var fctArgs : ListBuffer[IR_Expression] = ListBuffer()

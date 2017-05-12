@@ -2,6 +2,7 @@ package exastencils.base.l4
 
 import exastencils.base.ir._
 import exastencils.core._
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 trait L4_Index extends L4_Expression {
@@ -79,4 +80,23 @@ case class L4_ConstIndex(override var indices : Array[Int]) extends L4_Index wit
   def -(that : L4_ExpressionIndex) = L4_ExpressionIndex(this.toExpressionIndex, that, _ - _)
 
   override def toExpressionIndex = L4_ExpressionIndex(indices.map(L4_IntegerConstant(_) : L4_Expression))
+}
+
+/// L4_RangeIndex
+
+case class L4_Range(var begin : Option[L4_Expression], var end : Option[L4_Expression]) {
+  if (begin.isEmpty && end.isEmpty) {
+    Logger.warn("Empty L4_Range")
+  }
+}
+
+object L4_RangeIndex {
+  def apply(indices : L4_Range*) = new L4_RangeIndex(indices.toArray)
+}
+
+case class L4_RangeIndex(override var indices : Array[L4_Range]) extends L4_Index with L4_ArrayBasedIndex[L4_Range] {
+  override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
+  override def progress = ??? // FIXME
+
+  override def toExpressionIndex = ??? // FIXME (if a sensible conversion exists at all)
 }

@@ -1,0 +1,4 @@
+import "knowledge_2D.txt"
+
+poly_exploration_extended = true
+poly_exploration_filterLevel = 5

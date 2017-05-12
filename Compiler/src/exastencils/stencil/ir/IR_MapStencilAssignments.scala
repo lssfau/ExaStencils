@@ -15,19 +15,18 @@ import exastencils.optimization.ir.IR_SimplifyExpression
 
 object IR_MapStencilAssignments extends DefaultStrategy("Map assignments to stencils and stencil fields") {
   this += new Transformation("SearchAndMark", {
-    case IR_Assignment(stencilFieldAccess : IR_StencilFieldAccess, IR_StencilAccess(stencil), op) =>
+    case IR_Assignment(stencilFieldAccess : IR_StencilFieldAccess, stencilAccess : IR_StencilAccess, op) =>
       var statements : ListBuffer[IR_Statement] = ListBuffer()
 
-      val stencilRight = stencil
+      val stencilRight = stencilAccess.stencil
       val offsetsLeft = stencilFieldAccess.stencilFieldSelection.offsets
 
       val flipEntries = false
 
       for (idx <- offsetsLeft.indices) {
         val fieldSelection = stencilFieldAccess.stencilFieldSelection.toFieldSelection
-        fieldSelection.arrayIndex = Some(idx)
-        val fieldIndex = Duplicate(stencilFieldAccess.index)
-        fieldIndex(Knowledge.dimensionality) = idx
+        val fieldIndex = Duplicate(stencilFieldAccess.index.toExpressionIndex)
+        fieldIndex.indices :+= (idx : IR_Expression)
         var coeff : IR_Expression = 0
         for (e <- stencilRight.entries) {
           if (flipEntries) {

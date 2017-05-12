@@ -392,6 +392,7 @@ Function Application ( ) : Unit {
 	initGlobals (  )
 	initDomain (  )
 	initFieldsWithZero (  )
+	initGeometry (  )
 	InitFields (  )
 	apply bc to Solution[0]@finest
 	apply bc to Solution[1]@finest

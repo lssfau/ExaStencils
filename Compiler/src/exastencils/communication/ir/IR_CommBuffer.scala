@@ -36,7 +36,7 @@ abstract class IR_IV_AbstractCommBuffer extends IR_IV_CommVariable {
 /// IR_IV_CommBufferBasePtr
 
 case class IR_IV_CommBufferBasePtr(override var field : IR_Field, override var direction : String, override var size : IR_Expression, override var neighIdx : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
-  override def resolveName() = s"buffer_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint) + "_base"
+  override def resolveName() = s"buffer_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint) + "_base"
 
 }
 
@@ -45,7 +45,7 @@ case class IR_IV_CommBufferBasePtr(override var field : IR_Field, override var d
 case class IR_IV_CommBuffer(override var field : IR_Field, override var direction : String, override var size : IR_Expression, override var neighIdx : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
   def basePtr = IR_IV_CommBufferBasePtr(field, direction, size, neighIdx, fragmentIdx)
 
-  override def resolveName() = s"buffer_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveName() = s"buffer_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
 
   override def getDtor() : Option[IR_Statement] = {
     if (Knowledge.data_alignTmpBufferPointers) {
@@ -71,7 +71,7 @@ case class IR_IV_CommBuffer(override var field : IR_Field, override var directio
 case class IR_IV_CommBufferIterator(var field : IR_Field, var direction : String, var neighIdx : IR_Expression, var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_CommVariable {
   override def prettyprint(out : PpStream) : Unit = out << resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
 
-  override def resolveName() = s"tmpBufferIndex_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+  override def resolveName() = s"tmpBufferIndex_$direction" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
   override def resolveDatatype() = IR_IntegerDatatype
   override def resolveDefValue() = Some(0)
 }

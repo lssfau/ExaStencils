@@ -10,6 +10,11 @@ object CUDA_GatherFieldAccess extends QuietDefaultStrategy("Gather local FieldAc
   var fieldAccesses = HashMap[String, IR_MultiDimFieldAccess]()
   var inWriteOp = false
 
+  def clear() = {
+    fieldAccesses.clear()
+    inWriteOp = false
+  }
+
   def mapFieldAccess(access : IR_MultiDimFieldAccess) = {
     val field = access.fieldSelection.field
     var identifier = field.codeName
@@ -21,7 +26,7 @@ object CUDA_GatherFieldAccess extends QuietDefaultStrategy("Gather local FieldAc
       access.fieldSelection.slot match {
         case IR_SlotAccess(_, offset) => identifier += s"_o$offset"
         case IR_IntegerConstant(slot) => identifier += s"_s$slot"
-        case _                        => identifier += s"_s${ access.fieldSelection.slot.prettyprint }"
+        case other                    => identifier += s"_s${ other.prettyprint }"
       }
     }
 
@@ -29,7 +34,7 @@ object CUDA_GatherFieldAccess extends QuietDefaultStrategy("Gather local FieldAc
   }
 
   this += new Transformation("Searching", {
-    case assign : IR_Assignment          =>
+    case assign : IR_Assignment =>
       inWriteOp = true
       CUDA_GatherFieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       inWriteOp = false
@@ -37,6 +42,7 @@ object CUDA_GatherFieldAccess extends QuietDefaultStrategy("Gather local FieldAc
         CUDA_GatherFieldAccess.applyStandalone(IR_ExpressionStatement(assign.dest))
       CUDA_GatherFieldAccess.applyStandalone(IR_ExpressionStatement(assign.src))
       assign
+
     case access : IR_MultiDimFieldAccess =>
       mapFieldAccess(access)
       access

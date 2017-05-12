@@ -1,0 +1,43 @@
+simd_avoidUnaligned         = true
+data_alignFieldPointers     = true
+useDblPrecision             = true
+
+minLevel = 0
+maxLevel = 0
+
+domain_onlyRectangular      = true
+domain_numBlocks            = 1
+domain_numFragmentsPerBlock = 1
+
+domain_rect_generate            = true
+domain_rect_numBlocks_x         = 1
+domain_rect_numBlocks_y         = 1
+domain_rect_numBlocks_z         = 1
+domain_rect_numFragsPerBlock_x  = 1
+domain_rect_numFragsPerBlock_y  = 1
+domain_rect_numFragsPerBlock_z  = 1
+
+omp_enabled    = true
+omp_numThreads = 10
+
+mpi_enabled    = false
+mpi_numThreads = 1
+
+omp_parallelizeLoopOverFragments  = false
+omp_parallelizeLoopOverDimensions = true
+
+l3tmp_generateL4 = false
+
+
+poly_scheduleAlgorithm    = "exploration"
+poly_exploration_extended = false
+poly_optLevel_fine     = 3
+poly_optLevel_coarse   = 1
+poly_numFinestLevels   = 1
+poly_tileOuterLoop     = true
+poly_performDCE        = false
+
+opt_useAddressPrecalc  = true
+opt_vectorize          = true
+opt_unroll             = 1
+opt_unroll_interleave  = false

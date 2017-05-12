@@ -2,7 +2,7 @@ package exastencils.prettyprinting
 
 import scala.collection.mutable.{ HashMap, ListBuffer, Stack, TreeSet }
 
-import exastencils.config.Settings
+import exastencils.config._
 import exastencils.logger._
 
 object PrettyprintingManager {

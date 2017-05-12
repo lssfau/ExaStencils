@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir._
@@ -56,5 +57,20 @@ case class CUDA_FieldDeviceData(override var field : IR_Field, override var leve
           IR_Assignment(access, 0)))))
     slot = origSlot
     ret
+  }
+}
+
+/// CUDA_BufferDeviceData
+
+case class CUDA_BufferDeviceData(override var field : IR_Field, override var direction : String, override var size : IR_Expression, override var neighIdx : IR_Expression, override var fragmentIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_IV_AbstractCommBuffer {
+  override def resolveName() = s"bufferDevice_${ direction }" + resolvePostfix(fragmentIdx.prettyprint, "", field.index.toString, field.level.toString, neighIdx.prettyprint)
+
+  override def getDtor() : Option[IR_Statement] = {
+    def access = resolveAccess(resolveName(), fragmentIdx, IR_NullExpression, field.index, field.level, neighIdx)
+    Some(wrapInLoops(
+      IR_IfCondition(access,
+        ListBuffer[IR_Statement](
+          CUDA_Free(access),
+          IR_Assignment(access, 0)))))
   }
 }

@@ -1,6 +1,6 @@
 package exastencils.parallelization.api.cuda
 
-import scala.collection._
+import scala.collection.mutable.HashMap
 
 import exastencils.base.ir._
 import exastencils.datastructures.Transformation._
@@ -11,7 +11,9 @@ import exastencils.field.ir._
 /// CUDA_GatherLinearizedFieldAccess
 
 object CUDA_GatherLinearizedFieldAccess extends QuietDefaultStrategy("Gather local LinearizedFieldAccess nodes") {
-  var fieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
+  var fieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
+
+  def clear() = fieldAccesses.clear()
 
   def mapFieldAccess(access : IR_LinearizedFieldAccess) = {
     val field = access.fieldSelection.field
@@ -39,7 +41,7 @@ object CUDA_GatherLinearizedFieldAccess extends QuietDefaultStrategy("Gather loc
 /// CUDA_ReplaceLinearizedFieldAccess
 
 object CUDA_ReplaceLinearizedFieldAccess extends QuietDefaultStrategy("Replace local LinearizedFieldAccess nodes") {
-  var fieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
+  var fieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
 
   def extractIdentifier(access : IR_LinearizedFieldAccess) = {
     val field = access.fieldSelection.field
@@ -67,7 +69,7 @@ object CUDA_ReplaceLinearizedFieldAccess extends QuietDefaultStrategy("Replace l
 /// CUDA_GatherLinearizedFieldAccessWrites
 
 object CUDA_GatherLinearizedFieldAccessWrites extends QuietDefaultStrategy("Gather local write accesses to LinearizedFieldAccess nodes for read-only cache usage") {
-  var writtenFieldAccesses = mutable.HashMap[String, IR_LinearizedFieldAccess]()
+  var writtenFieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
 
   def mapFieldAccess(access : IR_LinearizedFieldAccess) = {
     val field = access.fieldSelection.field

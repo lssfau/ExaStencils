@@ -4,6 +4,7 @@
 #SBATCH --qos=norm
 #SBATCH -n 1
 #SBATCH -c 4
+#SBATCH --mem=10G
 #SBATCH --nice=100
 #SBATCH --time=20
 #SBATCH --signal=INT@5
@@ -51,6 +52,12 @@ RESULT=$(mktemp --tmpdir=/dev/shm || mktemp --tmpdir=/tmp) || {
     echo "${LINK}" >> "${LOG_ALL}"
     exit 0
   }
+EXPL_CFG=$(mktemp --tmpdir=/dev/shm || mktemp --tmpdir=/tmp) || {
+    echo "ERROR: Failed to create temporary file."
+    touch ${ERROR_MARKER}
+    echo "${LINK}" >> "${LOG_ALL}"
+    exit 0
+  }
 if [[ ! ${RESULT} =~ ^/dev/shm/* ]]; then
   echo "Problems with /dev/shm on machine ${SLURM_JOB_NODELIST} in job ${SLURM_JOB_NAME}:${SLURM_JOB_ID}." | mail -s "ExaTest /dev/shm" "kronast@fim.uni-passau.de"
 fi
@@ -66,8 +73,8 @@ trap killed SIGTERM
 STARTTIME=$(date +%s)
 
 function cleanup {
-  rm "${RESULT}"
-  echo "  Removed  ${RESULT}"
+  rm "${RESULT}" "${EXPL_CFG}"
+  echo "  Removed  ${RESULT} and ${EXPL_CFG}"
   ENDTIME=$(date +%s)
   echo "Runtime: $((${ENDTIME} - ${STARTTIME})) seconds  (target code generation and compilation)"
   echo ""
@@ -83,12 +90,14 @@ touch "${SETTINGS}"
 echo "outputPath = \"${TEST_DIR}\"" >> "${SETTINGS}"
 echo "l4file = \"${L4FILE}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
+echo "poly_explorationConfig = \"${EXPL_CFG}\"" >> "${SETTINGS}"
+
 
 echo "Run generator:"
 echo "  Created  ${RESULT}: run generator and save its stdout and stderr."
 cd ${TESTING_DIR}  # there is no possibility to explicitly set the working directory of the jvm... (changing property user.dir does not work in all situations)
 set -o pipefail
-srun java -XX:+UseG1GC -Xmx3G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | sed 's|\(WARN:.*\)$|<span style="color: #FF8000">\1</span>|;s|\(ERROR:.*\)$|<span style="color: #E00000">\1</span>|;s|\(Exception in.*\)$|<span style="color: #E00000">\1</span>|;s|\(DBG:\s*Done!\)$|<span style="color: #00E000">\1</span>|' | tee "${RESULT}"
+srun --mem=10G java -XX:+UseG1GC -Xmx8G -cp "${COMPILER}" ${MAIN} "${SETTINGS}" "${KNOWLEDGE}" "${PLATFORM}" 2>&1 | sed 's|\(WARN:.*\)$|<span style="color: #FF8000">\1</span>|;s|\(ERROR:.*\)$|<span style="color: #E00000">\1</span>|;s|\(Exception in.*\)$|<span style="color: #E00000">\1</span>|;s|\(DBG:\s*Done!\)$|<span style="color: #00E000">\1</span>|' | tee "${RESULT}"
 RETCODE=$?
     if grep -q "Bad file descriptor" ${RESULT}; then
       echo "restart generation..."
@@ -104,6 +113,8 @@ RETCODE=$?
       echo "${LINK}" >> "${LOG_ALL}"
       exit 1
     fi
+echo ""
+head -n 14 "${EXPL_CFG}"
 echo ""
 echo ""
 echo "-----------------------------------------------------------------------------------------------"
@@ -130,7 +141,7 @@ if [[ ! ${PATH} =~ cuda ]]; then
   fi
 fi
 echo "Call make:"
-srun make -C "${TEST_DIR}" -j ${SLURM_CPUS_ON_NODE}
+srun --mem=10G make -C "${TEST_DIR}" -j ${SLURM_CPUS_ON_NODE}
 RETCODE=$?
     if [[ ${RETCODE} -ne 0 ]]; then
       echo ""

@@ -21,7 +21,7 @@ object BuildfileGenerator {
     // default to MakefileGenerator in case of empty lists
     // TODO: this should not be necessary - users should be allowed to simply generate source code files
     if (generators.isEmpty) {
-      Logger.warn("No buildfile generator generator specified; defaulting to MakefileGenerator")
+      Logger.warn("No buildfile generator specified; defaulting to MakefileGenerator")
       generators += "MakefileGenerator"
     }
 

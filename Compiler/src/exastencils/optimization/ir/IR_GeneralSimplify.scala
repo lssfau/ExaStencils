@@ -4,6 +4,7 @@ import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -13,8 +14,8 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions") {
   // hack: since Addition and Multiplication lead always to a match, we don't count these if nothing was changed
-  private var negMatches : Int = 0
-  private var compactAST : Boolean = false
+  var negMatches : Int = 0
+  var compactAST : Boolean = false
 
   def doUntilDone(node : Option[Node] = None) = {
     do {
@@ -104,7 +105,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
 
     // Simplify matrices
     case IR_Negative(m : IR_MatrixExpression) =>
-      IR_MatrixExpression(m.innerDatatype, m.expressions.map { x => x.map { y => IR_Negative(y) : IR_Expression } })
+      IR_MatrixExpression(m.innerDatatype, m.rows, m.columns, m.expressions.map { y => IR_Negative(y) : IR_Expression })
 
     case IR_Scope(ListBuffer(IR_Scope(body))) => IR_Scope(body)
 
@@ -149,6 +150,13 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       } else {
         if (fBranch.isEmpty) IR_NullStatement else fBranch
       }
+
+    case IR_IfCondition(IR_IntegerConstant(cond), tBranch, fBranch) if Knowledge.experimental_emliminateIntConditions =>
+      if (cond != 0) {
+        if (tBranch.isEmpty) IR_NullStatement else tBranch
+      } else {
+        if (fBranch.isEmpty) IR_NullStatement else fBranch
+      }
   })
 
   private def simplifyAdd(sum : Seq[IR_Expression]) : IR_Expression = {
@@ -156,6 +164,8 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     var floatCst : Double = 0d
     var vecExpr : IR_VectorExpression = null
     var vecPos : Boolean = true
+    var matExpr : IR_MatrixExpression = null
+    var matPos : Boolean = true
     val workQ = new Queue[(IR_Expression, Boolean)]()
     val posSums = new ListBuffer[IR_Expression]()
     val negSums = new ListBuffer[IR_Expression]()
@@ -182,12 +192,25 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
                 Logger.error("Vector types must match for addition")
               if (vecExpr.length != v.length)
                 Logger.error("Vector sizes must match for addition")
-              val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => IR_Negation(x) }
-              val vExprs = if (pos) v.expressions else v.expressions.view.map { x => IR_Negation(x) }
+              val vecExprsView = if (vecPos) vecExpr.expressions.view else vecExpr.expressions.view.map { x => IR_Negative(x) }
+              val vExprs = if (pos) v.expressions else v.expressions.view.map { x => IR_Negative(x) }
               vecExpr =
-                IR_VectorExpression(Some(IR_ResultingDatatype(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
+                IR_VectorExpression(
+                  Some(IR_ResultingDatatype(vecExpr.datatype, v.innerDatatype.getOrElse(IR_RealDatatype))),
                   vecExprsView.zip(vExprs).map { x => x._1 + x._2 : IR_Expression }.to[ListBuffer],
-                  if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector)
+                  if (vecExpr.rowVector.isDefined) vecExpr.rowVector else v.rowVector
+                )
+            }
+          case m : IR_MatrixExpression =>
+            if (matExpr == null) {
+              matPos = pos
+              matExpr = m
+            } else {
+              if (matExpr.rows != m.rows || matExpr.columns != m.columns) Logger.error("Matrix sizes must match for addition")
+              val matExprsView = if (matPos) matExpr.expressions.view else matExpr.expressions.view.map { x => IR_Negative(x) }
+              val mExprs = if (pos) m.expressions.toSeq else m.expressions.view.map { x => IR_Negative(x) }
+              matExpr = IR_MatrixExpression(Some(IR_ResultingDatatype(matExpr.innerDatatype.getOrElse(IR_RealDatatype), m.innerDatatype.getOrElse(IR_RealDatatype))), m.rows, m.columns, matExprsView.zip(mExprs).map { x => x._1 + x._2 : IR_Expression }.to[Array])
+              matPos = true
             }
           case e : IR_Expression       =>
             if (pos)
@@ -222,6 +245,13 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
         vecExpr
       else
         Logger.error("Unable to add VectorExpression with other Expression types")
+
+    } else if (matExpr != null) {
+      if (posSums.isEmpty && negSums.isEmpty) {
+        matExpr
+      } else {
+        IR_Addition(ListBuffer(matExpr) ++ posSums ++ negSums.transform(IR_Negative(_)))
+      }
 
     } else if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
       (posSums ++= negSums.transform(x => IR_Negative(x)) += IR_IntegerConstant(0L)).head
@@ -263,9 +293,12 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
           case _ : IR_VectorExpression | _ : IR_MatrixExpression =>
             if (remA.isEmpty)
               remA += expr
-            else
-            // merging with one previous only is sufficient, if simplifyMult only matches first arg with vect/mat types
-              remA ++= simplifyBinMult(remA.last, expr)
+            else {
+              // merging with one previous only is sufficient, if simplifyMult only matches first arg with vect/mat types
+              val last = remA.last
+              remA.trimEnd(1)
+              remA ++= simplifyBinMult(last, expr)
+            }
           case r : IR_Expression                                 =>
             remA += r
         }
@@ -306,7 +339,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
             IR_VectorExpression(Some(IR_ResultingDatatype(cstDt.get, v.innerDatatype.getOrElse(IR_RealDatatype))), v.expressions.map(Duplicate(coeff) * _), v.rowVector)
           case m : IR_MatrixExpression if !found =>
             found = true
-            IR_MatrixExpression(Some(IR_ResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.expressions.map(_.map(Duplicate(coeff) * _ : IR_Expression)))
+            IR_MatrixExpression(Some(IR_ResultingDatatype(cstDt.get, m.innerDatatype.getOrElse(IR_RealDatatype))), m.rows, m.columns, m.expressions.map(Duplicate(coeff) * _ : IR_Expression))
           case x                                 =>
             x
         }
@@ -327,8 +360,22 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
         if (left.length != right.length) Logger.error("Vector sizes must match for multiplication")
         if (left.rowVector.getOrElse(true) != right.rowVector.getOrElse(true)) Logger.error("Vector types must match for multiplication")
         List(IR_Addition(left.expressions.view.zip(right.expressions).map { x => x._1 * x._2 : IR_Expression }.to[ListBuffer]))
-      case (left, right)                                             =>
-        List(left, right)
+
+      case (left : IR_MatrixExpression, right : IR_MatrixExpression) =>
+        if (left.columns != right.rows) Logger.error(s"Matrix sizes must match for multiplication - attempting ${ left.rows }x${ left.columns } * ${ right.rows }x${ right.columns }")
+        val m = IR_MatrixExpression(IR_ResultingDatatype(left.innerDatatype.getOrElse(IR_RealDatatype), right.innerDatatype.getOrElse(IR_RealDatatype)), left.rows, right.columns)
+        for (row <- 0 until m.rows) {
+          for (col <- 0 until m.columns) {
+            val entry = IR_Addition()
+            for (k <- 0 until left.columns) {
+              entry.summands += Duplicate(left.get(row, k)) * Duplicate(right.get(k, col))
+            }
+            m.set(row, col, entry)
+          }
+        }
+        List(m)
+
+      case _ => List(le, ri)
     }
   }
 

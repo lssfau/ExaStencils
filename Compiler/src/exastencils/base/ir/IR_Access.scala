@@ -32,12 +32,22 @@ case class IR_ArrayAccess(var base : IR_Expression, var index : IR_Expression, v
   }
 }
 
+case class IR_HighDimAccess(var base : IR_Expression, var index : IR_ConstIndex) extends IR_Access {
+  // TODO: modify this to use IR_HighDimIndex
+
+  // Access to matrices, needs to be linearized before prettyprinting
+  override def datatype = base.datatype.resolveDeclType
+
+  override def prettyprint(out : PpStream) : Unit = {
+    out << '(' << '(' << base << ')' << index.map('[' + _.toString + ']').mkString("") << ')'
+  }
+}
+
 /// IR_MultiDimArrayAccess
 
 // non-linearized multi dimensional access to arrays of pointers (to pointers, ...) to data, e.g. a[z-1][y+1][x]
 case class IR_MultiDimArrayAccess(var base : IR_Expression, var index : IR_ExpressionIndex) extends IR_Access {
-  // FIXME how to get the base data type of an array expression?
-  override def datatype = ???
+  override def datatype = base.datatype
   override def prettyprint(out : PpStream) : Unit = {
     out << base
     index.indices.reverse.foreach { ix =>
@@ -58,5 +68,5 @@ case class IR_MultiDimArrayAccess(var base : IR_Expression, var index : IR_Expre
 case class IR_DerefAccess(var base : IR_Access) extends IR_Access {
   // FIXME: deref datatype
   override def datatype = base.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "(*" << base << ')'
+  override def prettyprint(out : PpStream) : Unit = out << "(*(" << base << "))"
 }

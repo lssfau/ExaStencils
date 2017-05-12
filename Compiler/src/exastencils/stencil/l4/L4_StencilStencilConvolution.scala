@@ -9,14 +9,14 @@ import exastencils.stencil.ir._
 
 /// L4_StencilStencilConvolution
 
-case class L4_StencilStencilConvolution(var stencilLeft : L4_StencilAccess, var stencilRight : L4_StencilAccess) extends L4_Expression {
-  def prettyprint(out : PpStream) = out << stencilLeft << " * " << stencilRight
-  def progress = IR_StencilStencilConvolution(stencilLeft.target.getProgressedObject, stencilRight.target.getProgressedObject)
+case class L4_StencilStencilConvolution(var left : L4_StencilAccess, var right : L4_StencilAccess) extends L4_Expression {
+  def prettyprint(out : PpStream) = out << left << " * " << right
+  def progress = IR_StencilStencilConvolution(left.progress.asInstanceOf[IR_StencilAccess], right.progress.asInstanceOf[IR_StencilAccess])
 }
 
 /// L4_StencilFieldStencilConvolution
 
-case class L4_StencilFieldStencilConvolution(var stencilLeft : L4_StencilFieldAccess, var stencilRight : L4_StencilAccess) extends L4_Expression {
-  def prettyprint(out : PpStream) = out << stencilLeft << " * " << stencilRight
-  def progress = IR_StencilFieldStencilConvolution(stencilLeft.progress.asInstanceOf[IR_StencilFieldAccess], stencilRight.target.getProgressedObject)
+case class L4_StencilFieldStencilConvolution(var left : L4_StencilFieldAccess, var right : L4_StencilAccess) extends L4_Expression {
+  def prettyprint(out : PpStream) = out << left << " * " << right
+  def progress = IR_StencilFieldStencilConvolution(left.progress.asInstanceOf[IR_StencilFieldAccess], right.progress.asInstanceOf[IR_StencilAccess])
 }

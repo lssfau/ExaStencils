@@ -59,5 +59,5 @@ case class IR_PostIncrement(var left : IR_Expression) extends IR_Expression {
 
 case class IR_AddressOf(var left : IR_Expression) extends IR_Expression {
   override def datatype = left.datatype
-  override def prettyprint(out : PpStream) : Unit = out << "(&" << left << ')'
+  override def prettyprint(out : PpStream) : Unit = out << "(&(" << left << "))"
 }

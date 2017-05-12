@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
@@ -45,13 +46,15 @@ case class IR_LocalCommunicationStart(
       // distribute this fragment's data - if enabled
       output += wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
-          sendNeighbors.map(neigh => IR_LocalSend(field, neigh._1, neigh._2, neigh._3, insideFragLoop, cond) : IR_Statement)),
+          sendNeighbors.map(neigh =>
+            IR_LocalSend(Duplicate(field), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)),
         true)
     } else {
       // pull data for this fragment - otherwise
       output += wrapFragLoop(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
-          recvNeighbors.map(neigh => IR_LocalRecv(field, neigh._1, neigh._2, neigh._3, insideFragLoop, cond) : IR_Statement)),
+          recvNeighbors.map(neigh =>
+            IR_LocalRecv(Duplicate(field), Duplicate(neigh._1), Duplicate(neigh._2), Duplicate(neigh._3), insideFragLoop, Duplicate(cond)) : IR_Statement)),
         true)
     }
 

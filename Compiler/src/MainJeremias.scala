@@ -27,6 +27,7 @@ import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
+import exastencils.parsers.config._
 import exastencils.parsers.l4._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
@@ -51,7 +52,7 @@ object MainJeremias {
     println(Knowledge.domain_readFromFile)
     // init Settings
     if (args.length >= 1) {
-      val s = new exastencils.parsers.settings.ParserSettings
+      val s = new Settings_Parser
       s.parseFile(args(0))
     }
 
@@ -67,7 +68,7 @@ object MainJeremias {
 
     // init Knowledge
     if (args.length >= 2) {
-      val k = new exastencils.parsers.settings.ParserKnowledge
+      val k = new Knowledge_Parser
       k.parseFile(args(1))
     }
 
@@ -133,8 +134,8 @@ object MainJeremias {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
-    ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
-    ValidationL4.apply()
+    ExaRootNode.l4_root = (new L4_Parser).parseFile(Settings.getL4file)
+    L4_Validation.apply()
 
     if (false) // re-print the merged L4 state
     {
@@ -145,9 +146,9 @@ object MainJeremias {
       outFile.close()
 
       // re-parse the file to check for errors
-      var parserl4 = new ParserL4
+      var parserl4 = new L4_Parser
       ExaRootNode.l4_root = parserl4.parseFile(Settings.getL4file + "_rep.exa")
-      ValidationL4.apply()
+      L4_Validation.apply()
     }
 
     if (Settings.timeStrategies)
@@ -222,8 +223,10 @@ object MainJeremias {
 
       // Util
       IR_Stopwatch(),
-      IR_TimerFunctions(),
-      IR_Matrix())
+      IR_TimerFunctions())
+
+    if (!Knowledge.experimental_internalHighDimTypes)
+      ExaRootNode.ir_root.nodes += IR_Matrix()
 
     // apply strategies
 

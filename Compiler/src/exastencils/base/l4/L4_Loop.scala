@@ -3,6 +3,7 @@ package exastencils.base.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.core.Duplicate
 import exastencils.prettyprinting.PpStream
 
 /// L4_ForLoop
@@ -26,18 +27,18 @@ case class L4_ForLoop(
   override def progress : IR_Statement = {
     // FIXME: refactor -> access needs to be variable access, no StringLit, etc
     val (loopVar, begin) =
-    if (iterator.isDefined) {
-      val lv = iterator.get.progress
-      (lv, IR_Assignment(lv, IR_IntegerConstant(0)))
-    } else {
-      val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
-      (IR_VariableAccess(lv, IR_IntegerDatatype), IR_VariableDeclaration(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
-    }
+      if (iterator.isDefined) {
+        val lv = iterator.get.progress
+        (lv, IR_Assignment(lv, IR_IntegerConstant(0)))
+      } else {
+        val lv = "someRandomIndexVar" // FIXME: someRandomIndexVar
+        (IR_VariableAccess(lv, IR_IntegerDatatype), IR_VariableDeclaration(IR_IntegerDatatype, lv, Some(IR_IntegerConstant(0))))
+      }
 
     val ret = IR_ForLoop(
       begin,
-      IR_Lower(loopVar, IR_IntegerConstant(number)),
-      IR_Assignment(loopVar, IR_IntegerConstant(1), "+="),
+      IR_Lower(Duplicate(loopVar), IR_IntegerConstant(number)),
+      IR_Assignment(Duplicate(loopVar), IR_IntegerConstant(1), "+="),
       body.map(_.progress))
 
     // TODO: move annotation to OptimizationInfo trait

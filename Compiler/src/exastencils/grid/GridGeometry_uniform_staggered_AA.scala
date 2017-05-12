@@ -9,7 +9,7 @@ import exastencils.base.ir._
 
 object GridGeometry_uniform_staggered_AA extends GridGeometry_uniform with GridGeometry_staggered {
   // direct accesses
-  override def stagCVWidth(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def stagCVWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
     // TODO: this introduces a slight extension at the physical boundary in the stagger dimension -> how to handle this? relevant or neglectable?
     0.5 * (cellWidth(level, GridUtil.offsetIndex(index, -1, dim), arrayIndex, dim) + cellWidth(level, index, arrayIndex, dim))
   }

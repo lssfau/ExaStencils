@@ -1,0 +1,107 @@
+Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
+Layout LayoutSol< Real, Node >@finest {
+    innerPoints = [ 256, 256, 256 ]
+    ghostLayers = [ 2, 2, 2 ]
+    duplicateLayers = [ 1, 1, 1 ]
+}
+Layout LayoutRHS< Real, Node >@finest {
+    innerPoints = [ 256, 256, 256 ]
+    ghostLayers = [ 1, 1, 1 ]
+    duplicateLayers = [ 1, 1, 1 ]
+}
+Layout LayoutSF< Array<Real><7>, Node >@finest {
+    innerPoints = [ 256, 256, 256 ]
+    ghostLayers = [ 2, 2, 2 ]
+    duplicateLayers = [ 1, 1, 1 ]
+}
+Field LaplaceCoeff< global, LayoutSF, None >@finest
+Stencil LaplaceStencil@all {
+    [ 0, 0, 0] => 1
+    [ 1, 0, 0] => 1
+    [-1, 0, 0] => 1
+    [ 0, 1, 0] => 1
+    [ 0, -1, 0] => 1
+    [ 0, 0, 1] => 1
+    [ 0, 0, -1] => 1
+}
+StencilField Laplace< LaplaceCoeff => LaplaceStencil >@finest
+Globals {
+    Val kappa : Real = 10.0
+}
+Function getCoefficient(x : Real, y : Real, z : Real) : Real {
+    return exp(kappa * ((x - x ** 2) * (y - y ** 2) * (z - z ** 2)))
+}
+Function InitLaplace() : Unit {
+ loop over LaplaceCoeff@finest {
+        Laplace@finest:[ 0, 0, 0] = (getCoefficient(vf_nodePosition_x@finest + 0.5 * vf_gridWidth_x@finest, vf_nodePosition_y@finest, vf_nodePosition_z@finest) + getCoefficient(vf_nodePosition_x@finest - 0.5 * vf_gridWidth_x@finest, vf_nodePosition_y@finest,vf_nodePosition_z@finest)) / (vf_gridWidth_x@finest * vf_gridWidth_x@finest) + (getCoefficient(vf_nodePosition_x@finest, vf_nodePosition_y@finest + 0.5 * vf_gridWidth_y@finest, vf_nodePosition_z@finest) + getCoefficient(vf_nodePosition_x@finest, vf_nodePosition_y@finest - 0.5 * vf_gridWidth_y@finest, vf_nodePosition_z@finest)) / (vf_gridWidth_y@finest * vf_gridWidth_y@finest) + (getCoefficient(vf_nodePosition_x@finest, vf_nodePosition_y@finest, vf_nodePosition_z@finest + 0.5 * vf_gridWidth_z@finest) + getCoefficient(vf_nodePosition_x@finest, vf_nodePosition_y@finest, vf_nodePosition_z@finest - 0.5 * vf_gridWidth_z@finest)) / (vf_gridWidth_z@finest * vf_gridWidth_z@finest)
+        Laplace@finest:[ 1, 0, 0] = -1.0 * getCoefficient(vf_nodePosition_x@finest + 0.5 * vf_gridWidth_x@finest, vf_nodePosition_y@finest, vf_nodePosition_z@finest) / (vf_gridWidth_x@finest * vf_gridWidth_x@finest)
+        Laplace@finest:[-1, 0, 0] = -1.0 * getCoefficient(vf_nodePosition_x@finest - 0.5 * vf_gridWidth_x@finest, vf_nodePosition_y@finest, vf_nodePosition_z@finest) / (vf_gridWidth_x@finest * vf_gridWidth_x@finest)
+        Laplace@finest:[ 0, 1, 0] = -1.0 * getCoefficient(vf_nodePosition_x@finest, vf_nodePosition_y@finest + 0.5 * vf_gridWidth_y@finest, vf_nodePosition_z@finest) / (vf_gridWidth_y@finest * vf_gridWidth_y@finest)
+        Laplace@finest:[ 0, -1, 0] = -1.0 * getCoefficient(vf_nodePosition_x@finest, vf_nodePosition_y@finest - 0.5 * vf_gridWidth_y@finest, vf_nodePosition_z@finest) / (vf_gridWidth_y@finest * vf_gridWidth_y@finest)
+        Laplace@finest:[ 0, 0, 1] = -1.0 * getCoefficient(vf_nodePosition_x@finest, vf_nodePosition_y@finest, vf_nodePosition_z@finest + 0.5 * vf_gridWidth_z@finest) / (vf_gridWidth_z@finest * vf_gridWidth_z@finest)
+        Laplace@finest:[ 0, 0, -1] = -1.0 * getCoefficient(vf_nodePosition_x@finest, vf_nodePosition_y@finest, vf_nodePosition_z@finest - 0.5 * vf_gridWidth_z@finest) / (vf_gridWidth_z@finest * vf_gridWidth_z@finest)
+    }
+}
+Field Solution< global, LayoutSol, 0.0 >[1]@finest
+Field RHS< global, LayoutRHS, None >@finest
+Globals {
+}
+Function Smoother() : Unit {
+    loop over fragments {
+        repeat 2 times with contraction [1, 1 , 1] {
+            loop over Solution@finest where 0 == ((x + y + z) % 2) {
+                Solution[0]@finest = Solution[0]@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution[0]@finest))
+            }
+            loop over Solution@finest where 1 == ((x + y + z) % 2) {
+                Solution[0]@finest = Solution[0]@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution[0]@finest))
+            }
+        }
+    }
+}
+Function InitFields() : Unit {
+    native('std::srand(42)')
+    loop over Solution@finest sequentially {
+        Solution[active]@finest = native('((double)std::rand()/RAND_MAX)')
+        Solution[nextSlot]@finest = native('((double)std::rand()/RAND_MAX)')
+    }
+    loop over RHS@finest sequentially {
+        RHS@finest = native('((double)std::rand()/RAND_MAX)')
+    }
+}
+Function Benchmark() : Unit {
+    print('Cache warmup')
+    repeat 1 times {
+        Smoother()
+    }
+    print('Starting benchmark (temporal blocking)')
+    startTimer(benchTimer)
+    repeat 3 times {
+        Smoother()
+    }
+    stopTimer(benchTimer)
+    Var time : Real = getTotalFromTimer(benchTimer)
+    // print('Runtime: ', time)
+    // print('MLUPs: ', (1.0 * 512 * 512 * 512 * 2 * 3) / time / 1e3)
+}
+Function CheckSolution() : Unit {
+    loop over Solution@finest sequentially {
+        Var s : Real = Solution[active]@finest * Solution[nextSlot]@finest
+        if (s == 0.0 || s == 1./0. || s == -1./0. || s != s) {
+            print('ERROR: value out of bounds found: ', s)
+        }
+    }
+}
+Function Application() : Unit {
+    startTimer(setupWatch)
+    initGlobals()
+    initDomain()
+    InitFields()
+    InitLaplace()
+    stopTimer(setupWatch)
+    // print('Total time to setup: ', getTotalFromTimer(setupWatch))
+    print('Setup done')
+    Benchmark()
+    CheckSolution()
+    destroyGlobals()
+    print('Done')
+}

@@ -1,9 +1,69 @@
 package exastencils.prettyprinting
 
 import exastencils.config._
+import exastencils.logger.Logger
 
 object JobScriptGenerator {
   def write() : Unit = {
+    Platform.targetName.toLowerCase() match {
+      case "piz_daint" | "pizdaint" =>
+        val filename = "run"
+        val debug = true
+
+        Logger.dbg(s"Generating job script for PizDaint with filename $filename")
+        val printer = PrettyprintingManager.getPrinter(filename)
+
+        def numMPI = Knowledge.mpi_numThreads
+        def numOMP = Knowledge.omp_numThreads
+        def tasksPerNode = Knowledge.mpi_numThreads / Platform.hw_numNodes
+
+        printer <<< s"#!/bin/bash -l"
+        printer <<< s"#SBATCH --nodes=${ Platform.hw_numNodes }"
+        printer <<< s"#SBATCH --ntasks-per-node=$tasksPerNode"
+        printer <<< s"#SBATCH --constraint=gpu"
+        printer <<< s"#SBATCH --time=00:15:00"
+
+        printer <<< ""
+
+        printer <<< s"module load daint-gpu"
+        printer <<< s"module load cudatoolkit/8.0.54_2.2.8_ga620558-2.1"
+
+        printer <<< ""
+
+        printer <<< s"export MPICH_RDMA_ENABLED_CUDA=1  # allow GPU-GPU data transfer"
+
+        if (tasksPerNode > 1)
+          printer <<< s"export CRAY_CUDA_MPS=1            # allow GPU sharing"
+
+        // HACK for execution of CPU-GPU parallel programs on PizDaint
+        if ("Condition" == Knowledge.cuda_preferredExecution)
+          printer <<< s"export MPICH_GNI_LMT_PATH=disabled"
+
+        if (Knowledge.omp_enabled) {
+          printer <<< s"export OMP_NUM_THREADS=$numOMP          # set number of OMP threads"
+          printer <<< s"export OMP_WAIT_POLICY=PASSIVE"
+        }
+        if (debug)
+          printer <<< s"export CRAY_OMP_CHECK_AFFINITY=TRUE"
+
+        printer <<< ""
+
+        printer <<< s"cd ~/${ Settings.configName }"
+
+        printer <<< ""
+
+        if ("Condition" == Knowledge.cuda_preferredExecution)
+          printer <<< s"srun ${ if (debug) "-v" else "" } -n $numMPI --ntasks-per-node=$tasksPerNode --cpu_bind=mask_cpu:0x1FF,0x200,0x400,0x800 ./exastencils"
+        else
+          printer <<< s"srun ${ if (debug) "-v" else "" } -n $numMPI --ntasks-per-node=$tasksPerNode ./exastencils"
+
+        printer.finish()
+
+      case _ => write_deprecated()
+    }
+  }
+
+  def write_deprecated() : Unit = {
     Platform.targetCompiler match {
       case "IBMBG" | "IBMXL" =>
         val numOMP = Knowledge.omp_numThreads

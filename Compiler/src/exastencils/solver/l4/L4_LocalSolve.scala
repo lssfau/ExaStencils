@@ -20,11 +20,11 @@ case class L4_Equation(var lhs : L4_Expression, var rhs : L4_Expression) extends
 
 object L4_LocalSolve {
   // parser interface
-  def apply(unknowns : List[L4_UnresolvedAccess], equations : List[L4_Equation])
-  = new L4_LocalSolve(unknowns.map(_.asInstanceOf[L4_Expression]).to[ListBuffer], equations.to[ListBuffer])
+  def apply(unknowns : List[L4_UnresolvedAccess], equations : List[L4_Equation], relax : Option[L4_Expression])
+  = new L4_LocalSolve(unknowns.map(_.asInstanceOf[L4_Expression]).to[ListBuffer], equations.to[ListBuffer], relax)
 }
 
-case class L4_LocalSolve(var unknowns : ListBuffer[L4_Expression], var equations : ListBuffer[L4_Equation]) extends L4_Statement {
+case class L4_LocalSolve(var unknowns : ListBuffer[L4_Expression], var equations : ListBuffer[L4_Equation], var relax : Option[L4_Expression]) extends L4_Statement {
   override def prettyprint(out : PpStream) : Unit = ???
-  override def progress = IR_LocalSolve(unknowns.map(_.progress.asInstanceOf[IR_FieldAccess]), equations.map(_.progress))
+  override def progress = IR_LocalSolve(unknowns.map(_.progress.asInstanceOf[IR_FieldAccess]), equations.map(_.progress), L4_ProgressOption(relax)(_.progress))
 }

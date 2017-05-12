@@ -35,7 +35,7 @@ case class L4_VirtualFieldAccess(
       multiIndex += progressedOffset
     }
 
-    IR_VirtualFieldAccess(name, IR_IntegerConstant(level.resolveLevel), multiIndex, arrayIndex)
+    IR_VirtualFieldAccess(name, level.resolveLevel, multiIndex, arrayIndex)
   }
 }
 

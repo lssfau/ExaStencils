@@ -13,6 +13,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.logger._
 import exastencils.optimization._
+import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_MathFunctions
 
 /** Object for all "static" attributes */
@@ -84,7 +85,7 @@ object Extractor {
         gParConstr.append(" and ")
         constraints.append('(').append(islStr).append("=1)")
 
-      case bExpr @ IR_BoundedScalar(min, max, _ : IR_VariableAccess | _ : IR_ArrayAccess) =>
+      case bExpr @ IR_BoundedScalar(min, max, _ : IR_VariableAccess | _ : IR_ArrayAccess | _ : IR_IV_IterationOffsetBegin | _ : IR_IV_IterationOffsetEnd) =>
         val islStr : String = ScopNameMapping.expr2id(bExpr, bExpr.expr)
         if (vars != null)
           vars.add(islStr)
@@ -336,8 +337,6 @@ class Extractor extends Collector {
   final val scops = new ArrayBuffer[Scop](256)
   final val trash = new ArrayBuffer[(Node, String)]
 
-  // TODO: debug; remove
-
   private object curScop {
 
     object curStmt {
@@ -556,6 +555,7 @@ class Extractor extends Collector {
                | _ : IR_Power
                | _ : IR_Minimum
                | _ : IR_Maximum
+               | _ : IR_ParallelizationInfo
                | _ : IR_Comment
                | IR_NullStatement => // nothing to do for all of them...
 
@@ -878,7 +878,7 @@ class Extractor extends Collector {
   private def enterFieldAccess(fSel : IR_FieldSelection, index : IR_ExpressionIndex) : Unit = {
     val name = new StringBuilder("field")
     name.append('_').append(fSel.field.name).append(fSel.field.index).append('_').append(fSel.field.level)
-    name.append("_l").append(fSel.level.prettyprint()).append('a').append(fSel.arrayIndex)
+    name.append("_l").append(fSel.level).append('a')//.append(fSel.arrayIndex)
     name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
     fSel.slot match {
       case IR_SlotAccess(_, offset) => name.append('s').append(offset)

@@ -2,7 +2,10 @@ package exastencils.polyhedron
 
 import scala.collection.mutable
 import scala.collection.mutable.{ ArrayBuffer, ListBuffer }
+import scala.io.Source
 import scala.util.control._
+
+import java.text.DecimalFormat
 
 import exastencils.base.ir._
 import exastencils.config._
@@ -11,6 +14,7 @@ import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.optimization.IR_IV_LoopCarriedCSBuffer
+import exastencils.polyhedron.exploration.Exploration
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
 
@@ -55,6 +59,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
+    // macro is sufficient here (for isl) since both arguments are either constants, variables, or contain at most a single add/sub
     Settings.additionalMacros += "#define floord(n,d) (((n)>=0) ? (n)/(d) : (((n)-(d)+1)/(d)))"
 
     Isl.ctx.optionsSetTileScaleTileLoops(0)
@@ -63,7 +68,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     Knowledge.poly_scheduleAlgorithm match {
       case "isl"         => Isl.ctx.optionsSetScheduleAlgorithm(0)
       case "feautrier"   => Isl.ctx.optionsSetScheduleAlgorithm(1)
-      case "exploration" => // TODO
+      case "exploration" => Isl.ctx.optionsSetScheduleAlgorithm(0)
       case unknown       => Logger.debug("Unknown schedule algorithm \"" + unknown + "\"; no change (default is isl)")
     }
 
@@ -84,7 +89,9 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
 
     val scops : Seq[Scop] = time(extractPolyModel(), "po:extractPolyModel")
+    var i : Int = 0
     for (scop <- scops if !scop.remove) {
+      i += 1
       time(mergeLocalScalars(scop), "po:mergeLocalScalars")
       time(mergeScops(scop), "po:mergeScops")
       time(simplifyModel(scop), "po:simplifyModel")
@@ -96,6 +103,19 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
       if (scop.optLevel >= 2)
         time(optimize(scop, confID), "po:optimize")
+
+      if (Knowledge.poly_printDebug) {
+        Logger.debug("SCoP " + i)
+        Logger.debug("  domain:   " + scop.domain)
+        Logger.debug("  context:  " + scop.getContext())
+        Logger.debug("  reads:    " + scop.reads)
+        Logger.debug("  writes:   " + scop.writes)
+        Logger.debug("  dependences")
+        Logger.debug("    flow:   " + scop.deps.flow)
+        Logger.debug("    valid:  " + scop.deps.validity())
+        Logger.debug("    input:  " + scop.deps.input)
+        Logger.debug("  schedule: " + scop.schedule)
+      }
     }
     time(recreateAndInsertAST(), "po:recreateAndInsertAST")
 
@@ -154,8 +174,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       var lstStmt : Int = -1
       var stmts : mutable.Buffer[(String, (ListBuffer[IR_Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
       var i : Int = 0
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
+      Logger.pushLevel(Logger.WARNING)
       for ((lab, (stmt, _)) <- stmts) {
         found = false
         this.execute(search, Some(IR_Scope(stmt)))
@@ -166,7 +185,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         }
         i += 1
       }
-      Logger.setLevel(oldLvl)
+      Logger.popLevel()
       stmts = stmts.slice(fstStmt, lstStmt + 1)
       // check if all statements have the same iteration space
       val remDoms = new ArrayBuffer[isl.Set]()
@@ -226,12 +245,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       scop.writes = adjust(scop.writes)
 
       // update scop.deadAfterScop
-      var resurrect : Boolean = false
-      for (set <- remDoms)
-        if (scop.deadAfterScop.intersect(set).isEmpty)
-          resurrect = true
-      if (resurrect)
-        scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universe(remDoms(0).getSpace))
+      if (scop.deadAfterScop != null) {
+        var resurrect : Boolean = false
+        for (set <- remDoms)
+          if (scop.deadAfterScop.intersect(set).isEmpty)
+            resurrect = true
+        if (resurrect)
+          scop.deadAfterScop = scop.deadAfterScop.subtract(isl.Set.universe(remDoms(0).getSpace))
+      }
     }
   }
 
@@ -279,6 +300,14 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
         s = s.addMap(nju.fixVal(T_OUT, 0, i))
     })
     s
+  }
+
+  private def unionNull(a : isl.Set, b : isl.Set) : isl.Set = {
+    (a, b) match {
+      case (null, y) => y
+      case (x, null) => x
+      case (x, y)    => x.union(y)
+    }
   }
 
   private def unionNull(a : isl.UnionSet, b : isl.UnionSet) : isl.UnionSet = {
@@ -374,9 +403,11 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     val trans = scop.deps.flow.reverse().transitiveClosure(new Array[Int](1))
     live = live.union(live.apply(trans))
     live = live.intersect(scop.domain)
-    live = live.coalesce()
+    live = Isl.simplify(live)
 
-    if (!scop.domain.isEqual(live)) // the new one could be more complex, so keep old if possible
+    val domWCtx = scop.domain.intersectParams(scop.getContext())
+    val liveWCtx = live.intersectParams(scop.getContext())
+    if (!domWCtx.isEqual(liveWCtx)) // the new one could be more complex, so keep old if possible
       scop.domain = live
   }
 
@@ -410,9 +441,8 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   private def optimize(scop : Scop, confID : Int) : Unit = {
     Knowledge.poly_scheduleAlgorithm match {
-      //case "exploration" => optimizeExpl(scop, confID)
-      //case "test" => optimizeTest(scop)
-      case _ => optimizeIsl(scop)
+      case "exploration" => optimizeExpl(scop, confID)
+      case _             => optimizeIsl(scop)
     }
   }
 
@@ -468,6 +498,85 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     }
 
     scop.schedule = Isl.simplify(scheduleMap)
+    scop.updateLoopVars()
+  }
+
+  private def optimizeExpl(scop : Scop, confID : Int) : Unit = {
+
+    val df = new DecimalFormat()
+    df.setMinimumIntegerDigits(5)
+    df.setGroupingUsed(false)
+
+    val explConfig = new java.io.File(Settings.poly_explorationConfig)
+    if (!explConfig.exists() || explConfig.length() == 0) {
+      Logger.debug("[PolyOpt] Exploration: no configuration file found or file empty, perform exploration and create it")
+      performExploration(scop, explConfig, df)
+      Logger.debug("[PolyOpt] Exploration: configuration finished, creating base version (without any schedule changes)")
+    }
+    if (confID != 0) {
+      applyConfig(scop, explConfig, df.format(confID))
+      Settings.outputPath += df.format(confID)
+    }
+  }
+
+  private def performExploration(scop : Scop, explConfig : java.io.File, df : DecimalFormat) : Unit = {
+
+    val domain = scop.domain.intersectParams(scop.getContext())
+    var validity = scop.deps.validity()
+
+    if (Knowledge.poly_simplifyDeps) {
+      validity = validity.gistRange(domain)
+      validity = validity.gistDomain(domain)
+    }
+
+    explConfig.getAbsoluteFile().getParentFile().mkdirs()
+    val eConfOut = new java.io.PrintWriter(explConfig)
+    eConfOut.println(domain)
+    eConfOut.println(validity)
+    eConfOut.println(Knowledge.poly_exploration_extended)
+    eConfOut.println()
+    var i : Int = 0
+    Exploration.guidedExploration(domain, validity, Knowledge.poly_exploration_extended, Console.out, {
+      (sched : isl.UnionMap, schedVect : Seq[Array[Int]], bands : Seq[Int], nrCarried : Seq[Int], cstVectable : Boolean) =>
+        i += 1
+        eConfOut.print(df.format(i))
+        eConfOut.print('\t')
+        eConfOut.print(bands.mkString(","))
+        eConfOut.print('\t')
+        eConfOut.print(sched)
+        eConfOut.print('\t')
+        eConfOut.print(schedVect.map(arr => java.util.Arrays.toString(arr)).mkString(", "))
+        eConfOut.print('\t')
+        eConfOut.print(nrCarried.mkString(","))
+        eConfOut.print('\t')
+        eConfOut.print(cstVectable)
+        eConfOut.println()
+    })
+    eConfOut.flush()
+    eConfOut.close()
+    Logger.debug(s"[PolyOpt] Exploration: found $i configurations")
+  }
+
+  private def applyConfig(scop : Scop, explConfig : java.io.File, confID : String) : Unit = {
+    var lines : Iterator[String] = Source.fromFile(explConfig).getLines()
+    lines = lines.dropWhile(l => !l.startsWith(confID))
+
+    val configLine : String = lines.next()
+    Logger.debug("[PolyOpt] Exploration: configuration found:")
+    Logger.debug(" " + configLine)
+    val Array(_, bandsStr, scheduleStr, _, _, _) = configLine.split("\t")
+
+    val bands : Array[Int] = bandsStr.split(",").map(str => Integer.parseInt(str))
+    var schedule : isl.UnionMap = isl.UnionMap.readFromStr(scop.domain.getCtx, scheduleStr)
+
+    scop.noParDims.clear()
+
+    // apply tiling
+    val tilableDims : Int = bands(0)
+    if (scop.optLevel >= 3 && tilableDims > 1 && tilableDims <= 4)
+      schedule = tileSchedule(schedule, scop, tilableDims, scop.tileSizes)
+
+    scop.schedule = Isl.simplify(schedule)
     scop.updateLoopVars()
   }
 
@@ -528,14 +637,13 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   private def recreateAndInsertAST() : Unit = {
 
     val replaceCallback = { (repl : mutable.Map[String, IR_Expression], applyAt : Node) =>
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
+      Logger.pushLevel(Logger.WARNING)
       this.execute(
         new Transformation("update loop iterator", {
           case IR_VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
           case IR_StringLiteral(str) if repl.isDefinedAt(str)     => Duplicate(repl(str))
         }), Some(applyAt))
-      Logger.setLevel(oldLvl)
+      Logger.popLevel()
     }
     this.execute(new ASTBuilderTransformation(replaceCallback))
   }

@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_InternalVariable
+import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures.Node
@@ -59,6 +60,7 @@ case class CUDA_Kernel(var identifier : String,
   var evaluatedAccesses = false
   var linearizedFieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
   var writtenFieldAccesses = HashMap[String, IR_LinearizedFieldAccess]()
+  var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()
   var ivAccesses = HashMap[String, IR_InternalVariable]()
 
   var evaluatedIndexBounds = false
@@ -217,9 +219,13 @@ case class CUDA_Kernel(var identifier : String,
     */
   def evalAccesses() = {
     if (!evaluatedAccesses) {
-      CUDA_GatherLinearizedFieldAccess.fieldAccesses.clear
+      CUDA_GatherLinearizedFieldAccess.clear()
       CUDA_GatherLinearizedFieldAccess.applyStandalone(IR_Scope(body))
       linearizedFieldAccesses = CUDA_GatherLinearizedFieldAccess.fieldAccesses
+
+      CUDA_GatherLinearizedBufferAccess.clear()
+      CUDA_GatherLinearizedBufferAccess.applyStandalone(IR_Scope(body))
+      bufferAccesses = CUDA_GatherLinearizedBufferAccess.bufferAccesses
 
       if (Knowledge.cuda_spatialBlockingWithROC) {
         CUDA_GatherLinearizedFieldAccessWrites.writtenFieldAccesses.clear
@@ -466,6 +472,9 @@ case class CUDA_Kernel(var identifier : String,
     }
 
     CUDA_ReplaceLinearizedFieldAccess.applyStandalone(IR_Scope(body))
+
+    CUDA_ReplaceLinearizedBufferAccess.applyStandalone(IR_Scope(body))
+
     CUDA_ReplaceIVs.ivAccesses = ivAccesses
     CUDA_ReplaceIVs.applyStandalone(IR_Scope(body))
     CUDA_ReplaceLoopVariables.loopVariables = loopVariables.drop(firstNSeqDims)
@@ -510,9 +519,13 @@ case class CUDA_Kernel(var identifier : String,
       })
     }
 
+    for (bufferAccess <- bufferAccesses) {
+      val buffer = bufferAccess._2
+      callArgs += CUDA_BufferDeviceData(buffer.field, buffer.direction, buffer.size, buffer.neighIdx)
+    }
+
     for (ivAccess <- ivAccesses)
       callArgs += Duplicate(ivAccess._2)
-
 
     for (variableAccess <- passThroughArgs) {
       callArgs += variableAccess.access
@@ -571,6 +584,9 @@ case class CUDA_Kernel(var identifier : String,
         fctParams += IR_FunctionArgument(field, IR_PointerDatatype(fieldForSharedMemory(field).fieldSelection.field.resolveDeclType))
       })
     }
+
+    for (bufferAccess <- bufferAccesses)
+      fctParams += IR_FunctionArgument(bufferAccess._1, IR_PointerDatatype(bufferAccess._2.field.resolveDeclType))
 
     for (ivAccess <- ivAccesses) {
       val access = IR_VariableAccess(ivAccess._1, ivAccess._2.resolveDatatype())

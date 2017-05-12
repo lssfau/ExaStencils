@@ -15,7 +15,7 @@ import exastencils.logger._
 /// GridEvaluator_AxisAligned
 
 object GridEvaluator_AxisAligned extends GridEvaluator {
-  def geom = GridGeometry.getGeometry.asInstanceOf[GridGeometry_staggered]
+  def geom = GridGeometry.getGeometry
 
   // evaluations and interpolations
   def evalAtEastFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 0, None, interpolation)
@@ -59,8 +59,8 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
 
       var a0 : (() => IR_Expression) = () => { IR_NullExpression }
       var a1 : (() => IR_Expression) = () => { IR_NullExpression }
-      val x0 = () => { Duplicate(fieldAccess) }
-      val x1 = () => { GridUtil.offsetAccess(fieldAccess, 1, faceDim) }
+      def x0 = Duplicate(fieldAccess)
+      def x1 = GridUtil.offsetAccess(fieldAccess, 1, faceDim)
 
       field.discretization match {
         case "cell" =>
@@ -88,8 +88,8 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
 
       // compile evaluation
       interpolation match {
-        case "linear" | "default" => (a1() * x0() + a0() * x1()) / (a0() + a1())
-        case "harmonicMean"       => ((a0() + a1()) * (x0() * x1())) / (a1() * x0() + a0() * x1())
+        case "linear" | "default" => (a1() * x0 + a0() * x1) / (a0() + a1())
+        case "harmonicMean"       => ((a0() + a1()) * (x0 * x1)) / (a1() * x0 + a0() * x1)
         case _                    =>
           Logger.warn(s"Trying to use interpolation scheme $interpolation which is unknown - falling back to default scheme")
           EvalAtRFace(fieldAccess, faceDim, stagDim, "default").expandSpecial
@@ -135,9 +135,14 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
   }
 
   // integration over faces of staggered CVs is done by defining stagDim - the dimension in which the grid is staggered
-  def integrateOverRFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
+  // expS instead of exp : IR_Expression to allow for match and replace of the original expression
+  def integrateOverRFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression =
+  integrateOverRFace(IR_ExpressionStatement(exp), faceDim, stagDim)
+  def integrateOverRFace(expS : IR_ExpressionStatement, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
+    def exp = expS.expression
+
     // check if there are any field accesses in the current (sub-)expression
-    IR_CollectFieldAccess.applyStandalone(IR_Scope(exp))
+    IR_CollectFieldAccess.applyStandalone(expS)
 
     // TODO: find a way to handle constants
     if (0 == IR_CollectFieldAccess.fieldAccesses.size) {
@@ -238,10 +243,10 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           Logger.error("Integration functions called inside other integration functions are currently not supported")
       }, false) // not recursive -> don't look inside eval functions
     }
-    WrappingFieldAccesses.applyStandalone(IR_Scope(exp))
+    WrappingFieldAccesses.applyStandalone(expS)
 
     // step 2: check if integration by parts is required
-    var piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, IR_Scope(exp)).isDefined
+    val piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, expS).isDefined
 
     // step 3: apply chosen integration
     object ShiftFieldAccessIndices_ extends QuietDefaultStrategy("Shifting indices of field accesses") {
@@ -300,7 +305,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         } else {
           val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
 
-          geom.cellWidth(level, index, None, compDim) * geom.stagCVWidth(level, index, None, curStagDim) * exp
+          geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * exp
         }
       } else {
         val compDim0 = if (0 == faceDim) 1 else 0

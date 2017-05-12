@@ -52,6 +52,10 @@ object StrategyTimer {
       }
     }
   }
+
+  def clear() = {
+    data.clear()
+  }
 }
 
 /**

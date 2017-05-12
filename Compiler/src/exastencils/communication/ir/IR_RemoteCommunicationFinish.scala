@@ -7,6 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
@@ -38,19 +39,25 @@ case class IR_RemoteCommunicationFinish(
     val body = {
       val maxCnt = indices.getTotalSize
       val cnt = maxCnt // always cnt, even when condition is defined -> max count for receive
-      if (!Knowledge.data_genVariableFieldSizes && 1 == IR_SimplifyExpression.evalIntegral(cnt)) {
-        IR_RemoteRecv(field, neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, IR_RealDatatype, concurrencyId)
+      if (!Knowledge.data_genVariableFieldSizes && IR_SimplifyExpression.evalIntegral(cnt) <= 0) {
+        IR_NullStatement // nothing to do for empty data ranges
+      } else if (!Knowledge.data_genVariableFieldSizes && 1 == IR_SimplifyExpression.evalIntegral(cnt)) {
+        val arrayAccess = IR_DirectFieldAccess(field, indices.begin).linearize.expand().inner
+        val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
+        IR_RemoteRecv(Duplicate(field), neighbor, offsetAccess, 1, IR_RealDatatype, concurrencyId)
       } else if (MPI_DataType.shouldBeUsed(field, indices, condition)) {
-        IR_RemoteRecv(field, neighbor, IR_AddressOf(IR_DirectFieldAccess(field, indices.begin)), 1, MPI_DataType(field, indices, condition), concurrencyId)
+        val arrayAccess = IR_DirectFieldAccess(field, indices.begin).linearize.expand().inner
+        val offsetAccess = IR_PointerOffset(arrayAccess.base, arrayAccess.index)
+        IR_RemoteRecv(Duplicate(field), neighbor, offsetAccess, 1, MPI_DataType(field, indices, condition), concurrencyId)
       } else {
-        IR_RemoteRecv(field, neighbor, IR_IV_CommBuffer(field.field, s"Recv_${ concurrencyId }", maxCnt, neighbor.index), cnt, IR_RealDatatype, concurrencyId)
+        IR_RemoteRecv(Duplicate(field), neighbor, IR_IV_CommBuffer(field.field, s"Recv_${ concurrencyId }", Duplicate(maxCnt), neighbor.index), cnt, IR_RealDatatype, concurrencyId)
       }
     }
     if (addCondition) wrapCond(neighbor, ListBuffer[IR_Statement](body)) else body
   }
 
   def genWait(neighbor : NeighborInfo) : IR_Statement = {
-    IR_WaitForRemoteTransfer(field, neighbor, s"Recv_${ concurrencyId }")
+    IR_WaitForRemoteTransfer(Duplicate(field), neighbor, s"Recv_${ concurrencyId }")
   }
 
   override def expand() : Output[StatementList] = {

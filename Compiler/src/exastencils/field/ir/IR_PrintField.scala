@@ -6,6 +6,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
+import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
@@ -45,10 +46,8 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
     if (!Settings.additionalIncludes.contains("fstream"))
       Settings.additionalIncludes += "fstream"
 
-    // TODO: adapt to the new type system
-    val arrayIndexRange =
-    if (field.arrayIndex.isEmpty) 0 until field.field.gridDatatype.resolveFlattendSize
-    else field.arrayIndex.get to field.arrayIndex.get
+    // TODO: incorporate component accesses
+    val arrayIndexRange = 0 until field.field.gridDatatype.resolveFlattendSize
 
     def separator = IR_StringConstant(if (Knowledge.experimental_generateParaviewFiles) "," else " ")
 
@@ -68,13 +67,13 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
 
     // TODO: less monolithic code
     var innerLoop = ListBuffer[IR_Statement](
-      IR_ObjectInstantiation(stream, filename, IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
+      IR_ObjectInstantiation(stream, Duplicate(filename), IR_VariableAccess(if (Knowledge.mpi_enabled) "std::ios::app" else "std::ios::trunc", IR_UnknownDatatype)),
       fileHeader,
       IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domainIndex),
           IR_LoopOverDimensions(numDimsData, IR_ExpressionIndexRange(
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) : IR_Expression)),
-            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) : IR_Expression))),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DLB", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression)),
+            IR_ExpressionIndex((0 until numDimsData).toArray.map(dim => field.fieldLayout.idxById("DRE", dim) - Duplicate(field.referenceOffset(dim)) : IR_Expression))),
             IR_IfCondition(condition,
               IR_Print(stream,
                 ((0 until numDimsGrid).view.flatMap { dim =>
@@ -92,7 +91,7 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
     if (Knowledge.mpi_enabled) {
       statements += IR_IfCondition(MPI_IsRootProc(),
         ListBuffer[IR_Statement](
-          IR_ObjectInstantiation(streamType, streamName, filename, IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)),
+          IR_ObjectInstantiation(streamType, streamName, Duplicate(filename), IR_VariableAccess("std::ios::trunc", IR_UnknownDatatype)),
           IR_MemberFunctionCall(stream, "close")))
 
       statements += MPI_Sequential(innerLoop)

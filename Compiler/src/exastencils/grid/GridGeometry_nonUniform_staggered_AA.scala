@@ -1,14 +1,15 @@
 package exastencils.grid
 
-import exastencils.base.ExaRootNode
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ExaRootNode
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.boundary.l4.L4_NoBC
 import exastencils.communication.DefaultNeighbors
+import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.deprecated.ir._
@@ -19,10 +20,12 @@ import exastencils.field.l4._
 /// GridGeometry_nonUniform_staggered_AA
 
 object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with GridGeometry_staggered {
+  // FIXME: rename arrayIndex, use in index of FieldAccess
+
   // direct accesses
-  override def stagCVWidth(level : IR_Expression, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
+  override def stagCVWidth(level : Int, index : IR_ExpressionIndex, arrayIndex : Option[Int], dim : Int) = {
     val field = IR_FieldCollection.getByIdentifierLevExp(s"stag_cv_width_${ IR_DimToString(dim) }", level).get
-    IR_FieldAccess(IR_FieldSelection(field, field.level, 0, arrayIndex), GridUtil.projectIdx(index, dim))
+    IR_FieldAccess(IR_FieldSelection(field, field.level, 0/*, arrayIndex*/), GridUtil.projectIdx(index, dim))
   }
 
   // injection of  missing l4 information for virtual fields and generation of setup code
@@ -31,13 +34,13 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // extend with info required by staggered grid
     ExaRootNode.l4_root.nodes += L4_FieldDecl(
-      L4_LeveledIdentifier("stag_cv_width_x", L4_FinestLevel), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
+      L4_LeveledIdentifier("stag_cv_width_x", L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 1)
       ExaRootNode.l4_root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("stag_cv_width_y", L4_FinestLevel), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
+        L4_LeveledIdentifier("stag_cv_width_y", L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 2)
       ExaRootNode.l4_root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("stag_cv_width_z", L4_FinestLevel), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
+        L4_LeveledIdentifier("stag_cv_width_z", L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
   }
 
   override def generateInitCode() = {
@@ -56,8 +59,17 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_Diego2(dim, Knowledge.maxLevel)) ++
           Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
       case "linearFct" =>
-        Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel)) ++
-          Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+        val stmts = ListBuffer[IR_Statement]()
+        stmts ++= Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupNodePos_LinearFct(dim, Knowledge.maxLevel))
+        stmts ++= Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, Knowledge.maxLevel))
+
+        if (true)
+          for (lvl <- Knowledge.maxLevel - 1 to Knowledge.minLevel by -1) {
+            stmts ++= Knowledge.dimensions.to[ListBuffer].flatMap(dim => restrictNodePos(dim, lvl, lvl + 1))
+            stmts ++= Knowledge.dimensions.to[ListBuffer].flatMap(dim => setupStagCVWidth(dim, lvl))
+          }
+
+        stmts
     }
   }
 
@@ -70,23 +82,23 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     val zoneLength = 0.0095 //* 8 / zoneSize
 
     val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", level).get
-    val baseIndex = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+    val baseIndex = IR_LoopOverDimensions.defIt(HACK_numDims)
     val baseAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), baseIndex)
 
     val innerIt = IR_LoopOverDimensions.defItForDim(dim)
 
-    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     leftGhostIndex(dim) = -1
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
-    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     rightGhostIndex(dim) = numCells + 1
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
 
     val innerLoop = IR_LoopOverPoints(field, None,
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         IR_IfCondition(IR_LowerEqual(innerIt, 0),
@@ -135,18 +147,18 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     val innerIt = IR_LoopOverDimensions.defItForDim(dim)
 
-    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     leftGhostIndex(dim) = -1
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
-    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     rightGhostIndex(dim) = numCells + 1
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
     // TODO: fix loop offsets -> no duplicate layers - don't generate iterationOffset loop bounds
 
     val innerLoop = IR_LoopOverPoints(field, None,
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         IR_IfCondition(IR_LowerEqual(innerIt, 0),
@@ -184,10 +196,10 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // fix the inner iterator -> used for zone checks
     def innerIt =
-    if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
-      IR_LoopOverDimensions.defItForDim(dim)
-    else
-      IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
+      if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
+        IR_LoopOverDimensions.defItForDim(dim)
+      else
+        IR_VariableAccess(s"global_${ IR_DimToString(dim) }", IR_IntegerDatatype)
     val innerItDecl =
       if (Knowledge.domain_rect_numFragsTotalAsVec(dim) <= 1)
         IR_NullStatement
@@ -195,11 +207,11 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_VariableDeclaration(innerIt, IR_LoopOverDimensions.defItForDim(dim) + IR_IV_FragmentIndex(dim) * numCellsPerFrag)
 
     // compile special boundary handling expressions
-    val leftDir = Array(0, 0, 0)
+    val leftDir = Array.fill(HACK_numDims)(0)
     leftDir(dim) = -1
     val leftNeighIndex = DefaultNeighbors.getNeigh(leftDir).index
 
-    val leftGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val leftGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     leftGhostIndex(dim) = -2
     val leftGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), leftGhostIndex)
 
@@ -209,11 +221,11 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_Assignment(GridUtil.offsetAccess(leftGhostAccess, 1, dim), GridUtil.offsetAccess(leftGhostAccess, 2, dim)),
         IR_Assignment(Duplicate(leftGhostAccess), GridUtil.offsetAccess(leftGhostAccess, 1, dim))))
 
-    val rightDir = Array(0, 0, 0)
+    val rightDir = Array.fill(HACK_numDims)(0)
     rightDir(dim) = 1
     val rightNeighIndex = DefaultNeighbors.getNeigh(rightDir).index
 
-    val rightGhostIndex = IR_ExpressionIndex(0, 0, 0, 0)
+    val rightGhostIndex = IR_ExpressionIndex(Array.fill(HACK_numDims)(0))
     rightGhostIndex(dim) = numCellsPerFrag + 2
     val rightGhostAccess = IR_FieldAccess(IR_FieldSelection(field, field.level, 0), rightGhostIndex)
 
@@ -225,8 +237,8 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
 
     // compile final loop
     val innerLoop = IR_LoopOverPoints(field, None,
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
-      GridUtil.offsetIndex(IR_ExpressionIndex(0, 0, 0), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
+      GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         innerItDecl,
@@ -247,6 +259,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
       IR_LoopOverFragments(ListBuffer[IR_Statement](
         innerLoop,
         leftBoundaryUpdate,
-        rightBoundaryUpdate)))
+        rightBoundaryUpdate)),
+      IR_Communicate(IR_FieldSelection(field, level, 0), "both", ListBuffer(IR_CommunicateTarget("ghost", None, None)), None))
   }
 }

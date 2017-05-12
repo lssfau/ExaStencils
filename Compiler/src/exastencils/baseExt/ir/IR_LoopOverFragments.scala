@@ -14,8 +14,7 @@ object IR_LoopOverFragments {
   def apply(body : IR_Statement*) = new IR_LoopOverFragments(body.to[ListBuffer])
   def apply(body : IR_Statement, parallelization : IR_ParallelizationInfo) = new IR_LoopOverFragments(ListBuffer(body), parallelization)
 
-  // TODO: VariableAccess
-  def defIt = "fragmentIdx"
+  def defIt = IR_VariableAccess("fragmentIdx", IR_IntegerDatatype)
 }
 
 case class IR_LoopOverFragments(
@@ -29,7 +28,7 @@ case class IR_LoopOverFragments(
     parallelization.potentiallyParallel = Knowledge.omp_enabled && Knowledge.omp_parallelizeLoopOverFragments && parallelization.potentiallyParallel
 
     val loop = IR_ForLoop(
-      IR_VariableDeclaration(IR_IntegerDatatype, defIt, 0),
+      IR_VariableDeclaration(defIt, 0),
       IR_Lower(defIt, Knowledge.domain_numFragmentsPerBlock),
       IR_PreIncrement(defIt),
       body,
@@ -49,7 +48,7 @@ object IR_ResolveLoopOverFragments extends DefaultStrategy("Resolve LoopOverFrag
         val scope = IR_Scope(loop.body)
 
         // replace references to old loop iterator
-        IR_ReplaceVariableAccess.toReplace = IR_LoopOverFragments.defIt
+        IR_ReplaceVariableAccess.toReplace = IR_LoopOverFragments.defIt.name
         IR_ReplaceVariableAccess.replacement = IR_IntegerConstant(0)
         IR_ReplaceVariableAccess.applyStandalone(scope)
 

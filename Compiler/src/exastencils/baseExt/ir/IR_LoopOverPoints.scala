@@ -20,6 +20,16 @@ case class IR_RegionSpecification(var region : String, var dir : IR_ConstIndex, 
 
 /// IR_LoopOverPoints
 
+object IR_LoopOverPoints {
+  def apply(field : IR_Field, body : ListBuffer[IR_Statement]) =
+    new IR_LoopOverPoints(field, None, IR_ExpressionIndex(Array.fill(field.fieldLayout.numDimsGrid)(0)),
+      IR_ExpressionIndex(Array.fill(field.fieldLayout.numDimsGrid)(0)),
+      IR_ExpressionIndex(Array.fill(field.fieldLayout.numDimsGrid)(1)),
+      body)
+
+  def apply(field : IR_Field, body : IR_Statement*) : IR_LoopOverPoints = apply(field, body.to[ListBuffer])
+}
+
 case class IR_LoopOverPoints(
     var field : IR_Field,
     var region : Option[IR_RegionSpecification],

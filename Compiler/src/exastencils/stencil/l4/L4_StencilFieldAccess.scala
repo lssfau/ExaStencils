@@ -4,7 +4,6 @@ import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4.L4_UnresolvedAccess
-import exastencils.config._
 import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.field.ir.IR_FieldAccess
@@ -37,42 +36,37 @@ case class L4_StencilFieldAccess(
     if (dirAccess.isDefined) out << ":" << dirAccess
   }
 
+  def progressOffset(numDims : Int) = {
+    if (offset.isDefined) {
+      val progressedOffset = offset.get.progress
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
+      Some(progressedOffset)
+    } else {
+      None
+    }
+  }
+
   def progress : IR_Expression = {
     // TODO: extract mapping to FieldAccess for cases where single entries are targeted into a separate strategy
+
+    val stencilField = target.getProgressedObject()
+    val field = stencilField.field
+    val numDims = stencilField.field.fieldLayout.numDimsGrid
+    val index = IR_LoopOverDimensions.defIt(numDims)
 
     if (arrayIndex.isDefined && dirAccess.isDefined)
       Logger.warn(s"Access to stencil field ${ target.name } on level ${ target.level } has direction access and array subscript modifiers; array index will be given precedence, offset will be ignored")
 
-    val stencilField = target.getProgressedObject
-
-    var accessIndex = -1
-
-    if (arrayIndex.isDefined)
-      accessIndex = arrayIndex.get
-    else if (dirAccess.isDefined)
-      accessIndex = stencilField.findOffsetIndex(dirAccess.get.progress).get
-
-    var numDims = Knowledge.dimensionality // TODO: resolve field info
-    numDims += 1 // TODO: remove array index and update function after integration of vec types
-    var multiIndex = IR_LoopOverDimensions.defIt(numDims)
-
-    if (accessIndex < 0)
-      multiIndex(numDims - 1) = IR_IntegerConstant(0)
-    else
-      multiIndex(numDims - 1) = IR_IntegerConstant(accessIndex)
-
-    if (offset.isDefined) {
-      var progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
-      multiIndex += progressedOffset
+    if (arrayIndex.isDefined) {
+      index.indices :+= IR_IntegerConstant(arrayIndex.get)
+      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot)), index, progressOffset(index.length))
+    } else if (dirAccess.isDefined) {
+      index.indices :+= IR_IntegerConstant(stencilField.findOffsetIndex(dirAccess.get.progress).get)
+      IR_FieldAccess(IR_FieldSelection(field, field.level, L4_FieldAccess.resolveSlot(field, slot)), index, progressOffset(index.length))
+    } else {
+      IR_StencilFieldAccess(IR_StencilFieldSelection(stencilField, stencilField.field.level, L4_FieldAccess.resolveSlot(stencilField.field, slot)),
+        index, progressOffset(index.length))
     }
-
-    if (accessIndex < 0)
-      IR_StencilFieldAccess(IR_StencilFieldSelection(stencilField, IR_IntegerConstant(stencilField.field.level), L4_FieldAccess.resolveSlot(stencilField.field, slot), None),
-        multiIndex)
-    else
-      IR_FieldAccess(IR_FieldSelection(stencilField.field, IR_IntegerConstant(stencilField.field.level), L4_FieldAccess.resolveSlot(stencilField.field, slot), Some(accessIndex)),
-        multiIndex)
   }
 }
 

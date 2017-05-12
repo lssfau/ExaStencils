@@ -74,8 +74,11 @@ case class L4_FieldLayout(
   }
 
   override def progressImpl() : IR_FieldLayout = {
+    // use data type after progressing due to possible vec-mat-promotion
+    val progDatatype = datatype.progress
+
     // determine full data dimensionality
-    val numDimsData = numDimsGrid + datatype.dimensionality
+    val numDimsData = numDimsGrid + progDatatype.dimensionality
 
     var layouts = Array[IR_FieldLayoutPerDim]()
 
@@ -85,19 +88,19 @@ case class L4_FieldLayout(
 
     // add layouts for additional dimensions introduced by the datatype - no ghost, dup, pad layers required
     if (numDimsData > numDimsGrid)
-      layouts ++= datatype.getSizeArray.map(size => IR_FieldLayoutPerDim(0, 0, 0, size, 0, 0, 0))
+      layouts ++= progDatatype.getSizeArray.map(size => IR_FieldLayoutPerDim(0, 0, 0, size, 0, 0, 0))
 
     // adapt discretization identifier for low-dimensional primitives - TODO: support edges directly?
     val finalDiscretization =
-    if (discretization.startsWith("edge_"))
-      discretization.drop(5)
-    else
-      discretization
+      if (discretization.startsWith("edge_"))
+        discretization.drop(5)
+      else
+        discretization
 
     // will be updated afterwards
     val dummyRefOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
 
-    val ret = IR_FieldLayout(name, level, datatype.progress, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
+    val ret = IR_FieldLayout(name, level, progDatatype, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
       communicatesDuplicated, communicatesGhosts)
 
     // update reference offset

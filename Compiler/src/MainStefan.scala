@@ -1,6 +1,6 @@
-import exastencils.base.ExaRootNode
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ExaRootNode
 import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
@@ -32,8 +32,8 @@ import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
 import exastencils.parsers.InputReader
+import exastencils.parsers.config._
 import exastencils.parsers.l4._
-import exastencils.parsers.settings._
 import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
@@ -55,9 +55,9 @@ object MainStefan {
     StateManager.setRoot(ExaRootNode)
 
     // check from where to read input
-    val settingsParser = new ParserSettings()
-    val knowledgeParser = new ParserKnowledge()
-    val platformParser = new ParserPlatform()
+    val settingsParser = new Settings_Parser()
+    val knowledgeParser = new Knowledge_Parser()
+    val platformParser = new Platform_Parser()
     if (args.length == 1 && args(0) == "--json-stdin") {
       InputReader.read()
       settingsParser.parse(InputReader.settings)
@@ -162,14 +162,14 @@ object MainStefan {
       StrategyTimer.startTiming("Handling Layer 4")
 
     if (Settings.inputFromJson) {
-      ExaRootNode.l4_root = (new ParserL4).parseFile(InputReader.layer4)
+      ExaRootNode.l4_root = (new L4_Parser).parseFile(InputReader.layer4)
     } else {
-      ExaRootNode.l4_root = (new ParserL4).parseFile(Settings.getL4file)
+      ExaRootNode.l4_root = (new L4_Parser).parseFile(Settings.getL4file)
     }
 
     ExaRootNode.l4_root.flatten()
 
-    ValidationL4.apply()
+    L4_Validation.apply()
 
     // re-print the merged L4 state
     if (false) {
@@ -180,9 +180,9 @@ object MainStefan {
       outFile.close()
 
       // re-parse the file to check for errors
-      val parserl4 = new ParserL4()
+      val parserl4 = new L4_Parser()
       ExaRootNode.l4_root = parserl4.parseFile(Settings.getL4file + "_rep.exa")
-      ValidationL4.apply()
+      L4_Validation.apply()
     }
 
     if (Settings.timeStrategies)
@@ -289,9 +289,11 @@ object MainStefan {
       // Util
       IR_Stopwatch(),
       IR_TimerFunctions(),
-      IR_Matrix(), // TODO: only if required
       CImg() // TODO: only if required
     )
+
+    if (!Knowledge.experimental_internalHighDimTypes)
+      ExaRootNode.ir_root.nodes += IR_Matrix()
 
     if (Knowledge.cuda_enabled)
       ExaRootNode.ir_root.nodes += CUDA_KernelFunctions()
@@ -383,7 +385,7 @@ object MainStefan {
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_conventionalCSE || Knowledge.opt_loopCarriedCSE) {
-      new DuplicateNodes().apply() // FIXME: only debug
+      DuplicateNodes.apply() // FIXME: only debug
       Inlining.apply(true)
       CommonSubexpressionElimination.apply()
     }

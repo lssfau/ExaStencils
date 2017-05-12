@@ -80,8 +80,7 @@ object Inlining extends CustomStrategy("Function inlining") {
           toInline(inFunc) += 1
 
     // then, inline all functions with count == 0 (and update other counts accordingly)
-    val oldLvl = Logger.getLevel
-    Logger.setLevel(Logger.WARNING) // a HUGE number of transformations are executed here, so shut them up
+    Logger.pushLevel(Logger.WARNING) // a HUGE number of transformations are executed here, so shut them up
     val toRemove = new IdentityHashMap[IR_Function, Unit]() // used as a set; there's no need to compare thousands of nodes, reference equality is enough
     var continue : Boolean = false
     do {
@@ -106,7 +105,7 @@ object Inlining extends CustomStrategy("Function inlining") {
           toRemove.put(funcStmt, ())
       }
     } while (continue)
-    Logger.setLevel(oldLvl)
+    Logger.popLevel()
 
     this.execute(new Transformation("remove inlined functions", {
       case f : IR_Function if toRemove.containsKey(f) && f.name != "main" => List() // main should not have "allowInlining" be set, but...
@@ -242,9 +241,9 @@ object Inlining extends CustomStrategy("Function inlining") {
             }
           }
 
-        case decl : IR_VariableDeclaration if stack.top.isInstanceOf[IR_Function] =>
+        case decl : IR_VariableDeclaration if stack.head.isInstanceOf[IR_Function] =>
           flatFunctionBody(curFunc) += decl
-          potConflicts(stack.top.asInstanceOf[IR_Function].name) += decl.name
+          potConflicts(stack.head.asInstanceOf[IR_Function].name) += decl.name
 
         case ret : IR_Return if ret ne allowedReturn =>
           flatFunctionBody(curFunc) += ret
@@ -283,4 +282,5 @@ object Inlining extends CustomStrategy("Function inlining") {
       super.reset()
     }
   }
+
 }

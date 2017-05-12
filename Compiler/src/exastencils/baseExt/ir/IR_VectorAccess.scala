@@ -10,6 +10,7 @@ import exastencils.util.ir.IR_ResultingDatatype
 /// IR_HackVecComponentAccess
 
 // FIXME: update with actual accessors
+@deprecated("Drop vector types and switch to matrix types")
 case class IR_HackVecComponentAccess(var vec : IR_VariableAccess, var i : IR_Expression) extends IR_Expression {
   override def datatype = vec.datatype
   override def prettyprint(out : PpStream) : Unit = out << vec << "(" << i << ", " << 0 << ")"
@@ -18,6 +19,7 @@ case class IR_HackVecComponentAccess(var vec : IR_VariableAccess, var i : IR_Exp
 /// IR_VectorExpression
 
 // FIXME: to be replaced/ updated
+@deprecated("switch to IR_MatrixExpression")
 case class IR_VectorExpression(var innerDatatype : Option[IR_Datatype], var expressions : ListBuffer[IR_Expression], var rowVector : Option[Boolean]) extends IR_Expression {
   def length = expressions.length
 
@@ -35,7 +37,7 @@ case class IR_VectorExpression(var innerDatatype : Option[IR_Datatype], var expr
   def prettyprintInner(out : PpStream) : Unit = {
     out << (if (Platform.targetCompiler == "GCC") "std::move((" else "((")
     innerDatatype.getOrElse(IR_RealDatatype).prettyprint(out)
-    out << "[]){" <<< (expressions, ",") << "})"
+    out << "[]){" << (expressions.map(_.prettyprint).mkString(",")) << "})"
   }
   override def prettyprint(out : PpStream) : Unit = {
     out << "Matrix<"

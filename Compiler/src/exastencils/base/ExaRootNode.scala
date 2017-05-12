@@ -1,9 +1,8 @@
 package exastencils.base
 
-import exastencils.datastructures.Node
-import exastencils.datastructures.RootNode
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.datastructures._
 
 case object ExaRootNode extends RootNode {
   var l1_root = None
@@ -14,6 +13,14 @@ case object ExaRootNode extends RootNode {
 
   def nodes = mynodes
   private var mynodes = ListBuffer[Node]()
+
+  def clear() = {
+    l1_root = null
+    l2_root = null
+    l3_root = null
+    l4_root = null
+    ir_root = null
+  }
 
   def ProgressToL2() = {
     // ...
