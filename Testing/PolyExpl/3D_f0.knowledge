@@ -1,0 +1,4 @@
+import "knowledge_3D.txt"
+
+poly_exploration_extended = false
+poly_exploration_filterLevel = 0

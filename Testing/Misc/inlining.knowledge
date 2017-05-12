@@ -1,6 +1,7 @@
 data_alignFieldPointers    = true
+simd_avoidUnaligned        = true
 
-ir_maxInliningSize         = 2147483647
+opt_maxInliningSize         = 2147483647
 
 dimensionality             = 3
 
@@ -47,5 +48,6 @@ l3tmp_numPre               = 3
 l3tmp_numPost              = 3
 l3tmp_genTemporalBlocking  = true
 l3tmp_tempBlockingMinLevel = 6
+l3tmp_genFragLoops         = true
 
 l3tmp_genForAutoTests      = true

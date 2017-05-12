@@ -117,6 +117,14 @@ trait Annotatable {
   def getAnnotation(id : String) = { annotations_.get(id) }
 
   /**
+    * Removes and returns a annotations from this instance.
+    *
+    * @param id A key-like identifier denoting the annotation to remoev and return.
+    * @return The annotation matching the given identifier, or `None`.
+    */
+  def popAnnotation(id : String) = { val ret = annotations_.get(id); annotations_.remove(id); ret }
+
+  /**
     * Checks if this instance contains a certain annotation.
     *
     * @param id A key-like identifier denoting the annotation to check for.

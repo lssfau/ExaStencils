@@ -1,0 +1,85 @@
+///////////////////////////
+// General configuration //
+///////////////////////////
+simd_avoidUnaligned         = false
+data_alignFieldPointers     = true
+useDblPrecision             = false
+
+/////////////////////////
+// Layer configuration //
+/////////////////////////
+// Layer 1 configuration
+dimensionality = 3
+
+// Layer 2 configuration
+minLevel                    = 0 // the coarsest level
+maxLevel                    = 6 // the finest level
+
+//////////////////////////
+// Domain Decomposition //
+//////////////////////////
+domain_onlyRectangular        = true
+domain_numBlocks            = 1
+domain_numFragmentsPerBlock    = 1
+
+domain_rect_generate            = true
+// number of blocks to be generated per dimension - one block will usually be mapped to one MPI thread
+domain_rect_numBlocks_x            = 1
+domain_rect_numBlocks_y            = 1
+domain_rect_numBlocks_z            = 1
+// number of fragments to be generated for each block per dimension - this will usually be one or be equal to the number of OMP threads per dimension
+domain_rect_numFragsPerBlock_x    = 1
+domain_rect_numFragsPerBlock_y    = 1
+domain_rect_numFragsPerBlock_z    = 1
+
+/////////////////////
+// Parallelization //
+/////////////////////
+// OpenMP
+omp_enabled                    = false
+omp_numThreads                = 1
+
+// MPI
+mpi_enabled                    = false
+mpi_numThreads                = 1
+
+///////////////////////////////////////////////////////////
+// HACK configuration options for generating L4 DSL file //
+///////////////////////////////////////////////////////////
+l3tmp_generateL4            = true
+l3tmp_exactSolution            = "Polynomial"
+l3tmp_smoother                = "RBGS"
+l3tmp_useConditionsForRBGS    = true
+
+///////////////////
+// Optimizations //
+///////////////////
+// Polyhedron optimizations
+poly_optLevel_fine            = 0
+
+// other optimizations
+opt_useAddressPrecalc        = false
+opt_vectorize                = false
+opt_unroll                    = 0
+
+//////////
+// CUDA //
+//////////
+cuda_enabled                       = true
+//cuda_deviceId                      = 0
+cuda_preferredExecution            = "Device"
+cuda_syncDeviceAfterKernelCalls    = true
+cuda_syncHostForWrites             = false
+cuda_syncDeviceForWrites           = true
+cuda_blockSize_x                   = 8
+cuda_blockSize_y                   = 8
+cuda_blockSize_z                   = 8
+// default (1D) block size for default reduction kernels
+cuda_reductionBlockSize            = 1024
+
+// my new experimental cuda properties
+cuda_useSharedMemory               = true
+cuda_linearizeSharedMemoryAccess   = false
+cuda_favorL1CacheOverSharedMemory  = false
+cuda_spatialBlockingWithSmem       = true
+cuda_spatialBlockingWithROC        = false

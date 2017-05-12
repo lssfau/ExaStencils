@@ -1,0 +1,306 @@
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
+
+Layout NoComm< Real, Cell >@all {
+	duplicateLayers = [ 0, 0 ]
+	ghostLayers     = [ 0, 0 ]
+}
+Layout BasicComm< Real, Cell >@all {
+	duplicateLayers = [ 0, 0 ]
+	ghostLayers     = [ 1, 1 ] with communication
+}
+Layout NoCommSF< Array<Real><5>, Cell >@all {
+	duplicateLayers = [ 0, 0 ]
+	ghostLayers     = [ 0, 0 ]
+}
+
+Field Coeff< global, BasicComm, Neumann >@all
+Field Mean < global, NoComm,    None    >@all
+Field Diff < global, NoComm,    None    >@all
+
+Field Solution< global, BasicComm, Neumann >[24]@all
+Field RHS     < global, NoComm,    None    >@all
+Field Residual< global, BasicComm, Neumann >@all
+Field VecP    < global, BasicComm, Neumann >@all
+Field VecGradP< global, NoComm,    None    >@all
+
+Field OperatorCoeff< global, NoCommSF, 0.0 >@all
+StencilField Operator< OperatorCoeff => OperatorStencil >@all
+
+Stencil OperatorStencil@all {
+	[ 0,  0] => 0
+	[ 1,  0] => 0
+	[-1,  0] => 0
+	[ 0,  1] => 0
+	[ 0, -1] => 0
+}
+Stencil ProlongationTo@all {
+	[ 0,  0] => 1.0
+}
+Stencil RestrictionFrom@all {
+	[ 0,  0] => ( 1.0 / 4.0 )
+	[ 0,  1] => ( 1.0 / 4.0 )
+	[ 1,  0] => ( 1.0 / 4.0 )
+	[ 1,  1] => ( 1.0 / 4.0 )
+}
+
+/// main
+
+Function Application ( ) : Unit {
+	initGlobals ( )
+	initDomain ( )
+	initFieldsWithZero ( )
+
+	InitRHS@finest ( )
+
+	MonteCarlo@coarsest ( )
+
+	showImage ( RHS@finest, Mean@finest, Solution[0]@finest, Diff@finest, Diff@(finest - 1) )
+
+	destroyGlobals ( )
+}
+
+/// MLMC
+
+Function MonteCarlo@coarsest ( ) : Unit {
+	repeat 24 times {
+		InitCoeffs@current ( )
+
+		InitOperator@current ( )
+
+		InitSolution@current ( )
+
+		Solve@current ( )
+
+		advance Solution@current
+	}
+
+	Evaluation@current ( )
+
+	@(all but finest) {
+		MonteCarlo@finer ( )
+	}
+}
+
+Function MonteCarlo@(all but coarsest) ( ) : Unit {
+	repeat 24 times {
+		InitCoeffs@current ( )
+		CoarsenCoeffs@coarser ( )
+
+		InitOperator@coarser ( )
+		InitOperator@current ( )
+
+		InitSolution@coarser ( )
+		InitSolution@current ( )
+
+		Solve@coarser ( )
+		Solve@current ( )
+
+		advance Solution@coarser
+		advance Solution@current
+	}
+
+	Evaluation@current ( )
+
+	@(all but finest) {
+		MonteCarlo@finer ( )
+	}
+}
+
+Function Evaluation@coarsest ( ) : Unit {
+	loop over Mean@current {
+		Mean@current = 0.0
+	}
+
+	/// coarsest level => calculate basic expected value
+	repeat 24 times {
+		loop over Mean@current {
+			Mean@current += Solution@current
+		}
+		advance Solution@current
+	}
+
+	loop over Mean@current {
+		Diff@current = 0.0
+		Mean@current /= 24.0
+	}
+}
+
+Function Evaluation@(all but coarsest) ( ) : Unit {
+	if ( true ) {
+		/// VARIANT A --- Correction based approach
+
+		loop over Mean@current {
+			Mean@current = 0.0
+		}
+
+		/// not coarsest level => calculate expected value of correction
+		repeat 24 times {
+			loop over Mean@current {
+				Mean@current += Solution@current - ProlongationTo@current * Solution@coarser
+			}
+			advance Solution@coarser
+			advance Solution@current
+		}
+
+		/// finalize expected value and add coarser mean
+		loop over Mean@current {
+			Mean@current /= 24.0
+			Diff@current = Mean@current
+			Mean@current += ProlongationTo@current * Mean@coarser
+		}
+	} else {
+		/// VARIANT B --- Mean of Means
+
+		loop over Mean@current {
+			Mean@current = 0.0
+		}
+
+		/// not coarsest level => update mean
+		repeat 24 times {
+			loop over Mean@current {
+				Mean@current += Solution@current
+			}
+			advance Solution@current
+		}
+
+		/// finalize expected value and add coarser mean
+		loop over Mean@current {
+			Mean@current /= 24.0
+			Mean@current += ProlongationTo@current * Mean@coarser
+
+			@finest {
+				Mean@current /= levels@finest ( ) - levels@coarsest ( ) + 1
+			}
+		}
+	}
+}
+
+/// init functions
+
+Function InitRHS@all ( ) : Unit {
+	@finest {
+		readImage ( RHS@current, "lena_sp_noise.png" )
+	}
+	@(all but finest) {
+		loop over RHS@current {
+			RHS@current = RestrictionFrom@finer * RHS@finer
+		}
+	}
+
+	@(all but coarsest) {
+		InitRHS@coarser ( )
+	}
+}
+
+Function InitOperator@all ( ) : Unit {
+	Val spacing : Real = 1.0 / ( ( 2 ** ( levels@finest ( ) - levels@current ( ) ) ) ** 2 )
+
+	loop over Operator@current {
+		Operator@current:[ 1,  0] = -1.0 * evalAtEastFace ( Coeff@current )  * spacing
+		Operator@current:[-1,  0] = -1.0 * evalAtWestFace ( Coeff@current )  * spacing
+		Operator@current:[ 0,  1] = -1.0 * evalAtNorthFace ( Coeff@current ) * spacing
+		Operator@current:[ 0, -1] = -1.0 * evalAtSouthFace ( Coeff@current ) * spacing
+		Operator@current:[ 0,  0] =  1.0 - ( Operator@current:[ 1,  0] + Operator@current:[-1,  0]
+										   + Operator@current:[ 0,  1] + Operator@current:[ 0, -1] )
+	}
+}
+
+Function InitSolution@all ( ) : Unit {
+	loop over Solution@current {
+		Solution@current = 0.0
+	}
+}
+
+Function InitCoeffs@all ( ) : Unit {
+	Var lvl : Int = levels@current ( )
+	native ( 'static std::default_random_engine generator(lvl)' )
+	native ( 'static std::normal_distribution<double> distribution(1.0, 0.25)' )
+	native ( 'static auto randn = std::bind (distribution, generator)' )
+
+	loop over Coeff@current {
+		Coeff@current = randn()
+	}
+	communicate Coeff@current
+	apply bc to Coeff@current
+}
+
+Function CoarsenCoeffs@(all but finest) ( ) : Unit {
+	loop over Coeff@current {
+		Coeff@current = RestrictionFrom@finer * Coeff@finer
+	}
+	communicate Coeff@current
+	apply bc to Coeff@current
+}
+
+/// solver part
+
+Function Solve@all ( ) : Unit {
+	Variable resStart : Real = NormResidual@current (  )
+	Variable res : Real = resStart
+	Variable resOld : Real = 0
+
+	print ( 'Starting residual at', levels@current ( ), ':', resStart )
+
+	Variable numIt : Integer = 0
+	repeat until (res <= ( 1.0E-3 * resStart ) || numIt >= 100) {
+		CG@current (  )
+
+		resOld = res
+		res = NormResidual@current (  )
+	}
+
+	print ( 'Residual at', levels@current ( ), ':', res, 'Residual reduction:', resStart / res )
+}
+
+Function NormResidual@all ( ) : Real {
+	Variable res : Real = 0
+
+	communicate Solution@current
+	apply bc to Solution@current
+	loop over Residual@current where x > 0 && y > 0 with reduction( + : res ) {
+		res += ( RHS@current - ( Operator@current * Solution@current ) )**2
+	}
+	return sqrt ( res )
+}
+
+Function CG@all ( ) : Unit {
+	communicate Solution@current
+	apply bc to Solution@current
+	loop over Residual@current {
+		Residual@current = RHS@current - (Operator@current * Solution@current)
+	}
+	communicate Residual@current
+	apply bc to Residual@current
+	Variable res : Real = NormResidual@current ( )
+	Variable initialRes : Real = res
+	loop over VecP@current {
+		VecP@current = Residual@current
+	}
+	Variable cgSteps : Integer
+	repeat 256 times count cgSteps {
+	communicate VecP@current
+	apply bc to VecP@current
+		loop over VecP@current {
+			VecGradP@current = Operator@current * VecP@current
+		}
+		Variable alphaDenom : Real = 0
+		loop over VecP@current where x > 0 && y > 0 with reduction( + : alphaDenom ) {
+			alphaDenom += VecP@current * VecGradP@current
+		}
+		Variable alpha : Real = res * res / alphaDenom
+		loop over Solution@current {
+			Solution[currentSlot]@current += alpha * VecP@current
+			Residual@current -= alpha * VecGradP@current
+		}
+		Variable nextRes : Real = NormResidual@current ( )
+		if ( nextRes <= 0.001 * initialRes ) {
+			return
+		}
+		Variable beta : Real = (nextRes * nextRes) / (res * res)
+		loop over VecP@current {
+			VecP@current = Residual@current + beta * VecP@current
+		}
+		res = nextRes
+	}
+	print ( 'Maximum number of cgs iterations (', 1024, ') was exceeded' )
+}

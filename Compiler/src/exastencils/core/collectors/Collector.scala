@@ -9,7 +9,7 @@ import exastencils.datastructures._
   * the observers whenever a [[exastencils.datastructures.Node]] is entered or left during the traversal of the program
   * state. This is a basic trait that must be implemented by concrete implementations.
   */
-abstract trait Collector {
+trait Collector {
   /**
     * Is called when a new [[exastencils.datastructures.Node]] is visited.
     *

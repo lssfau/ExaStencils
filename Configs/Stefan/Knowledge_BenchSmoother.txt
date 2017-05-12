@@ -1,6 +1,6 @@
 targetCompiler              = "GCC"
-targetCompilerVersion       = 4
-targetCompilerVersionMinor  = 8
+targetCompilerVersion       = 5
+targetCompilerVersionMinor  = 2
 simd_instructionSet         = "AVX"
 simd_avoidUnaligned         = true
 data_alignFieldPointers     = true
@@ -38,10 +38,10 @@ poly_optLevel_fine     = 3
 poly_optLevel_coarse   = 1
 poly_numFinestLevels   = 1
 poly_tileSize_x        = 0
-poly_tileSize_y        = 172
+poly_tileSize_y        = 120
 poly_tileSize_z        = 0
 poly_tileOuterLoop     = false
-poly_scheduleAlgorithm = "isl"
+poly_scheduleAlgorithm = "test"
 poly_optimizeDeps      = "raw"
 poly_filterDeps        = true
 poly_simplifyDeps      = true
@@ -55,3 +55,5 @@ opt_vectorize          = true
 opt_unroll             = 2
 opt_unroll_interleave  = false
 l3tmp_genTemporalBlocking  = true
+
+experimental_genVariableFieldSizes = false

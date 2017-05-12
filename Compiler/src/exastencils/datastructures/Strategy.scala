@@ -1,13 +1,14 @@
 package exastencils.datastructures
 
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable._
 
+import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.logger._
 
 object StrategyTimer {
+
   class Data {
     var start : Long = 0
     var entries : Long = 0
@@ -19,7 +20,7 @@ object StrategyTimer {
 
   def startTiming(name : String) = {
     if (!data.contains(name)) data.put(name, new Data)
-    val thisData = data.get(name).get
+    val thisData = data(name)
 
     thisData.entries += 1
 
@@ -29,7 +30,7 @@ object StrategyTimer {
 
   def stopTiming(name : String) = {
     if (!data.contains(name)) data.put(name, new Data)
-    val thisData = data.get(name).get
+    val thisData = data(name)
 
     thisData.entries -= 1
 
@@ -38,18 +39,22 @@ object StrategyTimer {
     } else if (0 == thisData.entries) {
       thisData.totalDuration += System.nanoTime() - thisData.start
       thisData.count += 1
-    } // otherwise nothing to do due to inclusive regions    
+    } // otherwise nothing to do due to inclusive regions
   }
 
-  def print = {
+  def print() = {
     val totalSum = data.map(_._2.totalDuration).sum
     for (d <- data.toSeq.sortBy(_._2.totalDuration)) {
       val runtime : Double = math.round(d._2.totalDuration / 1e6)
       val share : Double = math.round((d._2.totalDuration * 1000.0) / totalSum) / 10.0
-
-      if (share >= Settings.timeStratPercentThreshold)
-        Logger.debug(s"$runtime ms ($share %) were consumed through '${d._1}' (${d._2.count} top level transformation calls)")
+      if (share >= Settings.timeStratPercentThreshold) {
+        Logger.debug(s"$runtime ms ($share %) were consumed through '${ d._1 }' (${ d._2.count } top level transformation calls)")
+      }
     }
+  }
+
+  def clear() = {
+    data.clear()
   }
 }
 
@@ -82,9 +87,9 @@ abstract class Strategy(val name : String) {
   /**
     * Registers a [[exastencils.core.collectors.Collector]] with this Strategy.
     *
-    * @param c The [[exastencils.core.collectors.Collector]] to be added.
+    * @param collector The [[exastencils.core.collectors.Collector]] to be added.
     */
-  def register(c : Collector) = { collectors += c }
+  def register(collector : Collector) = { collectors += collector }
 
   /**
     * Notifies the [[exastencils.core.collectors.Collector]]s that a [[exastencils.datastructures.Node]] has been entered.
@@ -108,34 +113,34 @@ abstract class Strategy(val name : String) {
   /**
     * Unregister a [[exastencils.core.collectors.Collector]] from this Strategy.
     *
-    * @param c The [[exastencils.core.collectors.Collector]] to be removed.
+    * @param collector The [[exastencils.core.collectors.Collector]] to be removed.
     */
-  def unregister(c : Collector) = { collectors -= c }
+  def unregister(collector : Collector) = { collectors -= collector }
 
   /** Unregister all currently registered [[exastencils.core.collectors.Collector]]s from this Strategy. */
   def unregisterAll() = { collectors.clear }
 
   /**
-    *  Executes a given [[exastencils.datastructures.Transformation]].
+    * Executes a given [[exastencils.datastructures.Transformation]].
     *
-    *  @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
-    *  @param node Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
-    *  @return Result statistics about the transformation.
+    * @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
+    * @param node           Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
+    * @return Result statistics about the transformation.
     */
   protected def execute(transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
-    Logger.info(s"""Executing nested transformation "${transformation.name}" during strategy "${name}"""")
+    Logger.info(s"""Executing nested transformation "${ transformation.name }" during strategy "${ name }"""")
     executeInternal(transformation, node)
   }
 
   /**
-    *  Executes a given [[exastencils.datastructures.Transformation]].
+    * Executes a given [[exastencils.datastructures.Transformation]].
     *
-    *  @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
-    *  @param node Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
-    *  @return Result statistics about the transformation.
+    * @param transformation The [[exastencils.datastructures.Transformation]] to be executed.
+    * @param node           Specifies the source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
+    * @return Result statistics about the transformation.
     */
   protected def executeInternal(transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
-    Logger.info(s"""Applying strategy "${name}::${transformation.name}"""")
+    Logger.info(s"""Applying strategy "${ name }::${ transformation.name }"""")
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
@@ -144,7 +149,10 @@ abstract class Strategy(val name : String) {
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
-    Logger.debug(s"""Result of strategy "${name}::${transformation.name}": $result""")
-    return result
+
+    if (Settings.logStrategyResults) {
+      Logger.debug(s"""Result of strategy "${ name }::${ transformation.name }": $result""")
+    }
+    result
   }
 }

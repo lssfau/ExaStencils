@@ -1,6 +1,6 @@
 targetOS					= "Windows"
 targetCompiler				= "MSVC"
-targetCompilerVersion		= 12
+targetCompilerVersion		= 14
 targetCompilerVersionMinor	= 0
 
 simd_instructionSet			= "AVX"
@@ -28,6 +28,6 @@ hw_gpu_numCores				= 2816
 hw_cuda_capability			= 5
 hw_cuda_capabilityMinor		= 2
 
-sw_cuda_version				= 7
-sw_cuda_versionMinor		= 5
+sw_cuda_version				= 8
+sw_cuda_versionMinor		= 0
 sw_cuda_kernelCallOverhead	= 0.000001 // 1 us in s -> to be benchmarked 

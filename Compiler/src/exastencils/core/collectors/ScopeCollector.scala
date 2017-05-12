@@ -2,8 +2,8 @@ package exastencils.core.collectors
 
 import scala.collection.mutable.ArrayStack
 
+import exastencils.base.ir._
 import exastencils.datastructures.Node
-import exastencils.datastructures.ir._
 
 abstract class ScopeCollector[T](init : T) extends Collector {
 
@@ -22,19 +22,19 @@ abstract class ScopeCollector[T](init : T) extends Collector {
     }
 
     node match {
-      case ConditionStatement(_, trueBody, falseBody) =>
+      case IR_IfCondition(_, trueBody, falseBody) =>
         enterScope()
-        if (!trueBody.isEmpty) // HACK: add "switch-info"
+        if (trueBody.nonEmpty) // HACK: add "switch-info"
           trueBody(0).annotate(START_COND_BLOCK_ANNOT)
-        if (!falseBody.isEmpty) // HACK: add "switch-info"
+        if (falseBody.nonEmpty) // HACK: add "switch-info"
           falseBody(0).annotate(START_COND_BLOCK_ANNOT)
 
-      case _ : Scope
-        | _ : ForLoopStatement
-        | _ : WhileLoopStatement
-        | _ : FunctionStatement
-        | _ : SwitchStatement
-        | _ : CaseStatement =>
+      case _ : IR_Scope
+           | _ : IR_ForLoop
+           | _ : IR_WhileLoop
+           | _ : IR_Function
+           | _ : IR_Switch
+           | _ : IR_Case =>
         enterScope()
 
       case _ =>
@@ -43,13 +43,13 @@ abstract class ScopeCollector[T](init : T) extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case _ : ConditionStatement
-        | _ : Scope
-        | _ : ForLoopStatement
-        | _ : WhileLoopStatement
-        | _ : FunctionStatement
-        | _ : SwitchStatement
-        | _ : CaseStatement =>
+      case _ : IR_IfCondition
+           | _ : IR_Scope
+           | _ : IR_ForLoop
+           | _ : IR_WhileLoop
+           | _ : IR_Function
+           | _ : IR_Switch
+           | _ : IR_Case =>
         leaveScope()
 
       case _ =>
@@ -63,7 +63,7 @@ abstract class ScopeCollector[T](init : T) extends Collector {
   }
 
   protected def enterScope() : Unit = {
-    scopes.push(cloneCurScope)
+    scopes.push(cloneCurScope())
   }
 
   protected def leaveScope() : Unit = {

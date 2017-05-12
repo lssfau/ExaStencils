@@ -13,7 +13,7 @@ object UniversalSetter {
   /**
     * Sets the value of an entity's member.
     *
-    * @param obj The instance of the entity whose member is to be set.
+    * @param obj   The instance of the entity whose member is to be set.
     * @param ident The name of the member to be set.
     * @param value The new value of the member.
     */
@@ -24,7 +24,7 @@ object UniversalSetter {
     val accessible = field.isAccessible
     field.setAccessible(true)
 
-    if (field.get(obj).getClass.equals(None.getClass())) {
+    if (field.get(obj).getClass.equals(None.getClass)) {
       // Field is Option[T]
       obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, Option[T](value))
     } else {
@@ -38,7 +38,7 @@ object UniversalSetter {
   /**
     * Adds the value to an entity's list member.
     *
-    * @param obj The instance of the entity.
+    * @param obj   The instance of the entity.
     * @param ident The name of the member.
     * @param value The additional value of the member.
     */
@@ -58,7 +58,7 @@ object UniversalSetter {
     *
     * This methods converts the value into a suitable type (e.g., by parsing a string into Int or Float) before setting the new value.
     *
-    * @param obj The instance of the entity whose member is to be set.
+    * @param obj   The instance of the entity whose member is to be set.
     * @param ident The name of the member to be set.
     * @param value The new value of the member.
     */
@@ -66,15 +66,14 @@ object UniversalSetter {
     Logger.info("UniversalSetter: Setting (with conversion) " + ident + " to " + value)
 
     val field = obj.getClass.getDeclaredField(ident)
-    val fieldType = field.getGenericType()
+    val fieldType = field.getGenericType
 
     value match {
-      case s : String => {
-        if (fieldType == classOf[Int] || fieldType == classOf[Integer]) { return apply(obj, ident, s.toInt) }
+      case s : String =>
+        if (fieldType == classOf[Integer]) { return apply(obj, ident, s.toInt) }
         else if (fieldType == classOf[Float]) { return apply(obj, ident, s.toFloat) }
         else if (fieldType == classOf[Double]) { return apply(obj, ident, s.toDouble) }
-      }
-      case _ =>
+      case _          =>
     }
     apply(obj, ident, value)
   }

@@ -23,11 +23,11 @@ BRANCH=${8}
 
 function update_progress {
   if [[ "${1}" -eq 0 ]]; then
-    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n  Done!</div></body></html>" > "${PROGRESS}"
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)  (Reload this page manually.)\n Log can be found <a href=./${BRANCH}/>here</a>.\n\n  Done!\n\n  New tests can be triggered <a href=../trigger-eg-tests.html>here</a></div></body></html>" > "${PROGRESS}"
   elif [[ "${1}" -eq 1 ]]; then
-    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)  (Reload this page manually.)\n Log can be found <a href=./${BRANCH}/>here</a>.\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R")</div></body></html>" > "${PROGRESS}"
   else
-    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)\n Log can be found <a href=./${BRANCH}/>here</a>.  (Reload page manually.)\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
+    echo -e "<html><head><meta charset=\"utf-8\"></head><body><div style=\"white-space: pre-wrap; font-family:monospace;\">Branch: ${BRANCH};\n last update: $(date -R)  (Reload this page manually.)\n Log can be found <a href=./${BRANCH}/>here</a>.\n\n$(squeue -u exatest -o "%.11i %10P %25j %3t %.11M %.5D %R" | grep -v ${SLURM_JOB_ID})</div></body></html>" > "${PROGRESS}"
   fi
 }
 
@@ -61,15 +61,26 @@ done
 
 echo ""
 echo ""
-if [[ -n "${TO_ZIP}" ]]; then
+if [[ -z "${TO_ZIP}" ]]; then
+  # no error: update generator for webinterface
+  echo '<span style="color: #00E000"><b>Yeehaw! No errors detected!</b></span>'
+  echo ""
+  echo ""
+  echo "Create generator for webinterface:"
+  srun nc bartok 5555
+else
+  echo '<span style="color: #E00000"><b>Oh no... something went wrong... :(</b></span>'
+  echo ""
+  echo "Create error log archive and send email:"
   ERROR_ARCHIVE="${LOG_DIR}/ErrorLogs.7z"
   srun 7z a "${ERROR_ARCHIVE}" ${TO_ZIP}
-  echo ""
-  echo ""
-  echo "Errors in automatic tests!  See log or attachment for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
+  echo "Errors in automatic tests!  See log (or attachment) for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
 fi
 
+echo ""
+echo ""
 echo "Tests finished at $(date -R)."
+echo "New tests can be triggered <a href=../../trigger-eg-tests.html>here</a>."
 echo ""
 echo "============================================================================"
 

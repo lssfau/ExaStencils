@@ -16,7 +16,8 @@
 
     <!-- variables for paths and files -->
     <property name="src.dir" location="${basedir}/src"/>
-    <property name="macros-src.dir" location="../CompilerMacros/CompilerMacros/src"/> <!-- source for macros -->
+    <property name="macros-src.dir" location="../CompilerMacros/src"/> <!-- source for macros -->
+    <property name="resources.dir" location="${basedir}/resources"/>
     <property name="lib.dir" location="${basedir}/lib"/>
     <property name="build.dir" location="${basedir}/build"/>
     <property name="build-classes.dir" location="${build.dir}/classes"/>
@@ -31,13 +32,14 @@
       <pathelement location="${scala-library.jar}"/>
       <pathelement location="${scala-reflect.jar}"/>
       <pathelement location="${build-classes.dir}"/> <!-- used during recompilation -->
-      <fileset dir="${lib.dir}" includes="*.jar"/>
+      <fileset dir="${lib.dir}" includes="*.jar" excludes="scala-parser-combinators*.jar"/>
+      <fileset dir="${scala.dir}/lib" includes="scala-parser-combinators*.jar"/> <!-- file name contains version number -.- -->
     </path>
 
     <path id="scala.classpath" cache="true">
       <pathelement location="${scala-compiler.jar}"/>
-      <pathelement location="${scala-reflect.jar}"/>
       <pathelement location="${scala-library.jar}"/>
+      <pathelement location="${scala-reflect.jar}"/>
     </path>
 
     <!-- load scala's ant tasks -->
@@ -79,21 +81,31 @@
       classpathref="compiler.classpath"
       target="jvm-1.5">
       <include name="**/*.scala"/>
-      <src><pathelement location="${src.dir}"/></src>
+      <src>
+        <pathelement location="${src.dir}"/>
+      </src>
     </scalac>
   </target>
 
   <target name="compile" depends="compileScala"/>
 
   <target name="package" depends="compile">
+    <exec executable="git" outputproperty="git.revision">
+      <arg value="log" />
+      <arg value="-1" />
+      <arg value="--pretty=format:%H" />
+    </exec>
+    <echo file="${build-classes.dir}/revision.txt">${git.revision}</echo>
     <jar destfile="${compiler.jar}">
       <fileset dir="${build-classes.dir}"/>
-	  <fileset dir="${basedir}/resources" />
+	  <fileset dir="${resources.dir}" />
+	  <fileset dir="${lib.dir}" excludes="*.jar" />
       <!-- include all jars into generated one (to allow running it without any other files present) -->
-      <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
+      <zipgroupfileset dir="${lib.dir}" includes="*.jar" excludes="scala-parser-combinators*.jar"/>
       <!-- dont't forget scala libraries -->
       <zipgroupfileset file="${scala-library.jar}"/>
       <zipgroupfileset file="${scala-reflect.jar}"/>
+      <zipgroupfileset dir="${scala.dir}/lib" includes="scala-parser-combinators*.jar"/> <!-- file name contains version number -.- -->
     </jar>
   </target>
 </project>

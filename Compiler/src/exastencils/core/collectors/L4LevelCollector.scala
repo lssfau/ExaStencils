@@ -1,27 +1,29 @@
 package exastencils.core.collectors
 
+import exastencils.base.l4._
 import exastencils.datastructures._
-import exastencils.datastructures.l4._
+import exastencils.field.l4.L4_FieldDecl
 import exastencils.logger._
+import exastencils.operator.l4.L4_StencilDecl
 
 class L4LevelCollector extends Collector {
   private var curLevel = -1
 
   override def enter(node : Node) : Unit = {
     node match {
-      case FunctionStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _) => curLevel = level
-      case FieldDeclarationStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _, _) => curLevel = level
-      case StencilDeclarationStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _) => curLevel = level
-      case _ =>
+      case L4_Function(L4_LeveledIdentifier(_, L4_SingleLevel(level)), _, _, _, _)     => curLevel = level
+      case L4_FieldDecl(L4_LeveledIdentifier(_, L4_SingleLevel(level)), _, _, _, _, _) => curLevel = level
+      case L4_StencilDecl(L4_LeveledIdentifier(_, L4_SingleLevel(level)), _)           => curLevel = level
+      case _                                                                           =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case FunctionStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _) => // due to duplication of functions, functions can be left that were never entered
-      case FieldDeclarationStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _, _, _, _, _) => //
-      case StencilDeclarationStatement(LeveledIdentifier(_, SingleLevelSpecification(level)), _) => //
-      case _ =>
+      case L4_Function(L4_LeveledIdentifier(_, L4_SingleLevel(level)), _, _, _, _)     => // due to duplication of functions, functions can be left that were never entered
+      case L4_FieldDecl(L4_LeveledIdentifier(_, L4_SingleLevel(level)), _, _, _, _, _) => //
+      case L4_StencilDecl(L4_LeveledIdentifier(_, L4_SingleLevel(level)), _)           => //
+      case _                                                                           =>
     }
   }
 

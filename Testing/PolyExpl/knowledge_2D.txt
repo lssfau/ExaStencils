@@ -1,0 +1,7 @@
+import "knowledge_templ.txt"
+
+dimensionality  = 2
+
+poly_exploration_extended = true
+poly_tileSize_x = 0
+poly_tileSize_y = 0

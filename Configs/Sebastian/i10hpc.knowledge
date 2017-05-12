@@ -1,51 +1,75 @@
-dimensionality							= 3
+generateFortranInterface			= false
 
-minLevel								= 2
-maxLevel								= 8
-comm_strategyFragment					= 6	// 26
+// problem description
 
-domain_onlyRectangular					= true
-domain_numBlocks						= 1
-domain_numFragmentsPerBlock				= 1
-domain_fragmentLength_x					= 1
-domain_fragmentLength_y					= 1
-domain_fragmentLength_z					= 1
+dimensionality						= 3
 
-domain_rect_generate					= true
-domain_rect_numBlocks_x					= 1
-domain_rect_numBlocks_y					= 1
-domain_rect_numBlocks_z					= 1
-domain_rect_numFragsPerBlock_x			= 1
-domain_rect_numFragsPerBlock_y			= 1
-domain_rect_numFragsPerBlock_z			= 1
+minLevel							= 0
+maxLevel							= 7
 
-omp_enabled								= true
-omp_numThreads							= 8
+experimental_Neumann				= true
+experimental_NeumannOrder			= 1
+experimental_DirichletOrder			= 2
 
-mpi_enabled								= false
-mpi_numThreads							= 1
+grid_isUniform						= false
+grid_isStaggered					= true
+grid_isAxisAligned					= true
 
-omp_parallelizeLoopOverFragments		= false
-omp_parallelizeLoopOverDimensions		= true
+grid_spacingModel					= "linearFct"
 
-mpi_useCustomDatatypes					= false
-poly_optLevel_fine						= 0
-opt_useAddressPrecalc					= false
-opt_vectorize							= false
-opt_unroll								= 1
+// code generation
 
-l3tmp_generateL4						= true
+l3tmp_generateL4					= false
+l3tmp_genForAutoTests				= true
 
-l3tmp_genStencilFields					= true
-l3tmp_exactSolution						= "Polynomial"
+// domain partioning
 
-l3tmp_printError						= true
-l3tmp_useMaxNormForError				= false
+domain_numBlocks					= 1
+domain_numFragmentsPerBlock			= 1
 
-l3tmp_genTimersPerFunction				= true
-l3tmp_printAllTimers					= true
+domain_onlyRectangular				= true
 
-l3tmp_genFragLoops 						= false
-experimental_cuda_enabled				= true
-experimental_cuda_preferredExecution	= "Performance"
+domain_fragmentLength_x				= 1
+domain_fragmentLength_y				= 1
+domain_fragmentLength_z				= 1
 
+domain_rect_generate				= true
+domain_rect_numBlocks_x				= 2
+domain_rect_numBlocks_y				= 2
+domain_rect_numBlocks_z				= 2
+domain_rect_numFragsPerBlock_x		= 1
+domain_rect_numFragsPerBlock_y		= 1
+domain_rect_numFragsPerBlock_z		= 1
+
+// parallelization
+
+comm_strategyFragment				= 6
+
+omp_enabled							= true
+omp_numThreads						= 4
+
+mpi_enabled							= true
+mpi_numThreads						= 8
+
+omp_parallelizeLoopOverFragments	= false
+omp_parallelizeLoopOverDimensions	= true
+
+// optimization
+
+mpi_useCustomDatatypes				= false
+poly_optLevel_fine					= 0
+opt_useAddressPrecalc				= true
+opt_vectorize						= false
+opt_unroll							= 1
+
+// other
+
+experimental_applySchurCompl		= true
+
+experimental_trimBoundsForReductionLoops = true
+experimental_generateParaviewFiles	= true
+
+opt_conventionalCSE					= false
+opt_loopCarriedCSE					= false
+
+//opt_maxInliningSize					= 0

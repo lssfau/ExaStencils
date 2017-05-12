@@ -1,0 +1,20 @@
+targetOS					= "Linux"
+targetCompiler				= "ICC"
+targetCompilerVersion		= 17
+targetCompilerVersionMinor	= 0
+
+simd_instructionSet			= "AVX"
+
+hw_numThreadsPerNode		= 40
+hw_numNodes					= 8
+
+hw_cpu_name					= "Intel Xeon E5-2660 v2"
+hw_cpu_numCoresPerCPU		= 10
+hw_cpu_numHWThreads			= 20
+hw_cpu_numCPUs				= 2
+hw_cpu_bandwidth			= 119400000000.0 // 59.7 * 2 GB/s in B/s
+hw_cpu_frequency			= 2200000000.0 // 2.20 GHz in Hz (base)
+hw_cpu_numCyclesPerDiv		= 24 // arbitrary value -> to be benchmarked later
+
+hw_64bit					= true // true if 64 bit addresses are used
+hw_cacheLineSize			= 512 // in B

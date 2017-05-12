@@ -14,7 +14,7 @@ object NodeCounter extends CustomStrategy("internal::NodeCounter") {
   def count(strategy : Option[String], transformation : Option[String]) : Unit = {
     iteration += 1
     hits = 0
-    StateManager.applyStandalone(this, t, StateManager.root_)
+    StateManager.applyStandalone(this, t, StateManager.root)
 
     var sb = new StringBuilder()
     sb.append("nodecounter;")

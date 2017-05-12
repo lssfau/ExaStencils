@@ -1,51 +1,45 @@
-dimensionality							= 3
+dimensionality				= 2
 
-minLevel								= 2
-maxLevel								= 8
-comm_strategyFragment					= 6	// 26
+minLevel					= 3
+maxLevel					= 8
 
-domain_onlyRectangular					= true
-domain_numBlocks						= 1
-domain_numFragmentsPerBlock				= 1
-domain_fragmentLength_x					= 1
-domain_fragmentLength_y					= 1
-domain_fragmentLength_z					= 1
+grid_isUniform				= false
+grid_isStaggered			= false
+grid_isAxisAligned			= false
 
-domain_rect_generate					= true
-domain_rect_numBlocks_x					= 1
-domain_rect_numBlocks_y					= 1
-domain_rect_numBlocks_z					= 1
-domain_rect_numFragsPerBlock_x			= 1
-domain_rect_numFragsPerBlock_y			= 1
-domain_rect_numFragsPerBlock_z			= 1
+grid_spacingModel			= "random"
 
-omp_enabled								= true
-omp_numThreads							= 8
+domain_onlyRectangular		= true
+domain_numBlocks			= 1
+domain_numFragmentsPerBlock	= 1
 
-mpi_enabled								= false
-mpi_numThreads							= 1
+domain_rect_generate			= true
+domain_rect_numBlocks_x			= 1
+domain_rect_numBlocks_y			= 1
+domain_rect_numBlocks_z			= 1
+domain_rect_numFragsPerBlock_x	= 1
+domain_rect_numFragsPerBlock_y	= 1
+domain_rect_numFragsPerBlock_z	= 1
 
-omp_parallelizeLoopOverFragments		= false
-omp_parallelizeLoopOverDimensions		= true
+omp_enabled					= true
+omp_numThreads				= 8
 
-mpi_useCustomDatatypes					= false
-poly_optLevel_fine						= 0
-opt_useAddressPrecalc					= false
-opt_vectorize							= false
-opt_unroll								= 1
+mpi_enabled					= false
+mpi_numThreads				= 1
 
-l3tmp_generateL4						= true
+omp_parallelizeLoopOverFragments	= false
+omp_parallelizeLoopOverDimensions	= true
 
-l3tmp_genStencilFields					= true
-l3tmp_exactSolution						= "Polynomial"
+l3tmp_generateL4			= false
+/*l3tmp_genForAutoTests		= false
 
-l3tmp_printError						= true
-l3tmp_useMaxNormForError				= false
+l3tmp_exactSolution			= "Trigonometric"
+l3tmp_genCellBasedDiscr		= true
+l3tmp_genHDepStencils		= true
 
-l3tmp_genTimersPerFunction				= true
-l3tmp_printAllTimers					= true
+l3tmp_printError			= true
 
-l3tmp_genFragLoops 						= false
-experimental_cuda_enabled				= true
-experimental_cuda_preferredExecution	= "Performance"
-
+l3tmp_smoother				= "RBGS"
+*/
+//library_CImg				= true
+//experimental_NeumannOrder	= 1
