@@ -32,14 +32,17 @@ case class IR_ArrayAccess(var base : IR_Expression, var index : IR_Expression, v
   }
 }
 
-case class IR_HighDimAccess(var base : IR_Expression, var index : IR_ConstIndex) extends IR_Access {
+case class IR_HighDimAccess(var base : IR_Expression, var index : IR_Index) extends IR_Access {
   // TODO: modify this to use IR_HighDimIndex
 
   // Access to matrices, needs to be linearized before prettyprinting
   override def datatype = base.datatype.resolveDeclType
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << '(' << '(' << base << ')' << index.map('[' + _.toString + ']').mkString("") << ')'
+    val expIdx = index.toExpressionIndex
+    out << '(' << base
+    expIdx.prettyprint(out)
+    out << ')'
   }
 }
 

@@ -59,3 +59,4 @@ opt_unroll							= 1
 experimental_resolveUnreqFragmentLoops	= true
 //experimental_generateParaviewFiles	= true
 experimental_bc_checkOnlyMainAxis	= true
+experimental_resolveInverseFunctionCall = "Runtime"
