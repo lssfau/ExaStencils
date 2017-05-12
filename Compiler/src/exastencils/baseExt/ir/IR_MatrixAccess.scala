@@ -14,7 +14,6 @@ import exastencils.prettyprinting._
 import exastencils.util.ir.IR_ResultingDatatype
 
 /// IR_HackMatComponentAccess
-
 // FIXME: update with actual accessors
 case class IR_HackMatComponentAccess(var mat : IR_VariableAccess, var i : IR_Expression, var j : IR_Expression) extends IR_Expression {
   override def datatype = mat.datatype
@@ -41,13 +40,6 @@ object IR_MatrixExpression {
     }
     tmp
   }
-
-  //  implicit def +(a : IR_MatrixExpression, b : IR_MatrixExpression) = {
-  //    val ret = new IR_MatrixExpression(Some(IR_ResultingDatatype(a.innerDatatype.get, b.innerDatatype.get)), a.rows, a.columns)
-  //    var xx = a.expressions.zip(b.expressions).map(x => x._1 + x._2).asInstanceOf[Array[IR_Expression]]
-  //    ret.expressions = xx
-  //    ret
-  //  }
 }
 
 case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows : Int, var columns : Int) extends IR_Expression {
@@ -92,122 +84,6 @@ case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows
   override def toString : String = { "IR_MatrixExpression(" + innerDatatype + ", " + rows + ", " + columns + "; Items: " + expressions.mkString(", ") + ")" }
 }
 
-case object IR_RuntimeInverseMatrix extends IR_AbstractFunction(false) with PrettyPrintable {
-  def name = "_runtimeInverseMatrix"
-
-  //override def prettyprint_decl() : String = "template<size_t N, typename T> void _runtimeInverseMatrix(T*, T*);\n"
-
-  override def prettyprint(out : PpStream) = {}
-
-  override def prettyprint_decl() : String = {
-    """
-template<size_t N, typename T> void _printMatrix(std::ostream& stream, T* A) {
-    for(size_t i = 0; i < N; i++) {
-        for(size_t j = 0; j < N; ++j) {
-            stream << A[i * N + j] << "\t";
-        }
-        stream << "\n";
-    }
-    stream << std::endl;
-}
-template<size_t N, typename T>
-void _runtimeInverseMatrix(T* in, T* out) {
-    T L[N * N];
-    T U[N * N];
-    size_t p[N], q[N];
-
-    std::copy(in, in + N * N, U);
-    std::fill(std::begin(L), std::end(L), 0);
-    for (size_t i = 0; i < N * N; i += N + 1)
-    {
-        L[i] = 1;
-    }
-
-    for (size_t i = 0; i < N; ++i)
-    {
-        p[i] = i;
-        q[i] = i;
-    }
-
-    for (size_t k = 0; k < N - 1; ++k)
-    {
-        T colmax(0);
-        size_t /*maxrow = 0,*/ maxcol = 0; // will always be >= k
-        //for (size_t i = k; i < N; ++i) {
-        for (size_t j = k; j < N; ++j)
-        {
-            if (std::abs(U[k * N + j]) > colmax)
-            {
-                colmax = std::abs(U[k * N + j]);
-                //maxrow = i; // no row swapping for now
-                maxcol = j;
-            }
-        }
-        if (colmax < 1e-15)
-        {
-            // matrix singular -> print warning
-            std::cerr << "WARNING: matrix potentially singular:" << std::endl;
-            _printMatrix<N>(std::cerr, U);
-        }
-        //}
-        //std::swap ( p[k], p[maxrow] );
-        //std::swap_ranges(L + k * N, L + (k+1) * N, L + maxrow * N);
-        //std::swap_ranges(U + k * N, U + (k+1) * N, U + maxrow * N);
-
-        std::swap(q[k], q[maxcol]);
-        for (size_t i = 0; i < N; ++i)
-        {
-            std::swap(L[i * N + k], L[i * N + maxcol]);
-            std::swap(U[i * N + k], U[i * N + maxcol]);
-        }
-
-        for (size_t i = k + 1; i < N; ++i)
-        {
-            L[i * N + k] = U[i * N + k] / U[k * N + k];
-            for (size_t j = k; j < N; ++j)
-            {
-                U[i * N + j] -= L[i * N + k] * U[k * N + j];
-            }
-        }
-    }
-
-    T y[N * N];
-
-    for (size_t j = 0; j < N; ++j)
-    {
-        for (size_t i = 0; i < N; ++i)
-        {
-            T sum(0);
-            for (size_t k = 0; k < i; ++k)
-            {
-                sum += L[i * N + k] * y[k * N + j];
-            }
-
-            if (p[i] == j)
-            {
-                y[i * N + j] = (1 - sum) / L[i * N + i];
-            }
-            else
-            {
-                y[i * N + j] = (0 - sum) / L[i * N + i];
-            }
-        }
-
-        for (size_t i = N - 1; i <= SIZE_MAX - 1; --i)
-        {
-            T sum = 0;
-            for (size_t k = N - 1; k > i; --k)
-            {
-                sum += U[i * N + k] * out[k * N + j];
-            }
-            out[i * N + j] = (y[i * N + j] - sum) / U[i * N + i];
-        }
-    }
-}
-    """
-  }
-}
-
 object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expressions where necessary") {
   val annotationFctCallCounter = "IR_ResolveMatrices.fctCallCounter"
   var fctCallCounter = 0
@@ -215,19 +91,10 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
   val annotationMatExpCounter = "IR_ResolveMatrices.matrixExpressionCounter"
   var matExpCounter = 0
   var resolveFunctions = ListBuffer[String]()
-  var runtimeFunctions = ListBuffer[String]()
 
   override def apply(applyAtNode : Option[Node]) : Unit = {
     resolveFunctions.clear()
-    resolveFunctions ++= ListBuffer("dotProduct", "dot", "crossProduct", "cross", "det")
-    runtimeFunctions.clear()
-    if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
-      runtimeFunctions += "inverse"
-      IR_UserFunctions.get.functions += IR_RuntimeInverseMatrix
-    } else {
-      resolveFunctions += "inverse"
-    }
-
+    resolveFunctions ++= ListBuffer("dotProduct", "dot", "crossProduct", "cross", "det", "inverse")
     super.apply(applyAtNode)
   }
 
@@ -242,15 +109,17 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
     }
   })
 
-  this += new Transformation("preparation", {
-    case call : IR_FunctionCall if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime" && call.name == "inverse") => {
-      val m = call.arguments(0).datatype.asInstanceOf[IR_MatrixDatatype]
-      if (m.sizeM > 3) {
-        call.function = new IR_UserFunctionAccess("_runtimeInverseMatrix<" + m.sizeM + ">", m)
+  if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
+    this += new Transformation("preparation", {
+      case call @ IR_FunctionCall(_, args) if (call.name == "inverse") => {
+        val m = args(0).datatype.asInstanceOf[IR_MatrixDatatype]
+        if (m.sizeM > 3) {
+          call.function = new IR_UserFunctionAccess("_runtimeInverseMatrix", m)
+        }
+        call
       }
-      call
-    }
-  })
+    })
+  }
 
   this += new Transformation("extract function calls 1/2", {
     case stmt @ IR_Assignment(dest, src, op) if (src.datatype.isInstanceOf[IR_MatrixDatatype]) => {
@@ -462,26 +331,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
     }
   }
 
-  //  this += new Transformation("resolution of built-in functions 1/2", {
-  //    case call : IR_FunctionCall if (builtInFunctions.contains(call.name)) => {
-  //      call.arguments = call.arguments.map(arg => arg match {
-  //        case _ : IR_VariableAccess | _ : IR_MultiDimFieldAccess => {
-  //          // FIXME: map fieldAccesses and the like to MatrixExpression in preparatory strategy?
-  //          val matrix = arg.datatype.asInstanceOf[IR_MatrixDatatype]
-  //          var exps = ListBuffer[IR_Expression]()
-  //          for (row <- 0 until matrix.sizeM) {
-  //            for (col <- 0 until matrix.sizeN) {
-  //              exps += IR_HighDimAccess(Duplicate(arg), IR_ConstIndex(row, col))
-  //            }
-  //          }
-  //          IR_MatrixExpression(Some(matrix.resolveBaseDatatype), matrix.sizeM, matrix.sizeN, exps.toArray)
-  //        }
-  //        case _                                                  => arg
-  //      })
-  //      call
-  //    }
-  //  })
-
   this += new Transformation("resolution of built-in functions 2/2", {
     case call : IR_FunctionCall if (call.name == "dotProduct" || call.name == "dot") => {
       if (call.arguments.length != 2) {
@@ -535,11 +384,9 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
     // FIXME: other vec functions: length, normalize
 
     case call : IR_FunctionCall if (call.name == "inverse") => {
-      if (Knowledge.experimental_resolveInverseFunctionCall != "Runtime") {
         if (call.arguments.length != 1) {
           Logger.error("inverse() must have one argument")
         }
-      }
       val m = call.arguments(0).asInstanceOf[IR_MatrixExpression]
       val ret = m.rows match {
         case 1 => IR_MatrixExpression(m.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), m.get(0, 0))))
@@ -574,12 +421,8 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
         }
         case _ => {
-          // TODO exploit knowledge about matrix structure
+          // TODO gather and exploit knowledge about matrix structure
           Knowledge.experimental_resolveInverseFunctionCall match {
-            case "Runtime"     => {
-              call.function.name = "_runtimeInverseMatrix<" + m.rows + ">"
-              call
-            }
             case "Cofactors"   => {
               val inv_det = IR_IntegerConstant(1) / calculateDeterminant(m)
               val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
@@ -648,6 +491,8 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
               }
               other
             }
+            case "Runtime"     => call
+            case _             => call
           }
         }
       }
@@ -661,6 +506,115 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       calculateDeterminant(m)
     }
   })
+
+  if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
+    def runtimeInverse(in : IR_VariableAccess, out : IR_VariableAccess) = {
+      def printMatrix(matrix : IR_VariableAccess) = {
+        val stmts = ListBuffer[IR_Statement]()
+        matrix.datatype match {
+          case dt : IR_MatrixDatatype => {
+            for (i <- 0 until dt.sizeM) {
+              for (j <- 0 until dt.sizeN) {
+                stmts += IR_ExpressionStatement(IR_FunctionCall("printf", ListBuffer[IR_Expression](IR_StringConstant("%e "), IR_HighDimAccess(matrix, IR_ConstIndex(i, j)))))
+              }
+              stmts += IR_ExpressionStatement(IR_FunctionCall("printf", IR_StringConstant("\\n")))
+            }
+          }
+        }
+        stmts
+      }
+      def mkConstant(dt : IR_Datatype, v : Double) = dt match {
+        case IR_RealDatatype    => IR_RealConstant(v)
+        case IR_IntegerDatatype => IR_IntegerConstant(v.toInt)
+        case _                  => exastencils.logger.Logger.error("mkConstant not implemented for " + dt.toString)
+      }
+
+      val inDt = in.datatype.asInstanceOf[IR_MatrixDatatype]
+
+      val N = inDt.sizeM
+      val myType = inDt.resolveBaseDatatype
+      val func = IR_Scope(Nil)
+      val myL = IR_VariableAccess("_L", IR_MatrixDatatype(myType, N, N))
+      val myU = IR_VariableAccess("_U", IR_MatrixDatatype(myType, N, N))
+      val myQ = IR_VariableAccess("_q", IR_ArrayDatatype(IR_IntegerDatatype, N))
+      val myI = IR_VariableAccess("_i", IR_IntegerDatatype)
+      val myJ = IR_VariableAccess("_j", IR_IntegerDatatype)
+      val myK = IR_VariableAccess("_k", IR_IntegerDatatype)
+      func.body += IR_VariableDeclaration(myL)
+      func.body += IR_VariableDeclaration(myU)
+      func.body += IR_Assignment(myL, mkConstant(myType, 0))
+      func.body += IR_Assignment(myU, in)
+      func.body += IR_VariableDeclaration(myQ)
+      func.body += IR_Assignment(out, mkConstant(myType, 0))
+      for (i <- 0 until N) {
+        func.body += IR_Assignment(IR_HighDimAccess(myL, IR_ConstIndex(i, i)), mkConstant(myType, 1))
+      }
+      for (i <- 0 until N) {
+        func.body += IR_Assignment(IR_ArrayAccess(myQ, IR_IntegerConstant(i)), IR_IntegerConstant(i))
+      }
+      val myColmax = IR_VariableAccess("_colmax", myType)
+      val myMaxCol = IR_VariableAccess("_maxCol", IR_IntegerDatatype)
+      func.body += IR_ForLoop(IR_VariableDeclaration(myK, IR_IntegerConstant(0)), IR_Lower(myK, IR_IntegerConstant(N - 1)), IR_ExpressionStatement(IR_PreIncrement(myK)), ListBuffer[IR_Statement](
+        IR_VariableDeclaration(myColmax, IR_RealConstant(0)),
+        IR_VariableDeclaration(myMaxCol, myK),
+        IR_ForLoop(IR_VariableDeclaration(myJ, myK), IR_Lower(myJ, IR_IntegerConstant(N)), IR_ExpressionStatement(IR_PreIncrement(myJ)), ListBuffer[IR_Statement](
+          IR_IfCondition(IR_Greater(IR_FunctionCall("fabs", IR_HighDimAccess(myU, IR_ExpressionIndex(myK, myJ))), myColmax), ListBuffer[IR_Statement](
+            IR_Assignment(myColmax, IR_FunctionCall("fabs", IR_HighDimAccess(myU, IR_ExpressionIndex(myK, myJ)))),
+            IR_Assignment(myMaxCol, myJ)
+          ))
+        )),
+        IR_IfCondition(IR_Lower(myColmax, mkConstant(myType, 1e-15)),
+          IR_ExpressionStatement(IR_FunctionCall("printf", IR_StringConstant("[WARNING] Inverting potentially singular matrix\\n"))) +:
+            printMatrix(myU)
+        ),
+        IR_ExpressionStatement(IR_FunctionCall("std::swap", IR_ArrayAccess(myQ, myK), IR_ArrayAccess(myQ, myMaxCol)))
+      ))
+      for (i <- 0 until N) {
+        func.body.last.asInstanceOf[IR_ForLoop].body += IR_ExpressionStatement(IR_FunctionCall("std::swap", IR_HighDimAccess(myL, IR_ExpressionIndex(IR_IntegerConstant(i), myK)), IR_HighDimAccess(myL, IR_ExpressionIndex(IR_IntegerConstant(i), myMaxCol))))
+      }
+      for (i <- 0 until N) {
+        func.body.last.asInstanceOf[IR_ForLoop].body += IR_ExpressionStatement(IR_FunctionCall("std::swap", IR_HighDimAccess(myU, IR_ExpressionIndex(IR_IntegerConstant(i), myK)), IR_HighDimAccess(myU, IR_ExpressionIndex(IR_IntegerConstant(i), myMaxCol))))
+      }
+      func.body.last.asInstanceOf[IR_ForLoop].body += IR_ForLoop(IR_VariableDeclaration(myI, myK + IR_IntegerConstant(1)), IR_Lower(myI, IR_IntegerConstant(N)), IR_ExpressionStatement(IR_PreIncrement(myI)), ListBuffer[IR_Statement](
+        IR_Assignment(IR_HighDimAccess(myL, IR_ExpressionIndex(myI, myK)), IR_HighDimAccess(myU, IR_ExpressionIndex(myI, myK)) / IR_HighDimAccess(myU, IR_ExpressionIndex(myK, myK))),
+        IR_ForLoop(IR_VariableDeclaration(myJ, myK), IR_Lower(myJ, IR_IntegerConstant(N)), IR_ExpressionStatement(IR_PreIncrement(myJ)), ListBuffer[IR_Statement](
+          IR_Assignment(IR_HighDimAccess(myU, IR_ExpressionIndex(myI, myJ)), IR_HighDimAccess(myU, IR_ExpressionIndex(myI, myJ)) - IR_HighDimAccess(myL, IR_ExpressionIndex(myI, myK)) * IR_HighDimAccess(myU, IR_ExpressionIndex(myK, myJ)))
+        ))
+      ))
+      val myY = IR_VariableAccess("_y", IR_MatrixDatatype(myType, N, N))
+      val mySum = IR_VariableAccess("_sum", myType)
+      func.body += IR_VariableDeclaration(myY)
+      func.body += IR_ForLoop(IR_VariableDeclaration(myJ, IR_IntegerConstant(0)), IR_Lower(myJ, IR_IntegerConstant(N)), IR_ExpressionStatement(IR_PreIncrement(myJ)), ListBuffer[IR_Statement](
+        IR_ForLoop(IR_VariableDeclaration(myI, IR_IntegerConstant(0)), IR_Lower(myI, IR_IntegerConstant(N)), IR_ExpressionStatement(IR_PreIncrement(myI)), ListBuffer[IR_Statement](
+          IR_VariableDeclaration(mySum, IR_RealConstant(0)),
+          IR_ForLoop(IR_VariableDeclaration(myK, IR_IntegerConstant(0)), IR_Lower(myK, myI), IR_ExpressionStatement(IR_PreIncrement(myK)), ListBuffer[IR_Statement](
+            IR_Assignment(mySum, mySum + IR_HighDimAccess(myL, IR_ExpressionIndex(myI, myK)) * IR_HighDimAccess(myY, IR_ExpressionIndex(myK, myJ)))
+          )),
+          IR_IfCondition(IR_EqEq(myI, myJ),
+            IR_Assignment(IR_HighDimAccess(myY, IR_ExpressionIndex(myI, myJ)), (mkConstant(myType, 1) - mySum) / IR_HighDimAccess(myL, IR_ExpressionIndex(myI, myI))),
+            IR_Assignment(IR_HighDimAccess(myY, IR_ExpressionIndex(myI, myJ)), (mkConstant(myType, 0) - mySum) / IR_HighDimAccess(myL, IR_ExpressionIndex(myI, myI)))
+          )
+        )),
+        IR_ForLoop(IR_VariableDeclaration(myI, IR_IntegerConstant(N) - IR_IntegerConstant(1)), IR_GreaterEqual(myI, IR_IntegerConstant(0)), IR_ExpressionStatement(IR_PreDecrement(myI)), ListBuffer[IR_Statement](
+          IR_VariableDeclaration(mySum, IR_RealConstant(0)),
+          IR_ForLoop(IR_VariableDeclaration(myK, IR_IntegerConstant(N) - IR_IntegerConstant(1)), IR_Greater(myK, myI), IR_ExpressionStatement(IR_PreDecrement(myK)), ListBuffer[IR_Statement](
+            IR_Assignment(mySum, mySum + IR_HighDimAccess(myU, IR_ExpressionIndex(myI, myK)) * IR_HighDimAccess(out, IR_ExpressionIndex(myK, myJ)))
+          )),
+          IR_Assignment(IR_HighDimAccess(out, IR_ExpressionIndex(myI, myJ)), (IR_HighDimAccess(myY, IR_ExpressionIndex(myI, myJ)) - mySum) / IR_HighDimAccess(myU, IR_ExpressionIndex(myI, myI)))
+        ))
+      ))
+
+      func
+    }
+
+    this += new Transformation("resolve runtime inversion", {
+      case IR_ExpressionStatement(call @ IR_FunctionCall(func, ListBuffer(in : IR_VariableAccess, out : IR_VariableAccess))) if (call.name == "_runtimeInverseMatrix") => {
+        //val in = call.arguments(0).asInstanceOf[IR_VariableAccess]
+        //val out = call.arguments(1).asInstanceOf[IR_VariableAccess]
+        runtimeInverse(in, out)
+      }
+    })
+  }
 }
 
 object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments to matrices") {
@@ -696,24 +650,6 @@ object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments 
     case exp : IR_Expression if (exp.hasAnnotation(annotationMatrixRow)) =>
       IR_HighDimAccess(Duplicate(exp), IR_ConstIndex(Array(exp.popAnnotation(annotationMatrixRow).get.asInstanceOf[Int], exp.popAnnotation(annotationMatrixCol).get.asInstanceOf[Int])))
   }, false)
-
-  //  this += new Transformation("linearize into array accesses", {
-  //    case access @ IR_HighDimAccess(base : IR_VariableAccess, idx : IR_ConstIndex) => {
-  //      val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
-  //      val myidx = idx.toExpressionIndex
-  //      IR_ArrayAccess(base, IR_IntegerConstant(matrix.sizeM) * myidx.indices(0) + myidx.indices(1))
-  //    }
-  //    case access @ IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_ConstIndex) => {
-  //    // FIXME
-  //    }
-  //  })
-  //  this += Transformation("linearize HighDimAccesses", {
-  //    case access @ IR_HighDimAccess(base, idx : IR_ConstIndex) if (idx.indices.length == 2) => {
-  //      val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
-  //      idx.indices = List(matrix.sizeM * idx.indices(0) + idx.indices(1)).toArray
-  //      access
-  //    }
-  //  })
 }
 
 object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to matrices and vectors to MatrixExpressions") {
@@ -728,9 +664,9 @@ object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to ma
   }
 
   this += Transformation("Wrap", {
-    case m : IR_MatrixExpression                                                => m // no need to process further
-    case hda : IR_HighDimAccess                                                 => hda // no need to process further
-    case x : IR_FunctionCall if (x.function.name.startsWith("_runtimeInverse")) => x // FIXME remove after inlining runtimeInverse()
+    case m : IR_MatrixExpression                                    => m // no need to process further
+    case hda : IR_HighDimAccess                                     => hda // no need to process further
+    case x : IR_FunctionCall if (x.name == "_runtimeInverseMatrix") => x
 
     case access @ IR_VariableAccess(_, matrixDT : IR_MatrixDatatype) =>
       IR_MatrixExpression(Some(matrixDT.datatype), matrixDT.sizeM, matrixDT.sizeN, duplicateExpressions(access, matrixDT))
