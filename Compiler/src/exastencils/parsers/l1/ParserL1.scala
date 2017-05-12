@@ -4,7 +4,7 @@ import scala.collection.immutable.PagedSeq
 import scala.util.parsing.input.PagedSeqReader
 
 import exastencils.datastructures.Node
-import exastencils.datastructures.l1._
+import exastencils.base.l1._
 import exastencils.parsers.ExaParser
 
 class ParserL1 extends ExaParser {
@@ -35,13 +35,13 @@ class ParserL1 extends ExaParser {
   // ##### basic definitions
   // ######################################
 
-  lazy val program = (domain ||| operator ||| equation ||| rhs ||| mapping).+ ^^ { case x => Root(x) }
+  lazy val program = (domain ||| operator ||| equation ||| rhs ||| mapping).+ ^^ { case x => L1_Root(x) }
 
-  lazy val domain = ("Domain" ~> ident) ~ ("=" ~> range) ^^ { case id ~ range => Domain(id, range) }
-  lazy val operator = ("Operator" ~> ident) ~ ("=" ~> binaryexpression) ^^ { case id ~ exp => Operator(id, exp) }
-  lazy val equation = ("Equation" ~> binaryexpression) ~ ("=" ~> binaryexpression) ^^ { case l ~ r => Equation(l, r) }
-  lazy val rhs = ("RHS" ~> ident) ~ ("=" ~> binaryexpression) ^^ { case id ~ exp => RHS(id, exp) }
-  lazy val mapping = ("Mapping" ~> ident) ~ (arrow ~> set) ^^ { case id ~ set => Mapping(id, set) }
+  lazy val domain = ("Domain" ~> ident) ~ ("=" ~> range) ^^ { case id ~ range => L1_Domain(id, range) }
+  lazy val operator = ("Operator" ~> ident) ~ ("=" ~> binaryexpression) ^^ { case id ~ exp => L1_Operator(id, exp) }
+  lazy val equation = ("Equation" ~> binaryexpression) ~ ("=" ~> binaryexpression) ^^ { case l ~ r => L1_Equation(l, r) }
+  lazy val rhs = ("RHS" ~> ident) ~ ("=" ~> binaryexpression) ^^ { case id ~ exp => L1_RHS(id, exp) }
+  lazy val mapping = ("Mapping" ~> ident) ~ (arrow ~> set) ^^ { case id ~ set => L1_Mapping(id, set) }
 
   // ######################################
   // ##### range definitions
@@ -60,34 +60,34 @@ class ParserL1 extends ExaParser {
 
   lazy val arrow = "-" ~ ">"
   lazy val set = (
-    ("C" ||| "R") ~ ("^" ~> ("1" ||| "2" ||| "3")) ^^ { case id ~ exp => MathSet(id, exp) }
-    ||| ident ^^ { case id => MathSet(id) })
+    ("C" ||| "R") ~ ("^" ~> ("1" ||| "2" ||| "3")) ^^ { case id ~ exp => L1_MathSet(id, exp) }
+      ||| ident ^^ { case id => L1_MathSet(id) })
 
   // ######################################
   // ##### binary expressions
   // ######################################
 
-  lazy val binaryexpression : PackratParser[Expression] = (
-    ((binaryexpression ~ ("+" ||| "-") ~ term) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+  lazy val binaryexpression : PackratParser[L1_Expression] = (
+    ((binaryexpression ~ ("+" ||| "-") ~ term) ^^ { case lhs ~ op ~ rhs => L1_BinaryExpression(op, lhs, rhs) })
     ||| term)
 
-  lazy val term : PackratParser[Expression] = (
-    ((term ~ ("*" ||| "/") ~ term2) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+  lazy val term : PackratParser[L1_Expression] = (
+    ((term ~ ("*" ||| "/") ~ term2) ^^ { case lhs ~ op ~ rhs => L1_BinaryExpression(op, lhs, rhs) })
     ||| term2)
 
-  lazy val term2 : PackratParser[Expression] = (
-    ((term2 ~ ("**" ||| "^") ~ factor) ^^ { case lhs ~ op ~ rhs => BinaryExpression(op, lhs, rhs) })
+  lazy val term2 : PackratParser[L1_Expression] = (
+    ((term2 ~ ("**" ||| "^") ~ factor) ^^ { case lhs ~ op ~ rhs => L1_BinaryExpression(op, lhs, rhs) })
     ||| factor)
 
-  lazy val factor : PackratParser[Expression] = (
+  lazy val factor : PackratParser[L1_Expression] = (
     "(" ~> binaryexpression <~ ")"
     ||| "{" ~> binaryexpression <~ "}"
-    ||| ("-" ~ "(") ~> binaryexpression <~ ")" ^^ { case exp => UnaryExpression("-", exp) }
-    ||| "-" ~> binaryexpression ^^ { case exp => UnaryExpression("-", exp) }
+      ||| ("-" ~ "(") ~> binaryexpression <~ ")" ^^ { case exp => L1_UnaryExpression("-", exp) }
+      ||| "-" ~> binaryexpression ^^ { case exp => L1_UnaryExpression("-", exp) }
     ||| operatorApplication
-    ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) IntegerConstant((s.getOrElse("") + n).toInt) else FloatConstant((s.getOrElse("") + n).toDouble) })
-    ||| ident ^^ { case id => Access(id) })
+      ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L1_IntegerConstant((s.getOrElse("") + n).toInt) else L1_FloatConstant((s.getOrElse("") + n).toDouble) })
+      ||| ident ^^ { case id => L1_Access(id) })
 
-  lazy val operatorApplication : PackratParser[OperatorApplication] =
-    (ident <~ "(") ~ (binaryexpression <~ ")") ^^ { case id ~ exp => OperatorApplication(id, exp) }
+  lazy val operatorApplication : PackratParser[L1_OperatorApplication] =
+    (ident <~ "(") ~ (binaryexpression <~ ")") ^^ { case id ~ exp => L1_OperatorApplication(id, exp) }
 }
