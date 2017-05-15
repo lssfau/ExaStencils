@@ -86,7 +86,7 @@ object L1_Parser extends StandardTokenParsers with PackratParsers {
   //////////////////////////////
 
   // Domain Parsing //
-  lazy val domain = cartPower ~ rep("\\times" ~> cartPower) ^^ { case dom1 ~ domList => dom1 + domList.reduceLeft(_ + _) }
+  lazy val domain = cartPower ~ rep(("\\times" | "×") ~> cartPower) ^^ { case dom1 ~ domList => dom1 + domList.reduceLeft(_ + _) }
   lazy val cartPower : Parser[L1_Domain] = dim ~ opt(("^^" | "**") ~> uInteger) ^^ { case dim ~ Some(exp) => new L1_Domain(Seq.fill(exp)(dim))
   case dim ~ None                                                                                         => new L1_Domain(dim)
   }
