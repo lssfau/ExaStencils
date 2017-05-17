@@ -3,8 +3,11 @@ package exastencils.operator.l2
 import scala.collection.mutable._
 
 import exastencils.base.l2._
+import exastencils.baseExt.l2._
+import exastencils.boundary.l2.L2_NoBC
 import exastencils.datastructures._
 import exastencils.domain.l2._
+import exastencils.field.l2._
 import exastencils.knowledge.l2._
 import exastencils.logger._
 import exastencils.prettyprinting._
@@ -41,6 +44,18 @@ object L2_UnfoldStencilTemplateDeclarations extends DefaultStrategy("Unfold L2 f
   })
 }
 
+/// L2_PrepareStencilTemplateDeclaration
+
+object L2_PrepareStencilTemplateDeclaration extends DefaultStrategy("Prepare knowledge for L2 stencil templates") {
+  this += Transformation("Process new stencil templates", {
+    case decl : L2_StencilTemplateDecl =>
+      L2_FieldCollection.addDeclared(decl.name + "_Data", decl.levels)
+      L2_StencilCollection.addDeclared(decl.name + "_Stencil", decl.levels)
+
+      decl // preserve declaration statement
+  })
+}
+
 /// L2_ProcessStencilTemplateDeclarations
 
 object L2_ProcessStencilTemplateDeclarations extends DefaultStrategy("Integrate L2 stencil template declarations with knowledge") {
@@ -48,7 +63,22 @@ object L2_ProcessStencilTemplateDeclarations extends DefaultStrategy("Integrate 
     case decl : L2_StencilTemplateDecl if !L2_FutureKnowledgeAccess.existsInStmt(decl) =>
       val level = L2_LevelSpecification.asSingleLevel(decl.levels)
       val domain = L2_DomainCollection.getByIdentifier(decl.domainName).get
-      L2_StencilTemplateCollection.add(L2_StencilTemplate(decl.name, level, decl.localization, domain, decl.offsets)) // defer level determination
+
+      // TODO: warn for divergent lengths?
+      val numDims = decl.offsets.map(_.length).max
+
+      val field = L2_Field(decl.name + "_Data", level, domain,
+        L2_VectorDatatype(L2_RealDatatype /*FIXME: decl.datatype*/ , decl.offsets.length),
+        decl.localization, None, L2_NoBC)
+
+      val stencil = L2_Stencil(decl.name + "_Stencil", level, numDims, Array.fill(numDims)(1.0),
+        decl.offsets.zipWithIndex.map { case (offset, i) =>
+          L2_StencilOffsetEntry(offset, L2_HigherDimSelection(L2_FieldAccess(field), L2_ConstIndex(i))).asStencilMappingEntry
+        })
+
+      L2_FieldCollection.add(field)
+      L2_StencilCollection.add(stencil)
+      //L2_StencilTemplateCollection.add(L2_StencilTemplate(decl.name, level, decl.localization, domain, decl.offsets)) // defer level determination
 
       None // consume declaration statement
   })

@@ -4,7 +4,7 @@ import scala.collection.mutable.HashMap
 
 import exastencils.base.l3.L3_Datatype
 import exastencils.base.l4.L4_ConstIndex
-import exastencils.baseExt.l3.L3_ArrayDatatype
+import exastencils.baseExt.l3._
 import exastencils.config.Knowledge
 import exastencils.field.l4._
 import exastencils.knowledge.l3.L3_LeveledKnowledgeCollection
@@ -32,7 +32,7 @@ object L3_StencilTemplateCollection extends L3_LeveledKnowledgeCollection[L3_Ste
     var requiredLayouts = HashMap[(String, Int), (L3_Datatype, String)]()
     for (obj <- objects)
       requiredLayouts +=
-        ((obj.fieldLayoutName, obj.level) -> (L3_ArrayDatatype(obj.resolveCoeffDataType, obj.offsets.length), obj.localization))
+        ((obj.fieldLayoutName, obj.level) -> (L3_VectorDatatype(obj.resolveCoeffDataType, obj.offsets.length), obj.localization))
 
     def defIndex = L4_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
 
