@@ -51,7 +51,7 @@ object L2_UnfoldStencilDeclarations extends DefaultStrategy("Unfold L2 stencil d
 
 /// L2_PrepareStencilDeclaration
 
-object L2_PrepareStencilDeclaration extends DefaultStrategy("Prepare knowledge for L2 stencils") {
+object L2_PrepareStencilDeclarations extends DefaultStrategy("Prepare knowledge for L2 stencils") {
   this += Transformation("Process new stencils", {
     case decl : L2_BaseStencilDecl =>
       L2_StencilCollection.addDeclared(decl.name, decl.levels)

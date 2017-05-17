@@ -10,7 +10,7 @@ object L2_FieldCollection extends L2_LeveledKnowledgeCollection[L2_Field, L3_Fie
   exastencils.core.Duplicate.registerConstant(this)
 
   L2_UnfoldLeveledDeclarations.strategies += L2_UnfoldFieldDeclarations
-  L2_PrepareDeclarations.strategies += L2_PrepareFieldDeclaration
+  L2_PrepareDeclarations.strategies += L2_PrepareFieldDeclarations
   L2_PrepareAccesses.strategies += L2_PrepareFieldAccesses
   L2_ProcessDeclarations.strategies += L2_ProcessFieldDeclarations
   L2_ResolveAccesses.strategies += L2_ResolveFieldAccesses

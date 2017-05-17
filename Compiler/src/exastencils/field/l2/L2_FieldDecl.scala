@@ -57,7 +57,7 @@ object L2_UnfoldFieldDeclarations extends DefaultStrategy("Unfold L2 field decla
 
 /// L2_PrepareFieldDeclaration
 
-object L2_PrepareFieldDeclaration extends DefaultStrategy("Prepare knowledge for L2 fields") {
+object L2_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L2 fields") {
   this += Transformation("Process new fields", {
     case decl : L2_BaseFieldDecl =>
       L2_FieldCollection.addDeclared(decl.name, decl.levels)

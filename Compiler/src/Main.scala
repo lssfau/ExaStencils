@@ -2,7 +2,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ExaRootNode
 import exastencils.base.ir._
-import exastencils.base.l2.L2_ResolveLevelSpecifications
+import exastencils.base.l2._
 import exastencils.base.l3._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
@@ -178,9 +178,13 @@ object Main {
         L2_StencilTemplateCollection
       }
 
-      L2_ResolveLevelSpecifications.apply() // before processing declarations ...
+      // pre-process level specifications in declarations
+      L2_ResolveLevelSpecifications.apply()
 
       L2_UnfoldLeveledDeclarations.apply()
+
+      // resolve current, etc.
+      L2_ResolveRelativeLevels.apply()
 
       L2_PrepareDeclarations.apply()
 
@@ -193,9 +197,10 @@ object Main {
         matches += L2_ResolveAccesses.applyAndCountMatches()
       } while (matches > 0)
 
-      L2_ResolveLevelSpecifications.apply() // ... and again afterwards
-
-      //L2_ResolveVirtualFieldAccesses.apply()
+      if (ExaRootNode.l2_root.nodes.nonEmpty) {
+        Logger.warn(s"L2 root has ${ ExaRootNode.l2_root.nodes.length } unprocessed nodes remaining:")
+        ExaRootNode.l2_root.nodes.foreach(Logger.warn(_))
+      }
 
       // progress knowledge to l3
       L2_DomainCollection.progress()

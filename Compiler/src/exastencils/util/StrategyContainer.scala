@@ -14,7 +14,7 @@ abstract class StrategyContainer {
   def applyAndCountMatches() = {
     strategies.map(strategy => {
       strategy.apply()
-      strategy.results.last._2.matches
+      if (strategy.results.isEmpty) 0 else strategy.results.last._2.matches
     }).sum
   }
 }

@@ -46,7 +46,7 @@ object L2_UnfoldStencilTemplateDeclarations extends DefaultStrategy("Unfold L2 f
 
 /// L2_PrepareStencilTemplateDeclaration
 
-object L2_PrepareStencilTemplateDeclaration extends DefaultStrategy("Prepare knowledge for L2 stencil templates") {
+object L2_PrepareStencilTemplateDeclarations extends DefaultStrategy("Prepare knowledge for L2 stencil templates") {
   this += Transformation("Process new stencil templates", {
     case decl : L2_StencilTemplateDecl =>
       L2_FieldCollection.addDeclared(decl.name + "_Data", decl.levels)

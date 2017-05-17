@@ -9,7 +9,7 @@ object L2_StencilTemplateCollection extends L2_LeveledKnowledgeCollection[L2_Ste
   exastencils.core.Duplicate.registerConstant(this)
 
   L2_UnfoldLeveledDeclarations.strategies += L2_UnfoldStencilTemplateDeclarations
-  L2_PrepareDeclarations.strategies += L2_PrepareStencilTemplateDeclaration
+  L2_PrepareDeclarations.strategies += L2_PrepareStencilTemplateDeclarations
 //  L2_PrepareAccesses.strategies += L2_PrepareStencilTemplateAccesses
   L2_ProcessDeclarations.strategies += L2_ProcessStencilTemplateDeclarations
 //  L2_ResolveAccesses.strategies += L2_ResolveStencilTemplateAccesses

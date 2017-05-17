@@ -8,8 +8,8 @@ import exastencils.prettyprinting.PpStream
 /// L2_StencilAccess
 
 object L2_StencilAccess {
-  def apply(stencilName : String, level : Int) =
-    new L2_StencilAccess(L2_StencilCollection.getByIdentifier(stencilName, level).get)
+  def apply(name : String, level : Int) =
+    new L2_StencilAccess(L2_StencilCollection.getByIdentifier(name, level).get)
 
   def apply(access : L2_FutureStencilAccess) =
     new L2_StencilAccess(L2_StencilCollection.getByIdentifier(access.name, access.level).get)
@@ -24,11 +24,8 @@ case class L2_StencilAccess(var target : L2_Stencil) extends L2_LeveledKnowledge
 
 object L2_ResolveStencilAccesses extends DefaultStrategy("Resolve accesses to stencils") {
   this += new Transformation("Resolve applicable future accesses", {
-    case access : L2_FutureStencilAccess =>
-      // check if declaration has already been processed and promote access if possible
-      if (L2_StencilCollection.exists(access.name, access.level))
-        access.toStencilAccess
-      else
-        access
+    // check if declaration has already been processed and promote access if possible
+    case access : L2_FutureStencilAccess if L2_StencilCollection.exists(access.name, access.level) =>
+      access.toStencilAccess
   })
 }

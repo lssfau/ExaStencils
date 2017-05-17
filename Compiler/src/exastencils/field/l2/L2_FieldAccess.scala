@@ -8,8 +8,8 @@ import exastencils.prettyprinting.PpStream
 /// L2_FieldAccess
 
 object L2_FieldAccess {
-  def apply(stencilName : String, level : Int) =
-    new L2_FieldAccess(L2_FieldCollection.getByIdentifier(stencilName, level).get)
+  def apply(name : String, level : Int) =
+    new L2_FieldAccess(L2_FieldCollection.getByIdentifier(name, level).get)
 
   def apply(access : L2_FutureFieldAccess) =
     new L2_FieldAccess(L2_FieldCollection.getByIdentifier(access.name, access.level).get)
@@ -24,11 +24,8 @@ case class L2_FieldAccess(var target : L2_Field) extends L2_LeveledKnowledgeAcce
 
 object L2_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fields") {
   this += new Transformation("Resolve applicable future accesses", {
-    case access : L2_FutureFieldAccess =>
-      // check if declaration has already been processed and promote access if possible
-      if (L2_FieldCollection.exists(access.name, access.level))
-        access.toFieldAccess
-      else
-        access
+    // check if declaration has already been processed and promote access if possible
+    case access : L2_FutureFieldAccess if L2_FieldCollection.exists(access.name, access.level) =>
+      access.toFieldAccess
   })
 }

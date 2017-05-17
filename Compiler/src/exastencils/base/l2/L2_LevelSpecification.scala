@@ -93,3 +93,24 @@ object L2_ResolveLevelSpecifications extends DefaultStrategy("Resolve level spec
       levels
   })
 }
+
+/// L2_ResolveRelativeLevels
+
+object L2_ResolveRelativeLevels extends DefaultStrategy("Resolve relative level specifications") {
+  val collector = new L2_LevelCollector
+  this.register(collector)
+
+  def getLevel() : Int = {
+    if (collector.inLevelScope)
+      collector.getCurrentLevel
+    else
+      Logger.error("Trying to access current outside of a valid level scope")
+  }
+
+  // resolve level identifiers "coarsest", "finest"
+  this += new Transformation("Resolve relative level aliases", {
+    case L2_CurrentLevel => L2_SingleLevel(getLevel())
+    case L2_CoarserLevel => L2_SingleLevel(getLevel() - 1)
+    case L2_FinerLevel   => L2_SingleLevel(getLevel() + 1)
+  })
+}
