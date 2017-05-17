@@ -15,7 +15,7 @@ object L4_LeveledScope {
 }
 
 case class L4_LeveledScope(var level : L4_LevelSpecification, var body : ListBuffer[L4_Statement]) extends L4_Statement {
-  override def prettyprint(out : PpStream) = out << level << " {\n" <<< body << "}\n"
+  override def prettyprint(out : PpStream) = out << "@" << level << " {\n" <<< (body, "\n") << "\n}"
   override def progress = Logger.error("Trying to progress " + this.getClass.getName + " which is unsupported")
 }
 
