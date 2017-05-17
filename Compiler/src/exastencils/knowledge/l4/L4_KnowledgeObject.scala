@@ -32,8 +32,8 @@ trait L4_KnowledgeObject[IR_Equivalent <: IR_KnowledgeObject] {
   }
 }
 
-/// L4_KnowledgeObjectWithLevel
+/// L4_LeveledKnowledgeObject
 
-trait L4_KnowledgeObjectWithLevel[IR_Equivalent <: IR_KnowledgeObject] extends L4_KnowledgeObject[IR_Equivalent] {
+trait L4_LeveledKnowledgeObject[IR_Equivalent <: IR_KnowledgeObject] extends L4_KnowledgeObject[IR_Equivalent] {
   def level : Int
 }

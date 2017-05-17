@@ -14,7 +14,7 @@ case class IR_StencilField(
     var name : String,
     var level : Int,
     var field : IR_Field,
-    var offsets : ListBuffer[IR_ExpressionIndex]) extends IR_KnowledgeObjectWithLevel {
+    var offsets : ListBuffer[IR_ExpressionIndex]) extends IR_LeveledKnowledgeObject {
 
   def findOffsetIndex(offset : IR_ExpressionIndex) : Option[Int] = {
     for (i <- offsets.indices) {

@@ -4,7 +4,7 @@ import exastencils.base.l3._
 import exastencils.baseExt.l3._
 import exastencils.boundary.l3.L3_BoundaryCondition
 import exastencils.field.l4._
-import exastencils.knowledge.l3.L3_KnowledgeObjectWithLevel
+import exastencils.knowledge.l3.L3_LeveledKnowledgeObject
 import exastencils.prettyprinting.PpStream
 
 /// L3_Field
@@ -16,7 +16,7 @@ case class L3_Field(
     var datatype : L3_Datatype,
     var localization : String,
     var initial : Option[L3_Expression],
-    var boundary : L3_BoundaryCondition) extends L3_KnowledgeObjectWithLevel[L4_Field] {
+    var boundary : L3_BoundaryCondition) extends L3_LeveledKnowledgeObject[L4_Field] {
 
   def printDatatype(dt : L3_Datatype) : String = {
     dt match {

@@ -9,8 +9,8 @@ trait IR_KnowledgeObject {
   def name : String
 }
 
-/// IR_KnowledgeObjectWithLevel
+/// IR_LeveledKnowledgeObject
 
-trait IR_KnowledgeObjectWithLevel extends IR_KnowledgeObject {
+trait IR_LeveledKnowledgeObject extends IR_KnowledgeObject {
   def level : Int
 }

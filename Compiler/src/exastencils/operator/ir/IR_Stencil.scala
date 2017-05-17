@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config._
-import exastencils.knowledge.ir.IR_KnowledgeObjectWithLevel
+import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.util.ir.IR_ResultingDatatype
@@ -15,7 +15,7 @@ import exastencils.util.ir.IR_ResultingDatatype
 case class IR_Stencil(
     var name : String,
     var level : Int,
-    var entries : ListBuffer[IR_StencilEntry] = new ListBuffer) extends IR_KnowledgeObjectWithLevel with IR_Operator {
+    var entries : ListBuffer[IR_StencilEntry] = new ListBuffer) extends IR_LeveledKnowledgeObject with IR_Operator {
 
   def datatype = entries.foldLeft(entries.head.datatype)((dt, entry) => IR_ResultingDatatype(dt, entry.datatype))
 

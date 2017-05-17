@@ -3,7 +3,7 @@ package exastencils.operator.l3
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l3._
-import exastencils.knowledge.l3.L3_KnowledgeObjectWithLevel
+import exastencils.knowledge.l3.L3_LeveledKnowledgeObject
 import exastencils.operator.l4._
 import exastencils.prettyprinting._
 
@@ -12,7 +12,7 @@ import exastencils.prettyprinting._
 case class L3_Stencil(
     var name : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on
-    var entries : ListBuffer[L3_StencilEntry]) extends L3_KnowledgeObjectWithLevel[L4_Stencil] with L3_Operator {
+    var entries : ListBuffer[L3_StencilEntry]) extends L3_LeveledKnowledgeObject[L4_Stencil] with L3_Operator {
 
   override def prettyprintDecl(out : PpStream) : Unit = ???
   override def progressImpl() = L4_Stencil(name, level, entries.map(_.progress))

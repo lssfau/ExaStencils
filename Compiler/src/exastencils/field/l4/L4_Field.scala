@@ -4,7 +4,7 @@ import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.config.Knowledge
 import exastencils.domain.ir.IR_DomainCollection
 import exastencils.field.ir.IR_Field
-import exastencils.knowledge.l4.L4_KnowledgeObjectWithLevel
+import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
 import exastencils.prettyprinting._
 
 /// L4_Field
@@ -16,7 +16,7 @@ case class L4_Field(
     var domainName : String, // FIXME: var domain : L4_Domain
     var fieldLayout : L4_FieldLayout,
     var numSlots : Int,
-    var boundary : L4_BoundaryCondition) extends L4_KnowledgeObjectWithLevel[IR_Field] {
+    var boundary : L4_BoundaryCondition) extends L4_LeveledKnowledgeObject[IR_Field] {
 
   def datatype = fieldLayout.datatype
 

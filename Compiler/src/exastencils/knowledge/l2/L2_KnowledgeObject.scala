@@ -27,7 +27,7 @@ trait L2_KnowledgeObject[L3_Equivalent <: L3_KnowledgeObject[_]] {
   }
 }
 
-/// L2_KnowledgeObjectWithLevel
+/// L2_LeveledKnowledgeObject
 
 trait L2_LeveledKnowledgeObject[L3_Equivalent <: L3_KnowledgeObject[_]] extends L2_KnowledgeObject[L3_Equivalent] {
   def level : Int

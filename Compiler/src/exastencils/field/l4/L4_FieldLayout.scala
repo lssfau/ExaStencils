@@ -4,7 +4,7 @@ import exastencils.base.ir.IR_ExpressionIndex
 import exastencils.base.l4._
 import exastencils.config._
 import exastencils.field.ir._
-import exastencils.knowledge.l4.L4_KnowledgeObjectWithLevel
+import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
 import exastencils.prettyprinting._
 
 object L4_FieldLayout {
@@ -60,7 +60,7 @@ case class L4_FieldLayout(
     var communicatesGhosts : Boolean,
     var duplicateLayers : L4_ConstIndex,
     var communicatesDuplicated : Boolean,
-    var innerPoints : L4_ConstIndex) extends L4_KnowledgeObjectWithLevel[IR_FieldLayout] {
+    var innerPoints : L4_ConstIndex) extends L4_LeveledKnowledgeObject[IR_FieldLayout] {
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Layout " << name << "< "

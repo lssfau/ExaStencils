@@ -6,7 +6,7 @@ import exastencils.base.l3._
 import exastencils.boundary.l4.L4_NoBC
 import exastencils.domain.l3.L3_Domain
 import exastencils.field.l4._
-import exastencils.knowledge.l3.L3_KnowledgeObjectWithLevel
+import exastencils.knowledge.l3.L3_LeveledKnowledgeObject
 import exastencils.operator.l4.L4_StencilTemplate
 import exastencils.prettyprinting.PpStream
 import exastencils.stencil.l4.L4_StencilField
@@ -18,7 +18,7 @@ case class L3_StencilTemplate(
     var level : Int, // the level the stencil lives on
     var localization : String, // localization of the stencil data
     var domain : L3_Domain, // domain the stencil lives on
-    var offsets : ListBuffer[L3_Index]) extends L3_KnowledgeObjectWithLevel[L4_StencilTemplate] {
+    var offsets : ListBuffer[L3_Index]) extends L3_LeveledKnowledgeObject[L4_StencilTemplate] {
 
   def fieldLayoutName = s"defLayout${ offsets.length }$localization"
   def resolveCoeffDataType = L3_RealDatatype // FIXME

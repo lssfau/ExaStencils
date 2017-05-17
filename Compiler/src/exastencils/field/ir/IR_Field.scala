@@ -2,7 +2,7 @@ package exastencils.field.ir
 
 import exastencils.boundary.ir.IR_BoundaryCondition
 import exastencils.domain.ir.IR_Domain
-import exastencils.knowledge.ir.IR_KnowledgeObjectWithLevel
+import exastencils.knowledge.ir.IR_LeveledKnowledgeObject
 
 /// IR_Field
 
@@ -15,7 +15,7 @@ case class IR_Field(
     var fieldLayout : IR_FieldLayout, // represents the number of data points and their distribution in each dimension
     var numSlots : Int, // the number of copies of the field to be available; can be used to represent different vector components or different versions of the same field (e.g. Jacobi smoothers, time-stepping)
     var boundary : IR_BoundaryCondition // the boundary condition to be enforced when calling apply bc
-) extends IR_KnowledgeObjectWithLevel {
+) extends IR_LeveledKnowledgeObject {
 
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype

@@ -23,7 +23,7 @@ class IR_KnowledgeCollection[T <: IR_KnowledgeObject : TypeTag] {
   def clear() = objects.clear()
 }
 
-class IR_LeveledKnowledgeCollection[T <: IR_KnowledgeObjectWithLevel : TypeTag] {
+class IR_LeveledKnowledgeCollection[T <: IR_LeveledKnowledgeObject : TypeTag] {
   var objects : ListBuffer[T] = ListBuffer()
 
   def exists(identifier : String) = { objects.exists(f => f.name == identifier) }

@@ -3,7 +3,7 @@ package exastencils.operator.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.knowledge.l4.L4_KnowledgeObjectWithLevel
+import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
 import exastencils.operator.ir._
 import exastencils.prettyprinting._
 
@@ -12,7 +12,7 @@ import exastencils.prettyprinting._
 case class L4_Stencil(
     var name : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on
-    var entries : ListBuffer[L4_StencilEntry]) extends L4_KnowledgeObjectWithLevel[IR_Stencil] with L4_Operator {
+    var entries : ListBuffer[L4_StencilEntry]) extends L4_LeveledKnowledgeObject[IR_Stencil] with L4_Operator {
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Stencil " << name << "@(" << level << ") {\n"

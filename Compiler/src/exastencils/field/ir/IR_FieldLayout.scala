@@ -20,7 +20,7 @@ case class IR_FieldLayout(
     var referenceOffset : IR_ExpressionIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
-) extends IR_KnowledgeObjectWithLevel {
+) extends IR_LeveledKnowledgeObject {
 
   def apply(dim : Int) = layoutsPerDim(dim)
 

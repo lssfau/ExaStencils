@@ -1,8 +1,5 @@
 package exastencils.stencil.l4
 
-import exastencils.knowledge.ir.IR_KnowledgeObject
-import exastencils.knowledge.l4.L4_KnowledgeObjectWithLevel
-
 //case class L4_StencilOperator(
 //    var name : String, // will be used to find the operator
 //    var level : Int, // the level the operator lives on

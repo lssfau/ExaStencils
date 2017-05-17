@@ -26,7 +26,7 @@ class L4_KnowledgeCollection[L4_Type <: L4_KnowledgeObject[IR_Type] : TypeTag, I
   def clear() = objects.clear()
 }
 
-class L4_LeveledKnowledgeCollection[L4_Type <: L4_KnowledgeObjectWithLevel[IR_Type] : TypeTag, IR_Type <: IR_KnowledgeObject] {
+class L4_LeveledKnowledgeCollection[L4_Type <: L4_LeveledKnowledgeObject[IR_Type] : TypeTag, IR_Type <: IR_KnowledgeObject] {
   var objects : ListBuffer[L4_Type] = ListBuffer()
 
   def exists(identifier : String) = { objects.exists(f => f.name == identifier) }
