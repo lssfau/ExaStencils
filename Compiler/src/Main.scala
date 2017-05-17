@@ -29,6 +29,7 @@ import exastencils.field.l3._
 import exastencils.field.l4._
 import exastencils.globals.ir._
 import exastencils.grid._
+import exastencils.grid.l2.L2_VirtualFieldCollection
 import exastencils.grid.l3.L3_ResolveVirtualFieldAccesses
 import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
@@ -176,6 +177,7 @@ object Main {
         L2_FieldCollection
         L2_StencilCollection
         L2_StencilTemplateCollection
+        L2_VirtualFieldCollection
       }
 
       // pre-process level specifications in declarations
