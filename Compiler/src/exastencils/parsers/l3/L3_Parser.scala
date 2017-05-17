@@ -279,8 +279,16 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ##### L3_HigherOrderDatatype
   // ######################################
 
-  lazy val higherOrderDatatype : Parser[L3_Datatype] = (("Array" ||| "array") ~> ("<" ~> datatype <~ ">") ~ ("<" ~> integerLit <~ ">")
-    ^^ { case x ~ s => L3_ArrayDatatype(x, s) })
+  lazy val higherOrderDatatype : Parser[L3_Datatype] = (
+    "Vector" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L3_VectorDatatype(x, s) }
+      ||| ("RowVector" ||| "RVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L3_VectorDatatype(x, s, true) }
+      ||| ("ColumnVector" ||| "CVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L3_VectorDatatype(x, s, false) }
+      ||| numericDatatype ~ ("<" ~> integerLit <~ ">") ^^ { case x ~ s => L3_VectorDatatype(x, s) }
+      ||| "Vec2" ^^ { _ => L3_VectorDatatype(L3_RealDatatype, 2) }
+      ||| "Vec3" ^^ { _ => L3_VectorDatatype(L3_RealDatatype, 3) }
+      ||| "Vec4" ^^ { _ => L3_VectorDatatype(L3_RealDatatype, 4) }
+      ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => L3_MatrixDatatype(x, m, n) }
+      ||| numericDatatype ~ ("<" ~> integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case x ~ m ~ n => L3_MatrixDatatype(x, m, n) })
 
   // ######################################
   // ##### L3_UnresolvedAccess
