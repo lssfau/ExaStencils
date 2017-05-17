@@ -97,7 +97,7 @@ object L1_Parser extends StandardTokenParsers with PackratParsers {
   lazy val mathLevel1 : MParser = add ||| sub ||| mathLevel2
   lazy val mathLevel2 : MParser = mul ||| div ||| mathLevel3
   lazy val mathLevel3 : MParser = (dev | exp) ||| mathLevel4
-  lazy val mathLevel4 : MParser = value ||| func ||| "(" ~> mathLevel1 <~ ")"
+  lazy val mathLevel4 : MParser = value ||| func ||| functionCall ||| access ||| "(" ~> mathLevel1 <~ ")"
 
   // Basic Arithmetic Parsing //
   lazy val add : MParser = mathLevel1 ~ ("+" ~> mathLevel2) ^^ { case left ~ right => L1_Addition(left, right) }
@@ -107,6 +107,8 @@ object L1_Parser extends StandardTokenParsers with PackratParsers {
   lazy val exp : MParser = mathLevel3 ~ (("**" | "^^") ~> value) ^^ { case base ~ power => L1_Exponential(base, power) }
   lazy val value = sDouble ^^ { case t => L1_Value(t) }
   lazy val func = "U" ^^ { case _ => L1_Function() }
+  lazy val functionCall = ident ~ "(" ~ (mathLevel1 <~ ",").* ~ mathLevel1.? <~ ")" ^^ { case id ~ _ ~ args ~ arg => L1_FunctionCall(id, args ++ arg.toList) }
+  lazy val access = ident ^^ { case id => L1_Access(id) }
 
   // Derivation(dev) Parsing //
   lazy val dev = devOp ||| (devTop <~ "U" <~ "/") ~ devBot ^^ { case total ~ dev => parseDev(total, Seq(dev)) } |

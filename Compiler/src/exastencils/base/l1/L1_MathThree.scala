@@ -19,6 +19,10 @@ case class L1_Exponential(base : L1_MathTree, power : L1_MathTree) extends L1_Ma
 
 case class L1_Value(t : Double) extends L1_MathTree // leaf
 
+case class L1_FunctionCall(name : String, args : List[L1_MathTree]) extends L1_MathTree
+
+case class L1_Access(name : String) extends L1_MathTree
+
 sealed abstract class L1_Differentiable extends L1_MathTree // leaf
 case class L1_Function() extends L1_Differentiable // Represents the 0th derivative
 case class L1_Derivation(direction : Int, number : Int) extends L1_Differentiable // Single Derivation
@@ -46,7 +50,7 @@ object L1_MathTree {
       case L1_Division(left, right)       => evaluate(left) / evaluate(right)
       case L1_Exponential(base, power)    => math.pow(evaluate(base), evaluate(power))
       case L1_Value(t)                    => t
-      case _ : L1_Differentiable          => throw new IllegalArgumentException("cant evaluate expressin including derivatives")
+      case _ : L1_Differentiable          => throw new IllegalArgumentException("cant evaluate expression including derivatives")
       case unknown                        => throw new RuntimeException("MathExpr.evaluate: unknown expression \"" + unknown + "\"")
     }
   }
@@ -75,12 +79,12 @@ object L1_MathTree {
       case L1_Addition(left, right)    => createStencil(left) + createStencil(right)
       case L1_Subtraction(left, right) => createStencil(left) - createStencil(right)
 
-      case L1_Multiplication(left, right) if (left.isInstanceOf[L1_Value])  => createStencil(right) * left.asInstanceOf[L1_Value].t
-      case L1_Multiplication(left, right) if (right.isInstanceOf[L1_Value]) => createStencil(left) * right.asInstanceOf[L1_Value].t
+      case L1_Multiplication(left : L1_Value, right) => createStencil(right) * left.t
+      case L1_Multiplication(left, right : L1_Value) => createStencil(left) * right.t
 
       case L1_Division(left, right) => createStencil(left) / right.asInstanceOf[L1_Value].t
 
-      case dev : L1_Differentiable => discreticeDifferentiable(dev, dims)
+      case dev : L1_Differentiable => discretizeDifferentiable(dev, dims)
     }
     assert(dims >= 1)
     createStencil(simplify(expr))
@@ -93,26 +97,26 @@ object L1_MathTree {
     * @param  dims     Number of dimensions of the domain
     * @return The Stencil with corresponding number of dimensions
     */
-  def discreticeDifferentiable(diffAble : L1_Differentiable, dims : Int) : L1_Stencil = {
+  def discretizeDifferentiable(diffAble : L1_Differentiable, dims : Int) : L1_Stencil = {
     val h = 1 // stepsize
     val e = 1 // order of the truncation error
 
-    def discreticeLaplace(laplace : L1_Laplace) : L1_Stencil = {
-      val stencils = for (i <- 1 to dims) yield discreticeDevs(Seq(L1_Derivation(i, 2)))
+    def discretizeLaplace(laplace : L1_Laplace) : L1_Stencil = {
+      val stencils = for (i <- 1 to dims) yield discretizeDevs(Seq(L1_Derivation(i, 2)))
       stencils.reduce { _ + _ }
     }
 
-    def discreticeDevs(devs : Seq[L1_Derivation]) : L1_Stencil = {
+    def discretizeDevs(devs : Seq[L1_Derivation]) : L1_Stencil = {
       val stencils = for (dir <- 1 to dims) yield {
         devs.find { _.direction == dir } match {
-          case Some(dev) => discreticeSingleDev(dev)
+          case Some(dev) => discretizeSingleDev(dev)
           case None      => new L1_Stencil(Seq(1))
         }
       }
       stencils.reduceLeft { _ tensorProduct _ }
     }
 
-    def discreticeSingleDev(dev : L1_Derivation) : L1_Stencil = {
+    def discretizeSingleDev(dev : L1_Derivation) : L1_Stencil = {
       val count = dev.number
       val n = if ((count + e) % 2 == 1) count + e
       else count + e - 1
@@ -122,10 +126,10 @@ object L1_MathTree {
     }
 
     diffAble match {
-      case _ : L1_Function              => discreticeDevs(Seq())
-      case dev : L1_Derivation          => discreticeDevs(Seq(dev))
-      case nested : L1_NestedDerivation => discreticeDevs(nested.devs)
-      case laplace : L1_Laplace         => discreticeLaplace(laplace)
+      case _ : L1_Function              => discretizeDevs(Seq())
+      case dev : L1_Derivation          => discretizeDevs(Seq(dev))
+      case nested : L1_NestedDerivation => discretizeDevs(nested.devs)
+      case laplace : L1_Laplace         => discretizeLaplace(laplace)
       case unknown                      => throw new RuntimeException("Missing implementation for class '" + unknown.getClass + "'")
     }
   }
@@ -159,7 +163,9 @@ object L1_MathTree {
       case L1_Multiplication(left, right) => simplifyOnce(L1_Multiplication(simplify(left), simplify(right)))
       case L1_Division(left, right)       => simplifyOnce(L1_Division(simplify(left), simplify(right)))
       case L1_Exponential(base, power)    => simplifyOnce(L1_Exponential(simplify(base), simplify(power)))
-      case unknown                        => throw new RuntimeException(s"MathTree.simplifyOnce: unkown MathTree class ${ unknown.getClass }")
+      case x : L1_FunctionCall            => x
+      case x : L1_Access                  => x
+      case unknown                        => throw new RuntimeException(s"MathTree.simplifyOnce: unknown MathTree class ${ unknown.getClass }")
     }
   }
 
