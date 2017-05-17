@@ -23,6 +23,14 @@ object L2_LevelSpecification {
 
   // assumes empty level list as default
   def extractLevelListDefEmpty(levels : Option[L2_LevelSpecification]) : List[Int] = extractLevelList(levels, List())
+
+  def asSingleLevel(level : Option[L2_LevelSpecification]) : Int = {
+    level match {
+      case Some(L2_SingleLevel(lvl)) => lvl
+      case None                      => Logger.error("Missing level specification")
+      case Some(other)               => Logger.error(s"Invalid level specification: $other")
+    }
+  }
 }
 
 trait L2_LevelSpecification extends L2_Node with L2_Progressable with PrettyPrintable {

@@ -1,12 +1,11 @@
 package exastencils.knowledge.l3
 
-import exastencils.base.ExaRootNode
-
 import scala.collection.mutable._
+
+import exastencils.base.ExaRootNode
 import exastencils.base.l3._
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.config.Knowledge
-import exastencils.core.StateManager
 import exastencils.field.l3._
 import exastencils.field.l4._
 
@@ -43,7 +42,7 @@ object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Fie
     val initStmts = ListBuffer[L3_Statement]()
     for (field <- objects)
       if (field.initial.isDefined)
-        initStmts += L3_Assignment(L3_FieldAccess(field, field.level), field.initial.get, "=", None)
+        initStmts += L3_Assignment(L3_FieldAccess(field), field.initial.get, "=", None)
     val fct = L3_Function("InitFields", None, L3_UnitDatatype, initStmts)
     ExaRootNode.l3_root.nodes += fct
   }

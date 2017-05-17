@@ -35,6 +35,7 @@ import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4._
 import exastencils.interfacing.ir._
 import exastencils.knowledge.ir.IR_ClearKnowledge
+import exastencils.knowledge.l2._
 import exastencils.knowledge.l3.L3_FieldCollection
 import exastencils.knowledge.l4._
 import exastencils.logger._
@@ -169,12 +170,28 @@ object Main {
     if (Knowledge.experimental_layerExtension) {
       ExaRootNode.l2_root = L2_Parser.parseFile(Settings.getL2file)
 
+      // activate required knowledge collections
+      {
+        L2_DomainCollection
+        L2_FieldCollection
+        L2_StencilCollection
+        L2_StencilTemplateCollection
+      }
+
       L2_ResolveLevelSpecifications.apply() // before processing declarations ...
 
-      L2_ProcessDomainDeclarations.apply()
-      L2_ProcessFieldDeclarations.apply()
-      L2_ProcessStencilDeclarations.apply()
-      L2_ProcessStencilTemplateDeclarations.apply()
+      L2_UnfoldLeveledDeclarations.apply()
+
+      L2_PrepareDeclarations.apply()
+
+      L2_PrepareAccesses.apply()
+
+      var matches = 0
+      do {
+        matches = 0
+        matches += L2_ProcessDeclarations.applyAndCountMatches()
+        matches += L2_ResolveAccesses.applyAndCountMatches()
+      } while (matches > 0)
 
       L2_ResolveLevelSpecifications.apply() // ... and again afterwards
 

@@ -4,13 +4,13 @@ import exastencils.base.l2._
 import exastencils.boundary.l2._
 import exastencils.datastructures._
 import exastencils.domain.l2.L2_DomainCollection
+import exastencils.knowledge.l2._
 import exastencils.logger._
 import exastencils.prettyprinting._
 
 /// L2_FieldDeclaration
 
-trait L2_FieldDecl extends L2_Statement {
-  def name : String
+abstract class L2_FieldDecl extends L2_LeveledKnowledgeDecl {
   override def progress = { Logger.error(s"Trying to progress l2 field declaration for field $name; this is not supported") }
 }
 
@@ -46,35 +46,48 @@ case class L2_BoundaryFieldDecl(
   }
 }
 
+/// L2_UnfoldStencilDeclarations
+
+object L2_UnfoldFieldDeclarations extends DefaultStrategy("Unfold L2 field declarations") {
+  this += Transformation("Process new stencils", {
+    case decl : L2_BaseFieldDecl     => L2_LeveledKnowledgeDecl.unfoldDecl(decl)
+    case decl : L2_BoundaryFieldDecl => L2_LeveledKnowledgeDecl.unfoldDecl(decl)
+  })
+}
+
+/// L2_PrepareFieldDeclaration
+
+object L2_PrepareFieldDeclaration extends DefaultStrategy("Prepare knowledge for L2 fields") {
+  this += Transformation("Process new fields", {
+    case decl : L2_BaseFieldDecl =>
+      L2_FieldCollection.addDeclared(decl.name, decl.levels)
+      decl // preserve declaration statement
+  })
+}
+
 /// L2_ProcessFieldDeclarations
 
-object L2_ProcessFieldDeclarations extends DefaultStrategy("Integrate Layer2 field declarations with knowledge") {
+object L2_ProcessFieldDeclarations extends DefaultStrategy("Integrate L2 field declarations with knowledge") {
   this += Transformation("Process new fields", {
-    case field : L2_BaseFieldDecl =>
-      val levelList = L2_LevelSpecification.extractLevelListDefAll(field.levels)
-      for (level <- levelList) {
-        val newField = L2_Field(
-          field.name,
-          level,
-          L2_DomainCollection.getByIdentifier(field.domain).get,
-          field.datatype,
-          field.localization,
-          field.initial,
-          L2_NoBC)
+    case decl : L2_BaseFieldDecl if !L2_FutureKnowledgeAccess.existsInStmt(decl) =>
+      val field = L2_Field(
+        decl.name,
+        L2_LevelSpecification.asSingleLevel(decl.levels),
+        L2_DomainCollection.getByIdentifier(decl.domain).get,
+        decl.datatype,
+        decl.localization,
+        decl.initial,
+        L2_NoBC)
 
-        L2_FieldCollection.add(newField)
-      }
+      L2_FieldCollection.add(field)
 
       None // consume declaration statement
   })
 
   this += Transformation("Adapt bc's of new fields", {
-    case field : L2_BoundaryFieldDecl =>
-      val levelList = L2_LevelSpecification.extractLevelListDefAll(field.levels)
-      for (level <- levelList) {
-        val fieldToAdapt = L2_FieldCollection.getByIdentifier(field.name, level).get
-        fieldToAdapt.boundary = field.boundary
-      }
+    case decl : L2_BoundaryFieldDecl if !L2_FutureKnowledgeAccess.existsInStmt(decl) =>
+      val fieldToAdapt = L2_FieldCollection.getByIdentifier(decl.name, L2_LevelSpecification.asSingleLevel(decl.levels)).get
+      fieldToAdapt.boundary = decl.boundary
 
       None // consume declaration statement
   })

@@ -4,6 +4,7 @@ import scala.collection.mutable.Stack
 
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
+import exastencils.knowledge.l2._
 import exastencils.logger.Logger
 
 class L2_LevelCollector extends Collector {
@@ -11,14 +12,24 @@ class L2_LevelCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      // TODO
+      case decl : L2_LeveledKnowledgeDecl =>
+        decl.levels match {
+          case Some(L2_SingleLevel(lvl)) => levelStack.push(lvl)
+          case _                         =>
+        }
+
       case _ =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      // TODO
+      case decl : L2_LeveledKnowledgeDecl =>
+        decl.levels match {
+          case Some(L2_SingleLevel(_)) => levelStack.pop()
+          case _                       =>
+        }
+
       case _ =>
     }
   }

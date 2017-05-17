@@ -15,7 +15,7 @@ case class L2_StencilTemplate(
     var level : Int, // the level the stencil lives on
     var localization : String, // localization of the stencil data
     var domain : L2_Domain, // domain the stencil lives on
-    var offsets : ListBuffer[L2_Index]) extends L2_KnowledgeObjectWithLevel[L3_StencilTemplate] {
+    var offsets : ListBuffer[L2_Index]) extends L2_LeveledKnowledgeObject[L3_StencilTemplate] {
 
   override def prettyprintDecl(out : PpStream) : Unit = ???
   override def progressImpl() = L3_StencilTemplate(name, level, localization, domain.getProgressedObject(), offsets.map(_.progress))

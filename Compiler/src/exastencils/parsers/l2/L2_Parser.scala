@@ -276,11 +276,16 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_StencilDecl
   // ######################################
 
-  lazy val stencilDeclaration = locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "Stencil" ~ "{") ~> stencilEntries <~ "}")
-    ^^ { case id ~ levels ~ entries => L2_StencilDecl(id, levels, entries) })
+  lazy val stencilDeclaration = (
+    locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "Stencil" ~ "{") ~> stencilEntries <~ "}")
+      ^^ { case id ~ levels ~ entries => L2_BaseStencilDecl(id, levels, entries) })
+      ||| locationize(("Operator" ~> ident) ~ levelDecl.? ~ ("from" ~> binaryexpression)
+      ^^ { case id ~ levels ~ expr => L2_StencilFromExpression(id, levels, expr) }))
+
   lazy val stencilEntries = (
     (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilEntry.+)
+
   lazy val stencilEntry = (
     locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_StencilOffsetEntry(offset, coeff) })
       ||| locationize(((expressionIndex <~ "from") ~ expressionIndex ~ ("with" ~> binaryexpression)) ^^ { case row ~ col ~ coeff => L2_StencilMappingEntry(row, col, coeff) }))
@@ -289,8 +294,8 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_StencilTemplateDecl
   // ######################################
 
-  lazy val stencilTemplateDeclaration = locationize(("Operator" ~> ident) ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
-    ^^ { case id ~ local ~ domain ~ offsets => L2_StencilTemplateDecl(id, local, domain, offsets) })
+  lazy val stencilTemplateDeclaration = locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
+    ^^ { case id ~ levels ~ local ~ domain ~ offsets => L2_StencilTemplateDecl(id, levels, local, domain, offsets) })
   lazy val stencilTemplateEntries = (
     (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilTemplateEntry.+)

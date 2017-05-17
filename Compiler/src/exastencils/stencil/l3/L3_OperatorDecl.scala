@@ -4,7 +4,6 @@ import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.prettyprinting._
-import exastencils.stencil.l2._
 
 ///// L3_OperatorDeclaration
 //
