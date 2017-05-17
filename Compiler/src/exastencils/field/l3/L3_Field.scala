@@ -1,6 +1,7 @@
 package exastencils.field.l3
 
 import exastencils.base.l3._
+import exastencils.baseExt.l3._
 import exastencils.boundary.l3.L3_BoundaryCondition
 import exastencils.field.l4._
 import exastencils.knowledge.l3.L3_KnowledgeObjectWithLevel
@@ -17,7 +18,17 @@ case class L3_Field(
     var initial : Option[L3_Expression],
     var boundary : L3_BoundaryCondition) extends L3_KnowledgeObjectWithLevel[L4_Field] {
 
-  def fieldLayoutName = s"defLayout$localization"
+  def printDatatype(dt : L3_Datatype) : String = {
+    dt match {
+      case dt : L3_ScalarDatatype                 => dt.prettyprint()
+      case L3_ComplexDatatype(inner)              => "Complex" + printDatatype(inner)
+      case L3_VectorDatatype(inner, count, isRow) => "Vec" + printDatatype(inner) + count + (if (isRow) "Row" else "")
+      case L3_MatrixDatatype(inner, n, m)         => "Mat" + printDatatype(inner) + n + "x" + m
+    }
+  }
+
+  def fieldLayoutName = s"defLayoutFor_${ printDatatype(datatype) }_on_$localization"
+
   override def prettyprintDecl(out : PpStream) : Unit = ???
 
   override def progressImpl() = {
