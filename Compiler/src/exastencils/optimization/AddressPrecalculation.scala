@@ -10,7 +10,6 @@ import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.field.ir.IR_IV_FieldData
 import exastencils.logger._
 import exastencils.optimization.ir._
 
@@ -76,22 +75,25 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     res.toString()
   }
 
-  def containsLoopVar(expr : IR_Expression, allowed : String = null) : Boolean = {
+  def containsRestrictedVar(expr : IR_Expression, allowed : String = null) : Boolean = {
     object Search extends QuietDefaultStrategy("Anonymous search") {
       var res : Boolean = false
       var allowed : String = null
       this += new Transformation("contains loop var", {
         case strC : IR_StringLiteral  =>
           val name = strC.value
-          res |= (allowed != name) && inVars.contains(name)
+          res |= chVars.contains(name) && (allowed != name)
+          res |= inVars.contains(name)
           strC
         case varA : IR_VariableAccess =>
           val name = varA.name
-          res |= (allowed != name) && inVars.contains(name)
+          res |= chVars.contains(name) && (allowed != name)
+          res |= inVars.contains(name)
           varA
         case i : IR_InternalVariable  =>
           val name = i.resolveName()
-          res |= (allowed != name) && inVars.contains(name)
+          res |= chVars.contains(name) && (allowed != name)
+          res |= inVars.contains(name)
           i
       })
     }
@@ -124,7 +126,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
     // constant part should stay inside the loop, as this reduces the number of required pointers outside
     for ((expr, value) <- inMap)
-      if (expr != IR_SimplifyExpression.constName && !containsLoopVar(expr))
+      if (expr != IR_SimplifyExpression.constName && !containsRestrictedVar(expr))
         outMap.put(expr, value)
     for ((expr, _) <- outMap)
       inMap.remove(expr)
@@ -136,7 +138,8 @@ private final class AnnotateLoopsAndAccesses extends Collector {
   private var skipSubtree : Boolean = false
 
   private var decls : HashMap[String, ArrayBases] = null
-  private var inVars : Set[String] = null
+  private var inVars : Set[String] = null // these variables must stay inside the loop: NO address precalc for them
+  private val chVars : Set[String] = Set() // elements of these arrays get modified, so if an access to these appears inside another access, dot perform a precalc!
   private val toAnalyze = new ListBuffer[IR_ArrayAccess]()
 
   private def isInInner() : Boolean = decls != null
@@ -203,7 +206,12 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           case _ : IR_StringLiteral
                | _ : IR_VariableAccess
                | _ : IR_ArrayAccess
-               | _ : IR_InternalVariable => inVars += resolveName(dst)
+               | _ : IR_InternalVariable =>
+            val (name, isArrayAcc) = resolveName(dst)
+            if (isArrayAcc)
+              chVars += name
+            else
+              inVars += name
           case _                         => // nothing; expand match here, if more vars should stay inside the loop
         }
 
@@ -222,8 +230,8 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     node match {
       case l : IR_ForLoop if l.parallelization.isInnermost =>
         // if base is ArrayAccess we ensure that it does not contain anything, which is written in the loop
-        //   (the name of this access itself is not critical, see AssignmentStatement match in enter(..))
-        for (acc @ IR_ArrayAccess(base, index, al) <- toAnalyze) if (!containsLoopVar(base, resolveName(base))) {
+        //   (the name of this access itself is not critical, see IR_Assignment match in enter(..))
+        for (acc @ IR_ArrayAccess(base, index, al) <- toAnalyze) if (!containsRestrictedVar(base, resolveName(base)._1)) {
           val (in : IR_Expression, outMap : HashMap[IR_Expression, Long]) = splitIndex(index)
           var name : String = generateName(base)
           val datatype = IR_ConstPointerDatatype(base.datatype.resolveBaseDatatype)
@@ -235,6 +243,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         }
         decls = null
         inVars = null
+        chVars.clear()
         toAnalyze.clear()
       case _                                                     => // ignore
     }
@@ -244,15 +253,17 @@ private final class AnnotateLoopsAndAccesses extends Collector {
     skipSubtree = false
     decls = null
     inVars = null
+    chVars.clear()
     toAnalyze.clear()
   }
 
-  private def resolveName(expr : IR_Expression) : String = {
+  // returns identifier and a flag, which indicates if it is an array access
+  private def resolveName(expr : IR_Expression) : (String, Boolean) = {
     expr match {
-      case IR_ArrayAccess(base, _, _) => resolveName(base)
-      case IR_VariableAccess(nam, _)  => nam
-      case IR_StringLiteral(str)      => str
-      case i : IR_InternalVariable    => i.resolveName()
+      case IR_ArrayAccess(base, _, _) => (resolveName(base)._1, true)
+      case IR_VariableAccess(nam, _)  => (nam, false)
+      case IR_StringLiteral(str)      => (str, false)
+      case i : IR_InternalVariable    => (i.resolveName(), i.resolveAccess(null, null, null, null, IR_IntegerConstant(0), null).isInstanceOf[IR_ArrayAccess])
     }
   }
 }

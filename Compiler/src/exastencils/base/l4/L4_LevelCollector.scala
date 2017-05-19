@@ -11,15 +11,15 @@ class L4_LevelCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case fct @ L4_Function(L4_LeveledIdentifier(_, level), _, _, _, _) => levelStack.push(level.resolveLevel)
-      case _                                                             =>
+      case L4_Function(L4_LeveledIdentifier(_, level), _, _, _, _) => levelStack.push(level.resolveLevel)
+      case _                                                       =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case fct @ L4_Function(L4_LeveledIdentifier(_, level), _, _, _, _) => levelStack.pop
-      case _                                                             =>
+      case L4_Function(L4_LeveledIdentifier(_, level), _, _, _, _) => levelStack.pop
+      case _                                                       =>
     }
   }
 

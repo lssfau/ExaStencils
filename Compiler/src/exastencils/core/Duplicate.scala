@@ -60,11 +60,31 @@ object Duplicate {
     forceCloner.deepClone(t)
   }
 
+  /**
+    * Deep clones the given object instance multiple times.
+    *
+    * @param t The object instance to be cloned.
+    * @param n The number of clones to be created.
+    * @return A [[scala.collection.immutable.List]] holding the cloned instances.
+    */
+  def apply[T](t : T, n : Int) : List[T] = List.fill(n)(cloner.deepClone(t))
+
+  /**
+    * Enable or disable debug output.
+    *
+    * @param output true if debug output should be printed, otherwise false.
+    */
   def debugOutput(output : Boolean) = cloner.setDumpClonedClasses(output)
 
   def dontClone(t : Class[_]) = cloner.dontClone(t)
   def dontCloneHierarchy(t : Class[_]) = cloner.dontCloneInstanceOf(t)
   def nullInsteadOfClone(t : Class[_]) = cloner.nullInsteadOfClone(t)
+
+  /**
+    * Register a class as immutable, which does not need to be cloned.
+    *
+    * @param t The class to be registered as immutable.
+    */
   def registerImmutable(t : Class[_]) = cloner.registerImmutable(t)
   def registerConstant(field : Any) = cloner.registerConstant(field)
   // the following is hard/impossible to deal with in willBeCloned, but since it is not used/required yet...
