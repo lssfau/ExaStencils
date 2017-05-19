@@ -1,16 +1,16 @@
 package exastencils.operator.l2
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable._
 
-import exastencils.base.l2.L2_ExpressionIndex
-import exastencils.baseExt.l2.L2_FieldIteratorAccess
-import exastencils.core.Duplicate
-import exastencils.datastructures._
+import exastencils.base.l2.L2_ImplicitConversion._
+import exastencils.base.l2._
+import exastencils.core._
 import exastencils.knowledge.l2.L2_LeveledKnowledgeObject
 import exastencils.logger.Logger
 import exastencils.operator.l3._
-import exastencils.optimization.l2.L2_GeneralSimplify
+import exastencils.optimization.l2._
 import exastencils.prettyprinting._
+import exastencils.util.l2.L2_ReplaceExpressions
 
 /// L2_Stencil
 
@@ -24,38 +24,74 @@ case class L2_Stencil(
   override def prettyprintDecl(out : PpStream) : Unit = ???
   override def progressImpl() = L3_Stencil(name, level, entries.map(_.progress))
 
-  def kron(other : L2_Stencil) : L2_Stencil = {
-    val otherCloned = Duplicate(other)
+  def squash() = {
+    case class Mapping(var row : L2_ExpressionIndex, var col : L2_ExpressionIndex)
 
-    if (level != other.level)
-      Logger.warn(s"Level mismatch: $level vs ${ other.level }")
+    val newEntries = HashMap[Mapping, L2_Expression]()
 
-    object ShiftIteratorAccess extends DefaultStrategy("Replace something with something else") {
-      var baseDim : Int = 0
+    entries.foreach(_.row.indices.transform(L2_SimplifyExpression.simplifyFloatingExpr))
+    entries.foreach(_.col.indices.transform(L2_SimplifyExpression.simplifyFloatingExpr))
 
-      this += new Transformation("Search and replace", {
-        case it : L2_FieldIteratorAccess =>
-          if (it.dim < baseDim) it.dim += baseDim
-          it
-      }, false)
+    for (entry <- entries) {
+      val id = Mapping(entry.row, entry.col)
+      if (newEntries.contains(id))
+        newEntries(id) += entry.coefficient
+      else
+        newEntries += ((id, entry.coefficient))
     }
 
-    ShiftIteratorAccess.baseDim = numDims
-    ShiftIteratorAccess.applyStandalone(entries)
+    entries = newEntries.to[ListBuffer].sortBy(_._1.col.prettyprint()).map {
+      case (mapping, coeff) => L2_StencilMappingEntry(mapping.row, mapping.col, coeff)
+    }
 
-    val newStencil = L2_Stencil(name + "_kron_" + otherCloned.name,
-      level,
-      numDims + otherCloned.numDims,
-      Duplicate(colStride ++ otherCloned.colStride),
-      entries.flatMap(l => otherCloned.entries.map(r =>
-        Duplicate(L2_StencilMappingEntry(
-          L2_ExpressionIndex(l.row.indices ++ r.row.indices),
-          L2_ExpressionIndex(l.col.indices ++ r.col.indices),
-          l.coefficient * r.coefficient)))))
-
-    newStencil.entries.foreach(e => L2_GeneralSimplify.doUntilDoneStandalone(e))
-
-    newStencil
+    entries.foreach(L2_GeneralSimplify.doUntilDoneStandalone(_))
   }
 
+  def compileCases() : ListBuffer[ListBuffer[Int]] = {
+    def numCases(d : Int) : Int = if (colStride(d) >= 1) 1/*colStride(d).toInt*/ else (1.0 / colStride(d)).toInt
+
+    var cases = ListBuffer.range(0, numCases(0)).map(i => ListBuffer(i))
+    for (d <- 1 until numDims)
+      cases = ListBuffer.range(0, numCases(d)).flatMap(i => cases.map(_ :+ i))
+
+    cases
+  }
+
+  def filter() = {
+    // remove entries with zero coefficients
+    entries = entries.filter(entry => {
+      try {
+        val simplified = L2_SimplifyExpression.simplifyFloatingExpr(entry.coefficient)
+        //entry.coefficient = simplified
+
+        simplified match {
+          case L2_RealConstant(0.0) => false
+          case _                    => true
+        }
+      } catch {
+        // keep entry if eval is not possible
+        case _ : EvaluationException => true
+      }
+    })
+
+    // remove entries with invalid row/column pairs
+    entries = entries.filter(entry => {
+      // filter entries with invalid indices
+      val cases = compileCases()
+
+      // check if at least one case exists that emits valid indices
+      cases.map(curCase => {
+        val newIndex = Duplicate(entry.col)
+        for (d <- 0 until numDims) {
+          L2_ReplaceExpressions.toReplace = entry.row.indices(d)
+          L2_ReplaceExpressions.replacement = curCase(d)
+          L2_ReplaceExpressions.applyStandalone(newIndex)
+        }
+        newIndex.indices.map(L2_SimplifyExpression.simplifyFloatingExpr(_) match {
+          case L2_RealConstant(v) => v.isValidInt
+          case other              => Logger.warn(other); false
+        }).reduce(_ && _)
+      }).reduce(_ || _)
+    })
+  }
 }
