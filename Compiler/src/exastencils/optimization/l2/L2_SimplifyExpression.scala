@@ -4,6 +4,7 @@ import scala.collection._
 import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.l2._
+import exastencils.baseExt.l2.L2_FieldIteratorAccess
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.util.l2.L2_MathFunctions
@@ -139,7 +140,7 @@ object L2_SimplifyExpression {
     * No float or boolean constants are allowed.
     * (Otherwise an EvaluationException is thrown.)
     *
-    * Returns a map from all present summands to thel2 corresponding coefficients.
+    * Returns a map from all present summands to their corresponding coefficients.
     * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
     *
@@ -220,6 +221,14 @@ object L2_SimplifyExpression {
       case L2_IntegerConstant(i) =>
         res = new HashMap[L2_Expression, Long]()
         res(constName) = i
+
+      case fia : L2_FieldIteratorAccess =>
+        res = new HashMap[L2_Expression, Long]()
+        res(fia) = 1l // preserve datatype if some
+
+      case L2_VariableAccess(varName, dt) =>
+        res = new HashMap[L2_Expression, Long]()
+        res(L2_VariableAccess(varName, dt)) = 1l // preserve datatype if some
 
       case L2_Negative(neg) =>
         res = extractIntegralSumRec(neg)
@@ -315,7 +324,7 @@ object L2_SimplifyExpression {
         for (arg <- args) simplifyIntegralExpr(arg) match {
           case L2_IntegerConstant(c)   => min = if (min == null || min > c) c else min
           case e if !exprs.contains(e) => exprs += e
-          case _                       => // we already found a (syntactically) indentical expression, so skip this one
+          case _                       => // we already found a (syntactically) identical expression, so skip this one
         }
         res = new HashMap[L2_Expression, Long]()
         if (exprs.isEmpty)
@@ -332,7 +341,7 @@ object L2_SimplifyExpression {
         for (arg <- args) simplifyIntegralExpr(arg) match {
           case L2_IntegerConstant(c)   => max = if (max == null || max < c) c else max
           case e if !exprs.contains(e) => exprs += e
-          case _                       => // we already found a (syntactically) indentical expression, so skip this one
+          case _                       => // we already found a (syntactically) identical expression, so skip this one
         }
         res = new HashMap[L2_Expression, Long]()
         if (exprs.isEmpty)
@@ -433,7 +442,7 @@ object L2_SimplifyExpression {
     * No boolean constants are allowed.
     * (Otherwise an EvaluationException is thrown.)
     *
-    * Returns a map from all present summands to thel2 corresponding coefficients.
+    * Returns a map from all present summands to their corresponding coefficients.
     * The additive constant is stored beside the string specified by the field SimplifyExpression.constName.
     * The given expression is equivalent to: map(constName) + \sum_{n \in names} map(n) * n
     *
@@ -456,6 +465,14 @@ object L2_SimplifyExpression {
       case L2_RealConstant(d) =>
         res = new HashMap[L2_Expression, Double]()
         res(constName) = d
+
+      case fia : L2_FieldIteratorAccess =>
+        res = new HashMap[L2_Expression, Double]()
+        res(fia) = 1d // preserve datatype if some
+
+      case L2_VariableAccess(varName, dt) =>
+        res = new HashMap[L2_Expression, Double]()
+        res(L2_VariableAccess(varName, dt)) = 1d // preserve datatype if some
 
       case call : L2_FunctionCall =>
         if (call.name.contains("std::rand")) // HACK
@@ -572,7 +589,7 @@ object L2_SimplifyExpression {
         for (arg <- args) simplifyFloatingExpr(arg) match {
           case L2_RealConstant(c)      => min = if (min == null || min > c) c else min
           case e if !exprs.contains(e) => exprs += e
-          case _                       => // we already found a (syntactically) indentical expression, so skip this one
+          case _                       => // we already found a (syntactically) identical expression, so skip this one
         }
         res = new HashMap[L2_Expression, Double]()
         if (exprs.isEmpty)
@@ -589,7 +606,7 @@ object L2_SimplifyExpression {
         for (arg <- args) simplifyFloatingExpr(arg) match {
           case L2_RealConstant(c)      => max = if (max == null || max < c) c else max
           case e if !exprs.contains(e) => exprs += e
-          case _                       => // we already found a (syntactically) indentical expression, so skip this one
+          case _                       => // we already found a (syntactically) identical expression, so skip this one
         }
         res = new HashMap[L2_Expression, Double]()
         if (exprs.isEmpty)
