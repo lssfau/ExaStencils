@@ -1,7 +1,562 @@
-//import scala.collection.mutable.ListBuffer
+import scala.collection.mutable._
+
+import exastencils.base.ir.IR_ImplicitConversion._
+import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldIteratorAccess
+import exastencils.core._
+import exastencils.datastructures._
+import exastencils.logger.Logger
+import exastencils.operator.ir._
+import exastencils.optimization.ir._
+import exastencils.prettyprinting.PpStream
+import exastencils.util.ir.IR_ReplaceVariableAccess
+
+object IndexMapping {
+  def apply(from : IR_Expression, to : IR_Expression) =
+    new IndexMapping(IR_ExpressionIndex(from), IR_ExpressionIndex(to))
+}
+
+case class IndexMapping(var from : IR_ExpressionIndex, var to : IR_ExpressionIndex) extends IR_Node {
+  def print : String = "[ " + from.prettyprint() + " -> " + to.prettyprint() + " ]"
+
+  def swap() : Unit = {
+    val tmp = to
+    to = from
+    from = tmp
+  }
+
+  def toIROffset() : IR_ExpressionIndex = {
+    val newOffset = Duplicate(to)
+
+    for (d <- 0 until from.length) {
+      IR_ReplaceVariableAccess.toReplace = from.indices(d).prettyprint()/*FIXME: use name of VA*/
+      IR_ReplaceVariableAccess.replacement = 0
+      IR_ReplaceVariableAccess.applyStandalone(newOffset)
+    }
+
+    newOffset.indices.transform(IR_SimplifyExpression.simplifyIntegralExpr)
+
+    while (newOffset.indices.length < 3) newOffset.indices :+= (0 : IR_Expression)
+
+    IR_GeneralSimplify.applyStandalone(newOffset)
+
+    newOffset
+  }
+}
+
+case class StencilEntry(var index : IndexMapping, var coeff : IR_Expression) extends IR_Node {
+  def print : String = index.print + " => " + coeff.prettyprint()
+  def toIRStencilEntry() = IR_StencilEntry(index.toIROffset(), coeff)
+}
+
+case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var entries : ListBuffer[StencilEntry]) extends IR_Node {
+  def print : String = entries.map(_.print).mkString(",\n")
+
+  def transpose() : MatFromStencil = {
+    val newStencil = Duplicate(this)
+    newStencil.colStride.transform(1.0 / _)
+
+    newStencil.entries.transform(entry => {
+      entry.index.swap()
+      for (d <- 0 until numDims) {
+        var done = false
+        while (!done) {
+          entry.index.from(d) match {
+            case _ : IR_FieldIteratorAccess =>
+              // TODO: more precise matching
+              done = true
+
+            case add : IR_Addition =>
+              val (iterator, remainder) = add.summands.partition(e => StateManager.findFirst[IR_FieldIteratorAccess]({ _ : IR_FieldIteratorAccess => true }, IR_ExpressionIndex(e)).isDefined)
+              if (iterator.size != 1) Logger.error(s"unsupported: ${ iterator.size } != 1")
+
+              entry.index.from(d) = iterator.head
+              entry.index.to(d) = IR_Subtraction(entry.index.to(d), IR_Addition(remainder))
+
+            case sub : IR_Subtraction =>
+              entry.index.from(d) = IR_Addition(sub.left, IR_Negative(sub.right))
+
+            case mul : IR_Multiplication =>
+              val (iterator, remainder) = mul.factors.partition(e => StateManager.findFirst[IR_FieldIteratorAccess]({ _ : IR_FieldIteratorAccess => true }, IR_ExpressionIndex(e)).isDefined)
+              if (iterator.size != 1) Logger.error(s"unsupported: ${ iterator.size } != 1")
+
+              entry.index.from(d) = iterator.head
+              entry.index.to(d) = IR_Division(entry.index.to(d), IR_Multiplication(remainder))
+
+            case div : IR_Division =>
+              if (StateManager.findFirst[IR_FieldIteratorAccess]({ _ : IR_FieldIteratorAccess => true }, div.left).isDefined) {
+                entry.index.to(d) = IR_Multiplication(entry.index.to(d), div.right)
+                entry.index.from(d) = div.left
+              } else {
+                Logger.error("unsupported")
+              }
+
+            case other => Logger.error(other)
+          }
+        }
+      }
+      entry
+    })
+
+    IR_GeneralSimplify.applyStandalone(newStencil)
+    newStencil
+  }
+
+  def add(other : MatFromStencil) : MatFromStencil = {
+    if (numDims != other.numDims) Logger.warn("Non-matching dimensionalities")
+    if ((0 until numDims).map(i => colStride(i) != other.colStride(i)).reduce(_ || _)) Logger.warn("Non-matching colStrides")
+
+    val newStencil = Duplicate(this)
+    newStencil.entries ++= Duplicate(other.entries)
+    newStencil.squash()
+
+    newStencil
+  }
+
+  def mul(other : MatFromStencil) : MatFromStencil = {
+    if (numDims != other.numDims) Logger.warn("Non-matching dimensionalities")
+    val newStencil = MatFromStencil(numDims, colStride.indices.map(i => colStride(i) * other.colStride(i)).toArray, ListBuffer())
+    for (left <- entries; right <- other.entries) {
+      // (x, y) * (y, z) // (left.from, left.to) * (right.from, right.to)
+      // wrap in ExpressionStatement to allow for matching of top-level accesses, eg when newTo is a single VariableAccess
+      val newTo = Duplicate(right.index.to)
+      for (d <- 0 until numDims) {
+        IR_ReplaceVariableAccess.toReplace = right.index.from.indices(d).prettyprint()/*FIXME: use name of VA*/
+        IR_ReplaceVariableAccess.replacement = left.index.to.indices(d)
+        IR_ReplaceVariableAccess.applyStandalone(newTo)
+      }
+
+      newTo.indices.transform(IR_SimplifyExpression.simplifyFloatingExpr)
+      newStencil.entries += StencilEntry(IndexMapping(Duplicate(left.index.from), newTo), left.coeff * right.coeff)
+    }
+    IR_GeneralSimplify.doUntilDone(Some(newStencil))
+    newStencil
+  }
+
+  def scale(factor : IR_Expression) : Unit = {
+    entries.foreach(_.coeff *= factor)
+  }
+
+  def kron(other : MatFromStencil) : MatFromStencil = {
+    val otherCloned = Duplicate(other)
+
+    object ShiftIteratorAccess extends DefaultStrategy("Replace something with something else") {
+      var baseDim : Int = 0
+
+      this += new Transformation("Search and replace", {
+        case it : IR_FieldIteratorAccess =>
+          if (it.dim < baseDim) it.dim += baseDim
+          it
+      }, false)
+    }
+
+    ShiftIteratorAccess.baseDim = numDims
+    ShiftIteratorAccess.applyStandalone(otherCloned)
+
+    val newStencil = MatFromStencil(numDims + otherCloned.numDims,
+      Duplicate(colStride ++ otherCloned.colStride),
+      entries.flatMap(l => otherCloned.entries.map(r =>
+        Duplicate(StencilEntry(IndexMapping(
+          IR_ExpressionIndex(l.index.from.indices ++ r.index.from.indices),
+          IR_ExpressionIndex(l.index.to.indices ++ r.index.to.indices)),
+          l.coeff * r.coeff)))))
+
+    IR_GeneralSimplify.doUntilDone(Some(newStencil))
+
+    newStencil
+  }
+
+  def squash() = {
+    val newEntries = HashMap[String, StencilEntry]()
+
+    for (entry <- entries) {
+      val id = entry.index.to.prettyprint()
+      if (newEntries.contains(id))
+        newEntries(id).coeff += entry.coeff
+      else
+        newEntries += ((id, entry))
+    }
+
+    entries = newEntries.toList.sortBy(_._1).map(_._2).to[ListBuffer]
+
+    IR_GeneralSimplify.applyStandalone(this)
+  }
+
+  def compileCases() : ListBuffer[ListBuffer[Int]] = {
+    def numCases(d : Int) : Int = if (colStride(d) >= 1) colStride(d).toInt else (1.0 / colStride(d)).toInt
+
+    var cases = ListBuffer.range(0, numCases(0)).map(i => ListBuffer(i))
+    for (d <- 1 until numDims)
+      cases = ListBuffer.range(0, numCases(d)).flatMap(i => cases.map(_ :+ i))
+
+    cases
+  }
+
+  def compileConditions(loopIt : IR_ExpressionIndex, stmts : ListBuffer[IR_Statement]) : ListBuffer[IR_Statement] = {
+
+    object IR_ReplaceStencil extends QuietDefaultStrategy("Replace something with something else") {
+      var toReplace : MatFromStencil = MatFromStencil(0, Array(), ListBuffer())
+      var replacement : MatFromStencil = MatFromStencil(0, Array(), ListBuffer()) // to be overwritten
+
+      this += new Transformation("Search and replace", {
+        case sten : MatFromStencil if sten == toReplace => Duplicate(replacement)
+      }, false)
+    }
+
+    val numCases = (0 until numDims).map(d => if (colStride(d) >= 1) colStride(d).toInt else (1.0 / colStride(d)).toInt)
+    val cases = compileCases()
+    cases.map(c => {
+      val redStencil = filterForSpecCase(c)
+      val redStmts = Duplicate(stmts)
+
+//      Logger.warn(c.mkString("\t"))
+//      Logger.warn(redStencil.print)
+//      Logger.warn(redStencil.toIRStencil().printStencilToStr())
+
+      IR_ReplaceStencil.toReplace = this
+      IR_ReplaceStencil.replacement = redStencil
+      IR_ReplaceStencil.applyStandalone(redStmts)
+
+      IR_IfCondition(
+        (0 until numDims).map(d => IR_EqEq(c(d), IR_Modulo(loopIt.indices(d), numCases(d)))).reduce(IR_AndAnd),
+        redStmts) : IR_Statement
+    }
+    )
+  }
+
+  def filter() = {
+    entries = entries.filter(entry => {
+      // filter entries with zero coefficients
+      IR_SimplifyExpression.simplifyFloatingExpr(entry.coeff) match {
+        case IR_RealConstant(0.0) => false
+        case _                    => true
+      }
+    }).filter(entry => {
+      // filter entries with invalid indices
+      val indices = compileCases().map(c => {
+        val mapTo = Duplicate(entry.index.to)
+        for (d <- 0 until numDims) {
+          IR_ReplaceVariableAccess.toReplace = entry.index.from.indices(d).prettyprint()/*FIXME: use name of VA*/
+          IR_ReplaceVariableAccess.replacement = c(d)
+          IR_ReplaceVariableAccess.applyStandalone(mapTo)
+        }
+        mapTo
+      }).flatMap(_.indices)
+
+      indices.map(IR_SimplifyExpression.simplifyFloatingExpr(_) match {
+        case IR_RealConstant(v) => v.isValidInt
+        case other              => Logger.warn(other); false
+      }).reduce(_ && _)
+    })
+  }
+
+  def filterForSpecCase(c : ListBuffer[Int]) : MatFromStencil = {
+    val newStencil = Duplicate(this)
+
+    newStencil.entries = newStencil.entries.filter(entry => {
+      // filter entries with invalid indices
+      for (d <- 0 until numDims) {
+        IR_ReplaceVariableAccess.toReplace = entry.index.from.indices(d).prettyprint()/*FIXME: use name of VA*/
+        IR_ReplaceVariableAccess.replacement = c(d)
+        IR_ReplaceVariableAccess.applyStandalone(entry.index.to)
+      }
+
+      entry.index.to.indices.map(IR_SimplifyExpression.simplifyFloatingExpr(_) match {
+        case IR_RealConstant(v) => v.isValidInt
+        case other              => Logger.warn(other); false
+      }).reduce(_ && _)
+    })
+
+    newStencil
+  }
+
+  def toIRStencil() = IR_Stencil("dummy_name", 0, entries.map(_.toIRStencilEntry()))
+}
+
+object Testbed {
+  def check1D() = {
+    def i = IR_FieldIteratorAccess(0)
+
+    val restrict = MatFromStencil(1, Array(2), ListBuffer(
+      StencilEntry(IndexMapping(i, 2 * i - 1), 1.0 / 4.0),
+      StencilEntry(IndexMapping(i, 2 * i + 0), 1.0 / 2.0),
+      StencilEntry(IndexMapping(i, 2 * i + 1), 1.0 / 4.0)
+    ))
+    Logger.warn("Restriction:\n" + restrict.print)
+
+    val op = MatFromStencil(1, Array(1), ListBuffer(
+      StencilEntry(IndexMapping(i, i - 1), 1.0),
+      StencilEntry(IndexMapping(i, i + 0), -2.0),
+      StencilEntry(IndexMapping(i, i + 1), 1.0)
+    ))
+    Logger.warn("Operator:\n" + op.print)
+
+    val factor = 2.0
+    val prolong = restrict.transpose()
+    prolong.scale(factor)
+    /*val prolong = MatFromStencil(ListBuffer(
+      StencilEntry(IndexMapping(i, (i + 1) / 2), factor / 4.0),
+      StencilEntry(IndexMapping(i, (i + 0) / 2), factor / 2.0),
+      StencilEntry(IndexMapping(i, (i - 1) / 2), factor / 4.0)
+    ))*/
+    Logger.warn("Prolongation:\n" + prolong.print)
+
+    var stencils = ListBuffer(restrict, op, prolong)
+
+    // enforce real constants
+    object ReplaceIntWithReal extends QuietDefaultStrategy("Replace something with something else") {
+      this += new Transformation("Search and replace", {
+        case IR_IntegerConstant(c) => IR_RealConstant(c)
+      })
+    }
+    object ReplaceRealWithInt extends QuietDefaultStrategy("Replace something with something else") {
+      this += new Transformation("Search and replace", {
+        case IR_RealConstant(c) => IR_IntegerConstant(c.toInt)
+      })
+    }
+    stencils.foreach(_.entries.foreach(entry => ReplaceIntWithReal.applyStandalone(entry.index)))
+
+    // calculate ra and rap
+    val ra = restrict.mul(op)
+    //Logger.warn("R * A:\n" + ra.print)
+    ra.squash()
+    //Logger.warn("R * A:\n" + ra.print)
+    ra.filter()
+    //Logger.warn("R * A:\n" + ra.print)
+    stencils += ra
+
+    val rap = ra.mul(prolong)
+    //Logger.warn("R * A * P:\n" + rap.print)
+    rap.squash()
+    //Logger.warn("R * A * P:\n" + rap.print)
+    rap.filter()
+    //Logger.warn("R * A * P:\n" + rap.print)
+    stencils += rap
+
+    stencils.foreach(_.entries.foreach(entry => ReplaceRealWithInt.applyStandalone(entry.index)))
+
+    Logger.warn("R * A:\n" + ra.print)
+    Logger.warn("R * A * P:\n" + rap.print)
+    Logger.warn("R * A * P:\n" + rap.toIRStencil().printStencilToStr())
+
+    //Logger.warn(prolong.compileConditions(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(1)), ListBuffer()))
+  }
+
+  def check2D() = {
+    def i0 = IR_FieldIteratorAccess(0)
+    def i1 = IR_FieldIteratorAccess(1)
+    def i = IR_ExpressionIndex(i0, i1)
+
+    val linInterpolation = MatFromStencil(1, Array(2), ListBuffer(
+      StencilEntry(IndexMapping(i0, 2 * i0 - 1), 1.0 / 4.0),
+      StencilEntry(IndexMapping(i0, 2 * i0 + 0), 1.0 / 2.0),
+      StencilEntry(IndexMapping(i0, 2 * i0 + 1), 1.0 / 4.0)))
+
+    val restrict = linInterpolation.kron(linInterpolation)
+
+    /*val restrict = MatFromStencil(1, Array(2), ListBuffer(
+      StencilEntry(IndexMapping(i0, 2 * i0 - 1), 1.0 / 4.0),
+      StencilEntry(IndexMapping(i0, 2 * i0 + 0), 1.0 / 2.0),
+      StencilEntry(IndexMapping(i0, 2 * i0 + 1), 1.0 / 4.0))).kron(
+      MatFromStencil(1, Array(2), ListBuffer(
+        StencilEntry(IndexMapping(i1, 2 * i1 - 1), 1.0 / 4.0),
+        StencilEntry(IndexMapping(i1, 2 * i1 + 0), 1.0 / 2.0),
+        StencilEntry(IndexMapping(i1, 2 * i1 + 1), 1.0 / 4.0))))*/
+
+    /*val restrict = MatFromStencil(2, Array(2, 2), ListBuffer(
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(2 * i0 - 1, 2 * i1 - 1)), 1.0 / 16.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(2 * i0 - 1, 2 * i1 + 0)), 1.0 / 8.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(2 * i0 - 1, 2 * i1 + 1)), 1.0 / 16.0),
+
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(2 * i0 + 0, 2 * i1 - 1)), 1.0 / 8.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(2 * i0 + 0, 2 * i1 + 0)), 1.0 / 4.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(2 * i0 + 0, 2 * i1 + 1)), 1.0 / 8.0),
+
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(2 * i0 + 1, 2 * i1 - 1)), 1.0 / 16.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(2 * i0 + 1, 2 * i1 + 0)), 1.0 / 8.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(2 * i0 + 1, 2 * i1 + 1)), 1.0 / 16.0)
+    ))*/
+    Logger.warn("Restriction:\n" + restrict.print)
+
+    val op = MatFromStencil(2, Array(1, 1), ListBuffer(
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(i0 - 1, i1 + 0)), 1.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(i0 + 0, i1 - 1)), 1.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(i0 + 0, i1 + 0)), -4.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(i0 + 1, i1 + 0)), 1.0),
+      StencilEntry(IndexMapping(i, IR_ExpressionIndex(i0 + 0, i1 + 1)), 1.0)
+    ))
+    Logger.warn("Operator:\n" + op.print)
+
+    val factor = 1.0 * 4.0
+    val prolong = restrict.transpose()
+    prolong.scale(factor)
+    /*val prolong = MatFromStencil(ListBuffer(
+      StencilEntry(IndexMapping(2, i, IR_ExpressionIndex((i0 + 1) / 2, (i1 + 1) / 2)), factor / 16.0),
+      StencilEntry(IndexMapping(2, i, IR_ExpressionIndex((i0 + 1) / 2, (i1 + 0) / 2)), factor / 8.0),
+      StencilEntry(IndexMapping(2, i, IR_ExpressionIndex((i0 + 1) / 2, (i1 - 1) / 2)), factor / 16.0),
+
+      StencilEntry(IndexMapping(2, i, IR_ExpressionIndex((i0 + 0) / 2, (i1 + 1) / 2)), factor / 8.0),
+      StencilEntry(IndexMapping(2, i, IR_ExpressionIndex((i0 + 0) / 2, (i1 + 0) / 2)), factor / 4.0),
+      StencilEntry(IndexMapping(2, i, IR_ExpressionIndex((i0 + 0) / 2, (i1 - 1) / 2)), factor / 8.0),
+
+      StencilEntry(IndexMapping(2, i, IR_ExpressionIndex((i0 - 1) / 2, (i1 + 1) / 2)), factor / 16.0),
+      StencilEntry(IndexMapping(2, i, IR_ExpressionIndex((i0 - 1) / 2, (i1 + 0) / 2)), factor / 8.0),
+      StencilEntry(IndexMapping(2, i, IR_ExpressionIndex((i0 - 1) / 2, (i1 - 1) / 2)), factor / 16.0)
+    ))*/
+    Logger.warn("Prolongation:\n" + prolong.print)
+
+    var stencils = ListBuffer(restrict, op, prolong)
+
+    // enforce real constants
+    object ReplaceIntWithReal extends QuietDefaultStrategy("Replace something with something else") {
+      this += new Transformation("Search and replace", {
+        case IR_IntegerConstant(c) => IR_RealConstant(c)
+      })
+    }
+    object ReplaceRealWithInt extends QuietDefaultStrategy("Replace something with something else") {
+      this += new Transformation("Search and replace", {
+        case IR_RealConstant(c) => IR_IntegerConstant(c.toInt)
+      })
+    }
+    stencils.foreach(_.entries.foreach(entry => ReplaceIntWithReal.applyStandalone(entry.index)))
+
+    // calculate ra and rap
+    val ra = restrict.mul(op)
+    //Logger.warn("R * A:\n" + ra.print)
+    ra.squash()
+    //Logger.warn("R * A:\n" + ra.print)
+    ra.filter()
+    //Logger.warn("R * A:\n" + ra.print)
+    stencils += ra
+
+    val rap = ra.mul(prolong)
+    //Logger.warn("R * A * P:\n" + rap.print)
+    rap.squash()
+    //Logger.warn("R * A * P:\n" + rap.print)
+    rap.filter()
+    //Logger.warn("R * A * P:\n" + rap.print)
+    stencils += rap
+
+    def coarsen(op : MatFromStencil) = {
+      var rec = op
+      rec = restrict.mul(rec)
+      rec.squash()
+      rec.filter()
+      rec = rec.mul(prolong)
+      rec.squash()
+      rec.filter()
+      rec
+    }
+
+    val rrapp = coarsen(rap)
+    stencils += rrapp
+    val rrrrapppp = coarsen(coarsen(rrapp))
+    stencils += rrrrapppp
+    val r8ap8 = coarsen(coarsen(coarsen(coarsen(rrrrapppp))))
+    stencils += r8ap8
+
+    val rp = restrict.mul(prolong)
+    rp.squash()
+    rp.filter()
+    stencils += rp
+
+    stencils.foreach(_.entries.foreach(entry => ReplaceRealWithInt.applyStandalone(entry.index)))
+
+    Logger.warn("R * A:\n" + ra.print)
+    Logger.warn("R * A * P:\n" + rap.print)
+
+    Logger.warn("RR * A * PP:\n" + rrapp.print)
+    Logger.warn("RRRR * A * PPPP:\n" + rrrrapppp.print)
+    Logger.warn("R^8 * A * P^8:\n" + r8ap8.print)
+
+    Logger.warn("R * P:\n" + rp.print)
+    Logger.warn("sum per line (RP): " + IR_SimplifyExpression.simplifyFloatingExpr(IR_Addition(rp.entries.map(_.coeff))))
+
+    Logger.warn("R * A * P:\n" + rap.toIRStencil().printStencilToStr())
+  }
+
+  case class MatAccess(var stencil : MatFromStencil) extends IR_Expression {
+    override def datatype : IR_Datatype = ???
+    override def prettyprint(out : PpStream) : Unit = ???
+  }
+
+  object ResolveStencilOperations extends DefaultStrategy("Resolve operations involving stencils") {
+    this += new Transformation("Resolve", {
+      case add : IR_Addition if add.summands.exists(_.isInstanceOf[MatAccess]) =>
+        val (stencilAccesses, other) : (ListBuffer[IR_Expression], ListBuffer[IR_Expression]) = add.summands.partition(_.isInstanceOf[MatAccess])
+        val stencils = stencilAccesses.map(_.asInstanceOf[MatAccess].stencil)
+        var newStencil = stencils.remove(stencils.length - 1)
+        while (stencils.nonEmpty)
+          newStencil = newStencil.add(stencils.remove(stencils.length - 1))
+
+        add.summands = MatAccess(newStencil) +: other
+        add
+
+      case mul : IR_Multiplication if mul.factors.exists(_.isInstanceOf[MatAccess]) =>
+
+        mul
+    })
+  }
+
+//  def checkTypes() = {
+//    type L2Expression = GenExpression[L2]
+//    type L2Add = GenAdd[L2]
+//    val L2Add = GenAdd[L2]
+//    type GenAdd[IR] = MyAdd[IR]
 //
-//import exastencils.base.ir.IR_ImplicitConversion._
-//import exastencils.base.ir._
+//    val l2Add = L2Add(NoEx[L2], NoEx[L2])
+//    l2Add.print
+//  }
+
+  def main(args : Array[String]) : Unit = {
+    //check1D()
+    //check2D()
+
+//    checkTypes()
+
+    Logger.warn("Done")
+  }
+}
+
+//trait Layer//[next <: Layer[_]]
+//
+//trait L2 extends Layer//[L3]
+//
+//trait L3 extends Layer//[L4]
+//
+//trait L4 extends Layer//[IR]
+//
+//trait IR extends Layer//[_]
+//
+//trait GenExpression[@specialized layer <: Layer] {
+//  //def progress() : next
+//}
+//
+//case class GenAdd[@specialized layer <: Layer](var left : GenExpression[layer], var right : GenExpression[layer]) extends GenExpression[layer] {
+//  //override def progress : layer
+//  def print = Logger.warn(left.getClass.getName)
+//}
+//
+//case class MyAdd[@specialized IR]() {
+//
+//}
+//
+//case class NoEx[@specialized layer <: Layer]() extends GenExpression[layer] {}
+//
+//package object testbed {
+//}
+
+//object IR_ReplaceVariableAccess extends QuietDefaultStrategy("Replace something with something else") {
+//  var toReplace : String = ""
+//  var replacement : Node = IR_VariableAccess("", IR_UnknownDatatype) // to be overwritten
+//
+//  this += new Transformation("Search and replace", {
+//// TODO: rely only on IR_VariableAccess => eliminate IR_StringLiteral occurrences
+//    case IR_StringLiteral(s) if s == toReplace                  => Duplicate(replacement)
+//    case access : IR_VariableAccess if access.name == toReplace => Duplicate(replacement)
+//  }, false)
+//}
+
 //import exastencils.baseExt.ir._
 //import exastencils.config._
 //import exastencils.core._
