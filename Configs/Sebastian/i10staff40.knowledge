@@ -3,11 +3,11 @@ dimensionality				= 2
 minLevel					= 3
 maxLevel					= 8
 
-grid_isUniform				= false
+/*grid_isUniform				= false
 grid_isStaggered			= false
 grid_isAxisAligned			= false
 
-grid_spacingModel			= "random"
+grid_spacingModel			= "random"*/
 
 domain_onlyRectangular		= true
 domain_numBlocks			= 1
@@ -43,3 +43,5 @@ l3tmp_smoother				= "RBGS"
 */
 //library_CImg				= true
 //experimental_NeumannOrder	= 1
+
+experimental_layerExtension	= true

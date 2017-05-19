@@ -1,9 +1,14 @@
 user						= "Sebastian"
 
 basePathPrefix				= "./"
-l1file						= "Configs\Sebastian\ExaFluids.exa1"
+/*l1file						= "Configs\Sebastian\ExaFluids.exa1"
 l2file						= "Configs\Sebastian\ExaFluids.exa2"
 l3file						= "Configs\Sebastian\ExaFluids.exa3"
+l4file						= "Configs\Sebastian\ExaFluids.exa4"*/
+l1file						= "Configs\Sebastian\Laplace_2D.exa1"
+l2file						= "Configs\Sebastian\Laplace_2D.exa2"
+l3file						= "Configs\Sebastian\Laplace_2D.exa3"
+l4file						= "Configs\Sebastian\Laplace_2D.exa4"
 //l4file						= "Configs\Sebastian\ExaFluids.exa4"
 //l4file						= "Configs\Sebastian\ExaFluids_Ext.exa4"
 //l4file						= "Configs\Sebastian\SPDE_Test.exa4"
@@ -17,7 +22,7 @@ l3file						= "Configs\Sebastian\ExaFluids.exa3"
 //l4file						= "Testing\Application\OpticalFlow3D.exa4"
 //l4file						= "Testing\Application\ExaFluids.exa4"
 //l4file						= "Configs\Sebastian\ExaStokes_2D_Triad.exa4"
-l4file						= "Configs\Sebastian\Poisson_FV_Tri.exa4"
+//l4file						= "Configs\Sebastian\Poisson_FV_Tri.exa4"
 //l4file						= "Configs\Sebastian\Wave_2D.exa4"
 
 htmlLogFile					= "Compiler\log\log.html"
@@ -25,7 +30,8 @@ outputPath					= "generated/"
 
 produceHtmlLog				= true
 timeStrategies				= true
-timeStratPercentThreshold	= 0
+timeStratPercentThreshold	= 5
+//timeStratPercentThreshold	= 0
 
 pathsInc					+= "$(MSMPI_INC)"
 pathsLib					+= "$(MSMPI_LIB64)"
