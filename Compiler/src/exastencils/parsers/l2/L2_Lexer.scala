@@ -24,6 +24,9 @@ object L2_Lexer extends ExaLexer {
   // base => l3_LevelSpecifications
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
+  // baseExt => L2_FieldIteratorAccess
+  reserved += ("i0", "i1", "i2")
+
   // baseExt => l3_FieldDeclarations
   reserved += ("Field", "with", "on", "of", "boundary")
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")

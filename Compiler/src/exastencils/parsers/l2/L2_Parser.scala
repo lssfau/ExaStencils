@@ -84,6 +84,7 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| functionCall
       ||| locationize("-" ~> genericAccess ^^ { x => L2_UnaryOperators.createExpression("-", x) })
       ||| genericAccess
+      ||| fieldIteratorAccess
       ||| locationize(booleanLit ^^ { s => L2_BooleanConstant(s) }))
 
   lazy val booleanexpression : PackratParser[L2_Expression] = (
@@ -206,6 +207,16 @@ object L2_Parser extends ExaParser with PackratParsers {
   // #############################################################################
   // ################################## BASE_EXT #################################
   // #############################################################################
+
+  // ######################################
+  // ##### L2_FieldIteratorAccess
+  // ######################################
+
+  lazy val fieldIteratorAccess = (
+    locationize("i0" ^^ { _ => L2_FieldIteratorAccess(0) })
+      ||| locationize("i1" ^^ { _ => L2_FieldIteratorAccess(1) })
+      ||| locationize("i2" ^^ { _ => L2_FieldIteratorAccess(2) })
+    )
 
   // ######################################
   // ##### L2_HigherOrderDatatype
