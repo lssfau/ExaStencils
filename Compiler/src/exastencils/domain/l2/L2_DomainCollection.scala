@@ -1,6 +1,7 @@
 package exastencils.domain.l2
 
 import exastencils.domain.l3._
+import exastencils.knowledge.l2.L2_KnowledgeStrategyContainer._
 import exastencils.knowledge.l2._
 
 /// L2_DomainCollection

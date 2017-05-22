@@ -1,5 +1,6 @@
 package exastencils.operator.l2
 
+import exastencils.knowledge.l2.L2_KnowledgeStrategyContainer._
 import exastencils.knowledge.l2._
 import exastencils.operator.l3._
 

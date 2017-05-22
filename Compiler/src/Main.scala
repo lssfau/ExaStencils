@@ -36,7 +36,7 @@ import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4._
 import exastencils.interfacing.ir._
 import exastencils.knowledge.ir.IR_ClearKnowledge
-import exastencils.knowledge.l2._
+import exastencils.knowledge.l2.L2_KnowledgeStrategyContainer._
 import exastencils.knowledge.l3.L3_FieldCollection
 import exastencils.knowledge.l4._
 import exastencils.logger._

@@ -3,6 +3,7 @@ package exastencils.grid.l2
 import scala.collection.mutable.ListBuffer
 
 import exastencils.grid.l3._
+import exastencils.knowledge.l2.L2_KnowledgeStrategyContainer._
 import exastencils.knowledge.l2._
 import exastencils.logger.Logger
 

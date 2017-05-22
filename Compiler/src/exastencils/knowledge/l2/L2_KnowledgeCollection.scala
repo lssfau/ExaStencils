@@ -34,6 +34,8 @@ class L2_KnowledgeCollection[L2_Type <: L2_KnowledgeObject[L3_Type] : TypeTag, L
   }
 }
 
+/// L2_LeveledKnowledgeCollection
+
 class L2_LeveledKnowledgeCollection[L2_Type <: L2_LeveledKnowledgeObject[L3_Type] : TypeTag, L3_Type <: L3_KnowledgeObject[_]] {
 
   case class NameAndLevel(name : String, level : Int)

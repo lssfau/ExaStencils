@@ -1,6 +1,7 @@
 package exastencils.field.l2
 
 import exastencils.field.l3.L3_Field
+import exastencils.knowledge.l2.L2_KnowledgeStrategyContainer._
 import exastencils.knowledge.l2._
 import exastencils.knowledge.l3.L3_FieldCollection
 
