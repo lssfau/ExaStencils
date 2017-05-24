@@ -9,7 +9,7 @@ import scala.util.parsing.input._
 import exastencils.base.l2._
 import exastencils.baseExt.l2._
 import exastencils.boundary.l2._
-import exastencils.domain.l2.L2_DomainDecl
+import exastencils.domain.l2._
 import exastencils.field.l2._
 import exastencils.operator.l2._
 import exastencils.parsers._
@@ -257,7 +257,8 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_DomainDecl
   // ######################################
 
-  lazy val domainDeclaration = locationize("Domain" ~> ident ^^ { L2_DomainDecl })
+  lazy val domainDeclaration = locationize(("Domain" ~> ident) ~ ("<" ~> expressionIndex <~ "to") ~ (expressionIndex <~ ">")
+    ^^ { case id ~ l ~ u => L2_DomainFromAABBDecl(id, l, u) })
 
   // #############################################################################
   // #################################### FIELD ##################################

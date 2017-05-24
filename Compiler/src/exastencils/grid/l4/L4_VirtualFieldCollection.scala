@@ -1,18 +1,53 @@
 package exastencils.grid.l4
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.grid.ir._
+import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4._
+import exastencils.logger.Logger
 
 /// L4_VirtualFieldCollection
 
 object L4_VirtualFieldCollection extends L4_LeveledKnowledgeCollection[L4_VirtualField, IR_VirtualField] {
   exastencils.core.Duplicate.registerConstant(this)
 
-//  L4_UnfoldLeveledDeclarations.strategies += L4_UnfoldVirtualFieldDeclarations
-//  L4_PrepareDeclarations.strategies += L4_PrepareVirtualFieldDeclaration
-//  L4_PrepareAccesses.strategies += L4_PrepareVirtualFieldAccesses
-//  L4_ProcessDeclarations.strategies += L4_ProcessVirtualFieldDeclarations
-//  L4_ResolveAccesses.strategies += L4_ResolveVirtualFieldAccesses
+  L4_KnowledgeContainer.register(this)
 
-  def progress() = objects.foreach(obj => IR_VirtualFieldCollection.add(obj.progress()))
+  if (true /* TODO: when? */ ) {
+    L4_PrepareDeclarations.strategies += L4_PrepareVirtualFieldDeclarations
+    L4_ProcessDeclarations.strategies += L4_ProcessVirtualFieldDeclarations
+  }
+
+  L4_PrepareAccesses.strategies += L4_PrepareVirtualFieldAccesses
+  L4_ResolveAccesses.strategies += L4_ResolveVirtualFieldAccesses
+
+  override def name = "L4_VirtualFieldCollection"
+  override def progress() = objects.foreach(obj => IR_VirtualFieldCollection.add(obj.progress()))
+
+  // special overrides for handling possible name variations
+
+  def prefixedLC(identifier : String) = (if (identifier.startsWith("vf_")) identifier else "vf_" + identifier).toLowerCase
+
+  override def exists(identifier : String) = objects.exists(_.name.toLowerCase == prefixedLC(identifier))
+  override def exists(identifier : String, level : Int) = objects.exists(f => f.name.toLowerCase == prefixedLC(identifier) && f.level == level)
+
+  override def existsDecl(identifier : String) = declared.exists(_.name.toLowerCase == prefixedLC(identifier))
+  override def existsDecl(identifier : String, level : Int) = declared.exists(f => f.name.toLowerCase == prefixedLC(identifier) && f.level == level)
+
+  override def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[L4_VirtualField] = {
+    val ret = objects.find(f => f.name.toLowerCase == prefixedLC(identifier) && f.level == level)
+    if (!suppressError && ret.isEmpty) Logger.warn(s"L4_VirtualField $identifier for level $level was not found")
+    ret
+  }
+
+  override def getAllByIdentifier(identifier : String, suppressError : Boolean = false) : ListBuffer[L4_VirtualField] = {
+    var foundObjs = ListBuffer[L4_VirtualField]()
+    for (obj <- objects)
+      if (obj.name.toLowerCase == prefixedLC(identifier))
+        foundObjs += obj
+
+    if (!suppressError && foundObjs.isEmpty) Logger.warn(s"L4_VirtualField $identifier was not found on any level")
+    foundObjs
+  }
 }

@@ -34,9 +34,9 @@ case class L4_Communicate(
     // FIXME: honor component accesses
     val progressedField = Duplicate(field match {
       case f : L4_FieldAccess         => f.progress.fieldSelection
-      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObject().field,
+      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObj().field,
         sf.target.level,
-        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject().field, sf.slot))
+        L4_FieldAccess.resolveSlot(sf.target.getProgressedObj().field, sf.slot))
     })
     val progressedTargets : ListBuffer[IR_CommunicateTarget] = ListBuffer()
 

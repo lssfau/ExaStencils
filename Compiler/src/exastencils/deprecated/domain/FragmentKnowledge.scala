@@ -39,7 +39,7 @@ object FragmentKnowledge {
 
     val outData = new FragmentDataWriter(new BufferedOutputStream(new FileOutputStream(Settings.fragmentFile_config_path_binary)))
     var fragments = FragmentCollection.fragments
-    val domains = if (Knowledge.domain_readFromFile) IR_DomainCollection.getByIdentifier("global").get.shape.asInstanceOf[List[FileInputDomain]] else IR_DomainCollection.objects
+    val domains = if (Knowledge.domain_readFromFile) IR_DomainCollection.getByIdentifier("global").get.HACK_shape.asInstanceOf[List[FileInputDomain]] else IR_DomainCollection.objects
     //    if (Knowledge.domain_useCase != "") {
     //      fragments = fragments.filter { f => f.domainIds.exists { e => e != 0 } }
     //    }

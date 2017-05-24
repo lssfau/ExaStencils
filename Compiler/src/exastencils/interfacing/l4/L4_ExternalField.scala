@@ -18,5 +18,5 @@ case class L4_ExternalField(
     out << "external Field " << name << " <" << fieldLayout << "> => " << targetField << "@" << level
   }
 
-  override def progressImpl() = IR_ExternalField(name, targetField.getProgressedObject(), fieldLayout.getProgressedObject(), level)
+  override def progressImpl() = IR_ExternalField(name, targetField.getProgressedObj(), fieldLayout.getProgressedObj(), level)
 }

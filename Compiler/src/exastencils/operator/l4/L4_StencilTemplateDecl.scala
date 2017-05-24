@@ -6,7 +6,7 @@ import exastencils.base.l4._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
+import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl_
 import exastencils.prettyprinting._
 
 /// L4_StencilTemplateDecl
@@ -16,7 +16,7 @@ object L4_StencilTemplateDecl {
     new L4_StencilTemplateDecl(identifier, offsets.to[ListBuffer])
 }
 
-case class L4_StencilTemplateDecl(override var identifier : L4_Identifier, var offsets : ListBuffer[L4_Index]) extends L4_LeveledKnowledgeDecl {
+case class L4_StencilTemplateDecl(override var identifier : L4_Identifier, var offsets : ListBuffer[L4_Index]) extends L4_LeveledKnowledgeDecl_ {
   override def prettyprint(out : PpStream) = {
     out << "StencilTemplate " << identifier << " {\n"
     for (offset <- offsets)

@@ -4,7 +4,7 @@ import exastencils.base.l4._
 import exastencils.boundary.l4.L4_BoundaryCondition
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
+import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl_
 import exastencils.prettyprinting.PpStream
 
 /// L4_FieldDecl
@@ -19,7 +19,7 @@ case class L4_FieldDecl(
     var fieldLayoutName : String,
     var boundary : L4_BoundaryCondition,
     var numSlots : Integer,
-    var index : Int = 0) extends L4_LeveledKnowledgeDecl {
+    var index : Int = 0) extends L4_LeveledKnowledgeDecl_ {
 
   override def prettyprint(out : PpStream) = {
     out << "Field " << identifier.name << "< " << domainName << ", " << fieldLayoutName << ", " << boundary << " >"

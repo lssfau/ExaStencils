@@ -36,7 +36,7 @@ case class L4_StencilAccess(
     if (arrayIndex.isDefined && dirAccess.isDefined)
       Logger.warn(s"Access to stencil ${ target.name } on level ${ target.level } has dirAccess and array subscript modifiers; array index will be given precedence, dirAccess will be ignored")
 
-    val stencil = target.getProgressedObject()
+    val stencil = target.getProgressedObj()
 
     if (arrayIndex.isDefined) {
       val coeff = Duplicate(stencil.entries(arrayIndex.get).coefficient)

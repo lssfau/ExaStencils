@@ -3,13 +3,12 @@ package exastencils.domain.l3
 import exastencils.datastructures._
 import exastencils.knowledge.l3.L3_KnowledgeDecl
 import exastencils.logger._
-import exastencils.prettyprinting._
 
 /// L3_DomainDecl
 
-case class L3_DomainDecl(var name : String) extends L3_KnowledgeDecl {
-  override def prettyprint(out : PpStream) = out << "Domain" << name
+abstract class L3_DomainDecl extends L3_KnowledgeDecl {
   override def progress = Logger.error(s"Trying to progress L3 domain declaration for domain $name; this is not supported")
+  def addToKnowledge() : Unit
 }
 
 /// L3_PrepareDomainDeclarations
@@ -26,8 +25,8 @@ object L3_PrepareDomainDeclarations extends DefaultStrategy("Prepare knowledge f
 
 object L3_ProcessDomainDeclarations extends DefaultStrategy("Integrate L3 domain declarations with knowledge") {
   this += Transformation("Process new domains", {
-    case domain : L3_DomainDecl =>
-      L3_DomainCollection.add(L3_Domain(domain.name))
+    case decl : L3_DomainDecl =>
+      decl.addToKnowledge()
       None // consume declaration statement
   })
 }

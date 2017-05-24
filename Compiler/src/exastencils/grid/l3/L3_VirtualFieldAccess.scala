@@ -1,6 +1,5 @@
 package exastencils.grid.l3
 
-import exastencils.base.l4.L4_SingleLevel
 import exastencils.datastructures._
 import exastencils.grid.l4.L4_VirtualFieldAccess
 import exastencils.knowledge.l3.L3_LeveledKnowledgeAccess
@@ -15,7 +14,7 @@ object L3_VirtualFieldAccess {
 
 case class L3_VirtualFieldAccess(var target : L3_VirtualField) extends L3_LeveledKnowledgeAccess {
   def prettyprint(out : PpStream) = out << target.name << '@' << target.level
-  def progress = L4_VirtualFieldAccess(target.name, L4_SingleLevel(target.level))
+  def progress = L4_VirtualFieldAccess(target.getProgressedObj())
 }
 
 /// L3_ResolveVirtualFieldAccesses

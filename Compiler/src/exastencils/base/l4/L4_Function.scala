@@ -1,8 +1,8 @@
 package exastencils.base.l4
 
-import exastencils.base.ExaRootNode
-
 import scala.collection.mutable._
+
+import exastencils.base.ExaRootNode
 import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.core._
@@ -42,6 +42,8 @@ case class L4_Function(
     out << "\n}"
   }
 
+  def name = identifier.name
+
   override def progress = IR_Function(returntype.progress, identifier.fullName, arguments.map(s => s.progress), body.map(s => s.progress), allowInlining)
 }
 
@@ -49,6 +51,13 @@ case class L4_Function(
 
 object L4_FunctionCall {
   def apply(function : L4_Access, arguments : L4_Expression*) = new L4_FunctionCall(function, arguments.to[ListBuffer])
+
+  @deprecated("Used for backwards compatibility - to be removed", "22.09.16")
+  def apply(functionName : String, args : L4_Expression*)
+  = new L4_FunctionCall(L4_UserFunctionAccess(functionName, L4_UnitDatatype), args.to[ListBuffer])
+  @deprecated("Used for backwards compatibility - to be removed", "22.09.16")
+  def apply(functionName : String, args : ListBuffer[L4_Expression])
+  = new L4_FunctionCall(L4_UserFunctionAccess(functionName, L4_UnitDatatype), args)
 }
 
 case class L4_FunctionCall(var function : L4_Access, var arguments : ListBuffer[L4_Expression]) extends L4_Expression {
@@ -63,6 +72,7 @@ case class L4_FunctionCall(var function : L4_Access, var arguments : ListBuffer[
         IR_FunctionCall(access.name, arguments.map(s => s.progress))
     }
   }
+  def name = function.name
 }
 
 /// L4_Return

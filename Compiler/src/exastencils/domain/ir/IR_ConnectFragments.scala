@@ -9,19 +9,17 @@ import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
-import exastencils.deprecated.domain.RectangularDomain
 import exastencils.deprecated.domain.ir.IR_ReadValueFrom
 import exastencils.deprecated.ir._
-import exastencils.domain._
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
 case class IR_ConnectFragments() extends IR_Statement with IR_Expandable {
-  def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
+  def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[IR_DomainFromAABB].aabb
   def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
   def isPointInsideDomain(position : (Int => IR_Expression), domain : IR_Domain) = {
-    val size = domain.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
+    val size = domain.asInstanceOf[IR_DomainFromAABB].aabb
 
     Knowledge.dimensions.map(dim =>
       (position(dim) >= size.lower(dim))

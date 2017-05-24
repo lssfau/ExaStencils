@@ -16,13 +16,12 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
-import exastencils.deprecated.domain.RectangularDomain
 import exastencils.deprecated.ir._
 import exastencils.deprecated.l3Generate
-import exastencils.domain.AABB
 import exastencils.domain.ir._
 import exastencils.domain.l2._
 import exastencils.domain.l3.L3_DomainCollection
+import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.ir._
 import exastencils.field.l2._
 import exastencils.field.l3._
@@ -35,11 +34,13 @@ import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4._
 import exastencils.interfacing.ir._
+import exastencils.interfacing.l4.L4_ExternalFieldCollection
 import exastencils.knowledge.ir.IR_ClearKnowledge
 import exastencils.knowledge.l2.L2_KnowledgeContainer._
 import exastencils.knowledge.l2._
 import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3._
+import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4._
 import exastencils.logger._
 import exastencils.operator.l2._
@@ -139,6 +140,16 @@ object Main {
       L3_StencilCollection
       L3_StencilTemplateCollection
       L3_VirtualFieldCollection
+    }
+    {
+      L4_DomainCollection
+      L4_FieldLayoutCollection
+      L4_FieldCollection
+      L4_StencilCollection
+      L4_StencilFieldCollection
+      L4_StencilTemplateCollection
+      L4_VirtualFieldCollection
+      L4_ExternalFieldCollection
     }
 
     if (Settings.timeStrategies)
@@ -341,10 +352,37 @@ object Main {
     // go to IR
     L4_ResolveFunctionInstantiations.apply()
 
+    // pre-process level specifications in declarations
     L4_ResolveLevelSpecifications.apply()
 
     L4_UnfoldLeveledFunctions.apply()
     L4_UnfoldLeveledDeclarations.apply()
+    L4_UnfoldKnowledgeDeclarations.apply()
+
+    // resolve current, etc.
+    L4_ResolveRelativeLevels.apply()
+
+    L4_PrepareDeclarations.apply()
+
+    L4_PrepareAccesses.apply()
+
+    var matches = 0
+    do {
+      matches = 0
+      matches += L4_ProcessDeclarations.applyAndCountMatches()
+      matches += L4_ResolveAccesses.applyAndCountMatches()
+    } while (matches > 0)
+
+//    L4_ProcessBoundaryDeclarations.apply()
+//
+//    if (ExaRootNode.l2_root.nodes.nonEmpty) {
+//      Logger.warn(s"L4 root has ${ ExaRootNode.l2_root.nodes.length } unprocessed nodes remaining:")
+//      ExaRootNode.l2_root.nodes.foreach(Logger.warn(_))
+//    }
+//
+//    // progress knowledge to L3
+//    L4_KnowledgeContainer.progress()
+
     L4_UnfoldLeveledKnowledgeDecls.apply()
     L4_ResolveLeveledScopes.apply()
 
@@ -408,7 +446,10 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    L4_ProgressKnowledge.apply()
+    // progress knowledge to IR
+    L4_KnowledgeContainer.progress()
+
+    //L4_ProgressKnowledge.apply()
 
     if (Knowledge.data_alignFieldPointers)
       IR_AddPaddingToFieldLayouts.apply()
@@ -472,17 +513,17 @@ object Main {
         Knowledge.discr_hz = Array[Double](l3Generate.Domains.getGlobalWidths(2) /
           (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * fLayout(2).numInnerLayers))
     } else {
-      def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
+      def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[IR_DomainFromAABB].aabb
 
       if (Knowledge.domain_rect_generate) {
         Knowledge.discr_hx = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-          level => globalSize.width(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
+          level => globalSize.widthAsDouble(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
         if (Knowledge.dimensionality > 1)
           Knowledge.discr_hy = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-            level => globalSize.width(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
+            level => globalSize.widthAsDouble(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
         if (Knowledge.dimensionality > 2)
           Knowledge.discr_hz = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-            level => globalSize.width(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
+            level => globalSize.widthAsDouble(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
       }
     }
     Grid.applyStrategies()

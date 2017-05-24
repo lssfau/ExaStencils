@@ -8,8 +8,6 @@ import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
 import exastencils.datastructures.Transformation.Output
-import exastencils.deprecated.domain.RectangularDomain
-import exastencils.domain._
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
@@ -18,7 +16,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
   override def prettyprint_decl() = prettyprint
   override def name = "initDomain"
 
-  def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
+  def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[IR_DomainFromAABB].aabb
   def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
 
   def setupFragmentPosition() = {

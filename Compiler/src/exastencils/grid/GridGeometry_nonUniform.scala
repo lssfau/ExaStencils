@@ -12,9 +12,7 @@ import exastencils.communication.DefaultNeighbors
 import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.core._
-import exastencils.deprecated.domain._
 import exastencils.deprecated.ir._
-import exastencils.domain._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.field.l4._
@@ -84,7 +82,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // fix grid width to match domain size
     if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
-    val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
+    val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[IR_DomainFromAABB].aabb
     val cellWidth = (domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal
 
     // look up field and compile access to base element
@@ -171,7 +169,7 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // fix alpha to match domain size
     if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
-    val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
+    val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[IR_DomainFromAABB].aabb
 
     // simple approach: alpha and beta are equal -> results in very small volumes and aspect ratios if the number of points is high
     //    val alpha = domainSize / (lastPointAlphaCoeff + lastPointBetaCoeff)

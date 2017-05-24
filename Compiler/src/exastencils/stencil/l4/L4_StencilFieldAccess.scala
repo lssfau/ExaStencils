@@ -49,7 +49,7 @@ case class L4_StencilFieldAccess(
   def progress : IR_Expression = {
     // TODO: extract mapping to FieldAccess for cases where single entries are targeted into a separate strategy
 
-    val stencilField = target.getProgressedObject()
+    val stencilField = target.getProgressedObj()
     val field = stencilField.field
     val numDims = stencilField.field.fieldLayout.numDimsGrid
     val index = IR_LoopOverDimensions.defIt(numDims)

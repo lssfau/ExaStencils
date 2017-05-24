@@ -17,9 +17,9 @@ case class L4_ApplyBC(var target : L4_Access) extends L4_Statement {
     // TODO: warning on ignoring offset or component accesses
     val resolvedField = target match {
       case f : L4_FieldAccess         => f.progress.fieldSelection
-      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObject().field,
+      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObj().field,
         sf.target.level,
-        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject().field, sf.slot))
+        L4_FieldAccess.resolveSlot(sf.target.getProgressedObj().field, sf.slot))
     }
     IR_ApplyBC(resolvedField)
   }

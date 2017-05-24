@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
+import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl_
 import exastencils.prettyprinting._
 
 /// L4_FieldLayoutOption
@@ -33,7 +33,7 @@ case class L4_FieldLayoutDecl(
     override var identifier : L4_Identifier,
     var datatype : L4_Datatype,
     var discretization : String,
-    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl {
+    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl_ {
 
   override def prettyprint(out : PpStream) : Unit = {
     out << "Layout " << identifier.name << "< " << datatype << ", " << discretization << " >" << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level << " {\n"

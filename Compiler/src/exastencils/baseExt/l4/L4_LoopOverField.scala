@@ -65,8 +65,8 @@ case class L4_LoopOverField(
 
   override def progress : IR_LoopOverPoints = {
     val resolvedField = field match {
-      case access : L4_FieldAccess        => access.target.getProgressedObject()
-      case access : L4_StencilFieldAccess => access.target.getProgressedObject().field
+      case access : L4_FieldAccess        => access.target.getProgressedObj()
+      case access : L4_StencilFieldAccess => access.target.getProgressedObj().field
       case _                              => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 

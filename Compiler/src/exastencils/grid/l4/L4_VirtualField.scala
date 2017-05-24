@@ -21,7 +21,7 @@ case class L4_VirtualField(
     IR_VirtualField(
       name,
       level,
-      domain.getProgressedObject(),
+      domain.getProgressedObj(),
       datatype.progress,
       localization)
   }

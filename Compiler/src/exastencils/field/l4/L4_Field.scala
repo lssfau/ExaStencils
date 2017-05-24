@@ -37,7 +37,7 @@ case class L4_Field(
       index,
       IR_DomainCollection.getByIdentifier(domainName).get,
       name.toLowerCase + "Data_" + level,
-      fieldLayout.getProgressedObject(),
+      fieldLayout.getProgressedObj(),
       numSlots,
       boundary.progress)
   }

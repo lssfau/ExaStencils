@@ -21,5 +21,5 @@ case class L4_StencilField(
   def prettyprintDecl(out : PpStream) =
     out << "StencilField " << name << "< " << field.name << " => " << stencilTemplateName << " >" << "@" << level
 
-  override def progressImpl() = IR_StencilField(name, level, field.getProgressedObject(), offsets.map(_.progress.toExpressionIndex))
+  override def progressImpl() = IR_StencilField(name, level, field.getProgressedObj(), offsets.map(_.progress.toExpressionIndex))
 }

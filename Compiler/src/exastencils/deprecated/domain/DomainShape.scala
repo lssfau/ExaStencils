@@ -2,9 +2,10 @@ package exastencils.deprecated.domain
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_RealConstant
 import exastencils.config._
-import exastencils.domain.AABB
-import exastencils.domain.ir.IR_DomainCollection
+import exastencils.domain.deprecated_AABB
+import exastencils.domain.ir._
 import exastencils.logger._
 
 @deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
@@ -83,7 +84,7 @@ case class ShapedDomainShape(override val shapeData : List[RectangularDomainShap
   def initFragments() = {
     IR_DomainCollection.getByIdentifier("global") match {
       case Some(d) =>
-        d.shape.asInstanceOf[RectangularDomainShape].initFragments()
+        d.HACK_shape.asInstanceOf[RectangularDomainShape].initFragments()
         //TODO more flexibel when several domains defined
 
         val frags = FragmentCollection.fragments
@@ -105,7 +106,7 @@ case class ShapedDomainShape(override val shapeData : List[RectangularDomainShap
 }
 
 @deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
-case class RectangularDomainShape(override val shapeData : AABB) extends DomainShape {
+case class RectangularDomainShape(override val shapeData : deprecated_AABB) extends DomainShape {
   var counter = -1
   val rankWidth_x : Double = (shapeData.upper_x - shapeData.lower_x) / Knowledge.domain_rect_numBlocks_x.toDouble
   val rankWidth_y : Double = (shapeData.upper_y - shapeData.lower_y) / Knowledge.domain_rect_numBlocks_y.toDouble
@@ -139,7 +140,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
               getIntervalOfRank(r)("xInterval").lower + (i + iv).toDouble * fragWidth_x))
             e = ListBuffer(new Edge(v(0), v(1)))
             f = ListBuffer(new Face(ListBuffer(e(0)), v))
-            val domainIDs = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
+            val domainIDs = IR_DomainCollection.objects.filter(dom => dom.HACK_shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
 
             FragmentCollection.fragments += new DummyFragment(calcLocalFragmentId(), calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbors(indices), r)
           }
@@ -154,7 +155,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
           }
           e = ListBuffer(new Edge(v(0), v(1)), new Edge(v(0), v(2)), new Edge(v(1), v(3)), new Edge(v(2), v(3)))
           f = ListBuffer(new Face(ListBuffer(e(0), e(1), e(2), e(3)), v))
-          val domainIDs = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
+          val domainIDs = IR_DomainCollection.objects.filter(dom => dom.HACK_shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
           FragmentCollection.fragments += new DummyFragment(calcLocalFragmentId(), calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbors(indices), r)
         } else {
           // 3D
@@ -177,7 +178,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
             new Face(ListBuffer(e(5), e(6), e(7), e(11)), ListBuffer(v(2), v(3), v(6), v(7))), //back
             new Face(ListBuffer(e(3), e(4), e(7), e(10)), ListBuffer(v(1), v(3), v(5), v(7))), //top
             new Face(ListBuffer(e(1), e(2), e(6), e(9)), ListBuffer(v(0), v(2), v(4), v(6)))) //bottom
-          val domainIDs = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
+          val domainIDs = IR_DomainCollection.objects.filter(dom => dom.HACK_shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
           FragmentCollection.fragments += new DummyFragment(calcLocalFragmentId(), calcGlobalFragmentId(indices), domainIDs, f, e, v, getNeighbors(indices), r)
         }
       }
@@ -257,7 +258,7 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
     def checkValidity(id : Int) : Int = {
       //TODO improve this function!!
       val dom = IR_DomainCollection.getByIdentifier("global").get
-      val size = dom.asInstanceOf[RectangularDomain].shape.shapeData.asInstanceOf[AABB]
+      val size = dom.asInstanceOf[IR_DomainFromAABB].aabb
       if (r < 0) -7
       else if (r > Knowledge.domain_numBlocks - 1) -8
 
@@ -267,12 +268,12 @@ case class RectangularDomainShape(override val shapeData : AABB) extends DomainS
           calcGlobalFragmentId(Index(newRankId, k, j, Knowledge.domain_rect_numFragsPerBlock_x - 1))
         } else -1
       } else if (j < 0) {
-        if (getIntervalOfRank(r)("yInterval").lower > size.lower_y) {
+        if (getIntervalOfRank(r)("yInterval").lower > size.lower(1).asInstanceOf[IR_RealConstant].value) {
           val newRankId = r - Knowledge.domain_rect_numBlocks_x
           calcGlobalFragmentId(Index(newRankId, k, Knowledge.domain_rect_numFragsPerBlock_y - 1, i))
         } else -2
       } else if (k < 0) {
-        if (getIntervalOfRank(r)("zInterval").lower > size.lower_z) {
+        if (getIntervalOfRank(r)("zInterval").lower > size.lower(2).asInstanceOf[IR_RealConstant].value) {
           val newRankId = r - Knowledge.domain_rect_numBlocks_x * Knowledge.domain_rect_numBlocks_y
           calcGlobalFragmentId(Index(newRankId, Knowledge.domain_rect_numFragsPerBlock_z - 1, j, i))
         } else -3
@@ -338,7 +339,7 @@ case class IrregularDomainShape(var faces : ListBuffer[Face], var edges : ListBu
         }
         e = ListBuffer(new Edge(v(0), v(1)), new Edge(v(0), v(2)), new Edge(v(1), v(3)), new Edge(v(2), v(3)))
         f = ListBuffer(new Face(ListBuffer(e(0), e(1), e(2), e(3)), v))
-        val domainIds = IR_DomainCollection.objects.filter(dom => dom.shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
+        val domainIds = IR_DomainCollection.objects.filter(dom => dom.HACK_shape.asInstanceOf[DomainShape].contains(FragmentCollection.getFragPos(v))).map(dom => dom.index)
         FragmentCollection.fragments += new DummyFragment(i, id, domainIds, f, e, v, getNeighbours(id), r)
 
       }

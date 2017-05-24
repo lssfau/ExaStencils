@@ -4,14 +4,14 @@ import exastencils.base.l4._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.field.l4.L4_FieldCollection
-import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
+import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl_
 import exastencils.prettyprinting.PpStream
 import exastencils.stencil.l4._
 
 case class L4_StencilFieldDecl(
     override var identifier : L4_Identifier,
     var fieldName : String,
-    var stencilName : String) extends L4_LeveledKnowledgeDecl {
+    var stencilName : String) extends L4_LeveledKnowledgeDecl_ {
 
   override def prettyprint(out : PpStream) = {
     out << "StencilField " << identifier.name << "< " << fieldName << " => " << stencilName << " >" <<
@@ -38,7 +38,7 @@ case class L4_StencilFieldDecl(
       case L4_BasicIdentifier(name) =>
         for (level <- Knowledge.levels)
           L4_StencilFieldCollection.add(composeStencilField(level))
-        
+
       case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
         L4_StencilFieldCollection.add(composeStencilField(level))
     }

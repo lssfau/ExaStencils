@@ -1,13 +1,13 @@
 package exastencils.domain
 
-/// AABB
+/// deprecated_AABB
 
-object AABB {
-  def apply() = new AABB(0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
+object deprecated_AABB {
+  def apply() = new deprecated_AABB(0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
 }
 
 // TODO: refactor to be independent of dimensionality
-case class AABB(
+case class deprecated_AABB(
     var lower_x : Double, var upper_x : Double,
     var lower_y : Double, var upper_y : Double,
     var lower_z : Double, var upper_z : Double) {

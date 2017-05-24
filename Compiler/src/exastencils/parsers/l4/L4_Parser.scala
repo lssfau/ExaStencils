@@ -11,7 +11,7 @@ import exastencils.boundary.l4._
 import exastencils.communication.l4._
 import exastencils.datastructures._
 import exastencils.deprecated.l4._
-import exastencils.domain.l4.L4_DomainDecl
+import exastencils.domain.l4._
 import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldDecl
 import exastencils.operator.l4._
@@ -283,10 +283,10 @@ class L4_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val domain = (
-    locationize(("Domain" ~> "fromFile" ~> ("(" ~> stringLit <~ ")")) ^^ (file => L4_DomainDecl(file, null, null)))
-      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l ~ u => L4_DomainDecl(id, l, u) })
-      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 => L4_DomainDecl(id, List(l1, l2, l3), List(u1, u2, u3)) })
-      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 ~ l4 ~ u4 ~ l5 ~ u5 => L4_DomainDecl(id, List(l1, l2, l3, l4, l5), List(u1, u2, u3, u4, u5)) }))
+    locationize(("Domain" ~> "fromFile" ~> ("(" ~> stringLit <~ ")")) ^^ (file => L4_HACK_DomainDecl(file, null, null)))
+      ||| locationize(("Domain" ~> ident) ~ ("<" ~> expressionIndex <~ "to") ~ (expressionIndex <~ ">") ^^ { case id ~ l ~ u => L4_DomainFromAABBDecl(id, l, u) })
+      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 => L4_HACK_DomainDecl(id, List(l1, l2, l3), List(u1, u2, u3)) })
+      ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 ~ l4 ~ u4 ~ l5 ~ u5 => L4_HACK_DomainDecl(id, List(l1, l2, l3, l4, l5), List(u1, u2, u3, u4, u5)) }))
 
   lazy val discretization = ("Node" ||| "node" ||| "Cell" ||| "cell"
     ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
