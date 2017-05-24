@@ -55,18 +55,29 @@ object CodeMuncher {
 
       var string = scala.io.Source.fromFile(filename).mkString
 
-      List(".", "_").foreach(sep => {
-        string = string.replaceAllLiterally(layer.uc + sep, "|LAYER_UC|" + sep)
-        string = string.replaceAllLiterally(layer.lc + sep, "|LAYER_LC|" + sep)
-        string = string.replaceAllLiterally(sep + layer.uc, sep + "|LAYER_UC|")
-        string = string.replaceAllLiterally(sep + layer.lc, sep + "|LAYER_LC|")
-        if (layer.hasNext) {
-          string = string.replaceAllLiterally(layer.next.uc + sep, "|NEXT_UC|" + sep)
-          string = string.replaceAllLiterally(layer.next.lc + sep, "|NEXT_LC|" + sep)
-          string = string.replaceAllLiterally(sep + layer.next.uc, sep + "|NEXT_UC|")
-          string = string.replaceAllLiterally(sep + layer.next.lc, sep + "|NEXT_LC|")
-        }
-      })
+      def replaceIn(input : String, prefixes : List[String], postfixes : List[String]) = {
+        var processed = input
+        prefixes.foreach(pre => postfixes.foreach(post => {
+          processed = processed.replaceAllLiterally(pre + layer.uc + post, pre + "|LAYER_UC|" + post)
+          processed = processed.replaceAllLiterally(pre + layer.lc + post, pre + "|LAYER_LC|" + post)
+          if (layer.hasNext) {
+            processed = processed.replaceAllLiterally(pre + layer.next.uc + post, pre + "|NEXT_UC|" + post)
+            processed = processed.replaceAllLiterally(pre + layer.next.lc + post, pre + "|NEXT_LC|" + post)
+          }
+        }))
+        processed
+      }
+
+      val none = List("")
+      val separators = List(".", "_")
+      val spacers = List(" ", "\t", "\n")
+
+      // replace occurrences in class names, etc.
+      string = replaceIn(string, separators, none)
+      string = replaceIn(string, none, separators)
+
+      // replace freestanding occurrences
+      string = replaceIn(string, spacers, spacers)
 
       if (codeVariants.contains(string))
         codeVariants(string) += layer

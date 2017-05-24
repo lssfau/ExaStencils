@@ -13,7 +13,10 @@ object ME_LevelSpecification extends Generatable {
     val printer = new Printer
     printer <<< """package exastencils.base.|LAYER_LC|"""
     printer <<< """"""
-    if (L2 == layer || L3 == layer) {
+    if (L2 == layer) {
+      printer <<< """import exastencils.base.|NEXT_LC|._"""
+    }
+    if (L3 == layer) {
       printer <<< """import exastencils.base.|NEXT_LC|._"""
     }
     printer <<< """import exastencils.config.Knowledge"""
@@ -32,12 +35,12 @@ object ME_LevelSpecification extends Generatable {
     if (L2 == layer || L3 == layer) {
       printer <<< """object |LAYER_UC|_LevelSpecification {"""
     }
-    if (L2 == layer || L3 == layer) {
+    if (L2 == layer) {
       printer <<< """  def extractLevelList(levels : Option[|LAYER_UC|_LevelSpecification], defForNone : List[Int]) : List[Int] = {"""
       printer <<< """    levels match {"""
       printer <<< """      case None                        => defForNone"""
       printer <<< """      case Some(|LAYER_UC|_SingleLevel(level)) => List(level)"""
-      printer <<< """      case Some(|LAYER_UC|_LevelList(levels))  => levels.map(_.asInstanceOf[|LAYER_UC|_SingleLevel].level).toList"""
+      printer <<< """      case Some(|LAYER_UC|_LevelList(lvls))    => lvls.map(_.asInstanceOf[|LAYER_UC|_SingleLevel].level).toList"""
       printer <<< """      case other                       => Logger.error("Trying to extract level list from unsupported instance " + other)"""
       printer <<< """    }"""
       printer <<< """  }"""
@@ -47,6 +50,42 @@ object ME_LevelSpecification extends Generatable {
       printer <<< """"""
       printer <<< """  // assumes empty level list as default"""
       printer <<< """  def extractLevelListDefEmpty(levels : Option[|LAYER_UC|_LevelSpecification]) : List[Int] = extractLevelList(levels, List())"""
+      printer <<< """"""
+      printer <<< """  def asSingleLevel(level : Option[|LAYER_UC|_LevelSpecification]) : Int = {"""
+      printer <<< """    level match {"""
+      printer <<< """      case Some(|LAYER_UC|_SingleLevel(lvl)) => lvl"""
+      printer <<< """      case None                      => Logger.error("Missing level specification")"""
+      printer <<< """      case Some(other)               => Logger.error(s"Invalid level specification: $other")"""
+      printer <<< """    }"""
+      printer <<< """  }"""
+      printer <<< """}"""
+      printer <<< """"""
+      printer <<< """trait |LAYER_UC|_LevelSpecification extends |LAYER_UC|_Node with |LAYER_UC|_Progressable with PrettyPrintable {"""
+      printer <<< """  override def progress : |NEXT_UC|_LevelSpecification"""
+    }
+    if (L3 == layer) {
+      printer <<< """  def extractLevelList(levels : Option[|LAYER_UC|_LevelSpecification], defForNone : List[Int]) : List[Int] = {"""
+      printer <<< """    levels match {"""
+      printer <<< """      case None                        => defForNone"""
+      printer <<< """      case Some(|LAYER_UC|_SingleLevel(level)) => List(level)"""
+      printer <<< """      case Some(|LAYER_UC|_LevelList(lvls))    => lvls.map(_.asInstanceOf[|LAYER_UC|_SingleLevel].level).toList"""
+      printer <<< """      case other                       => Logger.error("Trying to extract level list from unsupported instance " + other)"""
+      printer <<< """    }"""
+      printer <<< """  }"""
+      printer <<< """"""
+      printer <<< """  // assumes list of all levels as default"""
+      printer <<< """  def extractLevelListDefAll(levels : Option[|LAYER_UC|_LevelSpecification]) : List[Int] = extractLevelList(levels, (Knowledge.minLevel to Knowledge.maxLevel).toList)"""
+      printer <<< """"""
+      printer <<< """  // assumes empty level list as default"""
+      printer <<< """  def extractLevelListDefEmpty(levels : Option[|LAYER_UC|_LevelSpecification]) : List[Int] = extractLevelList(levels, List())"""
+      printer <<< """"""
+      printer <<< """  def asSingleLevel(level : Option[|LAYER_UC|_LevelSpecification]) : Int = {"""
+      printer <<< """    level match {"""
+      printer <<< """      case Some(|LAYER_UC|_SingleLevel(lvl)) => lvl"""
+      printer <<< """      case None                      => Logger.error("Missing level specification")"""
+      printer <<< """      case Some(other)               => Logger.error(s"Invalid level specification: $other")"""
+      printer <<< """    }"""
+      printer <<< """  }"""
       printer <<< """}"""
       printer <<< """"""
       printer <<< """trait |LAYER_UC|_LevelSpecification extends |LAYER_UC|_Node with |LAYER_UC|_Progressable with PrettyPrintable {"""
@@ -64,7 +103,11 @@ object ME_LevelSpecification extends Generatable {
     if (L2 == layer || L3 == layer) {
       printer <<< """trait |LAYER_UC|_DeclarationLevelSpecification extends |LAYER_UC|_LevelSpecification {"""
     }
-    if (L2 == layer || L3 == layer) {
+    if (L2 == layer) {
+      printer <<< """  override def progress : |NEXT_UC|_DeclarationLevelSpecification"""
+      printer <<< """}"""
+    }
+    if (L3 == layer) {
       printer <<< """  override def progress : |NEXT_UC|_DeclarationLevelSpecification"""
       printer <<< """}"""
     }
@@ -78,7 +121,11 @@ object ME_LevelSpecification extends Generatable {
     if (L2 == layer || L3 == layer) {
       printer <<< """trait |LAYER_UC|_AccessLevelSpecification extends |LAYER_UC|_LevelSpecification {"""
     }
-    if (L2 == layer || L3 == layer) {
+    if (L2 == layer) {
+      printer <<< """  override def progress : |NEXT_UC|_AccessLevelSpecification"""
+      printer <<< """}"""
+    }
+    if (L3 == layer) {
       printer <<< """  override def progress : |NEXT_UC|_AccessLevelSpecification"""
       printer <<< """}"""
     }
@@ -124,22 +171,85 @@ object ME_LevelSpecification extends Generatable {
     printer <<< """      levels"""
     printer <<< """  })"""
     printer <<< """}"""
+    printer <<< """"""
+    if (L2 == layer || L3 == layer) {
+      printer <<< """/// |LAYER_UC|_ResolveRelativeLevels"""
+    }
+    if (L4 == layer) {
+      printer <<< """/// |LAYER_UC|_ResolveCurrentLevels"""
+    }
+    printer <<< """"""
+    if (L4 == layer) {
+      printer <<< """object |LAYER_UC|_ResolveCurrentLevels extends DefaultStrategy("Resolve current level references") {"""
+    }
+    if (L2 == layer || L3 == layer) {
+      printer <<< """object |LAYER_UC|_ResolveRelativeLevels extends DefaultStrategy("Resolve relative level specifications") {"""
+    }
+    if (L2 == layer || L3 == layer) {
+      printer <<< """  val collector = new |LAYER_UC|_LevelCollector"""
+    }
+    if (L4 == layer) {
+      printer <<< """  var levelCollector = new L4LevelCollector"""
+    }
+    if (L2 == layer || L3 == layer) {
+      printer <<< """  this.register(collector)"""
+    }
+    if (L4 == layer) {
+      printer <<< """  this.register(levelCollector)"""
+    }
+    printer <<< """"""
+    if (L4 == layer) {
+      printer <<< """  // resolve level specifications"""
+    }
+    if (L2 == layer || L3 == layer) {
+      printer <<< """  def getLevel() : Int = {"""
+    }
+    if (L2 == layer || L3 == layer) {
+      printer <<< """    if (collector.inLevelScope)"""
+    }
+    if (L4 == layer) {
+      printer <<< """  this += new Transformation("Resolve relative level specifications", {"""
+    }
+    if (L2 == layer || L3 == layer) {
+      printer <<< """      collector.getCurrentLevel"""
+    }
+    if (L4 == layer) {
+      printer <<< """    case |LAYER_UC|_CurrentLevel => |LAYER_UC|_SingleLevel(levelCollector.getCurrentLevel)"""
+    }
+    if (L2 == layer || L3 == layer) {
+      printer <<< """    else"""
+    }
+    if (L4 == layer) {
+      printer <<< """    case |LAYER_UC|_CoarserLevel => |LAYER_UC|_SingleLevel(levelCollector.getCurrentLevel - 1)"""
+    }
+    if (L4 == layer) {
+      printer <<< """    case |LAYER_UC|_FinerLevel   => |LAYER_UC|_SingleLevel(levelCollector.getCurrentLevel + 1)"""
+    }
+    if (L2 == layer || L3 == layer) {
+      printer <<< """      Logger.error("Trying to access current outside of a valid level scope")"""
+    }
+    if (L2 == layer) {
+      printer <<< """  }"""
+      printer <<< """"""
+      printer <<< """  // resolve level identifiers "coarsest", "finest""""
+      printer <<< """  this += new Transformation("Resolve relative level aliases", {"""
+      printer <<< """    case |LAYER_UC|_CurrentLevel => |LAYER_UC|_SingleLevel(getLevel())"""
+      printer <<< """    case |LAYER_UC|_CoarserLevel => |LAYER_UC|_SingleLevel(getLevel() - 1)"""
+      printer <<< """    case |LAYER_UC|_FinerLevel   => |LAYER_UC|_SingleLevel(getLevel() + 1)"""
+    }
+    if (L3 == layer) {
+      printer <<< """  }"""
+      printer <<< """"""
+      printer <<< """  // resolve level identifiers "coarsest", "finest""""
+      printer <<< """  this += new Transformation("Resolve relative level aliases", {"""
+      printer <<< """    case |LAYER_UC|_CurrentLevel => |LAYER_UC|_SingleLevel(getLevel())"""
+      printer <<< """    case |LAYER_UC|_CoarserLevel => |LAYER_UC|_SingleLevel(getLevel() - 1)"""
+      printer <<< """    case |LAYER_UC|_FinerLevel   => |LAYER_UC|_SingleLevel(getLevel() + 1)"""
+    }
+    printer <<< """  })"""
+    printer <<< """}"""
     if (!(L2 == layer || L3 == layer)) {
     if (L4 == layer) {
-      printer <<< """"""
-      printer <<< """/// |LAYER_UC|_ResolveCurrentLevels"""
-      printer <<< """"""
-      printer <<< """object |LAYER_UC|_ResolveCurrentLevels extends DefaultStrategy("Resolve current level references") {"""
-      printer <<< """  var levelCollector = new L4LevelCollector"""
-      printer <<< """  this.register(levelCollector)"""
-      printer <<< """"""
-      printer <<< """  // resolve level specifications"""
-      printer <<< """  this += new Transformation("Resolve relative level specifications", {"""
-      printer <<< """    case |LAYER_UC|_CurrentLevel => |LAYER_UC|_SingleLevel(levelCollector.getCurrentLevel)"""
-      printer <<< """    case |LAYER_UC|_CoarserLevel => |LAYER_UC|_SingleLevel(levelCollector.getCurrentLevel - 1)"""
-      printer <<< """    case |LAYER_UC|_FinerLevel   => |LAYER_UC|_SingleLevel(levelCollector.getCurrentLevel + 1)"""
-      printer <<< """  })"""
-      printer <<< """}"""
       printer <<< """"""
       printer <<< """/// |LAYER_UC|_ReplaceExplicitLevelsWithCurrent"""
       printer <<< """"""

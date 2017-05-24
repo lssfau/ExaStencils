@@ -3,7 +3,7 @@ import meta._
 object Main {
   def main(args : Array[String]) : Unit = {
     collect()
-    generate()
+    //generate()
     duplicate()
   }
 
@@ -19,6 +19,10 @@ object Main {
   }
 
   def duplicate() = {
-    //ME_XXX.duplicateFor(IR, L2)
+//    for (entry <- GeneratorList.entries)
+//      entry.duplicateFromTo(L2, L3)
+
+//    ME_XXX.duplicateFromTo(IR, L2)
+
   }
 }
