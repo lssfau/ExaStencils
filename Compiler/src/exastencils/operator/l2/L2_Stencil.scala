@@ -22,7 +22,7 @@ case class L2_Stencil(
     var entries : ListBuffer[L2_StencilMappingEntry]) extends L2_LeveledKnowledgeObject[L3_Stencil] {
 
   override def prettyprintDecl(out : PpStream) : Unit = ???
-  override def progressImpl() = L3_Stencil(name, level, entries.map(_.progress))
+  override def progressImpl() = L3_Stencil(name, level, numDims, colStride, entries.map(_.progress))
 
   def squash() = {
     case class Mapping(var row : L2_ExpressionIndex, var col : L2_ExpressionIndex)

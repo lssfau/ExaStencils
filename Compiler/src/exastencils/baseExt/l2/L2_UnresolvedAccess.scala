@@ -19,7 +19,7 @@ case class L2_UnresolvedAccess(var name : String, var level : Option[L2_AccessLe
   }
 
   override def progress = {
-    Logger.warn(s"Trying to progress unresolved l2 Access $name")
+    Logger.warn(s"Trying to progress unresolved L2 Access $name")
     L3_UnresolvedAccess(name, L2_ProgressOption(level)(_.progress))
   }
 }

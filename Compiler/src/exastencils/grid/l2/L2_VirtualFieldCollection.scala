@@ -3,7 +3,7 @@ package exastencils.grid.l2
 import scala.collection.mutable.ListBuffer
 
 import exastencils.grid.l3._
-import exastencils.knowledge.l2.L2_KnowledgeStrategyContainer._
+import exastencils.knowledge.l2.L2_KnowledgeContainer._
 import exastencils.knowledge.l2._
 import exastencils.logger.Logger
 
@@ -12,14 +12,18 @@ import exastencils.logger.Logger
 object L2_VirtualFieldCollection extends L2_LeveledKnowledgeCollection[L2_VirtualField, L3_VirtualField] {
   exastencils.core.Duplicate.registerConstant(this)
 
+  L2_KnowledgeContainer.register(this)
+
   L2_PrepareDeclarations.strategies += L2_PrepareVirtualFieldDeclarations
-  L2_PrepareAccesses.strategies += L2_PrepareVirtualFieldAccesses
   L2_ProcessDeclarations.strategies += L2_ProcessVirtualFieldDeclarations
+
+  L2_PrepareAccesses.strategies += L2_PrepareVirtualFieldAccesses
   L2_ResolveAccesses.strategies += L2_ResolveVirtualFieldAccesses
 
-  def progress() = objects.foreach(obj => L3_VirtualFieldCollection.add(obj.progress()))
+  override def name = "L2_VirtualFieldCollection"
+  override def progress() = objects.foreach(obj => L3_VirtualFieldCollection.add(obj.progress()))
 
-  // special overrides for handling name variations
+  // special overrides for handling possible name variations
 
   def prefixedLC(identifier : String) = (if (identifier.startsWith("vf_")) identifier else "vf_" + identifier).toLowerCase
 

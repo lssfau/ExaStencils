@@ -33,15 +33,7 @@ case class L2_StencilTemplateDecl(
     out << "}"
   }
 
-  override def progress = Logger.error(s"Trying to progress l2 stencil template $name; this is not supported")
-}
-
-/// L2_UnfoldStencilTemplateDeclarations
-
-object L2_UnfoldStencilTemplateDeclarations extends DefaultStrategy("Unfold L2 field declarations") {
-  this += Transformation("Process new stencil templates", {
-    case decl : L2_StencilTemplateDecl => L2_LeveledKnowledgeDecl.unfoldDecl(decl)
-  })
+  override def progress = Logger.error(s"Trying to progress L2 stencil template $name; this is not supported")
 }
 
 /// L2_PrepareStencilTemplateDeclaration

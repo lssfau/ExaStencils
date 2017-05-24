@@ -6,22 +6,10 @@ import exastencils.base.l4._
 import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.knowledge.l3.L3_FieldCollection
+import exastencils.field.l3.L3_FieldCollection
 import exastencils.logger.Logger
 import exastencils.operator.l3._
 import exastencils.prettyprinting._
-
-/// L3_FunctionArgument
-
-object L3_FunctionArgument {
-  // generate declaration corresponding to given access
-  def apply(access : L3_VariableAccess) = new L3_FunctionArgument(access.name, access.datatype)
-}
-
-case class L3_FunctionArgument(var name : String, var datatype : L3_Datatype) extends L3_Node with PrettyPrintable with L3_Progressable {
-  override def prettyprint(out : PpStream) = out << name << " : " << datatype
-  override def progress = L4_FunctionArgument(name, datatype.progress)
-}
 
 /// L3_Function
 
@@ -51,18 +39,6 @@ case class L3_Function(
       arguments.map(_.progress),
       statements.map(_.progress))
   }
-}
-
-/// L3_FunctionCall
-
-object L3_FunctionCall {
-  def apply(identifier : L3_Access, arguments : Option[List[L3_Expression]]) =
-    new L3_FunctionCall(identifier, arguments.getOrElse(List()).to[ListBuffer])
-}
-
-case class L3_FunctionCall(var identifier : L3_Access, var arguments : ListBuffer[L3_Expression]) extends L3_Expression {
-  def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
-  def progress = L4_FunctionCall(identifier.progress, arguments.map(_.progress))
 }
 
 /// L3_Return

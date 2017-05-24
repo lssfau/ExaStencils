@@ -18,5 +18,5 @@ case class L2_StencilTemplate(
     var offsets : ListBuffer[L2_Index]) extends L2_LeveledKnowledgeObject[L3_StencilTemplate] {
 
   override def prettyprintDecl(out : PpStream) : Unit = ???
-  override def progressImpl() = L3_StencilTemplate(name, level, localization, domain.getProgressedObject(), offsets.map(_.progress))
+  override def progressImpl() = L3_StencilTemplate(name, level, localization, domain.getProgressedObj(), offsets.map(_.progress))
 }

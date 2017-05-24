@@ -17,7 +17,7 @@ object L2_FieldAccess {
 
 case class L2_FieldAccess(var target : L2_Field) extends L2_LeveledKnowledgeAccess {
   override def prettyprint(out : PpStream) = out << target.name << '@' << target.level
-  def progress = L3_FieldAccess(target.getProgressedObject())
+  override def progress = L3_FieldAccess(target.getProgressedObj())
 }
 
 /// L2_ResolveFieldAccesses

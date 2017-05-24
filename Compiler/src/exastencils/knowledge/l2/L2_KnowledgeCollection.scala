@@ -9,7 +9,16 @@ import exastencils.logger._
 
 /// L2_KnowledgeCollection
 
-class L2_KnowledgeCollection[L2_Type <: L2_KnowledgeObject[L3_Type] : TypeTag, L3_Type <: L3_KnowledgeObject[_]] {
+abstract class L2_KnowledgeCollection {
+  def name : String
+  def length : Int
+  def progress() : Unit
+  def clear() : Unit
+}
+
+/// L2_BasicKnowledgeCollection
+
+abstract class L2_BasicKnowledgeCollection[L2_Type <: L2_KnowledgeObject[L3_Type] : TypeTag, L3_Type <: L3_KnowledgeObject[_]] extends L2_KnowledgeCollection {
   var objects : ListBuffer[L2_Type] = ListBuffer()
   var declared : ListBuffer[String] = ListBuffer()
 
@@ -24,11 +33,16 @@ class L2_KnowledgeCollection[L2_Type <: L2_KnowledgeObject[L3_Type] : TypeTag, L
 
   def sortedObjects = objects.sortBy(_.name)
 
-  def add(newObj : L2_Type) = objects += newObj
+  def add(newObj : L2_Type) = {
+    addDeclared(newObj.name)
+    objects += newObj
+  }
 
   def addDeclared(name : String) = declared += name
 
-  def clear() = {
+  override def length = objects.length
+
+  override def clear() = {
     objects.clear()
     declared.clear()
   }
@@ -36,7 +50,7 @@ class L2_KnowledgeCollection[L2_Type <: L2_KnowledgeObject[L3_Type] : TypeTag, L
 
 /// L2_LeveledKnowledgeCollection
 
-class L2_LeveledKnowledgeCollection[L2_Type <: L2_LeveledKnowledgeObject[L3_Type] : TypeTag, L3_Type <: L3_KnowledgeObject[_]] {
+abstract class L2_LeveledKnowledgeCollection[L2_Type <: L2_LeveledKnowledgeObject[L3_Type] : TypeTag, L3_Type <: L3_KnowledgeObject[_]] extends L2_KnowledgeCollection {
 
   case class NameAndLevel(name : String, level : Int)
 
@@ -67,7 +81,10 @@ class L2_LeveledKnowledgeCollection[L2_Type <: L2_LeveledKnowledgeObject[L3_Type
 
   def sortedObjects = objects.sortBy(obj => (obj.name, obj.level))
 
-  def add(newObj : L2_Type) = objects += newObj
+  def add(newObj : L2_Type) = {
+    addDeclared(newObj.name, newObj.level)
+    objects += newObj
+  }
 
   def addDeclared(name : String, level : Int) : Unit = { declared += NameAndLevel(name, level) }
   def addDeclared(name : String, level : Option[L2_LevelSpecification]) : Unit = {
@@ -78,7 +95,9 @@ class L2_LeveledKnowledgeCollection[L2_Type <: L2_LeveledKnowledgeObject[L3_Type
     }
   }
 
-  def clear() = {
+  override def length = objects.length
+
+  override def clear() = {
     objects.clear()
     declared.clear()
   }

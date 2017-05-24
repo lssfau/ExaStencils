@@ -26,7 +26,7 @@ abstract class L2_StencilEntry extends L2_Node with L2_Progressable with PrettyP
 
 case class L2_StencilOffsetEntry(var offset : L2_Index, var coefficient : L2_Expression) extends L2_StencilEntry {
   override def prettyprint(out : PpStream) = out << offset << " => " << coefficient
-  override def progress = L3_StencilEntry(offset.progress, coefficient.progress)
+  override def progress = L3_StencilOffsetEntry(offset.progress, coefficient.progress)
 
   override def asStencilOffsetEntry = this
   override def asStencilMappingEntry = {
@@ -47,10 +47,7 @@ case class L2_StencilMappingEntry(var row : L2_ExpressionIndex, var col : L2_Exp
 
   override def prettyprint(out : PpStream) = out << row << " from " << col << " with " << coefficient
 
-  override def progress = {
-    // FIXME: specialized L3 class L3_StencilEntry(row.progress, col.progress, coefficient.progress)
-    asStencilOffsetEntry.progress
-  }
+  override def progress = L3_StencilMappingEntry(row.progress, col.progress, coefficient.progress)
 
   override def asStencilOffsetEntry = {
     val offset = Duplicate(col)

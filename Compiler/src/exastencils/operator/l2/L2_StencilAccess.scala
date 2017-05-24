@@ -17,7 +17,7 @@ object L2_StencilAccess {
 
 case class L2_StencilAccess(var target : L2_Stencil) extends L2_LeveledKnowledgeAccess {
   override def prettyprint(out : PpStream) = out << target.name << '@' << target.level
-  def progress = L3_StencilAccess(target.getProgressedObject())
+  def progress = L3_StencilAccess(target.getProgressedObj())
 }
 
 /// L2_ResolveStencilAccesses

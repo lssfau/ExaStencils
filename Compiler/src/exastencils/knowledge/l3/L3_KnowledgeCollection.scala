@@ -3,15 +3,27 @@ package exastencils.knowledge.l3
 import scala.collection.mutable._
 import scala.reflect.runtime.universe._
 
-import exastencils.knowledge.l4._
+import exastencils.base.l3._
+import exastencils.knowledge.l4.L4_KnowledgeObject
 import exastencils.logger._
 
 /// L3_KnowledgeCollection
 
-class L3_KnowledgeCollection[L3_Type <: L3_KnowledgeObject[L4_Type] : TypeTag, L4_Type <: L4_KnowledgeObject[_]] {
+abstract class L3_KnowledgeCollection {
+  def name : String
+  def length : Int
+  def progress() : Unit
+  def clear() : Unit
+}
+
+/// L3_BasicKnowledgeCollection
+
+abstract class L3_BasicKnowledgeCollection[L3_Type <: L3_KnowledgeObject[L4_Type] : TypeTag, L4_Type <: L4_KnowledgeObject[_]] extends L3_KnowledgeCollection {
   var objects : ListBuffer[L3_Type] = ListBuffer()
+  var declared : ListBuffer[String] = ListBuffer()
 
   def exists(identifier : String) = objects.exists(f => f.name == identifier)
+  def existsDecl(identifier : String) = declared.contains(identifier)
 
   def getByIdentifier(identifier : String, suppressError : Boolean = false) : Option[L3_Type] = {
     val ret = objects.find(f => f.name == identifier)
@@ -21,16 +33,35 @@ class L3_KnowledgeCollection[L3_Type <: L3_KnowledgeObject[L4_Type] : TypeTag, L
 
   def sortedObjects = objects.sortBy(_.name)
 
-  def add(newObj : L3_Type) = objects += newObj
+  def add(newObj : L3_Type) = {
+    addDeclared(newObj.name)
+    objects += newObj
+  }
 
-  def clear() = objects.clear()
+  def addDeclared(name : String) = declared += name
+
+  override def length = objects.length
+
+  override def clear() = {
+    objects.clear()
+    declared.clear()
+  }
 }
 
-class L3_LeveledKnowledgeCollection[L3_Type <: L3_LeveledKnowledgeObject[L4_Type] : TypeTag, L4_Type <: L4_KnowledgeObject[_]] {
-  var objects : ListBuffer[L3_Type] = ListBuffer()
+/// L3_LeveledKnowledgeCollection
 
-  def exists(identifier : String) = { objects.exists(f => f.name == identifier) }
+abstract class L3_LeveledKnowledgeCollection[L3_Type <: L3_LeveledKnowledgeObject[L4_Type] : TypeTag, L4_Type <: L4_KnowledgeObject[_]] extends L3_KnowledgeCollection {
+
+  case class NameAndLevel(name : String, level : Int)
+
+  var objects : ListBuffer[L3_Type] = ListBuffer()
+  var declared : ListBuffer[NameAndLevel] = ListBuffer()
+
+  def exists(identifier : String) = { objects.exists(_.name == identifier) }
   def exists(identifier : String, level : Int) = { objects.exists(f => f.name == identifier && f.level == level) }
+
+  def existsDecl(identifier : String) = { declared.exists(_.name == identifier) }
+  def existsDecl(identifier : String, level : Int) = { declared.exists(f => f.name == identifier && f.level == level) }
 
   def getByIdentifier(identifier : String, level : Int, suppressError : Boolean = false) : Option[L3_Type] = {
     val ret = objects.find(f => f.name == identifier && f.level == level)
@@ -50,7 +81,24 @@ class L3_LeveledKnowledgeCollection[L3_Type <: L3_LeveledKnowledgeObject[L4_Type
 
   def sortedObjects = objects.sortBy(obj => (obj.name, obj.level))
 
-  def add(newObj : L3_Type) = { objects += newObj }
+  def add(newObj : L3_Type) = {
+    addDeclared(newObj.name, newObj.level)
+    objects += newObj
+  }
 
-  def clear() = objects.clear()
+  def addDeclared(name : String, level : Int) : Unit = { declared += NameAndLevel(name, level) }
+  def addDeclared(name : String, level : Option[L3_LevelSpecification]) : Unit = {
+    if (level.isEmpty) Logger.error(s"Missing level specification for $name")
+    level.get match {
+      case L3_SingleLevel(lvl) => addDeclared(name, lvl)
+      case other               => Logger.error(s"Unsupported level specification for $name: ${ other.prettyprint() }")
+    }
+  }
+
+  override def length = objects.length
+
+  override def clear() = {
+    objects.clear()
+    declared.clear()
+  }
 }

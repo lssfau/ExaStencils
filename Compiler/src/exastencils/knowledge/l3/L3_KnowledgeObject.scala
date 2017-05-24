@@ -1,7 +1,6 @@
 package exastencils.knowledge.l3
 
 import exastencils.knowledge.l4.L4_KnowledgeObject
-import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// L3_KnowledgeObject
@@ -14,17 +13,17 @@ trait L3_KnowledgeObject[L4_Equivalent <: L4_KnowledgeObject[_]] {
   def progressImpl() : L4_Equivalent
   def prettyprintDecl(out : PpStream) : Unit
 
+  private var progressed : Option[L4_Equivalent] = None
+
   final def progress() : L4_Equivalent = {
-    progressed = Some(progressImpl())
+    // progress if not already done - otherwise simply return the progressed object
+    if (progressed.isEmpty)
+      progressed = Some(progressImpl())
     progressed.get
   }
 
-  var progressed : Option[L4_Equivalent] = None
-  def getProgressedObject() : L4_Equivalent = {
-    if (progressed.isEmpty)
-      Logger.warn(s"Trying to access invalid progressed object of type ${ this.getClass.getName } with name ${ name }")
-    progressed.get
-  }
+  // alias for progress -> progress object if not already progressed
+  def getProgressedObj() : L4_Equivalent = progress()
 }
 
 /// L3_LeveledKnowledgeObject

@@ -19,4 +19,12 @@ class IR_FieldIteratorAccess() extends IR_VariableAccess("i", IR_IntegerDatatype
     name = s"i$dim_"
   }
   def dim = dim_
+
+  override def equals(obj : scala.Any) = {
+    obj match {
+      case other : IR_FieldIteratorAccess => other.dim == dim
+      case other : IR_VariableAccess      => other.name == name
+      case _                              => super.equals(obj)
+    }
+  }
 }

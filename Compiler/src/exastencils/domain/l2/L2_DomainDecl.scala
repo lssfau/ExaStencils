@@ -12,9 +12,9 @@ case class L2_DomainDecl(var name : String) extends L2_KnowledgeDecl {
   override def progress = Logger.error(s"Trying to progress L2 domain declaration for domain $name; this is not supported")
 }
 
-/// L2_PrepareDomainDeclaration
+/// L2_PrepareDomainDeclarations
 
-object L2_PrepareDomainDeclaration extends DefaultStrategy("Prepare knowledge for L2 domains") {
+object L2_PrepareDomainDeclarations extends DefaultStrategy("Prepare knowledge for L2 domains") {
   this += Transformation("Process new domains", {
     case decl : L2_DomainDecl =>
       L2_DomainCollection.addDeclared(decl.name)

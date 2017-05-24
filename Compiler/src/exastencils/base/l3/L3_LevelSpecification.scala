@@ -13,7 +13,7 @@ object L3_LevelSpecification {
     levels match {
       case None                        => defForNone
       case Some(L3_SingleLevel(level)) => List(level)
-      case Some(L3_LevelList(levels))  => levels.map(_.asInstanceOf[L3_SingleLevel].level).toList
+      case Some(L3_LevelList(lvls))    => lvls.map(_.asInstanceOf[L3_SingleLevel].level).toList
       case other                       => Logger.error("Trying to extract level list from unsupported instance " + other)
     }
   }
@@ -23,6 +23,14 @@ object L3_LevelSpecification {
 
   // assumes empty level list as default
   def extractLevelListDefEmpty(levels : Option[L3_LevelSpecification]) : List[Int] = extractLevelList(levels, List())
+
+  def asSingleLevel(level : Option[L3_LevelSpecification]) : Int = {
+    level match {
+      case Some(L3_SingleLevel(lvl)) => lvl
+      case None                      => Logger.error("Missing level specification")
+      case Some(other)               => Logger.error(s"Invalid level specification: $other")
+    }
+  }
 }
 
 trait L3_LevelSpecification extends L3_Node with L3_Progressable with PrettyPrintable {
@@ -83,5 +91,26 @@ object L3_ResolveLevelSpecifications extends DefaultStrategy("Resolve level spec
       }
 
       levels
+  })
+}
+
+/// L3_ResolveRelativeLevels
+
+object L3_ResolveRelativeLevels extends DefaultStrategy("Resolve relative level specifications") {
+  val collector = new L3_LevelCollector
+  this.register(collector)
+
+  def getLevel() : Int = {
+    if (collector.inLevelScope)
+      collector.getCurrentLevel
+    else
+      Logger.error("Trying to access current outside of a valid level scope")
+  }
+
+  // resolve level identifiers "coarsest", "finest"
+  this += new Transformation("Resolve relative level aliases", {
+    case L3_CurrentLevel => L3_SingleLevel(getLevel())
+    case L3_CoarserLevel => L3_SingleLevel(getLevel() - 1)
+    case L3_FinerLevel   => L3_SingleLevel(getLevel() + 1)
   })
 }

@@ -21,5 +21,13 @@ class L3_FieldIteratorAccess() extends L3_VariableAccess("i", L3_IntegerDatatype
   }
   def dim = dim_
 
-  override def progress : L4_FieldIteratorAccess = L4_FieldIteratorAccess(dim)
+  override def progress = L4_FieldIteratorAccess(dim)
+
+  override def equals(obj : scala.Any) = {
+    obj match {
+      case other : L3_FieldIteratorAccess => other.dim == dim
+      case other : L3_VariableAccess      => other.name == name
+      case _                              => super.equals(obj)
+    }
+  }
 }

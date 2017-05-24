@@ -20,7 +20,7 @@ object L2_FunctionCall {
 }
 
 case class L2_FunctionCall(var function : L2_Access, var arguments : ListBuffer[L2_Expression]) extends L2_Expression {
-  def name = function.name
   def prettyprint(out : PpStream) = { out << function << " ( " <<< (arguments, ", ") << " )" }
   def progress = L3_FunctionCall(function.progress, arguments.map(_.progress))
+  def name = function.name
 }

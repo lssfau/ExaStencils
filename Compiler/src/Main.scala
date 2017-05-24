@@ -30,14 +30,16 @@ import exastencils.field.l4._
 import exastencils.globals.ir._
 import exastencils.grid._
 import exastencils.grid.l2.L2_VirtualFieldCollection
-import exastencils.grid.l3.L3_ResolveVirtualFieldAccesses
+import exastencils.grid.l3._
 import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4._
 import exastencils.interfacing.ir._
 import exastencils.knowledge.ir.IR_ClearKnowledge
-import exastencils.knowledge.l2.L2_KnowledgeStrategyContainer._
-import exastencils.knowledge.l3.L3_FieldCollection
+import exastencils.knowledge.l2.L2_KnowledgeContainer._
+import exastencils.knowledge.l2._
+import exastencils.knowledge.l3.L3_KnowledgeContainer._
+import exastencils.knowledge.l3._
 import exastencils.knowledge.l4._
 import exastencils.logger._
 import exastencils.operator.l2._
@@ -123,6 +125,22 @@ object Main {
     if ("MSVC" == Platform.targetCompiler)
       Settings.buildfileGenerators = ListBuffer("ProjectfileGenerator")
 
+    // activate required knowledge collections
+    {
+      L2_DomainCollection
+      L2_FieldCollection
+      L2_StencilCollection
+      L2_StencilTemplateCollection
+      L2_VirtualFieldCollection
+    }
+    {
+      L3_DomainCollection
+      L3_FieldCollection
+      L3_StencilCollection
+      L3_StencilTemplateCollection
+      L3_VirtualFieldCollection
+    }
+
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Initializing")
   }
@@ -171,19 +189,10 @@ object Main {
     if (Knowledge.experimental_layerExtension) {
       ExaRootNode.l2_root = L2_Parser.parseFile(Settings.getL2file)
 
-      // activate required knowledge collections
-      {
-        L2_DomainCollection
-        L2_FieldCollection
-        L2_StencilCollection
-        L2_StencilTemplateCollection
-        L2_VirtualFieldCollection
-      }
-
       // pre-process level specifications in declarations
       L2_ResolveLevelSpecifications.apply()
 
-      L2_UnfoldLeveledDeclarations.apply()
+      L2_UnfoldKnowledgeDeclarations.apply()
 
       // resolve current, etc.
       L2_ResolveRelativeLevels.apply()
@@ -199,16 +208,15 @@ object Main {
         matches += L2_ResolveAccesses.applyAndCountMatches()
       } while (matches > 0)
 
+      L2_ProcessBoundaryDeclarations.apply()
+
       if (ExaRootNode.l2_root.nodes.nonEmpty) {
         Logger.warn(s"L2 root has ${ ExaRootNode.l2_root.nodes.length } unprocessed nodes remaining:")
         ExaRootNode.l2_root.nodes.foreach(Logger.warn(_))
       }
 
-      // progress knowledge to l3
-      L2_DomainCollection.progress()
-      L2_FieldCollection.progress()
-      L2_StencilCollection.progress()
-      L2_StencilTemplateCollection.progress()
+      // progress knowledge to L3
+      L2_KnowledgeContainer.progress()
     }
 
     if (Settings.timeStrategies)
@@ -222,38 +230,40 @@ object Main {
     if (Knowledge.experimental_layerExtension) {
       ExaRootNode.l3_root = L3_Parser.parseFile(Settings.getL3file)
 
-      L3_ResolveLevelSpecifications.apply() // before processing declarations ...
+      // pre-process level specifications in declarations
+      L3_ResolveLevelSpecifications.apply()
 
-      //      L3_ProcessDomainDeclarations.apply()
-      L3_ProcessFieldDeclarations.apply()
-      L3_ProcessStencilDeclarations.apply()
-      L3_ProcessStencilTemplateDeclarations.apply()
-
+      L3_UnfoldKnowledgeDeclarations.apply()
       L3_ResolveFunctionTemplates.apply()
-
-      L3_ResolveLevelSpecifications.apply() // ... and again afterwards
       L3_UnfoldFunctionDeclarations.apply()
 
+      // resolve current, etc.
+      L3_ResolveRelativeLevels.apply()
+
+      L3_PrepareDeclarations.apply()
+
+      L3_PrepareAccesses.apply()
+
+      var matches = 0
+      do {
+        matches = 0
+        matches += L3_ProcessDeclarations.applyAndCountMatches()
+        matches += L3_ResolveAccesses.applyAndCountMatches()
+      } while (matches > 0)
+
+      L3_ProcessBoundaryDeclarations.apply()
       L3_ProcessFieldOverrides.apply()
 
-      L3_ResolveVirtualFieldAccesses.apply()
-      L3_ResolveFieldAccesses.apply()
-      L3_ResolveStencilAccesses.apply()
-      L3_ResolveStencilTemplateAccesses.apply()
       L3_ResolveFieldFieldConvolutions.apply()
       L3_ResolveStencilConvolutions.apply()
       L3_ResolveStencilTemplateConvolutions.apply()
 
       L3_FieldCollection.addInitFieldsFunction()
 
-      // progress knowledge to l4
-      L3_DomainCollection.progress()
-      L3_FieldCollection.prepareFieldLayouts() // prepare field layout knowledge for fields
-      L3_FieldCollection.progress() // progress field knowledge
-      L3_StencilCollection.progress() // process stencil knowledge
-      L3_StencilTemplateCollection.progress() // process stencil knowledge
+      // progress knowledge to L4
+      L3_KnowledgeContainer.progress()
     } else if (Knowledge.l3tmp_generateL4) {
-      var l3gen_root = l3Generate.Root()
+      val l3gen_root = l3Generate.Root()
       l3gen_root.printToL4(Settings.getL4file)
     }
 

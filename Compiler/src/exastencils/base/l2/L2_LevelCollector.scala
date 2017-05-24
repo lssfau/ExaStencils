@@ -7,30 +7,35 @@ import exastencils.datastructures.Node
 import exastencils.knowledge.l2._
 import exastencils.logger.Logger
 
+/// L2_LevelCollector
+
 class L2_LevelCollector extends Collector {
   private val levelStack = new Stack[Int]
 
+  def enterLevel(level : Option[L2_LevelSpecification]) = {
+    level match {
+      case Some(L2_SingleLevel(lvl)) => levelStack.push(lvl)
+      case _                         =>
+    }
+  }
+  def leaveLevel(level : Option[L2_LevelSpecification]) = {
+    level match {
+      case Some(L2_SingleLevel(_)) => levelStack.pop()
+      case _                       =>
+    }
+  }
+
   override def enter(node : Node) : Unit = {
     node match {
-      case decl : L2_LeveledKnowledgeDecl =>
-        decl.levels match {
-          case Some(L2_SingleLevel(lvl)) => levelStack.push(lvl)
-          case _                         =>
-        }
-
-      case _ =>
+      case decl : L2_LeveledKnowledgeDecl => enterLevel(decl.levels)
+      case _                              =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case decl : L2_LeveledKnowledgeDecl =>
-        decl.levels match {
-          case Some(L2_SingleLevel(_)) => levelStack.pop()
-          case _                       =>
-        }
-
-      case _ =>
+      case decl : L2_LeveledKnowledgeDecl => leaveLevel(decl.levels)
+      case _                              =>
     }
   }
 

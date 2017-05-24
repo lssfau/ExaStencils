@@ -3,7 +3,6 @@ package exastencils.field.l3
 import exastencils.base.l3._
 import exastencils.boundary.l3.L3_BoundaryCondition
 import exastencils.datastructures._
-import exastencils.knowledge.l3.L3_FieldCollection
 import exastencils.logger._
 import exastencils.prettyprinting._
 

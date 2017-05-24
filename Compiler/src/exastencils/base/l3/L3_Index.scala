@@ -9,6 +9,7 @@ import exastencils.prettyprinting._
 trait L3_Index extends L3_Expression {
   override def progress : L4_Index
   def toExpressionIndex : L3_ExpressionIndex
+  def length : Int
 }
 
 /// L3_ArrayBasedIndex

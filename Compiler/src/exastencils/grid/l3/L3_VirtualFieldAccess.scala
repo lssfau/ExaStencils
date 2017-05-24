@@ -1,27 +1,29 @@
 package exastencils.grid.l3
 
-import exastencils.base.l3._
-import exastencils.base.l4._
-import exastencils.baseExt.l3.L3_UnresolvedAccess
+import exastencils.base.l4.L4_SingleLevel
 import exastencils.datastructures._
-import exastencils.grid.VirtualField
 import exastencils.grid.l4.L4_VirtualFieldAccess
+import exastencils.knowledge.l3.L3_LeveledKnowledgeAccess
 import exastencils.prettyprinting.PpStream
 
-case class L3_VirtualFieldAccess(var name : String, var level : Int) extends L3_Access {
-  def prettyprint(out : PpStream) = out << name << '@' << level
-  def progress = L4_VirtualFieldAccess(name, L4_SingleLevel(level), None, None)
+/// L3_VirtualFieldAccess
+
+object L3_VirtualFieldAccess {
+  def apply(access : L3_FutureVirtualFieldAccess) =
+    new L3_VirtualFieldAccess(L3_VirtualFieldCollection.getByIdentifier(access.name, access.level).get)
+}
+
+case class L3_VirtualFieldAccess(var target : L3_VirtualField) extends L3_LeveledKnowledgeAccess {
+  def prettyprint(out : PpStream) = out << target.name << '@' << target.level
+  def progress = L4_VirtualFieldAccess(target.name, L4_SingleLevel(target.level))
 }
 
 /// L3_ResolveVirtualFieldAccesses
 
 object L3_ResolveVirtualFieldAccesses extends DefaultStrategy("Resolve accesses to virtual fields") {
-  val collector = new L3_LevelCollector
-  this.register(collector)
-
-  this += new Transformation("Resolve applicable unresolved accesses", {
-    case access : L3_UnresolvedAccess if VirtualField.fields.contains(access.name.toLowerCase()) =>
-      val level = if (access.level.isDefined) access.level.get.resolveLevel else collector.getCurrentLevel
-      L3_VirtualFieldAccess(access.name, level)
+  this += new Transformation("Resolve applicable future accesses", {
+    // check if declaration has already been processed and promote access if possible
+    case access : L3_FutureVirtualFieldAccess if L3_VirtualFieldCollection.exists(access.name, access.level) =>
+      access.toVirtualFieldAccess
   })
 }

@@ -16,13 +16,5 @@ case class L2_VirtualField(
     var localization : String) extends L2_LeveledKnowledgeObject[L3_VirtualField] {
 
   override def prettyprintDecl(out : PpStream) : Unit = ???
-
-  override def progressImpl() = {
-    L3_VirtualField(
-      name,
-      level,
-      domain.getProgressedObject(),
-      datatype.progress,
-      localization)
-  }
+  override def progressImpl() = L3_VirtualField(name, level, domain.getProgressedObj(), datatype.progress, localization)
 }

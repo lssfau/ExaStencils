@@ -25,7 +25,7 @@ case class L2_Field(
     L3_Field(
       name,
       level,
-      domain.name,
+      domain.getProgressedObj(),
       datatype.progress,
       localization,
       L2_ProgressOption(initial)(_.progress),

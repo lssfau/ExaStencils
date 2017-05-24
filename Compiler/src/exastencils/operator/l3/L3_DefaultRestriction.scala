@@ -44,7 +44,7 @@ object L3_DefaultRestriction {
         }
     }
 
-    entries.map(entry => L3_StencilEntry(entry._1, entry._2))
+    entries.map(entry => L3_StencilOffsetEntry(entry._1, entry._2))
   }
 
   def wrapNodeLinear(entries : EntryList) : EntryList = {

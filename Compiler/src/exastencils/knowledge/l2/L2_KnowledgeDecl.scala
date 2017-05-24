@@ -2,6 +2,7 @@ package exastencils.knowledge.l2
 
 import exastencils.base.l2._
 import exastencils.core.Duplicate
+import exastencils.datastructures._
 
 /// L2_KnowledgeDecl
 
@@ -24,4 +25,12 @@ object L2_LeveledKnowledgeDecl {
 
 trait L2_LeveledKnowledgeDecl extends L2_KnowledgeDecl {
   var levels : Option[L2_LevelSpecification]
+}
+
+/// L2_UnfoldKnowledgeDeclarations
+
+object L2_UnfoldKnowledgeDeclarations extends DefaultStrategy("Unfold leveled L2 knowledge declarations") {
+  this += Transformation("Process new declarations", {
+    case decl : L2_LeveledKnowledgeDecl => L2_LeveledKnowledgeDecl.unfoldDecl(decl)
+  })
 }

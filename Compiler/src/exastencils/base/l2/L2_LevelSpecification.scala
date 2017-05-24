@@ -13,7 +13,7 @@ object L2_LevelSpecification {
     levels match {
       case None                        => defForNone
       case Some(L2_SingleLevel(level)) => List(level)
-      case Some(L2_LevelList(levels))  => levels.map(_.asInstanceOf[L2_SingleLevel].level).toList
+      case Some(L2_LevelList(lvls))    => lvls.map(_.asInstanceOf[L2_SingleLevel].level).toList
       case other                       => Logger.error("Trying to extract level list from unsupported instance " + other)
     }
   }

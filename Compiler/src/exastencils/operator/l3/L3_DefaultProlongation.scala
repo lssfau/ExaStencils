@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
-import exastencils.deprecated.ir.IR_DimToString
+import exastencils.baseExt.l3.L3_FieldIteratorAccess
 
 object L3_DefaultProlongation {
   type EntryList = ListBuffer[(L3_ExpressionIndex, L3_Expression)]
@@ -45,14 +45,13 @@ object L3_DefaultProlongation {
         }
     }
 
-    entries.map(entry => L3_StencilEntry(entry._1, entry._2))
+    entries.map(entry => L3_StencilOffsetEntry(entry._1, entry._2))
   }
 
   def wrapNodeLinear(entries : EntryList, dim : Int) : EntryList = {
-    // FIXME: IR_DimToString
     entries.flatMap(entry => ListBuffer(
       (L3_ExpressionIndex(entry._1.indices :+ (0 : L3_Expression)), 0.5 * entry._2),
-      (L3_ExpressionIndex(entry._1.indices :+ (IR_DimToString(dim) Mod 2)), 0.5 * entry._2)
+      (L3_ExpressionIndex(entry._1.indices :+ (L3_FieldIteratorAccess(dim) Mod 2)), 0.5 * entry._2)
     ))
   }
 
