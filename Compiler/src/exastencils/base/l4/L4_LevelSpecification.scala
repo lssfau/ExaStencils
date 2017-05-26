@@ -1,7 +1,6 @@
 package exastencils.base.l4
 
 import exastencils.config.Knowledge
-import exastencils.core.collectors.L4LevelCollector
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
@@ -113,7 +112,7 @@ object L4_ResolveRelativeLevels extends DefaultStrategy("Resolve relative level 
 /// L4_ResolveCurrentLevels
 
 object L4_ResolveCurrentLevels extends DefaultStrategy("Resolve current level references") {
-  var levelCollector = new L4LevelCollector
+  var levelCollector = new L4_LevelCollector
   this.register(levelCollector)
 
   // resolve level specifications

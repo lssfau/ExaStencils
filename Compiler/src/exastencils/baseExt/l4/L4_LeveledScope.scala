@@ -3,7 +3,6 @@ package exastencils.baseExt.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.core.collectors.L4LevelCollector
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
@@ -22,7 +21,7 @@ case class L4_LeveledScope(var level : L4_LevelSpecification, var body : ListBuf
 /// L4_ResolveLeveledScopes
 
 object L4_ResolveLeveledScopes extends DefaultStrategy("Resolve leveled scopes") {
-  var levelCollector = new L4LevelCollector
+  var levelCollector = new L4_LevelCollector
   this.register(levelCollector)
 
   // Flatten leveled scope or remove completely
