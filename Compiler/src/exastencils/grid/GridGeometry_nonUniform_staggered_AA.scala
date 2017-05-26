@@ -33,14 +33,14 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
     super.initL4() // set basic stuff
 
     // extend with info required by staggered grid
-    ExaRootNode.l4_root.nodes += L4_FieldDecl(
-      L4_LeveledIdentifier("stag_cv_width_x", L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
+    ExaRootNode.l4_root.nodes += L4_BaseFieldDecl(
+      "stag_cv_width_x", Some(L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 1)
-      ExaRootNode.l4_root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("stag_cv_width_y", L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
+      ExaRootNode.l4_root.nodes += L4_BaseFieldDecl(
+        "stag_cv_width_y", Some(L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 2)
-      ExaRootNode.l4_root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("stag_cv_width_z", L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
+      ExaRootNode.l4_root.nodes += L4_BaseFieldDecl(
+        "stag_cv_width_z", Some(L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
   }
 
   override def generateInitCode() = {

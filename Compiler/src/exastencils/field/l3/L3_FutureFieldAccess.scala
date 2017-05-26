@@ -3,6 +3,7 @@ package exastencils.field.l3
 import exastencils.base.l3.L3_LevelCollector
 import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.datastructures._
+import exastencils.field.l4._
 import exastencils.knowledge.l3.L3_FutureKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
@@ -14,7 +15,7 @@ case class L3_FutureFieldAccess(var name : String, var level : Int) extends L3_F
 
   def progress = {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
-    ??? // TODO
+    L4_FutureFieldAccess(name, level, L4_ActiveSlot)
   }
 
   def toFieldAccess = L3_FieldAccess(this)
@@ -40,4 +41,3 @@ object L3_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fiel
       L3_FutureFieldAccess(access.name, lvl)
   })
 }
-
