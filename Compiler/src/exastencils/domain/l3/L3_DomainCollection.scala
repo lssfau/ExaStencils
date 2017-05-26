@@ -14,6 +14,9 @@ object L3_DomainCollection extends L3_BasicKnowledgeCollection[L3_Domain, L4_Dom
   L3_PrepareDeclarations.strategies += L3_PrepareDomainDeclarations
   L3_ProcessDeclarations.strategies += L3_ProcessDomainDeclarations
 
+  L3_PrepareAccesses.strategies += L3_PrepareDomainAccesses
+  L3_ResolveAccesses.strategies += L3_ResolveDomainAccesses
+
   override def name = "L3_DomainCollection"
   override def progress() = objects.foreach(obj => L4_DomainCollection.add(obj.progress()))
 }
