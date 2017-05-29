@@ -17,6 +17,9 @@ object L4_FieldAccess {
   def apply(fieldName : String, level : Int, slot : L4_SlotSpecification, arrayIndex : Option[Int], offset : Option[L4_ExpressionIndex]) =
     new L4_FieldAccess(L4_FieldCollection.getByIdentifier(fieldName, level).get, slot, arrayIndex, offset)
 
+  def apply(access : L4_FutureFieldAccess) =
+    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.arrayIndex, access.offset)
+
   def resolveSlot(field : IR_Field, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)
     else slot match {

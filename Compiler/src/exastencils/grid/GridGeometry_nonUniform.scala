@@ -64,14 +64,14 @@ trait GridGeometry_nonUniform extends GridGeometry {
           L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, 1, (1 << lvl) * Knowledge.domain_fragmentLength_z - 1), false)))
     }
 
-    ExaRootNode.l4_root.nodes += L4_FieldDecl(
-      L4_LeveledIdentifier("node_pos_x", L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
+    ExaRootNode.l4_root.nodes += L4_BaseFieldDecl(
+      "node_pos_x", Some(L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 1)
-      ExaRootNode.l4_root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("node_pos_y", L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
+      ExaRootNode.l4_root.nodes += L4_BaseFieldDecl(
+        "node_pos_y", Some(L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
     if (Knowledge.dimensionality > 2)
-      ExaRootNode.l4_root.nodes += L4_FieldDecl(
-        L4_LeveledIdentifier("node_pos_z", L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
+      ExaRootNode.l4_root.nodes += L4_BaseFieldDecl(
+        "node_pos_z", Some(L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
   }
 
   def HACK_numDims = Knowledge.dimensionality // TODO: fix dim

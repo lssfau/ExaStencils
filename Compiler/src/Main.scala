@@ -416,7 +416,7 @@ object Main {
     if (Knowledge.l4_genSepLayoutsPerField)
       L4_DuplicateFieldLayoutsForFields.apply()
 
-    L4_ResolveFieldAccesses.apply()
+//    L4_ResolveFieldAccesses.apply()
     L4_ResolveStencilAccesses.apply()
     L4_ResolveStencilFieldAccesses.apply()
 

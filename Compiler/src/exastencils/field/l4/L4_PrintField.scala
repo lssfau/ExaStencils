@@ -32,7 +32,7 @@ object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print fiel
           L4_PrintField(L4_StringConstant(field.target.name + ".dat"), field)
         case ListBuffer(fileName, field : L4_FieldAccess)            => // option 2: filename and field
           L4_PrintField(fileName, field)
-        case ListBuffer(fileName, field : L4_FieldAccess, condition) => //option 3: filename, file and condition
+        case ListBuffer(fileName, field : L4_FieldAccess, condition) => // option 3: filename, file and condition
           L4_PrintField(fileName, field, Some(condition))
         case _                                                       =>
           Logger.warn("Ignoring call to printField with unsupported arguments: " + args.mkString(", "))
