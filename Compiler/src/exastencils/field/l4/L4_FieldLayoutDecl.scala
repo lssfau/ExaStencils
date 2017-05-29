@@ -5,7 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
-import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl_
+import exastencils.knowledge.l4._
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 /// L4_FieldLayoutOption
@@ -25,18 +26,19 @@ case class L4_FieldLayoutOption(
 /// L4_FieldLayoutDecl
 
 object L4_FieldLayoutDecl {
-  def apply(identifier : L4_Identifier, datatype : L4_Datatype, discretization : String, options : List[L4_FieldLayoutOption]) =
-    new L4_FieldLayoutDecl(identifier, datatype, discretization, options.to[ListBuffer])
+  def apply(name : String, levels : Option[L4_LevelSpecification], datatype : L4_Datatype, discretization : String, options : List[L4_FieldLayoutOption]) =
+    new L4_FieldLayoutDecl(name, levels, datatype, discretization, options.to[ListBuffer])
 }
 
 case class L4_FieldLayoutDecl(
-    override var identifier : L4_Identifier,
+    var name : String,
+    var levels : Option[L4_LevelSpecification],
     var datatype : L4_Datatype,
     var discretization : String,
-    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl_ {
+    var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << "Layout " << identifier.name << "< " << datatype << ", " << discretization << " >" << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level << " {\n"
+    out << "Layout " << name << "< " << datatype << ", " << discretization << " >" << '@' << levels << " {\n"
     out <<< (options, "\n")
     out << "\n}"
   }
@@ -104,7 +106,7 @@ case class L4_FieldLayoutDecl(
 
     // compile final layout
     L4_FieldLayout(
-      identifier.name, level, numDimsGrid,
+      name, level, numDimsGrid,
       datatype, discretization,
       numGhost,
       evalFieldLayoutBoolean("ghostLayers"),
@@ -114,22 +116,29 @@ case class L4_FieldLayoutDecl(
   }
 
   override def addToKnowledge() : Unit = {
-    identifier match {
-      case L4_BasicIdentifier(name)                          =>
-        for (level <- Knowledge.levels)
-          L4_FieldLayoutCollection.add(composeLayout(level))
-      case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
-        L4_FieldLayoutCollection.add(composeLayout(level))
-    }
+    val level = levels.get.asInstanceOf[L4_SingleLevel].level
+    L4_FieldLayoutCollection.add(composeLayout(level))
   }
+
+  override def progress = Logger.error(s"Trying to progress l4 field layout declaration for $name; this is not supported")
+}
+
+/// L4_PrepareFieldLayoutDeclaration
+
+object L4_PrepareFieldLayoutDeclarations extends DefaultStrategy("Prepare knowledge for L4 field layouts") {
+  this += Transformation("Process new field layouts", {
+    case decl : L4_FieldLayoutDecl =>
+      L4_FieldLayoutCollection.addDeclared(decl.name, decl.levels)
+      decl // preserve declaration statement
+  })
 }
 
 /// L4_ProcessFieldLayoutDeclarations
 
-object L4_ProcessFieldLayoutDeclarations extends DefaultStrategy("Integrating L4 field layout declarations with knowledge") {
-  this += Transformation("Process new field layouts", {
-    case fieldLayoutDecl : L4_FieldLayoutDecl =>
-      fieldLayoutDecl.addToKnowledge()
+object L4_ProcessFieldLayoutDeclarations extends DefaultStrategy("Integrate L4 field layout declarations with knowledge") {
+  this += Transformation("Process field layout declarations", {
+    case decl : L4_FieldLayoutDecl if !L4_FutureKnowledgeAccess.existsInStmt(decl) =>
+      decl.addToKnowledge()
       None // consume declaration statement
   })
 }

@@ -42,21 +42,21 @@ trait GridGeometry_nonUniform extends GridGeometry {
   override def initL4() = {
     for (lvl <- Knowledge.levels) {
       ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
-        L4_LeveledIdentifier("DefNodeLineLayout_x", L4_SingleLevel(lvl)),
+        "DefNodeLineLayout_x", Some(L4_SingleLevel(lvl)),
         L4_RealDatatype, "Edge_Node".toLowerCase(),
         ListBuffer(
           L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(2, 0, 0), true),
           L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(1, 0, 0), true),
           L4_FieldLayoutOption("innerPoints", L4_ConstIndex((1 << lvl) * Knowledge.domain_fragmentLength_x - 1, 1, 1), false)))
       ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
-        L4_LeveledIdentifier("DefNodeLineLayout_y", L4_SingleLevel(lvl)),
+        "DefNodeLineLayout_y", Some(L4_SingleLevel(lvl)),
         L4_RealDatatype, "Edge_Node".toLowerCase(),
         ListBuffer(
           L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 2, 0), true),
           L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(0, 1, 0), true),
           L4_FieldLayoutOption("innerPoints", L4_ConstIndex(1, (1 << lvl) * Knowledge.domain_fragmentLength_y - 1, 1), false)))
       ExaRootNode.l4_root.nodes += L4_FieldLayoutDecl(
-        L4_LeveledIdentifier("DefNodeLineLayout_z", L4_SingleLevel(lvl)),
+        "DefNodeLineLayout_z", Some(L4_SingleLevel(lvl)),
         L4_RealDatatype, "Edge_Node".toLowerCase(),
         ListBuffer(
           L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(0, 0, 2), true),

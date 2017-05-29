@@ -293,7 +293,7 @@ class L4_Parser extends ExaParser with PackratParsers {
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ (d => d))
   lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (discretization <~ ">") ~ levelDecl.? ~ ("{" ~> layoutOptions <~ "}")
-    ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(L4_LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), dt, disc.toLowerCase, opts) })
+    ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(id, level, dt, disc.toLowerCase, opts) })
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
       ||| layoutOption.*)

@@ -58,7 +58,7 @@ object GridGeometry_nonAA extends GridGeometry {
 
     def getLayoutDecl = {
       L4_FieldLayoutDecl(
-        L4_LeveledIdentifier(layout, L4_AllLevels),
+        layout, Some(L4_AllLevels),
         datatype, "node",
         ListBuffer(
           L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(2)), true),
@@ -76,7 +76,7 @@ object GridGeometry_nonAA extends GridGeometry {
 
     def getLayoutDecl = {
       L4_FieldLayoutDecl(
-        L4_LeveledIdentifier(layout, L4_AllLevels),
+        layout, Some(L4_AllLevels),
         datatype, "cell",
         ListBuffer(
           L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(2)), true),
