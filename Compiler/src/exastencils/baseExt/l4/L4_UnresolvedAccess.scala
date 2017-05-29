@@ -8,6 +8,11 @@ import exastencils.prettyprinting.PpStream
 
 /// L4_UnresolvedAccess
 
+object L4_UnresolvedAccess {
+  def apply(name : String) = new L4_UnresolvedAccess(name, None, None, None, None, None)
+  def apply(name : String, level : L4_AccessLevelSpecification) = new L4_UnresolvedAccess(name, None, Some(level), None, None, None)
+}
+
 case class L4_UnresolvedAccess(
     var name : String,
     var slot : Option[L4_SlotSpecification],

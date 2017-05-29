@@ -37,7 +37,7 @@ case class L3_Field(
       name,
       level,
       -1, // index is to be set later
-      domain.name,
+      domain.getProgressedObj(),
       L4_FieldLayoutCollection.getByIdentifier(fieldLayoutName, level).get, // l3 field layout is not available -> grab l4 layout directly
       1, // one slot by default - may be increased later
       boundary.progress)

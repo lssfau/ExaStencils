@@ -65,13 +65,13 @@ trait GridGeometry_nonUniform extends GridGeometry {
     }
 
     ExaRootNode.l4_root.nodes += L4_BaseFieldDecl(
-      "node_pos_x", Some(L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1, 0)
+      "node_pos_x", Some(L4_AllLevels), "global", "DefNodeLineLayout_x", L4_NoBC, 1)
     if (Knowledge.dimensionality > 1)
       ExaRootNode.l4_root.nodes += L4_BaseFieldDecl(
-        "node_pos_y", Some(L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1, 0)
+        "node_pos_y", Some(L4_AllLevels), "global", "DefNodeLineLayout_y", L4_NoBC, 1)
     if (Knowledge.dimensionality > 2)
       ExaRootNode.l4_root.nodes += L4_BaseFieldDecl(
-        "node_pos_z", Some(L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1, 0)
+        "node_pos_z", Some(L4_AllLevels), "global", "DefNodeLineLayout_z", L4_NoBC, 1)
   }
 
   def HACK_numDims = Knowledge.dimensionality // TODO: fix dim

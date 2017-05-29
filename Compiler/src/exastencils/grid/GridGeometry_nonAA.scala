@@ -66,7 +66,7 @@ object GridGeometry_nonAA extends GridGeometry {
     }
 
     def getFieldDecl = {
-      L4_BaseFieldDecl("node_pos", Some(L4_AllLevels), "global", layout, L4_NoBC, 1, 0)
+      L4_BaseFieldDecl("node_pos", Some(L4_AllLevels), "global", layout, L4_NoBC, 1)
     }
   }
 
@@ -84,7 +84,7 @@ object GridGeometry_nonAA extends GridGeometry {
     }
 
     def getFieldDecl = {
-      L4_BaseFieldDecl("cell_center", Some(L4_AllLevels), "global", layout, L4_NoBC, 1, 0)
+      L4_BaseFieldDecl("cell_center", Some(L4_AllLevels), "global", layout, L4_NoBC, 1)
     }
   }
 
