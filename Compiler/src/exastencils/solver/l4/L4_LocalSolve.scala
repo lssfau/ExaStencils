@@ -12,7 +12,7 @@ import exastencils.solver.ir._
 
 // TODO: move eq node to more fitting file/package
 case class L4_Equation(var lhs : L4_Expression, var rhs : L4_Expression) extends L4_Node with L4_Progressable with PrettyPrintable {
-  override def prettyprint(out : PpStream) : Unit = ???
+  override def prettyprint(out : PpStream) : Unit = out << lhs << " == " << rhs
   override def progress = IR_Equation(lhs.progress, rhs.progress)
 }
 
@@ -25,6 +25,15 @@ object L4_LocalSolve {
 }
 
 case class L4_LocalSolve(var unknowns : ListBuffer[L4_Expression], var equations : ListBuffer[L4_Equation], var relax : Option[L4_Expression]) extends L4_Statement {
-  override def prettyprint(out : PpStream) : Unit = ???
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "solve locally "
+    if (relax.isDefined)
+      out << "relax " << relax.get
+    out << "{\n"
+    for (i <- unknowns.indices)
+      out << unknowns(i) << " => " << equations(i) << "\n"
+    out << "}"
+  }
+
   override def progress = IR_LocalSolve(unknowns.map(_.progress.asInstanceOf[IR_FieldAccess]), equations.map(_.progress), L4_ProgressOption(relax)(_.progress))
 }

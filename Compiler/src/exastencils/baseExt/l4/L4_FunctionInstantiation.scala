@@ -36,18 +36,11 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
   })
 
   this += new Transformation("Remove function templates", {
-    case functionTemplate : L4_FunctionTemplate => None
+    case _ : L4_FunctionTemplate => None
   })
 
-  object L4_ReplaceUnresolvedAccess extends DefaultStrategy("Replace something with something else") {
+  object L4_ReplaceUnresolvedAccess extends QuietDefaultStrategy("Replace something with something else") {
     var replacements : Map[String, L4_Expression] = Map()
-
-    override def applyStandalone(node : Node) = {
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
-      super.applyStandalone(node)
-      Logger.setLevel(oldLvl)
-    }
 
     this += new Transformation("Search and replace", {
       case origAccess : L4_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) =>

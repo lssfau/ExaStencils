@@ -33,7 +33,13 @@ object L4_LevelList {
 }
 
 case class L4_LevelList(var levels : HashSet[L4_DeclarationLevelSpecification]) extends L4_LevelGroup {
-  override def prettyprint(out : PpStream) = out << '(' <<< (levels, ", ") << ')'
+  override def prettyprint(out : PpStream) = {
+    val (first, second) = levels.partition(!_.isInstanceOf[L4_NegatedLevelList])
+    out << "(" <<< (first, ", ")
+    if (second.nonEmpty)
+      out << " " <<< (second, ", ")
+    out << ")"
+  }
 
   def flatten() : Unit = {
     levels.foreach {
