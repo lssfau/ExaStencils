@@ -8,6 +8,7 @@ import exastencils.datastructures._
 
 trait L4_KnowledgeDecl extends L4_Statement {
   def name : String
+  def addToKnowledge() : Unit
 }
 
 /// L4_LeveledKnowledgeDecl
