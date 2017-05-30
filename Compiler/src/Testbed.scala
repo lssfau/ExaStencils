@@ -46,7 +46,7 @@ case class IndexMapping(var from : IR_ExpressionIndex, var to : IR_ExpressionInd
 
 case class StencilEntry(var index : IndexMapping, var coeff : IR_Expression) extends IR_Node {
   def print : String = index.print + " => " + coeff.prettyprint()
-  def toIRStencilEntry() = IR_StencilEntry(index.toIROffset(), coeff)
+  def toIRStencilEntry() = IR_StencilOffsetEntry(index.toIROffset().toConstIndex, coeff)
 }
 
 case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var entries : ListBuffer[StencilEntry]) extends IR_Node {
@@ -182,7 +182,7 @@ case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var 
     IR_GeneralSimplify.applyStandalone(this)
   }
 
-  def compileCases() : ListBuffer[ListBuffer[Int]] = {
+  def assembleCases() : ListBuffer[ListBuffer[Int]] = {
     def numCases(d : Int) : Int = if (colStride(d) >= 1) colStride(d).toInt else (1.0 / colStride(d)).toInt
 
     var cases = ListBuffer.range(0, numCases(0)).map(i => ListBuffer(i))
@@ -204,7 +204,7 @@ case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var 
     }
 
     val numCases = (0 until numDims).map(d => if (colStride(d) >= 1) colStride(d).toInt else (1.0 / colStride(d)).toInt)
-    val cases = compileCases()
+    val cases = assembleCases()
     cases.map(c => {
       val redStencil = filterForSpecCase(c)
       val redStmts = Duplicate(stmts)
@@ -233,7 +233,7 @@ case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var 
       }
     }).filter(entry => {
       // filter entries with invalid indices
-      val indices = compileCases().map(c => {
+      val indices = assembleCases().map(c => {
         val mapTo = Duplicate(entry.index.to)
         for (d <- 0 until numDims) {
           IR_ReplaceVariableAccess.toReplace = entry.index.from.indices(d).prettyprint()/*FIXME: use name of VA*/
@@ -270,7 +270,7 @@ case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var 
     newStencil
   }
 
-  def toIRStencil() = IR_Stencil("dummy_name", 0, entries.map(_.toIRStencilEntry()))
+  def toIRStencil() = ??? // IR_Stencil("dummy_name", 0, entries.map(_.toIRStencilEntry()))
 }
 
 object Testbed {
@@ -337,7 +337,7 @@ object Testbed {
 
     Logger.warn("R * A:\n" + ra.print)
     Logger.warn("R * A * P:\n" + rap.print)
-    Logger.warn("R * A * P:\n" + rap.toIRStencil().printStencilToStr())
+    //Logger.warn("R * A * P:\n" + rap.toIRStencil().printStencilToStr())
 
     //Logger.warn(prolong.compileConditions(IR_ExpressionIndex(IR_LoopOverDimensions.defIt(1)), ListBuffer()))
   }
@@ -472,7 +472,7 @@ object Testbed {
     Logger.warn("R * P:\n" + rp.print)
     Logger.warn("sum per line (RP): " + IR_SimplifyExpression.simplifyFloatingExpr(IR_Addition(rp.entries.map(_.coeff))))
 
-    Logger.warn("R * A * P:\n" + rap.toIRStencil().printStencilToStr())
+//    Logger.warn("R * A * P:\n" + rap.toIRStencil().printStencilToStr())
   }
 
   case class MatAccess(var stencil : MatFromStencil) extends IR_Expression {

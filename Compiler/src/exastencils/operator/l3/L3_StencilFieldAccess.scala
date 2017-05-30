@@ -1,30 +1,32 @@
 package exastencils.operator.l3
 
-import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.field.l4.L4_ActiveSlot
-import exastencils.knowledge.l3.L3_KnowledgeAccess
+import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.prettyprinting.PpStream
-import exastencils.stencil.l4._
 
-/// L3_StencilTemplateAccess
+/// L3_StencilFieldAccess
 
-object L3_StencilTemplateAccess {
-  def apply(stencilName : String, level : Int) =
-    new L3_StencilTemplateAccess(L3_StencilTemplateCollection.getByIdentifier(stencilName, level).get)
+object L3_StencilFieldAccess {
+  def apply(name : String, level : Int) =
+    new L3_StencilFieldAccess(L3_StencilFieldCollection.getByIdentifier(name, level).get)
+
+  def apply(access : L3_FutureStencilFieldAccess) =
+    new L3_StencilFieldAccess(L3_StencilFieldCollection.getByIdentifier(access.name, access.level).get)
 }
 
-case class L3_StencilTemplateAccess(var target : L3_StencilTemplate) extends L3_KnowledgeAccess {
+case class L3_StencilFieldAccess(var target : L3_StencilField) extends L3_OperatorAccess {
   override def prettyprint(out : PpStream) = out << target.name << '@' << target.level
-  def progress = L4_StencilFieldAccess(target.name, target.level, L4_ActiveSlot, None, None, None)
+  def progress = L4_StencilFieldAccess(target.getProgressedObj(), L4_ActiveSlot)
+  override def assembleOffsetMap() = target.stencil.assembleOffsetMap()
 }
 
-/// L3_ResolveStencilTemplateAccesses
+/// L3_ResolveStencilFieldAccesses
 
-object L3_ResolveStencilTemplateAccesses extends DefaultStrategy("Resolve accesses to stencil fields") {
-  this += new Transformation("Resolve applicable unresolved accesses", {
-    case access : L3_UnresolvedAccess if L3_StencilTemplateCollection.exists(access.name) =>
-      L3_StencilTemplateAccess(access.name, access.level.get.resolveLevel)
+object L3_ResolveStencilFieldAccesses extends DefaultStrategy("Resolve accesses to stencil fields") {
+  this += new Transformation("Resolve applicable future accesses", {
+    // check if declaration has already been processed and promote access if possible
+    case access : L3_FutureStencilFieldAccess if L3_StencilFieldCollection.exists(access.name, access.level) =>
+      access.toStencilFieldAccess
   })
 }
-

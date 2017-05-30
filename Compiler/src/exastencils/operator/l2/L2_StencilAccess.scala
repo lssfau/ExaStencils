@@ -1,7 +1,6 @@
 package exastencils.operator.l2
 
 import exastencils.datastructures._
-import exastencils.knowledge.l2._
 import exastencils.operator.l3.L3_StencilAccess
 import exastencils.prettyprinting.PpStream
 
@@ -15,9 +14,10 @@ object L2_StencilAccess {
     new L2_StencilAccess(L2_StencilCollection.getByIdentifier(access.name, access.level).get)
 }
 
-case class L2_StencilAccess(var target : L2_Stencil) extends L2_LeveledKnowledgeAccess {
+case class L2_StencilAccess(var target : L2_Stencil) extends L2_OperatorAccess {
   override def prettyprint(out : PpStream) = out << target.name << '@' << target.level
   def progress = L3_StencilAccess(target.getProgressedObj())
+  override def assembleOffsetMap() = target.assembleOffsetMap()
 }
 
 /// L2_ResolveStencilAccesses

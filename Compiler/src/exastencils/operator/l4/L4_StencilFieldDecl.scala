@@ -1,56 +1,55 @@
 package exastencils.operator.l4
 
 import exastencils.base.l4._
-import exastencils.config.Knowledge
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
-import exastencils.field.l4.L4_FieldCollection
-import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl_
-import exastencils.prettyprinting.PpStream
-import exastencils.stencil.l4._
+import exastencils.field.l4._
+import exastencils.knowledge.l4._
+import exastencils.logger._
+import exastencils.prettyprinting._
 
-case class L4_StencilFieldDecl(
-    override var identifier : L4_Identifier,
-    var fieldName : String,
-    var stencilName : String) extends L4_LeveledKnowledgeDecl_ {
+/// L4_StencilFieldDecl
 
-  override def prettyprint(out : PpStream) = {
-    out << "StencilField " << identifier.name << "< " << fieldName << " => " << stencilName << " >" <<
-      "@" << identifier.asInstanceOf[L4_LeveledIdentifier].level << '\n'
-  }
-
-  def composeStencilField(level : Int) : L4_StencilField = {
-    val resolvedField = L4_FieldCollection.getByIdentifier(fieldName, level).get
-
-    // check for stencil templates first
-    if (L4_StencilTemplateCollection.exists(stencilName, level)) {
-      val stencilTemplate = L4_StencilTemplateCollection.getByIdentifier(stencilName, level).get
-      L4_StencilField(identifier.name, level, resolvedField, stencilName, stencilTemplate.offsets)
-    }
-    else {
-      // otherwise it is a stencil (hopefully)
-      val stencil = L4_StencilCollection.getByIdentifier(stencilName, level).get
-      L4_StencilField(identifier.name, level, resolvedField, stencilName, stencil.entries.map(_.offset))
-    }
-  }
-
-  override def addToKnowledge() : Unit = {
-    identifier match {
-      case L4_BasicIdentifier(name) =>
-        for (level <- Knowledge.levels)
-          L4_StencilFieldCollection.add(composeStencilField(level))
-
-      case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
-        L4_StencilFieldCollection.add(composeStencilField(level))
-    }
-  }
+object L4_StencilFieldDecl {
+  def apply(name : String, levels : Option[L4_LevelSpecification], stencil : String, field : String) =
+    new L4_StencilFieldDecl(name, levels, L4_UnresolvedAccess(stencil), L4_UnresolvedAccess(field))
 }
 
-/// L4_ProcessStencilDeclarations
+case class L4_StencilFieldDecl(
+    var name : String,
+    var levels : Option[L4_LevelSpecification],
+    var stencil : L4_Access,
+    var field : L4_Access) extends L4_LeveledKnowledgeDecl {
 
-object L4_ProcessStencilFieldDeclarations extends DefaultStrategy("Integrating L4 stencil field declarations with knowledge") {
-  this += Transformation("Process new stencil fields", {
-    case stencilFieldDecl : L4_StencilFieldDecl =>
-      stencilFieldDecl.addToKnowledge()
+  override def prettyprint(out : PpStream) = ???
+
+  override def addToKnowledge() : Unit = {
+    L4_StencilFieldCollection.add(
+      L4_StencilField(name, L4_LevelSpecification.asSingleLevel(levels),
+        stencil.asInstanceOf[L4_StencilAccess].target, field.asInstanceOf[L4_FieldAccess].target))
+  }
+
+  override def progress = Logger.error(s"Trying to progress L4 stencil template $name; this is not supported")
+}
+
+/// L4_PrepareStencilFieldDeclaration
+
+object L4_PrepareStencilFieldDeclarations extends DefaultStrategy("Prepare knowledge for L4 stencil templates") {
+  this += Transformation("Process new stencil templates", {
+    case decl : L4_StencilFieldDecl =>
+      L4_FieldCollection.addDeclared(decl.name + "_Data", decl.levels)
+      L4_StencilCollection.addDeclared(decl.name + "_Stencil", decl.levels)
+
+      decl // preserve declaration statement
+  })
+}
+
+/// L4_ProcessStencilFieldDeclarations
+
+object L4_ProcessStencilFieldDeclarations extends DefaultStrategy("Integrate L4 stencil template declarations with knowledge") {
+  this += Transformation("Process new stencil templates", {
+    case decl : L4_StencilFieldDecl if !L4_FutureKnowledgeAccess.existsInStmt(decl) =>
+      decl.addToKnowledge()
       None // consume declaration statement
   })
 }

@@ -2,13 +2,14 @@ package exastencils.operator.l3
 
 import scala.collection.mutable._
 
+import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_FieldIteratorAccess
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.optimization.l3._
-import exastencils.util.l3.L3_ReplaceExpressions
+import exastencils.util.l3._
 
 /// L3_StencilOps
 
@@ -143,6 +144,34 @@ object L3_StencilOps {
     })
 
     newStencil.entries.foreach(L3_GeneralSimplify.doUntilDoneStandalone(_))
+
+    newStencil
+  }
+
+  def filterForSpecCase(stencil : L3_Stencil, c : ListBuffer[Int]) : L3_Stencil = {
+    val newStencil = Duplicate.forceClone(stencil)
+    newStencil.name += "_filtered_" + c.mkString("_")
+
+    newStencil.entries = newStencil.entries.filter(entry => {
+      // filter entries with invalid indices
+      for (d <- 0 until stencil.numDims) {
+        L3_ReplaceExpressions.toReplace = entry.row.indices(d)
+        L3_ReplaceExpressions.replacement = c(d)
+        L3_ReplaceExpressions.applyStandalone(entry.col)
+      }
+
+      entry.col.indices.map(L3_SimplifyExpression.simplifyFloatingExpr(_) match {
+        case L3_RealConstant(v) => v.isValidInt
+        case other              => Logger.warn(other); false
+      }).reduce(_ && _)
+    })
+
+    // re-construct stencil entries
+    newStencil.entries.foreach(entry => {
+      val base = Duplicate(entry.row)
+      (0 until entry.numDims).foreach(d => base(d) *= newStencil.colStride(d))
+      entry.col += base
+    })
 
     newStencil
   }

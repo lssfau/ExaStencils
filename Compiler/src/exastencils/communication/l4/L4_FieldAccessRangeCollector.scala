@@ -8,7 +8,7 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.field.l4.{ L4_Field, L4_SlotSpecification, _ }
 import exastencils.logger.Logger
-import exastencils.stencil.l4._
+import exastencils.operator.l4._
 
 /// L4_FieldAccessRangeCollector
 
@@ -106,7 +106,6 @@ class L4_FieldAccessRangeCollector() extends Collector {
     var minOffset = extractMinOffsetArray(field.numDimsGrid, offset)
     var maxOffset = extractMaxOffsetArray(field.numDimsGrid, offset)
 
-
     if (offset2.isDefined) {
       minOffset = (minOffset, minValuesForAnyIndex(offset2.get)).zipped.map(_ + _)
       maxOffset = (maxOffset, maxValuesForAnyIndex(offset2.get)).zipped.map(_ + _)
@@ -192,24 +191,16 @@ class L4_FieldAccessRangeCollector() extends Collector {
 
       // TODO: find a way to ignore recursive match on (lhs) L4_FieldAccess and the wrongfully detected read access
 
-      case L4_StencilConvolution(stencil, field) =>
-        if (ignore) Logger.warn("Found stencil convolution outside kernel")
-
-        // process each entry (offset) of the stencil
-        for (entry <- stencil.target.entries)
-          processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset, Some(entry.offset))
-
-      // TODO: find a way to ignore recursive match on L4_FieldAccess - issues if (0,0,0) entry is not present
-
-      case L4_StencilFieldConvolution(op, field) =>
+      case L4_OperatorTimesField(op, field) =>
         if (ignore) Logger.warn("Found stencil field convolution outside kernel")
 
         // process each entry (offset) of the stencil template
-        for (offset <- op.target.offsets)
-          processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset, Some(offset))
+        op.assembleOffsetMap.values.foreach(_.foreach(offset =>
+          processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset, Some(offset))))
 
+      case access : L4_StencilFieldAccess =>
         // process access to stencil coefficients - no slot
-        processReadExtent(L4_FieldWithSlot(op.target.field, L4_ActiveSlot), op.offset)
+        processReadExtent(L4_FieldWithSlot(access.target.field, L4_ActiveSlot), access.offset)
 
       // TODO: find a way to ignore recursive match on L4_FieldAccess - issues if (0,0,0) entry is not present
 

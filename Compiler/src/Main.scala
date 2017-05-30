@@ -43,6 +43,7 @@ import exastencils.knowledge.l3._
 import exastencils.knowledge.l4.L4_KnowledgeContainer._
 import exastencils.knowledge.l4._
 import exastencils.logger._
+import exastencils.operator.ir.IR_ApplyOffsetToStencilFieldAccess
 import exastencils.operator.l2._
 import exastencils.operator.l3._
 import exastencils.operator.l4._
@@ -62,7 +63,6 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir._
 import exastencils.stencil.ir._
-import exastencils.stencil.l4._
 import exastencils.timing.ir._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
@@ -131,14 +131,14 @@ object Main {
       L2_DomainCollection
       L2_FieldCollection
       L2_StencilCollection
-      L2_StencilTemplateCollection
+      L2_StencilFieldCollection
       L2_VirtualFieldCollection
     }
     {
       L3_DomainCollection
       L3_FieldCollection
       L3_StencilCollection
-      L3_StencilTemplateCollection
+      L3_StencilFieldCollection
       L3_VirtualFieldCollection
     }
     {
@@ -147,7 +147,6 @@ object Main {
       L4_FieldCollection
       L4_StencilCollection
       L4_StencilFieldCollection
-      L4_StencilTemplateCollection
       L4_VirtualFieldCollection
       L4_ExternalFieldCollection
     }
@@ -266,8 +265,7 @@ object Main {
       L3_ProcessFieldOverrides.apply()
 
       L3_ResolveFieldFieldConvolutions.apply()
-      L3_ResolveStencilConvolutions.apply()
-      L3_ResolveStencilTemplateConvolutions.apply()
+      L3_ResolveOperatorTimesField.apply()
 
       L3_FieldCollection.addInitFieldsFunction()
 
@@ -314,7 +312,7 @@ object Main {
       ExaRootNode.l4_root.nodes ++= newL4Root.nodes // TODO: other collections
 
       if (true) {
-        L4_UnresolveStencilFieldConvolutions.apply()
+        L4_UnresolveOperatorTimesField.apply()
         L4_UnresolveFieldFieldConvolutions.apply()
         L4_UnresolveStencilAccesses.apply()
         L4_UnresolveStencilFieldAccesses.apply()
@@ -373,15 +371,11 @@ object Main {
       matches += L4_ResolveAccesses.applyAndCountMatches()
     } while (matches > 0)
 
-//    L4_ProcessBoundaryDeclarations.apply()
-//
-//    if (ExaRootNode.l2_root.nodes.nonEmpty) {
-//      Logger.warn(s"L4 root has ${ ExaRootNode.l2_root.nodes.length } unprocessed nodes remaining:")
-//      ExaRootNode.l2_root.nodes.foreach(Logger.warn(_))
-//    }
-//
-//    // progress knowledge to L3
-//    L4_KnowledgeContainer.progress()
+    if (ExaRootNode.l4_root.nodes.exists(_.isInstanceOf[L4_KnowledgeDecl])) {
+      val filtered = ExaRootNode.l4_root.nodes.filter(_.isInstanceOf[L4_KnowledgeDecl])
+      Logger.warn(s"L4 root has ${ filtered.length } unprocessed declaration nodes remaining:")
+      filtered.foreach(Logger.warn(_))
+    }
 
     L4_UnfoldLeveledKnowledgeDecls.apply()
     L4_ResolveLeveledScopes.apply()
@@ -395,7 +389,7 @@ object Main {
       L4_InlineGlobalValueDeclarations.apply()
     }
 
-    L4_ResolveVirtualFieldAccesses.apply()
+//    L4_ResolveVirtualFieldAccesses.apply()
     L4_ResolveVariableAccesses.apply()
     L4_ResolveFunctionAccesses.apply()
     L4_ResolveMathFunctions.apply()
@@ -416,32 +410,13 @@ object Main {
     if (Knowledge.l4_genSepLayoutsPerField)
       L4_DuplicateFieldLayoutsForFields.apply()
 
-//    L4_ResolveFieldAccesses.apply()
-    L4_ResolveStencilAccesses.apply()
-    L4_ResolveStencilFieldAccesses.apply()
-
     // after L4_ResolveFieldAccesses
     L4_ResolvePrintFieldFunctions.apply()
 
-    /// BEGIN HACK: progress expression in knowledge
-    {
-      Logger.pushLevel(Logger.WARNING)
-      for (obj <- L4_StencilCollection.objects)
-        for (entry <- obj.entries) {
-          L4_ResolveFieldAccesses.apply(Some(entry))
-          L4_ResolveStencilAccesses.apply(Some(entry))
-          L4_ResolveStencilFieldAccesses.apply(Some(entry))
-        }
-      for (obj <- L4_FieldCollection.objects) {
-        L4_ResolveFieldAccesses.apply(Some(L4_Root(obj.boundary)))
-        L4_ResolveStencilAccesses.apply(Some(L4_Root(obj.boundary)))
-        L4_ResolveStencilFieldAccesses.apply(Some(L4_Root(obj.boundary)))
-      }
-      Logger.popLevel()
-    }
-    /// END HACK: progress expression in knowledge
-
     L4_ResolveBoundaryHandlingFunctions.apply()
+
+    L4_ResolveStencilComponentAccesses.apply()
+    L4_ResolveStencilFieldComponentAccesses.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
@@ -541,6 +516,9 @@ object Main {
       IR_FindStencilConvolutions.changed = false
       IR_FindStencilConvolutions.apply()
       convChanged = IR_FindStencilConvolutions.changed
+
+      IR_WrapStencilConvolutions.apply()
+
       if (Knowledge.useFasterExpand)
         IR_ExpandInOnePass.apply()
       else

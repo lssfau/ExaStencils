@@ -4,8 +4,8 @@ import exastencils.base.l4._
 import exastencils.boundary.ir.IR_ApplyBC
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.l4.L4_FieldAccess
+import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.prettyprinting.PpStream
-import exastencils.stencil.l4.L4_StencilFieldAccess
 
 /// L4_ApplyBC
 

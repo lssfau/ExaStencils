@@ -12,22 +12,22 @@ import exastencils.knowledge.l2._
 import exastencils.logger._
 import exastencils.prettyprinting._
 
-/// L2_StencilTemplateDecl
+/// L2_StencilFieldDecl
 
-object L2_StencilTemplateDecl {
-  def apply(name : String, levels : Option[L2_LevelSpecification], localization : String, domainName : String, offsets : List[L2_Index]) =
-    new L2_StencilTemplateDecl(name, levels, localization, domainName, offsets.to[ListBuffer])
+object L2_StencilFieldDecl {
+  def apply(name : String, levels : Option[L2_LevelSpecification], localization : String, domainName : String, offsets : List[L2_ConstIndex]) =
+    new L2_StencilFieldDecl(name, levels, localization, domainName, offsets.to[ListBuffer])
 }
 
-case class L2_StencilTemplateDecl(
+case class L2_StencilFieldDecl(
     var name : String,
     var levels : Option[L2_LevelSpecification],
     var localization : String,
     var domainName : String,
-    var offsets : ListBuffer[L2_Index]) extends L2_LeveledKnowledgeDecl {
+    var offsets : ListBuffer[L2_ConstIndex]) extends L2_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) = {
-    out << "Operator " << name << " from StencilTemplate on " << localization << " of " << domainName << " {\n"
+    out << "Operator " << name << " from StencilField on " << localization << " of " << domainName << " {\n"
     for (offset <- offsets)
       out << offset << " =>\n"
     out << "}"
@@ -51,17 +51,17 @@ case class L2_StencilTemplateDecl(
 
     L2_FieldCollection.add(field)
     L2_StencilCollection.add(stencil)
-    //L2_StencilTemplateCollection.add(L2_StencilTemplate(name, level, localization, domain, offsets)) // defer level determination
+    L2_StencilFieldCollection.add(L2_StencilField(name, level, stencil, field))
   }
 
   override def progress = Logger.error(s"Trying to progress L2 stencil template $name; this is not supported")
 }
 
-/// L2_PrepareStencilTemplateDeclaration
+/// L2_PrepareStencilFieldDeclaration
 
-object L2_PrepareStencilTemplateDeclarations extends DefaultStrategy("Prepare knowledge for L2 stencil templates") {
+object L2_PrepareStencilFieldDeclarations extends DefaultStrategy("Prepare knowledge for L2 stencil templates") {
   this += Transformation("Process new stencil templates", {
-    case decl : L2_StencilTemplateDecl =>
+    case decl : L2_StencilFieldDecl =>
       L2_FieldCollection.addDeclared(decl.name + "_Data", decl.levels)
       L2_StencilCollection.addDeclared(decl.name + "_Stencil", decl.levels)
 
@@ -69,11 +69,11 @@ object L2_PrepareStencilTemplateDeclarations extends DefaultStrategy("Prepare kn
   })
 }
 
-/// L2_ProcessStencilTemplateDeclarations
+/// L2_ProcessStencilFieldDeclarations
 
-object L2_ProcessStencilTemplateDeclarations extends DefaultStrategy("Integrate L2 stencil template declarations with knowledge") {
+object L2_ProcessStencilFieldDeclarations extends DefaultStrategy("Integrate L2 stencil template declarations with knowledge") {
   this += Transformation("Process new stencil templates", {
-    case decl : L2_StencilTemplateDecl if !L2_FutureKnowledgeAccess.existsInStmt(decl) =>
+    case decl : L2_StencilFieldDecl if !L2_FutureKnowledgeAccess.existsInStmt(decl) =>
       decl.addToKnowledge()
       None // consume declaration statement
   })

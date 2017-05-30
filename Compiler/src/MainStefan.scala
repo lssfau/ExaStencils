@@ -39,7 +39,6 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir._
 import exastencils.stencil.ir._
-import exastencils.stencil.l4._
 import exastencils.timing.ir._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._

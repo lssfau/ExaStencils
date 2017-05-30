@@ -8,9 +8,9 @@ import exastencils.baseExt.ir._
 import exastencils.communication.l4.L4_Communicate
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.logger.Logger
+import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting._
-import exastencils.stencil.l4.L4_StencilFieldAccess
 
 /// L4_RegionSpecification
 

@@ -20,13 +20,15 @@ abstract class L3_StencilEntry extends L3_Node with L3_Progressable with PrettyP
 
   def numDims : Int
   def colStride : Array[Double]
+
+  var coefficient : L3_Expression
 }
 
 /// L3_StencilOffsetEntry
 
-case class L3_StencilOffsetEntry(var offset : L3_Index, var coefficient : L3_Expression) extends L3_StencilEntry {
+case class L3_StencilOffsetEntry(var offset : L3_ConstIndex, var coefficient : L3_Expression) extends L3_StencilEntry {
   override def prettyprint(out : PpStream) = out << offset << " => " << coefficient
-  override def progress = L4_StencilEntry(offset.progress, coefficient.progress)
+  override def progress = L4_StencilOffsetEntry(offset.progress, coefficient.progress)
 
   override def asStencilOffsetEntry = this
   override def asStencilMappingEntry = {
@@ -45,12 +47,12 @@ case class L3_StencilMappingEntry(var row : L3_ExpressionIndex, var col : L3_Exp
   L3_ReplaceIntWithReal.applyStandalone(row)
   L3_ReplaceIntWithReal.applyStandalone(col)
 
-  override def prettyprint(out : PpStream) = out << row << " from " << col << " with " << coefficient
-
-  override def progress = {
-    // FIXME: specialized L3 class L4_StencilEntry(row.progress, col.progress, coefficient.progress)
-    asStencilOffsetEntry.progress
+  override def prettyprint(out : PpStream) = {
+    L3_GeneralSimplify.doUntilDoneStandalone(this)
+    out << row << " from " << col << " with " << coefficient
   }
+
+  override def progress = L4_StencilMappingEntry(row.progress, col.progress, coefficient.progress)
 
   override def asStencilOffsetEntry = {
     val offset = Duplicate(col)
@@ -66,7 +68,7 @@ case class L3_StencilMappingEntry(var row : L3_ExpressionIndex, var col : L3_Exp
     L3_ReplaceRealWithInt.applyStandalone(offset)
     L3_GeneralSimplify.applyStandalone(offset)
 
-    L3_StencilOffsetEntry(offset, coefficient)
+    L3_StencilOffsetEntry(offset.toConstIndex, coefficient)
   }
 
   override def asStencilMappingEntry = this

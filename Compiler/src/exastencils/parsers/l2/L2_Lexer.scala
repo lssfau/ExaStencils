@@ -31,8 +31,9 @@ object L2_Lexer extends ExaLexer {
   reserved += ("Field", "with", "on", "of", "boundary")
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
-  // baseExt => l3_OperatorDeclarations
-  reserved += ("Operator", "from")
+  // baseExt => l2_OperatorDeclarations
+  reserved += ("Operator", "from", "default", "restriction", "prolongation", "on", "with")
+  reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
   // baseExt => l3_StencilDeclarations
   reserved += ("Stencil")

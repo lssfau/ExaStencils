@@ -14,9 +14,6 @@ object L4_ProcessKnowledgeDeclarations {
     L4_ProcessStencilDeclarations.apply()
 
     // may require:
-    L4_ProcessStencilTemplateDeclarations.apply()
-
-    // may require:
     L4_ProcessFieldLayoutDeclarations.apply()
 
     // may require: Domain, FieldLayout
@@ -25,7 +22,7 @@ object L4_ProcessKnowledgeDeclarations {
     // may require: Field
     L4_ProcessExternalFieldDeclarations.apply()
 
-    // may require: Stencil(Template) and Field
+    // may require: Stencil and Field
     L4_ProcessStencilFieldDeclarations.apply()
   }
 }

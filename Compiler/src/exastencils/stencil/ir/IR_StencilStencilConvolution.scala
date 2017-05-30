@@ -1,19 +1,12 @@
 package exastencils.stencil.ir
 
-import scala.collection.mutable.ListBuffer
-
-import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config._
-import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_DimToString
-import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.operator.ir._
-import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.util.ir.IR_ResultingDatatype
 
 // TODO: is it really necessary to wrap convolutions in separate nodes?
@@ -24,47 +17,49 @@ import exastencils.util.ir.IR_ResultingDatatype
 case class IR_StencilStencilConvolution(var left : IR_StencilAccess, var right : IR_StencilAccess) extends IR_Expression with IR_Expandable {
   override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
 
-  def stencilLeft = left.stencil
-  def stencilRight = right.stencil
+  def stencilLeft = left.target
+  def stencilRight = right.target
 
   override def expand() : Output[IR_StencilAccess] = {
-    var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
-
-    for (re <- stencilRight.entries) {
-      for (le <- stencilLeft.entries) {
-        val rightOffset = Duplicate(re.offset)
-
-        val leftOffset = Duplicate(le.offset)
-        if (stencilRight.level > stencilLeft.level) {
-          for (d <- 0 until Knowledge.dimensionality)
-            leftOffset(d) = (IR_DimToString(d) : IR_Expression) / 2 + leftOffset(d)
-        } else {
-          for (d <- 0 until Knowledge.dimensionality)
-            leftOffset(d) = (IR_DimToString(d) : IR_Expression) + leftOffset(d)
-        }
-
-        val combOff = leftOffset
-        IR_ReplaceIndexOccurrences.replacement = rightOffset
-        IR_ReplaceIndexOccurrences.doUntilDoneStandalone(combOff)
-
-        var combCoeff : IR_Expression = re.coefficient * le.coefficient
-        IR_GeneralSimplify.doUntilDoneStandalone(combOff)
-        IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
-        val addToEntry = entries.find(e => e.offset match { case o if combOff == o => true; case _ => false })
-        if (addToEntry.isDefined) {
-          combCoeff += addToEntry.get.coefficient
-          IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
-          addToEntry.get.coefficient = combCoeff
-        } else entries += IR_StencilEntry(combOff, combCoeff)
-      }
-    }
-
-    if (left.offset.isDefined)
-      Logger.warn("Ignoring unsupported offset access in stencil stencil convolution: " + left.offset.get)
-    if (right.offset.isDefined)
-      Logger.warn("Ignoring unsupported offset access in stencil stencil convolution: " + right.offset.get)
-
-    IR_StencilAccess(IR_Stencil(stencilLeft.name + "_" + stencilRight.name, stencilLeft.level, entries), None)
+    ???
+    // FIXME: integrate with the new system
+//    var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
+//
+//    for (re <- stencilRight.entries) {
+//      for (le <- stencilLeft.entries) {
+//        val rightOffset = Duplicate(re.offset)
+//
+//        val leftOffset = Duplicate(le.offset)
+//        if (stencilRight.level > stencilLeft.level) {
+//          for (d <- 0 until Knowledge.dimensionality)
+//            leftOffset(d) = (IR_DimToString(d) : IR_Expression) / 2 + leftOffset(d)
+//        } else {
+//          for (d <- 0 until Knowledge.dimensionality)
+//            leftOffset(d) = (IR_DimToString(d) : IR_Expression) + leftOffset(d)
+//        }
+//
+//        val combOff = leftOffset
+//        IR_ReplaceIndexOccurrences.replacement = rightOffset
+//        IR_ReplaceIndexOccurrences.doUntilDoneStandalone(combOff)
+//
+//        var combCoeff : IR_Expression = re.coefficient * le.coefficient
+//        IR_GeneralSimplify.doUntilDoneStandalone(combOff)
+//        IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
+//        val addToEntry = entries.find(e => e.offset match { case o if combOff == o => true; case _ => false })
+//        if (addToEntry.isDefined) {
+//          combCoeff += addToEntry.get.coefficient
+//          IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
+//          addToEntry.get.coefficient = combCoeff
+//        } else entries += IR_StencilEntry(combOff, combCoeff)
+//      }
+//    }
+//
+//    if (left.offset.isDefined)
+//      Logger.warn("Ignoring unsupported offset access in stencil stencil convolution: " + left.offset.get)
+//    if (right.offset.isDefined)
+//      Logger.warn("Ignoring unsupported offset access in stencil stencil convolution: " + right.offset.get)
+//
+//    IR_StencilAccess(IR_Stencil(stencilLeft.name + "_" + stencilRight.name, stencilLeft.level, entries), None)
   }
 }
 
@@ -73,55 +68,57 @@ case class IR_StencilStencilConvolution(var left : IR_StencilAccess, var right :
 case class IR_StencilFieldStencilConvolution(var left : IR_StencilFieldAccess, var right : IR_StencilAccess) extends IR_Expression with IR_Expandable {
   override def datatype = IR_ResultingDatatype(left.datatype, right.datatype)
 
-  def stencilLeft = left.stencilFieldSelection
-  def stencilRight = right.stencil
+  def stencilLeft = left.selection
+  def stencilRight = right.target
 
   override def expand() : Output[IR_StencilAccess] = {
-    var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
-
-    for (re <- stencilRight.entries) {
-      for (e <- stencilLeft.offsets.indices) {
-        val stencilFieldIdx = Duplicate(left.index)
-        stencilFieldIdx(Knowledge.dimensionality) = e
-        for (dim <- 0 until Knowledge.dimensionality)
-          stencilFieldIdx(dim) += re.offset(dim)
-        stencilFieldIdx.indices :+= (e : IR_Expression)
-        val fieldSel = stencilLeft.toFieldSelection
-
-        val rightOffset = Duplicate(re.offset)
-
-        val leftOffset = Duplicate(stencilLeft.offsets(e))
-        if (stencilRight.level > stencilLeft.stencilField.level) {
-          for (d <- 0 until Knowledge.dimensionality)
-            leftOffset(d) = (IR_DimToString(d) : IR_Expression) / 2 + leftOffset(d)
-        } else {
-          for (d <- 0 until Knowledge.dimensionality)
-            leftOffset(d) = (IR_DimToString(d) : IR_Expression) + leftOffset(d)
-        }
-
-        val combOff = leftOffset
-        IR_ReplaceIndexOccurrences.replacement = rightOffset
-        IR_ReplaceIndexOccurrences.doUntilDoneStandalone(combOff)
-
-        var combCoeff : IR_Expression = re.coefficient * IR_FieldAccess(fieldSel, stencilFieldIdx)
-        IR_GeneralSimplify.doUntilDoneStandalone(combOff)
-        IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
-        val addToEntry = entries.find(e => e.offset match {
-          case o if combOff == o => true
-          case _                 => false
-        })
-        if (addToEntry.isDefined) {
-          combCoeff += addToEntry.get.coefficient
-          IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
-          addToEntry.get.coefficient = combCoeff
-        } else entries += IR_StencilEntry(combOff, combCoeff)
-      }
-    }
-
-    if (right.offset.isDefined)
-      Logger.warn("Ignoring unsupported offset access in stencil stencil convolution: " + right.offset.get)
-
-    IR_StencilAccess(IR_Stencil(stencilLeft.stencilField.name + "_" + stencilRight.name, stencilLeft.stencilField.level, entries), None)
+    ???
+    // FIXME: integrate with the new system
+//    var entries : ListBuffer[IR_StencilEntry] = ListBuffer()
+//
+//    for (re <- stencilRight.entries) {
+//      for (e <- stencilLeft.offsets.indices) {
+//        val stencilFieldIdx = Duplicate(left.index)
+//        stencilFieldIdx(Knowledge.dimensionality) = e
+//        for (dim <- 0 until Knowledge.dimensionality)
+//          stencilFieldIdx(dim) += re.offset(dim)
+//        stencilFieldIdx.indices :+= (e : IR_Expression)
+//        val fieldSel = stencilLeft.toFieldSelection
+//
+//        val rightOffset = Duplicate(re.offset)
+//
+//        val leftOffset = Duplicate(stencilLeft.offsets(e))
+//        if (stencilRight.level > stencilLeft.stencilField.level) {
+//          for (d <- 0 until Knowledge.dimensionality)
+//            leftOffset(d) = (IR_DimToString(d) : IR_Expression) / 2 + leftOffset(d)
+//        } else {
+//          for (d <- 0 until Knowledge.dimensionality)
+//            leftOffset(d) = (IR_DimToString(d) : IR_Expression) + leftOffset(d)
+//        }
+//
+//        val combOff = leftOffset
+//        IR_ReplaceIndexOccurrences.replacement = rightOffset
+//        IR_ReplaceIndexOccurrences.doUntilDoneStandalone(combOff)
+//
+//        var combCoeff : IR_Expression = re.coefficient * IR_FieldAccess(fieldSel, stencilFieldIdx)
+//        IR_GeneralSimplify.doUntilDoneStandalone(combOff)
+//        IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
+//        val addToEntry = entries.find(e => e.offset match {
+//          case o if combOff == o => true
+//          case _                 => false
+//        })
+//        if (addToEntry.isDefined) {
+//          combCoeff += addToEntry.get.coefficient
+//          IR_GeneralSimplify.doUntilDoneStandalone(combCoeff)
+//          addToEntry.get.coefficient = combCoeff
+//        } else entries += IR_StencilEntry(combOff, combCoeff)
+//      }
+//    }
+//
+//    if (right.offset.isDefined)
+//      Logger.warn("Ignoring unsupported offset access in stencil stencil convolution: " + right.offset.get)
+//
+//    IR_StencilAccess(IR_Stencil(stencilLeft.stencilField.name + "_" + stencilRight.name, stencilLeft.stencilField.level, entries), None)
   }
 }
 

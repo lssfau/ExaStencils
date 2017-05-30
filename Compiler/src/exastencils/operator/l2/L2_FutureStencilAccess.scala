@@ -40,4 +40,3 @@ object L2_PrepareStencilAccesses extends DefaultStrategy("Prepare accesses to st
       L2_FutureStencilAccess(access.name, lvl)
   })
 }
-

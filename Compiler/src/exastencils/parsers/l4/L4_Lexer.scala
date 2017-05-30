@@ -24,7 +24,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("Var", "Variable", "Val", "Value")
 
   // declaration keywords - complex
-  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "Globals")
+  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "Globals", "from", "with")
 
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")
@@ -72,4 +72,11 @@ class L4_Lexer extends ExaLexer {
 
   // obsolete keywords
   reserved += "steps"
+
+  // baseExt => L4_FieldIteratorAccess
+  reserved += ("i0", "i1", "i2")
+
+  // baseExt => l4_OperatorDeclarations
+  reserved += ("Operator", "from", "default", "restriction", "prolongation", "on", "with")
+  reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 }

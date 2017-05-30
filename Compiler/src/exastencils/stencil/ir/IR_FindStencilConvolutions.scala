@@ -2,10 +2,15 @@ package exastencils.stencil.ir
 
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldIteratorAccess
+import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.logger.Logger
+import exastencils.operator.ir._
 
 /// IR_FindStencilConvolutions
 
@@ -90,4 +95,58 @@ object IR_FindStencilConvolutions extends DefaultStrategy("Find and mark stencil
         case _ => newMult
       }
   })
+}
+
+/// IR_WrapStencilConvolutions
+
+object IR_WrapStencilConvolutions extends DefaultStrategy("Wrap stencil-field convolutions with relevant column strides") {
+
+  object IR_ReplaceStencil extends QuietDefaultStrategy("Replace something with something else") {
+    var toReplace : IR_Stencil = null
+    var replacement : IR_Stencil = null
+
+    this += new Transformation("Search and replace", {
+      case access : IR_StencilAccess if access.target == toReplace =>
+        access.target = replacement
+        access
+    }, false)
+  }
+
+  def processStatement(statement : IR_Statement, stencil : IR_Stencil) : ListBuffer[IR_Statement] = {
+    val numDims = stencil.numDims
+
+    // compile cases
+    val cases = stencil.assembleCases()
+
+    cases.map(c => {
+      // compile condition
+      val condition = (0 until numDims).map(d => IR_EqEq(c(d), IR_Modulo(IR_FieldIteratorAccess(d), stencil.numCases(d)))).reduce(IR_AndAnd)
+
+      // duplicate assignment
+      val alteredStmt = Duplicate(statement)
+
+      // replace stencil in assignment
+      IR_ReplaceStencil.toReplace = stencil
+      IR_ReplaceStencil.replacement = IR_StencilOps.filterForSpecCase(stencil, c)
+      IR_ReplaceStencil.applyStandalone(alteredStmt)
+
+      // finalize new statement
+      IR_IfCondition(condition, alteredStmt)
+    })
+  }
+
+  this += new Transformation("Wrap", {
+    // TODO: loop level or assignment level?
+    case assignment : IR_Assignment if StateManager.findFirst({ sc : IR_StencilConvolution => sc.left.target.colStride.exists(_ < 1.0) }, assignment).isDefined =>
+      val stencilConvolution = StateManager.findFirst[IR_StencilConvolution]({ sc : IR_StencilConvolution => sc.left.target.colStride.exists(_ < 1.0) }, assignment)
+      processStatement(assignment, stencilConvolution.get.left.target)
+
+    case assignment : IR_CompoundAssignment if StateManager.findFirst({ sc : IR_StencilConvolution => sc.left.target.colStride.exists(_ < 1.0) }, assignment).isDefined =>
+      val stencilConvolution = StateManager.findFirst[IR_StencilConvolution]({ sc : IR_StencilConvolution => sc.left.target.colStride.exists(_ < 1.0) }, assignment)
+      processStatement(assignment, stencilConvolution.get.left.target)
+
+    case conv : IR_StencilConvolution if conv.left.target.colStride.exists(_ < 1.0) =>
+      Logger.warn(s"Found stencil convolution outside of an assignment: ${ conv.left.target.name } times ${ conv.right.fieldSelection.field.name }")
+      conv
+  }, false)
 }

@@ -1,7 +1,5 @@
 package exastencils.operator.l3
 
-import scala.collection.mutable.ListBuffer
-
 import exastencils.base.l3._
 import exastencils.config.Knowledge
 import exastencils.logger.Logger
@@ -11,14 +9,14 @@ import exastencils.prettyprinting.PpStream
 
 abstract class L3_StencilFromDefault extends L3_StencilDecl {
   def name : String
-  def generateEntries() : ListBuffer[L3_StencilEntry]
+  def generateStencil() : L3_Stencil
 }
 
 /// L3_DefaultRestrictionStencil
 
 object L3_DefaultRestrictionStencil {
-  def apply(name : String, localization : String, interpolation : String) =
-    new L3_DefaultRestrictionStencil(name, None, Knowledge.dimensionality, localization, interpolation)
+  def apply(name : String, levels : Option[L3_LevelSpecification], localization : String, interpolation : String) =
+    new L3_DefaultRestrictionStencil(name, levels, Knowledge.dimensionality, localization, interpolation)
 }
 
 case class L3_DefaultRestrictionStencil(
@@ -31,20 +29,19 @@ case class L3_DefaultRestrictionStencil(
   override def prettyprint(out : PpStream) = out << "Operator " << name << " from default restriction ( " << numDims << ", " << localization << ", " << interpolation << " )"
   override def progress = Logger.error(s"Trying to progress l3 default stencil $name; this is not supported")
 
-  def generateEntries() = L3_DefaultRestriction.generate(numDims, localization, interpolation)
-
-  override def addToKnowledge() : Unit = {
-    val level = levels.get.asInstanceOf[L3_SingleLevel].level
-    val entries = L3_DefaultRestriction.generate(numDims, localization, interpolation)/*FIXME*/ .map(_.asStencilMappingEntry)
-    L3_StencilCollection.add(L3_Stencil(name, level, numDims, Array.fill(numDims)(2.0), entries))
+  override def generateStencil() = {
+    L3_DefaultRestriction.generate(name, levels.get.asInstanceOf[L3_SingleLevel].level,
+      numDims, localization, interpolation)
   }
+
+  override def addToKnowledge() = L3_StencilCollection.add(generateStencil())
 }
 
 /// L3_DefaultProlongationStencil
 
 object L3_DefaultProlongationStencil {
-  def apply(name : String, localization : String, interpolation : String) =
-    new L3_DefaultProlongationStencil(name, None, Knowledge.dimensionality, localization, interpolation)
+  def apply(name : String, levels : Option[L3_LevelSpecification], localization : String, interpolation : String) =
+    new L3_DefaultProlongationStencil(name, levels, Knowledge.dimensionality, localization, interpolation)
 }
 
 case class L3_DefaultProlongationStencil(
@@ -57,11 +54,10 @@ case class L3_DefaultProlongationStencil(
   override def prettyprint(out : PpStream) = out << "Operator " << name << " from default restriction ( " << numDims << ", " << localization << ", " << interpolation << " )"
   override def progress = Logger.error(s"Trying to progress l3 default stencil $name; this is not supported")
 
-  def generateEntries() = L3_DefaultProlongation.generate(numDims, localization, interpolation)
-
-  override def addToKnowledge() : Unit = {
-    val level = levels.get.asInstanceOf[L3_SingleLevel].level
-    val entries = L3_DefaultProlongation.generate(numDims, localization, interpolation)/*FIXME*/ .map(_.asStencilMappingEntry)
-    L3_StencilCollection.add(L3_Stencil(name, level, numDims, Array.fill(numDims)(0.5), entries))
+  override def generateStencil() = {
+    L3_DefaultProlongation.generate(name, levels.get.asInstanceOf[L3_SingleLevel].level,
+      numDims, localization, interpolation)
   }
+
+  override def addToKnowledge() = L3_StencilCollection.add(generateStencil())
 }

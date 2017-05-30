@@ -100,7 +100,7 @@ object L3_UnfoldFunctionDeclarations extends DefaultStrategy("Unfold function de
         else if (L3_StencilCollection.exists(access.name))
           access.level = Some(L3_SingleLevel(baseLevel))
         // ... or a stencil template
-        else if (L3_StencilTemplateCollection.exists(access.name))
+        else if (L3_StencilFieldCollection.exists(access.name))
           access.level = Some(L3_SingleLevel(baseLevel))
         // ... or a function
         else if (StateManager.findFirst({ fct : L3_Function => access.name == fct.name && fct.levels.isDefined }).isDefined)

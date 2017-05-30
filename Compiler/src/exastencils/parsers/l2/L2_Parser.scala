@@ -307,18 +307,24 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| stencilEntry.+)
 
   lazy val stencilEntry = (
-    locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_StencilOffsetEntry(offset, coeff) })
+    locationize((constIndex ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_StencilOffsetEntry(offset, coeff) })
       ||| locationize(((expressionIndex <~ "from") ~ expressionIndex ~ ("with" ~> binaryexpression)) ^^ { case row ~ col ~ coeff => L2_StencilMappingEntry(row, col, coeff) }))
+
+  lazy val stencilFromDefault = (
+    locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "restriction" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+      ^^ { case id ~ level ~ local ~ interpolation => L2_DefaultRestrictionStencil(id, level, local, interpolation) })
+      ||| locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "prolongation" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+      ^^ { case id ~ level ~ local ~ interpolation => L2_DefaultProlongationStencil(id, level, local, interpolation) }))
 
   // ######################################
   // ##### L2_StencilTemplateDecl
   // ######################################
 
   lazy val stencilTemplateDeclaration = locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
-    ^^ { case id ~ levels ~ local ~ domain ~ offsets => L2_StencilTemplateDecl(id, levels, local, domain, offsets) })
+    ^^ { case id ~ levels ~ local ~ domain ~ offsets => L2_StencilFieldDecl(id, levels, local, domain, offsets) })
   lazy val stencilTemplateEntries = (
     (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilTemplateEntry.+)
-  lazy val stencilTemplateEntry = locationize((index <~ "=>") ^^ { offset => offset })
+  lazy val stencilTemplateEntry = locationize((constIndex <~ "=>") ^^ { offset => offset })
 
 }

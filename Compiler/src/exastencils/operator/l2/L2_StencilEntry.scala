@@ -20,11 +20,13 @@ abstract class L2_StencilEntry extends L2_Node with L2_Progressable with PrettyP
 
   def numDims : Int
   def colStride : Array[Double]
+
+  var coefficient : L2_Expression
 }
 
 /// L2_StencilOffsetEntry
 
-case class L2_StencilOffsetEntry(var offset : L2_Index, var coefficient : L2_Expression) extends L2_StencilEntry {
+case class L2_StencilOffsetEntry(var offset : L2_ConstIndex, var coefficient : L2_Expression) extends L2_StencilEntry {
   override def prettyprint(out : PpStream) = out << offset << " => " << coefficient
   override def progress = L3_StencilOffsetEntry(offset.progress, coefficient.progress)
 
@@ -45,7 +47,10 @@ case class L2_StencilMappingEntry(var row : L2_ExpressionIndex, var col : L2_Exp
   L2_ReplaceIntWithReal.applyStandalone(row)
   L2_ReplaceIntWithReal.applyStandalone(col)
 
-  override def prettyprint(out : PpStream) = out << row << " from " << col << " with " << coefficient
+  override def prettyprint(out : PpStream) = {
+    L2_GeneralSimplify.doUntilDoneStandalone(this)
+    out << row << " from " << col << " with " << coefficient
+  }
 
   override def progress = L3_StencilMappingEntry(row.progress, col.progress, coefficient.progress)
 
@@ -63,7 +68,7 @@ case class L2_StencilMappingEntry(var row : L2_ExpressionIndex, var col : L2_Exp
     L2_ReplaceRealWithInt.applyStandalone(offset)
     L2_GeneralSimplify.applyStandalone(offset)
 
-    L2_StencilOffsetEntry(offset, coefficient)
+    L2_StencilOffsetEntry(offset.toConstIndex, coefficient)
   }
 
   override def asStencilMappingEntry = this

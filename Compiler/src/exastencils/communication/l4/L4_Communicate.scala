@@ -7,8 +7,8 @@ import exastencils.communication.ir._
 import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.l4.L4_FieldAccess
+import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.prettyprinting._
-import exastencils.stencil.l4.L4_StencilFieldAccess
 
 /// L4_Communicate
 

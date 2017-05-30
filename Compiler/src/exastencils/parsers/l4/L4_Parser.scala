@@ -55,7 +55,19 @@ class L4_Parser extends ExaParser with PackratParsers {
 
   //###########################################################
 
-  lazy val program = ((import_ ||| domain ||| layout ||| field ||| stencilField ||| externalField ||| stencil ||| stencilTemplateDeclaration ||| globals ||| function ||| functionTemplate ||| functionInstantiation).+
+  lazy val program = ((
+    import_
+      ||| domain
+      ||| layout
+      ||| field
+      ||| stencilField
+      ||| externalField
+      ||| stencilDeclaration
+      ||| stencilFromDefault
+      ||| globals
+      ||| function
+      ||| functionTemplate
+      ||| functionInstantiation).+
     ^^ { L4_Root(_) })
 
   lazy val import_ = "import" ~> stringLit ^^ { path => parseFile(path).asInstanceOf[L4_Root] }
@@ -212,7 +224,7 @@ class L4_Parser extends ExaParser with PackratParsers {
 
   lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^ { case n ~ i ~ s => L4_ForLoop(n.toInt, i, s) })
   lazy val contractionLoop = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ contractionClause ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^ { case n ~ i ~ c ~ s => L4_ContractingLoop(n.toInt, i, c, s) })
-  lazy val contractionClause = locationize("with" ~ "contraction" ~> index ~ ("," ~> index).? ^^ { case l ~ r => L4_ContractionSpecification(l, r) })
+  lazy val contractionClause = locationize("with" ~ "contraction" ~> constIndex ~ ("," ~> constIndex).? ^^ { case l ~ r => L4_ContractionSpecification(l, r) })
 
   lazy val repeatUntil = locationize((("repeat" ~ "until") ~> booleanexpression) ~ (("{" ~> statementInsideRepeat.+) <~ "}") ^^ { case c ~ s => L4_UntilLoop(c, s.to[ListBuffer]) })
   lazy val repeatWhile = locationize((("repeat" ~ "while") ~> booleanexpression) ~ (("{" ~> statementInsideRepeat.+) <~ "}") ^^ { case c ~ s => L4_WhileLoop(c, s.to[ListBuffer]) })
@@ -235,7 +247,7 @@ class L4_Parser extends ExaParser with PackratParsers {
       L4_LoopOverField(field, region, seq.isDefined, cond, startOff, endOff, inc, stmts, red, prec, postc)
   })
   lazy val reductionClause = locationize((("reduction" ~ "(") ~> (ident ||| "+" ||| "*")) ~ (":" ~> ident <~ ")") ^^ { case op ~ s => L4_Reduction(op, s) })
-  lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ index ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
+  lazy val regionSpecification = locationize((("ghost" ||| "dup" ||| "inner") ~ constIndex ~ ("on" <~ "boundary").?) ^^ { case region ~ dir ~ bc => L4_RegionSpecification(region, dir, bc.isDefined) })
 
   lazy val assignment = locationize(genericAccess ~ "=" ~ (binaryexpression ||| booleanexpression) ^^ { case id ~ op ~ exp => L4_Assignment(id, exp, op) })
   lazy val operatorassignment = locationize(genericAccess ~ ("+=" ||| "-=" ||| "*=" ||| "/=") ~ binaryexpression
@@ -252,7 +264,7 @@ class L4_Parser extends ExaParser with PackratParsers {
   lazy val communicateStatement = locationize((("begin" ||| "finish").? <~ ("communicate" ||| "communicating")) ~ communicateTarget.* ~ ("of".? ~> genericAccess) //fieldAccess
     ~ ("where" ~> booleanexpression).?
     ^^ { case op ~ targets ~ field ~ cond => L4_Communicate(field, op.getOrElse("both"), targets, cond) })
-  lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ index.? ~ ("to" ~> index).? // inclusive indices
+  lazy val communicateTarget = locationize(("all" ||| "dup" ||| "ghost") ~ constIndex.? ~ ("to" ~> constIndex).? // inclusive indices
     ^^ { case target ~ start ~ end => L4_CommunicateTarget(target, start, end) })
   lazy val precomm = locationize("precomm" ~> ("begin" ||| "finish").? ~ communicateTarget.* ~ ("of".? ~> genericAccess) ~ ("where" ~> booleanexpression).?
     ^^ { case op ~ targets ~ field ~ cond => L4_Communicate(field, op.getOrElse("both"), targets, cond) })
@@ -297,7 +309,7 @@ class L4_Parser extends ExaParser with PackratParsers {
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }
       ||| layoutOption.*)
-  lazy val layoutOption = locationize((ident <~ "=") ~ index ~ ("with" ~ "communication").?
+  lazy val layoutOption = locationize((ident <~ "=") ~ constIndex ~ ("with" ~ "communication").?
     ^^ { case id ~ idx ~ comm => L4_FieldLayoutOption(id, idx, comm.isDefined) })
 
   lazy val field = locationize(("Field" ~> ident) ~ ("<" ~> ident) ~ ("," ~> ident) ~ ("," ~> fieldBoundary) ~ ">" ~ ("[" ~> integerLit <~ "]").? ~ levelDecl.?
@@ -308,39 +320,18 @@ class L4_Parser extends ExaParser with PackratParsers {
       ||| binaryexpression ^^ (L4_DirichletBC(_))
     )
 
-  lazy val index : PackratParser[L4_ConstIndex] = (
-    index1d
-      ||| index2d
-      ||| index3d)
-
-  lazy val index1d = locationize("[" ~> integerLit <~ "]" ^^ (n1 => L4_ConstIndex(n1)))
-  lazy val index2d = locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 => L4_ConstIndex(n1, n2) })
-  lazy val index3d = locationize(("[" ~> integerLit <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => L4_ConstIndex(n1, n2, n3) })
-
   lazy val realIndex : PackratParser[L4_ConstVec] = (
     locationize("[" ~> realLit <~ "]" ^^ { n1 => L4_ConstVec1D(n1) })
       ||| locationize(("[" ~> realLit <~ ",") ~ (realLit <~ "]") ^^ { case n1 ~ n2 => L4_ConstVec2D(n1, n2) })
       ||| locationize(("[" ~> realLit <~ ",") ~ (realLit <~ ",") ~ (realLit <~ "]") ^^ { case n1 ~ n2 ~ n3 => L4_ConstVec3D(n1, n2, n3) }))
-
-  lazy val expressionIndex : PackratParser[L4_ExpressionIndex] = (
-    locationize("[" ~> binaryexpression <~ "]" ^^ (n1 => L4_ExpressionIndex(n1)))
-      ||| locationize(("[" ~> binaryexpression <~ ",") ~ (binaryexpression <~ "]") ^^ { case n1 ~ n2 => L4_ExpressionIndex(n1, n2) })
-      ||| locationize(("[" ~> binaryexpression <~ ",") ~ (binaryexpression <~ ",") ~ (binaryexpression <~ "]") ^^ { case n1 ~ n2 ~ n3 => L4_ExpressionIndex(n1, n2, n3) }))
 
   lazy val rangeIndex1d = locationize(("[" ~> binaryexpression.? <~ ":") ~ (binaryexpression.? <~ "]") ^^ { case x ~ y => L4_RangeIndex(L4_Range(x, y)) })
   lazy val rangeIndex2d = locationize("[" ~> binaryexpression.? ~ ":" ~ binaryexpression.? ~ "," ~ binaryexpression.? ~ ":" ~ binaryexpression.? <~ "]" ^^ {
     case a ~ _ ~ b ~ _ ~ x ~ _ ~ y => L4_RangeIndex(Array(L4_Range(a, b), L4_Range(x, y)))
   })
 
-  lazy val stencil = locationize(("Stencil" ~> identifierWithOptDeclLevel) ~ ("{" ~> stencilEntries <~ "}")
-    ^^ { case id ~ entries => L4_StencilDecl(id, entries) })
-  lazy val stencilEntries = (
-    (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
-      ||| stencilEntry.+)
-  lazy val stencilEntry = expressionIndex ~ ("=>" ~> (binaryexpression ||| matrixExpression)) ^^ { case offset ~ weight => L4_StencilEntry(offset, weight) }
-
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ levelDecl.?)
-    ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(L4_LeveledIdentifier(id, level.getOrElse(L4_AllLevels)), f, s) })
+    ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(id, level, f, s) })
 
   // ######################################
   // ##### "External" Definitions
@@ -352,8 +343,6 @@ class L4_Parser extends ExaParser with PackratParsers {
   // ######################################
   // ##### Object Access
   // ######################################
-
-  lazy val componentAccess = index1d ||| index2d ||| rangeIndex1d ||| rangeIndex2d
 
   lazy val slotAccess = locationize(
     "$" ~> slotModifier ^^ (s => s)
@@ -410,6 +399,7 @@ class L4_Parser extends ExaParser with PackratParsers {
       ||| functionCall
       ||| locationize("-" ~> genericAccess ^^ { L4_Negative(_) })
       ||| genericAccess
+      ||| fieldIteratorAccess
       ||| locationize(booleanLit ^^ (s => L4_BooleanConstant(s))))
 
   lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => L4_VectorExpression(None, x :+ y, true) }
@@ -441,14 +431,71 @@ class L4_Parser extends ExaParser with PackratParsers {
   lazy val comparison : PackratParser[L4_Expression] = //(
     locationize((binaryexpression ~ ("<" ||| "<=" ||| ">" ||| ">=" ||| "==" ||| "!=") ~ binaryexpression) ^^ { case ex1 ~ op ~ ex2 => L4_BinaryOperators.createExpression(op, ex1, ex2) })
 
+  // #############################################################################
+  // #################################### BASE ###################################
+  // #############################################################################
+
   // ######################################
-  // ##### L4_StencilTemplateDecl
+  // ##### L4_Index
   // ######################################
 
-  lazy val stencilTemplateDeclaration = locationize(("StencilTemplate" ~> identifierWithOptDeclLevel) ~ ("{" ~> stencilTemplateEntries <~ "}")
-    ^^ { case id ~ offsets => L4_StencilTemplateDecl(id, offsets) })
-  lazy val stencilTemplateEntries = (
-    (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
-      ||| stencilTemplateEntry.+)
-  lazy val stencilTemplateEntry = locationize((index <~ "=>") ^^ { offset => offset })
+  lazy val index = expressionIndex ||| constIndex
+
+  lazy val expressionIndex = locationize("[" ~> binaryexpression ~ ("," ~> binaryexpression).* <~ "]" ^^ { case b ~ l => L4_ExpressionIndex((List(b) ++ l).toArray) })
+  lazy val constIndex = locationize("[" ~> integerLit ~ ("," ~> integerLit).* <~ "]" ^^ { case b ~ l => L4_ConstIndex((List(b) ++ l).toArray) })
+
+  // #############################################################################
+  // ################################## BASE_EXT #################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L4_FieldIteratorAccess
+  // ######################################
+
+  lazy val fieldIteratorAccess = (
+    locationize("i0" ^^ { _ => L4_FieldIteratorAccess(0) })
+      ||| locationize("i1" ^^ { _ => L4_FieldIteratorAccess(1) })
+      ||| locationize("i2" ^^ { _ => L4_FieldIteratorAccess(2) })
+    )
+
+  // #############################################################################
+  // #################################### FIELD ##################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L4_FieldDecl
+  // ######################################
+
+  lazy val localization = ("Node" ||| "node" ||| "Cell" ||| "cell"
+    ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
+    ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
+    ^^ (l => l))
+
+  // #############################################################################
+  // ################################## OPERATOR #################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L4_StencilDecl
+  // ######################################
+
+  lazy val stencilDeclaration = (
+    locationize(("Stencil" ~> ident) ~ levelDecl.? ~ ("{" ~> stencilEntries <~ "}")
+      ^^ { case id ~ levels ~ entries => L4_BaseStencilDecl(id, levels, entries) })
+      ||| locationize(("Stencil" ~> ident) ~ levelDecl.? ~ ("from" ~> binaryexpression)
+      ^^ { case id ~ levels ~ expr => L4_StencilFromExpression(id, levels, expr) }))
+
+  lazy val stencilEntries = (
+    (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
+      ||| stencilEntry.+)
+
+  lazy val stencilEntry = (
+    locationize((constIndex ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L4_StencilOffsetEntry(offset, coeff) })
+      ||| locationize(((expressionIndex <~ "from") ~ expressionIndex ~ ("with" ~> binaryexpression)) ^^ { case row ~ col ~ coeff => L4_StencilMappingEntry(row, col, coeff) }))
+
+  lazy val stencilFromDefault = (
+    locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "restriction" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+      ^^ { case id ~ level ~ local ~ interpolation => L4_DefaultRestrictionStencil(id, level, local, interpolation) })
+      ||| locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "prolongation" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+      ^^ { case id ~ level ~ local ~ interpolation => L4_DefaultProlongationStencil(id, level, local, interpolation) }))
 }
