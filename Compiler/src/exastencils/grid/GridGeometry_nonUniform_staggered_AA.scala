@@ -242,17 +242,17 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
       IR_ExpressionIndex(1, 1, 1),
       ListBuffer[IR_Statement](
         innerItDecl,
-        IR_IfCondition(IR_EqEq(0, innerIt),
-          IR_Assignment(Duplicate(baseAccess),
-            0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
-              - Duplicate(npBaseAccess)),
-          IR_IfCondition(IR_EqEq(numCellsTotal, innerIt),
-            IR_Assignment(Duplicate(baseAccess),
-              Duplicate(npBaseAccess)
-                - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),
-            IR_Assignment(Duplicate(baseAccess),
-              0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
-                - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess)))))))
+//        IR_IfCondition(IR_EqEq(0, innerIt),
+//          IR_Assignment(Duplicate(baseAccess),
+//            0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
+//              - Duplicate(npBaseAccess)),
+//          IR_IfCondition(IR_EqEq(numCellsTotal, innerIt),
+//            IR_Assignment(Duplicate(baseAccess),
+//              Duplicate(npBaseAccess)
+//                - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),
+        IR_Assignment(Duplicate(baseAccess),
+          0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
+            - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess)))))//))
     innerLoop.parallelization.potentiallyParallel = false
 
     ListBuffer[IR_Statement](

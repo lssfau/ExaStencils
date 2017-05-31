@@ -17,6 +17,7 @@ import exastencils.field.ir._
 import exastencils.field.l4._
 import exastencils.hack.ir.HACK_IR_Native
 import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// GridGeometry_nonAA
 
@@ -129,7 +130,7 @@ object GridGeometry_nonAA extends GridGeometry {
       // fix grid width to match domain size
       if (IR_DomainCollection.objects.size > 1) Logger.warn("More than one domain is currently not supported for non-uniform grids; defaulting to the first domain")
       val domainBounds = IR_DomainCollection.objects(0).asInstanceOf[IR_DomainFromAABB].aabb
-      val cellWidth = (domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal
+      val cellWidth = IR_SimplifyExpression.evalFloating((domainBounds.upper(dim) - domainBounds.lower(dim)) / numCellsTotal)
 
       // look up field and compile access to base element
       val field = IR_FieldCollection.getByIdentifier(s"node_pos", level).get

@@ -17,6 +17,7 @@ import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.field.l4._
 import exastencils.logger._
+import exastencils.optimization.ir.IR_SimplifyExpression
 
 /// GridGeometry_nonUniform
 
@@ -177,10 +178,10 @@ trait GridGeometry_nonUniform extends GridGeometry {
 
     // better approach: fix the ratio between smallest and largest cell width to 8
     val factor = (numCellsTotal / 4) / 8.0
-    val alpha = (domainBounds.upper(dim) - domainBounds.lower(dim)) / (lastPointAlphaCoeff + lastPointBetaCoeff * factor)
-    val beta = factor * alpha
+    val alpha = IR_SimplifyExpression.evalFloating((domainBounds.upper(dim) - domainBounds.lower(dim)) / (lastPointAlphaCoeff + lastPointBetaCoeff * factor))
+    val beta = IR_SimplifyExpression.evalFloating(factor * alpha)
 
-    //Logger.debug(s"Using alpha $alpha and beta $beta")
+    //Logger.warn(s"Using alpha $alpha and beta $beta")
 
     // look up field and compile access to base element
     val field = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_DimToString(dim) }", level).get
