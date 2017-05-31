@@ -26,4 +26,6 @@ object L3_KnowledgeContainer {
       c.progress()
     })
   }
+
+  def clear() = collections.foreach(_.clear())
 }

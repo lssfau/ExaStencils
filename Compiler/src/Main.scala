@@ -158,7 +158,9 @@ object Main {
   def shutdown() = {
     StateManager.root.nodes.clear()
     ExaRootNode.clear()
-    L4_ClearKnowledge.apply()
+    L2_KnowledgeContainer.clear()
+    L3_KnowledgeContainer.clear()
+    L4_KnowledgeContainer.clear()
     IR_ClearKnowledge.apply()
 
     if (Settings.timeStrategies) {
@@ -333,7 +335,7 @@ object Main {
       outFile.close()
 
       // re-parse the file to check for errors - also clear knowledge collections
-      L4_ClearKnowledge.apply()
+      L4_KnowledgeContainer.clear()
 
       ExaRootNode.l4_root = (new L4_Parser).parseFile(repFileName)
       L4_Validation.apply()
