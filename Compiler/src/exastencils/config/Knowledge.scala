@@ -223,12 +223,13 @@ object Knowledge {
   var poly_exploration_filterLevel : Int = 0
   // the following filter levels are currently supported, filter from lower levels are also applied in addition to the one described:
   //   0: no filter
-  //   1: only outer loop in should carry dependencies (textual dependencies are OK)
+  //   1: only outer loop should carry dependencies (textual dependencies are OK)
   //   2: only linear memory accesses allowed (given that the original schedule had linear accesses)
   //   3: only schedules with textual dependencies (if any)
   //   4: do not prevent aligned vectorization
   //   5: traverse memory in the inner loop in the same direction as the original schedule
   //   6: only positive schedule coefficients allowed
+  //   7: only allow schedule coefficients and constants (differences per statement) to be less or equal 2
 
   // [true|false] // specify separately if the outermost loop should be tiled
   var poly_tileOuterLoop : Boolean = false
