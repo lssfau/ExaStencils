@@ -31,6 +31,7 @@ object Exploration {
   private val filterAlignVec : Boolean = Knowledge.poly_exploration_filterLevel >= 4
   private val filterPosMemAc : Boolean = Knowledge.poly_exploration_filterLevel >= 5
   private val filterPosCoeff : Boolean = Knowledge.poly_exploration_filterLevel >= 6
+  private val filterSmallCof : Boolean = Knowledge.poly_exploration_filterLevel >= 7
 
   def preprocess(domain : isl.UnionSet, deps : isl.UnionMap) : ArrayBuffer[isl.BasicMap] = {
 
@@ -268,6 +269,14 @@ object Exploration {
       for (i <- 0 until coeffSpacePoints.length) {
         val vec : Array[Int] = coeffSpacePoints(i)
         if (prefix.domInfo.stmtInfo.values.exists(sInfo => vec(sInfo.itStart + sInfo.nrIt - 1) < 0))
+          toRemove.add(i)
+      }
+    }
+    if (filterSmallCof) {
+      // remove all with a coefficient or the constant (offset) larger than 2
+      for (i <- 0 until coeffSpacePoints.length) {
+        val vec : Array[Int] = coeffSpacePoints(i)
+        if (vec.view.take(nrIt).exists(_ > 2) || vec(cstStart+1) > 2) // vec(cstStart) is always 0 (see above)
           toRemove.add(i)
       }
     }
