@@ -1,6 +1,6 @@
 package exastencils.field.l2
 
-import exastencils.base.l2.L2_LevelCollector
+import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.field.l3.L3_FutureFieldAccess
@@ -10,12 +10,18 @@ import exastencils.prettyprinting.PpStream
 
 /// L2_FutureFieldAccess
 
-case class L2_FutureFieldAccess(var name : String, var level : Int) extends L2_FutureKnowledgeAccess {
-  override def prettyprint(out : PpStream) = out << name << '@' << level
+case class L2_FutureFieldAccess(
+    var name : String, var level : Int,
+    var offset : Option[L2_ExpressionIndex] = None) extends L2_FutureKnowledgeAccess {
+
+  override def prettyprint(out : PpStream) = {
+    out << name << '@' << level
+    if (offset.isDefined) out << '@' << offset.get
+  }
 
   def progress = {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
-    L3_FutureFieldAccess(name, level)
+    L3_FutureFieldAccess(name, level, L2_ProgressOption(offset)(_.progress))
   }
 
   def toFieldAccess = L2_FieldAccess(this)
@@ -38,6 +44,10 @@ object L2_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fiel
       if (!L2_FieldCollection.existsDecl(access.name, lvl))
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-      L2_FutureFieldAccess(access.name, lvl)
+      if (access.slot.isDefined) Logger.warn(s"Discarding meaningless slot access on ${ access.name }")
+      if (access.dirAccess.isDefined) Logger.warn(s"Discarding meaningless direction access on ${ access.name }")
+      if (access.arrayIndex.isDefined) Logger.warn(s"Discarding meaningless array access on ${ access.name }")
+
+      L2_FutureFieldAccess(access.name, lvl, access.offset)
   })
 }

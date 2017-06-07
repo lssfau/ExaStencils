@@ -1,11 +1,9 @@
 package exastencils.interfacing.l4
 
 import exastencils.base.l4.L4_Access
-import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.field.l4._
 import exastencils.knowledge.l4.L4_KnowledgeDecl_
-import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
 /// L4_ExternalFieldDecl
@@ -18,14 +16,7 @@ case class L4_ExternalFieldDecl(
   override def prettyprint(out : PpStream) = out << "external Field " << identifier << " <" << fieldLayout << "> => " << targetField << '\n'
 
   override def addToKnowledge() : Unit = {
-    val resolvedAccess = targetField match {
-      case access : L4_UnresolvedAccess =>
-        if (access.dirAccess.isDefined) Logger.warn("Discarding meaningless direction access on field - was an offset access (@) intended?")
-        L4_FieldAccess(access.name, access.level.get.resolveLevel,
-          access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
-      case access : L4_FieldAccess      => access
-    }
-    val resolvedField = resolvedAccess.target
+    val resolvedField = targetField.asInstanceOf[L4_FieldAccess].target
     val resolvedFieldLayout = resolvedField.fieldLayout
     val extField = L4_ExternalField(identifier, resolvedField.level, resolvedFieldLayout, resolvedField)
     L4_ExternalFieldCollection.add(extField)

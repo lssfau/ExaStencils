@@ -80,10 +80,10 @@ object L4_ResolveStencilFieldComponentAccesses extends DefaultStrategy("Resolve 
         Logger.warn(s"Access to stencil field ${ access.target.name } on level ${ access.target.level } has dirAccess and array subscript modifiers; " +
           "array index will be given precedence, dirAccess will be ignored")
 
-      L4_FieldAccess(access.target.field, access.slot, access.arrayIndex, access.offset)
+      L4_FieldAccess(access.target.field, access.slot, access.offset, access.arrayIndex)
 
     case access : L4_StencilFieldAccess if access.dirAccess.isDefined =>
-      L4_FieldAccess(access.target.field, access.slot, access.target.stencil.findStencilEntryIndex(access.dirAccess.get.toConstIndex), access.offset)
+      L4_FieldAccess(access.target.field, access.slot, access.offset, access.target.stencil.findStencilEntryIndex(access.dirAccess.get.toConstIndex))
   })
 }
 

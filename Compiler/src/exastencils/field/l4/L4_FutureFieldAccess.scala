@@ -13,8 +13,8 @@ case class L4_FutureFieldAccess(
     var name : String,
     var level : Int,
     var slot : L4_SlotSpecification,
-    var arrayIndex : Option[Int] = None,
-    var offset : Option[L4_ExpressionIndex] = None) extends L4_FutureKnowledgeAccess {
+    var offset : Option[L4_ExpressionIndex] = None,
+    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
     out << name << slot << '@' << level
@@ -49,6 +49,6 @@ object L4_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fiel
       if (!L4_FieldCollection.existsDecl(access.name, lvl))
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-      L4_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset)
+      L4_FutureFieldAccess(access.name, lvl, access.slot.getOrElse(L4_ActiveSlot), access.offset, access.arrayIndex)
   })
 }

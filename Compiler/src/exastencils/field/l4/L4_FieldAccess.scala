@@ -14,11 +14,8 @@ import exastencils.prettyprinting.PpStream
 /// L4_FieldAccess
 
 object L4_FieldAccess {
-  def apply(fieldName : String, level : Int, slot : L4_SlotSpecification, arrayIndex : Option[Int], offset : Option[L4_ExpressionIndex]) =
-    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(fieldName, level).get, slot, arrayIndex, offset)
-
   def apply(access : L4_FutureFieldAccess) =
-    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.arrayIndex, access.offset)
+    new L4_FieldAccess(L4_FieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.arrayIndex)
 
   def resolveSlot(field : IR_Field, slot : L4_SlotSpecification) = {
     if (1 == field.numSlots) IR_IntegerConstant(0)
@@ -35,8 +32,8 @@ object L4_FieldAccess {
 case class L4_FieldAccess(
     var target : L4_Field,
     var slot : L4_SlotSpecification,
-    var arrayIndex : Option[Int] = None,
-    var offset : Option[L4_ExpressionIndex] = None) extends L4_KnowledgeAccess {
+    var offset : Option[L4_ExpressionIndex] = None,
+    var arrayIndex : Option[Int] = None) extends L4_KnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
     out << target.name
@@ -89,7 +86,7 @@ object L4_ResolveFieldAccesses extends DefaultStrategy("Resolve accesses to fiel
 
 object L4_UnresolveFieldAccesses extends DefaultStrategy("Revert field accesses to unresolved accesses") {
   this += new Transformation("Replace", {
-    case L4_FieldAccess(target, slot, arrayIndex, offset) =>
+    case L4_FieldAccess(target, slot, offset, arrayIndex) =>
       val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
       L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, None, arrayIndex)
   })
