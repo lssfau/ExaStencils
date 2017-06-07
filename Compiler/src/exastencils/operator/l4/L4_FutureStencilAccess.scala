@@ -12,9 +12,9 @@ import exastencils.prettyprinting.PpStream
 case class L4_FutureStencilAccess(
     var name : String,
     var level : Int,
-    var arrayIndex : Option[Int] = None,
     var offset : Option[L4_ExpressionIndex] = None,
-    var dirAccess : Option[L4_ExpressionIndex] = None) extends L4_FutureKnowledgeAccess {
+    var dirAccess : Option[L4_ExpressionIndex] = None,
+    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = out << name << '@' << level
 
@@ -45,6 +45,6 @@ object L4_PrepareStencilAccesses extends DefaultStrategy("Prepare accesses to st
       if (!L4_StencilCollection.existsDecl(access.name, lvl))
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-      L4_FutureStencilAccess(access.name, lvl, access.arrayIndex, access.offset, access.dirAccess)
+      L4_FutureStencilAccess(access.name, lvl, access.offset, access.dirAccess, access.arrayIndex)
   })
 }

@@ -12,17 +12,14 @@ import exastencils.prettyprinting.PpStream
 
 object L4_StencilAccess {
   def apply(access : L4_FutureStencilAccess) =
-    new L4_StencilAccess(L4_StencilCollection.getByIdentifier(access.name, access.level).get, access.arrayIndex, access.offset, access.dirAccess)
-
-  def apply(name : String, level : Int, arrayIndex : Option[Int], offset : Option[L4_ExpressionIndex], dirAccess : Option[L4_ExpressionIndex]) =
-    new L4_StencilAccess(L4_StencilCollection.getByIdentifier(name, level).get, arrayIndex, offset, dirAccess)
+    new L4_StencilAccess(L4_StencilCollection.getByIdentifier(access.name, access.level).get, access.offset, access.dirAccess, access.arrayIndex)
 }
 
 case class L4_StencilAccess(
     var target : L4_Stencil,
-    var arrayIndex : Option[Int] = None,
     var offset : Option[L4_ExpressionIndex] = None,
-    var dirAccess : Option[L4_ExpressionIndex] = None) extends L4_OperatorAccess {
+    var dirAccess : Option[L4_ExpressionIndex] = None,
+    var arrayIndex : Option[Int] = None) extends L4_OperatorAccess {
 
   override def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level
@@ -80,7 +77,7 @@ object L4_ResolveStencilAccesses extends DefaultStrategy("Resolve accesses to st
 
 object L4_UnresolveStencilAccesses extends DefaultStrategy("Revert stencil accesses to unresolved accesses") {
   this += new Transformation("Replace", {
-    case L4_StencilAccess(target, arrayIndex, offset, dirAccess) =>
+    case L4_StencilAccess(target, offset, dirAccess, arrayIndex) =>
       L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), None, offset, dirAccess, arrayIndex)
   })
 }

@@ -1,20 +1,31 @@
 package exastencils.operator.l2
 
-import exastencils.base.l2.L2_LevelCollector
+import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.knowledge.l2.L2_FutureKnowledgeAccess
 import exastencils.logger.Logger
+import exastencils.operator.l3.L3_FutureStencilFieldAccess
 import exastencils.prettyprinting.PpStream
 
 /// L2_FutureStencilFieldAccess
 
-case class L2_FutureStencilFieldAccess(var name : String, var level : Int) extends L2_FutureKnowledgeAccess {
-  override def prettyprint(out : PpStream) = out << name << '@' << level
+case class L2_FutureStencilFieldAccess(
+    var name : String, var level : Int,
+    var offset : Option[L2_ExpressionIndex] = None,
+    var dirAccess : Option[L2_ExpressionIndex] = None) extends L2_FutureKnowledgeAccess {
+
+  override def prettyprint(out : PpStream) = {
+    out << name << '@' << level
+    if (offset.isDefined) out << '@' << offset.get
+    if (dirAccess.isDefined) out << ':' << dirAccess.get
+  }
 
   def progress = {
     Logger.warn(s"Trying to progress future stencil field access to $name on level $level")
-    ??? // TODO
+    L3_FutureStencilFieldAccess(name, level,
+      L2_ProgressOption(offset)(_.progress),
+      L2_ProgressOption(dirAccess)(_.progress))
   }
 
   def toStencilFieldAccess = L2_StencilFieldAccess(this)
@@ -37,6 +48,9 @@ object L2_PrepareStencilFieldAccesses extends DefaultStrategy("Prepare accesses 
       if (!L2_StencilFieldCollection.existsDecl(access.name, lvl))
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-      L2_FutureStencilFieldAccess(access.name, lvl)
+      if (access.slot.isDefined) Logger.warn(s"Discarding meaningless slot access on ${ access.name }")
+      if (access.arrayIndex.isDefined) Logger.warn(s"Discarding meaningless array access on ${ access.name }")
+
+      L2_FutureStencilFieldAccess(access.name, lvl, access.offset, access.dirAccess)
   })
 }

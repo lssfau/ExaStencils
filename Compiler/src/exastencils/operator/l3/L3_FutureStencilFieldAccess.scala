@@ -1,20 +1,33 @@
 package exastencils.operator.l3
 
-import exastencils.base.l3.L3_LevelCollector
+import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.datastructures._
+import exastencils.field.l4.L4_ActiveSlot
 import exastencils.knowledge.l3.L3_FutureKnowledgeAccess
 import exastencils.logger.Logger
+import exastencils.operator.l4.L4_FutureStencilFieldAccess
 import exastencils.prettyprinting.PpStream
 
 /// L3_FutureStencilFieldAccess
 
-case class L3_FutureStencilFieldAccess(var name : String, var level : Int) extends L3_FutureKnowledgeAccess {
-  override def prettyprint(out : PpStream) = out << name << '@' << level
+case class L3_FutureStencilFieldAccess(
+    var name : String, var level : Int,
+    var offset : Option[L3_ExpressionIndex] = None,
+    var dirAccess : Option[L3_ExpressionIndex] = None) extends L3_FutureKnowledgeAccess {
+
+  override def prettyprint(out : PpStream) = {
+    out << name << '@' << level
+    if (offset.isDefined) out << '@' << offset.get
+    if (dirAccess.isDefined) out << ':' << dirAccess.get
+  }
 
   def progress = {
     Logger.warn(s"Trying to progress future stencil field access to $name on level $level")
-    ??? // TODO
+    L4_FutureStencilFieldAccess(name, level,
+      L4_ActiveSlot,
+      L3_ProgressOption(offset)(_.progress),
+      L3_ProgressOption(dirAccess)(_.progress))
   }
 
   def toStencilFieldAccess = L3_StencilFieldAccess(this)
@@ -37,6 +50,9 @@ object L3_PrepareStencilFieldAccesses extends DefaultStrategy("Prepare accesses 
       if (!L3_StencilFieldCollection.existsDecl(access.name, lvl))
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
-      L3_FutureStencilFieldAccess(access.name, lvl)
+      if (access.slot.isDefined) Logger.warn(s"Discarding meaningless slot access on ${ access.name }")
+      if (access.arrayIndex.isDefined) Logger.warn(s"Discarding meaningless array access on ${ access.name }")
+
+      L3_FutureStencilFieldAccess(access.name, lvl, access.offset, access.dirAccess)
   })
 }

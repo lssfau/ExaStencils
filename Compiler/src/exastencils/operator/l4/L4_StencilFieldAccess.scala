@@ -15,18 +15,15 @@ import exastencils.prettyprinting.PpStream
 
 object L4_StencilFieldAccess {
   def apply(access : L4_FutureStencilFieldAccess) =
-    new L4_StencilFieldAccess(L4_StencilFieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.arrayIndex, access.offset, access.dirAccess)
-
-  def apply(stencilFieldName : String, level : Int, slot : L4_SlotSpecification, arrayIndex : Option[Int], offset : Option[L4_ExpressionIndex], dirAccess : Option[L4_ExpressionIndex])
-  = new L4_StencilFieldAccess(L4_StencilFieldCollection.getByIdentifier(stencilFieldName, level).get, slot, arrayIndex, offset, dirAccess)
+    new L4_StencilFieldAccess(L4_StencilFieldCollection.getByIdentifier(access.name, access.level).get, access.slot, access.offset, access.dirAccess, access.arrayIndex)
 }
 
 case class L4_StencilFieldAccess(
     var target : L4_StencilField,
     var slot : L4_SlotSpecification,
-    var arrayIndex : Option[Int] = None,
     var offset : Option[L4_ExpressionIndex] = None,
-    var dirAccess : Option[L4_ExpressionIndex] = None) extends L4_OperatorAccess {
+    var dirAccess : Option[L4_ExpressionIndex] = None,
+    var arrayIndex : Option[Int] = None) extends L4_OperatorAccess {
 
   override def prettyprint(out : PpStream) = {
     out << target.name
@@ -91,7 +88,7 @@ object L4_ResolveStencilFieldComponentAccesses extends DefaultStrategy("Resolve 
 
 object L4_UnresolveStencilFieldAccesses extends DefaultStrategy("Revert stencil field accesses to unresolved accesses") {
   this += new Transformation("Replace", {
-    case L4_StencilFieldAccess(target, slot, arrayIndex, offset, dirAccess) =>
+    case L4_StencilFieldAccess(target, slot, offset, dirAccess, arrayIndex) =>
       val newSlot = if (L4_ActiveSlot == slot) None else Some(slot)
       L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), newSlot, offset, dirAccess, arrayIndex)
   })

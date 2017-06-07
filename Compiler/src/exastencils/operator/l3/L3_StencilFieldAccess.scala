@@ -1,24 +1,35 @@
 package exastencils.operator.l3
 
+import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.field.l4.L4_ActiveSlot
+import exastencils.knowledge.l3._
 import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.prettyprinting.PpStream
 
 /// L3_StencilFieldAccess
 
 object L3_StencilFieldAccess {
-  def apply(name : String, level : Int) =
-    new L3_StencilFieldAccess(L3_StencilFieldCollection.getByIdentifier(name, level).get)
-
   def apply(access : L3_FutureStencilFieldAccess) =
     new L3_StencilFieldAccess(L3_StencilFieldCollection.getByIdentifier(access.name, access.level).get)
 }
 
-case class L3_StencilFieldAccess(var target : L3_StencilField) extends L3_OperatorAccess {
-  override def prettyprint(out : PpStream) = out << target.name << '@' << target.level
-  def progress = L4_StencilFieldAccess(target.getProgressedObj(), L4_ActiveSlot)
-  override def assembleOffsetMap() = target.stencil.assembleOffsetMap()
+case class L3_StencilFieldAccess(var target : L3_StencilField,
+    var offset : Option[L3_ExpressionIndex] = None,
+    var dirAccess : Option[L3_ExpressionIndex] = None) extends L3_LeveledKnowledgeAccess {
+
+  override def prettyprint(out : PpStream) = {
+    out << name << '@' << level
+    if (offset.isDefined) out << '@' << offset.get
+    if (dirAccess.isDefined) out << ':' << dirAccess.get
+  }
+
+  def progress = {
+    L4_StencilFieldAccess(target.getProgressedObj(),
+      L4_ActiveSlot,
+      L3_ProgressOption(offset)(_.progress),
+      L3_ProgressOption(dirAccess)(_.progress))
+  }
 }
 
 /// L3_ResolveStencilFieldAccesses
