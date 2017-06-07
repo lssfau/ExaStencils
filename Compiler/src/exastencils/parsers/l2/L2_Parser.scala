@@ -236,7 +236,8 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_UnresolvedAccess
   // ######################################
 
-  lazy val genericAccess = locationize(ident ~ levelAccess.? ^^ { case id ~ level => L2_UnresolvedAccess(id, level) })
+  lazy val genericAccess = locationize(ident ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
+    ^^ { case id ~ level ~ offset ~ dirAccess => L2_UnresolvedAccess(id, level, None, offset, dirAccess, None) })
 
   // #############################################################################
   // ################################## BOUNDARY #################################
