@@ -15,7 +15,7 @@ object L2_FieldAccess {
 
 case class L2_FieldAccess(
     var target : L2_Field,
-    var offset : Option[L2_ExpressionIndex] = None) extends L2_LeveledKnowledgeAccess {
+    var offset : Option[L2_ConstIndex] = None) extends L2_LeveledKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level

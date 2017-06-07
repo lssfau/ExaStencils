@@ -14,9 +14,10 @@ object L3_StencilFieldAccess {
     new L3_StencilFieldAccess(L3_StencilFieldCollection.getByIdentifier(access.name, access.level).get)
 }
 
-case class L3_StencilFieldAccess(var target : L3_StencilField,
-    var offset : Option[L3_ExpressionIndex] = None,
-    var dirAccess : Option[L3_ExpressionIndex] = None) extends L3_LeveledKnowledgeAccess {
+case class L3_StencilFieldAccess(
+    var target : L3_StencilField,
+    var offset : Option[L3_ConstIndex] = None,
+    var dirAccess : Option[L3_ConstIndex] = None) extends L3_LeveledKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level

@@ -12,7 +12,7 @@ import exastencils.prettyprinting.PpStream
 
 case class L2_FutureStencilAccess(
     var name : String, var level : Int,
-    var dirAccess : Option[L2_ExpressionIndex]) extends L2_FutureKnowledgeAccess {
+    var dirAccess : Option[L2_ConstIndex]) extends L2_FutureKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level

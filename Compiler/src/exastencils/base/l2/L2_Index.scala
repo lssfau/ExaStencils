@@ -42,18 +42,8 @@ case class L2_ExpressionIndex(override var indices : Array[L2_Expression]) exten
   override def prettyprint(out : PpStream) = out << '[' <<< (this, ", ") << ']'
   override def progress = L3_ExpressionIndex(indices.map(_.progress))
 
-  override def +(that : L2_Index) : L2_ExpressionIndex = {
-    that match {
-      case that : L2_ExpressionIndex => L2_ExpressionIndex(this, that, _ + _)
-      case that : L2_ConstIndex      => L2_ExpressionIndex(this, that.toExpressionIndex, _ + _)
-    }
-  }
-  override def -(that : L2_Index) : L2_ExpressionIndex = {
-    that match {
-      case that : L2_ExpressionIndex => L2_ExpressionIndex(this, that, _ - _)
-      case that : L2_ConstIndex      => L2_ExpressionIndex(this, that.toExpressionIndex, _ - _)
-    }
-  }
+  override def +(that : L2_Index) : L2_ExpressionIndex = L2_ExpressionIndex(this, that.toExpressionIndex, _ + _)
+  override def -(that : L2_Index) : L2_ExpressionIndex = L2_ExpressionIndex(this, that.toExpressionIndex, _ - _)
 
   override def toExpressionIndex = this
 
@@ -90,18 +80,11 @@ case class L2_ConstIndex(override var indices : Array[Int]) extends L2_Index wit
   override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
   override def progress = L3_ConstIndex(indices)
 
-  override def +(that : L2_Index) = {
-    that match {
-      case that : L2_ConstIndex      => L2_ConstIndex(this, that, _ + _)
-      case that : L2_ExpressionIndex => L2_ExpressionIndex(this.toExpressionIndex, that, _ + _)
-    }
-  }
-  override def -(that : L2_Index) = {
-    that match {
-      case that : L2_ConstIndex      => L2_ConstIndex(this, that, _ - _)
-      case that : L2_ExpressionIndex => L2_ExpressionIndex(this.toExpressionIndex, that, _ - _)
-    }
-  }
+  def +(that : L2_ConstIndex) = L2_ConstIndex(this, that, _ + _)
+  override def +(that : L2_Index) = L2_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)
+
+  def -(that : L2_ConstIndex) = L2_ConstIndex(this, that, _ - _)
+  override def -(that : L2_Index) = L2_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ - _)
 
   override def toExpressionIndex = L2_ExpressionIndex(indices.map(L2_IntegerConstant(_) : L2_Expression))
 

@@ -14,7 +14,7 @@ object L3_StencilAccess {
 
 case class L3_StencilAccess(
     var target : L3_Stencil,
-    var dirAccess : Option[L3_ExpressionIndex] = None) extends L3_OperatorAccess {
+    var dirAccess : Option[L3_ConstIndex] = None) extends L3_OperatorAccess {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level

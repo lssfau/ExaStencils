@@ -42,18 +42,8 @@ case class L3_ExpressionIndex(override var indices : Array[L3_Expression]) exten
   override def prettyprint(out : PpStream) = out << '[' <<< (this, ", ") << ']'
   override def progress = L4_ExpressionIndex(indices.map(_.progress))
 
-  override def +(that : L3_Index) : L3_ExpressionIndex = {
-    that match {
-      case that : L3_ExpressionIndex => L3_ExpressionIndex(this, that, _ + _)
-      case that : L3_ConstIndex      => L3_ExpressionIndex(this, that.toExpressionIndex, _ + _)
-    }
-  }
-  override def -(that : L3_Index) : L3_ExpressionIndex = {
-    that match {
-      case that : L3_ExpressionIndex => L3_ExpressionIndex(this, that, _ - _)
-      case that : L3_ConstIndex      => L3_ExpressionIndex(this, that.toExpressionIndex, _ - _)
-    }
-  }
+  override def +(that : L3_Index) : L3_ExpressionIndex = L3_ExpressionIndex(this, that.toExpressionIndex, _ + _)
+  override def -(that : L3_Index) : L3_ExpressionIndex = L3_ExpressionIndex(this, that.toExpressionIndex, _ - _)
 
   override def toExpressionIndex = this
 
@@ -90,18 +80,11 @@ case class L3_ConstIndex(override var indices : Array[Int]) extends L3_Index wit
   override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
   override def progress = L4_ConstIndex(indices)
 
-  override def +(that : L3_Index) = {
-    that match {
-      case that : L3_ConstIndex      => L3_ConstIndex(this, that, _ + _)
-      case that : L3_ExpressionIndex => L3_ExpressionIndex(this.toExpressionIndex, that, _ + _)
-    }
-  }
-  override def -(that : L3_Index) = {
-    that match {
-      case that : L3_ConstIndex      => L3_ConstIndex(this, that, _ - _)
-      case that : L3_ExpressionIndex => L3_ExpressionIndex(this.toExpressionIndex, that, _ - _)
-    }
-  }
+  def +(that : L3_ConstIndex) = L3_ConstIndex(this, that, _ + _)
+  override def +(that : L3_Index) = L3_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)
+
+  def -(that : L3_ConstIndex) = L3_ConstIndex(this, that, _ - _)
+  override def -(that : L3_Index) = L3_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ - _)
 
   override def toExpressionIndex = L3_ExpressionIndex(indices.map(L3_IntegerConstant(_) : L3_Expression))
 

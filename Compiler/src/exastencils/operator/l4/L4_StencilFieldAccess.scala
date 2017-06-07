@@ -1,6 +1,5 @@
 package exastencils.operator.l4
 
-import exastencils.base.ir._
 import exastencils.base.l4._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.baseExt.l4._
@@ -21,8 +20,8 @@ object L4_StencilFieldAccess {
 case class L4_StencilFieldAccess(
     var target : L4_StencilField,
     var slot : L4_SlotSpecification,
-    var offset : Option[L4_ExpressionIndex] = None,
-    var dirAccess : Option[L4_ExpressionIndex] = None,
+    var offset : Option[L4_ConstIndex] = None,
+    var dirAccess : Option[L4_ConstIndex] = None,
     var arrayIndex : Option[Int] = None) extends L4_OperatorAccess {
 
   override def prettyprint(out : PpStream) = {
@@ -37,7 +36,7 @@ case class L4_StencilFieldAccess(
   def progressOffset(numDims : Int) = {
     if (offset.isDefined) {
       val progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= 0
       Some(progressedOffset)
     } else {
       None
@@ -80,7 +79,7 @@ object L4_ResolveStencilFieldComponentAccesses extends DefaultStrategy("Resolve 
       L4_FieldAccess(access.target.field, access.slot, access.offset, access.arrayIndex)
 
     case access : L4_StencilFieldAccess if access.dirAccess.isDefined =>
-      L4_FieldAccess(access.target.field, access.slot, access.offset, access.target.stencil.findStencilEntryIndex(access.dirAccess.get.toConstIndex))
+      L4_FieldAccess(access.target.field, access.slot, access.offset, access.target.stencil.findStencilEntryIndex(access.dirAccess.get))
   })
 }
 

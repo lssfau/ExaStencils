@@ -17,8 +17,8 @@ object L4_StencilAccess {
 
 case class L4_StencilAccess(
     var target : L4_Stencil,
-    var offset : Option[L4_ExpressionIndex] = None,
-    var dirAccess : Option[L4_ExpressionIndex] = None,
+    var offset : Option[L4_ConstIndex] = None,
+    var dirAccess : Option[L4_ConstIndex] = None,
     var arrayIndex : Option[Int] = None) extends L4_OperatorAccess {
 
   override def prettyprint(out : PpStream) = {
@@ -54,7 +54,7 @@ object L4_ResolveStencilComponentAccesses extends DefaultStrategy("Resolve acces
       coeff.expression
 
     case access : L4_StencilAccess if access.dirAccess.isDefined =>
-      val coeff = L4_ExpressionStatement(Duplicate(access.target.findStencilEntry(access.dirAccess.get.toConstIndex).get.coefficient))
+      val coeff = L4_ExpressionStatement(Duplicate(access.target.findStencilEntry(access.dirAccess.get).get.coefficient))
       if (access.offset.isDefined) {
         L4_OffsetAccesses.offset = access.offset.get
         L4_OffsetAccesses.applyStandalone(coeff)

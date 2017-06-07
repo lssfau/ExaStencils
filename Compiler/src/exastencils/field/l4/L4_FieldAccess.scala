@@ -32,7 +32,7 @@ object L4_FieldAccess {
 case class L4_FieldAccess(
     var target : L4_Field,
     var slot : L4_SlotSpecification,
-    var offset : Option[L4_ExpressionIndex] = None,
+    var offset : Option[L4_ConstIndex] = None,
     var arrayIndex : Option[Int] = None) extends L4_KnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
@@ -62,7 +62,7 @@ case class L4_FieldAccess(
 
     val progOffset = if (offset.isDefined) {
       val progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < index.length) progressedOffset.indices :+= IR_IntegerConstant(0)
+      while (progressedOffset.indices.length < index.length) progressedOffset.indices :+= 0
       Some(progressedOffset)
     } else {
       None

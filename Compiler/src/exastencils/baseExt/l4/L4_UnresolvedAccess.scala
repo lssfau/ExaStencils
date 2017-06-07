@@ -17,8 +17,8 @@ case class L4_UnresolvedAccess(
     var name : String,
     var level : Option[L4_AccessLevelSpecification],
     var slot : Option[L4_SlotSpecification],
-    var offset : Option[L4_ExpressionIndex],
-    var dirAccess : Option[L4_ExpressionIndex],
+    var offset : Option[L4_ConstIndex],
+    var dirAccess : Option[L4_ConstIndex],
     var arrayIndex : Option[Int]) extends L4_Access {
 
   def prettyprint(out : PpStream) = {

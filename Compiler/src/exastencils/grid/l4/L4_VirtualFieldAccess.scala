@@ -18,7 +18,7 @@ object L4_VirtualFieldAccess {
 
 case class L4_VirtualFieldAccess(
     var target : L4_VirtualField,
-    var offset : Option[L4_ExpressionIndex] = None,
+    var offset : Option[L4_ConstIndex] = None,
     var arrayIndex : Option[Int] = None) extends L4_LeveledKnowledgeAccess {
 
   def prettyprint(out : PpStream) = {
@@ -35,7 +35,7 @@ case class L4_VirtualFieldAccess(
       multiIndex(numDims - 1) = IR_IntegerConstant(arrayIndex.get)
     if (offset.isDefined) {
       var progressedOffset = offset.get.progress
-      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= IR_IntegerConstant(0)
+      while (progressedOffset.indices.length < numDims) progressedOffset.indices :+= 0
       multiIndex += progressedOffset
     }
 

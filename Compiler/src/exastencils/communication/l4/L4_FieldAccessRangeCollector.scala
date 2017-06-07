@@ -87,21 +87,21 @@ class L4_FieldAccessRangeCollector() extends Collector {
     }
   }
 
-  def extractMinOffsetArray(numDims : Int, offset : Option[L4_ExpressionIndex]) : Array[Int] = {
+  def extractMinOffsetArray(numDims : Int, offset : Option[L4_Index]) : Array[Int] = {
     if (offset.isEmpty)
       Array.fill(numDims)(0)
     else
-      minValuesForExprIndex(offset.get)
+      minValuesForAnyIndex(offset.get)
   }
 
-  def extractMaxOffsetArray(numDims : Int, offset : Option[L4_ExpressionIndex]) : Array[Int] = {
+  def extractMaxOffsetArray(numDims : Int, offset : Option[L4_Index]) : Array[Int] = {
     if (offset.isEmpty)
       Array.fill(numDims)(0)
     else
-      maxValuesForExprIndex(offset.get)
+      maxValuesForAnyIndex(offset.get)
   }
 
-  def processReadExtent(field : L4_FieldWithSlot, offset : Option[L4_ExpressionIndex], offset2 : Option[L4_Index] = None) = {
+  def processReadExtent(field : L4_FieldWithSlot, offset : Option[L4_Index], offset2 : Option[L4_Index] = None) = {
     // honor offsets in field accesses if present - otherwise assume zero
     var minOffset = extractMinOffsetArray(field.numDimsGrid, offset)
     var maxOffset = extractMaxOffsetArray(field.numDimsGrid, offset)
@@ -127,7 +127,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
       readExtentMax.update(field, (readExtentMax(field), maxOffset).zipped.map(math.max))
   }
 
-  def processWriteExtent(field : L4_FieldWithSlot, offset : Option[L4_ExpressionIndex]) = {
+  def processWriteExtent(field : L4_FieldWithSlot, offset : Option[L4_ConstIndex]) = {
     // honor offsets in field accesses if present - otherwise assume zero
     var minOffset = extractMinOffsetArray(field.numDimsGrid, offset)
     var maxOffset = extractMaxOffsetArray(field.numDimsGrid, offset)

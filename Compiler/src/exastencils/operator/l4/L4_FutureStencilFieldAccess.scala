@@ -14,8 +14,8 @@ case class L4_FutureStencilFieldAccess(
     var name : String,
     var level : Int,
     var slot : L4_SlotSpecification,
-    var offset : Option[L4_ExpressionIndex] = None,
-    var dirAccess : Option[L4_ExpressionIndex] = None,
+    var offset : Option[L4_ConstIndex] = None,
+    var dirAccess : Option[L4_ConstIndex] = None,
     var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = out << name << '@' << level

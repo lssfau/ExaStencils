@@ -1,12 +1,13 @@
 package exastencils.operator.ir
 
+import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_StencilFieldSelection
 
 /// IR_StencilAccess
 
-case class IR_StencilAccess(var target : IR_Stencil, var offset : Option[IR_ExpressionIndex]) extends IR_OperatorAccess with IR_SpecialExpandable {
+case class IR_StencilAccess(var target : IR_Stencil, var offset : Option[IR_ConstIndex]) extends IR_OperatorAccess with IR_SpecialExpandable {
   override def datatype = target.datatype
   override def assembleOffsetMap() = target.assembleOffsetMap()
   override def stencil = target
@@ -14,7 +15,7 @@ case class IR_StencilAccess(var target : IR_Stencil, var offset : Option[IR_Expr
 
 /// IR_StencilFieldAccess
 
-case class IR_StencilFieldAccess(var selection /* FIXME: target : IR_StencilField */ : IR_StencilFieldSelection, var index : IR_ExpressionIndex, var offset : Option[IR_ExpressionIndex]) extends IR_OperatorAccess with IR_SpecialExpandable {
+case class IR_StencilFieldAccess(var selection /* FIXME: target : IR_StencilField */ : IR_StencilFieldSelection, var index : IR_ExpressionIndex, var offset : Option[IR_ConstIndex]) extends IR_OperatorAccess with IR_SpecialExpandable {
   // FIXME: currently returns array dt
   override def datatype = selection.stencilField.field.fieldLayout.datatype
   override def target = selection.stencilField

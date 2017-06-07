@@ -1,6 +1,6 @@
 package exastencils.grid.l3
 
-import exastencils.base.l3.L3_ExpressionIndex
+import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.grid.l4._
 import exastencils.knowledge.l3.L3_LeveledKnowledgeAccess
@@ -15,7 +15,7 @@ object L3_VirtualFieldAccess {
 
 case class L3_VirtualFieldAccess(
     var target : L3_VirtualField,
-    var offset : Option[L3_ExpressionIndex] = None) extends L3_LeveledKnowledgeAccess {
+    var offset : Option[L3_ConstIndex] = None) extends L3_LeveledKnowledgeAccess {
 
   def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level

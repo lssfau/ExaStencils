@@ -1,12 +1,12 @@
 package exastencils.operator.l4
 
-import exastencils.base.l4.L4_ExpressionIndex
+import exastencils.base.l4._
 import exastencils.datastructures._
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.grid.l4.L4_VirtualFieldAccess
 
 object L4_OffsetAccesses extends QuietDefaultStrategy("Offset accesses to (virtual) fields") {
-  var offset = L4_ExpressionIndex()
+  var offset = L4_ConstIndex()
 
   // TODO: introduce trait to mark nodes with offset
 
