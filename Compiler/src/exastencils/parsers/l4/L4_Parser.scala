@@ -331,7 +331,7 @@ class L4_Parser extends ExaParser with PackratParsers {
   })
 
   lazy val stencilField = locationize((("StencilField" ~> ident) ~ ("<" ~> ident <~ "=>") ~ (ident <~ ">") ~ levelDecl.?)
-    ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(id, level, f, s) })
+    ^^ { case id ~ f ~ s ~ level => L4_StencilFieldDecl(id, level, s, f) })
 
   // ######################################
   // ##### "External" Definitions
