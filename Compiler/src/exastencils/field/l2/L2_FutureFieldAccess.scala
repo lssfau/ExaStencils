@@ -21,7 +21,8 @@ case class L2_FutureFieldAccess(
 
   def progress = {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
-    L3_FutureFieldAccess(name, level, L2_ProgressOption(offset)(_.progress))
+    L3_FutureFieldAccess(name, level,
+      L2_ProgressOption(offset)(_.progress))
   }
 
   def toFieldAccess = L2_FieldAccess(this)

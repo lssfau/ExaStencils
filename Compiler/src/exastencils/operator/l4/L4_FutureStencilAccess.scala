@@ -12,11 +12,16 @@ import exastencils.prettyprinting.PpStream
 case class L4_FutureStencilAccess(
     var name : String,
     var level : Int,
-    var offset : Option[L4_ConstIndex] = None,
-    var dirAccess : Option[L4_ConstIndex] = None,
+    var offset : Option[L4_ConstIndex],
+    var dirAccess : Option[L4_ConstIndex],
     var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess {
 
-  override def prettyprint(out : PpStream) = out << name << '@' << level
+  override def prettyprint(out : PpStream) = {
+    out << name << '@' << level
+    if (offset.isDefined) out << '@' << offset.get
+    if (dirAccess.isDefined) out << ':' << dirAccess.get
+    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+  }
 
   def progress = {
     Logger.warn(s"Trying to progress future stencil access to $name on level $level")

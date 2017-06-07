@@ -74,7 +74,7 @@ class L4_Lexer extends ExaLexer {
   reserved += "steps"
 
   // baseExt => L4_FieldIteratorAccess
-  reserved += ("i0", "i1", "i2")
+  reserved += ("i0", "i1", "i2", "x", "y", "z")
 
   // baseExt => l4_OperatorDeclarations
   reserved += ("Operator", "from", "default", "restriction", "prolongation", "on", "with")

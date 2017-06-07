@@ -27,7 +27,7 @@ object L4_ResolveVariableAccesses extends DefaultStrategy("Resolve variable acce
   // FIXME: apply to globals first
 
   this += new Transformation("Resolve variable accesses", {
-    case access @ L4_UnresolvedAccess(accessName, _, Some(L4_SingleLevel(level)), _, _, _) if collector.exists(accessName + "@@" + level) =>
+    case access @ L4_UnresolvedAccess(accessName, Some(L4_SingleLevel(level)), _, _, _, _) if collector.exists(accessName + "@@" + level) =>
       // TODO: why doesn't L4_VA have a level?
       L4_VariableAccess(accessName + "_" + level, collector.getValue(accessName + "@@" + level).get)
     case access @ L4_UnresolvedAccess(accessName, _, None, _, _, _) if collector.exists(accessName)                                       =>

@@ -66,6 +66,8 @@ import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
+import exastencils.util.l2.L2_ResolveMathFunctions
+import exastencils.util.l3.L3_ResolveMathFunctions
 import exastencils.util.l4._
 
 object Main {
@@ -213,6 +215,8 @@ object Main {
 
       L2_PrepareAccesses.apply()
 
+      L2_ResolveMathFunctions.apply()
+
       var matches = 0
       do {
         matches = 0
@@ -255,6 +259,8 @@ object Main {
       L3_PrepareDeclarations.apply()
 
       L3_PrepareAccesses.apply()
+
+      L3_ResolveMathFunctions.apply()
 
       var matches = 0
       do {

@@ -12,8 +12,8 @@ import exastencils.prettyprinting.PpStream
 
 case class L2_FutureStencilFieldAccess(
     var name : String, var level : Int,
-    var offset : Option[L2_ConstIndex] = None,
-    var dirAccess : Option[L2_ConstIndex] = None) extends L2_FutureKnowledgeAccess {
+    var offset : Option[L2_ConstIndex],
+    var dirAccess : Option[L2_ConstIndex]) extends L2_FutureKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level

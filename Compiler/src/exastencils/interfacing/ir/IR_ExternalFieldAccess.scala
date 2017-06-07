@@ -18,7 +18,7 @@ case class IR_ExternalFieldAccess(var name : IR_Expression, var field : IR_Exter
       // Fortran requires multi-index access to multidimensional arrays
       val it = IR_LoopOverDimensions.defIt(field.fieldLayout.numDimsData)
       var ret = name
-      for (dim <- field.fieldLayout.numDimsData - 1 to 0)
+      for (dim <- field.fieldLayout.numDimsData - 1 to 0 by -1)
         ret = IR_ArrayAccess(ret, it(dim), alignedAccessPossible)
       ret.asInstanceOf[IR_ArrayAccess]
     } else
@@ -33,4 +33,3 @@ object IR_LinearizeExternalFieldAccess extends DefaultStrategy("Linearize Extern
     case access : IR_ExternalFieldAccess => access.linearize
   })
 }
-

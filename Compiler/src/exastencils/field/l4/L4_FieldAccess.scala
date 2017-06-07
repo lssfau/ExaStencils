@@ -39,8 +39,8 @@ case class L4_FieldAccess(
     out << target.name
     if (target.numSlots > 1) out << '[' << slot << ']'
     out << '@' << target.level
-    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
     if (offset.isDefined) out << "@" << offset.get
+    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
   }
 
   def progress : IR_FieldAccess = {

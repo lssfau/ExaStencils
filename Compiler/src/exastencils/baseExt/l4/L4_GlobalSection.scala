@@ -1,8 +1,8 @@
 package exastencils.baseExt.l4
 
-import exastencils.base.ExaRootNode
-
 import scala.collection.mutable.ListBuffer
+
+import exastencils.base.ExaRootNode
 import exastencils.base.l4._
 import exastencils.core._
 import exastencils.datastructures._
@@ -97,7 +97,7 @@ object L4_InlineGlobalValueDeclarations extends DefaultStrategy("Propagate and i
         case None => x // no hit
         case _    => Duplicate(value.get)
       }
-    case x @ L4_UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
+    case x @ L4_UnresolvedAccess(_, Some(L4_SingleLevel(level)), None, _, _, None) =>
       val value = globalVals.get(x.name + "@@" + level)
       value match {
         case None => x // no hit

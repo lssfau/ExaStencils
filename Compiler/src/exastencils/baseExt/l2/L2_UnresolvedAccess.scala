@@ -31,7 +31,7 @@ case class L2_UnresolvedAccess(
   }
 
   def progress = {
-    Logger.warn(s"Progressing unresolved access on L3: $name" + (if (level.isDefined) s"@$level" else ""))
+    Logger.warn(s"Progressing unresolved access on L3: $name" + (if (level.isDefined) s"@${ level.get }" else ""))
 
     L3_UnresolvedAccess(
       name,

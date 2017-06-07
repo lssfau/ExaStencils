@@ -47,15 +47,15 @@ case class L3_MathFunctionAccess(var name : String, var datatype : L3_Datatype) 
 
 object L3_ResolveMathFunctions extends DefaultStrategy("Resolve math function accesses") {
   this += new Transformation("Resolve function accesses", {
-    case L3_FunctionCall(L3_UnresolvedAccess("min", level), args) =>
+    case L3_FunctionCall(L3_UnresolvedAccess("min", level, _, _, _, _), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
       L3_Minimum(args)
 
-    case L3_FunctionCall(L3_UnresolvedAccess("max", level), args) =>
+    case L3_FunctionCall(L3_UnresolvedAccess("max", level, _, _, _, _), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
       L3_Maximum(args)
 
-    case access @ L3_UnresolvedAccess(accessName, level) if L3_MathFunctions.exists(accessName) =>
+    case access @ L3_UnresolvedAccess(accessName, level, _, _, _, _) if L3_MathFunctions.exists(accessName) =>
       if (level.isDefined) Logger.warn(s"Found leveled math function $accessName with level ${ level.get }; level is ignored")
       L3_MathFunctionAccess(accessName, L3_MathFunctions.getValue(accessName).get._2)
   })

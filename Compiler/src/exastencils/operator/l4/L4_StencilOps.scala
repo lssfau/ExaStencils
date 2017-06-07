@@ -68,7 +68,7 @@ object L4_StencilOps {
     if (left.level != right.level) Logger.warn(s"Level mismatch: ${ left.level } vs ${ right.level }")
     val numDims = left.numDims
 
-    object ShiftIteratorAccess extends DefaultStrategy("Replace something with something else") {
+    object ShiftIteratorAccess extends QuietDefaultStrategy("Replace something with something else") {
       var baseDim : Int = 0
 
       this += new Transformation("Search and replace", {

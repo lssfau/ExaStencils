@@ -81,9 +81,9 @@ object L4_ResolveFunctionAccesses extends DefaultStrategy("Resolve function acce
   this += new Transformation("Collecting function declarations", PartialFunction.empty)
 
   this += new Transformation("Resolve function accesses", {
-    case access @ L4_UnresolvedAccess(accessName, _, None, _, _, _) if collector.exists(accessName)                                       =>
+    case access @ L4_UnresolvedAccess(accessName, None, _, _, _, _) if collector.exists(accessName)                                       =>
       L4_UserFunctionAccess(accessName, collector.getValue(accessName).get)
-    case access @ L4_UnresolvedAccess(accessName, _, Some(L4_SingleLevel(level)), _, _, _) if collector.exists(accessName + "@@" + level) =>
+    case access @ L4_UnresolvedAccess(accessName, Some(L4_SingleLevel(level)), _, _, _, _) if collector.exists(accessName + "@@" + level) =>
       L4_UserFunctionAccess(accessName, level, collector.getValue(accessName + "@@" + level).get)
     case access @ L4_UnresolvedAccess(accessName, _, _, _, _, _) if collector.exists(accessName)                                          =>
       Logger.warn(s"Missing level specification for call to $accessName")

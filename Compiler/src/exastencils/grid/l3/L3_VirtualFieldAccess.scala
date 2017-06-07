@@ -22,7 +22,10 @@ case class L3_VirtualFieldAccess(
     if (offset.isDefined) out << '@' << offset.get
   }
 
-  def progress = L4_VirtualFieldAccess(target.getProgressedObj())
+  def progress = {
+    L4_VirtualFieldAccess(target.getProgressedObj(),
+      L3_ProgressOption(offset)(_.progress))
+  }
 }
 
 /// L3_ResolveVirtualFieldAccesses

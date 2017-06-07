@@ -31,7 +31,7 @@ case class L4_UnresolvedAccess(
   }
 
   def progress : IR_Expression = {
-    Logger.warn(s"Progressing UnresolvedAccess $name")
+    Logger.warn(s"Progressing unresolved access on L4: $name" + (if (level.isDefined) s"@${ level.get }" else ""))
 
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
     if (offset.isDefined) Logger.warn("Discarding meaningless offset access on basic or leveled access")

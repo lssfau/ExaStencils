@@ -45,14 +45,8 @@ object L3_ResolveFunctionTemplates extends DefaultStrategy("Resolving function t
     case functionTemplate : L3_FunctionTemplate => None
   })
 
-  object L3_ReplaceExpressions extends DefaultStrategy("Replace something with something else") {
+  object L3_ReplaceExpressions extends QuietDefaultStrategy("Replace something with something else") {
     var replacements : Map[String, L3_Expression] = Map()
-
-    override def applyStandalone(node : Node) = {
-      Logger.pushLevel(Logger.WARNING)
-      super.applyStandalone(node)
-      Logger.popLevel()
-    }
 
     this += new Transformation("SearchAndReplace", {
       case origAccess : L3_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) =>

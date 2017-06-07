@@ -12,16 +12,20 @@ import exastencils.prettyprinting.PpStream
 
 case class L2_FutureStencilAccess(
     var name : String, var level : Int,
+    var offset : Option[L2_ConstIndex],
     var dirAccess : Option[L2_ConstIndex]) extends L2_FutureKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
+    if (offset.isDefined) out << '@' << offset.get
     if (dirAccess.isDefined) out << ':' << dirAccess.get
   }
 
   def progress = {
     Logger.warn(s"Trying to progress future stencil access to $name on level $level")
-    L3_FutureStencilAccess(name, level, L2_ProgressOption(dirAccess)(_.progress))
+    L3_FutureStencilAccess(name, level,
+      L2_ProgressOption(offset)(_.progress),
+      L2_ProgressOption(dirAccess)(_.progress))
   }
 
   def toStencilAccess = L2_StencilAccess(this)
@@ -45,9 +49,8 @@ object L2_PrepareStencilAccesses extends DefaultStrategy("Prepare accesses to st
         Logger.warn(s"Trying to access ${ access.name } on invalid level $lvl")
 
       if (access.slot.isDefined) Logger.warn(s"Discarding meaningless slot access on ${ access.name }")
-      if (access.offset.isDefined) Logger.warn(s"Discarding meaningless offset access on ${ access.name }")
       if (access.arrayIndex.isDefined) Logger.warn(s"Discarding meaningless array access on ${ access.name }")
 
-      L2_FutureStencilAccess(access.name, lvl, access.dirAccess)
+      L2_FutureStencilAccess(access.name, lvl, access.offset, access.dirAccess)
   })
 }

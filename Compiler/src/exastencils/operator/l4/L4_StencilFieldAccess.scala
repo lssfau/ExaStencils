@@ -29,8 +29,8 @@ case class L4_StencilFieldAccess(
     if (target.field.numSlots > 1) out << '[' << slot << ']'
     out << '@' << target.level
     if (offset.isDefined) out << "@" << offset
-    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
     if (dirAccess.isDefined) out << ":" << dirAccess
+    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
   }
 
   def progressOffset(numDims : Int) = {

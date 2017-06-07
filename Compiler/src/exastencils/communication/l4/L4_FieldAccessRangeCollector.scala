@@ -195,7 +195,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
         if (ignore) Logger.warn("Found stencil field convolution outside kernel")
 
         // process each entry (offset) of the stencil template
-        op.assembleOffsetMap.values.foreach(_.foreach(offset =>
+        op.assembleOffsetMap().values.foreach(_.foreach(offset =>
           processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset, Some(offset))))
 
       case access : L4_StencilFieldAccess =>

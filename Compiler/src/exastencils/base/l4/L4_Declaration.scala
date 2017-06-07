@@ -94,7 +94,7 @@ object L4_InlineValueDeclarations extends DefaultStrategy("Propagate and inline 
         case None => x // no hit
         case _    => Duplicate(value.get)
       }
-    case x @ L4_UnresolvedAccess(_, None, Some(L4_SingleLevel(level)), _, None, _) =>
+    case x @ L4_UnresolvedAccess(_, Some(L4_SingleLevel(level)), None, _, _, None) =>
       val value = valueCollector.getValue(x.name + "@@" + level)
       value match {
         case None => x // no hit

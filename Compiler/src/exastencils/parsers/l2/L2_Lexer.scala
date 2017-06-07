@@ -9,7 +9,7 @@ object L2_Lexer extends ExaLexer {
   // general delimiters
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
-  // base => l3_Datatypes
+  // base => L2_Datatypes
   reserved += ("Unit", "unit",
     "String", "string",
     "Integer", "integer", "Int", "int",
@@ -18,26 +18,29 @@ object L2_Lexer extends ExaLexer {
     "Array", "array",
     "Boolean", "boolean", "Bool", "bool")
 
-  // baseExt => l3_DomainDeclarations
+  // baseExt => L2_DomainDeclarations
   reserved += ("Domain")
 
-  // base => l3_LevelSpecifications
+  // base => L2_LevelSpecifications
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
   // baseExt => L2_FieldIteratorAccess
-  reserved += ("i0", "i1", "i2")
+  reserved += ("i0", "i1", "i2", "x", "y", "z")
 
-  // baseExt => l3_FieldDeclarations
+  // baseExt => L2_FieldDeclarations
   reserved += ("Field", "with", "on", "of", "boundary")
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
-  // baseExt => l2_OperatorDeclarations
+  // baseExt => L2_OperatorDeclarations
   reserved += ("Operator", "from", "default", "restriction", "prolongation", "on", "with")
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
-  // baseExt => l3_StencilDeclarations
+  // baseExt => L2_StencilDeclarations
   reserved += ("Stencil")
 
-  // baseExt => l3_StencilTemplateDeclarations
+  // baseExt => L2_StencilTemplateDeclarations
   reserved += ("StencilTemplate")
+
+  // boundary
+  reserved += ("None", "Neumann")
 }

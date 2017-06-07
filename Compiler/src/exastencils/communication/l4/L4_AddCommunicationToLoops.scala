@@ -60,24 +60,17 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
   }, false)
 
   object L4_CollectCommInformation extends QuietDefaultStrategy("Collect information relevant for adding communication statements") {
-    var collector = new L4_FieldAccessRangeCollector()
+    val collector = new L4_FieldAccessRangeCollector()
+    register(collector)
 
     override def apply(node : Option[Node] = None) = {
-      collector.reset()
-      this.register(collector)
       super.apply(node)
-      this.unregister(collector)
       collector.adaptNodeBasedFields()
-      collector.reset()
     }
 
     override def applyStandalone(node : Node) = {
-      collector.reset()
-      this.register(collector)
       super.applyStandalone(node)
-      this.unregister(collector)
       collector.adaptNodeBasedFields()
-      collector.reset()
     }
 
     this += new Transformation("Collect", PartialFunction.empty)

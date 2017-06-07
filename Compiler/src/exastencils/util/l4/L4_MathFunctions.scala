@@ -52,7 +52,7 @@ object L4_ResolveMathFunctions extends DefaultStrategy("Resolve math function ac
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
       L4_Minimum(args)
 
-    case L4_FunctionCall(L4_UnresolvedAccess("max", _, level, _, _, _), args) =>
+    case L4_FunctionCall(L4_UnresolvedAccess("max", level, _, _, _, _), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
       L4_Maximum(args)
 

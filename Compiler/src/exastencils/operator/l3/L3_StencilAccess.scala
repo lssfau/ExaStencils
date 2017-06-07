@@ -9,20 +9,23 @@ import exastencils.prettyprinting.PpStream
 
 object L3_StencilAccess {
   def apply(access : L3_FutureStencilAccess) =
-    new L3_StencilAccess(L3_StencilCollection.getByIdentifier(access.name, access.level).get, access.dirAccess)
+    new L3_StencilAccess(L3_StencilCollection.getByIdentifier(access.name, access.level).get, access.offset, access.dirAccess)
 }
 
 case class L3_StencilAccess(
     var target : L3_Stencil,
+    var offset : Option[L3_ConstIndex] = None,
     var dirAccess : Option[L3_ConstIndex] = None) extends L3_OperatorAccess {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
+    if (offset.isDefined) out << '@' << offset.get
     if (dirAccess.isDefined) out << ':' << dirAccess.get
   }
 
   def progress = {
     L4_StencilAccess(target.getProgressedObj(),
+      L3_ProgressOption(offset)(_.progress),
       L3_ProgressOption(dirAccess)(_.progress))
   }
   override def assembleOffsetMap() = target.assembleOffsetMap()

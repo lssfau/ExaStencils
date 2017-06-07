@@ -47,15 +47,15 @@ case class L2_MathFunctionAccess(var name : String, var datatype : L2_Datatype) 
 
 object L2_ResolveMathFunctions extends DefaultStrategy("Resolve math function accesses") {
   this += new Transformation("Resolve function accesses", {
-    case L2_FunctionCall(L2_UnresolvedAccess("min", level), args) =>
+    case L2_FunctionCall(L2_UnresolvedAccess("min", level, _, _, _, _), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
       L2_Minimum(args)
 
-    case L2_FunctionCall(L2_UnresolvedAccess("max", level), args) =>
+    case L2_FunctionCall(L2_UnresolvedAccess("max", level, _, _, _, _), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
       L2_Maximum(args)
 
-    case access @ L2_UnresolvedAccess(accessName, level) if L2_MathFunctions.exists(accessName) =>
+    case access @ L2_UnresolvedAccess(accessName, level, _, _, _, _) if L2_MathFunctions.exists(accessName) =>
       if (level.isDefined) Logger.warn(s"Found leveled math function $accessName with level ${ level.get }; level is ignored")
       L2_MathFunctionAccess(accessName, L2_MathFunctions.getValue(accessName).get._2)
   })

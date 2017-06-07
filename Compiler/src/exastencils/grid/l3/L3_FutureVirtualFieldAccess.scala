@@ -48,6 +48,6 @@ object L3_PrepareVirtualFieldAccesses extends DefaultStrategy("Prepare accesses 
       if (access.dirAccess.isDefined) Logger.warn(s"Discarding meaningless direction access on ${ access.name }")
       if (access.arrayIndex.isDefined) Logger.warn(s"Discarding meaningless array access on ${ access.name }")
 
-      L3_FutureVirtualFieldAccess(access.name, lvl)
+      L3_FutureVirtualFieldAccess(access.name, lvl, access.offset)
   })
 }

@@ -11,7 +11,7 @@ import exastencils.prettyprinting.PpStream
 
 object L3_StencilFieldAccess {
   def apply(access : L3_FutureStencilFieldAccess) =
-    new L3_StencilFieldAccess(L3_StencilFieldCollection.getByIdentifier(access.name, access.level).get)
+    new L3_StencilFieldAccess(L3_StencilFieldCollection.getByIdentifier(access.name, access.level).get, access.offset, access.dirAccess)
 }
 
 case class L3_StencilFieldAccess(
