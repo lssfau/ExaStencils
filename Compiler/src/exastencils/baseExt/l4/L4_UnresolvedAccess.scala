@@ -10,16 +10,17 @@ import exastencils.prettyprinting.PpStream
 
 object L4_UnresolvedAccess {
   def apply(name : String) = new L4_UnresolvedAccess(name, None, None, None, None, None)
-  def apply(name : String, level : L4_AccessLevelSpecification) = new L4_UnresolvedAccess(name, None, Some(level), None, None, None)
+  def apply(name : String, level : Option[L4_AccessLevelSpecification]) = new L4_UnresolvedAccess(name, level, None, None, None, None)
 }
 
 case class L4_UnresolvedAccess(
     var name : String,
-    var slot : Option[L4_SlotSpecification],
     var level : Option[L4_AccessLevelSpecification],
+    var slot : Option[L4_SlotSpecification],
     var offset : Option[L4_ExpressionIndex],
-    var arrayIndex : Option[Int],
-    var dirAccess : Option[L4_ExpressionIndex]) extends L4_Access {
+    var dirAccess : Option[L4_ExpressionIndex],
+    var arrayIndex : Option[Int]) extends L4_Access {
+
   def prettyprint(out : PpStream) = {
     out << name
     if (slot.isDefined) out << '[' << slot.get << ']'

@@ -360,15 +360,15 @@ class L4_Parser extends ExaParser with PackratParsers {
   lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ (a => L4_AdvanceSlot(a)))
 
   lazy val flatAccess = locationize(ident
-    ^^ (id => L4_UnresolvedAccess(id, None, None, None, None, None)))
+    ^^ (id => L4_UnresolvedAccess(id)))
   lazy val leveledAccess = locationize(ident ~ levelAccess
-    ^^ { case id ~ level => L4_UnresolvedAccess(id, None, Some(level), None, None, None) })
+    ^^ { case id ~ level => L4_UnresolvedAccess(id, Some(level)) })
 
   lazy val genericAccess = (
     locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> expressionIndex).? ~ ("[" ~> integerLit <~ "]").?
-      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, slot, level, offset, arrayIndex, None) })
+      ^^ { case id ~ slot ~ level ~ offset ~ arrayIndex => L4_UnresolvedAccess(id, level, slot, offset, None, arrayIndex) })
       ||| locationize(ident ~ slotAccess.? ~ levelAccess.? ~ ("@" ~> expressionIndex).? ~ (":" ~> expressionIndex).?
-      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, slot, level, offset, None, dirAccess) })) // component acccess mit spitzen klammern
+      ^^ { case id ~ slot ~ level ~ offset ~ dirAccess => L4_UnresolvedAccess(id, level, slot, offset, dirAccess, None) })) // component acccess mit spitzen klammern
 
   // ######################################
   // ##### Expressions

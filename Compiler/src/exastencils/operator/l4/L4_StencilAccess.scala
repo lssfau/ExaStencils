@@ -81,6 +81,6 @@ object L4_ResolveStencilAccesses extends DefaultStrategy("Resolve accesses to st
 object L4_UnresolveStencilAccesses extends DefaultStrategy("Revert stencil accesses to unresolved accesses") {
   this += new Transformation("Replace", {
     case L4_StencilAccess(target, arrayIndex, offset, dirAccess) =>
-      L4_UnresolvedAccess(target.name, None, Some(L4_SingleLevel(target.level)), offset, arrayIndex, dirAccess)
+      L4_UnresolvedAccess(target.name, Some(L4_SingleLevel(target.level)), None, offset, dirAccess, arrayIndex)
   })
 }
