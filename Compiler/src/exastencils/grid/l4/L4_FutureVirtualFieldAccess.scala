@@ -12,9 +12,14 @@ import exastencils.prettyprinting.PpStream
 case class L4_FutureVirtualFieldAccess(
     var name : String,
     var level : Int,
-    var arrayIndex : Option[Int] = None,
-    var offset : Option[L4_ExpressionIndex] = None) extends L4_FutureKnowledgeAccess {
-  override def prettyprint(out : PpStream) = out << name << '@' << level
+    var offset : Option[L4_ExpressionIndex] = None,
+    var arrayIndex : Option[Int] = None) extends L4_FutureKnowledgeAccess {
+
+  override def prettyprint(out : PpStream) = {
+    out << name << '@' << level
+    if (offset.isDefined) out << '@' << offset.get
+    if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
+  }
 
   def progress = {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
@@ -44,7 +49,7 @@ object L4_PrepareVirtualFieldAccesses extends DefaultStrategy("Prepare accesses 
       if (access.dirAccess.isDefined) Logger.warn(s"Discarding meaningless direction access on ${ access.name } - was an offset access (@) intended?")
       if (access.slot.isDefined) Logger.warn(s"Discarding meaningless slot access on ${ access.name }")
 
-      L4_FutureVirtualFieldAccess(access.name, lvl, access.arrayIndex, access.offset)
+      L4_FutureVirtualFieldAccess(access.name, lvl, access.offset, access.arrayIndex)
   })
 }
 

@@ -13,13 +13,13 @@ import exastencils.prettyprinting.PpStream
 
 object L4_VirtualFieldAccess {
   def apply(access : L4_FutureVirtualFieldAccess) =
-    new L4_VirtualFieldAccess(L4_VirtualFieldCollection.getByIdentifier(access.name, access.level).get, access.arrayIndex, access.offset)
+    new L4_VirtualFieldAccess(L4_VirtualFieldCollection.getByIdentifier(access.name, access.level).get, access.offset, access.arrayIndex)
 }
 
 case class L4_VirtualFieldAccess(
     var target : L4_VirtualField,
-    var arrayIndex : Option[Int] = None,
-    var offset : Option[L4_ExpressionIndex] = None) extends L4_LeveledKnowledgeAccess {
+    var offset : Option[L4_ExpressionIndex] = None,
+    var arrayIndex : Option[Int] = None) extends L4_LeveledKnowledgeAccess {
 
   def prettyprint(out : PpStream) = {
     out << name << '@' << level

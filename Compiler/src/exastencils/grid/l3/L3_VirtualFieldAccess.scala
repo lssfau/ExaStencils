@@ -1,7 +1,8 @@
 package exastencils.grid.l3
 
+import exastencils.base.l3.L3_ExpressionIndex
 import exastencils.datastructures._
-import exastencils.grid.l4.L4_VirtualFieldAccess
+import exastencils.grid.l4._
 import exastencils.knowledge.l3.L3_LeveledKnowledgeAccess
 import exastencils.prettyprinting.PpStream
 
@@ -9,11 +10,18 @@ import exastencils.prettyprinting.PpStream
 
 object L3_VirtualFieldAccess {
   def apply(access : L3_FutureVirtualFieldAccess) =
-    new L3_VirtualFieldAccess(L3_VirtualFieldCollection.getByIdentifier(access.name, access.level).get)
+    new L3_VirtualFieldAccess(L3_VirtualFieldCollection.getByIdentifier(access.name, access.level).get, access.offset)
 }
 
-case class L3_VirtualFieldAccess(var target : L3_VirtualField) extends L3_LeveledKnowledgeAccess {
-  def prettyprint(out : PpStream) = out << target.name << '@' << target.level
+case class L3_VirtualFieldAccess(
+    var target : L3_VirtualField,
+    var offset : Option[L3_ExpressionIndex] = None) extends L3_LeveledKnowledgeAccess {
+
+  def prettyprint(out : PpStream) = {
+    out << target.name << '@' << target.level
+    if (offset.isDefined) out << '@' << offset.get
+  }
+
   def progress = L4_VirtualFieldAccess(target.getProgressedObj())
 }
 
