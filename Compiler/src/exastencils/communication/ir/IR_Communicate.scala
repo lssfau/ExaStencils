@@ -3,6 +3,7 @@ package exastencils.communication.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_FieldIteratorAccess
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.deprecated.ir._
@@ -27,8 +28,8 @@ case class IR_Communicate(
         var ret : IR_Expression = access
         val numDims = field.field.fieldLayout.numDimsData
         for (dim <- 0 until numDims)
-          if (IR_DimToString(dim) == access.name)
-            ret = IR_VariableAccess(IR_DimToString(dim), IR_IntegerDatatype) - field.field.referenceOffset(dim)
+          if (IR_FieldIteratorAccess(dim) == access)
+            ret = IR_FieldIteratorAccess(dim) - field.field.referenceOffset(dim)
         ret
     }, false)
   }

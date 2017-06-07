@@ -1,7 +1,6 @@
 package exastencils.baseExt.ir
 
 import exastencils.base.ir._
-import exastencils.prettyprinting.PpStream
 
 /// IR_FieldIteratorAccess
 
@@ -20,8 +19,6 @@ class IR_FieldIteratorAccess() extends IR_VariableAccess("i", IR_IntegerDatatype
     name = s"i$dim_"
   }
   def dim = dim_
-
-  override def prettyprint(out : PpStream) : Unit = /* FIXME: remove this override and use actual identifier */ out << ('x'.toInt + dim).toChar
 
   override def equals(obj : scala.Any) = {
     obj match {

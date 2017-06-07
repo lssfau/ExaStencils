@@ -1,6 +1,8 @@
 package exastencils.performance
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+
 import java.io._
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
@@ -12,13 +14,9 @@ import exastencils.config.Settings
 import exastencils.core._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
-import exastencils.performance.ir.IR_SlotAccessAsConst
-
-import scala.collection.mutable
 
 trait LogVerbose {
   val verbose = true
@@ -182,8 +180,8 @@ object KerncraftExport extends DefaultStrategy("Exporting kernels for kerncraft"
     val end = IR_LoopOverDimensions.evalMaxIndex(loop.indices.end, loop.numDimensions, true)
 
     def createForLoop(d : Int, body : ListBuffer[IR_Statement]) : IR_ForLoop = {
-      def it = IR_VariableAccess(IR_DimToString(d), IR_IntegerDatatype)
-      val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(IR_IntegerConstant(begin(d))))
+      def it = IR_FieldIteratorAccess(d)
+      val decl = IR_VariableDeclaration(IR_FieldIteratorAccess(d), IR_IntegerConstant(begin(d)))
       val cond = IR_Lower(it, IR_IntegerConstant(end(d)))
       val incr = IR_Assignment(it, loop.stepSize(d), "+=")
 
@@ -246,9 +244,9 @@ private object TransformKernel
   var hasInternalVariables = false
 
   // id for next slot expression for each field
-  var nextSlotId = mutable.HashMap[IR_Field,Int]()
+  var nextSlotId = mutable.HashMap[IR_Field, Int]()
   // map per-field slot expressions to id
-  val slotExprId = mutable.HashMap[(IR_Field,IR_Expression),Int]()
+  val slotExprId = mutable.HashMap[(IR_Field, IR_Expression), Int]()
 
   override def apply(applyAtNode : Option[Node] = None) : Unit = {
     fields.clear()
@@ -268,7 +266,7 @@ private object TransformKernel
       val slotId : Int = {
         slotExprId.get((fa.fieldSelection.field, fa.fieldSelection.slot)) match {
           case Some(id) => id
-          case None =>
+          case None     =>
             val id = nextSlotId.getOrElse(fa.fieldSelection.field, 0)
             nextSlotId(fa.fieldSelection.field) = id + 1
             slotExprId((fa.fieldSelection.field, fa.fieldSelection.slot)) = id

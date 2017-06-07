@@ -11,7 +11,6 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
@@ -109,7 +108,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
         || ("face_x" == field.fieldLayout.discretization && 0 == dim)
         || ("face_y" == field.fieldLayout.discretization && 1 == dim)
         || ("face_z" == field.fieldLayout.discretization && 2 == dim))*/
-          condition = Some(IR_AndAnd(condition.get, IR_GreaterEqual(IR_VariableAccess(IR_DimToString(dim), IR_IntegerDatatype), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
+          condition = Some(IR_AndAnd(condition.get, IR_GreaterEqual(IR_FieldIteratorAccess(dim), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
     }
 
     var loop : IR_LoopOverDimensions = {

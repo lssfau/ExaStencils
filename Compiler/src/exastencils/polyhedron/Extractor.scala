@@ -651,7 +651,7 @@ class Extractor extends Collector {
     do {
       bool |= extractConstraints(begin(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append("<=")
-      constrs.append(ScopNameMapping.expr2id(IR_VariableAccess(IR_DimToString(i), IR_IntegerDatatype)))
+      constrs.append(ScopNameMapping.expr2id(IR_FieldIteratorAccess(i)))
       constrs.append('<')
       bool |= extractConstraints(end(i), constrs, true, paramExprs, locCtxConstrs, gloCtxConstrs, params)
       constrs.append(" and ")

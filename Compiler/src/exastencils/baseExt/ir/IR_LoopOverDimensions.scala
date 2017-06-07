@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_DimToString
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.ir._
@@ -20,7 +19,7 @@ object IR_LoopOverDimensions {
     new IR_LoopOverDimensions(numDimensions, indices, ListBuffer[IR_Statement](body))
 
   def defIt(numDims : Int) = IR_ExpressionIndex((0 until numDims).map(dim => defItForDim(dim) : IR_Expression).toArray)
-  def defItForDim(dim : Int) = IR_VariableAccess(IR_DimToString(dim), IR_IntegerDatatype)
+  def defItForDim(dim : Int) = IR_FieldIteratorAccess(dim)
 
   val threadIdxName : String = "threadIdx"
 
@@ -150,7 +149,7 @@ case class IR_LoopOverDimensions(
     // add conditions for first iteration
     for (d <- 0 until numDimensions)
       if (at1stIt(d)._1.nonEmpty) {
-        val cond = IR_IfCondition(IR_EqEq(IR_VariableAccess(IR_DimToString(d), IR_IntegerDatatype), Duplicate(inds.begin(d))), at1stIt(d)._1)
+        val cond = IR_IfCondition(IR_EqEq(IR_FieldIteratorAccess(d), Duplicate(inds.begin(d))), at1stIt(d)._1)
         for ((annotId, value) <- at1stIt(d)._2)
           cond.annotate(annotId, value)
         conds += cond
@@ -199,8 +198,8 @@ case class IR_LoopOverDimensions(
     val inds = if (explParLoop) ompIndices else indices
     // compile loop(s)
     for (d <- 0 until numDimensions) {
-      def it = IR_VariableAccess(IR_DimToString(d), IR_IntegerDatatype)
-      val decl = IR_VariableDeclaration(IR_IntegerDatatype, IR_DimToString(d), Some(inds.begin(d)))
+      def it = IR_FieldIteratorAccess(d)
+      val decl = IR_VariableDeclaration(IR_FieldIteratorAccess(d), inds.begin(d))
       val cond = IR_Lower(it, inds.end(d))
       val incr = IR_Assignment(it, stepSize(d), "+=")
       val loop = new IR_ForLoop(decl, cond, incr, wrappedBody, Duplicate(parallelization))

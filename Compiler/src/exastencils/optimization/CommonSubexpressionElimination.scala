@@ -13,10 +13,7 @@ import exastencils.config._
 import exastencils.core._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_DimToString
-import exastencils.domain.ir.IR_IV_FragmentPosition
-import exastencils.domain.ir.IR_IV_FragmentPositionBegin
-import exastencils.domain.ir.IR_IV_FragmentPositionEnd
+import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
@@ -46,7 +43,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       case l : IR_LoopOverDimensions =>
         val incr = (0 until l.stepSize.length - Knowledge.opt_loopCarriedCSE_skipOuter).view.map { d =>
           l.stepSize(d) match {
-            case IR_IntegerConstant(i) if i > 0 => (IR_DimToString(d), l.indices.begin(d), l.indices.end(d), i)
+            case IR_IntegerConstant(i) if i > 0 => (IR_FieldIteratorAccess(d).name/*TODO Stefan: y not VA?*/ , l.indices.begin(d), l.indices.end(d), i)
             case _                              => null
           }
         }.toArray
