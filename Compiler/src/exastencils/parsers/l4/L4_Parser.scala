@@ -453,9 +453,8 @@ class L4_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val fieldIteratorAccess = (
-    locationize("i0" ^^ { _ => L4_FieldIteratorAccess(0) })
-      ||| locationize("i1" ^^ { _ => L4_FieldIteratorAccess(1) })
-      ||| locationize("i2" ^^ { _ => L4_FieldIteratorAccess(2) })
+    locationize(("i0" | "i1" | "i2") ^^ { id => L4_FieldIteratorAccess(id) })
+      ||| locationize(("x" | "y" | "z") ^^ { id => L4_FieldIteratorAccess(id) })
     )
 
   // #############################################################################

@@ -2,6 +2,7 @@ package exastencils.baseExt.l2
 
 import exastencils.base.l2._
 import exastencils.baseExt.l3.L3_FieldIteratorAccess
+import exastencils.logger.Logger
 
 /// L2_FieldIteratorAccess
 
@@ -10,6 +11,17 @@ object L2_FieldIteratorAccess {
     val ret = new L2_FieldIteratorAccess()
     ret.dim = dim
     ret
+  }
+
+  def apply(ident : String) : L2_FieldIteratorAccess = {
+    if (ident.startsWith("i") && ident.substring(1).forall(_.isDigit)) {
+      this (ident.substring(1).toInt)
+    } else if (List("x", "y", "z").contains(ident.toLowerCase())) {
+      Logger.warn(s"Using $ident as iterator access is deprecated; please switch to i${ ident.toLowerCase().head.toInt - 'x'.toInt }")
+      this (ident.toLowerCase().head.toInt - 'x'.toInt)
+    } else {
+      Logger.error(s"Invalid identifier in L2 FieldIteratorAccess: $ident")
+    }
   }
 }
 
