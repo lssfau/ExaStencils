@@ -26,7 +26,7 @@ case class L4_StencilFromExpression(
       L4_ResolveStencilExpression.applyStandalone(this)
       if (0 == L4_ResolveStencilExpression.results.last._2.matches)
         Logger.error(s"Not able to resolve expression in stencil declaration for $name; expression: $expression")
-      L4_GeneralSimplify.applyStandalone(this)
+      L4_GeneralSimplify.doUntilDoneStandalone(this)
     }
 
     val stencil = expression.asInstanceOf[L4_StencilAccess].target

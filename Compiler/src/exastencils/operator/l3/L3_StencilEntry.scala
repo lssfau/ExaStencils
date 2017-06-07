@@ -66,7 +66,7 @@ case class L3_StencilMappingEntry(var row : L3_ExpressionIndex, var col : L3_Exp
     offset.indices.transform(L3_SimplifyExpression.simplifyFloatingExpr)
 
     L3_ReplaceRealWithInt.applyStandalone(offset)
-    L3_GeneralSimplify.applyStandalone(offset)
+    L3_GeneralSimplify.doUntilDoneStandalone(offset)
 
     L3_StencilOffsetEntry(offset.toConstIndex, coefficient)
   }

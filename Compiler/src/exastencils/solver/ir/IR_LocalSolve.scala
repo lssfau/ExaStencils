@@ -152,7 +152,7 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
           IR_RealConstant(0) // empty entries means zero
 
         case ex : IR_Expression =>
-          IR_GeneralSimplify.applyStandalone(IR_ExpressionStatement(ex))
+          IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(ex))
           ex
       }
     }

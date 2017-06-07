@@ -87,17 +87,6 @@ object L4_ResolveStencilFieldComponentAccesses extends DefaultStrategy("Resolve 
   })
 }
 
-//
-///// L4_ResolveStencilFieldAccesses
-//
-//object L4_ResolveStencilFieldAccesses extends DefaultStrategy("Resolve accesses to stencil fields") {
-//  this += new Transformation("Resolve applicable unresolved accesses", {
-//    case access : L4_UnresolvedAccess if L4_StencilFieldCollection.exists(access.name) =>
-//      L4_StencilFieldAccess(access.name, access.level.get.resolveLevel,
-//        access.slot.getOrElse(L4_ActiveSlot), access.arrayIndex, access.offset, access.dirAccess)
-//  })
-//}
-
 /// L4_UnresolveStencilFieldAccesses
 
 object L4_UnresolveStencilFieldAccesses extends DefaultStrategy("Revert stencil field accesses to unresolved accesses") {

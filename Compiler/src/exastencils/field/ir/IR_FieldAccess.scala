@@ -62,6 +62,9 @@ case class IR_FieldAccess(
     else if (index.length == layout.numDimsData - 1 && layout.datatype.isInstanceOf[IR_MatrixDatatype] && 1 == layout.datatype.asInstanceOf[IR_MatrixDatatype].sizeM)
     // FIXME: find a reasonable way to deal with this case and remove this HACK
       layout.datatype.resolveBaseDatatype
+    else if (index.length == layout.numDimsData - 1 && layout.datatype.isInstanceOf[IR_MatrixDatatype] && 1 == layout.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+    // FIXME: find a reasonable way to deal with this case and remove this HACK
+      layout.datatype.resolveBaseDatatype
     else Logger.error(s"Trying to resolve data type with invalid index ${ index.prettyprint() }; field ${ fieldSelection.field.name } has data type ${ layout.datatype }")
   }
 

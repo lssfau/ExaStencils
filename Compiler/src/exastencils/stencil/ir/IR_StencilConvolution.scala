@@ -49,6 +49,8 @@ case class IR_StencilFieldConvolution(var left : IR_StencilFieldAccess, var righ
   def resolveEntry(idx : Int) : IR_Expression = {
     val stencilFieldIdx = Duplicate(left.index)
     stencilFieldIdx.indices :+= (idx : IR_Expression)
+    // HACK: honor matrix dt
+    stencilFieldIdx.indices :+= (0 : IR_Expression)
 
     // fill offset with zeros to match dimensionality of the field access
     val offset = Duplicate(left.selection.stencilField.stencil.entries(idx)).asStencilOffsetEntry.offset

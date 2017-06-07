@@ -22,7 +22,7 @@ case class L3_StencilFromExpression(
       L3_ResolveStencilExpression.applyStandalone(this)
       if (0 == L3_ResolveStencilExpression.results.last._2.matches)
         Logger.error(s"Not able to resolve expression in stencil declaration for $name; expression: $expression")
-      L3_GeneralSimplify.applyStandalone(this)
+      L3_GeneralSimplify.doUntilDoneStandalone(this)
     }
 
     val stencil = expression.asInstanceOf[L3_StencilAccess].target

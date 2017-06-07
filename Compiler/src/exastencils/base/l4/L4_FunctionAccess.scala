@@ -55,7 +55,7 @@ object L4_FunctionDeclCollector extends Collector {
       case fct @ L4_Function(L4_LeveledIdentifier(fctName, L4_SingleLevel(level)), returntype, _, _, _) =>
         functions += ((fctName + "@@" + level, returntype))
       case fct : L4_Function                                                                            =>
-        Logger.warn("Encountered l4 function with unsupported identifier " + fct.identifier)
+        Logger.warn("Encountered L4 function with unsupported identifier " + fct.identifier)
       case _                                                                                            =>
     }
   }
@@ -85,5 +85,8 @@ object L4_ResolveFunctionAccesses extends DefaultStrategy("Resolve function acce
       L4_UserFunctionAccess(accessName, collector.getValue(accessName).get)
     case access @ L4_UnresolvedAccess(accessName, _, Some(L4_SingleLevel(level)), _, _, _) if collector.exists(accessName + "@@" + level) =>
       L4_UserFunctionAccess(accessName, level, collector.getValue(accessName + "@@" + level).get)
+    case access @ L4_UnresolvedAccess(accessName, _, _, _, _, _) if collector.exists(accessName)                                          =>
+      Logger.warn(s"Missing level specification for call to $accessName")
+      access
   })
 }

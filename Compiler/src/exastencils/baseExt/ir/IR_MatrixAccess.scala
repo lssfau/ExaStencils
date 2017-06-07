@@ -278,14 +278,10 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           }
         }
         val tmpDet = m.get(i, 0) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
-        Logger.pushLevel(Logger.WARNING)
-        IR_GeneralSimplify.applyStandalone(tmpDet)
-        Logger.popLevel()
+        IR_GeneralSimplify.doUntilDoneStandalone(tmpDet)
         det += tmpDet
       }
-      Logger.pushLevel(Logger.WARNING)
-      IR_GeneralSimplify.applyStandalone(det)
-      Logger.popLevel()
+      IR_GeneralSimplify.doUntilDoneStandalone(det)
       return det
     }
   }
@@ -384,9 +380,9 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
     // FIXME: other vec functions: length, normalize
 
     case call : IR_FunctionCall if (call.name == "inverse") => {
-        if (call.arguments.length != 1) {
-          Logger.error("inverse() must have one argument")
-        }
+      if (call.arguments.length != 1) {
+        Logger.error("inverse() must have one argument")
+      }
       val m = call.arguments(0).asInstanceOf[IR_MatrixExpression]
       val ret = m.rows match {
         case 1 => IR_MatrixExpression(m.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), m.get(0, 0))))
@@ -478,9 +474,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
                 }
               }
 
-              Logger.pushLevel(Logger.WARNING)
-              IR_GeneralSimplify.applyStandalone(matrix)
-              Logger.popLevel()
+              IR_GeneralSimplify.doUntilDoneStandalone(matrix)
 
               for (i <- 0 until matrix.rows) {
                 val d = matrix.get(i, i)

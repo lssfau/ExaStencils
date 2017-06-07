@@ -59,7 +59,7 @@ case class IR_StencilMappingEntry(var row : IR_ExpressionIndex, var col : IR_Exp
     offset.indices.transform(IR_SimplifyExpression.simplifyFloatingExpr)
 
     IR_ReplaceRealWithInt.applyStandalone(offset)
-    IR_GeneralSimplify.applyStandalone(offset)
+    IR_GeneralSimplify.doUntilDoneStandalone(offset)
 
     IR_StencilOffsetEntry(offset.toConstIndex, coefficient)
   }

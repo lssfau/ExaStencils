@@ -38,7 +38,7 @@ case class IndexMapping(var from : IR_ExpressionIndex, var to : IR_ExpressionInd
 
     while (newOffset.indices.length < 3) newOffset.indices :+= (0 : IR_Expression)
 
-    IR_GeneralSimplify.applyStandalone(newOffset)
+    IR_GeneralSimplify.doUntilDoneStandalone(newOffset)
 
     newOffset
   }
@@ -98,7 +98,7 @@ case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var 
       entry
     })
 
-    IR_GeneralSimplify.applyStandalone(newStencil)
+    IR_GeneralSimplify.doUntilDoneStandalone(newStencil)
     newStencil
   }
 
@@ -179,7 +179,7 @@ case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var 
 
     entries = newEntries.toList.sortBy(_._1).map(_._2).to[ListBuffer]
 
-    IR_GeneralSimplify.applyStandalone(this)
+    IR_GeneralSimplify.doUntilDoneStandalone(this)
   }
 
   def assembleCases() : ListBuffer[ListBuffer[Int]] = {

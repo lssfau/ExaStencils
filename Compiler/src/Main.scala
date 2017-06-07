@@ -366,6 +366,11 @@ object Main {
 
     L4_PrepareAccesses.apply()
 
+    L4_ResolveFunctionAccesses.apply()
+    L4_ResolveMathFunctions.apply()
+    L4_ResolveTimerFunctions.apply()
+    L4_ResolveGridFunctions.apply()
+
     var matches = 0
     do {
       matches = 0
@@ -393,10 +398,6 @@ object Main {
 
 //    L4_ResolveVirtualFieldAccesses.apply()
     L4_ResolveVariableAccesses.apply()
-    L4_ResolveFunctionAccesses.apply()
-    L4_ResolveMathFunctions.apply()
-    L4_ResolveTimerFunctions.apply()
-    L4_ResolveGridFunctions.apply()
     L4_ResolveStencilFunctions.apply()
     L4_ResolveLoopItAccesses.apply()
     L4_ResolveSpecialConstants.apply()

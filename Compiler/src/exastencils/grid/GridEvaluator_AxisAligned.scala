@@ -134,6 +134,30 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
     integrateOverRFace(exp, faceDim, stagDim)
   }
 
+  def doIntegrate(exp : IR_Expression, faceDim : Int, stagDim : Option[Int], level : Int) = {
+    def index = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+
+    if (stagDim.isDefined) {
+      val curStagDim = stagDim.get
+
+      if (curStagDim == faceDim) {
+        val compDim0 = if (0 == faceDim) 1 else 0
+        val compDim1 = if (2 == faceDim) 1 else 2
+
+        geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * exp
+      } else {
+        val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
+
+        geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * exp
+      }
+    } else {
+      val compDim0 = if (0 == faceDim) 1 else 0
+      val compDim1 = if (2 == faceDim) 1 else 2
+
+      geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * exp
+    }
+  }
+
   // integration over faces of staggered CVs is done by defining stagDim - the dimension in which the grid is staggered
   // expS instead of exp : IR_Expression to allow for match and replace of the original expression
   def integrateOverRFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression =
@@ -145,13 +169,26 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
     IR_CollectFieldAccess.applyStandalone(expS)
 
     // TODO: find a way to handle constants
-    if (0 == IR_CollectFieldAccess.fieldAccesses.size) {
-      Logger.warn(s"Trying to evaluate index-independent expression ${ exp.prettyprint } - currently unsupported")
+    if (0 == IR_CollectFieldAccess.fieldAccesses.length) {
+//      // no field accesses => try to find something else with a level
+//
+//      // check for virtual field accesses
+//      val levels = StateManager.findAll[IR_VirtualFieldAccess](expS).map(_.level)
+//      if (levels.nonEmpty) {
+//        val level = levels.head
+//        if (levels.exists(_ != level)) {
+//          Logger.warn(s"Mixed level integration is currently not supported (${ exp.prettyprint })")
+//          return exp
+//        }
+//        return doIntegrate(exp, faceDim, stagDim, level)
+//      }
+
+      Logger.warn(s"Trying to evaluate level-independent expression ${ exp.prettyprint } - currently unsupported")
       return exp
     }
 
     // check if all occurring level specifications are identical
-    val level = IR_CollectFieldAccess.fieldAccesses(0).fieldSelection.level
+    val level = IR_CollectFieldAccess.fieldAccesses.head.fieldSelection.level
     for (fieldAccess <- IR_CollectFieldAccess.fieldAccesses) {
       if (level != fieldAccess.fieldSelection.level) {
         Logger.warn(s"Mixed level field integration is currently not supported (${ exp.prettyprint })")

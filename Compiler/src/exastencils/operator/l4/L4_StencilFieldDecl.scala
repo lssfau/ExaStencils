@@ -37,8 +37,9 @@ case class L4_StencilFieldDecl(
 object L4_PrepareStencilFieldDeclarations extends DefaultStrategy("Prepare knowledge for L4 stencil templates") {
   this += Transformation("Process new stencil templates", {
     case decl : L4_StencilFieldDecl =>
-      L4_FieldCollection.addDeclared(decl.name + "_Data", decl.levels)
-      L4_StencilCollection.addDeclared(decl.name + "_Stencil", decl.levels)
+      //L4_FieldCollection.addDeclared(decl.name + "_Data", decl.levels)
+      //L4_StencilCollection.addDeclared(decl.name + "_Stencil", decl.levels)
+      L4_StencilFieldCollection.addDeclared(decl.name, decl.levels)
 
       decl // preserve declaration statement
   })
