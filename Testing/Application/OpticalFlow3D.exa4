@@ -260,7 +260,7 @@ Function InitSolution ( ) : Unit {
 	loop over Flow@finest {
 		Flow[active]@finest = 0.0
 	}
-	apply bc to Flow[active]@current
+	apply bc to Flow[active]@finest
 }
 Function InitRHS@finest ( ) : Unit {
 	loop over RHS@current {
