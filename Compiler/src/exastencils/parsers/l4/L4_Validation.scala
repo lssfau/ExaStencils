@@ -37,10 +37,10 @@ object L4_Validation {
       x.name = "user_" + x.name; x
     case x : L4_UnresolvedAccess if x.name.startsWith("_")                                                    =>
       x.name = "user_" + x.name; x
-    case x : L4_ExternalFieldDecl if protectedkeywords.contains(x.identifier)                                 =>
-      x.identifier = "user_" + x.identifier; x
-    case x : L4_ExternalFieldDecl if x.identifier.startsWith("_")                                             =>
-      x.identifier = "user_" + x.identifier; x
+    case x : L4_ExternalFieldDecl if protectedkeywords.contains(x.name)                                       =>
+      x.name = "user_" + x.name; x
+    case x : L4_ExternalFieldDecl if x.name.startsWith("_")                                                   =>
+      x.name = "user_" + x.name; x
   })
 
   var functioncalls = ListBuffer[String]()

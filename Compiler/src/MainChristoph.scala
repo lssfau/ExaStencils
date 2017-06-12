@@ -190,10 +190,8 @@ object MainChristoph {
 
     L4_UnfoldLeveledFunctions.apply()
     L4_UnfoldLeveledDeclarations.apply()
-    L4_UnfoldLeveledKnowledgeDecls.apply()
     L4_ResolveLeveledScopes.apply()
 
-    L4_ResolveCurrentLevels.apply()
     L4_ResolveSpecialConstants.apply()
     L4_ResolveKnowledgeParameterAccess.apply()
 

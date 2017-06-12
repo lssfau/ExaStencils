@@ -199,10 +199,7 @@ object MainStefan {
 
     L4_UnfoldLeveledFunctions.apply()
     L4_UnfoldLeveledDeclarations.apply()
-    L4_UnfoldLeveledKnowledgeDecls.apply()
     L4_ResolveLeveledScopes.apply()
-
-    L4_ResolveCurrentLevels.apply()
 
     if (true) {
       // TODO: optionalize value resolution

@@ -87,9 +87,9 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
       // add index calculation
       // FIXME: datatype for VariableAccess
       fctBody += IR_VariableDeclaration(it,
-        IR_MemberAccess(IR_VariableAccess("blockIdx", IR_IntegerDatatype), it.name) *
-          IR_MemberAccess(IR_VariableAccess("blockDim", IR_IntegerDatatype), it.name) +
-          IR_MemberAccess(IR_VariableAccess("threadIdx", IR_IntegerDatatype), it.name))
+        IR_MemberAccess(IR_VariableAccess("blockIdx", IR_IntegerDatatype), "x") *
+          IR_MemberAccess(IR_VariableAccess("blockDim", IR_IntegerDatatype), "x") +
+          IR_MemberAccess(IR_VariableAccess("threadIdx", IR_IntegerDatatype), "x"))
       fctBody += IR_Assignment(it, 2 * stride.access, "*=")
 
       // add index bounds conditions

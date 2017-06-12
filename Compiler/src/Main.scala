@@ -372,7 +372,17 @@ object Main {
 
     L4_PrepareAccesses.apply()
 
+    L4_ResolveLeveledScopes.apply()
+
+    if (true) {
+      // TODO: optionalize value resolution
+      L4_InlineValueDeclarations.apply()
+      // resolve globals _after_ L4_InlineValueDeclarations (lower precedence than local values!)
+      L4_InlineGlobalValueDeclarations.apply()
+    }
+
     L4_ResolveFunctionAccesses.apply()
+    L4_ResolveSpecialConstants.apply()
     L4_ResolveMathFunctions.apply()
     L4_ResolveTimerFunctions.apply()
     L4_ResolveGridFunctions.apply()
@@ -390,23 +400,9 @@ object Main {
       filtered.foreach(Logger.warn(_))
     }
 
-    L4_UnfoldLeveledKnowledgeDecls.apply()
-    L4_ResolveLeveledScopes.apply()
-
-    L4_ResolveCurrentLevels.apply()
-
-    if (true) {
-      // TODO: optionalize value resolution
-      L4_InlineValueDeclarations.apply()
-      // resolve globals AFTER L4_InlineValueDeclarations (lower precedence than local values!)
-      L4_InlineGlobalValueDeclarations.apply()
-    }
-
-//    L4_ResolveVirtualFieldAccesses.apply()
     L4_ResolveVariableAccesses.apply()
     L4_ResolveStencilFunctions.apply()
     L4_ResolveLoopItAccesses.apply()
-    L4_ResolveSpecialConstants.apply()
     HACK_L4_ResolveNativeFunctions.apply()
     L4_ResolvePrintFunctions.apply()
     L4_ResolveBuildStringFunctions.apply()

@@ -109,20 +109,6 @@ object L4_ResolveRelativeLevels extends DefaultStrategy("Resolve relative level 
   })
 }
 
-/// L4_ResolveCurrentLevels
-
-object L4_ResolveCurrentLevels extends DefaultStrategy("Resolve current level references") {
-  var levelCollector = new L4_LevelCollector
-  this.register(levelCollector)
-
-  // resolve level specifications
-  this += new Transformation("Resolve relative level specifications", {
-    case L4_CurrentLevel => L4_SingleLevel(levelCollector.getCurrentLevel)
-    case L4_CoarserLevel => L4_SingleLevel(levelCollector.getCurrentLevel - 1)
-    case L4_FinerLevel   => L4_SingleLevel(levelCollector.getCurrentLevel + 1)
-  })
-}
-
 /// L4_ReplaceExplicitLevelsWithCurrent
 
 object L4_ReplaceExplicitLevelsWithCurrent extends QuietDefaultStrategy("Replace explicit levels with CurrentLevel, CoarserLevel and FinerLevel") {
