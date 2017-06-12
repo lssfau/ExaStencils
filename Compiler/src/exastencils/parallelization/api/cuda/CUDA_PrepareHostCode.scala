@@ -246,6 +246,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       if (isParallel) {
         val loopCuda = Duplicate(loop)
         loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
+        loopCuda.annotate(/* FIXME: remove */ "PolySkip")
         deviceStmts += loopCuda
       }
 
