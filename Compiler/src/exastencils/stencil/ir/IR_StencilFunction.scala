@@ -37,6 +37,7 @@ object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functi
               val index = Duplicate(access.index)
               val centralOffset = IR_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
               index.indices :+= (access.selection.stencilField.findStencilEntryIndex(centralOffset).get : IR_Expression)
+              index.indices :+= (0 : IR_Expression) // honor matrix data type
 
               IR_FieldAccess(IR_FieldSelection(access.selection.field, access.selection.level, access.selection.slot, access.selection.fragIdx), index)
 
