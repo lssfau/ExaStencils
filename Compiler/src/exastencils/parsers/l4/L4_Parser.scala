@@ -138,10 +138,7 @@ class L4_Parser extends ExaParser with PackratParsers {
   // ##### Datatypes
   // ######################################
 
-  lazy val datatype : Parser[L4_Datatype] = (
-    simpleDatatype
-      ||| algorithmicDatatype
-      ||| "Array" ~ ("<" ~> datatype <~ ">") ~ ("<" ~> integerLit <~ ">") ^^ { case _ ~ x ~ s => L4_ArrayDatatype(x, s) })
+  lazy val datatype : Parser[L4_Datatype] = simpleDatatype ||| algorithmicDatatype
 
   lazy val simpleDatatype : Parser[L4_Datatype] = (
     "String" ^^ { _ => L4_StringDatatype }
