@@ -13,8 +13,13 @@ object Restriction {
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")
     printer.println(s"\tloop over RHS$postfix@coarser {")
-    for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
-      printer.println(s"\t\t${ Fields.rhs(s"coarser", postfix)(vecDim) } = RestrictionStencil@current * ${ Fields.residual(s"current", postfix)(vecDim) }")
+    for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
+      printer.print(s"\t\t${ Fields.rhs(s"coarser", postfix)(vecDim) } = ")
+      if (!Knowledge.l3tmp_genHDepStencils)
+        printer.print(s"4.0 * ")
+      printer.println(s"RestrictionStencil@current * ${ Fields.residual(s"current", postfix)(vecDim) }"
+      )
+    }
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\t}")
     printer.println(s"\t}")
