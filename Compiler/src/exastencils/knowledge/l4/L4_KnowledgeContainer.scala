@@ -22,7 +22,7 @@ object L4_KnowledgeContainer {
   def register(collection : L4_KnowledgeCollection) = collections += collection
   def progress() = {
     collections.foreach(c => {
-      Logger.warn(s"Progressing ${ c.length } objects of collection ${ c.name }")
+      Logger.debug(s"Progressing ${ c.length } objects of collection ${ c.name }")
       c.progress()
     })
   }
