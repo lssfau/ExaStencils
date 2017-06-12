@@ -43,8 +43,9 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   //###########################################################
 
-  lazy val program = ((
-    fieldDeclaration
+  lazy val program = (
+    import_
+      ||| fieldDeclaration
       ||| overrideFieldInformation
       ||| stencilDeclaration
       ||| stencilTemplateDeclaration
@@ -52,8 +53,9 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| function
       ||| functionTemplate
       ||| functionInstantiation
-    ).*
-    ^^ (nodes => L3_Root(nodes)))
+    ).* ^^ { L3_Root(_) }
+
+  lazy val import_ = "import" ~> stringLit ^^ { parseFile }
 
   //###########################################################
 

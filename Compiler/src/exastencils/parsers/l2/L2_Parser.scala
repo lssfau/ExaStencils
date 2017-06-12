@@ -45,10 +45,13 @@ object L2_Parser extends ExaParser with PackratParsers {
   //###########################################################
 
   lazy val program = (
-    domainDeclaration
+    import_
+      ||| domainDeclaration
       ||| fieldDeclaration
       ||| stencilDeclaration
-      ||| stencilTemplateDeclaration).* ^^ { nodes => L2_Root(nodes) }
+      ||| stencilTemplateDeclaration).* ^^ { L2_Root(_) }
+
+  lazy val import_ = "import" ~> stringLit ^^ { parseFile }
 
   //###########################################################
 

@@ -122,8 +122,10 @@ object MainJeremias {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      var l3gen_root = l3Generate.Root()
-      l3gen_root.printToL4(Settings.getL4file)
+      val l3gen_root = l3Generate.Root()
+      val l4Filenames = Settings.getL4file
+      if (l4Filenames.length != 1) Logger.error("l3tmp_generateL4 requires exactly one Layer4 file provided in settings")
+      l3gen_root.printToL4(l4Filenames.head)
     }
 
     if (Settings.timeStrategies)
@@ -134,7 +136,8 @@ object MainJeremias {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
-    ExaRootNode.l4_root = (new L4_Parser).parseFile(Settings.getL4file)
+    ExaRootNode.l4_root = L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node))
+    ExaRootNode.l4_root.flatten()
     L4_Validation.apply()
 
     if (false) // re-print the merged L4 state
@@ -146,7 +149,7 @@ object MainJeremias {
       outFile.close()
 
       // re-parse the file to check for errors
-      var parserl4 = new L4_Parser
+      var parserl4 = L4_Parser
       ExaRootNode.l4_root = parserl4.parseFile(Settings.getL4file + "_rep.exa")
       L4_Validation.apply()
     }

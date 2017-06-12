@@ -201,7 +201,8 @@ object Main {
     }
 
     if (Knowledge.experimental_layerExtension) {
-      ExaRootNode.l2_root = L2_Parser.parseFile(Settings.getL2file)
+      ExaRootNode.l2_root = L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node))
+      ExaRootNode.l2_root.flatten()
 
       // pre-process level specifications in declarations
       L2_ResolveLevelSpecifications.apply()
@@ -244,7 +245,8 @@ object Main {
       StrategyTimer.startTiming("Handling Layer 3")
 
     if (Knowledge.experimental_layerExtension) {
-      ExaRootNode.l3_root = L3_Parser.parseFile(Settings.getL3file)
+      ExaRootNode.l3_root = L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node))
+      ExaRootNode.l3_root.flatten()
 
       // pre-process level specifications in declarations
       L3_ResolveLevelSpecifications.apply()
@@ -281,7 +283,9 @@ object Main {
       L3_KnowledgeContainer.progress()
     } else if (Knowledge.l3tmp_generateL4) {
       val l3gen_root = l3Generate.Root()
-      l3gen_root.printToL4(Settings.getL4file)
+      val l4Filenames = Settings.getL4file
+      if (l4Filenames.length != 1) Logger.error("l3tmp_generateL4 requires exactly one Layer4 file provided in settings")
+      l3gen_root.printToL4(l4Filenames.head)
     }
 
     if (Settings.timeStrategies)
@@ -298,12 +302,10 @@ object Main {
     else
       null
 
-    if (Settings.inputFromJson) {
-      ExaRootNode.l4_root = (new L4_Parser).parseFile(InputReader.layer4)
-    } else {
-      ExaRootNode.l4_root = (new L4_Parser).parseFile(Settings.getL4file)
-    }
-
+    if (Settings.inputFromJson)
+      ExaRootNode.l4_root = L4_Parser.parseFile(InputReader.layer4)
+    else
+      ExaRootNode.l4_root = L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node))
     ExaRootNode.l4_root.flatten()
 
     L4_Validation.apply()
@@ -333,7 +335,7 @@ object Main {
 
     // re-print the merged L4 state
     if (Knowledge.experimental_layerExtension) {
-      val repFileName = { val tmp = Settings.getL4file.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
+      val repFileName = { val tmp = Settings.getL4file.head.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
       val l4_printed = ExaRootNode.l4_root.prettyprint()
 
       val outFile = new java.io.FileWriter(repFileName)
@@ -343,7 +345,7 @@ object Main {
       // re-parse the file to check for errors - also clear knowledge collections
       L4_KnowledgeContainer.clear()
 
-      ExaRootNode.l4_root = (new L4_Parser).parseFile(repFileName)
+      ExaRootNode.l4_root = L4_Parser.parseFile(repFileName)
       L4_Validation.apply()
     }
 

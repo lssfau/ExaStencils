@@ -9,6 +9,9 @@ object L3_Lexer extends ExaLexer {
   // general delimiters
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
+  // import functionality
+  reserved += "import"
+
   // base => L3_Assignment
   reserved += ("where")
 

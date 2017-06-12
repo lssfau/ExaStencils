@@ -9,6 +9,9 @@ object L2_Lexer extends ExaLexer {
   // general delimiters
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
+  // import functionality
+  reserved += "import"
+
   // base => L2_Datatypes
   reserved += ("Unit", "unit",
     "String", "string",

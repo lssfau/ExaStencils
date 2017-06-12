@@ -20,7 +20,7 @@ import exastencils.solver.l4._
 
 /// L4_Parser
 
-class L4_Parser extends ExaParser with PackratParsers {
+object L4_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = new L4_Lexer()
 
   def parse(s : String) : Node = {
@@ -70,7 +70,7 @@ class L4_Parser extends ExaParser with PackratParsers {
       ||| functionInstantiation).+
     ^^ { L4_Root(_) })
 
-  lazy val import_ = "import" ~> stringLit ^^ { path => parseFile(path).asInstanceOf[L4_Root] }
+  lazy val import_ = "import" ~> stringLit ^^ { parseFile }
 
   //###########################################################
 

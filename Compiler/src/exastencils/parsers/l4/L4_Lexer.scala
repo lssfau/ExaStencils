@@ -11,7 +11,7 @@ class L4_Lexer extends ExaLexer {
   // general delimiters
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", ";", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
-  // for import functionality
+  // import functionality
   reserved += "import"
 
   // function keywords

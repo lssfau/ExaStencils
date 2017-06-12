@@ -21,7 +21,7 @@ case class L4_Root(var nodes : ListBuffer[L4_Node]) extends L4_Node with L4_Prog
 
     nodes.foreach {
       case p : PrettyPrintable => out << p << "\n\n"
-      case _                   =>
+      case other               => Logger.warn(s"Trying to print unsupported L4 node $other")
     }
   }
 
@@ -33,7 +33,7 @@ case class L4_Root(var nodes : ListBuffer[L4_Node]) extends L4_Node with L4_Prog
     nodes.foreach {
       case fct : L4_Function      => functions += fct.progress
       case node : L4_Progressable => newRoot += node.progress
-      case node                   => Logger.warn("Found unprogressable L4 node " + node)
+      case node                   => Logger.warn(s"Trying to progress unsupported L4 node $node")
     }
 
     newRoot += functions
@@ -41,15 +41,12 @@ case class L4_Root(var nodes : ListBuffer[L4_Node]) extends L4_Node with L4_Prog
     newRoot
   }
 
-  def +=(n : L4_Node*) = nodes ++= n
-
-  // resolve root nodes in nodes
+  // resolve nested root nodes
   def flatten() = {
-    nodes.foreach {
-      case root : L4_Root =>
-        nodes ++= root.nodes
-        nodes -= root
-      case _              =>
-    }
+    while (nodes.exists(_.isInstanceOf[L4_Root]))
+      nodes = nodes.flatMap {
+        case root : L4_Root => root.nodes
+        case other          => ListBuffer(other)
+      }
   }
 }

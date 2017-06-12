@@ -1,8 +1,7 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.base.l4.L4_ResolveVariableAccesses
-import exastencils.base.l4._
+import exastencils.base.l4.{ L4_ResolveVariableAccesses, _ }
 import exastencils.baseExt.ir._
 import exastencils.core.StateManager
 import exastencils.datastructures._
@@ -22,7 +21,7 @@ object MainChristian {
     exastencils.config.Knowledge.experimental_resolveInverseFunctionCall = "Runtime"
 
     //var tpdl = scala.xml.XML.loadFile("")
-    val parser = new exastencils.parsers.l4.L4_Parser()
+    val parser = exastencils.parsers.l4.L4_Parser
     val prog = "Function Application() : Unit { \n" +
       "//Var m : Matrix<Real, 2, 2>\n" +
       "//Var m2 : Matrix<Real, 2, 2>\n" +

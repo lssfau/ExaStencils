@@ -1,4 +1,5 @@
 import exastencils.base.ExaRootNode
+import exastencils.base.l4._
 import exastencils.config._
 import exastencils.parsers.InputReader
 import exastencils.parsers.config._
@@ -29,11 +30,11 @@ object ValidateL4 {
     }
     Knowledge.update()
 
-    if (Settings.inputFromJson) {
-      ExaRootNode.l4_root = (new L4_Parser).parseFile(InputReader.layer4)
-    } else {
-      ExaRootNode.l4_root = (new L4_Parser).parseFile(Settings.getL4file)
-    }
+    if (Settings.inputFromJson)
+      ExaRootNode.l4_root = L4_Parser.parseFile(InputReader.layer4)
+    else
+      ExaRootNode.l4_root = L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node))
+    ExaRootNode.l4_root.flatten()
     L4_Validation.apply
   }
 }
