@@ -36,3 +36,5 @@ poly_optLevel_fine			= 3
 opt_useAddressPrecalc		= true
 opt_vectorize				= false
 opt_unroll					= 2
+
+experimental_resolveInverseFunctionCall	= "Runtime"

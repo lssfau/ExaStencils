@@ -10,7 +10,7 @@ Layout GradientLayout < Real, Node> @all {
 	duplicateLayers = [ 1, 1, 1 ]
 }
 
-Layout flowLayout < ColumnVector<Real, 3>, Node> @all {
+Layout flowLayout < Vector<Real, 3>, Node> @all {
 	ghostLayers = [ 0, 0, 0 ]
 	duplicateLayers = [ 1, 1, 1 ]
 }
@@ -26,36 +26,6 @@ Field Residual< global, flowLayout, Neumann >@all
 Field RHS< global, flowLayout, None >@(coarsest)
 Field RHS< global, flowLayout, None >@((coarsest+1) to finest)
 
-Stencil RestrictionStencil@all {
-	[ 0,  0,  0] => 1.0
-	[ 0,  0, -1] => 0.5
-	[ 0,  0,  1] => 0.5
-	[ 0, -1,  0] => 0.5
-	[ 0,  1,  0] => 0.5
-	[-1,  0,  0] => 0.5
-	[ 1,  0,  0] => 0.5
-	[ 0, -1,  1] => 0.25
-	[ 0, -1, -1] => 0.25
-	[ 0,  1,  1] => 0.25
-	[ 0,  1, -1] => 0.25
-	[-1,  0,  1] => 0.25
-	[-1,  0, -1] => 0.25
-	[ 1,  0,  1] => 0.25
-	[ 1,  0, -1] => 0.25
-	[-1, -1,  0] => 0.25
-	[-1,  1,  0] => 0.25
-	[ 1, -1,  0] => 0.25
-	[ 1,  1,  0] => 0.25
-	[-1, -1,  1] => 0.125
-	[-1, -1, -1] => 0.125
-	[-1,  1,  1] => 0.125
-	[-1,  1, -1] => 0.125
-	[ 1, -1,  1] => 0.125
-	[ 1, -1, -1] => 0.125
-	[ 1,  1,  1] => 0.125
-	[ 1,  1, -1] => 0.125
-}
-
 Stencil SmootherStencil@all {
 	[ 0, 0, 0] => {{6.0*alpha + GradientX@current * GradientX@current, GradientX@current * GradientY@current, GradientX@current * GradientZ@current}, { GradientX@current * GradientY@current, 6.0*alpha + GradientY@current * GradientY@current, GradientY@current * GradientZ@current }, {GradientX@current * GradientZ@current, GradientY@current * GradientY@current, 6.0*alpha + GradientZ@current * GradientZ@current}}
 	[ 1, 0, 0] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
@@ -64,17 +34,6 @@ Stencil SmootherStencil@all {
 	[ 0,-1, 0] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
 	[ 0, 0,-1] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
 	[ 0, 0, 1] => {{-1.0, 0.0, 0.0}, {0.0,-1.0, 0.0}, {0.0, 0.0, -1.0}}
-}
-
-Stencil CellRestrictionStencil@all {
-	[0, 0, 0] => 0.125
-	[1, 0, 0] => 0.125
-	[0, 1, 0] => 0.125
-	[1, 1, 0] => 0.125
-	[0, 0, 1] => 0.125
-	[1, 0, 1] => 0.125
-	[0, 1, 1] => 0.125
-	[1, 1, 1] => 0.125
 }
 
 Stencil GradientYStencil@all {
@@ -98,16 +57,12 @@ Stencil GradientZStencil@all {
 	[ 0,  0, 0] => -0.25
 }
 
-Stencil CorrectionStencil@all {
-	[    0,     0,     0] => 0.0625
-	[x % 2,     0,     0] => 0.0625
-	[    0, y % 2,     0] => 0.0625
-	[x % 2, y % 2,     0] => 0.0625
-	[    0,     0, z % 2] => 0.0625
-	[x % 2,     0, z % 2] => 0.0625
-	[    0, y % 2, z % 2] => 0.0625
-	[x % 2, y % 2, z % 2] => 0.0625
-}
+Stencil RestrictionNode@all from default restriction on Node with 'linear'
+Stencil CorrectionNode@all from default prolongation on Node with 'linear'
+
+Stencil RestrictionCell@all from default restriction on Cell with 'linear'
+Stencil CorrectionCell@all from default prolongation on Cell with 'linear'
+
 
 Function printVal ( toPrint : Real ) : Unit {
     if ( toPrint <= 1e-12 ) {
@@ -273,7 +228,7 @@ Function UpResidual@all (  ) : Unit {
 Function NormResidual_0@(coarsest and finest) ( ) : Real {
 	Variable res : Real = 0
 	loop over fragments with reduction( + : res ) {
-	loop over Residual@current where x > 0 && y > 0 && z > 0 with reduction( + : res ) {
+	loop over Residual@current where i0 > 0 && i1 > 0 && i2 > 0 with reduction( + : res ) {
 		res += dotProduct(Residual@current, Residual@current)
 	}}
 	return sqrt ( res )
@@ -283,14 +238,14 @@ Function Restriction@((coarsest + 1) to finest) ( ) : Unit {
 	communicate ghost of Residual@current
 	loop over fragments {
 	loop over RHS@coarser {
-		RHS@coarser = RestrictionStencil@current * Residual@current
+		RHS@coarser = RestrictionNode@current * Residual@current
 	}}
 }
 
 Function Correction@((coarsest + 1) to finest) ( ) : Unit {
 	loop over fragments {
 	loop over Flow@current {
-		Flow[active]@current += CorrectionStencil@current * Flow[active]@coarser
+		Flow[active]@current += CorrectionNode@current * Flow[active]@coarser
 	}}
 	apply bc to Flow[active]@current
 }
@@ -356,10 +311,10 @@ Function initFields@finest() : Unit {
 
 Function initFields@(coarsest to (finest - 1)) () : Unit {
 	loop over Image1@current {
-		Image1@current = CellRestrictionStencil@finer * Image1@finer
+		Image1@current = RestrictionCell@finer * Image1@finer
 	}
 	loop over Image2@current {
-		Image2@current = CellRestrictionStencil@finer * Image2@finer
+		Image2@current = RestrictionCell@finer * Image2@finer
 	}
 
 	if ( levels@coarsest ( ) < levels@current ( ) ) {

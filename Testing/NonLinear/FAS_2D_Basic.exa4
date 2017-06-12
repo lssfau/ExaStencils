@@ -27,23 +27,8 @@ Stencil gamSten@all {
 	[ 0,  0] => ( gam * exp( Solution[active]@current ) )
 }
 
-Stencil CorrectionStencil@all {
-	[    0,     0] => 0.25
-	[x % 2,     0] => 0.25
-	[    0, y % 2] => 0.25
-	[x % 2, y % 2] => 0.25
-}
-Stencil RestrictionStencil@all {
-	[ 0,  0] => ( 1.0 / 4.0 )
-	[ 0, -1] => ( 1.0 / 8.0 )
-	[ 0,  1] => ( 1.0 / 8.0 )
-	[-1,  0] => ( 1.0 / 8.0 )
-	[ 1,  0] => ( 1.0 / 8.0 )
-	[-1, -1] => ( 1.0 / 16.0 )
-	[-1,  1] => ( 1.0 / 16.0 )
-	[ 1, -1] => ( 1.0 / 16.0 )
-	[ 1,  1] => ( 1.0 / 16.0 )
-}
+Stencil RestrictionNode@all from default restriction on Node with 'linear'
+Stencil CorrectionNode@all from default prolongation on Node with 'linear'
 
 Globals {
 	Val gam : Real = 10.0
@@ -127,13 +112,13 @@ Function NormError_0@(finest) ( ) : Real {
 Function Restriction@((coarsest + 1) to finest) ( ) : Unit {
 	communicate ghost of Residual@current
 	loop over RHS@coarser {
-		RHS@coarser = RestrictionStencil@current * Residual@current
+		RHS@coarser = RestrictionNode@current * Residual@current
 	}
 
 	// coarsen current guess
 	communicate ghost of Solution[active]@current
 	loop over Approximation@coarser {
-		Approximation@coarser = RestrictionStencil@current * Solution[active]@current
+		Approximation@coarser = RestrictionNode@current * Solution[active]@current
 		Solution[active]@coarser = Approximation@coarser
 	}
 
@@ -153,7 +138,7 @@ Function Correction@((coarsest + 1) to finest) ( ) : Unit {
 	}
 
 	loop over Solution@current {
-		Solution[active]@current += CorrectionStencil@current * Solution[active]@coarser
+		Solution[active]@current += CorrectionNode@current * Solution[active]@coarser
 	}
 }
 
