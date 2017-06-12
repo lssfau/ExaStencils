@@ -129,7 +129,10 @@ object Knowledge {
   // must be uniform if grid_isUniform; may be "diego", "diego2" or "linearFct" otherwise
   var grid_spacingModel : String = "uniform"
 
-/// discretization information
+  // specifies if staggered control volumes are to be halved at applicable boundaries (ie in the stagger dimension)
+  var grid_halveStagBoundaryVolumes : Boolean = false
+
+  /// discretization information
   // TODO: ignore for IDE support for now
 
   // (uniform) grid width per dimension and level
@@ -654,6 +657,7 @@ object Knowledge {
     Constraints.condWarn("uniform" == grid_spacingModel && !grid_isUniform, "grid_isUniform should be true for uniform spacing models")
     Constraints.condWarn("diego" == grid_spacingModel, "diego spacing model currently ignores domain bounds set in the DSL")
     Constraints.condWarn("diego2" == grid_spacingModel, "diego2 spacing model currently ignores domain bounds set in the DSL")
+    Constraints.condWarn(grid_halveStagBoundaryVolumes && "uniform" == grid_spacingModel, "halving staggered volumes at the boundary is not supported for uniform grids")
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve

@@ -235,24 +235,29 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
         IR_Assignment(GridUtil.offsetAccess(rightGhostAccess, -1, dim), GridUtil.offsetAccess(rightGhostAccess, -2, dim)),
         IR_Assignment(Duplicate(rightGhostAccess), GridUtil.offsetAccess(rightGhostAccess, -1, dim))))
 
+    var innerStatement : IR_Statement = IR_Assignment(Duplicate(baseAccess),
+      0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
+        - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess)))
+
+    if (Knowledge.grid_halveStagBoundaryVolumes) {
+      innerStatement =
+        IR_IfCondition(IR_EqEq(0, innerIt),
+          IR_Assignment(Duplicate(baseAccess),
+            0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
+              - Duplicate(npBaseAccess)),
+          IR_IfCondition(IR_EqEq(numCellsTotal, innerIt),
+            IR_Assignment(Duplicate(baseAccess),
+              Duplicate(npBaseAccess)
+                - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),
+            innerStatement))
+    }
+
     // compile final loop
     val innerLoop = IR_LoopOverPoints(field, None,
       GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
       GridUtil.offsetIndex(IR_ExpressionIndex(Array.fill(HACK_numDims)(0)), -1, dim),
       IR_ExpressionIndex(1, 1, 1),
-      ListBuffer[IR_Statement](
-        innerItDecl,
-//        IR_IfCondition(IR_EqEq(0, innerIt),
-//          IR_Assignment(Duplicate(baseAccess),
-//            0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
-//              - Duplicate(npBaseAccess)),
-//          IR_IfCondition(IR_EqEq(numCellsTotal, innerIt),
-//            IR_Assignment(Duplicate(baseAccess),
-//              Duplicate(npBaseAccess)
-//                - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess))),
-        IR_Assignment(Duplicate(baseAccess),
-          0.5 * (Duplicate(npBaseAccess) + GridUtil.offsetAccess(npBaseAccess, 1, dim))
-            - 0.5 * (GridUtil.offsetAccess(npBaseAccess, -1, dim) + Duplicate(npBaseAccess)))))//))
+      ListBuffer(innerItDecl, innerStatement))
     innerLoop.parallelization.potentiallyParallel = false
 
     ListBuffer[IR_Statement](
