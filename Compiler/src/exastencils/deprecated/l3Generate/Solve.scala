@@ -39,16 +39,16 @@ object Solve {
     if (Knowledge.experimental_NeumannNormalize) {
       printer.println(s"\t\tVar integral : Real = 0.0")
       if (Knowledge.l3tmp_genCellBasedDiscr)
-        printer.println(s"\t\tloop over Solution[currentSlot]@current with reduction( + : integral ) {")
+        printer.println(s"\t\tloop over Solution[currentSlot]@finest with reduction( + : integral ) {")
       else
-        printer.println(s"\t\tloop over Solution[currentSlot]@current where x > 0 && y > 0 with reduction( + : integral ) {")
-      printer.println(s"\t\t\tintegral += Solution[currentSlot]@current")
+        printer.println(s"\t\tloop over Solution[currentSlot]@finest where x > 0 && y > 0 with reduction( + : integral ) {")
+      printer.println(s"\t\t\tintegral += Solution[currentSlot]@finest")
       printer.println(s"\t\t}")
       val numPoints : Double = Knowledge.dimensions.map(dim =>
         Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << Knowledge.maxLevel) + (if (Knowledge.l3tmp_genCellBasedDiscr) 0 else -1)).product
       printer.println(s"\t\tintegral /= $numPoints")
-      printer.println(s"\t\tloop over Solution[currentSlot]@current {")
-      printer.println(s"\t\t\tSolution[currentSlot]@current -= integral")
+      printer.println(s"\t\tloop over Solution[currentSlot]@finest {")
+      printer.println(s"\t\t\tSolution[currentSlot]@finest -= integral")
       printer.println(s"\t\t}")
     }
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile || Knowledge.l3tmp_timeoutLimit > 0)

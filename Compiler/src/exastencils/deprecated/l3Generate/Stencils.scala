@@ -16,8 +16,8 @@ object Stencils {
   def addLaplaceStencil(printer : java.io.PrintWriter, postfix : String) = {
     // special coefficient function
     if ("Kappa_VC" == Knowledge.l3tmp_exactSolution) {
-      printer.println(s"Function getCoefficient ( x : Real, y : Real${ if (Knowledge.dimensionality > 2) ", z : Real" else "" } ) : Real {")
-      printer.println(s"\treturn exp ( kappa * ( (x - x ** 2) * (y - y ** 2) ${ if (Knowledge.dimensionality > 2) "* (z - z ** 2) " else "" }) )")
+      printer.println(s"Function getCoefficient ( xPos : Real, yPos : Real${ if (Knowledge.dimensionality > 2) ", zPos : Real" else "" } ) : Real {")
+      printer.println(s"\treturn exp ( kappa * ( (xPos - xPos ** 2) * (yPos - yPos ** 2) ${ if (Knowledge.dimensionality > 2) "* (zPos - zPos ** 2) " else "" }) )")
       printer.println(s"}")
     }
 
@@ -50,115 +50,20 @@ object Stencils {
   }
 
   def addDefaultStencils(printer : java.io.PrintWriter) = {
-    Knowledge.dimensionality match {
-      case 2 =>
-        printer.println("Stencil CorrectionStencil@all {")
-        if (Knowledge.l3tmp_genCellBasedDiscr) {
-          val coeff = if (Knowledge.l3tmp_genHDepStencils) "1.0" else "1.0"
-          printer.println(s"\t[ 0, 0] => $coeff")
-        } else {
-          val coeff = if (Knowledge.l3tmp_genHDepStencils) "0.25" else "0.25"
-          printer.println(s"\t[    0,     0] => $coeff")
-          printer.println(s"\t[x % 2,     0] => $coeff")
-          printer.println(s"\t[    0, y % 2] => $coeff")
-          printer.println(s"\t[x % 2, y % 2] => $coeff")
-        }
-        printer.println("}")
-      case 3 =>
-        printer.println("Stencil CorrectionStencil@all {")
-        if (Knowledge.l3tmp_genCellBasedDiscr) {
-          val coeff = if (Knowledge.l3tmp_genHDepStencils) "1.0" else "1.0"
-          printer.println(s"\t[ 0, 0, 0] => $coeff")
-        } else {
-          val coeff = if (Knowledge.l3tmp_genHDepStencils) "0.125" else "0.0625"
-          printer.println(s"\t[    0,     0,     0] => $coeff")
-          printer.println(s"\t[x % 2,     0,     0] => $coeff")
-          printer.println(s"\t[    0, y % 2,     0] => $coeff")
-          printer.println(s"\t[x % 2, y % 2,     0] => $coeff")
-          printer.println(s"\t[    0,     0, z % 2] => $coeff")
-          printer.println(s"\t[x % 2,     0, z % 2] => $coeff")
-          printer.println(s"\t[    0, y % 2, z % 2] => $coeff")
-          printer.println(s"\t[x % 2, y % 2, z % 2] => $coeff")
-        }
-        printer.println("}")
-    }
+    printer.print("Stencil CorrectionStencil@all from default prolongation on ")
+    if (Knowledge.l3tmp_genCellBasedDiscr)
+      printer.print("Cell")
+    else
+      printer.print("Node")
+    printer.println(" with 'linear'")
+    printer.println()
 
-    Knowledge.dimensionality match {
-      case 2 =>
-        printer.println("Stencil RestrictionStencil@all {")
-        if (Knowledge.l3tmp_genCellBasedDiscr) {
-          val coeff = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 4.0 )" else "( 4.0 / 4.0 )"
-          printer.println(s"\t[ 0,  0] => $coeff")
-          printer.println(s"\t[ 0,  1] => $coeff")
-          printer.println(s"\t[ 1,  0] => $coeff")
-          printer.println(s"\t[ 1,  1] => $coeff")
-        } else {
-          val coeffDist0 = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 4.0 )" else "1.0"
-          printer.println(s"\t[ 0,  0] => $coeffDist0")
-
-          val coeffDist1 = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 8.0 )" else "0.5"
-          printer.println(s"\t[ 0, -1] => $coeffDist1")
-          printer.println(s"\t[ 0,  1] => $coeffDist1")
-          printer.println(s"\t[-1,  0] => $coeffDist1")
-          printer.println(s"\t[ 1,  0] => $coeffDist1")
-
-          val coeffDist2 = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 16.0 )" else "0.25"
-          printer.println(s"\t[-1, -1] => $coeffDist2")
-          printer.println(s"\t[-1,  1] => $coeffDist2")
-          printer.println(s"\t[ 1, -1] => $coeffDist2")
-          printer.println(s"\t[ 1,  1] => $coeffDist2")
-        }
-        printer.println("}")
-      case 3 =>
-        printer.println("Stencil RestrictionStencil@all {")
-        if (Knowledge.l3tmp_genCellBasedDiscr) {
-          val coeff = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 8.0 )" else "( 4.0 / 8.0 )"
-          printer.println(s"\t[ 0,  0,  0] => $coeff")
-          printer.println(s"\t[ 0,  0,  1] => $coeff")
-          printer.println(s"\t[ 0,  1,  0] => $coeff")
-          printer.println(s"\t[ 1,  0,  0] => $coeff")
-          printer.println(s"\t[ 0,  1,  1] => $coeff")
-          printer.println(s"\t[ 1,  0,  1] => $coeff")
-          printer.println(s"\t[ 1,  1,  0] => $coeff")
-          printer.println(s"\t[ 1,  1,  1] => $coeff")
-        } else {
-          val coeffDist0 = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 8.0 )" else "1.0"
-          printer.println(s"\t[ 0,  0,  0] => $coeffDist0")
-
-          val coeffDist1 = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 16.0 )" else "0.5"
-          printer.println(s"\t[ 0,  0, -1] => $coeffDist1")
-          printer.println(s"\t[ 0,  0,  1] => $coeffDist1")
-          printer.println(s"\t[ 0, -1,  0] => $coeffDist1")
-          printer.println(s"\t[ 0,  1,  0] => $coeffDist1")
-          printer.println(s"\t[-1,  0,  0] => $coeffDist1")
-          printer.println(s"\t[ 1,  0,  0] => $coeffDist1")
-
-          val coeffDist2 = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 32.0 )" else "0.25"
-          printer.println(s"\t[ 0, -1,  1] => $coeffDist2")
-          printer.println(s"\t[ 0, -1, -1] => $coeffDist2")
-          printer.println(s"\t[ 0,  1,  1] => $coeffDist2")
-          printer.println(s"\t[ 0,  1, -1] => $coeffDist2")
-          printer.println(s"\t[-1,  0,  1] => $coeffDist2")
-          printer.println(s"\t[-1,  0, -1] => $coeffDist2")
-          printer.println(s"\t[ 1,  0,  1] => $coeffDist2")
-          printer.println(s"\t[ 1,  0, -1] => $coeffDist2")
-          printer.println(s"\t[-1, -1,  0] => $coeffDist2")
-          printer.println(s"\t[-1,  1,  0] => $coeffDist2")
-          printer.println(s"\t[ 1, -1,  0] => $coeffDist2")
-          printer.println(s"\t[ 1,  1,  0] => $coeffDist2")
-
-          val coeffDist3 = if (Knowledge.l3tmp_genHDepStencils) "( 1.0 / 64.0 )" else "0.125"
-          printer.println(s"\t[-1, -1,  1] => $coeffDist3")
-          printer.println(s"\t[-1, -1, -1] => $coeffDist3")
-          printer.println(s"\t[-1,  1,  1] => $coeffDist3")
-          printer.println(s"\t[-1,  1, -1] => $coeffDist3")
-          printer.println(s"\t[ 1, -1,  1] => $coeffDist3")
-          printer.println(s"\t[ 1, -1, -1] => $coeffDist3")
-          printer.println(s"\t[ 1,  1,  1] => $coeffDist3")
-          printer.println(s"\t[ 1,  1, -1] => $coeffDist3")
-        }
-        printer.println("}")
-    }
+    printer.print("Stencil RestrictionStencil@all from default restriction on ")
+    if (Knowledge.l3tmp_genCellBasedDiscr)
+      printer.print("Cell")
+    else
+      printer.print("Node")
+    printer.println(" with 'linear'")
     printer.println()
 
     if (Knowledge.l3tmp_kelvin) {
