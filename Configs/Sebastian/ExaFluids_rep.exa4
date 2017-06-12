@@ -24,11 +24,6 @@ Layout defLayoutCell< Real, Cell >@(4) {
 	ghostLayers = [0, 0, 0]
 }
 
-Layout defLayoutCell< Real, Cell >@(5) {
-	duplicateLayers = [0, 0, 0]
-	ghostLayers = [0, 0, 0]
-}
-
 Layout defLayoutFace_x< Real, Face_x >@(1) {
 	duplicateLayers = [1, 0, 0]
 	ghostLayers = [0, 0, 0]
@@ -45,11 +40,6 @@ Layout defLayoutFace_x< Real, Face_x >@(3) {
 }
 
 Layout defLayoutFace_x< Real, Face_x >@(4) {
-	duplicateLayers = [1, 0, 0]
-	ghostLayers = [0, 0, 0]
-}
-
-Layout defLayoutFace_x< Real, Face_x >@(5) {
 	duplicateLayers = [1, 0, 0]
 	ghostLayers = [0, 0, 0]
 }
@@ -74,11 +64,6 @@ Layout defLayoutFace_y< Real, Face_y >@(4) {
 	ghostLayers = [0, 0, 0]
 }
 
-Layout defLayoutFace_y< Real, Face_y >@(5) {
-	duplicateLayers = [0, 1, 0]
-	ghostLayers = [0, 0, 0]
-}
-
 Layout defLayoutFace_z< Real, Face_z >@(1) {
 	duplicateLayers = [0, 0, 1]
 	ghostLayers = [0, 0, 0]
@@ -95,11 +80,6 @@ Layout defLayoutFace_z< Real, Face_z >@(3) {
 }
 
 Layout defLayoutFace_z< Real, Face_z >@(4) {
-	duplicateLayers = [0, 0, 1]
-	ghostLayers = [0, 0, 0]
-}
-
-Layout defLayoutFace_z< Real, Face_z >@(5) {
 	duplicateLayers = [0, 0, 1]
 	ghostLayers = [0, 0, 0]
 }
@@ -124,11 +104,6 @@ Layout defLayout7Cell< Array<Real><7>, Cell >@(4) {
 	ghostLayers = [0, 0, 0]
 }
 
-Layout defLayout7Cell< Array<Real><7>, Cell >@(5) {
-	duplicateLayers = [0, 0, 0]
-	ghostLayers = [0, 0, 0]
-}
-
 Layout defLayout7Face_x< Array<Real><7>, Face_x >@(1) {
 	duplicateLayers = [1, 0, 0]
 	ghostLayers = [0, 0, 0]
@@ -145,11 +120,6 @@ Layout defLayout7Face_x< Array<Real><7>, Face_x >@(3) {
 }
 
 Layout defLayout7Face_x< Array<Real><7>, Face_x >@(4) {
-	duplicateLayers = [1, 0, 0]
-	ghostLayers = [0, 0, 0]
-}
-
-Layout defLayout7Face_x< Array<Real><7>, Face_x >@(5) {
 	duplicateLayers = [1, 0, 0]
 	ghostLayers = [0, 0, 0]
 }
@@ -174,11 +144,6 @@ Layout defLayout7Face_y< Array<Real><7>, Face_y >@(4) {
 	ghostLayers = [0, 0, 0]
 }
 
-Layout defLayout7Face_y< Array<Real><7>, Face_y >@(5) {
-	duplicateLayers = [0, 1, 0]
-	ghostLayers = [0, 0, 0]
-}
-
 Layout defLayout7Face_z< Array<Real><7>, Face_z >@(1) {
 	duplicateLayers = [0, 0, 1]
 	ghostLayers = [0, 0, 0]
@@ -199,12 +164,7 @@ Layout defLayout7Face_z< Array<Real><7>, Face_z >@(4) {
 	ghostLayers = [0, 0, 0]
 }
 
-Layout defLayout7Face_z< Array<Real><7>, Face_z >@(5) {
-	duplicateLayers = [0, 0, 1]
-	ghostLayers = [0, 0, 0]
-}
-
-Layout defLayoutCell__1_1_1__1_1_1< Real, Cell >@(5) {
+Layout defLayoutCell__1_1_1__1_1_1< Real, Cell >@(4) {
 	duplicateLayers = [0, 0, 0]
 	ghostLayers = [1, 1, 1] with communication
 }
@@ -212,11 +172,6 @@ Layout defLayoutCell__1_1_1__1_1_1< Real, Cell >@(5) {
 Layout defLayoutFace_x__1_1_1__1_1_1< Real, Face_x >@(1) {
 	duplicateLayers = [1, 0, 0]
 	ghostLayers = [1, 1, 1] with communication
-}
-
-Layout defLayoutFace_x__0_1_1__0_1_1< Real, Face_x >@(5) {
-	duplicateLayers = [1, 0, 0]
-	ghostLayers = [0, 1, 1] with communication
 }
 
 Layout defLayoutFace_x__1_1_1__1_1_1< Real, Face_x >@(2) {
@@ -239,11 +194,6 @@ Layout defLayoutFace_y__1_1_1__1_1_1< Real, Face_y >@(1) {
 	ghostLayers = [1, 1, 1] with communication
 }
 
-Layout defLayoutFace_y__1_1_1__1_1_1< Real, Face_y >@(5) {
-	duplicateLayers = [0, 1, 0]
-	ghostLayers = [1, 1, 1] with communication
-}
-
 Layout defLayoutFace_y__1_1_1__1_1_1< Real, Face_y >@(2) {
 	duplicateLayers = [0, 1, 0]
 	ghostLayers = [1, 1, 1] with communication
@@ -262,11 +212,6 @@ Layout defLayoutFace_y__1_1_1__1_1_1< Real, Face_y >@(4) {
 Layout defLayoutFace_z__1_1_1__1_1_1< Real, Face_z >@(1) {
 	duplicateLayers = [0, 0, 1]
 	ghostLayers = [1, 1, 1] with communication
-}
-
-Layout defLayoutFace_z__1_1_0__1_1_0< Real, Face_z >@(5) {
-	duplicateLayers = [0, 0, 1]
-	ghostLayers = [1, 1, 0] with communication
 }
 
 Layout defLayoutFace_z__1_1_1__1_1_1< Real, Face_z >@(2) {
@@ -299,19 +244,9 @@ Layout defLayoutCell__1_1_1__1_1_1< Real, Cell >@(3) {
 	ghostLayers = [1, 1, 1] with communication
 }
 
-Layout defLayoutCell__1_1_1__1_1_1< Real, Cell >@(4) {
-	duplicateLayers = [0, 0, 0]
-	ghostLayers = [1, 1, 1] with communication
-}
-
 Layout defLayoutFace_x__0_1_1__0_1_1< Real, Face_x >@(1) {
 	duplicateLayers = [1, 0, 0]
 	ghostLayers = [0, 1, 1] with communication
-}
-
-Layout defLayoutFace_x__1_1_1__1_1_1< Real, Face_x >@(5) {
-	duplicateLayers = [1, 0, 0]
-	ghostLayers = [1, 1, 1] with communication
 }
 
 Layout defLayoutFace_y__1_0_1__1_0_1< Real, Face_y >@(1) {
@@ -322,11 +257,6 @@ Layout defLayoutFace_y__1_0_1__1_0_1< Real, Face_y >@(1) {
 Layout defLayoutFace_z__1_1_0__1_1_0< Real, Face_z >@(1) {
 	duplicateLayers = [0, 0, 1]
 	ghostLayers = [1, 1, 0] with communication
-}
-
-Layout defLayoutFace_z__1_1_1__1_1_1< Real, Face_z >@(5) {
-	duplicateLayers = [0, 0, 1]
-	ghostLayers = [1, 1, 1] with communication
 }
 
 Layout defLayoutFace_x__0_1_1__0_1_1< Real, Face_x >@(2) {
@@ -355,11 +285,6 @@ Layout defLayoutFace_y__1_0_1__1_0_1< Real, Face_y >@(3) {
 }
 
 Layout defLayoutFace_y__1_0_1__1_0_1< Real, Face_y >@(4) {
-	duplicateLayers = [0, 1, 0]
-	ghostLayers = [1, 0, 1] with communication
-}
-
-Layout defLayoutFace_y__1_0_1__1_0_1< Real, Face_y >@(5) {
 	duplicateLayers = [0, 1, 0]
 	ghostLayers = [1, 0, 1] with communication
 }
@@ -399,11 +324,6 @@ Layout defLayout7Face_x__0_0_0__0_0_0< Array<Real><7>, Face_x >@(4) {
 	ghostLayers = [0, 0, 0]
 }
 
-Layout defLayout7Face_x__0_0_0__0_0_0< Array<Real><7>, Face_x >@(5) {
-	duplicateLayers = [1, 0, 0]
-	ghostLayers = [0, 0, 0]
-}
-
 Layout defLayout7Face_y__0_0_0__0_0_0< Array<Real><7>, Face_y >@(1) {
 	duplicateLayers = [0, 1, 0]
 	ghostLayers = [0, 0, 0]
@@ -420,11 +340,6 @@ Layout defLayout7Face_y__0_0_0__0_0_0< Array<Real><7>, Face_y >@(3) {
 }
 
 Layout defLayout7Face_y__0_0_0__0_0_0< Array<Real><7>, Face_y >@(4) {
-	duplicateLayers = [0, 1, 0]
-	ghostLayers = [0, 0, 0]
-}
-
-Layout defLayout7Face_y__0_0_0__0_0_0< Array<Real><7>, Face_y >@(5) {
 	duplicateLayers = [0, 1, 0]
 	ghostLayers = [0, 0, 0]
 }
@@ -449,11 +364,6 @@ Layout defLayout7Face_z__0_0_0__0_0_0< Array<Real><7>, Face_z >@(4) {
 	ghostLayers = [0, 0, 0]
 }
 
-Layout defLayout7Face_z__0_0_0__0_0_0< Array<Real><7>, Face_z >@(5) {
-	duplicateLayers = [0, 0, 1]
-	ghostLayers = [0, 0, 0]
-}
-
 Layout defLayout7Cell__0_0_0__0_0_0< Array<Real><7>, Cell >@(1) {
 	duplicateLayers = [0, 0, 0]
 	ghostLayers = [0, 0, 0]
@@ -474,48 +384,35 @@ Layout defLayout7Cell__0_0_0__0_0_0< Array<Real><7>, Cell >@(4) {
 	ghostLayers = [0, 0, 0]
 }
 
-Layout defLayout7Cell__0_0_0__0_0_0< Array<Real><7>, Cell >@(5) {
-	duplicateLayers = [0, 0, 0]
-	ghostLayers = [0, 0, 0]
-}
-
 // field declarations
 
-Field rho< global, defLayoutCell__1_1_1__1_1_1, Neumann >[2]@5
+Field rho< global, defLayoutCell__1_1_1__1_1_1, Neumann >[2]@4
 
 Field u< global, defLayoutFace_x__1_1_1__1_1_1, 0.0 >@1
-
-Field u< global, defLayoutFace_x__0_1_1__0_1_1, 0.0 >[2]@5
 
 Field u< global, defLayoutFace_x__1_1_1__1_1_1, 0.0 >@2
 
 Field u< global, defLayoutFace_x__1_1_1__1_1_1, 0.0 >@3
 
-Field u< global, defLayoutFace_x__1_1_1__1_1_1, 0.0 >@4
+Field u< global, defLayoutFace_x__1_1_1__1_1_1, 0.0 >[2]@4
 
 Field v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >@1
-
-Field v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >[2]@5
 
 Field v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >@2
 
 Field v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >@3
 
-Field v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >@4
+Field v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >[2]@4
 
 Field w< global, defLayoutFace_z__1_1_1__1_1_1, 0.0 >@1
-
-Field w< global, defLayoutFace_z__1_1_0__1_1_0, 0.0 >[2]@5
 
 Field w< global, defLayoutFace_z__1_1_1__1_1_1, 0.0 >@2
 
 Field w< global, defLayoutFace_z__1_1_1__1_1_1, 0.0 >@3
 
-Field w< global, defLayoutFace_z__1_1_1__1_1_1, 0.0 >@4
+Field w< global, defLayoutFace_z__1_1_1__1_1_1, 0.0 >[2]@4
 
 Field pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@1
-
-Field pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@5
 
 Field pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@2
 
@@ -525,15 +422,13 @@ Field pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@4
 
 Field phi7< global, defLayoutCell__1_1_1__1_1_1, applyBC_t@current (  ) >@1
 
-Field phi7< global, defLayoutCell__1_1_1__1_1_1, applyBC_t@current (  ) >[2]@5
-
 Field phi7< global, defLayoutCell__1_1_1__1_1_1, applyBC_t@current (  ) >@2
 
 Field phi7< global, defLayoutCell__1_1_1__1_1_1, applyBC_t@current (  ) >@3
 
-Field phi7< global, defLayoutCell__1_1_1__1_1_1, applyBC_t@current (  ) >@4
+Field phi7< global, defLayoutCell__1_1_1__1_1_1, applyBC_t@current (  ) >[2]@4
 
-Field p< global, defLayoutCell__1_1_1__1_1_1, Neumann >@5
+Field p< global, defLayoutCell__1_1_1__1_1_1, Neumann >@4
 
 Field residual_u< global, defLayoutFace_x__0_1_1__0_1_1, 0.0 >@1
 
@@ -543,8 +438,6 @@ Field residual_u< global, defLayoutFace_x__1_1_1__1_1_1, 0.0 >@3
 
 Field residual_u< global, defLayoutFace_x__1_1_1__1_1_1, 0.0 >@4
 
-Field residual_u< global, defLayoutFace_x__1_1_1__1_1_1, 0.0 >@5
-
 Field residual_v< global, defLayoutFace_y__1_0_1__1_0_1, 0.0 >@1
 
 Field residual_v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >@2
@@ -552,8 +445,6 @@ Field residual_v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >@2
 Field residual_v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >@3
 
 Field residual_v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >@4
-
-Field residual_v< global, defLayoutFace_y__1_1_1__1_1_1, 0.0 >@5
 
 Field residual_w< global, defLayoutFace_z__1_1_0__1_1_0, 0.0 >@1
 
@@ -563,8 +454,6 @@ Field residual_w< global, defLayoutFace_z__1_1_1__1_1_1, 0.0 >@3
 
 Field residual_w< global, defLayoutFace_z__1_1_1__1_1_1, 0.0 >@4
 
-Field residual_w< global, defLayoutFace_z__1_1_1__1_1_1, 0.0 >@5
-
 Field residual_pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@1
 
 Field residual_pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@2
@@ -572,8 +461,6 @@ Field residual_pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@2
 Field residual_pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@3
 
 Field residual_pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@4
-
-Field residual_pc< global, defLayoutCell__1_1_1__1_1_1, Neumann >@5
 
 Field residual_t< global, defLayoutCell__1_1_1__1_1_1, applyBC_res_t@current (  ) >@1
 
@@ -583,8 +470,6 @@ Field residual_t< global, defLayoutCell__1_1_1__1_1_1, applyBC_res_t@current (  
 
 Field residual_t< global, defLayoutCell__1_1_1__1_1_1, applyBC_res_t@current (  ) >@4
 
-Field residual_t< global, defLayoutCell__1_1_1__1_1_1, applyBC_res_t@current (  ) >@5
-
 Field rhs_u< global, defLayoutFace_x__0_1_1__0_1_1, None >@1
 
 Field rhs_u< global, defLayoutFace_x__0_1_1__0_1_1, None >@2
@@ -592,8 +477,6 @@ Field rhs_u< global, defLayoutFace_x__0_1_1__0_1_1, None >@2
 Field rhs_u< global, defLayoutFace_x__0_1_1__0_1_1, None >@3
 
 Field rhs_u< global, defLayoutFace_x__0_1_1__0_1_1, None >@4
-
-Field rhs_u< global, defLayoutFace_x__0_1_1__0_1_1, None >@5
 
 Field rhs_v< global, defLayoutFace_y__1_0_1__1_0_1, None >@1
 
@@ -603,8 +486,6 @@ Field rhs_v< global, defLayoutFace_y__1_0_1__1_0_1, None >@3
 
 Field rhs_v< global, defLayoutFace_y__1_0_1__1_0_1, None >@4
 
-Field rhs_v< global, defLayoutFace_y__1_0_1__1_0_1, None >@5
-
 Field rhs_w< global, defLayoutFace_z__1_1_0__1_1_0, None >@1
 
 Field rhs_w< global, defLayoutFace_z__1_1_0__1_1_0, None >@2
@@ -612,8 +493,6 @@ Field rhs_w< global, defLayoutFace_z__1_1_0__1_1_0, None >@2
 Field rhs_w< global, defLayoutFace_z__1_1_0__1_1_0, None >@3
 
 Field rhs_w< global, defLayoutFace_z__1_1_0__1_1_0, None >@4
-
-Field rhs_w< global, defLayoutFace_z__1_1_0__1_1_0, None >@5
 
 Field rhs_pc< global, defLayoutCell__1_1_1__1_1_1, None >@1
 
@@ -623,8 +502,6 @@ Field rhs_pc< global, defLayoutCell__1_1_1__1_1_1, None >@3
 
 Field rhs_pc< global, defLayoutCell__1_1_1__1_1_1, None >@4
 
-Field rhs_pc< global, defLayoutCell__1_1_1__1_1_1, None >@5
-
 Field rhs_t< global, defLayoutCell__1_1_1__1_1_1, None >@1
 
 Field rhs_t< global, defLayoutCell__1_1_1__1_1_1, None >@2
@@ -633,13 +510,11 @@ Field rhs_t< global, defLayoutCell__1_1_1__1_1_1, None >@3
 
 Field rhs_t< global, defLayoutCell__1_1_1__1_1_1, None >@4
 
-Field rhs_t< global, defLayoutCell__1_1_1__1_1_1, None >@5
+Field du< global, defLayoutFace_x__0_1_1__0_1_1, None >@4
 
-Field du< global, defLayoutFace_x__0_1_1__0_1_1, None >@5
+Field dv< global, defLayoutFace_y__1_0_1__1_0_1, None >@4
 
-Field dv< global, defLayoutFace_y__1_0_1__1_0_1, None >@5
-
-Field dw< global, defLayoutFace_z__1_1_0__1_1_0, None >@5
+Field dw< global, defLayoutFace_z__1_1_0__1_1_0, None >@4
 
 Field AuStencilData< global, defLayout7Face_x__0_0_0__0_0_0, None >@1
 
@@ -649,8 +524,6 @@ Field AuStencilData< global, defLayout7Face_x__0_0_0__0_0_0, None >@3
 
 Field AuStencilData< global, defLayout7Face_x__0_0_0__0_0_0, None >@4
 
-Field AuStencilData< global, defLayout7Face_x__0_0_0__0_0_0, None >@5
-
 Field AvStencilData< global, defLayout7Face_y__0_0_0__0_0_0, None >@1
 
 Field AvStencilData< global, defLayout7Face_y__0_0_0__0_0_0, None >@2
@@ -658,8 +531,6 @@ Field AvStencilData< global, defLayout7Face_y__0_0_0__0_0_0, None >@2
 Field AvStencilData< global, defLayout7Face_y__0_0_0__0_0_0, None >@3
 
 Field AvStencilData< global, defLayout7Face_y__0_0_0__0_0_0, None >@4
-
-Field AvStencilData< global, defLayout7Face_y__0_0_0__0_0_0, None >@5
 
 Field AwStencilData< global, defLayout7Face_z__0_0_0__0_0_0, None >@1
 
@@ -669,8 +540,6 @@ Field AwStencilData< global, defLayout7Face_z__0_0_0__0_0_0, None >@3
 
 Field AwStencilData< global, defLayout7Face_z__0_0_0__0_0_0, None >@4
 
-Field AwStencilData< global, defLayout7Face_z__0_0_0__0_0_0, None >@5
-
 Field ApcStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@1
 
 Field ApcStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@2
@@ -679,8 +548,6 @@ Field ApcStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@3
 
 Field ApcStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@4
 
-Field ApcStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@5
-
 Field AtStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@1
 
 Field AtStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@2
@@ -688,8 +555,6 @@ Field AtStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@2
 Field AtStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@3
 
 Field AtStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@4
-
-Field AtStencilData< global, defLayout7Cell__0_0_0__0_0_0, None >@5
 
 // external field declarations
 
@@ -729,17 +594,6 @@ Stencil RestrictionCell@(3) {
 }
 
 Stencil RestrictionCell@(4) {
-	[0, 0, 0] => (0.5*(0.5*(0.5*1.0)))
-	[0, 0, 1] => (0.5*(0.5*(0.5*1.0)))
-	[0, 1, 0] => (0.5*(0.5*(0.5*1.0)))
-	[0, 1, 1] => (0.5*(0.5*(0.5*1.0)))
-	[1, 0, 0] => (0.5*(0.5*(0.5*1.0)))
-	[1, 0, 1] => (0.5*(0.5*(0.5*1.0)))
-	[1, 1, 0] => (0.5*(0.5*(0.5*1.0)))
-	[1, 1, 1] => (0.5*(0.5*(0.5*1.0)))
-}
-
-Stencil RestrictionCell@(5) {
 	[0, 0, 0] => (0.5*(0.5*(0.5*1.0)))
 	[0, 0, 1] => (0.5*(0.5*(0.5*1.0)))
 	[0, 1, 0] => (0.5*(0.5*(0.5*1.0)))
@@ -796,21 +650,6 @@ Stencil RestrictionFaceX@(3) {
 }
 
 Stencil RestrictionFaceX@(4) {
-	[-1, 0, 0] => (0.5*(0.5*(0.25*1.0)))
-	[-1, 0, 1] => (0.5*(0.5*(0.25*1.0)))
-	[-1, 1, 0] => (0.5*(0.5*(0.25*1.0)))
-	[-1, 1, 1] => (0.5*(0.5*(0.25*1.0)))
-	[0, 0, 0] => (0.5*(0.5*(0.5*1.0)))
-	[0, 0, 1] => (0.5*(0.5*(0.5*1.0)))
-	[0, 1, 0] => (0.5*(0.5*(0.5*1.0)))
-	[0, 1, 1] => (0.5*(0.5*(0.5*1.0)))
-	[1, 0, 0] => (0.5*(0.5*(0.25*1.0)))
-	[1, 0, 1] => (0.5*(0.5*(0.25*1.0)))
-	[1, 1, 0] => (0.5*(0.5*(0.25*1.0)))
-	[1, 1, 1] => (0.5*(0.5*(0.25*1.0)))
-}
-
-Stencil RestrictionFaceX@(5) {
 	[-1, 0, 0] => (0.5*(0.5*(0.25*1.0)))
 	[-1, 0, 1] => (0.5*(0.5*(0.25*1.0)))
 	[-1, 1, 0] => (0.5*(0.5*(0.25*1.0)))
@@ -885,21 +724,6 @@ Stencil RestrictionFaceY@(4) {
 	[1, 1, 1] => (0.5*(0.25*(0.5*1.0)))
 }
 
-Stencil RestrictionFaceY@(5) {
-	[0, -1, 0] => (0.5*(0.25*(0.5*1.0)))
-	[0, -1, 1] => (0.5*(0.25*(0.5*1.0)))
-	[0, 0, 0] => (0.5*(0.5*(0.5*1.0)))
-	[0, 0, 1] => (0.5*(0.5*(0.5*1.0)))
-	[0, 1, 0] => (0.5*(0.25*(0.5*1.0)))
-	[0, 1, 1] => (0.5*(0.25*(0.5*1.0)))
-	[1, -1, 0] => (0.5*(0.25*(0.5*1.0)))
-	[1, -1, 1] => (0.5*(0.25*(0.5*1.0)))
-	[1, 0, 0] => (0.5*(0.5*(0.5*1.0)))
-	[1, 0, 1] => (0.5*(0.5*(0.5*1.0)))
-	[1, 1, 0] => (0.5*(0.25*(0.5*1.0)))
-	[1, 1, 1] => (0.5*(0.25*(0.5*1.0)))
-}
-
 Stencil RestrictionFaceZ@(1) {
 	[0, 0, -1] => (0.25*(0.5*(0.5*1.0)))
 	[0, 0, 0] => (0.5*(0.5*(0.5*1.0)))
@@ -960,21 +784,6 @@ Stencil RestrictionFaceZ@(4) {
 	[1, 1, 1] => (0.25*(0.5*(0.5*1.0)))
 }
 
-Stencil RestrictionFaceZ@(5) {
-	[0, 0, -1] => (0.25*(0.5*(0.5*1.0)))
-	[0, 0, 0] => (0.5*(0.5*(0.5*1.0)))
-	[0, 0, 1] => (0.25*(0.5*(0.5*1.0)))
-	[0, 1, -1] => (0.25*(0.5*(0.5*1.0)))
-	[0, 1, 0] => (0.5*(0.5*(0.5*1.0)))
-	[0, 1, 1] => (0.25*(0.5*(0.5*1.0)))
-	[1, 0, -1] => (0.25*(0.5*(0.5*1.0)))
-	[1, 0, 0] => (0.5*(0.5*(0.5*1.0)))
-	[1, 0, 1] => (0.25*(0.5*(0.5*1.0)))
-	[1, 1, -1] => (0.25*(0.5*(0.5*1.0)))
-	[1, 1, 0] => (0.5*(0.5*(0.5*1.0)))
-	[1, 1, 1] => (0.25*(0.5*(0.5*1.0)))
-}
-
 Stencil CorrectionCell@(1) {
 	[0, 0, 0] => 1.0
 }
@@ -988,10 +797,6 @@ Stencil CorrectionCell@(3) {
 }
 
 Stencil CorrectionCell@(4) {
-	[0, 0, 0] => 1.0
-}
-
-Stencil CorrectionCell@(5) {
 	[0, 0, 0] => 1.0
 }
 
@@ -1011,11 +816,6 @@ Stencil CorrectionFaceX@(3) {
 }
 
 Stencil CorrectionFaceX@(4) {
-	[0, 0, 0] => (0.5*1.0)
-	[(x%2), 0, 0] => (0.5*1.0)
-}
-
-Stencil CorrectionFaceX@(5) {
 	[0, 0, 0] => (0.5*1.0)
 	[(x%2), 0, 0] => (0.5*1.0)
 }
@@ -1040,11 +840,6 @@ Stencil CorrectionFaceY@(4) {
 	[0, (y%2), 0] => (0.5*1.0)
 }
 
-Stencil CorrectionFaceY@(5) {
-	[0, 0, 0] => (0.5*1.0)
-	[0, (y%2), 0] => (0.5*1.0)
-}
-
 Stencil CorrectionFaceZ@(1) {
 	[0, 0, 0] => (0.5*1.0)
 	[0, 0, (z%2)] => (0.5*1.0)
@@ -1065,11 +860,6 @@ Stencil CorrectionFaceZ@(4) {
 	[0, 0, (z%2)] => (0.5*1.0)
 }
 
-Stencil CorrectionFaceZ@(5) {
-	[0, 0, 0] => (0.5*1.0)
-	[0, 0, (z%2)] => (0.5*1.0)
-}
-
 // stencil field declarations
 
 StencilField AuStencil< AuStencilData => AuStencilTemplate >@1
@@ -1080,8 +870,6 @@ StencilField AuStencil< AuStencilData => AuStencilTemplate >@3
 
 StencilField AuStencil< AuStencilData => AuStencilTemplate >@4
 
-StencilField AuStencil< AuStencilData => AuStencilTemplate >@5
-
 StencilField AvStencil< AvStencilData => AvStencilTemplate >@1
 
 StencilField AvStencil< AvStencilData => AvStencilTemplate >@2
@@ -1089,8 +877,6 @@ StencilField AvStencil< AvStencilData => AvStencilTemplate >@2
 StencilField AvStencil< AvStencilData => AvStencilTemplate >@3
 
 StencilField AvStencil< AvStencilData => AvStencilTemplate >@4
-
-StencilField AvStencil< AvStencilData => AvStencilTemplate >@5
 
 StencilField AwStencil< AwStencilData => AwStencilTemplate >@1
 
@@ -1100,8 +886,6 @@ StencilField AwStencil< AwStencilData => AwStencilTemplate >@3
 
 StencilField AwStencil< AwStencilData => AwStencilTemplate >@4
 
-StencilField AwStencil< AwStencilData => AwStencilTemplate >@5
-
 StencilField ApcStencil< ApcStencilData => ApcStencilTemplate >@1
 
 StencilField ApcStencil< ApcStencilData => ApcStencilTemplate >@2
@@ -1110,8 +894,6 @@ StencilField ApcStencil< ApcStencilData => ApcStencilTemplate >@3
 
 StencilField ApcStencil< ApcStencilData => ApcStencilTemplate >@4
 
-StencilField ApcStencil< ApcStencilData => ApcStencilTemplate >@5
-
 StencilField AtStencil< AtStencilData => AtStencilTemplate >@1
 
 StencilField AtStencil< AtStencilData => AtStencilTemplate >@2
@@ -1119,8 +901,6 @@ StencilField AtStencil< AtStencilData => AtStencilTemplate >@2
 StencilField AtStencil< AtStencilData => AtStencilTemplate >@3
 
 StencilField AtStencil< AtStencilData => AtStencilTemplate >@4
-
-StencilField AtStencil< AtStencilData => AtStencilTemplate >@5
 
 Layout DefCellLayout< Real, cell >@all {
 	duplicateLayers = [0, 0, 0]
@@ -1490,25 +1270,25 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 
 Function CompileStencil_u@finest ( ) : Unit {
 	loop over AuStencil@current {
-		Value flow_e@current : Real = integrateOverXStaggeredEastFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_w@current : Real = integrateOverXStaggeredWestFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_n@current : Real = integrateOverXStaggeredNorthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_s@current : Real = integrateOverXStaggeredSouthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_t@current : Real = integrateOverXStaggeredTopFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_b@current : Real = integrateOverXStaggeredBottomFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_e : Real = integrateOverXStaggeredEastFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_w : Real = integrateOverXStaggeredWestFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_n : Real = integrateOverXStaggeredNorthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_s : Real = integrateOverXStaggeredSouthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_t : Real = integrateOverXStaggeredTopFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_b : Real = integrateOverXStaggeredBottomFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
 		Value diff_e : Real = (integrateOverXStaggeredEastFace ( vis@current )/vf_cellWidth_x@current)
 		Value diff_w : Real = (integrateOverXStaggeredWestFace ( vis@current )/vf_cellWidth_x@current@[-1, 0, 0])
 		Value diff_n : Real = (integrateOverXStaggeredNorthFace ( evalAtXStaggeredNorthFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_y@current@[0, 1, 0])
 		Value diff_s : Real = (integrateOverXStaggeredSouthFace ( evalAtXStaggeredSouthFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_y@current)
 		Value diff_t : Real = (integrateOverXStaggeredTopFace ( evalAtXStaggeredTopFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_z@current@[0, 0, 1])
 		Value diff_b : Real = (integrateOverXStaggeredBottomFace ( evalAtXStaggeredBottomFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_z@current)
-		AuStencil@current:[1, 0, 0] = (-1.0*(calc_diflow ( flow_e@current, diff_e )+max ( 0.0, (-1.0*flow_e@current) )))
-		AuStencil@current:[-1, 0, 0] = (-1.0*(calc_diflow ( flow_w@current, diff_w )+max ( 0.0, flow_w@current )))
-		AuStencil@current:[0, 1, 0] = (-1.0*(calc_diflow ( flow_n@current, diff_n )+max ( 0.0, (-1.0*flow_n@current) )))
-		AuStencil@current:[0, -1, 0] = (-1.0*(calc_diflow ( flow_s@current, diff_s )+max ( 0.0, flow_s@current )))
-		AuStencil@current:[0, 0, 1] = (-1.0*(calc_diflow ( flow_t@current, diff_t )+max ( 0.0, (-1.0*flow_t@current) )))
-		AuStencil@current:[0, 0, -1] = (-1.0*(calc_diflow ( flow_b@current, diff_b )+max ( 0.0, flow_b@current )))
-		Variable smasa : Real = (((((((flow_e@current-flow_w@current)+flow_n@current)-flow_s@current)+flow_t@current)-flow_b@current)/vf_xStagCellVolume@current)+((rho[activeSlot]@current-rho[previousSlot]@current)/dt))
+		AuStencil@current:[1, 0, 0] = (-1.0*(calc_diflow ( flow_e, diff_e )+max ( 0.0, (-1.0*flow_e) )))
+		AuStencil@current:[-1, 0, 0] = (-1.0*(calc_diflow ( flow_w, diff_w )+max ( 0.0, flow_w )))
+		AuStencil@current:[0, 1, 0] = (-1.0*(calc_diflow ( flow_n, diff_n )+max ( 0.0, (-1.0*flow_n) )))
+		AuStencil@current:[0, -1, 0] = (-1.0*(calc_diflow ( flow_s, diff_s )+max ( 0.0, flow_s )))
+		AuStencil@current:[0, 0, 1] = (-1.0*(calc_diflow ( flow_t, diff_t )+max ( 0.0, (-1.0*flow_t) )))
+		AuStencil@current:[0, 0, -1] = (-1.0*(calc_diflow ( flow_b, diff_b )+max ( 0.0, flow_b )))
+		Variable smasa : Real = (((((((flow_e-flow_w)+flow_n)-flow_s)+flow_t)-flow_b)/vf_xStagCellVolume@current)+((rho[activeSlot]@current-rho[previousSlot]@current)/dt))
 		smasa = max ( 0.0, smasa )
 		AuStencil@current:[0, 0, 0] = smasa
 		AuStencil@current:[0, 0, 0] += (evalAtWestFace ( rho[activeSlot]@current )/dt)
@@ -1528,25 +1308,25 @@ Function CompileStencil_u@finest ( ) : Unit {
 
 Function CompileStencil_v@finest ( ) : Unit {
 	loop over AvStencil@current {
-		Value flow_e@current : Real = integrateOverYStaggeredEastFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_w@current : Real = integrateOverYStaggeredWestFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_n@current : Real = integrateOverYStaggeredNorthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_s@current : Real = integrateOverYStaggeredSouthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_t@current : Real = integrateOverYStaggeredTopFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_b@current : Real = integrateOverYStaggeredBottomFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_e : Real = integrateOverYStaggeredEastFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_w : Real = integrateOverYStaggeredWestFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_n : Real = integrateOverYStaggeredNorthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_s : Real = integrateOverYStaggeredSouthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_t : Real = integrateOverYStaggeredTopFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_b : Real = integrateOverYStaggeredBottomFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
 		Value diff_e : Real = (integrateOverYStaggeredEastFace ( evalAtYStaggeredEastFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_x@current@[1, 0, 0])
 		Value diff_w : Real = (integrateOverYStaggeredWestFace ( evalAtYStaggeredWestFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_x@current)
 		Value diff_n : Real = (integrateOverYStaggeredNorthFace ( vis@current )/vf_cellWidth_y@current)
 		Value diff_s : Real = (integrateOverYStaggeredSouthFace ( vis@current )/vf_cellWidth_y@current@[0, -1, 0])
 		Value diff_t : Real = (integrateOverYStaggeredTopFace ( evalAtYStaggeredTopFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_z@current@[0, 0, 1])
 		Value diff_b : Real = (integrateOverYStaggeredBottomFace ( evalAtYStaggeredBottomFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_z@current)
-		AvStencil@current:[1, 0, 0] = (-1.0*(calc_diflow ( flow_e@current, diff_e )+max ( 0.0, (-1.0*flow_e@current) )))
-		AvStencil@current:[-1, 0, 0] = (-1.0*(calc_diflow ( flow_w@current, diff_w )+max ( 0.0, flow_w@current )))
-		AvStencil@current:[0, 1, 0] = (-1.0*(calc_diflow ( flow_n@current, diff_n )+max ( 0.0, (-1.0*flow_n@current) )))
-		AvStencil@current:[0, -1, 0] = (-1.0*(calc_diflow ( flow_s@current, diff_s )+max ( 0.0, flow_s@current )))
-		AvStencil@current:[0, 0, 1] = (-1.0*(calc_diflow ( flow_t@current, diff_t )+max ( 0.0, (-1.0*flow_t@current) )))
-		AvStencil@current:[0, 0, -1] = (-1.0*(calc_diflow ( flow_b@current, diff_b )+max ( 0.0, flow_b@current )))
-		Variable smasa : Real = (((((((flow_e@current-flow_w@current)+flow_n@current)-flow_s@current)+flow_t@current)-flow_b@current)/vf_yStagCellVolume@current)+((rho[activeSlot]@current-rho[previousSlot]@current)/dt))
+		AvStencil@current:[1, 0, 0] = (-1.0*(calc_diflow ( flow_e, diff_e )+max ( 0.0, (-1.0*flow_e) )))
+		AvStencil@current:[-1, 0, 0] = (-1.0*(calc_diflow ( flow_w, diff_w )+max ( 0.0, flow_w )))
+		AvStencil@current:[0, 1, 0] = (-1.0*(calc_diflow ( flow_n, diff_n )+max ( 0.0, (-1.0*flow_n) )))
+		AvStencil@current:[0, -1, 0] = (-1.0*(calc_diflow ( flow_s, diff_s )+max ( 0.0, flow_s )))
+		AvStencil@current:[0, 0, 1] = (-1.0*(calc_diflow ( flow_t, diff_t )+max ( 0.0, (-1.0*flow_t) )))
+		AvStencil@current:[0, 0, -1] = (-1.0*(calc_diflow ( flow_b, diff_b )+max ( 0.0, flow_b )))
+		Variable smasa : Real = (((((((flow_e-flow_w)+flow_n)-flow_s)+flow_t)-flow_b)/vf_yStagCellVolume@current)+((rho[activeSlot]@current-rho[previousSlot]@current)/dt))
 		smasa = max ( 0.0, smasa )
 		AvStencil@current:[0, 0, 0] = smasa
 		AvStencil@current:[0, 0, 0] += (evalAtSouthFace ( rho[activeSlot]@current )/dt)
@@ -1567,25 +1347,25 @@ Function CompileStencil_v@finest ( ) : Unit {
 
 Function CompileStencil_w@finest ( ) : Unit {
 	loop over AwStencil@current {
-		Value flow_e@current : Real = integrateOverZStaggeredEastFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_w@current : Real = integrateOverZStaggeredWestFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_n@current : Real = integrateOverZStaggeredNorthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_s@current : Real = integrateOverZStaggeredSouthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_t@current : Real = integrateOverZStaggeredTopFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_b@current : Real = integrateOverZStaggeredBottomFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_e : Real = integrateOverZStaggeredEastFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_w : Real = integrateOverZStaggeredWestFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_n : Real = integrateOverZStaggeredNorthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_s : Real = integrateOverZStaggeredSouthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_t : Real = integrateOverZStaggeredTopFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_b : Real = integrateOverZStaggeredBottomFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
 		Value diff_e : Real = (integrateOverZStaggeredEastFace ( evalAtZStaggeredEastFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_x@current@[1, 0, 0])
 		Value diff_w : Real = (integrateOverZStaggeredWestFace ( evalAtZStaggeredWestFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_x@current)
 		Value diff_n : Real = (integrateOverZStaggeredNorthFace ( evalAtZStaggeredNorthFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_y@current@[0, 1, 0])
 		Value diff_s : Real = (integrateOverZStaggeredSouthFace ( evalAtZStaggeredSouthFace ( vis@current, "harmonicMean" ) )/vf_stagCVWidth_y@current)
 		Value diff_t : Real = (integrateOverZStaggeredTopFace ( vis@current )/vf_cellWidth_z@current)
 		Value diff_b : Real = (integrateOverZStaggeredBottomFace ( vis@current )/vf_cellWidth_z@current@[0, 0, -1])
-		AwStencil@current:[1, 0, 0] = (-1.0*(calc_diflow ( flow_e@current, diff_e )+max ( 0.0, (-1.0*flow_e@current) )))
-		AwStencil@current:[-1, 0, 0] = (-1.0*(calc_diflow ( flow_w@current, diff_w )+max ( 0.0, flow_w@current )))
-		AwStencil@current:[0, 1, 0] = (-1.0*(calc_diflow ( flow_n@current, diff_n )+max ( 0.0, (-1.0*flow_n@current) )))
-		AwStencil@current:[0, -1, 0] = (-1.0*(calc_diflow ( flow_s@current, diff_s )+max ( 0.0, flow_s@current )))
-		AwStencil@current:[0, 0, 1] = (-1.0*(calc_diflow ( flow_t@current, diff_t )+max ( 0.0, (-1.0*flow_t@current) )))
-		AwStencil@current:[0, 0, -1] = (-1.0*(calc_diflow ( flow_b@current, diff_b )+max ( 0.0, flow_b@current )))
-		Variable smasa : Real = (((((((flow_e@current-flow_w@current)+flow_n@current)-flow_s@current)+flow_t@current)-flow_b@current)/vf_zStagCellVolume@current)+((rho[activeSlot]@current-rho[previousSlot]@current)/dt))
+		AwStencil@current:[1, 0, 0] = (-1.0*(calc_diflow ( flow_e, diff_e )+max ( 0.0, (-1.0*flow_e) )))
+		AwStencil@current:[-1, 0, 0] = (-1.0*(calc_diflow ( flow_w, diff_w )+max ( 0.0, flow_w )))
+		AwStencil@current:[0, 1, 0] = (-1.0*(calc_diflow ( flow_n, diff_n )+max ( 0.0, (-1.0*flow_n) )))
+		AwStencil@current:[0, -1, 0] = (-1.0*(calc_diflow ( flow_s, diff_s )+max ( 0.0, flow_s )))
+		AwStencil@current:[0, 0, 1] = (-1.0*(calc_diflow ( flow_t, diff_t )+max ( 0.0, (-1.0*flow_t) )))
+		AwStencil@current:[0, 0, -1] = (-1.0*(calc_diflow ( flow_b, diff_b )+max ( 0.0, flow_b )))
+		Variable smasa : Real = (((((((flow_e-flow_w)+flow_n)-flow_s)+flow_t)-flow_b)/vf_zStagCellVolume@current)+((rho[activeSlot]@current-rho[previousSlot]@current)/dt))
 		smasa = max ( 0.0, smasa )
 		AwStencil@current:[0, 0, 0] = smasa
 		AwStencil@current:[0, 0, 0] += (evalAtBottomFace ( rho[activeSlot]@current )/dt)
@@ -1619,25 +1399,25 @@ Function CompileStencil_pc@finest ( ) : Unit {
 
 Function CompileStencil_t@finest ( ) : Unit {
 	loop over AtStencil@current {
-		Value flow_e@current : Real = integrateOverEastFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_w@current : Real = integrateOverWestFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_n@current : Real = integrateOverNorthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_s@current : Real = integrateOverSouthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_t@current : Real = integrateOverTopFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
-		Value flow_b@current : Real = integrateOverBottomFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_e : Real = integrateOverEastFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_w : Real = integrateOverWestFace ( (u[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_n : Real = integrateOverNorthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_s : Real = integrateOverSouthFace ( (v[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_t : Real = integrateOverTopFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
+		Value flow_b : Real = integrateOverBottomFace ( (w[activeSlot]@current*rho[activeSlot]@current) )
 		Value diff_e : Real = (integrateOverEastFace ( evalAtEastFace ( gamma@current, "harmonicMean" ) )/vf_stagCVWidth_x@current@[1, 0, 0])
 		Value diff_w : Real = (integrateOverWestFace ( evalAtWestFace ( gamma@current, "harmonicMean" ) )/vf_stagCVWidth_x@current)
 		Value diff_n : Real = (integrateOverNorthFace ( evalAtNorthFace ( gamma@current, "harmonicMean" ) )/vf_stagCVWidth_y@current@[0, 1, 0])
 		Value diff_s : Real = (integrateOverSouthFace ( evalAtSouthFace ( gamma@current, "harmonicMean" ) )/vf_stagCVWidth_y@current)
 		Value diff_t : Real = (integrateOverTopFace ( evalAtTopFace ( gamma@current, "harmonicMean" ) )/vf_stagCVWidth_z@current@[0, 0, 1])
 		Value diff_b : Real = (integrateOverBottomFace ( evalAtBottomFace ( gamma@current, "harmonicMean" ) )/vf_stagCVWidth_z@current)
-		AtStencil@current:[1, 0, 0] = (-1.0*(calc_diflow ( flow_e@current, diff_e )+max ( 0.0, (-1.0*flow_e@current) )))
-		AtStencil@current:[-1, 0, 0] = (-1.0*(calc_diflow ( flow_w@current, diff_w )+max ( 0.0, flow_w@current )))
-		AtStencil@current:[0, 1, 0] = (-1.0*(calc_diflow ( flow_n@current, diff_n )+max ( 0.0, (-1.0*flow_n@current) )))
-		AtStencil@current:[0, -1, 0] = (-1.0*(calc_diflow ( flow_s@current, diff_s )+max ( 0.0, flow_s@current )))
-		AtStencil@current:[0, 0, 1] = (-1.0*(calc_diflow ( flow_t@current, diff_t )+max ( 0.0, (-1.0*flow_t@current) )))
-		AtStencil@current:[0, 0, -1] = (-1.0*(calc_diflow ( flow_b@current, diff_b )+max ( 0.0, flow_b@current )))
-		Variable smasa : Real = (((((((flow_e@current-flow_w@current)+flow_n@current)-flow_s@current)+flow_t@current)-flow_b@current)/vf_cellVolume@current)+((rho[activeSlot]@current-rho[previousSlot]@current)/dt))
+		AtStencil@current:[1, 0, 0] = (-1.0*(calc_diflow ( flow_e, diff_e )+max ( 0.0, (-1.0*flow_e) )))
+		AtStencil@current:[-1, 0, 0] = (-1.0*(calc_diflow ( flow_w, diff_w )+max ( 0.0, flow_w )))
+		AtStencil@current:[0, 1, 0] = (-1.0*(calc_diflow ( flow_n, diff_n )+max ( 0.0, (-1.0*flow_n) )))
+		AtStencil@current:[0, -1, 0] = (-1.0*(calc_diflow ( flow_s, diff_s )+max ( 0.0, flow_s )))
+		AtStencil@current:[0, 0, 1] = (-1.0*(calc_diflow ( flow_t, diff_t )+max ( 0.0, (-1.0*flow_t) )))
+		AtStencil@current:[0, 0, -1] = (-1.0*(calc_diflow ( flow_b, diff_b )+max ( 0.0, flow_b )))
+		Variable smasa : Real = (((((((flow_e-flow_w)+flow_n)-flow_s)+flow_t)-flow_b)/vf_cellVolume@current)+((rho[activeSlot]@current-rho[previousSlot]@current)/dt))
 		smasa = max ( 0.0, smasa )
 		AtStencil@current:[0, 0, 0] = (smasa+(rho[activeSlot]@current/dt))
 		AtStencil@current:[0, 0, 0] = ((((((((AtStencil@current:[0, 0, 0]*vf_cellVolume@current)-AtStencil@current:[1, 0, 0])-AtStencil@current:[-1, 0, 0])-AtStencil@current:[0, 1, 0])-AtStencil@current:[0, -1, 0])-AtStencil@current:[0, 0, 1])-AtStencil@current:[0, 0, -1])/relax_7)
@@ -1710,353 +1490,263 @@ Function InitFields ( ) : Unit {
 	
 }
 
-Function AdvanceFields@(5) ( ) : Unit {
+Function AdvanceFields@(4) ( ) : Unit {
 	loop over u[nextSlot]@current {
 		u[nextSlot]@current = u@current
 	}
-	apply bc to u[nextSlot]@current
-	
+	advance u@current
 	loop over v[nextSlot]@current {
 		v[nextSlot]@current = v@current
 	}
-	apply bc to v[nextSlot]@current
-	
+	advance v@current
 	loop over w[nextSlot]@current {
 		w[nextSlot]@current = w@current
 	}
-	apply bc to w[nextSlot]@current
-	
+	advance w@current
 	loop over rho[nextSlot]@current {
 		rho[nextSlot]@current = rho@current
 	}
-	apply bc to rho[nextSlot]@current
-	
+	advance rho@current
 	loop over phi7[nextSlot]@current {
 		phi7[nextSlot]@current = phi7@current
 	}
-	apply bc to phi7[nextSlot]@current
-	
+	advance phi7@current
 }
 
-Function Smooth_u@(2, 1, 3, 4, 5) ( ) : Unit {
+Function Smooth_u@(2, 1, 3, 4) ( ) : Unit {
 	repeat 3 times {
-		communicate ghost to [1, 1, 1] of u@current
 		loop over u@current where (0==(((x+y)+z)%2)){
 			u@current += ((1.0*diag_inv ( AuStencil@current ))*(rhs_u@current-(AuStencil@current*u@current)))
 		}
-		apply bc to u@current
-		communicate ghost to [1, 1, 1] of u@current
 		loop over u@current where (1==(((x+y)+z)%2)){
 			u@current += ((1.0*diag_inv ( AuStencil@current ))*(rhs_u@current-(AuStencil@current*u@current)))
 		}
-		apply bc to u@current
 	}
 }
 
-Function Smooth_v@(2, 1, 3, 4, 5) ( ) : Unit {
+Function Smooth_v@(2, 1, 3, 4) ( ) : Unit {
 	repeat 3 times {
-		communicate ghost to [1, 1, 1] of v@current
 		loop over v@current where (0==(((x+y)+z)%2)){
 			v@current += ((1.0*diag_inv ( AvStencil@current ))*(rhs_v@current-(AvStencil@current*v@current)))
 		}
-		apply bc to v@current
-		communicate ghost to [1, 1, 1] of v@current
 		loop over v@current where (1==(((x+y)+z)%2)){
 			v@current += ((1.0*diag_inv ( AvStencil@current ))*(rhs_v@current-(AvStencil@current*v@current)))
 		}
-		apply bc to v@current
 	}
 }
 
-Function Smooth_w@(2, 1, 3, 4, 5) ( ) : Unit {
+Function Smooth_w@(2, 1, 3, 4) ( ) : Unit {
 	repeat 3 times {
-		communicate ghost to [1, 1, 1] of w@current
 		loop over w@current where (0==(((x+y)+z)%2)){
 			w@current += ((1.0*diag_inv ( AwStencil@current ))*(rhs_w@current-(AwStencil@current*w@current)))
 		}
-		apply bc to w@current
-		communicate ghost to [1, 1, 1] of w@current
 		loop over w@current where (1==(((x+y)+z)%2)){
 			w@current += ((1.0*diag_inv ( AwStencil@current ))*(rhs_w@current-(AwStencil@current*w@current)))
 		}
-		apply bc to w@current
 	}
 }
 
-Function Smooth_pc@(2, 1, 3, 4, 5) ( ) : Unit {
+Function Smooth_pc@(2, 1, 3, 4) ( ) : Unit {
 	repeat 3 times {
-		communicate ghost to [1, 1, 1] of pc@current
 		loop over pc@current where (0==(((x+y)+z)%2)){
 			pc@current += ((0.8*diag_inv ( ApcStencil@current ))*(rhs_pc@current-(ApcStencil@current*pc@current)))
 		}
-		apply bc to pc@current
-		communicate ghost to [1, 1, 1] of pc@current
 		loop over pc@current where (1==(((x+y)+z)%2)){
 			pc@current += ((0.8*diag_inv ( ApcStencil@current ))*(rhs_pc@current-(ApcStencil@current*pc@current)))
 		}
-		apply bc to pc@current
 	}
 }
 
-Function Smooth_t@(2, 1, 3, 4, 5) ( ) : Unit {
+Function Smooth_t@(2, 1, 3, 4) ( ) : Unit {
 	repeat 3 times {
-		communicate ghost to [1, 1, 1] of phi7@current
 		loop over phi7@current where (0==(((x+y)+z)%2)){
 			phi7@current += ((1.0*diag_inv ( AtStencil@current ))*(rhs_t@current-(AtStencil@current*phi7@current)))
 		}
-		apply bc to phi7@current
-		communicate ghost to [1, 1, 1] of phi7@current
 		loop over phi7@current where (1==(((x+y)+z)%2)){
 			phi7@current += ((1.0*diag_inv ( AtStencil@current ))*(rhs_t@current-(AtStencil@current*phi7@current)))
 		}
-		apply bc to phi7@current
 	}
 }
 
-Function VCycle_u@(2, 3, 4, 5) ( ) : Unit {
+Function VCycle_u@(2, 3, 4) ( ) : Unit {
 	Smooth_u@current (  )
-	communicate ghost to [1, 1, 1] of u@current
 	loop over residual_u@current {
 		residual_u@current = (rhs_u@current-(AuStencil@current*u@current))
 	}
-	apply bc to residual_u@current
-	communicate ghost to [1, 1, 1] of residual_u@current
 	loop over rhs_u@coarser {
 		rhs_u@coarser = (RestrictionFaceX@current*residual_u@current)
 	}
-	apply bc to rhs_u@coarser
 	loop over u@coarser {
 		u@coarser = 0.0
 	}
-	apply bc to u@coarser
 	VCycle_u@coarser (  )
-	communicate ghost to [1, 0, 0] of u@coarser
 	loop over u@current {
 		u@current += (CorrectionFaceX@current*u@coarser)
 	}
-	apply bc to u@current
 	Smooth_u@current (  )
 }
 
-Function VCycle_v@(2, 3, 4, 5) ( ) : Unit {
+Function VCycle_v@(2, 3, 4) ( ) : Unit {
 	Smooth_v@current (  )
-	communicate ghost to [1, 1, 1] of v@current
 	loop over residual_v@current {
 		residual_v@current = (rhs_v@current-(AvStencil@current*v@current))
 	}
-	apply bc to residual_v@current
-	communicate ghost to [1, 1, 1] of residual_v@current
 	loop over rhs_v@coarser {
 		rhs_v@coarser = (RestrictionFaceY@current*residual_v@current)
 	}
-	apply bc to rhs_v@coarser
 	loop over v@coarser {
 		v@coarser = 0.0
 	}
-	apply bc to v@coarser
 	VCycle_v@coarser (  )
-	communicate ghost to [0, 1, 0] of v@coarser
 	loop over v@current {
 		v@current += (CorrectionFaceY@current*v@coarser)
 	}
-	apply bc to v@current
 	Smooth_v@current (  )
 }
 
-Function VCycle_w@(2, 3, 4, 5) ( ) : Unit {
+Function VCycle_w@(2, 3, 4) ( ) : Unit {
 	Smooth_w@current (  )
-	communicate ghost to [1, 1, 1] of w@current
 	loop over residual_w@current {
 		residual_w@current = (rhs_w@current-(AwStencil@current*w@current))
 	}
-	apply bc to residual_w@current
-	communicate ghost to [1, 1, 1] of residual_w@current
 	loop over rhs_w@coarser {
 		rhs_w@coarser = (RestrictionFaceZ@current*residual_w@current)
 	}
-	apply bc to rhs_w@coarser
 	loop over w@coarser {
 		w@coarser = 0.0
 	}
-	apply bc to w@coarser
 	VCycle_w@coarser (  )
-	communicate ghost to [0, 0, 1] of w@coarser
 	loop over w@current {
 		w@current += (CorrectionFaceZ@current*w@coarser)
 	}
-	apply bc to w@current
 	Smooth_w@current (  )
 }
 
-Function VCycle_pc@(2, 3, 4, 5) ( ) : Unit {
+Function VCycle_pc@(2, 3, 4) ( ) : Unit {
 	Smooth_pc@current (  )
-	communicate ghost to [1, 1, 1] of pc@current
 	loop over residual_pc@current {
 		residual_pc@current = (rhs_pc@current-(ApcStencil@current*pc@current))
 	}
-	apply bc to residual_pc@current
-	communicate ghost to [1, 1, 1] of residual_pc@current
 	loop over rhs_pc@coarser {
 		rhs_pc@coarser = (RestrictionCell@current*residual_pc@current)
 	}
-	apply bc to rhs_pc@coarser
 	loop over pc@coarser {
 		pc@coarser = 0.0
 	}
-	apply bc to pc@coarser
 	VCycle_pc@coarser (  )
 	loop over pc@current {
 		pc@current += (CorrectionCell@current*pc@coarser)
 	}
-	apply bc to pc@current
 	Smooth_pc@current (  )
 }
 
-Function VCycle_t@(2, 3, 4, 5) ( ) : Unit {
+Function VCycle_t@(2, 3, 4) ( ) : Unit {
 	Smooth_t@current (  )
-	communicate ghost to [1, 1, 1] of phi7@current
 	loop over residual_t@current {
 		residual_t@current = (rhs_t@current-(AtStencil@current*phi7@current))
 	}
-	apply bc to residual_t@current
-	communicate ghost to [1, 1, 1] of residual_t@current
 	loop over rhs_t@coarser {
 		rhs_t@coarser = (RestrictionCell@current*residual_t@current)
 	}
-	apply bc to rhs_t@coarser
 	loop over phi7@coarser {
 		phi7@coarser = 0.0
 	}
-	apply bc to phi7@coarser
 	VCycle_t@coarser (  )
 	loop over phi7@current {
 		phi7@current += (CorrectionCell@current*phi7@coarser)
 	}
-	apply bc to phi7@current
 	Smooth_t@current (  )
 }
 
 Function VCycle_u@(1) ( ) : Unit {
 	repeat 4 times {
-		communicate ghost to [1, 1, 1] of u@current
 		loop over u@current where (0==(((x+y)+z)%2)){
 			u@current += (((1.0/diag ( AuStencil@current ))*1.0)*(rhs_u@current-(AuStencil@current*u@current)))
 		}
-		apply bc to u@current
-		communicate ghost to [1, 1, 1] of u@current
 		loop over u@current where (1==(((x+y)+z)%2)){
 			u@current += (((1.0/diag ( AuStencil@current ))*1.0)*(rhs_u@current-(AuStencil@current*u@current)))
 		}
-		apply bc to u@current
 	}
 }
 
 Function VCycle_v@(1) ( ) : Unit {
 	repeat 4 times {
-		communicate ghost to [1, 1, 1] of v@current
 		loop over v@current where (0==(((x+y)+z)%2)){
 			v@current += (((1.0/diag ( AvStencil@current ))*1.0)*(rhs_v@current-(AvStencil@current*v@current)))
 		}
-		apply bc to v@current
-		communicate ghost to [1, 1, 1] of v@current
 		loop over v@current where (1==(((x+y)+z)%2)){
 			v@current += (((1.0/diag ( AvStencil@current ))*1.0)*(rhs_v@current-(AvStencil@current*v@current)))
 		}
-		apply bc to v@current
 	}
 }
 
 Function VCycle_w@(1) ( ) : Unit {
 	repeat 4 times {
-		communicate ghost to [1, 1, 1] of w@current
 		loop over w@current where (0==(((x+y)+z)%2)){
 			w@current += (((1.0/diag ( AwStencil@current ))*1.0)*(rhs_w@current-(AwStencil@current*w@current)))
 		}
-		apply bc to w@current
-		communicate ghost to [1, 1, 1] of w@current
 		loop over w@current where (1==(((x+y)+z)%2)){
 			w@current += (((1.0/diag ( AwStencil@current ))*1.0)*(rhs_w@current-(AwStencil@current*w@current)))
 		}
-		apply bc to w@current
 	}
 }
 
 Function VCycle_pc@(1) ( ) : Unit {
 	repeat 4 times {
-		communicate ghost to [1, 1, 1] of pc@current
 		loop over pc@current where (0==(((x+y)+z)%2)){
 			pc@current += (((1.0/diag ( ApcStencil@current ))*0.8)*(rhs_pc@current-(ApcStencil@current*pc@current)))
 		}
-		apply bc to pc@current
-		communicate ghost to [1, 1, 1] of pc@current
 		loop over pc@current where (1==(((x+y)+z)%2)){
 			pc@current += (((1.0/diag ( ApcStencil@current ))*0.8)*(rhs_pc@current-(ApcStencil@current*pc@current)))
 		}
-		apply bc to pc@current
 	}
 }
 
 Function VCycle_t@(1) ( ) : Unit {
 	repeat 4 times {
-		communicate ghost to [1, 1, 1] of phi7@current
 		loop over phi7@current where (0==(((x+y)+z)%2)){
 			phi7@current += (((1.0/diag ( AtStencil@current ))*1.0)*(rhs_t@current-(AtStencil@current*phi7@current)))
 		}
-		apply bc to phi7@current
-		communicate ghost to [1, 1, 1] of phi7@current
 		loop over phi7@current where (1==(((x+y)+z)%2)){
 			phi7@current += (((1.0/diag ( AtStencil@current ))*1.0)*(rhs_t@current-(AtStencil@current*phi7@current)))
 		}
-		apply bc to phi7@current
 	}
 }
 
 Function UpdateResidual_u@(1) ( ) : Unit {
-	communicate ghost to [1, 1, 1] of u@current
 	loop over residual_u@current {
 		residual_u@current = (rhs_u@current-(AuStencil@current*u@current))
 	}
-	apply bc to residual_u@current
 }
 
 Function UpdateResidual_v@(1) ( ) : Unit {
-	communicate ghost to [1, 1, 1] of v@current
 	loop over residual_v@current {
 		residual_v@current = (rhs_v@current-(AvStencil@current*v@current))
 	}
-	apply bc to residual_v@current
 }
 
 Function UpdateResidual_w@(1) ( ) : Unit {
-	communicate ghost to [1, 1, 1] of w@current
 	loop over residual_w@current {
 		residual_w@current = (rhs_w@current-(AwStencil@current*w@current))
 	}
-	apply bc to residual_w@current
 }
 
 Function UpdateResidual_pc@(1) ( ) : Unit {
-	communicate ghost to [1, 1, 1] of pc@current
 	loop over residual_pc@current {
 		residual_pc@current = (rhs_pc@current-(ApcStencil@current*pc@current))
 	}
-	apply bc to residual_pc@current
 }
 
 Function UpdateResidual_t@(1) ( ) : Unit {
-	communicate ghost to [1, 1, 1] of phi7@current
 	loop over residual_t@current {
 		residual_t@current = (rhs_t@current-(AtStencil@current*phi7@current))
 	}
-	apply bc to residual_t@current
 }
 
-Function NormResidual_u@(5) ( ) : Real {
-	communicate ghost to [1, 1, 1] of u@current
+Function NormResidual_u@(4) ( ) : Real {
 	loop over residual_u@current {
 		residual_u@current = (rhs_u@current-(AuStencil@current*u@current))
 	}
-	apply bc to residual_u@current
 	Variable reductionVar_0 : Real = 0.0
 	loop over residual_u@current with reduction ( + : reductionVar_0 ) {
 		reductionVar_0 += (residual_u@current*residual_u@current)
@@ -2064,12 +1754,10 @@ Function NormResidual_u@(5) ( ) : Real {
 	return sqrt ( reductionVar_0 )
 }
 
-Function NormResidual_v@(5) ( ) : Real {
-	communicate ghost to [1, 1, 1] of v@current
+Function NormResidual_v@(4) ( ) : Real {
 	loop over residual_v@current {
 		residual_v@current = (rhs_v@current-(AvStencil@current*v@current))
 	}
-	apply bc to residual_v@current
 	Variable reductionVar_0 : Real = 0.0
 	loop over residual_v@current with reduction ( + : reductionVar_0 ) {
 		reductionVar_0 += (residual_v@current*residual_v@current)
@@ -2077,12 +1765,10 @@ Function NormResidual_v@(5) ( ) : Real {
 	return sqrt ( reductionVar_0 )
 }
 
-Function NormResidual_w@(5) ( ) : Real {
-	communicate ghost to [1, 1, 1] of w@current
+Function NormResidual_w@(4) ( ) : Real {
 	loop over residual_w@current {
 		residual_w@current = (rhs_w@current-(AwStencil@current*w@current))
 	}
-	apply bc to residual_w@current
 	Variable reductionVar_0 : Real = 0.0
 	loop over residual_w@current with reduction ( + : reductionVar_0 ) {
 		reductionVar_0 += (residual_w@current*residual_w@current)
@@ -2090,12 +1776,10 @@ Function NormResidual_w@(5) ( ) : Real {
 	return sqrt ( reductionVar_0 )
 }
 
-Function NormResidual_pc@(5) ( ) : Real {
-	communicate ghost to [1, 1, 1] of pc@current
+Function NormResidual_pc@(4) ( ) : Real {
 	loop over residual_pc@current {
 		residual_pc@current = (rhs_pc@current-(ApcStencil@current*pc@current))
 	}
-	apply bc to residual_pc@current
 	Variable reductionVar_0 : Real = 0.0
 	loop over residual_pc@current with reduction ( + : reductionVar_0 ) {
 		reductionVar_0 += (residual_pc@current*residual_pc@current)
@@ -2103,12 +1787,10 @@ Function NormResidual_pc@(5) ( ) : Real {
 	return sqrt ( reductionVar_0 )
 }
 
-Function NormResidual_t@(5) ( ) : Real {
-	communicate ghost to [1, 1, 1] of phi7@current
+Function NormResidual_t@(4) ( ) : Real {
 	loop over residual_t@current {
 		residual_t@current = (rhs_t@current-(AtStencil@current*phi7@current))
 	}
-	apply bc to residual_t@current
 	Variable reductionVar_0 : Real = 0.0
 	loop over residual_t@current with reduction ( + : reductionVar_0 ) {
 		reductionVar_0 += (residual_t@current*residual_t@current)

@@ -1,5 +1,5 @@
 
-Domain global
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 Field Solution with Real on Node of global = 0.0
 
@@ -42,14 +42,14 @@ Operator RAP2@(finest-1) from Restriction@finer * AP@finer
 */
 //Operator RAP_D@(finest-1) from Restriction@finer * Laplace_Stencil@finer * Prolongation@current
 
-/*Operator LinInterpolation@(all but coarsest) from Stencil {
+Operator LinInterpolation@(all but coarsest) from Stencil {
 	[i0] from [2 * i0 - 1] with 1.0 / 4.0
 	[i0] from [2 * i0 + 0] with 1.0 / 2.0
 	[i0] from [2 * i0 + 1] with 1.0 / 4.0
 }
 
-Operator Restriction@(all but coarsest) from kron ( LinInterpolation, LinInterpolation )*/
-
+Operator Restriction@(all but coarsest) from kron ( LinInterpolation, LinInterpolation )
+/*
 Operator Restriction@(all but coarsest) from Stencil {
 	[i0, i1] from [2 * i0 - 1, 2 * i1 - 1] with 1.0 / 16.0
 	[i0, i1] from [2 * i0 + 0, 2 * i1 - 1] with 1.0 / 8.0
@@ -63,5 +63,5 @@ Operator Restriction@(all but coarsest) from Stencil {
 	[i0, i1] from [2 * i0 + 0, 2 * i1 + 1] with 1.0 / 8.0
 	[i0, i1] from [2 * i0 + 1, 2 * i1 + 1] with 1.0 / 16.0
 }
-
+*/
 Operator Prolongation@(all but finest) from 4.0 * transpose ( Restriction@finer )

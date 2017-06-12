@@ -1,0 +1,24 @@
+Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
+
+
+
+Operator dx_Cell_xStag from Stencil {
+  [-1,  0] => -vf_cellWidth_y
+  [ 0,  0] =>  vf_cellWidth_y
+}
+
+Operator dy_Cell_yStag from Stencil {
+  [ 0, -1] => -vf_cellWidth_x
+  [ 0,  0] =>  vf_cellWidth_x
+}
+
+
+Operator dx_xStag_Cell from Stencil {
+  [ 0,  0] => -vf_cellWidth_y
+  [ 1,  0] =>  vf_cellWidth_y
+}
+
+Operator dy_yStag_Cell from Stencil {
+  [ 0,  0] => -vf_cellWidth_x
+  [ 0,  1] =>  vf_cellWidth_x
+}

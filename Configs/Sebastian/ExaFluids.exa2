@@ -14,7 +14,7 @@ Field v@all on boundary = 0.0
 Field w@all on boundary = 0.0
 Field pc@all on boundary = Neumann
 Field phi7@finest on boundary = applyBC_t@current ( )
-Field phi7@(all, but finest) on boundary = applyBC_t@current ( )
+Field phi7@(all but finest) on boundary = applyBC_t@current ( )
 
 Operator AuStencil  from StencilTemplate on Face_x of global {
 	[ 0,  0,  0] =>

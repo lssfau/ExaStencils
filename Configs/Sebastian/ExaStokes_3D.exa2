@@ -1,0 +1,116 @@
+Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
+
+
+Field u with Real on Face_x of global = 0.0
+Field u@finest on boundary = -4.0 * cos ( 4.0 * vf_boundaryCoord_z )
+Field u@(all but finest) on boundary = 0.0
+
+Field v with Real on Face_y of global = 0.0
+Field v@finest on boundary = 8.0 * cos ( 8.0 * vf_boundaryCoord_x )
+Field v@(all but finest) on boundary = 0.0
+
+Field w with Real on Face_z of global = 0.0
+Field w@finest on boundary = -2.0 * cos ( 2.0 * vf_boundaryCoord_y )
+Field w@(all but finest) on boundary = 0.0
+
+Field p with Real on Cell of global = 0.0
+Field p on boundary = Neumann // TODO: currently not evaluated outside inner scope
+
+
+Field residual_u with Real on Face_x of global = 0.0
+Field residual_u on boundary = 0.0
+
+Field residual_v with Real on Face_y of global = 0.0
+Field residual_v on boundary = 0.0
+
+Field residual_w with Real on Face_z of global = 0.0
+Field residual_w on boundary = 0.0
+
+Field residual_p with Real on Cell of global = 0.0
+Field residual_p on boundary = Neumann
+
+
+Field rhs_u@finest with Real on Face_x of global = vf_xStagCellVolume * ( 4.0 * sin ( 8.0 * vf_cellCenter_y ) * sin ( 2.0 * vf_cellCenter_z ) * cos ( 4.0 * vf_nodePosition_x ) - 64.0 * cos ( 4.0 * vf_cellCenter_z ) )
+Field rhs_u@(all but finest) with Real on Face_x of global = 0.0
+
+Field rhs_v@finest with Real on Face_y of global = vf_yStagCellVolume * ( 8.0 * sin ( 4.0 * vf_cellCenter_x ) * sin ( 2.0 * vf_cellCenter_z ) * cos ( 8.0 * vf_nodePosition_y ) + 512.0 * cos ( 8.0 * vf_cellCenter_x ) )
+Field rhs_v@(all but finest) with Real on Face_y of global = 0.0
+
+Field rhs_w@finest with Real on Face_z of global = vf_zStagCellVolume * ( 2.0 * sin ( 4.0 * vf_cellCenter_x ) * sin ( 8.0 * vf_cellCenter_y ) * cos ( 2.0 * vf_nodePosition_z ) - 8.0 * cos ( 2.0 * vf_cellCenter_y ) )
+Field rhs_w@(all but finest) with Real on Face_z of global = 0.0
+
+Field rhs_p@finest with Real on Cell of global = vf_cellVolume * ( 0.0 )
+Field rhs_p@(all but finest) with Real on Cell of global = 0.0
+
+
+
+// Operator_AppliedTo_WRT
+
+Operator dx_Cell_xStag from Stencil {
+  [-1,  0,  0] => -vf_cellWidth_y * vf_cellWidth_z
+  [ 0,  0,  0] =>  vf_cellWidth_y * vf_cellWidth_z
+}
+
+Operator dy_Cell_yStag from Stencil {
+  [ 0, -1,  0] => -vf_cellWidth_x * vf_cellWidth_z
+  [ 0,  0,  0] =>  vf_cellWidth_x * vf_cellWidth_z
+}
+
+Operator dz_Cell_zStag from Stencil {
+  [ 0,  0, -1] => -vf_cellWidth_x * vf_cellWidth_y
+  [ 0,  0,  0] =>  vf_cellWidth_x * vf_cellWidth_y
+}
+
+
+Operator dx_xStag_Cell from Stencil {
+  [ 0,  0,  0] => -vf_cellWidth_y * vf_cellWidth_z
+  [ 1,  0,  0] =>  vf_cellWidth_y * vf_cellWidth_z
+}
+Operator dy_yStag_Cell from Stencil {
+  [ 0,  0,  0] => -vf_cellWidth_x * vf_cellWidth_z
+  [ 0,  1,  0] =>  vf_cellWidth_x * vf_cellWidth_z
+}
+Operator dz_zStag_Cell from Stencil {
+  [ 0,  0,  0] => -vf_cellWidth_x * vf_cellWidth_y
+  [ 0,  0,  1] =>  vf_cellWidth_x * vf_cellWidth_y
+}
+
+
+Operator Laplace_xStag_xStag from Stencil {
+  [ 0,  0,  0] => (
+	  ( 1.0 / vf_cellWidth_x@[0, 0, 0]   + 1.0 / vf_cellWidth_x@[1, 0, 0] )   * vf_cellWidth_y   * vf_cellWidth_z
+    + ( 1.0 / vf_stagCVWidth_y@[0, 0, 0] + 1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_stagCVWidth_x * vf_cellWidth_z
+    + ( 1.0 / vf_stagCVWidth_z@[0, 0, 0] + 1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_stagCVWidth_x * vf_cellWidth_y )
+  [-1,  0,  0] => ( -1.0 / vf_cellWidth_x@[0, 0, 0] )   * vf_cellWidth_y   * vf_cellWidth_z
+  [ 1,  0,  0] => ( -1.0 / vf_cellWidth_x@[1, 0, 0] )   * vf_cellWidth_y   * vf_cellWidth_z
+  [ 0, -1,  0] => ( -1.0 / vf_stagCVWidth_y@[0, 0, 0] ) * vf_stagCVWidth_x * vf_cellWidth_z
+  [ 0,  1,  0] => ( -1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_stagCVWidth_x * vf_cellWidth_z
+  [ 0,  0, -1] => ( -1.0 / vf_stagCVWidth_z@[0, 0, 0] ) * vf_stagCVWidth_x * vf_cellWidth_y
+  [ 0,  0,  1] => ( -1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_stagCVWidth_x * vf_cellWidth_y
+}
+
+Operator Laplace_yStag_yStag from Stencil {
+  [ 0,  0,  0] => (
+      ( 1.0 / vf_stagCVWidth_x + 1.0 / vf_stagCVWidth_x@[1, 0, 0] ) * vf_stagCVWidth_y * vf_cellWidth_z
+    + ( 1.0 / vf_cellWidth_y   + 1.0 / vf_cellWidth_y@[0, 1, 0] )   * vf_cellWidth_x   * vf_cellWidth_z
+    + ( 1.0 / vf_stagCVWidth_z + 1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_cellWidth_x   * vf_stagCVWidth_y )
+  [-1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@[0, 0, 0] ) * vf_stagCVWidth_y * vf_cellWidth_z
+  [ 1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@[1, 0, 0] ) * vf_stagCVWidth_y * vf_cellWidth_z
+  [ 0, -1,  0] => ( -1.0 / vf_cellWidth_y@[0, 0, 0] )   * vf_cellWidth_x   * vf_cellWidth_z
+  [ 0,  1,  0] => ( -1.0 / vf_cellWidth_y@[0, 1, 0] )   * vf_cellWidth_x   * vf_cellWidth_z
+  [ 0,  0, -1] => ( -1.0 / vf_stagCVWidth_z@[0, 0, 0] ) * vf_cellWidth_x   * vf_stagCVWidth_y
+  [ 0,  0,  1] => ( -1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_cellWidth_x   * vf_stagCVWidth_y
+}
+
+Operator Laplace_zStag_zStag from Stencil {
+  [ 0,  0,  0] => (
+      ( 1.0 / vf_stagCVWidth_x + 1.0 / vf_stagCVWidth_x@[1, 0, 0] ) * vf_cellWidth_y * vf_stagCVWidth_z
+    + ( 1.0 / vf_stagCVWidth_y + 1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_cellWidth_x * vf_stagCVWidth_z
+    + ( 1.0 / vf_cellWidth_z   + 1.0 / vf_cellWidth_z@[0, 0, 1] )   * vf_cellWidth_x * vf_cellWidth_y )
+  [-1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@[0, 0, 0] ) * vf_cellWidth_y * vf_stagCVWidth_z
+  [ 1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@[1, 0, 0] ) * vf_cellWidth_y * vf_stagCVWidth_z
+  [ 0, -1,  0] => ( -1.0 / vf_stagCVWidth_y@[0, 0, 0] ) * vf_cellWidth_x * vf_stagCVWidth_z
+  [ 0,  1,  0] => ( -1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_cellWidth_x * vf_stagCVWidth_z
+  [ 0,  0, -1] => ( -1.0 / vf_cellWidth_z@[0, 0, 0] )   * vf_cellWidth_x * vf_cellWidth_y
+  [ 0,  0,  1] => ( -1.0 / vf_cellWidth_z@[0, 0, 1] )   * vf_cellWidth_x * vf_cellWidth_y
+}

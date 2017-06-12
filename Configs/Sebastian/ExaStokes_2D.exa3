@@ -1,0 +1,10 @@
+
+Stencil RestrictionCell@all from default restriction on Cell with 'integral_linear'
+Stencil CorrectionCell@all from default prolongation on Cell with 'integral_linear'
+
+Stencil RestrictionFaceX@all from default restriction on Face_x with 'integral_linear'
+Stencil CorrectionFaceX@all from default prolongation on Face_x with 'integral_linear'
+
+Stencil RestrictionFaceY@all from default restriction on Face_y with 'integral_linear'
+Stencil CorrectionFaceY@all from default prolongation on Face_y with 'integral_linear'
+

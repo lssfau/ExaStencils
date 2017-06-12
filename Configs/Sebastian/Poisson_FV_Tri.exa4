@@ -143,16 +143,22 @@ Function applyBC_Sol@finest ( ) : Unit {
 		Var e_x : Real = p1_x - p0_x // px
 		Var e_y : Real = p1_y - p0_y
 
-		Var alpha : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
-		Var beta : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -f_y * ( p0_x - n0_x ) + f_x * ( p0_y - n0_y ) )
+		Var face : Vec2 = vf_nodePosAsVec@current@[1, 1] - vf_nodePosAsVec@current@[1, 0]
+		Var edge : Vec2 = vf_cellCenAsVec@current@[1, 0] - vf_cellCenAsVec@current@[0, 0]
+		Var tmp  : Vec2 = vf_cellCenAsVec@current@[0, 0] - vf_nodePosAsVec@current@[1, 0]
 
-		Var boundary_x : Real = n0_x + alpha * f_x
-		Var boundary_y : Real = n0_y + alpha * f_y
+		Var alpha : Real = cross ( edge, tmp ) / cross ( edge, face )
+		Var beta : Real = cross ( face, tmp ) / cross ( edge, face )
+
+		Var boundPos_x : Real = n0_x + alpha * f_x
+		Var boundPos_y : Real = n0_y + alpha * f_y
+		Var boundPos : Vec2 = vf_nodePosAsVec@current@[1, 0] + alpha * face
+		Var boundVal : Real = boundPos_x**2 - boundPos_y**2
 
 		Var w_i : Real = 1.0 / ( 1.0 - beta )
 		Var w_1 : Real = -beta / ( 1.0 - beta )
 
-		Solution@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution@current@[1, 0]
+		Solution@current = w_i * boundVal + w_1 * Solution@current@[1, 0]
 	}
 	loop over Solution@current only ghost [ 1,  0] on boundary {
 		Val p0_x : Real = vf_cellCenter_x@current@[0, 0]
@@ -169,16 +175,24 @@ Function applyBC_Sol@finest ( ) : Unit {
 		Var e_x : Real = p1_x - p0_x // px
 		Var e_y : Real = p1_y - p0_y
 
-		Var alpha : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
-		Var beta : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -f_y * ( p0_x - n0_x ) + f_x * ( p0_y - n0_y ) )
+		//Var alpha : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
+		//Var beta : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -f_y * ( p0_x - n0_x ) + f_x * ( p0_y - n0_y ) )
 
-		Var boundary_x : Real = n0_x + alpha * f_x
-		Var boundary_y : Real = n0_y + alpha * f_y
+		Var face : Vec2 = vf_nodePosAsVec@current@[0, 1] - vf_nodePosAsVec@current@[0, 0]
+		Var edge : Vec2 = vf_cellCenAsVec@current@[-1, 0] - vf_cellCenAsVec@current@[0, 0]
+		Var tmp  : Vec2 = vf_cellCenAsVec@current@[0, 0] - vf_nodePosAsVec@current@[0, 0]
+
+		Var alpha : Real = cross ( edge, tmp ) / cross ( edge, face )
+		Var beta : Real = cross ( face, tmp ) / cross ( edge, face )
+
+		Var boundPos_x : Real = n0_x + alpha * f_x
+		Var boundPos_y : Real = n0_y + alpha * f_y
+		Var boundVal : Real = boundPos_x**2 - boundPos_y**2
 
 		Var w_i : Real = 1.0 / ( 1.0 - beta )
 		Var w_1 : Real = -beta / ( 1.0 - beta )
 
-		Solution@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution@current@[-1, 0]
+		Solution@current = w_i * boundVal + w_1 * Solution@current@[-1, 0]
 	}
 	loop over Solution@current only ghost [ 0,  1] on boundary {
 		Val p0_x : Real = vf_cellCenter_x@current@[0, 0]
@@ -198,13 +212,14 @@ Function applyBC_Sol@finest ( ) : Unit {
 		Var alpha : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
 		Var beta : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -f_y * ( p0_x - n0_x ) + f_x * ( p0_y - n0_y ) )
 
-		Var boundary_x : Real = n0_x + alpha * f_x
-		Var boundary_y : Real = n0_y + alpha * f_y
+		Var boundPos_x : Real = n0_x + alpha * f_x
+		Var boundPos_y : Real = n0_y + alpha * f_y
+		Var boundVal : Real = boundPos_x**2 - boundPos_y**2
 
 		Var w_i : Real = 1.0 / ( 1.0 - beta )
 		Var w_1 : Real = -beta / ( 1.0 - beta )
 
-		Solution@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution@current@[0, -1]
+		Solution@current = w_i * boundVal + w_1 * Solution@current@[0, -1]
 	}
 	loop over Solution@current only ghost [ 0, -1] on boundary {
 		Val p0_x : Real = vf_cellCenter_x@current@[0, 0]
@@ -224,15 +239,16 @@ Function applyBC_Sol@finest ( ) : Unit {
 		Var alpha : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
 		Var beta : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -f_y * ( p0_x - n0_x ) + f_x * ( p0_y - n0_y ) )
 
-		Var boundary_x : Real = n0_x + alpha * f_x
-		Var boundary_y : Real = n0_y + alpha * f_y
+		Var boundPos_x : Real = n0_x + alpha * f_x
+		Var boundPos_y : Real = n0_y + alpha * f_y
+		Var boundVal : Real = boundPos_x**2 - boundPos_y**2
 
 		Var w_i : Real = 1.0 / ( 1.0 - beta )
 		Var w_1 : Real = -beta / ( 1.0 - beta )
 
-		Solution@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution@current@[0, 1]
+		Solution@current = w_i * boundVal + w_1 * Solution@current@[0, 1]
 	}
-	
+
 	/*loop over Solution@current only ghost [-1, -1] on boundary {
 		Val p0_x : Real = vf_cellCenter_x@current@[0, 0]
 		Val p0_y : Real = vf_cellCenter_y@current@[0, 0]
@@ -258,23 +274,23 @@ Function applyBC_Sol@finest ( ) : Unit {
 		Var beta_1 : Real = 1.0 / ( -f_1_x * e_y + e_x * f_1_y ) * ( -f_1_y * ( p0_x - n0_x ) + f_1_x * ( p0_y - n0_y ) )
 		Var alpha_2 : Real = 1.0 / ( -f_2_x * e_y + e_x * f_2_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
 		Var beta_2 : Real = 1.0 / ( -f_2_x * e_y + e_x * f_2_y ) * ( -f_2_y * ( p0_x - n0_x ) + f_2_x * ( p0_y - n0_y ) )
-		
+
 		if ( 0.0 <= alpha_1 && alpha_1 <= 1.0 ) {
-			Var boundary_x : Real = n0_x + alpha_1 * f_1_x
-			Var boundary_y : Real = n0_y + alpha_1 * f_1_y
+			Var boundPos_x : Real = n0_x + alpha_1 * f_1_x
+			Var boundPos_y : Real = n0_y + alpha_1 * f_1_y
 
 			Var w_i : Real = 1.0 / ( 1.0 - beta_1 )
 			Var w_1 : Real = -beta_1 / ( 1.0 - beta_1 )
 
-			Solution@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution@current@[0, 1]
+			Solution@current = w_i * ( boundPos_x**2 - boundPos_y**2 ) + w_1 * Solution@current@[0, 1]
 		} else if ( 0.0 <= alpha_2 && alpha_2 <= 1.0 ) {
-			Var boundary_x : Real = n0_x + alpha_2 * f_2_x
-			Var boundary_y : Real = n0_y + alpha_2 * f_2_y
+			Var boundPos_x : Real = n0_x + alpha_2 * f_2_x
+			Var boundPos_y : Real = n0_y + alpha_2 * f_2_y
 
 			Var w_i : Real = 1.0 / ( 1.0 - beta_2 )
 			Var w_1 : Real = -beta_2 / ( 1.0 - beta_2 )
 
-			Solution@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution@current@[1, 1]
+			Solution@current = w_i * ( boundPos_x**2 - boundPos_y**2 ) + w_1 * Solution@current@[1, 1]
 		} else {
 			print ( 'intersection is very wrong at', x, y, 'with alphas', alpha_1, alpha_2, 'and betas', beta_1, beta_2)
 		}
@@ -479,9 +495,9 @@ Function applyBC_Sol_L@finest ( ) : Unit {
 		Solution_L@current = Solution_L@current@[ 1,  0]
 	}*/
 	loop over Solution_L@current only ghost [ 1,  0] on boundary {
-		//Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[0, 1] )
-		//Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[0, 1] )
-		//Solution_L@current = 2.0 * ( boundary_x**2 - boundary_y**2 ) - Solution_U@current@[-1,  0]
+		//Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[0, 1] )
+		//Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[0, 1] )
+		//Solution_L@current = 2.0 * ( boundPos_x**2 - boundPos_y**2 ) - Solution_U@current@[-1,  0]
 
 		Val p0_x : Real = CellCen_L_x@current@[0, 0]
 		Val p0_y : Real = CellCen_L_y@current@[0, 0]
@@ -500,18 +516,18 @@ Function applyBC_Sol_L@finest ( ) : Unit {
 		Var alpha : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
 		Var beta : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -f_y * ( p0_x - n0_x ) + f_x * ( p0_y - n0_y ) )
 
-		Var boundary_x : Real = n0_x + alpha * f_x
-		Var boundary_y : Real = n0_y + alpha * f_y
+		Var boundPos_x : Real = n0_x + alpha * f_x
+		Var boundPos_y : Real = n0_y + alpha * f_y
 
 		Var w_i : Real = 1.0 / ( 1.0 - beta )
 		Var w_1 : Real = -beta / ( 1.0 - beta )
 
-		Solution_L@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution_U@current@[-1, 0]
+		Solution_L@current = w_i * ( boundPos_x**2 - boundPos_y**2 ) + w_1 * Solution_U@current@[-1, 0]
 	}
 	loop over Solution_L@current only ghost [ 0,  1] on boundary {
-		//Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[1, 0] )
-		//Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[1, 0] )
-		//Solution_L@current = 2.0 * ( boundary_x**2 - boundary_y**2 ) - Solution_U@current@[ 0, -1]
+		//Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[1, 0] )
+		//Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[1, 0] )
+		//Solution_L@current = 2.0 * ( boundPos_x**2 - boundPos_y**2 ) - Solution_U@current@[ 0, -1]
 
 		Val p0_x : Real = CellCen_L_x@current@[0, 0]
 		Val p0_y : Real = CellCen_L_y@current@[0, 0]
@@ -530,13 +546,13 @@ Function applyBC_Sol_L@finest ( ) : Unit {
 		Var alpha : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
 		Var beta : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -f_y * ( p0_x - n0_x ) + f_x * ( p0_y - n0_y ) )
 
-		Var boundary_x : Real = n0_x + alpha * f_x
-		Var boundary_y : Real = n0_y + alpha * f_y
+		Var boundPos_x : Real = n0_x + alpha * f_x
+		Var boundPos_y : Real = n0_y + alpha * f_y
 
 		Var w_i : Real = 1.0 / ( 1.0 - beta )
 		Var w_1 : Real = -beta / ( 1.0 - beta )
 
-		Solution_L@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution_U@current@[0, -1]
+		Solution_L@current = w_i * ( boundPos_x**2 - boundPos_y**2 ) + w_1 * Solution_U@current@[0, -1]
 	}
 	/*loop over Solution_L@current only ghost [ 0, -1] on boundary {
 		Solution_L@current = Solution_L@current@[ 0,  1]
@@ -545,9 +561,9 @@ Function applyBC_Sol_L@finest ( ) : Unit {
 Function applyBC_Sol_U@finest ( ) : Unit {
 	// vf_boundaryCoord_x@current**2 - vf_boundaryCoord_y@current**2
 	loop over Solution_U@current only ghost [-1,  0] on boundary {
-		//Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[1, 0] + vf_nodePosition_x@current@[1, 1] )
-		//Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[1, 0] + vf_nodePosition_y@current@[1, 1] )
-		//Solution_U@current = 2.0 * ( boundary_x**2 - boundary_y**2 ) - Solution_L@current@[ 1,  0]
+		//Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[1, 0] + vf_nodePosition_x@current@[1, 1] )
+		//Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[1, 0] + vf_nodePosition_y@current@[1, 1] )
+		//Solution_U@current = 2.0 * ( boundPos_x**2 - boundPos_y**2 ) - Solution_L@current@[ 1,  0]
 
 		Val p0_x : Real = CellCen_U_x@current@[0, 0]
 		Val p0_y : Real = CellCen_U_y@current@[0, 0]
@@ -566,13 +582,13 @@ Function applyBC_Sol_U@finest ( ) : Unit {
 		Var alpha : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
 		Var beta : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -f_y * ( p0_x - n0_x ) + f_x * ( p0_y - n0_y ) )
 
-		Var boundary_x : Real = n0_x + alpha * f_x
-		Var boundary_y : Real = n0_y + alpha * f_y
+		Var boundPos_x : Real = n0_x + alpha * f_x
+		Var boundPos_y : Real = n0_y + alpha * f_y
 
 		Var w_i : Real = 1.0 / ( 1.0 - beta )
 		Var w_1 : Real = -beta / ( 1.0 - beta )
 
-		Solution_U@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution_L@current@[1, 0]
+		Solution_U@current = w_i * ( boundPos_x**2 - boundPos_y**2 ) + w_1 * Solution_L@current@[1, 0]
 	}
 	/*loop over Solution_U@current only ghost [ 1,  0] on boundary {
 		Solution_U@current = Solution_U@current@[-1,  0]
@@ -581,9 +597,9 @@ Function applyBC_Sol_U@finest ( ) : Unit {
 		Solution_U@current = Solution_U@current@[ 0, -1]
 	}*/
 	loop over Solution_U@current only ghost [ 0, -1] on boundary {
-		//Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 1] + vf_nodePosition_x@current@[1, 1] )
-		//Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 1] + vf_nodePosition_y@current@[1, 1] )
-		//Solution_U@current = 2.0 * ( boundary_x**2 - boundary_y**2 ) - Solution_L@current@[ 0,  1]
+		//Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 1] + vf_nodePosition_x@current@[1, 1] )
+		//Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 1] + vf_nodePosition_y@current@[1, 1] )
+		//Solution_U@current = 2.0 * ( boundPos_x**2 - boundPos_y**2 ) - Solution_L@current@[ 0,  1]
 
 		Val p0_x : Real = CellCen_U_x@current@[0, 0]
 		Val p0_y : Real = CellCen_U_y@current@[0, 0]
@@ -602,13 +618,13 @@ Function applyBC_Sol_U@finest ( ) : Unit {
 		Var alpha : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -e_y * ( p0_x - n0_x ) + e_x * ( p0_y - n0_y ) )
 		Var beta : Real = 1.0 / ( -f_x * e_y + e_x * f_y ) * ( -f_y * ( p0_x - n0_x ) + f_x * ( p0_y - n0_y ) )
 
-		Var boundary_x : Real = n0_x + alpha * f_x
-		Var boundary_y : Real = n0_y + alpha * f_y
+		Var boundPos_x : Real = n0_x + alpha * f_x
+		Var boundPos_y : Real = n0_y + alpha * f_y
 
 		Var w_i : Real = 1.0 / ( 1.0 - beta )
 		Var w_1 : Real = -beta / ( 1.0 - beta )
 
-		Solution_U@current = w_i * ( boundary_x**2 - boundary_y**2 ) + w_1 * Solution_L@current@[0, 1]
+		Solution_U@current = w_i * ( boundPos_x**2 - boundPos_y**2 ) + w_1 * Solution_L@current@[0, 1]
 	}
 }
 
@@ -724,50 +740,50 @@ Function applyBC_Sol_U@(all but finest) ( ) : Unit {
 /*
 Function applyBC_Sol_L@(all but finest) ( ) : Unit {
 	loop over Solution_L@current only ghost [ 1,  0] on boundary {
-		Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[0, 1] )
-		Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[0, 1] )
+		Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[0, 1] )
+		Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[0, 1] )
 		Solution_L@current = 2.0 * 0.0 - Solution_U@current@[-1,  0]
 	}
 	loop over Solution_L@current only ghost [ 0,  1] on boundary {
-		Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[1, 0] )
-		Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[1, 0] )
+		Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[1, 0] )
+		Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[1, 0] )
 		Solution_L@current = 2.0 * 0.0 - Solution_U@current@[ 0, -1]
 	}
 }
 Function applyBC_Sol_U@(all but finest) ( ) : Unit {
 	loop over Solution_U@current only ghost [-1,  0] on boundary {
-		Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[1, 0] + vf_nodePosition_x@current@[1, 1] )
-		Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[1, 0] + vf_nodePosition_y@current@[1, 1] )
+		Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[1, 0] + vf_nodePosition_x@current@[1, 1] )
+		Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[1, 0] + vf_nodePosition_y@current@[1, 1] )
 		Solution_U@current = 2.0 * 0.0 - Solution_L@current@[ 1,  0]
 	}
 	loop over Solution_U@current only ghost [ 0, -1] on boundary {
-		Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 1] + vf_nodePosition_x@current@[1, 1] )
-		Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 1] + vf_nodePosition_y@current@[1, 1] )
+		Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 1] + vf_nodePosition_x@current@[1, 1] )
+		Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 1] + vf_nodePosition_y@current@[1, 1] )
 		Solution_U@current = 2.0 * 0.0 - Solution_L@current@[ 0,  1]
 	}
 }
 */
 /*Function applyBC_Res_L@all ( ) : Unit {
 	loop over Residual_L@current only ghost [ 1,  0] on boundary {
-		Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[0, 1] )
-		Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[0, 1] )
+		Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[0, 1] )
+		Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[0, 1] )
 		Residual_L@current = 2.0 * 0.0 - Residual_U@current@[-1,  0]
 	}
 	loop over Residual_L@current only ghost [ 0,  1] on boundary {
-		Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[1, 0] )
-		Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[1, 0] )
+		Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 0] + vf_nodePosition_x@current@[1, 0] )
+		Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 0] + vf_nodePosition_y@current@[1, 0] )
 		Residual_L@current = 2.0 * 0.0 - Residual_U@current@[ 0, -1]
 	}
 }
 Function applyBC_Res_U@all ( ) : Unit {
 	loop over Residual_U@current only ghost [-1,  0] on boundary {
-		Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[1, 0] + vf_nodePosition_x@current@[1, 1] )
-		Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[1, 0] + vf_nodePosition_y@current@[1, 1] )
+		Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[1, 0] + vf_nodePosition_x@current@[1, 1] )
+		Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[1, 0] + vf_nodePosition_y@current@[1, 1] )
 		Residual_U@current = 2.0 * 0.0 - Residual_L@current@[ 1,  0]
 	}
 	loop over Residual_U@current only ghost [ 0, -1] on boundary {
-		Val boundary_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 1] + vf_nodePosition_x@current@[1, 1] )
-		Val boundary_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 1] + vf_nodePosition_y@current@[1, 1] )
+		Val boundPos_x : Real = 0.5 * ( vf_nodePosition_x@current@[0, 1] + vf_nodePosition_x@current@[1, 1] )
+		Val boundPos_y : Real = 0.5 * ( vf_nodePosition_y@current@[0, 1] + vf_nodePosition_y@current@[1, 1] )
 		Residual_U@current = 2.0 * 0.0 - Residual_L@current@[ 0,  1]
 	}
 }
@@ -2020,7 +2036,7 @@ Function CoarsenLaplace_Tri@(all but finest) ( ) : Unit {
 			+ Laplace_U_L@finer@[0, 0]:[ 1,  0] + Laplace_U_L@finer@[0, 0]:[ 0,  1]
 		)
 	}
-	
+
 	loop over Laplace_L_U@current {
 		Laplace_L_U@current:[ 0,  0] = factor * ( Laplace_L_U@finer@[1, 0]:[ 0,  0] + Laplace_L_U@finer@[0, 1]:[ 0,  0] )
 		Laplace_L_U@current:[-1,  0] = factor * ( Laplace_L_U@finer@[0, 0]:[-1,  0] + Laplace_L_U@finer@[0, 1]:[-1,  0] )
@@ -2036,7 +2052,7 @@ Function CoarsenLaplace_Tri@(all but finest) ( ) : Unit {
 			+ Laplace_L_U@finer@[1, 1]:[-1,  0] + Laplace_L_U@finer@[1, 1]:[ 0, -1]
 		)
 	}
-	
+
 	loop over Laplace_U_L@current {
 		Laplace_U_L@current:[ 0,  0] = factor * ( Laplace_U_L@finer@[1, 0]:[ 0,  0] + Laplace_U_L@finer@[0, 1]:[ 0,  0] )
 		Laplace_U_L@current:[ 1,  0] = factor * ( Laplace_U_L@finer@[1, 0]:[ 1,  0] + Laplace_U_L@finer@[1, 1]:[ 1,  0] )

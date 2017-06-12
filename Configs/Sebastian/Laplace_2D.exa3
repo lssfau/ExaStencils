@@ -11,7 +11,7 @@ Field VecGradP@coarsest from Solution
 override bc for Residual@finest with 0.0
 
 //Operator RestrictionStencil from default restriction on Node with 'linear'
-Operator CorrectionStencil from default prolongation on Node with 'linear'
+//Operator CorrectionStencil from default prolongation on Node with 'linear'
 
 /*
 update Smoother ( x_l, b_l ) = D^-1 ( b - (L + U) x )
@@ -41,7 +41,7 @@ Function VCycle@((coarsest + 1) to finest) {
 	Solution@coarser = 0.0
 	VCycle@coarser ( )
 
-	Solution += CorrectionStencil * Solution@coarser
+	Solution += Prolongation@coarser * Solution@coarser
 
 	Smoother ( )
 }

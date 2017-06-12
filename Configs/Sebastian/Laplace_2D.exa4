@@ -1,23 +1,23 @@
 Domain global< [ 0, 0 ] to [ 1, 1 ] >
 
 Function NormError@finest ( ) : Real {
-	communicate Solution@current
+	communicate Solution
 	Variable err : Real = 0
-	loop over Solution@current where x > 0 && y > 0 with reduction( + : err ) {
-		Variable curErr : Real = Solution[active]@current - ( vf_nodePosition_x@current * vf_nodePosition_x@current - vf_nodePosition_y@current * vf_nodePosition_y@current )
+	loop over Solution where x > 0 && y > 0 with reduction( + : err ) {
+		Variable curErr : Real = Solution[active] - ( vf_nodePosition_x * vf_nodePosition_x - vf_nodePosition_y * vf_nodePosition_y )
 		err += curErr * curErr
 	}
 	return sqrt ( err )
 }
 
 /*Function InitOperator@all ( ) : Unit {
-	loop over Laplace_Data@current {
-		Laplace_Data@current = {
-			2.0 / ( vf_gridWidth_x@current ** 2 ) + 2.0 / ( vf_gridWidth_y@current ** 2 ),
-			-1.0 / ( vf_gridWidth_x@current ** 2 ),
-			-1.0 / ( vf_gridWidth_x@current ** 2 ),
-			-1.0 / ( vf_gridWidth_y@current ** 2 ),
-			-1.0 / ( vf_gridWidth_y@current ** 2 )
+	loop over Laplace_Data {
+		Laplace_Data = {
+			2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ),
+			-1.0 / ( vf_gridWidth_x ** 2 ),
+			-1.0 / ( vf_gridWidth_x ** 2 ),
+			-1.0 / ( vf_gridWidth_y ** 2 ),
+			-1.0 / ( vf_gridWidth_y ** 2 )
 		}T
 	}
 	

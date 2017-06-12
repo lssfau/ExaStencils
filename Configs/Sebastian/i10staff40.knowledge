@@ -1,13 +1,13 @@
-dimensionality				= 2
+dimensionality				= 3
 
-minLevel					= 3
-maxLevel					= 8
+minLevel					= 1
+maxLevel					= 5
 
-/*grid_isUniform				= false
-grid_isStaggered			= false
-grid_isAxisAligned			= false
+grid_isUniform				= false
+grid_isStaggered			= true
+grid_isAxisAligned			= true
 
-grid_spacingModel			= "random"*/
+grid_spacingModel			= "linearFct"
 
 domain_onlyRectangular		= true
 domain_numBlocks			= 1
@@ -22,7 +22,7 @@ domain_rect_numFragsPerBlock_y	= 1
 domain_rect_numFragsPerBlock_z	= 1
 
 omp_enabled					= true
-omp_numThreads				= 8
+omp_numThreads				= 4
 
 mpi_enabled					= false
 mpi_numThreads				= 1
@@ -44,4 +44,17 @@ l3tmp_smoother				= "RBGS"
 //library_CImg				= true
 //experimental_NeumannOrder	= 1
 
-experimental_layerExtension	= true
+experimental_Neumann				= true
+experimental_NeumannOrder			= 1
+experimental_DirichletOrder			= 2
+
+experimental_layerExtension			= true
+experimental_resolveInverseFunctionCall	= "Runtime"
+
+experimental_applySchurCompl		= true
+
+experimental_trimBoundsForReductionLoops = true
+experimental_generateParaviewFiles	= true
+
+opt_conventionalCSE					= false
+opt_loopCarriedCSE					= false
