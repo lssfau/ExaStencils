@@ -16,6 +16,8 @@ grid_isAxisAligned					= true
 
 grid_spacingModel					= "diego"
 
+grid_halveStagBoundaryVolumes		= true
+
 // code generation
 
 l3tmp_generateL4					= false

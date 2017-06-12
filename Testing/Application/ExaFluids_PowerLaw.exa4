@@ -22,22 +22,22 @@ Layout DefFaceZLayout < Real , Face_z > @all {
 	ghostLayers		= [ 1, 1, 1 ] with communication
 }
 
-Layout CellStencilLayout < Array<Real><7>, Cell > @all {
+Layout CellStencilLayout < Vector<Real, 7>, Cell > @all {
 	duplicateLayers	= [ 0, 0, 0 ]
 	ghostLayers		= [ 1, 1, 1 ] // no communication necessary since only required for subexpression re-usage
 }
 
-Layout FaceXStencilLayout < Array<Real><7>, Face_x > @all {
+Layout FaceXStencilLayout < Vector<Real, 7>, Face_x > @all {
 	duplicateLayers	= [ 1, 0, 0 ] with communication
 	ghostLayers		= [ 1, 1, 1 ] with communication	// only communicate face dim's ghost layers -> fix in communicate call
 }
 
-Layout FaceYStencilLayout < Array<Real><7>, Face_y > @all {
+Layout FaceYStencilLayout < Vector<Real, 7>, Face_y > @all {
 	duplicateLayers	= [ 0, 1, 0 ] with communication
 	ghostLayers		= [ 1, 1, 1 ] with communication
 }
 
-Layout FaceZStencilLayout < Array<Real><7>, Face_z > @all {
+Layout FaceZStencilLayout < Vector<Real, 7>, Face_z > @all {
 	duplicateLayers	= [ 0, 0, 1 ] with communication
 	ghostLayers		= [ 1, 1, 1 ] with communication
 }
@@ -115,89 +115,17 @@ Stencil SevenPointStencil@all {
 	[ 0,  0,  1] => -1.0
 }
 
-Stencil RestrictionCell@all {
-	[ 0,  0,  0] => 0.125
-    [ 0,  0,  1] => 0.125
-    [ 0,  1,  0] => 0.125
-    [ 1,  0,  0] => 0.125
-    [ 0,  1,  1] => 0.125
-    [ 1,  0,  1] => 0.125
-    [ 1,  1,  0] => 0.125
-    [ 1,  1,  1] => 0.125
-}
+Stencil RestrictionCell@all from default restriction on Cell with 'linear'
+Stencil CorrectionCell@all from default prolongation on Cell with 'linear'
 
-Stencil CorrectionCell@all {
-	[ 0,  0,  0] => 1.0
-}
+Stencil RestrictionFaceX@all from default restriction on Face_x with 'linear'
+Stencil CorrectionFaceX@all from default prolongation on Face_x with 'linear'
 
-Stencil RestrictionFaceX@all {
-	[ 0,  0,  0] => 0.125
-	[-1,  0,  0] => 0.0625
-	[ 1,  0,  0] => 0.0625
+Stencil RestrictionFaceY@all from default restriction on Face_y with 'linear'
+Stencil CorrectionFaceY@all from default prolongation on Face_y with 'linear'
 
-	[ 0,  1,  0] => 0.125
-	[-1,  1,  0] => 0.0625
-	[ 1,  1,  0] => 0.0625
-
-	[ 0,  0,  1] => 0.125
-	[-1,  0,  1] => 0.0625
-	[ 1,  0,  1] => 0.0625
-
-	[ 0,  1,  1] => 0.125
-	[-1,  1,  1] => 0.0625
-	[ 1,  1,  1] => 0.0625
-}
-
-Stencil CorrectionFaceX@all {
-	[    0,  0,  0] => 0.5
-	[x % 2,  0,  0] => 0.5
-}
-
-Stencil RestrictionFaceY@all {
-	[ 0,  0,  0] => 0.125
-	[ 0, -1,  0] => 0.0625
-	[ 0,  1,  0] => 0.0625
-
-	[ 0,  0,  1] => 0.125
-	[ 0, -1,  1] => 0.0625
-	[ 0,  1,  1] => 0.0625
-
-	[ 1,  0,  0] => 0.125
-	[ 1, -1,  0] => 0.0625
-	[ 1,  1,  0] => 0.0625
-
-	[ 1,  0,  1] => 0.125
-	[ 1, -1,  1] => 0.0625
-	[ 1,  1,  1] => 0.0625
-}
-
-Stencil CorrectionFaceY@all {
-	[ 0,     0,  0] => 0.5
-	[ 0, y % 2,  0] => 0.5
-}
-
-Stencil RestrictionFaceZ@all {
-	[ 0,  0,  0] => 0.125
-	[ 0,  0, -1] => 0.0625
-	[ 0,  0,  1] => 0.0625
-
-	[ 1,  0,  0] => 0.125
-	[ 1,  0, -1] => 0.0625
-	[ 1,  0,  1] => 0.0625
-
-	[ 0,  1,  0] => 0.125
-	[ 0,  1, -1] => 0.0625
-	[ 0,  1,  1] => 0.0625
-
-	[ 1,  1,  0] => 0.125
-	[ 1,  1, -1] => 0.0625
-	[ 1,  1,  1] => 0.0625
-}
-
-Stencil CorrectionFaceZ@all {
-	[ 0,  0,     0] => 0.5
-	[ 0,  0, z % 2] => 0.5
-}
+Stencil RestrictionFaceZ@all from default restriction on Face_z with 'linear'
+Stencil CorrectionFaceZ@all from default prolongation on Face_z with 'linear'
 
 Globals {
 	// global states
@@ -513,11 +441,11 @@ Function Solve@finest ( ) : Unit {
 		Var filename_temp : String
 		buildString ( filename_temp, "temp_", index, ".csv" )
 
-		printField ( filename_rho, rho[active]@current, 2**( levels@current ( ) - 1 ) == z )
-		printField ( filename_u, u[active]@current, 2**( levels@current ( ) - 1 ) == z )
-		printField ( filename_v, v[active]@current, 2**( levels@current ( ) - 1 ) == z )
-		printField ( filename_w, w[active]@current, 2**( levels@current ( ) - 1 ) == z )
-		printField ( filename_temp, phi7[active]@current, 2**( levels@current ( ) - 1 ) == z )
+		printField ( filename_rho, rho[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
+		printField ( filename_u, u[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
+		printField ( filename_v, v[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
+		printField ( filename_w, w[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
+		printField ( filename_temp, phi7[active]@current, 2**( levels@current ( ) - 1 ) == i2 )
 	}
 
 	// print some information about achieved residuals and required steps
@@ -1053,12 +981,12 @@ FunctionTemplate NormResidualComponent < solution, stencil, rhs > ( ) : Real {
 }
 
 FunctionTemplate SmoothComponent < solution, stencil, rhs, omega, requiresBcUpdate > ( ) : Unit {
-	loop over solution where 0 == ((x + y + z) % 2) {
+	loop over solution where 0 == ((i0 + i1 + i2) % 2) {
 		solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
 	}
 	communicate solution
 
-	loop over solution where 1 == ((x + y + z) % 2) {
+	loop over solution where 1 == ((i0 + i1 + i2) % 2) {
 		solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
 	}
 	communicate solution
@@ -1084,12 +1012,12 @@ FunctionTemplate VCycleComponent < VCycle, Smooth, UpdateResidual, Restriction, 
 
 FunctionTemplate CGSComponent < solution, stencil, rhs, omega, requiresBcUpdate > ( ) : Unit {
 	repeat 4 times {
-		loop over solution where 0 == ((x + y + z) % 2) {
+		loop over solution where 0 == ((i0 + i1 + i2) % 2) {
 			solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
 		}
 		communicate solution
 
-		loop over solution where 1 == ((x + y + z) % 2) {
+		loop over solution where 1 == ((i0 + i1 + i2) % 2) {
 			solution += ( ( 1.0 / diag ( stencil ) ) * omega ) * ( rhs - stencil * solution )
 		}
 		communicate solution
