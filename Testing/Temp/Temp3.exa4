@@ -1,0 +1,40 @@
+FunctionTemplate RestrictionComponent < source, dest, restrictionStencil > ( ) : Unit {
+	loop over dest {
+		dest = restrictionStencil * source
+	}
+}
+
+FunctionTemplate CorrectionComponent < source, dest, correctionStencil, requiresBcUpdate > ( ) : Unit {
+	loop over dest {
+		dest += correctionStencil * source
+	}
+
+	communicate dest
+	if ( requiresBcUpdate ) {
+		apply bc to dest
+	}
+}
+
+FunctionTemplate SetFieldComponent < target > ( value : Real ) : Unit {
+	loop over target starting [-1, -1] ending [-1, -1] {
+		target = value
+	}
+}
+
+// instantiations
+
+Instantiate NormResidualComponent < residual_u@current > as NormResidual_u@finest
+Instantiate NormResidualComponent < residual_v@current > as NormResidual_v@finest
+Instantiate NormResidualComponent < residual_p@current > as NormResidual_p@finest
+
+Instantiate RestrictionComponent < residual_u@current, rhs_u@coarser, RestrictionFaceX@current > as Restriction_u@( ( coarsest + 1 ) to finest )
+Instantiate RestrictionComponent < residual_v@current, rhs_v@coarser, RestrictionFaceY@current > as Restriction_v@( ( coarsest + 1 ) to finest )
+Instantiate RestrictionComponent < residual_p@current, rhs_p@coarser, RestrictionCell@current > as Restriction_p@( ( coarsest + 1 ) to finest )
+
+Instantiate CorrectionComponent < u[active]@coarser, u[active]@current, CorrectionFaceX@current, true > as Correction_u@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < v[active]@coarser, v[active]@current, CorrectionFaceY@current, true > as Correction_v@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < p[active]@coarser, p[active]@current, CorrectionCell@current, true > as Correction_p@( ( coarsest + 1 ) to finest )
+
+Instantiate SetFieldComponent < u[active]@current > as SetSolution_u@all
+Instantiate SetFieldComponent < v[active]@current > as SetSolution_v@all
+Instantiate SetFieldComponent < p[active]@current > as SetSolution_p@all

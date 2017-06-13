@@ -1,0 +1,38 @@
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
+
+Layout DefCellLayout < Real , Cell > @all {
+	duplicateLayers	= [ 0, 0 ]
+	ghostLayers		= [ 1, 1 ] with communication
+}
+
+Layout DefFaceXLayout < Real , Face_x > @all {
+	duplicateLayers	= [ 1, 0 ] with communication
+	ghostLayers		= [ 1, 1 ] with communication
+}
+
+Layout DefFaceYLayout < Real , Face_y > @all {
+	duplicateLayers	= [ 0, 1 ] with communication
+	ghostLayers		= [ 1, 1 ] with communication
+}
+
+// values associated with u, ie face_x
+
+Field u < global, DefFaceXLayout, ApplyBC_u@finest( ) > @finest
+Field u < global, DefFaceXLayout, 0.0 > @(coarsest to (finest - 1))
+
+Field residual_u < global, DefFaceXLayout, 0.0 > @all
+Field rhs_u < global, DefFaceXLayout, None > @all
+
+// values associated with v, ie face_y
+
+Field v < global, DefFaceYLayout, 0.0 > @all
+
+Field residual_v < global, DefFaceYLayout, 0.0 > @all
+Field rhs_v < global, DefFaceYLayout, None > @all
+
+// values associated with p and rho, ie cell center
+
+Field p < global, DefCellLayout, None > @all // not evaluated outside inner scope
+
+Field residual_p < global, DefCellLayout, None > @all
+Field rhs_p < global, DefCellLayout, None > @all
