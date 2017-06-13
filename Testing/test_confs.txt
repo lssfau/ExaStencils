@@ -270,4 +270,4 @@ FAS_2D_Basic  Main  NonLinear/FAS_2D_Basic.knowledge  NonLinear/FAS_2D_Basic.exa
 # TESTS TESTS  (TEMP)                                                                           #
 #################################################################################################
 
-Appl_ExaStokes_2D       Main  Application/ExaStokes_2D.knowledge        Temp/Temp1.exa4;Temp/Temp2.exa4;Temp/Temp3.exa4        Application/ExaStokes_2D.results        1  10
+Tests_Test       Main  Application/ExaStokes_2D.knowledge        Temp/Temp1.exa4;Temp/Temp2.exa4;Temp/Temp3.exa4        Application/ExaStokes_2D.results        1  10

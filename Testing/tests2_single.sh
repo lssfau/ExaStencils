@@ -93,10 +93,10 @@ echo "poly_explorationConfig = \"${EXPL_CFG}\"" >> "${SETTINGS}"
 IFS=';' read -a files <<< $EXAFILES
 for f in "${files[@]}"; do
   case ${f} in
-    *.exa1)  echo "l1file = \"${f}\"" >> "${SETTINGS}";;
-    *.exa2)  echo "l2file = \"${f}\"" >> "${SETTINGS}";;
-    *.exa3)  echo "l3file = \"${f}\"" >> "${SETTINGS}";;
-    *.exa4)  echo "l4file = \"${f}\"" >> "${SETTINGS}";;
+    *.exa1)  echo "l1file += \"${f}\"" >> "${SETTINGS}";;
+    *.exa2)  echo "l2file += \"${f}\"" >> "${SETTINGS}";;
+    *.exa3)  echo "l3file += \"${f}\"" >> "${SETTINGS}";;
+    *.exa4)  echo "l4file += \"${f}\"" >> "${SETTINGS}";;
   esac
 done
 

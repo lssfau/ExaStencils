@@ -141,7 +141,7 @@ i=0
 while read line
 do
 
-  # stip comments
+  # strip comments
   line2=${line%%\#*}
   if [[ $line2 =~ ^[" \t"]*$ ]]; then
     continue # empty line, nothing to do...
@@ -194,6 +194,7 @@ do
       exafiles="${exafiles}${TEST_DIR}/gen.exa${i};"
     fi
   done
+  unset EXADUMMY
 
   COMPILE_CONSTR=""
   if [[ ${constraints} =~ GPU ]] || [[ ${constraints} = "E5" ]]; then
