@@ -24,26 +24,22 @@ object Settings {
   /// layer 1
 
   var l1file : ListBuffer[String] = ListBuffer()
-  def defL1file : String = if (basePathPrefix.isEmpty) "../Compiler/dsl/Layer1.exa" else getBasePath + "Compiler/dsl/Layer1.exa"
-  def getL1file : ListBuffer[String] = if (l1file.isEmpty) ListBuffer(defL1file) else l1file.map(getBasePath + _)
+  def getL1file : ListBuffer[String] = l1file.map(getBasePath + _)
 
   /// layer 2
 
   var l2file : ListBuffer[String] = ListBuffer()
-  def defL2file : String = if (basePathPrefix.isEmpty) "../Compiler/dsl/Layer2.exa" else getBasePath + "Compiler/dsl/Layer2.exa"
-  def getL2file : ListBuffer[String] = if (l2file.isEmpty) ListBuffer(defL2file) else l2file.map(getBasePath + _)
+  def getL2file : ListBuffer[String] = l2file.map(getBasePath + _)
 
   /// layer 3
 
   var l3file : ListBuffer[String] = ListBuffer()
-  def defL3file : String = if (basePathPrefix.isEmpty) "../Compiler/dsl/Layer3.exa" else getBasePath + "Compiler/dsl/Layer3.exa"
-  def getL3file : ListBuffer[String] = if (l3file.isEmpty) ListBuffer(defL3file) else l3file.map(getBasePath + _)
+  def getL3file : ListBuffer[String] = l3file.map(getBasePath + _)
 
   /// layer 4
 
   var l4file : ListBuffer[String] = ListBuffer()
-  def defL4file : String = if (basePathPrefix.isEmpty) "../Compiler/dsl/Layer4.exa" else getBasePath + "Compiler/dsl/Layer4.exa"
-  def getL4file : ListBuffer[String] = if (l4file.isEmpty) ListBuffer(defL4file) else l4file.map(getBasePath + _)
+  def getL4file : ListBuffer[String] = l4file.map(getBasePath + _)
 
   /// config file for polyhedral search space exploration
 
