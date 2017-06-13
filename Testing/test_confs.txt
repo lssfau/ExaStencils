@@ -265,9 +265,3 @@ Both_CSE_SISC_3D_VarCoeff  Main  CSE/3D_VarCoeff_both.knowledge  *  SISC/3D_VarC
 
 # 9 OMP threads
 FAS_2D_Basic  Main  NonLinear/FAS_2D_Basic.knowledge  NonLinear/FAS_2D_Basic.exa4  NonLinear/FAS_2D_Basic.results  9   2
-
-#################################################################################################
-# TESTS TESTS  (TEMP)                                                                           #
-#################################################################################################
-
-Tests_Test       Main  Application/ExaStokes_2D.knowledge        Temp/Temp1.exa4;Temp/Temp2.exa4;Temp/Temp3.exa4        Application/ExaStokes_2D.results        1  10
