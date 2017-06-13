@@ -1,16 +1,18 @@
 # configuration file for automatic tests
 
 # a single line (which represents a single test config) must have one of the following two structures:
-# ID  MainClass  KnowledgeInput  L4-File
-# ID  MainClass  KnowledgeInput  L4-File  ResultFile  NumMPIRanks  NumCoresPerRank  [Constraint]
+# ID  MainClass  KnowledgeInput  ExaSlang-File[;ExaSlang-Files]*
+# ID  MainClass  KnowledgeInput  ExaSlang-File[;ExaSlang-Files]*  ResultFile  NumMPIRanks  NumCoresPerRank  [Constraint]
 
 # neither of the fields must contain a white space, a tabular, or similar
 # ID  is an arbitrary string to name the test
 # MainClass  is the main class of the scala code generator that should be used (without .class ending)
 # KnowledgeInput  is a text file containing all relevant configurations
-# L4-File  is a text file containing the ExaSlang4 code to test, or "*" if it will be generated automatically
+# ExaSlang-File  is a text file containing the ExaSlang code to test, or "*" if it will be generated automatically
+#                multiple files have to be separated by a ';' and each file must have an ".exaN" name extension
+#                where N is 1, 2, 3, or 4
 # ResultFile  is a text file containing the expected output of the generated code
-# both KnowledgeInput and ResultFile must be relative to the directory this file is located in
+#   all given files must be relative to the directory this file is located in
 # NumMPIRanks  is the number of MPI ranks (processes)
 # NumCoresPerRank  is the number of physical cores to be associated with each MPI rank
 # Constraint  specifies features the nodes must have when executing the generated test code
