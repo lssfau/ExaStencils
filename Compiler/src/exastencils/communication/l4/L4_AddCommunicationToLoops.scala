@@ -26,7 +26,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
 
       var commStatements = ListBuffer[L4_Communicate]()
 
-      for (field <- fieldsToConsider) {
+      for (field <- fieldsToConsider.sortBy(f => f.field.name + f.field.level + f.slot)) {
         var targets = ListBuffer[L4_CommunicateTarget]()
         targets += L4_CommunicateTarget("ghost", None, Some(L4_ConstIndex(collector.readExtentMax(field))))
         commStatements += L4_Communicate(
@@ -48,7 +48,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
       }
 
       // TODO: move to separate strategy
-      for (field <- collector.writeExtentMax.keys)
+      for (field <- collector.writeExtentMax.keys.toList.sortBy(f => f.field.name + f.field.level + f.slot))
         if (L4_NoBC != field.boundary)
           finalStmts += L4_ApplyBC(L4_FieldAccess(field.field, field.slot))
 
