@@ -190,7 +190,6 @@ object MainChristoph {
 
     L4_ResolveLevelSpecifications.apply()
 
-    L4_UnfoldLeveledFunctions.apply()
     L4_UnfoldLeveledDeclarations.apply()
     L4_ResolveLeveledScopes.apply()
 

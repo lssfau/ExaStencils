@@ -1,6 +1,6 @@
 package exastencils.base.l3
 
-import exastencils.base.l4.L4_UserFunctionAccess
+import exastencils.base.l4._
 import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -8,13 +8,13 @@ import exastencils.logger.Logger
 /// L3_PlainDslFunctionAccess
 
 case class L3_PlainDslFunctionAccess(var name : String, var datatype : L3_Datatype) extends L3_PlainFunctionAccess {
-  override def progress = L4_UserFunctionAccess(name, datatype.progress)
+  override def progress = L4_PlainDslFunctionAccess(name, datatype.progress)
 }
 
 /// L3_LeveledDslFunctionAccess
 
 case class L3_LeveledDslFunctionAccess(var name : String, var level : Int, var datatype : L3_Datatype) extends L3_LeveledFunctionAccess {
-  override def progress = L4_UserFunctionAccess(name, Some(level), datatype.progress)
+  override def progress = L4_LeveledDslFunctionAccess(name, level, datatype.progress)
 }
 
 /// L3_ResolveDslFunctionAccesses

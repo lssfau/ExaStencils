@@ -9,6 +9,20 @@ import exastencils.prettyprinting._
 
 /// L3_Function
 
+object L3_Function {
+
+  object Argument {
+    // generate declaration corresponding to given access
+    def apply(access : L3_VariableAccess) = new Argument(access.name, access.datatype)
+  }
+
+  case class Argument(var name : String, var datatype : L3_Datatype) extends L3_Node with PrettyPrintable with L3_Progressable {
+    override def prettyprint(out : PpStream) = out << name << " : " << datatype
+    override def progress = L4_Function.Argument(name, datatype.progress)
+  }
+
+}
+
 trait L3_Function extends L3_Statement {
   def name : String
   def datatype : L3_Datatype
@@ -19,17 +33,17 @@ trait L3_Function extends L3_Statement {
 case class L3_PlainFunction(
     var name : String,
     var datatype : L3_Datatype,
-    var arguments : ListBuffer[L3_FunctionArgument],
+    var parameters : ListBuffer[L3_Function.Argument],
     var body : ListBuffer[L3_Statement]) extends L3_Function {
 
   override def prettyprint(out : PpStream) = {
     out << "Function " << name
-    if (arguments.nonEmpty) out << " ( " <<< (arguments, ", ") << " )"
+    if (parameters.nonEmpty) out << " ( " <<< (parameters, ", ") << " )"
     if (datatype != L3_UnitDatatype) out << " : " << datatype
-    out <<< (body, "\n") << "\n}"
+    out << " {\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress = L4_Function(L4_BasicIdentifier(name), datatype.progress, arguments.map(_.progress), body.map(_.progress))
+  override def progress = L4_PlainFunction(name, datatype.progress, parameters.map(_.progress), body.map(_.progress))
 }
 
 /// L3_LeveledFunction
@@ -38,29 +52,17 @@ case class L3_LeveledFunction(
     var name : String,
     var level : Int,
     var datatype : L3_Datatype,
-    var arguments : ListBuffer[L3_FunctionArgument],
+    var parameters : ListBuffer[L3_Function.Argument],
     var body : ListBuffer[L3_Statement]) extends L3_Function {
 
   override def prettyprint(out : PpStream) = {
     out << "Function " << name << '@' << level
-    if (arguments.nonEmpty) out << " ( " <<< (arguments, ", ") << " )"
+    if (parameters.nonEmpty) out << " ( " <<< (parameters, ", ") << " )"
     if (datatype != L3_UnitDatatype) out << " : " << datatype
-    out <<< (body, "\n") << "\n}"
+    out << " {\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress = L4_Function(L4_LeveledIdentifier(name, L4_SingleLevel(level)), datatype.progress, arguments.map(_.progress), body.map(_.progress))
-}
-
-/// L3_FunctionArgument
-
-object L3_FunctionArgument {
-  // generate declaration corresponding to given access
-  def apply(access : L3_VariableAccess) = new L3_FunctionArgument(access.name, access.datatype)
-}
-
-case class L3_FunctionArgument(var name : String, var datatype : L3_Datatype) extends L3_Node with PrettyPrintable with L3_Progressable {
-  override def prettyprint(out : PpStream) = out << name << " : " << datatype
-  override def progress = L4_FunctionArgument(name, datatype.progress)
+  override def progress = L4_LeveledFunction(name, level, datatype.progress, parameters.map(_.progress), body.map(_.progress))
 }
 
 /// L3_FunctionCollector

@@ -4,6 +4,7 @@ import scala.collection._
 import scala.collection.mutable.{ HashMap, ListBuffer }
 
 import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.core._
 import exastencils.util.l4.L4_MathFunctions
 
@@ -198,14 +199,14 @@ object L4_SimplifyExpression {
         (simplifyIntegralExpr(L4_Division(x + L4_IntegerConstant(const * divs2), L4_IntegerConstant(divs * divs2))), 1L)
 
       case L4_FunctionCall(function, ListBuffer(x, L4_IntegerConstant(divs2))) if floor && "floord" == function.name                                                     =>
-        (L4_FunctionCall("floord", ListBuffer(x, L4_IntegerConstant(divs * divs2))), 1L)
+        (L4_FunctionCall(L4_UnresolvedAccess("floord"), ListBuffer(x, L4_IntegerConstant(divs * divs2))), 1L)
       case L4_Addition(ListBuffer(L4_FunctionCall(function, ListBuffer(x, L4_IntegerConstant(divs2))), L4_IntegerConstant(const))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(L4_FunctionCall("floord", x + L4_IntegerConstant(const * divs2), L4_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(L4_FunctionCall(L4_UnresolvedAccess("floord"), x + L4_IntegerConstant(const * divs2), L4_IntegerConstant(divs * divs2))), 1L)
       case L4_Addition(ListBuffer(L4_IntegerConstant(const), L4_FunctionCall(function, ListBuffer(x, L4_IntegerConstant(divs2))))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(L4_FunctionCall("floord", x + L4_IntegerConstant(const * divs2), L4_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(L4_FunctionCall(L4_UnresolvedAccess("floord"), x + L4_IntegerConstant(const * divs2), L4_IntegerConstant(divs * divs2))), 1L)
       case divd                                                                                                                                                          =>
         if (floor)
-          (L4_FunctionCall("floord", divd, L4_IntegerConstant(divs)), 1L)
+          (L4_FunctionCall(L4_UnresolvedAccess("floord"), divd, L4_IntegerConstant(divs)), 1L)
         else
           (L4_Division(divd, L4_IntegerConstant(divs)), 1L)
     }
@@ -492,7 +493,7 @@ object L4_SimplifyExpression {
         if (L4_MathFunctions.signatures.contains(call.name))
           simplifyFloatingArgs(L4_MathFunctions.signatures(call.name)._1)
         else for (func <- StateManager.findFirst({ f : L4_Function => f.name == call.name }))
-          simplifyFloatingArgs(func.arguments.view.map(_.datatype))
+          simplifyFloatingArgs(func.parameters.view.map(_.datatype))
         res = new HashMap[L4_Expression, Double]()
         res(call) = 1d
 

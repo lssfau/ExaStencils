@@ -7,6 +7,8 @@ import exastencils.datastructures.Node
 import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
 import exastencils.logger.Logger
 
+/// L4_LevelCollector
+
 class L4_LevelCollector extends Collector {
   private val levelStack = new Stack[Int]
 
@@ -16,28 +18,31 @@ class L4_LevelCollector extends Collector {
       case _                         =>
     }
   }
+  def enterLevel(level : Int) = levelStack.push(level)
+
   def leaveLevel(level : Option[L4_LevelSpecification]) = {
     level match {
       case Some(L4_SingleLevel(_)) => levelStack.pop()
       case _                       =>
     }
   }
+  def leaveLevel(level : Int) = levelStack.pop()
 
   override def enter(node : Node) : Unit = {
     node match {
       case decl : L4_LeveledKnowledgeDecl => enterLevel(decl.levels)
-      //case fct : L4_Function              => enterLevel(fct.levels)
-      case L4_Function(L4_LeveledIdentifier(_, level), _, _, _, _) => levelStack.push(level.resolveLevel)
-      case _                                                       =>
+      case fct : L4_FunctionDecl          => enterLevel(fct.levels)
+      case fct : L4_LeveledFunction       => enterLevel(fct.level)
+      case _                              =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
       case decl : L4_LeveledKnowledgeDecl => leaveLevel(decl.levels)
-      //case fct : L4_Function              => leaveLevel(fct.levels)
-      case L4_Function(L4_LeveledIdentifier(_, level), _, _, _, _) => levelStack.pop
-      case _                                                       =>
+      case fct : L4_FunctionDecl          => leaveLevel(fct.levels)
+      case fct : L4_LeveledFunction       => leaveLevel(fct.level)
+      case _                              =>
     }
   }
 

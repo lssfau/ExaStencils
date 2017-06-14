@@ -19,44 +19,63 @@ case class L3_FunctionInstantiation(
     var templateName : String,
     var args : ListBuffer[L3_Expression],
     var targetFct : String,
-    var targetFctLevel : Option[L3_DeclarationLevelSpecification]) extends L3_Statement {
+    var targetFctLevel : Option[L3_DeclarationLevelSpecification]) extends L3_Node with PrettyPrintable {
 
-  override def prettyprint(out : PpStream) = ???
-  override def progress = ???
+  override def prettyprint(out : PpStream) = {
+    out << "Instantiate " << templateName << " < " <<< (args, ", ") << " > " << " as " << targetFct
+    if (targetFctLevel.isDefined) out << '@' << targetFctLevel.get
+  }
 }
 
-/// L3_ResolveFunctionTemplates
+/// L3_ResolveFunctionInstantiations
 
-object L3_ResolveFunctionTemplates extends DefaultStrategy("Resolving function templates and instantiations") {
+object L3_ResolveFunctionInstantiations extends DefaultStrategy("Resolving function templates and instantiations") {
   this += new Transformation("Find and resolve", {
     case functionInst : L3_FunctionInstantiation =>
-      val template = StateManager.findFirst({ fctTemp : L3_FunctionTemplate => fctTemp.name == functionInst.templateName })
-      if (template.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
+      val templateOpt = StateManager.findFirst({ f : L3_FunctionTemplate => f.name == functionInst.templateName })
+      if (templateOpt.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
+      val template = templateOpt.get
       val instantiated = Duplicate(L3_FunctionDecl(functionInst.targetFct, functionInst.targetFctLevel,
-        template.get.returntype, template.get.functionArgs, template.get.statements))
+        template.returntype, template.functionArgs, template.statements))
 
-      L3_ReplaceExpressions.replacements = (template.get.templateArgs zip functionInst.args).toMap[String, L3_Expression]
-      L3_ReplaceExpressions.applyStandalone(instantiated)
+      L3_ReplaceUnresolvedAccess.replacements = Map() ++ (template.templateArgs zip functionInst.args).toMap[String, L3_Expression]
+      L3_ReplaceUnresolvedAccess.applyStandalone(instantiated)
 
-      instantiated
+      instantiated // replace instantiation with function declaration
   })
 
   this += new Transformation("Remove function templates", {
     case _ : L3_FunctionTemplate => None
   })
 
-  object L3_ReplaceExpressions extends QuietDefaultStrategy("Replace something with something else") {
+  object L3_ReplaceUnresolvedAccess extends QuietDefaultStrategy("Replace something with something else") {
     var replacements : Map[String, L3_Expression] = Map()
 
-    this += new Transformation("SearchAndReplace", {
+    this += new Transformation("Search and replace", {
       case origAccess : L3_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) =>
         // includes accesses used as identifiers in function calls
         val newAccess = Duplicate(replacements(origAccess.name))
         newAccess match {
           case newAccess : L3_UnresolvedAccess =>
+            if (origAccess.slot.isDefined) {
+              if (newAccess.slot.isDefined) Logger.warn("Overriding slot on access in function instantiation")
+              newAccess.slot = origAccess.slot
+            }
             if (origAccess.level.isDefined) {
               if (newAccess.level.isDefined) Logger.warn("Overriding level on access in function instantiation")
               newAccess.level = origAccess.level
+            }
+            if (origAccess.offset.isDefined) {
+              if (newAccess.offset.isDefined) Logger.warn("Overriding offset on access in function instantiation")
+              newAccess.offset = origAccess.offset
+            }
+            if (origAccess.arrayIndex.isDefined) {
+              if (newAccess.arrayIndex.isDefined) Logger.warn("Overriding array index on access in function instantiation")
+              newAccess.arrayIndex = origAccess.arrayIndex
+            }
+            if (origAccess.dirAccess.isDefined) {
+              if (newAccess.dirAccess.isDefined) Logger.warn("Overriding direction access on access in function instantiation")
+              newAccess.dirAccess = origAccess.dirAccess
             }
 
           case _ =>

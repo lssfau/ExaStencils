@@ -25,31 +25,23 @@ object L4_TimerFunctions {
     "printAllTimersToFile" -> L4_UnitDatatype
   )
 
-  def getValue(fctName : String) = functions.get(fctName)
+  def getDatatype(fctName : String) = functions(fctName)
   def exists(fctName : String) = functions.contains(fctName)
 }
 
 /// L4_TimerFunctionAccess
 
-object L4_TimerFunctionAccess {
-  def apply(name : String, datatype : L4_Datatype) =
-    new L4_TimerFunctionAccess(name, None, datatype)
-  def apply(name : String, level : Int, datatype : L4_Datatype) =
-    new L4_TimerFunctionAccess(name, Some(level), datatype)
-}
-
-case class L4_TimerFunctionAccess(var name : String, level : Option[Int], var datatype : L4_Datatype) extends L4_FunctionAccess {
-  override def progress = IR_TimerFunctionAccess(resolvedName(), datatype.progress)
+case class L4_TimerFunctionAccess(var name : String, var datatype : L4_Datatype) extends L4_PlainFunctionAccess {
+  override def progress = IR_TimerFunctionAccess(name, datatype.progress)
 }
 
 /// L4_ResolveTimerFunctions
 
 object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function accesses") {
   this += new Transformation("Resolve function accesses", {
-    case access @ L4_UnresolvedAccess(accessName, _, level, _, _, _) if L4_TimerFunctions.exists(accessName) =>
-      if (level.isDefined)
-        Logger.warn(s"Found leveled timing function $accessName with level ${ level.get }; level is ignored")
-      L4_TimerFunctionAccess(accessName, L4_TimerFunctions.getValue(accessName).get)
+    case access : L4_UnresolvedAccess if L4_TimerFunctions.exists(access.name) =>
+      if (access.level.isDefined) Logger.warn(s"Found leveled timing function ${ access.name } with level ${ access.level.get }; level is ignored")
+      L4_TimerFunctionAccess(access.name, L4_TimerFunctions.getDatatype(access.name))
   })
 
   this += new Transformation("Convert string constants in function call arguments", {

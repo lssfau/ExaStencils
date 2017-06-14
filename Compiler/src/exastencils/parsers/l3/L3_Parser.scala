@@ -177,7 +177,7 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val function = locationize((("Func" ||| "Function") ~> ident) ~ levelDecl.? ~ ("(" ~> functionArgumentList.? <~ ")").? ~ (":" ~> returnDatatype).? ~ ("{" ~> (statement.* <~ "}"))
     ^^ { case name ~ levels ~ args ~ returnType ~ stmts => L3_FunctionDecl(name, levels, returnType, args, stmts) })
   lazy val functionArgumentList = /*locationize*/ (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg }
-  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => L3_FunctionArgument(id, t) })
+  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => L3_Function.Argument(id, t) })
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { L3_Return })
 

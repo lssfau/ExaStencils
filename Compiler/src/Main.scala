@@ -6,7 +6,7 @@ import exastencils.base.l2._
 import exastencils.base.l3._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
-import exastencils.baseExt.l3.L3_ResolveFunctionTemplates
+import exastencils.baseExt.l3.L3_ResolveFunctionInstantiations
 import exastencils.baseExt.l4._
 import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
@@ -251,7 +251,7 @@ object Main {
       // pre-process level specifications in declarations
       L3_ResolveLevelSpecifications.apply()
 
-      L3_ResolveFunctionTemplates.apply()
+      L3_ResolveFunctionInstantiations.apply()
       L3_UnfoldFunctionDeclarations.apply()
       L3_ProcessFunctionDeclarations.apply()
 
@@ -330,8 +330,9 @@ object Main {
         L4_UnresolveStencilAccesses.apply()
         L4_UnresolveStencilFieldAccesses.apply()
         L4_UnresolveFieldAccesses.apply()
-        L4_ReplaceLevelsInFunctions.apply()
-        L4_CombineLeveledFunctions.apply()
+        // FIXME: transform back to declarations and re-fold
+        L4_ReplaceLevelsInFunctionDecls.apply()
+        L4_CombineLeveledFunctionDecls.apply()
         // L4_GenerateLeveledKnowledgeDecls.apply()
       }
     }
@@ -361,13 +362,16 @@ object Main {
     GridGeometry.getGeometry.initL4()
 
     // go to IR
-    L4_ResolveFunctionInstantiations.apply()
 
     // pre-process level specifications in declarations
     L4_ResolveLevelSpecifications.apply()
 
-    L4_UnfoldLeveledFunctions.apply()
+    L4_ResolveFunctionInstantiations.apply()
+    L4_UnfoldFunctionDeclarations.apply()
+    L4_ProcessFunctionDeclarations.apply()
+
     L4_UnfoldLeveledDeclarations.apply()
+
     L4_UnfoldKnowledgeDeclarations.apply()
 
     // resolve current, etc.
@@ -386,8 +390,8 @@ object Main {
       L4_InlineGlobalValueDeclarations.apply()
     }
 
-    L4_ResolveFunctionAccesses.apply()
     L4_ResolveSpecialConstants.apply()
+    L4_ResolveDslFunctionAccesses.apply()
     L4_ResolveMathFunctions.apply()
     L4_ResolveTimerFunctions.apply()
     L4_ResolveGridFunctions.apply()

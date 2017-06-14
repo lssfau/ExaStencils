@@ -23,7 +23,7 @@ class L4VariableCollector extends Collector {
           case v : L4_LeveledIdentifier => values.last += ((v.name + "@@" + v.level, x.datatype))
           case _                        => values.last += ((x.identifier.name, x.datatype))
         }
-      case x : L4_FunctionArgument    => values.last += ((x.name, x.datatype))
+      case x : L4_Function.Argument   => values.last += ((x.name, x.datatype))
       case _                          =>
     }
   }

@@ -39,8 +39,7 @@ object L4_MathFunctions {
 
 /// L4_MathFunctionAccess
 
-case class L4_MathFunctionAccess(var name : String, var datatype : L4_Datatype) extends L4_FunctionAccess {
-  override def level = None
+case class L4_MathFunctionAccess(var name : String, var datatype : L4_Datatype) extends L4_PlainFunctionAccess {
   override def progress = IR_MathFunctionAccess(name, datatype.progress)
 }
 

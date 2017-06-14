@@ -197,7 +197,6 @@ object MainStefan {
 
     L4_ResolveLevelSpecifications.apply()
 
-    L4_UnfoldLeveledFunctions.apply()
     L4_UnfoldLeveledDeclarations.apply()
     L4_ResolveLeveledScopes.apply()
 
@@ -209,7 +208,7 @@ object MainStefan {
     }
     L4_ResolveVirtualFieldAccesses.apply()
     L4_ResolveVariableAccesses.apply()
-    L4_ResolveFunctionAccesses.apply()
+    L4_ResolveDslFunctionAccesses.apply()
     L4_ResolveMathFunctions.apply()
     L4_ResolveTimerFunctions.apply()
     L4_ResolveGridFunctions.apply()

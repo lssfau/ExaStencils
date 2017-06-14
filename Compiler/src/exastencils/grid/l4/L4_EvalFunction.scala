@@ -2,6 +2,7 @@ package exastencils.grid.l4
 
 import scala.collection.mutable.HashSet
 
+import exastencils.base.ir._
 import exastencils.base.l4._
 
 // L4_EvalFunctions
@@ -28,12 +29,7 @@ object L4_EvalFunctions {
 
 /// L4_EvalFunctionAccess
 
-object L4_EvalFunctionAccess {
-  def apply(name : String, datatype : L4_Datatype) =
-    new L4_EvalFunctionAccess(name, None, datatype)
-  def apply(name : String, level : Int, datatype : L4_Datatype) =
-    new L4_EvalFunctionAccess(name, Some(level), datatype)
-}
-
 // TODO: pipe to ir eval function access
-case class L4_EvalFunctionAccess(var name : String, level : Option[Int], var datatype : L4_Datatype) extends L4_FunctionAccess
+case class L4_EvalFunctionAccess(var name : String, var level : Int, var datatype : L4_Datatype) extends L4_LeveledFunctionAccess {
+  override def progress = IR_UserFunctionAccess(name, datatype.progress)
+}

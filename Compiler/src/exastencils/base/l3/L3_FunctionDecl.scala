@@ -11,24 +11,24 @@ import exastencils.prettyprinting.PpStream
 
 object L3_FunctionDecl {
   def apply(name : String, levels : Option[L3_DeclarationLevelSpecification], datatype : Option[L3_Datatype],
-      arguments : Option[Option[List[L3_FunctionArgument]]], body : List[L3_Statement]) =
+      parameters : Option[Option[List[L3_Function.Argument]]], body : List[L3_Statement]) =
     new L3_FunctionDecl(name, levels, datatype.getOrElse(L3_UnitDatatype),
-      arguments.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], body.to[ListBuffer])
+      parameters.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], body.to[ListBuffer])
 }
 
 case class L3_FunctionDecl(
     var name : String,
     var levels : Option[L3_DeclarationLevelSpecification],
     var datatype : L3_Datatype,
-    var arguments : ListBuffer[L3_FunctionArgument],
+    var parameters : ListBuffer[L3_Function.Argument],
     var body : ListBuffer[L3_Statement]) extends L3_Statement {
 
   override def prettyprint(out : PpStream) = {
     out << "Function " << name
     if (levels.isDefined) out << '@' << levels.get
-    if (arguments.nonEmpty) out << " ( " <<< (arguments, ", ") << " )"
+    if (parameters.nonEmpty) out << " ( " <<< (parameters, ", ") << " )"
     if (datatype != L3_UnitDatatype) out << " : " << datatype
-    out <<< (body, "\n") << "\n}"
+    out << " {\n" <<< (body, "\n") << "\n}"
   }
 
   override def progress = Logger.error(s"Trying to progress L3 function declaration for $name; this is not supported")
@@ -46,9 +46,9 @@ case class L3_FunctionDecl(
 
   def toFunction = {
     if (levels.isEmpty)
-      L3_PlainFunction(name, datatype, arguments, body)
+      L3_PlainFunction(name, datatype, parameters, body)
     else
-      L3_LeveledFunction(name, levels.get.asInstanceOf[L3_SingleLevel].level, datatype, arguments, body)
+      L3_LeveledFunction(name, levels.get.asInstanceOf[L3_SingleLevel].level, datatype, parameters, body)
   }
 }
 

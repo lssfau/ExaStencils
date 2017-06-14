@@ -169,10 +169,10 @@ object L4_Parser extends ExaParser with PackratParsers {
   // ##### Functions
   // ######################################
 
-  lazy val function = locationize("noinline".? ~ (("Func" ||| "Function") ~> identifierWithOptDeclLevel) ~ ("(" ~> functionArgumentList.? <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
-    ^^ { case inline ~ id ~ args ~ t ~ stmts => L4_Function(id, t, args.getOrElse(List[L4_FunctionArgument]()), stmts, inline.isEmpty) })
+  lazy val function = locationize("noinline".? ~ (("Func" ||| "Function") ~> ident) ~ levelDecl.? ~ ("(" ~> functionArgumentList.? <~ ")").? ~ (":" ~> returnDatatype).? ~ ("{" ~> (statement.* <~ "}"))
+    ^^ { case inline ~ id ~ level ~ args ~ t ~ stmts => L4_FunctionDecl(id, level, t, args, stmts, inline.isEmpty) })
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg }
-  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => L4_FunctionArgument(id, t) })
+  lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => L4_Function.Argument(id, t) })
 
   lazy val functionCallArgumentList = /*locationize*/ ((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex }
   lazy val functionCall = locationize((flatAccess ||| leveledAccess) ~ ("(" ~> functionCallArgumentList.? <~ ")")
@@ -183,8 +183,8 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val functionInstArgument = binaryexpression ||| booleanexpression
   lazy val functionTemplate = locationize((("FuncTemplate" ||| "FunctionTemplate") ~> ident) ~ ("<" ~> functionTemplateArgList.? <~ ">") ~ ("(" ~> functionArgumentList.? <~ ")") ~ (":" ~> returnDatatype) ~ ("{" ~> (statement.* <~ "}"))
     ^^ { case id ~ templateArgs ~ functionArgs ~ retType ~ stmts => L4_FunctionTemplate(id, templateArgs.getOrElse(List()), functionArgs.getOrElse(List()), retType, stmts) })
-  lazy val functionInstantiation = locationize(((("Inst" ||| "Instantiate") ~> ident) ~ ("<" ~> functionInstArgList.? <~ ">") ~ ("as" ~> identifierWithOptDeclLevel))
-    ^^ { case template ~ args ~ target => L4_FunctionInstantiation(template, args.getOrElse(List()), target) })
+  lazy val functionInstantiation = locationize(((("Inst" ||| "Instantiate") ~> ident) ~ ("<" ~> functionInstArgList.? <~ ">") ~ ("as" ~> ident) ~ levelDecl.?)
+    ^^ { case template ~ args ~ target ~ targetLvl => L4_FunctionInstantiation(template, args.getOrElse(List()), target, targetLvl) })
 
   // ######################################
   // ##### Statements

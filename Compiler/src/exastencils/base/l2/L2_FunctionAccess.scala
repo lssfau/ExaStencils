@@ -1,5 +1,6 @@
 package exastencils.base.l2
 
+import exastencils.base.l3.L3_FunctionAccess
 import exastencils.prettyprinting.PpStream
 
 /// L2_FunctionAccess
@@ -7,6 +8,7 @@ import exastencils.prettyprinting.PpStream
 trait L2_FunctionAccess extends L2_Access {
   def name : String
   def datatype : L2_Datatype
+  override def progress : L3_FunctionAccess
 }
 
 /// L2_PlainFunctionAccess

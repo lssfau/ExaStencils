@@ -43,21 +43,22 @@ object L4_Validation {
       x.name = "user_" + x.name; x
   })
 
-  var functioncalls = ListBuffer[String]()
+  var functionCalls = ListBuffer[String]()
   var functions = ListBuffer[String]()
 
   s += Transformation("find Function calls", {
     case f : L4_FunctionCall =>
       f.function match {
-        case a : L4_FunctionAccess   => functioncalls += (a.name + a.level.getOrElse("-1"))
-        case a : L4_UnresolvedAccess => functioncalls += (a.name + a.level.getOrElse("-1"))
-        case _                       => println("something else: " + f.function)
+        case a : L4_PlainFunctionAccess   => functionCalls += a.name
+        case a : L4_LeveledFunctionAccess => functionCalls += (a.name + a.level)
+        case a : L4_UnresolvedAccess      => functionCalls += (a.name + a.level.getOrElse("-1"))
+        case _                            => println("something else: " + f.function)
       }
       f
   })
 
   s += Transformation("check destroyGlobals", {
-    case f : L4_Function if f.identifier.name == "Application" =>
+    case f : L4_Function if f.name == "Application" =>
       var last = f.body.last
       last match {
         case c : L4_FunctionCall => if (c.function.name != "destroyGlobals") Logger.error("destroyGlobals has to be last statement in Application()")

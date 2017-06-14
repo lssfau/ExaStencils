@@ -11,12 +11,20 @@ import exastencils.prettyprinting._
 /// L4_FunctionInstantiation
 
 object L4_FunctionInstantiation {
-  def apply(templateName : String, args : List[L4_Expression], targetFct : L4_Identifier) =
-    new L4_FunctionInstantiation(templateName, args.to[ListBuffer], targetFct)
+  def apply(templateName : String, args : List[L4_Expression], targetFct : String, targetFctLevel : Option[L4_DeclarationLevelSpecification]) : L4_FunctionInstantiation =
+    L4_FunctionInstantiation(templateName, args.to[ListBuffer], targetFct, targetFctLevel)
 }
 
-case class L4_FunctionInstantiation(var templateName : String, args : ListBuffer[L4_Expression], targetFct : L4_Identifier) extends L4_Node with PrettyPrintable {
-  override def prettyprint(out : PpStream) = out << "Instantiate " << templateName << " < " <<< (args, ", ") << " > " << " as " << targetFct
+case class L4_FunctionInstantiation(
+    var templateName : String,
+    var args : ListBuffer[L4_Expression],
+    var targetFct : String,
+    var targetFctLevel : Option[L4_DeclarationLevelSpecification]) extends L4_Node with PrettyPrintable {
+
+  override def prettyprint(out : PpStream) = {
+    out << "Instantiate " << templateName << " < " <<< (args, ", ") << " > " << " as " << targetFct
+    if (targetFctLevel.isDefined) out << '@' << targetFctLevel.get
+  }
 }
 
 /// L4_ResolveFunctionInstantiations
@@ -27,7 +35,8 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
       val templateOpt = StateManager.findFirst({ f : L4_FunctionTemplate => f.name == functionInst.templateName })
       if (templateOpt.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
       val template = templateOpt.get
-      val instantiated = Duplicate(L4_Function(functionInst.targetFct, template.returntype, template.functionArgs, template.statements))
+      val instantiated = Duplicate(L4_FunctionDecl(functionInst.targetFct, functionInst.targetFctLevel,
+        template.returntype, template.functionArgs, template.statements))
 
       L4_ReplaceUnresolvedAccess.replacements = Map() ++ (template.templateArgs zip functionInst.args).toMap[String, L4_Expression]
       L4_ReplaceUnresolvedAccess.applyStandalone(instantiated)
