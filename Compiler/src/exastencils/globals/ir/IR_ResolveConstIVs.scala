@@ -52,8 +52,7 @@ object IR_ResolveConstIVs extends DefaultStrategy("Resolve constant internal var
         case IR_Assignment(_ : IR_IV_LocalCommDone, _, _) => IR_NullStatement
         case _ : IR_IV_LocalCommDone                      => IR_BooleanConstant(true)
 
-        // FIXME: IR_UserFunctionAccess
-        case IR_FunctionCall(IR_UserFunctionAccess("waitForFlag", _), _) => IR_NullExpression
+        case IR_FunctionCall(IR_InternalFunctionAccess("waitForFlag", _), _) => IR_NullExpression
       }))
     }
 

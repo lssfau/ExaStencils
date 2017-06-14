@@ -33,11 +33,11 @@ object IR_PrepareShiftedEvaluationFunctions extends DefaultStrategy("Prepare shi
     "evalAtZStaggeredSouthFace" -> "evalAtZStaggeredNorthFace",
     "evalAtZStaggeredBottomFace" -> "evalAtZStaggeredTopFace")
 
-  private object DoShift extends QuietDefaultStrategy("DoShift") {
+  private object DoShift extends QuietDefaultStrategy("Do shift") {
     this += new Transformation("Resolving functions", {
       case fct @ IR_FunctionCall(function, args) if shiftEvalFunctions.contains(function.name) =>
         // return datatype remains identical
-        fct.function.name = shiftEvalFunctions(function.name)
+        function.name = shiftEvalFunctions(function.name)
         fct
     })
   }

@@ -11,7 +11,7 @@ import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_GeneralSimplify
 import exastencils.prettyprinting._
-import exastencils.util.ir.IR_ResultingDatatype
+import exastencils.util.ir._
 
 /// IR_HackMatComponentAccess
 // FIXME: update with actual accessors
@@ -114,7 +114,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
       case call @ IR_FunctionCall(_, args) if (call.name == "inverse") => {
         val m = args(0).datatype.asInstanceOf[IR_MatrixDatatype]
         if (m.sizeM > 3) {
-          call.function = new IR_UserFunctionAccess("_runtimeInverseMatrix", m)
+          call.function = IR_InternalFunctionAccess("_runtimeInverseMatrix", m)
         }
         call
       }
@@ -174,10 +174,10 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
   })
 
   this += new Transformation("return types", {
-    case func : IR_Function if (func.returntype.isInstanceOf[IR_MatrixDatatype]) => {
-      val matrix = func.returntype.asInstanceOf[IR_MatrixDatatype]
+    case func : IR_Function if (func.datatype.isInstanceOf[IR_MatrixDatatype]) => {
+      val matrix = func.datatype.asInstanceOf[IR_MatrixDatatype]
       func.parameters += IR_FunctionArgument("_matrix_return", IR_ReferenceDatatype(matrix))
-      func.returntype = IR_UnitDatatype
+      func.datatype = IR_UnitDatatype
 
       func.body = func.body.flatMap(stmt => stmt match {
         case IR_Return(Some(exp)) if (exp.datatype.isInstanceOf[IR_MatrixDatatype]) => {
@@ -509,9 +509,9 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           case dt : IR_MatrixDatatype => {
             for (i <- 0 until dt.sizeM) {
               for (j <- 0 until dt.sizeN) {
-                stmts += IR_ExpressionStatement(IR_FunctionCall("printf", ListBuffer[IR_Expression](IR_StringConstant("%e "), IR_HighDimAccess(matrix, IR_ConstIndex(i, j)))))
+                stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess.printf, ListBuffer[IR_Expression](IR_StringConstant("%e "), IR_HighDimAccess(matrix, IR_ConstIndex(i, j)))))
               }
-              stmts += IR_ExpressionStatement(IR_FunctionCall("printf", IR_StringConstant("\\n")))
+              stmts += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess.printf, IR_StringConstant("\\n")))
             }
           }
         }
@@ -552,22 +552,22 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
         IR_VariableDeclaration(myColmax, IR_RealConstant(0)),
         IR_VariableDeclaration(myMaxCol, myK),
         IR_ForLoop(IR_VariableDeclaration(myJ, myK), IR_Lower(myJ, IR_IntegerConstant(N)), IR_ExpressionStatement(IR_PreIncrement(myJ)), ListBuffer[IR_Statement](
-          IR_IfCondition(IR_Greater(IR_FunctionCall("fabs", IR_HighDimAccess(myU, IR_ExpressionIndex(myK, myJ))), myColmax), ListBuffer[IR_Statement](
-            IR_Assignment(myColmax, IR_FunctionCall("fabs", IR_HighDimAccess(myU, IR_ExpressionIndex(myK, myJ)))),
+          IR_IfCondition(IR_Greater(IR_FunctionCall(IR_MathFunctionAccess.fabs, IR_HighDimAccess(myU, IR_ExpressionIndex(myK, myJ))), myColmax), ListBuffer[IR_Statement](
+            IR_Assignment(myColmax, IR_FunctionCall(IR_MathFunctionAccess.fabs, IR_HighDimAccess(myU, IR_ExpressionIndex(myK, myJ)))),
             IR_Assignment(myMaxCol, myJ)
           ))
         )),
         IR_IfCondition(IR_Lower(myColmax, mkConstant(myType, 1e-15)),
-          IR_ExpressionStatement(IR_FunctionCall("printf", IR_StringConstant("[WARNING] Inverting potentially singular matrix\\n"))) +:
+          IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess.printf, IR_StringConstant("[WARNING] Inverting potentially singular matrix\\n"))) +:
             printMatrix(myU)
         ),
-        IR_ExpressionStatement(IR_FunctionCall("std::swap", IR_ArrayAccess(myQ, myK), IR_ArrayAccess(myQ, myMaxCol)))
+        IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("std::swap"), IR_ArrayAccess(myQ, myK), IR_ArrayAccess(myQ, myMaxCol)))
       ))
       for (i <- 0 until N) {
-        func.body.last.asInstanceOf[IR_ForLoop].body += IR_ExpressionStatement(IR_FunctionCall("std::swap", IR_HighDimAccess(myL, IR_ExpressionIndex(IR_IntegerConstant(i), myK)), IR_HighDimAccess(myL, IR_ExpressionIndex(IR_IntegerConstant(i), myMaxCol))))
+        func.body.last.asInstanceOf[IR_ForLoop].body += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("std::swap"), IR_HighDimAccess(myL, IR_ExpressionIndex(IR_IntegerConstant(i), myK)), IR_HighDimAccess(myL, IR_ExpressionIndex(IR_IntegerConstant(i), myMaxCol))))
       }
       for (i <- 0 until N) {
-        func.body.last.asInstanceOf[IR_ForLoop].body += IR_ExpressionStatement(IR_FunctionCall("std::swap", IR_HighDimAccess(myU, IR_ExpressionIndex(IR_IntegerConstant(i), myK)), IR_HighDimAccess(myU, IR_ExpressionIndex(IR_IntegerConstant(i), myMaxCol))))
+        func.body.last.asInstanceOf[IR_ForLoop].body += IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("std::swap"), IR_HighDimAccess(myU, IR_ExpressionIndex(IR_IntegerConstant(i), myK)), IR_HighDimAccess(myU, IR_ExpressionIndex(IR_IntegerConstant(i), myMaxCol))))
       }
       func.body.last.asInstanceOf[IR_ForLoop].body += IR_ForLoop(IR_VariableDeclaration(myI, myK + IR_IntegerConstant(1)), IR_Lower(myI, IR_IntegerConstant(N)), IR_ExpressionStatement(IR_PreIncrement(myI)), ListBuffer[IR_Statement](
         IR_Assignment(IR_HighDimAccess(myL, IR_ExpressionIndex(myI, myK)), IR_HighDimAccess(myU, IR_ExpressionIndex(myI, myK)) / IR_HighDimAccess(myU, IR_ExpressionIndex(myK, myK))),

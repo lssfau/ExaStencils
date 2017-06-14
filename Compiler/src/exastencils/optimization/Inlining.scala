@@ -149,7 +149,7 @@ object Inlining extends CustomStrategy("Function inlining") {
       case IR_VariableAccess(vname, t) if potConflicts.contains(vname)         => IR_VariableAccess(rename(vname), t)
       case IR_StringLiteral(vname) if potConflicts.contains(vname)             => IR_StringLiteral(rename(vname))
       case ret : IR_Return                                                     =>
-        if (ret.expr.isEmpty != (funcStmt.returntype == IR_UnitDatatype))
+        if (ret.expr.isEmpty != (funcStmt.datatype == IR_UnitDatatype))
           exit = true
         retStmt = ret
         ret // keep IR_Return to ensure variables in its expression are renamed, too; it will be removed later

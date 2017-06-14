@@ -188,7 +188,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
     // FIXME: HACK to realize application functionality
     case func : IR_Function if "Application" == func.name =>
-      func.returntype = IR_IntegerDatatype
+      func.datatype = IR_IntegerDatatype
       func.name = "main"
       if (!func.parameters.isEmpty)
         Logger.warning("function Application is not allowed to have parameters, omitting them")
@@ -253,7 +253,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     // FIXME: IR_UserFunctionAccess
     case IR_FunctionCall(IR_UserFunctionAccess("dot", _), args) => IR_FunctionCall("dotProduct", args)
 
-    case IR_ExpressionStatement(IR_FunctionCall(IR_UserFunctionAccess("readImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("readImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to readImage; usage: readImage ( field, \"filename\" )")
         IR_NullStatement
@@ -271,7 +271,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(IR_UserFunctionAccess("writeImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("writeImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to writeImage; usage: writeImage ( field, \"filename\" )")
         IR_NullStatement
@@ -296,7 +296,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(IR_UserFunctionAccess("writeMappedImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("writeMappedImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to writeMappedImage; usage: writeMappedImage ( field, \"filename\" )")
         IR_NullStatement
@@ -327,7 +327,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(IR_UserFunctionAccess("showImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("showImage", _), args)) =>
       if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
         Logger.warn("Malformed call to showImage; usage: showImage ( field.* )")
         IR_NullStatement

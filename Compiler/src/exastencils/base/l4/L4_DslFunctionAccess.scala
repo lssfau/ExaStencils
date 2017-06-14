@@ -1,6 +1,6 @@
 package exastencils.base.l4
 
-import exastencils.base.ir.IR_UserFunctionAccess
+import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
@@ -8,13 +8,13 @@ import exastencils.logger.Logger
 /// L4_PlainDslFunctionAccess
 
 case class L4_PlainDslFunctionAccess(var name : String, var datatype : L4_Datatype) extends L4_PlainFunctionAccess {
-  override def progress = IR_UserFunctionAccess(name, datatype.progress)
+  override def progress = IR_PlainDslFunctionAccess(name, datatype.progress)
 }
 
 /// L4_LeveledDslFunctionAccess
 
 case class L4_LeveledDslFunctionAccess(var name : String, var level : Int, var datatype : L4_Datatype) extends L4_LeveledFunctionAccess {
-  override def progress = IR_UserFunctionAccess(name + "_" + level, datatype.progress)
+  override def progress = IR_LeveledDslFunctionAccess(name, level, datatype.progress)
 }
 
 /// L4_ResolveDslFunctionAccesses

@@ -1,7 +1,6 @@
 package exastencils.util.ir
 
 import exastencils.base.ir._
-import exastencils.datastructures._
 
 object IR_MathFunctions {
   val signatures = Map(
@@ -28,25 +27,14 @@ object IR_MathFunctions {
 
     "fabs" -> (List(IR_RealDatatype) -> IR_RealDatatype))
 
-  def getValue(fctName : String) = signatures.get(fctName)
+  def getDatatype(fctName : String) = signatures(fctName)
   def exists(fctName : String) = signatures.contains(fctName)
 }
 
 /// IR_MathFunctionAccess
 
-case class IR_MathFunctionAccess(var name : String, var datatype : IR_Datatype) extends IR_FunctionAccess
-
-/// IR_ResolveMathFunctions
-
-object IR_ResolveMathFunctions extends DefaultStrategy("Resolve math function accesses") {
-  this += new Transformation("Resolve function accesses", {
-    case IR_FunctionCall(IR_UserFunctionAccess("min", _), args) =>
-      IR_Minimum(args)
-
-    case IR_FunctionCall(IR_UserFunctionAccess("max", _), args) =>
-      IR_Maximum(args)
-
-    case IR_UserFunctionAccess(accessName, _) if IR_MathFunctions.exists(accessName) =>
-      IR_MathFunctionAccess(accessName, IR_MathFunctions.getValue(accessName).get._2)
-  })
+object IR_MathFunctionAccess {
+  def fabs = new IR_MathFunctionAccess("fabs", IR_MathFunctions.getDatatype("fabs")._2)
 }
+
+case class IR_MathFunctionAccess(var name : String, var datatype : IR_Datatype) extends IR_PlainFunctionAccess
