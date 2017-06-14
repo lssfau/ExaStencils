@@ -18,17 +18,21 @@ class L3_LevelCollector extends Collector {
       case _                         =>
     }
   }
+  def enterLevel(level : Int) = levelStack.push(level)
+
   def leaveLevel(level : Option[L3_LevelSpecification]) = {
     level match {
       case Some(L3_SingleLevel(_)) => levelStack.pop()
       case _                       =>
     }
   }
+  def leaveLevel(level : Int) = levelStack.pop()
 
   override def enter(node : Node) : Unit = {
     node match {
       case decl : L3_LeveledKnowledgeDecl => enterLevel(decl.levels)
-      case fct : L3_Function              => enterLevel(fct.levels)
+      case fct : L3_FunctionDecl          => enterLevel(fct.levels)
+      case fct : L3_LeveledFunction       => enterLevel(fct.level)
       case _                              =>
     }
   }
@@ -36,7 +40,8 @@ class L3_LevelCollector extends Collector {
   override def leave(node : Node) : Unit = {
     node match {
       case decl : L3_LeveledKnowledgeDecl => leaveLevel(decl.levels)
-      case fct : L3_Function              => leaveLevel(fct.levels)
+      case fct : L3_FunctionDecl          => leaveLevel(fct.levels)
+      case fct : L3_LeveledFunction       => leaveLevel(fct.level)
       case _                              =>
     }
   }

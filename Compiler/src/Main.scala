@@ -251,9 +251,11 @@ object Main {
       // pre-process level specifications in declarations
       L3_ResolveLevelSpecifications.apply()
 
-      L3_UnfoldKnowledgeDeclarations.apply()
       L3_ResolveFunctionTemplates.apply()
       L3_UnfoldFunctionDeclarations.apply()
+      L3_ProcessFunctionDeclarations.apply()
+
+      L3_UnfoldKnowledgeDeclarations.apply()
 
       // resolve current, etc.
       L3_ResolveRelativeLevels.apply()
@@ -262,6 +264,7 @@ object Main {
 
       L3_PrepareAccesses.apply()
 
+      L3_ResolveDslFunctionAccesses.apply()
       L3_ResolveMathFunctions.apply()
 
       var matches = 0

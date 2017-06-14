@@ -39,7 +39,7 @@ object L3_MathFunctions {
 
 /// L3_MathFunctionAccess
 
-case class L3_MathFunctionAccess(var name : String, var datatype : L3_Datatype) extends L3_FunctionAccess {
+case class L3_MathFunctionAccess(var name : String, var datatype : L3_Datatype) extends L3_PlainFunctionAccess {
   override def progress = L4_MathFunctionAccess(name, datatype.progress)
 }
 

@@ -32,7 +32,7 @@ object L3_ResolveFunctionTemplates extends DefaultStrategy("Resolving function t
     case functionInst : L3_FunctionInstantiation =>
       val template = StateManager.findFirst({ fctTemp : L3_FunctionTemplate => fctTemp.name == functionInst.templateName })
       if (template.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
-      val instantiated = Duplicate(L3_Function(functionInst.targetFct, functionInst.targetFctLevel,
+      val instantiated = Duplicate(L3_FunctionDecl(functionInst.targetFct, functionInst.targetFctLevel,
         template.get.returntype, template.get.functionArgs, template.get.statements))
 
       L3_ReplaceExpressions.replacements = (template.get.templateArgs zip functionInst.args).toMap[String, L3_Expression]
@@ -42,7 +42,7 @@ object L3_ResolveFunctionTemplates extends DefaultStrategy("Resolving function t
   })
 
   this += new Transformation("Remove function templates", {
-    case functionTemplate : L3_FunctionTemplate => None
+    case _ : L3_FunctionTemplate => None
   })
 
   object L3_ReplaceExpressions extends QuietDefaultStrategy("Replace something with something else") {

@@ -1,20 +1,23 @@
 package exastencils.base.l3
 
-import exastencils.base.l4.L4_UserFunctionAccess
 import exastencils.prettyprinting.PpStream
 
 /// L3_FunctionAccess
 
 trait L3_FunctionAccess extends L3_Access {
-  // name is read/write
-  var name : String
+  def name : String
   def datatype : L3_Datatype
+}
 
+/// L3_PlainFunctionAccess
+
+trait L3_PlainFunctionAccess extends L3_FunctionAccess {
   override def prettyprint(out : PpStream) = out << name
 }
 
-/// L3_UserFunctionAccess
+/// L3_LeveledFunctionAccess
 
-case class L3_UserFunctionAccess(var name : String, var datatype : L3_Datatype) extends L3_FunctionAccess {
-  override def progress = L4_UserFunctionAccess(name, datatype.progress)
+trait L3_LeveledFunctionAccess extends L3_FunctionAccess {
+  def level : Int
+  override def prettyprint(out : PpStream) = out << name << '@' << level
 }
