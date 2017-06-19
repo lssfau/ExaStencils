@@ -414,7 +414,14 @@ object IR_SimplifyExpression {
       case ((IR_VariableAccess(v1, _), _), (IR_VariableAccess(v2, _), _)) => v1 < v2
       case ((v1 : IR_VariableAccess, _), _)                               => true
       case (_, (v2 : IR_VariableAccess, _))                               => false
-      case ((e1, _), (e2, _))                                             => e1.prettyprint() < e2.prettyprint()
+      case ((e1, _), (e2, _))                                             =>
+        val (e1PP, e2PP) = (e1.prettyprint(), e2.prettyprint())
+        if (e1PP == e2PP) {
+          // Logger.warn(e1PP)
+          e1.toString < e2.toString
+        } else {
+          e1PP < e2PP
+        }
     })
 
     if (sumSeq.isEmpty)
@@ -749,7 +756,14 @@ object IR_SimplifyExpression {
       case ((IR_VariableAccess(v1, _), _), (IR_VariableAccess(v2, _), _)) => v1 < v2
       case ((v1 : IR_VariableAccess, _), _)                               => true
       case (_, (v2 : IR_VariableAccess, _))                               => false
-      case ((e1, _), (e2, _))                                             => e1.prettyprint() < e2.prettyprint()
+      case ((e1, _), (e2, _))                                             =>
+        val (e1PP, e2PP) = (e1.prettyprint(), e2.prettyprint())
+        if (e1PP == e2PP) {
+          // Logger.warn(e1PP)
+          e1.toString < e2.toString
+        } else {
+          e1PP < e2PP
+        }
     })
 
     if (sumSeq.isEmpty)
