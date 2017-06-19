@@ -100,18 +100,11 @@ case class IR_ConstIndex(override var indices : Array[Int]) extends IR_Index wit
   override def datatype = /*FIXME*/ IR_UnitDatatype
   override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
 
-  override def +(that : IR_Index) = {
-    that match {
-      case that : IR_ConstIndex      => IR_ConstIndex(this, that, _ + _)
-      case that : IR_ExpressionIndex => IR_ExpressionIndex(this.toExpressionIndex, that, _ + _)
-    }
-  }
-  override def -(that : IR_Index) = {
-    that match {
-      case that : IR_ConstIndex      => IR_ConstIndex(this, that, _ - _)
-      case that : IR_ExpressionIndex => IR_ExpressionIndex(this.toExpressionIndex, that, _ - _)
-    }
-  }
+  def +(that : IR_ConstIndex) = IR_ConstIndex(this, that, _ + _)
+  override def +(that : IR_Index) = IR_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)
+
+  def -(that : IR_ConstIndex) = IR_ConstIndex(this, that, _ - _)
+  override def -(that : IR_Index) = IR_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ - _)
 
   override def toExpressionIndex = IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
 
