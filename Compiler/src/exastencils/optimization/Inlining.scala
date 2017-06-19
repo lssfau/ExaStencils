@@ -37,7 +37,7 @@ object Inlining extends CustomStrategy("Function inlining") {
 
   /**
     * @param heuristics_prepareCSE
-    * If set inline only functions with exacly one `ReturnStatement` and any number of
+    * If set inline only functions with exactly one `ReturnStatement` and any number of
     * `VariableDeclarationStatement`s, otherwise perform a "normal" inlining.
     * Note: both versions respect `Knowledge.IR_maxInliningSize`.
     */
