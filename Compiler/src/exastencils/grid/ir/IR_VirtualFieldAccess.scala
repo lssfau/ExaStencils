@@ -12,10 +12,12 @@ case class IR_VirtualFieldAccess(
     var level : Int,
     var index : IR_ExpressionIndex,
     var arrayIndex : Option[Int] = None,
-    var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_Access with IR_SpecialExpandable {
+    var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_Access with IR_SpecialExpandable with IR_CanBeOffset {
   // TODO: extends IR_MultiDimFieldAccess
   // FIXME: datatype
   override def datatype = IR_RealDatatype
+
+  override def offsetWith(offset : IR_ConstIndex) = { index += offset }
 }
 
 /// IR_ResolveVirtualFieldAccess

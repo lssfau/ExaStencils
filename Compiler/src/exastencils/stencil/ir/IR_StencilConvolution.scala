@@ -27,8 +27,8 @@ case class IR_StencilConvolution(var left : IR_StencilAccess, var right : IR_Fie
 
     val coeff = Duplicate(stencil.entries(idx).coefficient)
     if (left.offset.isDefined) {
-      IR_OffsetAccesses.offset = left.offset.get
-      IR_OffsetAccesses.applyStandalone(IR_ExpressionStatement(coeff))
+      IR_OffsetAllApplicable.offset = left.offset.get
+      IR_OffsetAllApplicable.applyStandalone(IR_ExpressionStatement(coeff))
     }
 
     coeff * Duplicate(IR_FieldAccess(right.fieldSelection, right.index + offset))

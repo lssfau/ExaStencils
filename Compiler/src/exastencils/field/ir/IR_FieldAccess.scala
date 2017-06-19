@@ -51,7 +51,7 @@ object IR_LinearizeDirectFieldAccess extends DefaultStrategy("Linearize DirectFi
 case class IR_FieldAccess(
     var fieldSelection : IR_FieldSelection,
     var index : IR_ExpressionIndex,
-    var offset : Option[IR_ConstIndex] = None) extends IR_MultiDimFieldAccess {
+    var offset : Option[IR_ConstIndex] = None) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
 
   override def datatype = {
     val layout = fieldSelection.field.fieldLayout
@@ -72,6 +72,8 @@ case class IR_FieldAccess(
     if (offset.isDefined) Logger.warn(s"IR_FieldAccess with unresolved offset ${ offset.get.prettyprint() } found")
     IR_DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
   }
+
+  override def offsetWith(offset : IR_ConstIndex) = { index += offset }
 }
 
 /// IR_ResolveFieldAccess
