@@ -28,7 +28,7 @@ import exastencils.field.l3._
 import exastencils.field.l4._
 import exastencils.globals.ir._
 import exastencils.grid._
-import exastencils.grid.l2.L2_VirtualFieldCollection
+import exastencils.grid.l2._
 import exastencils.grid.l3._
 import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
@@ -217,6 +217,8 @@ object Main {
       L2_PrepareAccesses.apply()
 
       L2_ResolveMathFunctions.apply()
+      L2_ResolveEvaluateFunctions.apply()
+      L2_ResolveIntegrateFunctions.apply()
 
       var matches = 0
       do {
@@ -266,6 +268,8 @@ object Main {
 
       L3_ResolveDslFunctionAccesses.apply()
       L3_ResolveMathFunctions.apply()
+      L3_ResolveEvaluateFunctions.apply()
+      L3_ResolveIntegrateFunctions.apply()
 
       var matches = 0
       do {
@@ -392,9 +396,10 @@ object Main {
 
     L4_ResolveSpecialConstants.apply()
     L4_ResolveDslFunctionAccesses.apply()
+    L4_ResolveEvaluateFunctions.apply()
+    L4_ResolveIntegrateFunctions.apply()
     L4_ResolveMathFunctions.apply()
     L4_ResolveTimerFunctions.apply()
-    L4_ResolveGridFunctions.apply()
 
     var matches = 0
     do {

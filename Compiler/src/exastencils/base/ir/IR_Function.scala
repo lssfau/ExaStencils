@@ -29,28 +29,28 @@ case class IR_FunctionArgument(var name : String, var datatype : IR_Datatype) ex
 
 object IR_Function {
   // empty function
-  def apply(returntype : IR_Datatype, name : String) =
-  new IR_Function(returntype, name, ListBuffer(), ListBuffer())
+  def apply(datatype : IR_Datatype, name : String) =
+    new IR_Function(datatype, name, ListBuffer(), ListBuffer())
 
   // no function arguments
-  def apply(returntype : IR_Datatype, name : String, body : ListBuffer[IR_Statement]) =
-  new IR_Function(returntype, name, ListBuffer(), body)
+  def apply(datatype : IR_Datatype, name : String, body : ListBuffer[IR_Statement]) =
+    new IR_Function(datatype, name, ListBuffer(), body)
 
   // single statement body
-  def apply(returntype : IR_Datatype, name : String, arguments : ListBuffer[IR_FunctionArgument], body : IR_Statement) =
-  new IR_Function(returntype, name, arguments, ListBuffer(body))
+  def apply(datatype : IR_Datatype, name : String, arguments : ListBuffer[IR_FunctionArgument], body : IR_Statement) =
+    new IR_Function(datatype, name, arguments, ListBuffer(body))
 
   // only one function argument
-  def apply(returntype : IR_Datatype, name : String, arguments : IR_FunctionArgument, body : ListBuffer[IR_Statement]) =
-  new IR_Function(returntype, name, ListBuffer(arguments), body)
+  def apply(datatype : IR_Datatype, name : String, arguments : IR_FunctionArgument, body : ListBuffer[IR_Statement]) =
+    new IR_Function(datatype, name, ListBuffer(arguments), body)
 
   // only one function argument and single statement body
-  def apply(returntype : IR_Datatype, name : String, arguments : IR_FunctionArgument, body : IR_Statement) =
-  new IR_Function(returntype, name, ListBuffer(arguments), ListBuffer(body))
+  def apply(datatype : IR_Datatype, name : String, arguments : IR_FunctionArgument, body : IR_Statement) =
+    new IR_Function(datatype, name, ListBuffer(arguments), ListBuffer(body))
 }
 
 case class IR_Function(
-    var returntype : IR_Datatype,
+    var datatype : IR_Datatype,
     var name : String,
     var parameters : ListBuffer[IR_FunctionArgument],
     var body : ListBuffer[IR_Statement],
@@ -62,7 +62,7 @@ case class IR_Function(
   override def prettyprint(out : PpStream) : Unit = {
     if (!functionQualifiers.isEmpty)
       out << functionQualifiers << ' '
-    out << returntype << ' ' << name << ' ' << '(' <<< (parameters, ", ") << ") {\n"
+    out << datatype << ' ' << name << ' ' << '(' <<< (parameters, ", ") << ") {\n"
     out <<< (body, "\n") << '\n'
     out << '}'
   }
@@ -71,7 +71,7 @@ case class IR_Function(
     var decl = ""
     if (!functionQualifiers.isEmpty)
       decl += functionQualifiers + ' '
-    decl += returntype.prettyprint + ' ' + name + '(' + parameters.map(_.prettyprint()).mkString(", ") + ");\n"
+    decl += datatype.prettyprint + ' ' + name + '(' + parameters.map(_.prettyprint()).mkString(", ") + ");\n"
     decl
   }
 }

@@ -114,7 +114,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
       case call @ IR_FunctionCall(_, args) if (call.name == "inverse") => {
         val m = args(0).datatype.asInstanceOf[IR_MatrixDatatype]
         if (m.sizeM > 3) {
-          call.function = IR_InternalFunctionAccess("_runtimeInverseMatrix", m)
+          call.function = IR_PlainInternalFunctionAccess("_runtimeInverseMatrix", m)
         }
         call
       }

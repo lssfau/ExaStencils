@@ -1,14 +1,15 @@
 package exastencils.grid.l4
 
-import scala.collection.mutable.HashSet
+import scala.collection.mutable._
 
-import exastencils.base.ir.IR_UserFunctionAccess
 import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_UnresolvedAccess
+import exastencils.datastructures._
+import exastencils.logger.Logger
 
-// L4_IntegrateFunctions
+/// L4_IntegrateFunctions
 
 object L4_IntegrateFunctions {
-  // TODO: add/ check call parameters?
   val functions = HashSet[String](
     "integrateOverEastFace", "integrateOverWestFace",
     "integrateOverNorthFace", "integrateOverSouthFace",
@@ -23,13 +24,23 @@ object L4_IntegrateFunctions {
     "integrateOverZStaggeredEastFace", "integrateOverZStaggeredNorthFace", "integrateOverZStaggeredTopFace",
     "integrateOverZStaggeredWestFace", "integrateOverZStaggeredSouthFace", "integrateOverZStaggeredBottomFace")
 
-  def getValue(fctName : String) = Some(L4_UnknownDatatype)
   def exists(fctName : String) = functions.contains(fctName)
 }
 
-/// L4_IntegrateFunctionAccess
+/// L4_ResolveIntegrateFunctions
 
-// TODO: pipe to ir integrate function access
-case class L4_IntegrateFunctionAccess(var name : String, var level : Int, var datatype : L4_Datatype) extends L4_LeveledFunctionAccess {
-  override def progress = IR_UserFunctionAccess(name, datatype.progress)
+object L4_ResolveIntegrateFunctions extends DefaultStrategy("Resolve grid function accesses (integrate)") {
+  val collector = new L4_LevelCollector
+  this.register(collector)
+
+  this += new Transformation("Resolve function accesses", {
+    case L4_FunctionCall(access : L4_UnresolvedAccess, args) if L4_IntegrateFunctions.exists(access.name) =>
+      val level = {
+        if (access.level.isDefined) access.level.get.resolveLevel
+        else if (collector.inLevelScope) collector.getCurrentLevel
+        else Logger.error(s"Missing level for access to field ${ access.name }")
+      }
+
+      L4_IntegrateOnGrid(access.name, level, args)
+  })
 }

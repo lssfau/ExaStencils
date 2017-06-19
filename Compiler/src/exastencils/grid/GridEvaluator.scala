@@ -15,15 +15,16 @@ object GridEvaluator {
 }
 
 abstract class GridEvaluator() {
-  def invokeEvalResolve(functionName : String, fieldAccess : IR_FieldAccess, interpolation : String) : IR_Expression = {
+  // use Integer since object is required
+  def invokeEvalResolve(functionName : String, level : Integer, fieldAccess : IR_FieldAccess, interpolation : String, offset : Option[IR_ConstIndex]) : IR_Expression = {
     val method = this.getClass.getMethods.find(_.getName == functionName)
     if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-    method.get.invoke(this, fieldAccess, interpolation).asInstanceOf[IR_Expression]
+    method.get.invoke(this, fieldAccess, level, interpolation, offset).asInstanceOf[IR_Expression]
   }
 
-  def invokeIntegrateResolve(functionName : String, exp : IR_Expression) : IR_Expression = {
+  def invokeIntegrateResolve(functionName : String, level : Integer, exp : IR_Expression, offset : Option[IR_ConstIndex]) : IR_Expression = {
     val method = this.getClass.getMethods.find(_.getName == functionName)
     if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-    method.get.invoke(this, exp).asInstanceOf[IR_Expression]
+    method.get.invoke(this, exp, level, offset).asInstanceOf[IR_Expression]
   }
 }

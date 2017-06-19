@@ -14,7 +14,7 @@ case class L4_PlainDslFunctionAccess(var name : String, var datatype : L4_Dataty
 /// L4_LeveledDslFunctionAccess
 
 case class L4_LeveledDslFunctionAccess(var name : String, var level : Int, var datatype : L4_Datatype) extends L4_LeveledFunctionAccess {
-  override def progress = IR_LeveledDslFunctionAccess(name, level, datatype.progress)
+  override def progress = IR_PlainDslFunctionAccess(name + "_" + level, datatype.progress) // FIXME: IR_LeveledDslFunctionAccess(name, level, datatype.progress)
 }
 
 /// L4_ResolveDslFunctionAccesses

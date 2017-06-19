@@ -18,44 +18,78 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
   def geom = GridGeometry.getGeometry
 
   // evaluations and interpolations
-  def evalAtEastFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 0, None, interpolation)
-  def evalAtWestFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 0, None, interpolation)
-  def evalAtNorthFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 1, None, interpolation)
-  def evalAtSouthFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 1, None, interpolation)
-  def evalAtTopFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 2, None, interpolation)
-  def evalAtBottomFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 2, None, interpolation)
+  def evalAtEastFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 0, None, interpolation, offset)
+  def evalAtWestFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 0, None, interpolation, offset)
+  def evalAtNorthFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 1, None, interpolation, offset)
+  def evalAtSouthFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 1, None, interpolation, offset)
+  def evalAtTopFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 2, None, interpolation, offset)
+  def evalAtBottomFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 2, None, interpolation, offset)
 
-  def evalAtXStaggeredEastFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 0, Some(0), interpolation)
-  def evalAtXStaggeredWestFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 0, Some(0), interpolation)
-  def evalAtXStaggeredNorthFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 1, Some(0), interpolation)
-  def evalAtXStaggeredSouthFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 1, Some(0), interpolation)
-  def evalAtXStaggeredTopFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 2, Some(0), interpolation)
-  def evalAtXStaggeredBottomFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 2, Some(0), interpolation)
+  def evalAtXStaggeredEastFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 0, Some(0), interpolation, offset)
+  def evalAtXStaggeredWestFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 0, Some(0), interpolation, offset)
+  def evalAtXStaggeredNorthFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 1, Some(0), interpolation, offset)
+  def evalAtXStaggeredSouthFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 1, Some(0), interpolation, offset)
+  def evalAtXStaggeredTopFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 2, Some(0), interpolation, offset)
+  def evalAtXStaggeredBottomFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 2, Some(0), interpolation, offset)
 
-  def evalAtYStaggeredEastFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 0, Some(1), interpolation)
-  def evalAtYStaggeredWestFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 0, Some(1), interpolation)
-  def evalAtYStaggeredNorthFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 1, Some(1), interpolation)
-  def evalAtYStaggeredSouthFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 1, Some(1), interpolation)
-  def evalAtYStaggeredTopFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 2, Some(1), interpolation)
-  def evalAtYStaggeredBottomFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 2, Some(1), interpolation)
+  def evalAtYStaggeredEastFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 0, Some(1), interpolation, offset)
+  def evalAtYStaggeredWestFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 0, Some(1), interpolation, offset)
+  def evalAtYStaggeredNorthFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 1, Some(1), interpolation, offset)
+  def evalAtYStaggeredSouthFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 1, Some(1), interpolation, offset)
+  def evalAtYStaggeredTopFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 2, Some(1), interpolation, offset)
+  def evalAtYStaggeredBottomFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 2, Some(1), interpolation, offset)
 
-  def evalAtZStaggeredEastFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 0, Some(2), interpolation)
-  def evalAtZStaggeredWestFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 0, Some(2), interpolation)
-  def evalAtZStaggeredNorthFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 1, Some(2), interpolation)
-  def evalAtZStaggeredSouthFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 1, Some(2), interpolation)
-  def evalAtZStaggeredTopFace(fieldAccess : IR_FieldAccess, interpolation : String) = EvalAtRFace(fieldAccess, 2, Some(2), interpolation)
-  def evalAtZStaggeredBottomFace(fieldAccess : IR_FieldAccess, interpolation : String) = evalAtLFace(fieldAccess, 2, Some(2), interpolation)
+  def evalAtZStaggeredEastFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 0, Some(2), interpolation, offset)
+  def evalAtZStaggeredWestFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 0, Some(2), interpolation, offset)
+  def evalAtZStaggeredNorthFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 1, Some(2), interpolation, offset)
+  def evalAtZStaggeredSouthFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 1, Some(2), interpolation, offset)
+  def evalAtZStaggeredTopFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(fieldAccess, level, 2, Some(2), interpolation, offset)
+  def evalAtZStaggeredBottomFace(fieldAccess : IR_FieldAccess, level : Int, interpolation : String, offset : Option[IR_ConstIndex]) =
+    evalAtLFace(fieldAccess, level, 2, Some(2), interpolation, offset)
 
-  def evalAtLFace(fieldAccess : IR_FieldAccess, faceDim : Int, stagDim : Option[Int], interpolation : String = "default") =
-    EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, faceDim), faceDim, stagDim, interpolation)
+  def evalAtLFace(fieldAccess : IR_FieldAccess, level : Int, faceDim : Int, stagDim : Option[Int], interpolation : String, offset : Option[IR_ConstIndex]) =
+    EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, faceDim), level, faceDim, stagDim, interpolation, offset)
 
-  case class EvalAtRFace(var fieldAccess : IR_FieldAccess, var faceDim : Int, var stagDim : Option[Int], var interpolation : String = "default") extends IR_Expression with IR_SpecialExpandable {
+  case class EvalAtRFace(
+      var fieldAccess : IR_FieldAccess,
+      var level : Int,
+      var faceDim : Int,
+      var stagDim : Option[Int],
+      var interpolation : String = "default",
+      var offset : Option[IR_ConstIndex] = None) extends IR_Expression with IR_SpecialExpandable {
+
     override def datatype = IR_UnitDatatype
 
     def expandSpecial : Output[IR_Expression] = {
       val field = fieldAccess.fieldSelection.field
-      val baseIndex = fieldAccess.index
       val level = field.level
+
+      var baseIndex = fieldAccess.index
+      if (offset.isDefined)
+        baseIndex += offset.get
 
       var a0 : (() => IR_Expression) = () => { IR_NullExpression }
       var a1 : (() => IR_Expression) = () => { IR_NullExpression }
@@ -92,50 +126,88 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         case "harmonicMean"       => ((a0() + a1()) * (x0 * x1)) / (a1() * x0 + a0() * x1)
         case _                    =>
           Logger.warn(s"Trying to use interpolation scheme $interpolation which is unknown - falling back to default scheme")
-          EvalAtRFace(fieldAccess, faceDim, stagDim, "default").expandSpecial
+          EvalAtRFace(fieldAccess, level, faceDim, stagDim, "default", offset).expandSpecial
       }
     }
   }
 
   // integrations
-  def integrateOverEastFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 0, None)
-  def integrateOverWestFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 0, None)
-  def integrateOverNorthFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 1, None)
-  def integrateOverSouthFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 1, None)
-  def integrateOverTopFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 2, None)
-  def integrateOverBottomFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 2, None)
+  def integrateOverEastFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 0, None, offset)
+  def integrateOverWestFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 0, None, offset)
+  def integrateOverNorthFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 1, None, offset)
+  def integrateOverSouthFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 1, None, offset)
+  def integrateOverTopFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 2, None, offset)
+  def integrateOverBottomFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 2, None, offset)
 
-  def integrateOverXStaggeredEastFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 0, Some(0))
-  def integrateOverXStaggeredWestFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 0, Some(0))
-  def integrateOverXStaggeredNorthFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 1, Some(0))
-  def integrateOverXStaggeredSouthFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 1, Some(0))
-  def integrateOverXStaggeredTopFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 2, Some(0))
-  def integrateOverXStaggeredBottomFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 2, Some(0))
+  def integrateOverXStaggeredEastFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 0, Some(0), offset)
+  def integrateOverXStaggeredWestFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 0, Some(0), offset)
+  def integrateOverXStaggeredNorthFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 1, Some(0), offset)
+  def integrateOverXStaggeredSouthFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 1, Some(0), offset)
+  def integrateOverXStaggeredTopFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 2, Some(0), offset)
+  def integrateOverXStaggeredBottomFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 2, Some(0), offset)
 
-  def integrateOverYStaggeredEastFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 0, Some(1))
-  def integrateOverYStaggeredWestFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 0, Some(1))
-  def integrateOverYStaggeredNorthFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 1, Some(1))
-  def integrateOverYStaggeredSouthFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 1, Some(1))
-  def integrateOverYStaggeredTopFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 2, Some(1))
-  def integrateOverYStaggeredBottomFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 2, Some(1))
+  def integrateOverYStaggeredEastFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 0, Some(1), offset)
+  def integrateOverYStaggeredWestFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 0, Some(1), offset)
+  def integrateOverYStaggeredNorthFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 1, Some(1), offset)
+  def integrateOverYStaggeredSouthFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 1, Some(1), offset)
+  def integrateOverYStaggeredTopFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 2, Some(1), offset)
+  def integrateOverYStaggeredBottomFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 2, Some(1), offset)
 
-  def integrateOverZStaggeredEastFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 0, Some(2))
-  def integrateOverZStaggeredWestFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 0, Some(2))
-  def integrateOverZStaggeredNorthFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 1, Some(2))
-  def integrateOverZStaggeredSouthFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 1, Some(2))
-  def integrateOverZStaggeredTopFace(exp : IR_Expression) : IR_Expression = integrateOverRFace(exp, 2, Some(2))
-  def integrateOverZStaggeredBottomFace(exp : IR_Expression) : IR_Expression = integrateOverLFace(exp, 2, Some(2))
+  def integrateOverZStaggeredEastFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 0, Some(2), offset)
+  def integrateOverZStaggeredWestFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 0, Some(2), offset)
+  def integrateOverZStaggeredNorthFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 1, Some(2), offset)
+  def integrateOverZStaggeredSouthFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 1, Some(2), offset)
+  def integrateOverZStaggeredTopFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverRFace(exp, level, 2, Some(2), offset)
+  def integrateOverZStaggeredBottomFace(exp : IR_Expression, level : Int, offset : Option[IR_ConstIndex]) : IR_Expression =
+    integrateOverLFace(exp, level, 2, Some(2), offset)
 
-  def integrateOverLFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
-    IR_ShiftFieldAccessIndices.offset = -1
-    IR_ShiftFieldAccessIndices.dim = faceDim
-    IR_ShiftFieldAccessIndices.applyStandalone(IR_ExpressionStatement(exp))
+  def integrateOverLFace(exp : IR_Expression, level : Int, faceDim : Int, stagDim : Option[Int], offset : Option[IR_ConstIndex]) : IR_Expression = {
+    val newOffset = offset.getOrElse(IR_ConstIndex(Array.fill(Knowledge.dimensionality)(0)))
+    newOffset(faceDim) -= 1
 
-    integrateOverRFace(exp, faceDim, stagDim)
+    integrateOverRFace(exp, level, faceDim, stagDim, Some(newOffset))
   }
 
-  def doIntegrate(exp : IR_Expression, faceDim : Int, stagDim : Option[Int], level : Int) = {
-    def index = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+  def doIntegrate(exp : IR_Expression, level : Int, faceDim : Int, stagDim : Option[Int], offset : Option[IR_ConstIndex]) = {
+    def index = { // TODO: dim
+      var i = IR_LoopOverDimensions.defIt(Knowledge.dimensionality)
+      if (offset.isDefined) i += offset.get
+      i
+    }
+
+    def offsetExp = {
+      if (offset.isEmpty) {
+        Duplicate(exp)
+      } else {
+        val wrapped = IR_ExpressionStatement(Duplicate(exp))
+        IR_OffsetAllApplicable.offset = offset.get
+        IR_OffsetAllApplicable.applyStandalone(wrapped)
+        wrapped.expression
+      }
+    }
 
     if (stagDim.isDefined) {
       val curStagDim = stagDim.get
@@ -144,51 +216,41 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         val compDim0 = if (0 == faceDim) 1 else 0
         val compDim1 = if (2 == faceDim) 1 else 2
 
-        geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * exp
+        geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * offsetExp
       } else {
         val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
 
-        geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * exp
+        geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * offsetExp
       }
     } else {
       val compDim0 = if (0 == faceDim) 1 else 0
       val compDim1 = if (2 == faceDim) 1 else 2
 
-      geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * exp
+      geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * offsetExp
     }
   }
 
   // integration over faces of staggered CVs is done by defining stagDim - the dimension in which the grid is staggered
   // expS instead of exp : IR_Expression to allow for match and replace of the original expression
-  def integrateOverRFace(exp : IR_Expression, faceDim : Int, stagDim : Option[Int]) : IR_Expression =
-  integrateOverRFace(IR_ExpressionStatement(exp), faceDim, stagDim)
-  def integrateOverRFace(expS : IR_ExpressionStatement, faceDim : Int, stagDim : Option[Int]) : IR_Expression = {
+  def integrateOverRFace(exp : IR_Expression, level : Int, faceDim : Int, stagDim : Option[Int], offset : Option[IR_ConstIndex]) : IR_Expression =
+  integrateOverRFace(IR_ExpressionStatement(exp), level, faceDim, stagDim, offset)
+  def integrateOverRFace(expS : IR_ExpressionStatement, level : Int, faceDim : Int, stagDim : Option[Int], offset : Option[IR_ConstIndex]) : IR_Expression = {
     def exp = expS.expression
 
     // check if there are any field accesses in the current (sub-)expression
     IR_CollectFieldAccess.applyStandalone(expS)
 
-    // TODO: find a way to handle constants
     if (0 == IR_CollectFieldAccess.fieldAccesses.length) {
-//      // no field accesses => try to find something else with a level
-//
-//      // check for virtual field accesses
-//      val levels = StateManager.findAll[IR_VirtualFieldAccess](expS).map(_.level)
-//      if (levels.nonEmpty) {
-//        val level = levels.head
-//        if (levels.exists(_ != level)) {
-//          Logger.warn(s"Mixed level integration is currently not supported (${ exp.prettyprint })")
-//          return exp
-//        }
-//        return doIntegrate(exp, faceDim, stagDim, level)
-//      }
-
-      Logger.warn(s"Trying to evaluate level-independent expression ${ exp.prettyprint } - currently unsupported")
-      return exp
+      // no field accesses => check for virtual field accesses
+      val levels = StateManager.findAll[IR_VirtualFieldAccess](expS).map(_.level)
+      if (levels.exists(_ != level)) {
+        Logger.warn(s"Mixed level integration is currently not supported (${ exp.prettyprint })")
+        return exp
+      }
+      return doIntegrate(exp, level, faceDim, stagDim, offset)
     }
 
     // check if all occurring level specifications are identical
-    val level = IR_CollectFieldAccess.fieldAccesses.head.fieldSelection.level
     for (fieldAccess <- IR_CollectFieldAccess.fieldAccesses) {
       if (level != fieldAccess.fieldSelection.level) {
         Logger.warn(s"Mixed level field integration is currently not supported (${ exp.prettyprint })")
@@ -214,9 +276,9 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
             val curStagDim = stagDim.get
             discr match {
               case "cell" if curStagDim == faceDim                                                                        => fieldAccess // direct sampling
-              case "cell" if curStagDim != faceDim                                                                        => addPIntAnnot(EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), faceDim, stagDim)) // interpolation with offset, piecewiseIntegration
+              case "cell" if curStagDim != faceDim                                                                        => addPIntAnnot(EvalAtRFace(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), level, faceDim, stagDim)) // interpolation with offset, piecewiseIntegration
               case fieldDiscr @ ("face_x" | "face_y" | "face_z") if s"face_${ IR_DimToString(curStagDim) }" == fieldDiscr => // field discretization matches CV
-                EvalAtRFace(fieldAccess, faceDim, stagDim) // interpolation
+                EvalAtRFace(fieldAccess, level, faceDim, stagDim) // interpolation
               case "face_x" if 0 != curStagDim                                                                            => // -1 in CV's stag dim and +1 in field discretization's stag dim
                 addPIntAnnot(GridUtil.offsetAccess(GridUtil.offsetAccess(fieldAccess, -1, curStagDim), 1, 0)) // direct sampling with offset, piecewiseIntegration
               case "face_y" if 1 != curStagDim                                                                            => // -1 in CV's stag dim and +1 in field discretization's stag dim
@@ -227,18 +289,18 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
             }
           } else {
             discr match {
-              case "cell"                         => EvalAtRFace(fieldAccess, faceDim, stagDim) // interpolation
+              case "cell"                         => EvalAtRFace(fieldAccess, level, faceDim, stagDim) // interpolation
               case "face_x" | "face_y" | "face_z" =>
                 if (s"face_${ IR_DimToString(faceDim) }" == discr)
                   GridUtil.offsetAccess(fieldAccess, 1, faceDim) // direct sampling with offset
                 else
-                  addPIntAnnot(EvalAtRFace(fieldAccess, faceDim, stagDim)) // interpolation, piecewiseIntegration
+                  addPIntAnnot(EvalAtRFace(fieldAccess, level, faceDim, stagDim)) // interpolation, piecewiseIntegration
               case _                              => Logger.error(s"Unknown or unsupported discretization $discr for field $fieldAccess in basic integration")
             }
           }
 
         case fieldAccess : IR_VirtualFieldAccess =>
-          Logger.warn(s"Virtual field accesses ($fieldAccess) are currently unsupported within evaluation and intergration functions")
+          Logger.warn(s"Virtual field accesses ($fieldAccess) are currently unsupported within evaluation and integration functions")
           fieldAccess
 
         case eval : EvalAtRFace =>
@@ -276,7 +338,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
             }
           }
 
-        case fctCall @ IR_FunctionCall(function, args) if IR_ResolveIntegrateFunction.functions.contains(function.name) =>
+        case _ : IR_IntegrateOnGrid =>
           Logger.error("Integration functions called inside other integration functions are currently not supported")
       }, false) // not recursive -> don't look inside eval functions
     }
@@ -286,7 +348,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
     val piecewiseIntegration = StateManager.findFirst({ n : Node => n.hasAnnotation(WrappingFieldAccesses.pIntAnnot) }, expS).isDefined
 
     // step 3: apply chosen integration
-    object ShiftFieldAccessIndices_ extends QuietDefaultStrategy("Shifting indices of field accesses") {
+    object ShiftFieldAccessIndices extends QuietDefaultStrategy("Shifting indices of field accesses") {
       var offset : IR_Expression = 0
       var dim : Int = 0
       var requiredAnnot : Option[String] = None
@@ -305,7 +367,11 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
     }
 
     if (piecewiseIntegration) {
-      def index = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
+      def index = { // TODO: dim
+        var i = IR_LoopOverDimensions.defIt(Knowledge.dimensionality)
+        if (offset.isDefined) i += offset.get
+        i
+      }
 
       if (stagDim.isDefined) {
         val curStagDim = stagDim.get
@@ -314,57 +380,29 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
 
         val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
 
-        val centerExp = Duplicate(exp)
-        val offsetExp = Duplicate(exp)
+        val centerExp = IR_ExpressionStatement(Duplicate(exp))
+        val offsetExp = IR_ExpressionStatement(Duplicate(exp))
 
-        ShiftFieldAccessIndices_.offset = 1
-        ShiftFieldAccessIndices_.dim = curStagDim
-        ShiftFieldAccessIndices_.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
-        ShiftFieldAccessIndices_.applyStandalone(IR_ExpressionStatement(offsetExp))
+        if (offset.isDefined) {
+          IR_OffsetAllApplicable.offset = offset.get
+          IR_OffsetAllApplicable.applyStandalone(centerExp)
+          IR_OffsetAllApplicable.applyStandalone(offsetExp)
+        }
+
+        ShiftFieldAccessIndices.offset = 1
+        ShiftFieldAccessIndices.dim = curStagDim
+        ShiftFieldAccessIndices.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
+        ShiftFieldAccessIndices.applyStandalone(offsetExp)
 
         IR_VirtualFieldAccess(s"vf_cellWidth_${ IR_DimToString(compDim) }", level, index) *
-          (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp
-            + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, index) * offsetExp)
+          (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp.expression
+            + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, index) * offsetExp.expression)
       } else {
         Logger.error("piecewise integration on non-staggered cell interfaces is not supported")
       }
     } else {
-      def index = IR_LoopOverDimensions.defIt(Knowledge.dimensionality) // TODO: dim
-
-      if (stagDim.isDefined) {
-        val curStagDim = stagDim.get
-
-        if (curStagDim == faceDim) {
-          val compDim0 = if (0 == faceDim) 1 else 0
-          val compDim1 = if (2 == faceDim) 1 else 2
-
-          geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * exp
-        } else {
-          val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
-
-          geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * exp
-        }
-      } else {
-        val compDim0 = if (0 == faceDim) 1 else 0
-        val compDim1 = if (2 == faceDim) 1 else 2
-
-        geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * exp
-      }
+      doIntegrate(exp, level, faceDim, stagDim, offset)
     }
-  }
-
-  object IR_ShiftFieldAccessIndices extends QuietDefaultStrategy("Shift indices of field accesses") {
-    var offset : IR_Expression = 0
-    var dim : Int = 0
-
-    this += new Transformation("Searching and shifting", {
-      case fieldAccess : IR_FieldAccess        =>
-        fieldAccess.index(dim) += offset
-        fieldAccess
-      case fieldAccess : IR_VirtualFieldAccess =>
-        fieldAccess.index(dim) += offset
-        fieldAccess
-    })
   }
 
 }
