@@ -220,7 +220,10 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
       } else {
         val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
 
-        geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * offsetExp
+        if (compDim < curStagDim)
+          geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * offsetExp
+        else
+          geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * geom.cellWidth(level, index, None, compDim) * offsetExp
       }
     } else {
       val compDim0 = if (0 == faceDim) 1 else 0
