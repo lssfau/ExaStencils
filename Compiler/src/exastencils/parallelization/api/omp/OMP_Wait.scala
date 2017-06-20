@@ -3,9 +3,8 @@ package exastencils.parallelization.api.omp
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.datastructures.Transformation.Output
 
-case object OMP_WaitForFlag extends IR_AbstractFunction with IR_Expandable {
+case object OMP_WaitForFlag extends IR_FutureFunction {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
   override def prettyprint_decl() : String = prettyprint
@@ -13,7 +12,7 @@ case object OMP_WaitForFlag extends IR_AbstractFunction with IR_Expandable {
 
   def flag = IR_VariableAccess("flag", IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype)))
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     val fct = IR_Function(IR_UnitDatatype, name, IR_FunctionArgument(flag), ListBuffer[IR_Statement]())
     fct.allowInlining = false
 

@@ -6,14 +6,13 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
-import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
 import exastencils.polyhedron.PolyhedronAccessible
 
 /// IR_CopyFromExternalField
 
-case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalField) extends IR_AbstractFunction with IR_Expandable {
+case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalField) extends IR_FutureFunction {
   override def prettyprint_decl() : String = prettyprint
   override def name = "set" + src.name
 
@@ -24,7 +23,7 @@ case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalFi
     dt
   }
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else

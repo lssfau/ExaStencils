@@ -5,7 +5,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
-import exastencils.datastructures.Transformation.Output
 
 /// IR_StartTimer
 
@@ -16,7 +15,7 @@ case class IR_StartTimer() extends IR_TimerFunction with IR_Expandable {
   override def prettyprint_decl() : String = prettyprint
   override def name = "startTimer"
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     val statements = ListBuffer[IR_Statement](
       IR_IfCondition(IR_EqEq(0, accessMember("numEntries")), ListBuffer(
         IR_AssignNowToTimer(accessMember("timerStarted")),

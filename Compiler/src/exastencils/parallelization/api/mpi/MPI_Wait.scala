@@ -6,13 +6,12 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config.Knowledge
-import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.util.ir.IR_RawPrint
 
 /// MPI_WaitForRequest
 
-case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
+case object MPI_WaitForRequest extends IR_FutureFunction {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
   override def prettyprint_decl() : String = prettyprint
@@ -35,7 +34,7 @@ case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
       IR_RawPrint("\"MPI Error encountered (\"", msg, "\")\"")))
   }
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     val fct = IR_Function(IR_UnitDatatype, name, IR_FunctionArgument(request), ListBuffer[IR_Statement]())
     fct.allowInlining = false
 

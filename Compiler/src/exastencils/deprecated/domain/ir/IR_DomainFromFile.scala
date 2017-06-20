@@ -6,7 +6,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
-import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.domain.FragmentCollection
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
@@ -17,11 +16,11 @@ import exastencils.prettyprinting.PpStream
 /// IR_InitDomainFromFragmentFile
 
 @deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
-case class IR_InitDomainFromFragmentFile() extends IR_AbstractFunction with IR_Expandable {
+case class IR_InitDomainFromFragmentFile() extends IR_FutureFunction {
   override def prettyprint_decl() = prettyprint
   override def name = "initDomain"
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     IR_Function(IR_UnitDatatype, name,
       if (Knowledge.mpi_enabled) {
         ListBuffer(
@@ -108,11 +107,11 @@ case class IR_ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expressio
 /// IR_SetValues
 
 @deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
-case class IR_SetValues() extends IR_AbstractFunction with IR_Expandable {
+case class IR_SetValues() extends IR_FutureFunction {
   override def prettyprint_decl() = prettyprint
   override def name = "setValues"
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     var body = new ListBuffer[IR_Statement]
     for (d <- IR_DomainCollection.objects.indices) {
       body += IR_Assignment(IR_IV_IsValidForDomain(d), IR_ReadValueFrom(IR_BooleanDatatype, "data"))

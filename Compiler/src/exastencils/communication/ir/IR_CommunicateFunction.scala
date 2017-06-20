@@ -7,7 +7,6 @@ import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.config._
 import exastencils.core.Duplicate
-import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 
 /// IR_CommunicateFunction
@@ -22,7 +21,7 @@ case class IR_CommunicateFunction(
     var dupLayerExch : Boolean, var dupLayerBegin : IR_ExpressionIndex, var dupLayerEnd : IR_ExpressionIndex,
     var ghostLayerExch : Boolean, var ghostLayerBegin : IR_ExpressionIndex, var ghostLayerEnd : IR_ExpressionIndex,
     var insideFragLoop : Boolean,
-    var condition : Option[IR_Expression]) extends IR_AbstractFunction with IR_Expandable {
+    var condition : Option[IR_Expression]) extends IR_FutureFunction {
 
   override def prettyprint_decl() = prettyprint
 
@@ -416,7 +415,7 @@ case class IR_CommunicateFunction(
     body
   }
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     var fctArgs : ListBuffer[IR_FunctionArgument] = ListBuffer()
     fctArgs += IR_FunctionArgument("slot", IR_IntegerDatatype)
     if (insideFragLoop)

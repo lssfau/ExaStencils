@@ -6,7 +6,6 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.StateManager
-import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.api.mpi.MPI_AllReduce
 import exastencils.util.ir.IR_RawPrint
 
@@ -33,7 +32,7 @@ case class IR_PrintAllTimers() extends IR_TimerFunction with IR_Expandable {
     IR_Scope(statements)
   }
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     IR_CollectTimers.applyStandalone(StateManager.root)
     val timers = IR_CollectTimers.timers
 

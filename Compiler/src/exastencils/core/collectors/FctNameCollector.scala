@@ -2,7 +2,7 @@ package exastencils.core.collectors
 
 import scala.collection.mutable.Stack
 
-import exastencils.base.ir.IR_AbstractFunction
+import exastencils.base.ir.IR_FunctionLike
 import exastencils.datastructures._
 import exastencils.logger._
 
@@ -11,15 +11,15 @@ class FctNameCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      case fct : IR_AbstractFunction => nameStack.push(fct.name)
-      case _                         =>
+      case fct : IR_FunctionLike => nameStack.push(fct.name)
+      case _                     =>
     }
   }
 
   override def leave(node : Node) : Unit = {
     node match {
-      case loop : IR_AbstractFunction => nameStack.pop
-      case _                          =>
+      case loop : IR_FunctionLike => nameStack.pop
+      case _                      =>
     }
   }
 

@@ -12,7 +12,7 @@ object IR_TimerFunction {
   def accessMember(member : String) = IR_MemberAccess(IR_VariableAccess("stopWatch", IR_SpecialDatatype("StopWatch&")), member)
 }
 
-abstract class IR_TimerFunction extends IR_AbstractFunction
+trait IR_TimerFunction extends IR_FutureFunction
 
 /// IR_TimerFunctions
 

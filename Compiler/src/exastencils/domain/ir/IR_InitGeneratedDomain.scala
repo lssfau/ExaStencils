@@ -7,12 +7,11 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommunicationId
 import exastencils.config.Knowledge
-import exastencils.datastructures.Transformation.Output
 import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
-case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandable {
+case class IR_InitGeneratedDomain() extends IR_FutureFunction {
   override def prettyprint_decl() = prettyprint
   override def name = "initDomain"
 
@@ -57,7 +56,7 @@ case class IR_InitGeneratedDomain() extends IR_AbstractFunction with IR_Expandab
           Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) * (0 until dim).map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product : IR_Expression).reduce(_ + _))
   }
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     var body = ListBuffer[IR_Statement]()
 
     // TODO: move to main application

@@ -5,13 +5,6 @@ import scala.collection.mutable.ListBuffer
 import exastencils.core._
 import exastencils.prettyprinting._
 
-/// IR_AbstractFunction
-
-abstract class IR_AbstractFunction(var isHeaderOnly : Boolean = false) extends IR_Statement {
-  def name : String
-  def prettyprint_decl() : String
-}
-
 /// IR_FunctionArgument
 
 object IR_FunctionArgument {
@@ -57,7 +50,7 @@ case class IR_Function(
     var allowInlining : Boolean = true,
     var allowFortranInterface : Boolean = true,
     var functionQualifiers : String = "" // e.g. "__global__" etc
-) extends IR_AbstractFunction {
+) extends IR_FunctionLike {
 
   override def prettyprint(out : PpStream) : Unit = {
     if (!functionQualifiers.isEmpty)
@@ -73,40 +66,5 @@ case class IR_Function(
       decl += functionQualifiers + ' '
     decl += datatype.prettyprint + ' ' + name + '(' + parameters.map(_.prettyprint()).mkString(", ") + ");\n"
     decl
-  }
-}
-
-/// IR_FunctionCall
-
-object IR_FunctionCall {
-  def apply(function : IR_FunctionAccess, args : IR_Expression*) = new IR_FunctionCall(function, args.to[ListBuffer])
-
-  @deprecated("Used for backwards compatibility - to be removed", "22.09.16")
-  def apply(functionName : String, args : IR_Expression*)
-  = new IR_FunctionCall(IR_UserFunctionAccess(functionName, IR_UnitDatatype), args.to[ListBuffer])
-  @deprecated("Used for backwards compatibility - to be removed", "22.09.16")
-  def apply(functionName : String, args : ListBuffer[IR_Expression])
-  = new IR_FunctionCall(IR_UserFunctionAccess(functionName, IR_UnitDatatype), args)
-}
-
-case class IR_FunctionCall(var function : IR_FunctionAccess, var arguments : ListBuffer[IR_Expression]) extends IR_Expression {
-  def name = function.name
-  override def datatype = function.datatype
-  override def prettyprint(out : PpStream) : Unit = out << function << '(' <<< (arguments, ", ") << ')'
-}
-
-/// IR_Return
-
-object IR_Return {
-  def apply() = new IR_Return(None)
-  def apply(expr : IR_Expression) = new IR_Return(Option(expr))
-}
-
-case class IR_Return(var expr : Option[IR_Expression] = None) extends IR_Statement {
-  override def prettyprint(out : PpStream) = {
-    out << "return"
-    if (expr.isDefined)
-      out << ' ' << expr.get.prettyprint()
-    out << ';'
   }
 }

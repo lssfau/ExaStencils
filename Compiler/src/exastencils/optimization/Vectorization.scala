@@ -6,13 +6,10 @@ import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.domain.ir.IR_IV_FragmentPosition
-import exastencils.domain.ir.IR_IV_FragmentPositionBegin
-import exastencils.domain.ir.IR_IV_FragmentPositionEnd
+import exastencils.domain.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
-import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.simd._
 
 object Vectorization extends DefaultStrategy("Vectorization") {
@@ -38,7 +35,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     node match {
       case n if n.hasAnnotation(cuAnn) => skipSubTree = true
       case _ : CUDA_Kernel             => skipSubTree = true
-      case _ : IR_AbstractFunction     => skipSubTree = false
+      case _ : IR_FunctionLike         => skipSubTree = false
       case _                           => // no change in skipSubTree
     }
     if (skipSubTree)

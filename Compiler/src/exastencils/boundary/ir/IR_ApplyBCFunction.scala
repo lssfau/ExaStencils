@@ -7,7 +7,6 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
-import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 
 /// IR_ApplyBCFunction
@@ -16,7 +15,7 @@ case class IR_ApplyBCFunction(
     var name : String,
     var fieldSelection : IR_FieldSelection,
     var neighbors : ListBuffer[NeighborInfo],
-    var insideFragLoop : Boolean) extends IR_AbstractFunction with IR_Expandable {
+    var insideFragLoop : Boolean) extends IR_FutureFunction {
 
   override def prettyprint_decl() = prettyprint
 
@@ -78,7 +77,7 @@ case class IR_ApplyBCFunction(
     body
   }
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() : IR_Function = {
     // compile function arguments
     var fctArgs = ListBuffer[IR_FunctionArgument]()
     fctArgs += IR_FunctionArgument("slot", IR_IntegerDatatype)

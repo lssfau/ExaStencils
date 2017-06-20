@@ -1,11 +1,13 @@
 package exastencils.simd
 
-import exastencils.base.ir.IR_AbstractFunction
+import exastencils.base.ir.IR_FunctionLike
 import exastencils.prettyprinting.PpStream
 
 /// SIMD_NeonDivision
 
-case object SIMD_NeonDivision extends IR_AbstractFunction(true) {
+case object SIMD_NeonDivision extends IR_FunctionLike {
+  isHeaderOnly = true
+
   override def prettyprint(out : PpStream) : Unit = {
     out <<
       s"""static inline float32x4_t ${ name }(const float32x4_t &a, const float32x4_t &b) {
