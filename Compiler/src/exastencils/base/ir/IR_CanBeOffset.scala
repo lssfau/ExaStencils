@@ -1,5 +1,6 @@
 package exastencils.base.ir
 
+import exastencils.core.Duplicate
 import exastencils.datastructures._
 
 /// IR_CanBeOffset
@@ -15,7 +16,7 @@ object IR_OffsetAllApplicable extends QuietDefaultStrategy("Offset all applicabl
 
   this += new Transformation("Apply", {
     case toOffset : IR_CanBeOffset =>
-      toOffset.offsetWith(offset)
+      toOffset.offsetWith(Duplicate(offset))
       toOffset
   }, false /* no recursion */)
 }
