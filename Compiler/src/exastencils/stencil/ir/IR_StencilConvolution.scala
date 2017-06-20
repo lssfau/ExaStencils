@@ -25,13 +25,13 @@ case class IR_StencilConvolution(var left : IR_StencilAccess, var right : IR_Fie
     while (offset.length < right.index.length)
       offset.indices :+= 0
 
-    val coeff = Duplicate(stencil.entries(idx).coefficient)
+    val coeff = IR_ExpressionStatement(Duplicate(stencil.entries(idx).coefficient))
     if (left.offset.isDefined) {
       IR_OffsetAllApplicable.offset = left.offset.get
-      IR_OffsetAllApplicable.applyStandalone(IR_ExpressionStatement(coeff))
+      IR_OffsetAllApplicable.applyStandalone(coeff)
     }
 
-    coeff * Duplicate(IR_FieldAccess(right.fieldSelection, right.index + offset))
+    coeff.expression * Duplicate(IR_FieldAccess(right.fieldSelection, right.index + offset))
   }
 
   override def expand() : Output[IR_Expression] = {
