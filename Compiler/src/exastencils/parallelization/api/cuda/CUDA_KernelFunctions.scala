@@ -107,9 +107,14 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
         IR_UnitDatatype,
         kernelName,
         ListBuffer(data, numElements, stride),
-        fctBody,
-        allowInlining = false, allowFortranInterface = false, "__global__")
+        fctBody)
+
+      fct.allowInlining = false
+      fct.allowFortranInterface = false
+      fct.functionQualifiers = "__global__"
+
       fct.annotate("deviceOnly")
+
       functions += fct
     }
 
@@ -144,13 +149,17 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
       fctBody += IR_Return(Some(ret))
 
       // compile final wrapper function
-      functions += IR_Function(
+      val fct = IR_Function(
         IR_RealDatatype, // TODO: support other types
         wrapperName,
         ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)),
-        fctBody,
-        allowInlining = false, allowFortranInterface = false,
-        "extern \"C\"")
+        fctBody)
+
+      fct.allowInlining = false
+      fct.allowFortranInterface = false
+      fct.functionQualifiers = "extern \"C\""
+      
+      functions += fct
     }
   }
 }

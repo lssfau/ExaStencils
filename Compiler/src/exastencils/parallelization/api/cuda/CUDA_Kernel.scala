@@ -546,13 +546,17 @@ case class CUDA_Kernel(var identifier : String,
       body += CUDA_FunctionCallExperimental(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
     }
 
-    IR_Function(
+    val fct = IR_Function(
       if (reduction.isDefined) reduction.get.target.datatype else IR_UnitDatatype,
       getWrapperFctName,
       Duplicate(passThroughArgs),
-      body,
-      allowInlining = false, allowFortranInterface = false,
-      "extern \"C\"")
+      body)
+
+    fct.allowInlining = false
+    fct.allowFortranInterface = false
+    fct.functionQualifiers = "extern \"C\""
+
+    fct
   }
 
   def compileKernelFunction : IR_Function = {
@@ -599,10 +603,11 @@ case class CUDA_Kernel(var identifier : String,
       fctParams += IR_FunctionArgument(variableAccess.name, variableAccess.datatype)
     }
 
-    val fct = IR_Function(
-      IR_UnitDatatype, getKernelFctName, fctParams,
-      compileKernelBody,
-      allowInlining = false, allowFortranInterface = false, "__global__")
+    val fct = IR_Function(IR_UnitDatatype, getKernelFctName, fctParams, compileKernelBody)
+
+    fct.allowInlining = false
+    fct.allowFortranInterface = false
+    fct.functionQualifiers = "__global__"
 
     fct.annotate("deviceOnly")
 

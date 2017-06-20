@@ -46,10 +46,7 @@ case class IR_Function(
     var datatype : IR_Datatype,
     var name : String,
     var parameters : ListBuffer[IR_FunctionArgument],
-    var body : ListBuffer[IR_Statement],
-    var allowInlining : Boolean = true,
-    var allowFortranInterface : Boolean = true,
-    var functionQualifiers : String = "" // e.g. "__global__" etc
+    var body : ListBuffer[IR_Statement]
 ) extends IR_FunctionLike {
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -66,5 +63,10 @@ case class IR_Function(
       decl += functionQualifiers + ' '
     decl += datatype.prettyprint + ' ' + name + '(' + parameters.map(_.prettyprint()).mkString(", ") + ");\n"
     decl
+  }
+
+  def withNoInline() : IR_Function = {
+    allowInlining = false
+    this
   }
 }

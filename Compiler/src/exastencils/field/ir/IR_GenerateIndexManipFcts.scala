@@ -67,8 +67,7 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
           IR_UnitDatatype,
           s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
           Knowledge.dimensions.map(dim => IR_FunctionArgument(newInnerSize(dim))).to[ListBuffer],
-          body,
-          false) // no inlining
+          body).withNoInline
       }
 
       // generate a special resize functions for all fields on a given level
@@ -87,8 +86,7 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
           IR_UnitDatatype,
           s"resizeAllInner_${ level.prettyprint() }",
           Knowledge.dimensions.map(dim => IR_FunctionArgument(newInnerSize(dim))).to[ListBuffer],
-          body,
-          false) // no inlining
+          body).withNoInline
       }
 
       // return extended collection
