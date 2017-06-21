@@ -63,9 +63,9 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
         body = ListBuffer[IR_Statement](IR_LoopOverFragments(body))
 
         // set up function
-        functions += IR_Function(
-          IR_UnitDatatype,
+        functions += IR_PlainFunction( /* FIXME: IR_LeveledFunction -> level as Int */
           s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
+          IR_UnitDatatype,
           Knowledge.dimensions.map(dim => IR_FunctionArgument(newInnerSize(dim))).to[ListBuffer],
           body).withNoInline
       }
@@ -82,9 +82,8 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
         }
 
         // set up function
-        functions += IR_Function(
-          IR_UnitDatatype,
-          s"resizeAllInner_${ level.prettyprint() }",
+        functions += IR_LeveledFunction(
+          "resizeAllInner", level, IR_UnitDatatype,
           Knowledge.dimensions.map(dim => IR_FunctionArgument(newInnerSize(dim))).to[ListBuffer],
           body).withNoInline
       }

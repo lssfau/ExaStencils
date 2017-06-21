@@ -6,7 +6,10 @@ import exastencils.prettyprinting.PpStream
 /// SIMD_NeonDivision
 
 case object SIMD_NeonDivision extends IR_FunctionLike {
+  override var name = "vdivq_f32"
   isHeaderOnly = true
+
+  override def prettyprint_decl() : String = "\n --- NOT VALID ; no prototype for vdivq_f32\n"
 
   override def prettyprint(out : PpStream) : Unit = {
     out <<
@@ -24,6 +27,4 @@ case object SIMD_NeonDivision extends IR_FunctionLike {
   return vmulq_f32(a,reciprocal);
 }"""
   }
-  override def prettyprint_decl() : String = "\n --- NOT VALID ; no prototype for vdivq_f32\n"
-  override def name = "vdivq_f32"
 }

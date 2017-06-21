@@ -11,11 +11,11 @@ import exastencils.util.ir.IR_RawPrint
 
 /// MPI_WaitForRequest
 
-case object MPI_WaitForRequest extends IR_FutureFunction {
+case object MPI_WaitForRequest extends IR_FuturePlainFunction {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
+  override var name = "waitForMPIReq"
   override def prettyprint_decl() : String = prettyprint
-  override def name = "waitForMPIReq"
 
   def request = IR_VariableAccess("request", IR_PointerDatatype(IR_SpecialDatatype("MPI_Request")))
   def stat = IR_VariableAccess("stat", IR_SpecialDatatype("MPI_Status"))
@@ -34,8 +34,8 @@ case object MPI_WaitForRequest extends IR_FutureFunction {
       IR_RawPrint("\"MPI Error encountered (\"", msg, "\")\"")))
   }
 
-  override def generateFct() : IR_Function = {
-    val fct = IR_Function(IR_UnitDatatype, name, IR_FunctionArgument(request), ListBuffer[IR_Statement]())
+  override def generateFct() = {
+    val fct = IR_PlainFunction(name, IR_UnitDatatype, IR_FunctionArgument(request), ListBuffer[IR_Statement]())
     fct.allowInlining = false
 
     // add declarations for local variables

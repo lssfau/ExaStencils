@@ -15,13 +15,14 @@ import exastencils.deprecated.ir.IR_FieldSelection
 
 case class IR_CommunicateFunction(
     var name : String,
+    var level : Int,
     var fieldSelection : IR_FieldSelection,
     var neighbors : ListBuffer[NeighborInfo],
     var begin : Boolean, var finish : Boolean,
     var dupLayerExch : Boolean, var dupLayerBegin : IR_ExpressionIndex, var dupLayerEnd : IR_ExpressionIndex,
     var ghostLayerExch : Boolean, var ghostLayerBegin : IR_ExpressionIndex, var ghostLayerEnd : IR_ExpressionIndex,
     var insideFragLoop : Boolean,
-    var condition : Option[IR_Expression]) extends IR_FutureFunction {
+    var condition : Option[IR_Expression]) extends IR_FutureLeveledFunction {
 
   override def prettyprint_decl() = prettyprint
 
@@ -415,12 +416,12 @@ case class IR_CommunicateFunction(
     body
   }
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     var fctArgs : ListBuffer[IR_FunctionArgument] = ListBuffer()
     fctArgs += IR_FunctionArgument("slot", IR_IntegerDatatype)
     if (insideFragLoop)
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
-    IR_Function(IR_UnitDatatype, name, fctArgs, compileBody(fieldSelection))
+    IR_LeveledFunction(name, level, IR_UnitDatatype, fctArgs, compileBody(fieldSelection))
   }
 }

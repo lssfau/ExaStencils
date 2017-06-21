@@ -8,16 +8,16 @@ import exastencils.base.ir._
 /// IR_GetTotalTime
 
 // in milliseconds
-case class IR_GetTotalTime() extends IR_TimerFunction with IR_Expandable {
+case class IR_GetTotalTime() extends IR_TimerFunction {
 
   import IR_TimerFunction._
 
+  override var name = "getTotalTime"
   override def prettyprint_decl() : String = prettyprint
-  override def name = "getTotalTime"
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     val body = IR_ReturnConvertToMS(accessMember("totalTimeMeasured"))
-    val fct = IR_Function(IR_DoubleDatatype, name, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
+    val fct = IR_PlainFunction(name, IR_DoubleDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
     fct.allowFortranInterface = false
     fct
   }
@@ -26,20 +26,20 @@ case class IR_GetTotalTime() extends IR_TimerFunction with IR_Expandable {
 /// IR_GetMeanTime
 
 // in milliseconds
-case class IR_GetMeanTime() extends IR_TimerFunction with IR_Expandable {
+case class IR_GetMeanTime() extends IR_TimerFunction {
 
   import IR_TimerFunction._
 
+  override var name = "getMeanTime"
   override def prettyprint_decl() : String = prettyprint
-  override def name = "getMeanTime"
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     val body = IR_Return(IR_TernaryCondition(
       IR_Greater(accessMember("numMeasurements"), 0),
       IR_FunctionCall("getTotalTime", "stopWatch") / accessMember("numMeasurements"),
       0.0))
 
-    val fct = IR_Function(IR_DoubleDatatype, name, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
+    val fct = IR_PlainFunction(name, IR_DoubleDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
     fct.allowFortranInterface = false
     fct
   }
@@ -48,17 +48,17 @@ case class IR_GetMeanTime() extends IR_TimerFunction with IR_Expandable {
 /// IR_GetLastTime
 
 // in milliseconds
-case class IR_GetLastTime() extends IR_TimerFunction with IR_Expandable {
+case class IR_GetLastTime() extends IR_TimerFunction {
 
   import IR_TimerFunction._
 
+  override var name = "getLastTime"
   override def prettyprint_decl() : String = prettyprint
-  override def name = "getLastTime"
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     val body = IR_ReturnConvertToMS(accessMember("lastTimeMeasured"))
 
-    val fct = IR_Function(IR_DoubleDatatype, name, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
+    val fct = IR_PlainFunction(name, IR_DoubleDatatype, ListBuffer(IR_FunctionArgument("stopWatch", IR_SpecialDatatype("StopWatch&"))), body)
     fct.allowFortranInterface = false
     fct
   }

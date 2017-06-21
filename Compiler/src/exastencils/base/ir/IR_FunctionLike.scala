@@ -2,7 +2,7 @@ package exastencils.base.ir
 
 trait IR_FunctionLike extends IR_Statement {
   def name : String
-  def fullName : String = name
+  def name_=(newName : String)
 
   def prettyprint_decl() : String
 

@@ -11,9 +11,9 @@ import exastencils.util.ir.IR_RawPrint
 
 /// IR_PrintAllTimers
 
-case class IR_PrintAllTimers() extends IR_TimerFunction with IR_Expandable {
+case class IR_PrintAllTimers() extends IR_TimerFunction {
+  override var name = "printAllTimers"
   override def prettyprint_decl() : String = prettyprint
-  override def name = "printAllTimers"
 
   def genPrintTimerCode(timer : IR_IV_Timer) : IR_Statement = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -32,13 +32,13 @@ case class IR_PrintAllTimers() extends IR_TimerFunction with IR_Expandable {
     IR_Scope(statements)
   }
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     IR_CollectTimers.applyStandalone(StateManager.root)
     val timers = IR_CollectTimers.timers
 
     val body = timers.toList.sortBy(_._1).map(t => genPrintTimerCode(t._2)).to[ListBuffer]
 
-    val fct = IR_Function(IR_UnitDatatype, name, body)
+    val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false
     fct
   }

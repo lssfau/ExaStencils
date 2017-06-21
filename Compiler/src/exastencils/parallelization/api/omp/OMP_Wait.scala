@@ -4,16 +4,16 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 
-case object OMP_WaitForFlag extends IR_FutureFunction {
+case object OMP_WaitForFlag extends IR_FuturePlainFunction {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
+  override var name = "waitForFlag"
   override def prettyprint_decl() : String = prettyprint
-  override def name = "waitForFlag"
 
   def flag = IR_VariableAccess("flag", IR_PointerDatatype(IR_VolatileDatatype(IR_BooleanDatatype)))
 
-  override def generateFct() : IR_Function = {
-    val fct = IR_Function(IR_UnitDatatype, name, IR_FunctionArgument(flag), ListBuffer[IR_Statement]())
+  override def generateFct() = {
+    val fct = IR_PlainFunction(name, IR_UnitDatatype, IR_FunctionArgument(flag), ListBuffer[IR_Statement]())
     fct.allowInlining = false
 
     // add busy waiting loop

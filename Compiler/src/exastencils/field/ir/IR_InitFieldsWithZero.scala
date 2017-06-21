@@ -14,11 +14,11 @@ import exastencils.polyhedron.PolyhedronAccessible
 
 /// IR_InitFieldsWithZero
 
-case class IR_InitFieldsWithZero() extends IR_FutureFunction {
+case class IR_InitFieldsWithZero() extends IR_FuturePlainFunction {
+  override var name = "initFieldsWithZero"
   override def prettyprint_decl() : String = prettyprint
-  override def name = "initFieldsWithZero"
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     val fields = IR_FieldCollection.sortedObjects
     var statements : ListBuffer[IR_Statement] = new ListBuffer
 
@@ -46,6 +46,6 @@ case class IR_InitFieldsWithZero() extends IR_FutureFunction {
         statements += wrapped
     }
 
-    IR_Function(IR_UnitDatatype, name, statements)
+    IR_PlainFunction(name, IR_UnitDatatype, statements)
   }
 }

@@ -19,3 +19,16 @@ trait IR_FutureFunction extends IR_FunctionLike with IR_Expandable {
 
   def generateFct() : IR_Function
 }
+
+/// IR_FuturePlainFunction
+
+trait IR_FuturePlainFunction extends IR_FutureFunction {
+  override def generateFct() : IR_PlainFunction
+}
+
+/// IR_FutureLeveledFunction
+
+trait IR_FutureLeveledFunction extends IR_FutureFunction {
+  def level : Int
+  override def generateFct() : IR_LeveledFunction
+}

@@ -49,7 +49,7 @@ case class L4_PlainFunction(
   }
 
   override def progress = {
-    val fct = IR_Function(datatype.progress, name, parameters.map(_.progress), body.map(_.progress))
+    val fct = IR_PlainFunction(name, datatype.progress, parameters.map(_.progress), body.map(_.progress))
     fct.allowInlining = allowInlining
     fct
   }
@@ -73,7 +73,7 @@ case class L4_LeveledFunction(
   }
 
   override def progress = {
-    val fct = IR_Function(datatype.progress, name + "_" + level, parameters.map(_.progress), body.map(_.progress))
+    val fct = IR_LeveledFunction(name, level, datatype.progress, parameters.map(_.progress), body.map(_.progress))
     fct.allowInlining = allowInlining
     fct
   }

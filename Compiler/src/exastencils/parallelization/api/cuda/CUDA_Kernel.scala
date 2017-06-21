@@ -546,9 +546,9 @@ case class CUDA_Kernel(var identifier : String,
       body += CUDA_FunctionCallExperimental(getKernelFctName, callArgs, numThreadsPerBlock, numBlocksPerDim)
     }
 
-    val fct = IR_Function(
-      if (reduction.isDefined) reduction.get.target.datatype else IR_UnitDatatype,
+    val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */
       getWrapperFctName,
+      if (reduction.isDefined) reduction.get.target.datatype else IR_UnitDatatype,
       Duplicate(passThroughArgs),
       body)
 
@@ -603,7 +603,7 @@ case class CUDA_Kernel(var identifier : String,
       fctParams += IR_FunctionArgument(variableAccess.name, variableAccess.datatype)
     }
 
-    val fct = IR_Function(IR_UnitDatatype, getKernelFctName, fctParams, compileKernelBody)
+    val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */ getKernelFctName, IR_UnitDatatype, fctParams, compileKernelBody)
 
     fct.allowInlining = false
     fct.allowFortranInterface = false

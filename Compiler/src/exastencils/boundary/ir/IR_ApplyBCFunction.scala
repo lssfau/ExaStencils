@@ -13,9 +13,10 @@ import exastencils.deprecated.ir.IR_FieldSelection
 
 case class IR_ApplyBCFunction(
     var name : String,
+    var level : Int,
     var fieldSelection : IR_FieldSelection,
     var neighbors : ListBuffer[NeighborInfo],
-    var insideFragLoop : Boolean) extends IR_FutureFunction {
+    var insideFragLoop : Boolean) extends IR_FutureLeveledFunction {
 
   override def prettyprint_decl() = prettyprint
 
@@ -77,7 +78,7 @@ case class IR_ApplyBCFunction(
     body
   }
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     // compile function arguments
     var fctArgs = ListBuffer[IR_FunctionArgument]()
     fctArgs += IR_FunctionArgument("slot", IR_IntegerDatatype)
@@ -85,6 +86,6 @@ case class IR_ApplyBCFunction(
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
     // emit compiled function
-    IR_Function(IR_UnitDatatype, name, fctArgs, compileBody(fieldSelection))
+    IR_LeveledFunction(name, level, IR_UnitDatatype, fctArgs, compileBody(fieldSelection))
   }
 }

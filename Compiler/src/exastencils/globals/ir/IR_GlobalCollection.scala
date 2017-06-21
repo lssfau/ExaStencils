@@ -20,8 +20,8 @@ case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration
   ListBuffer("algorithm"), // provides commonly used functions like min/max
   ListBuffer(),
   ListBuffer(
-    IR_Function(IR_UnitDatatype, "initGlobals"),
-    IR_Function(IR_UnitDatatype, "destroyGlobals"))) {
+    IR_PlainFunction("initGlobals", IR_UnitDatatype),
+    IR_PlainFunction("destroyGlobals", IR_UnitDatatype))) {
 
   // add conditional dependencies - TODO: move to respective packages
   if (Knowledge.mpi_enabled)

@@ -34,8 +34,8 @@ object SIMD_MathFunctions {
 /// SIMD_MathFunc
 
 case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_FunctionLike {
+  override var name : String = "_simd_" + libmName
   isHeaderOnly = true
-  override val name : String = "_simd_" + libmName
 
   override def prettyprint(out : PpStream) : Unit = {
     Platform.simd_mathLibrary match {

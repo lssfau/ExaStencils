@@ -11,9 +11,9 @@ import exastencils.globals.ir.IR_AllocateDataFunction
 import exastencils.parallelization.api.mpi.MPI_IV_MpiRank
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
-case class IR_InitGeneratedDomain() extends IR_FutureFunction {
+case class IR_InitGeneratedDomain() extends IR_FuturePlainFunction {
+  override var name = "initDomain"
   override def prettyprint_decl() = prettyprint
-  override def name = "initDomain"
 
   def globalSize = IR_DomainCollection.getByIdentifier("global").get.asInstanceOf[IR_DomainFromAABB].aabb
   def fragWidth(dim : Int) = globalSize.width(dim) / Knowledge.domain_rect_numFragsTotalAsVec(dim)
@@ -56,7 +56,7 @@ case class IR_InitGeneratedDomain() extends IR_FutureFunction {
           Mod Knowledge.domain_rect_numFragsPerBlockAsVec(dim)) * (0 until dim).map(Knowledge.domain_rect_numFragsPerBlockAsVec(_)).product : IR_Expression).reduce(_ + _))
   }
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     var body = ListBuffer[IR_Statement]()
 
     // TODO: move to main application
@@ -81,6 +81,6 @@ case class IR_InitGeneratedDomain() extends IR_FutureFunction {
     // FIXME: move to app
     body += IR_FunctionCall(IR_AllocateDataFunction.fctName)
 
-    IR_Function(IR_UnitDatatype, name, body)
+    IR_PlainFunction(name, IR_UnitDatatype, body)
   }
 }

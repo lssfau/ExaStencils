@@ -12,9 +12,9 @@ import exastencils.util.ir._
 
 /// IR_PrintAllTimersToFile
 
-case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_Expandable {
+case class IR_PrintAllTimersToFile() extends IR_TimerFunction {
+  override var name = "printAllTimersToFile"
   override def prettyprint_decl() : String = prettyprint
-  override def name = "printAllTimersToFile"
 
   def genDataCollect(timers : HashMap[String, IR_IV_Timer]) : ListBuffer[IR_Statement] = {
     var statements : ListBuffer[IR_Statement] = ListBuffer()
@@ -63,7 +63,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_Expandable
     statements
   }
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     IR_CollectTimers.applyStandalone(StateManager.root)
     val timers = IR_CollectTimers.timers
 
@@ -91,7 +91,7 @@ case class IR_PrintAllTimersToFile() extends IR_TimerFunction with IR_Expandable
       }
     }
 
-    val fct = IR_Function(IR_UnitDatatype, name, body)
+    val fct = IR_PlainFunction(name, IR_UnitDatatype, body)
     fct.allowFortranInterface = false
     fct
   }

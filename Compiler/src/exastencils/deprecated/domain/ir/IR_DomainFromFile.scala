@@ -16,12 +16,13 @@ import exastencils.prettyprinting.PpStream
 /// IR_InitDomainFromFragmentFile
 
 @deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
-case class IR_InitDomainFromFragmentFile() extends IR_FutureFunction {
+case class IR_InitDomainFromFragmentFile() extends IR_FuturePlainFunction {
   override def prettyprint_decl() = prettyprint
-  override def name = "initDomain"
+  override var name = "initDomain"
 
-  override def generateFct() : IR_Function = {
-    IR_Function(IR_UnitDatatype, name,
+  override def generateFct() = {
+    IR_PlainFunction(name,
+      IR_UnitDatatype,
       if (Knowledge.mpi_enabled) {
         ListBuffer(
           IR_VariableDeclaration(IR_IntegerDatatype, "numFragments", 0),
@@ -107,11 +108,11 @@ case class IR_ReadValueFrom(var innerDatatype : IR_Datatype, data : IR_Expressio
 /// IR_SetValues
 
 @deprecated("old code from the 'domain from file' extension -> to be re-integrated", "17.10.16")
-case class IR_SetValues() extends IR_FutureFunction {
+case class IR_SetValues() extends IR_FuturePlainFunction {
+  override var name = "setValues"
   override def prettyprint_decl() = prettyprint
-  override def name = "setValues"
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     var body = new ListBuffer[IR_Statement]
     for (d <- IR_DomainCollection.objects.indices) {
       body += IR_Assignment(IR_IV_IsValidForDomain(d), IR_ReadValueFrom(IR_BooleanDatatype, "data"))
@@ -152,7 +153,9 @@ case class IR_SetValues() extends IR_FutureFunction {
         IR_ForLoop("int i = 0", " i < 12 ", "++i",
           IR_Assignment("trafoTmp[i]", IR_ReadValueFrom(IR_RealDatatype, "data"))),
         IR_Assignment(IR_IV_PrimitiveTransformation(), "trafoTmp")))
-    IR_Function(IR_UnitDatatype, name,
+
+    IR_PlainFunction(name,
+      IR_UnitDatatype,
       ListBuffer[IR_FunctionArgument](IR_FunctionArgument("data", IR_SpecialDatatype("char*")), IR_FunctionArgument("numFragments", IR_IntegerDatatype)),
       //      ListBuffer((LoopOverFragments(body))))
       IR_ForLoop(" int fragmentIdx = 0 ", " fragmentIdx < numFragments ", " ++fragmentIdx ", body))

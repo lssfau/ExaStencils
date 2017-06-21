@@ -103,11 +103,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
         IR_Assignment(IR_ArrayAccess(data.access, it), IR_BinaryOperators.createExpression(op, IR_ArrayAccess(data.access, it), IR_ArrayAccess(data.access, it + stride.access))))
 
       // compile final kernel function
-      var fct = IR_Function(
-        IR_UnitDatatype,
-        kernelName,
-        ListBuffer(data, numElements, stride),
-        fctBody)
+      val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */ kernelName, IR_UnitDatatype, ListBuffer(data, numElements, stride), fctBody)
 
       fct.allowInlining = false
       fct.allowFortranInterface = false
@@ -149,16 +145,16 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
       fctBody += IR_Return(Some(ret))
 
       // compile final wrapper function
-      val fct = IR_Function(
-        IR_RealDatatype, // TODO: support other types
+      val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */
         wrapperName,
+        IR_RealDatatype, // TODO: support other types
         ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)),
         fctBody)
 
       fct.allowInlining = false
       fct.allowFortranInterface = false
       fct.functionQualifiers = "extern \"C\""
-      
+
       functions += fct
     }
   }

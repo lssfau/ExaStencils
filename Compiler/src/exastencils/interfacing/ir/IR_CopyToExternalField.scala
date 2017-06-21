@@ -12,9 +12,9 @@ import exastencils.polyhedron.PolyhedronAccessible
 
 /// IR_CopyToExternalField
 
-case class IR_CopyToExternalField(var src : IR_Field, var dest : IR_ExternalField) extends IR_FutureFunction {
+case class IR_CopyToExternalField(var src : IR_Field, var dest : IR_ExternalField) extends IR_FuturePlainFunction {
+  override var name = "get" + dest.name
   override def prettyprint_decl() : String = prettyprint
-  override def name = "get" + dest.name
 
   def getFortranCompDT() : IR_Datatype = {
     var dt = dest.resolveBaseDatatype
@@ -23,7 +23,7 @@ case class IR_CopyToExternalField(var src : IR_Field, var dest : IR_ExternalFiel
     dt
   }
 
-  override def generateFct() : IR_Function = {
+  override def generateFct() = {
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
@@ -60,7 +60,7 @@ case class IR_CopyToExternalField(var src : IR_Field, var dest : IR_ExternalFiel
     loop.parallelization.potentiallyParallel = true
 
     // compile final function
-    val fct = IR_Function(IR_UnitDatatype, name,
+    val fct = IR_PlainFunction(name, IR_UnitDatatype,
       ListBuffer(IR_FunctionArgument("dest", externalDT), IR_FunctionArgument("slot", IR_IntegerDatatype)),
       loop)
 

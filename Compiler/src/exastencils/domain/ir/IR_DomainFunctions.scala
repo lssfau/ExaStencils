@@ -21,12 +21,12 @@ case class IR_DomainFunctions() extends IR_FunctionCollection(
 
   if (Knowledge.domain_rect_generate) {
     functions += IR_InitGeneratedDomain()
-    functions += IR_Function(IR_UnitDatatype, "initGeometry", GridGeometry.getGeometry.generateInitCode())
+    functions += IR_PlainFunction("initGeometry", IR_UnitDatatype, GridGeometry.getGeometry.generateInitCode())
   } else {
     externalDependencies += ("iostream", "fstream")
-    val rvTemplateFunc = IR_Function(
-      IR_SpecialDatatype("template <class T> T"),
+    val rvTemplateFunc = IR_PlainFunction(
       s"readValue",
+      IR_SpecialDatatype("template <class T> T"),
       ListBuffer[IR_FunctionArgument](
         IR_FunctionArgument("memblock", IR_SpecialDatatype("char*&")),
         IR_FunctionArgument("title = \"\"", IR_SpecialDatatype("std::string"))),
