@@ -77,7 +77,7 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
 
         // generate function calls with adapted sizes
         for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {
-          body += IR_FunctionCall(s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
+          body += IR_FunctionCall(IR_LeveledInternalFunctionAccess(s"resizeInner_${ layout._2._1 }", level, IR_UnitDatatype),
             Knowledge.dimensions.map(dim => newInnerSize(dim) : IR_Expression).to[ListBuffer])
         }
 

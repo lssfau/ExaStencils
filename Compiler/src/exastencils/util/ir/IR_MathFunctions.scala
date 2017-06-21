@@ -35,6 +35,7 @@ object IR_MathFunctions {
 
 object IR_MathFunctionAccess {
   def fabs = new IR_MathFunctionAccess("fabs", IR_MathFunctions.getDatatype("fabs")._2)
+  def pow = new IR_MathFunctionAccess("pow", IR_MathFunctions.getDatatype("pow")._2)
 }
 
 case class IR_MathFunctionAccess(var name : String, var datatype : IR_Datatype) extends IR_FunctionAccess

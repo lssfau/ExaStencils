@@ -95,7 +95,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     // functions
     // FIXME: datatypes for function accesses
 
-    case IR_FunctionCall(IR_UserFunctionAccess("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
 
     // Vector functions
     case f : IR_FunctionCall if !Knowledge.experimental_internalHighDimTypes && (f.name == "cross" || f.name == "crossproduct") =>
@@ -217,31 +217,31 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
     // FIXME: IR_UserFunctionAccess's
 
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnBoundary(fieldAccess.fieldSelection, getIndex(fieldAccess))
 
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnEastBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnEastBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnWestBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnWestBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnNorthBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnNorthBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 1, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnSouthBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnSouthBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, -1, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnTopBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnTopBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, 1)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(IR_UserFunctionAccess("isOnBottomBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnBottomBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)), getIndex(fieldAccess))
 
@@ -251,7 +251,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case IR_ElementwiseDivision(left, right)       => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
     case IR_ElementwiseModulo(left, right)         => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
     // FIXME: IR_UserFunctionAccess
-    case IR_FunctionCall(IR_UserFunctionAccess("dot", _), args) => IR_FunctionCall("dotProduct", args)
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("dot", _), args) => IR_FunctionCall("dotProduct", args)
 
     case IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("readImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {

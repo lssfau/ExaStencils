@@ -141,7 +141,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
-      IR_FunctionCall(functionName/* FIXME */ + '_' + level, fctArgs) : IR_Statement
+      IR_FunctionCall(IR_LeveledInternalFunctionAccess(functionName, level, IR_UnitDatatype), fctArgs) : IR_Statement
 
     case applyBCsStatement : IR_ApplyBC =>
       var insideFragLoop = collector.stack.map(_.isInstanceOf[IR_LoopOverFragments]).reduce(_ || _)
@@ -172,6 +172,6 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
-      IR_FunctionCall(functionName/* FIXME */ + '_' + level, fctArgs) : IR_Statement
+      IR_FunctionCall(IR_LeveledInternalFunctionAccess(functionName, level, IR_UnitDatatype), fctArgs) : IR_Statement
   }, false)
 }

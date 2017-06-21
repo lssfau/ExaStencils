@@ -209,14 +209,14 @@ object IR_SimplifyExpression {
         (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
 
       case IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))) if floor && "floord" == function.name                                                     =>
-        (IR_FunctionCall("floord", ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
+        (IR_FunctionCall(IR_InternalFunctionAccess.floord, ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
       case IR_Addition(ListBuffer(IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(IR_FunctionCall(IR_InternalFunctionAccess.floord, x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
       case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(IR_FunctionCall(IR_InternalFunctionAccess.floord, x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
       case divd                                                                                                                                                          =>
         if (floor)
-          (IR_FunctionCall("floord", divd, IR_IntegerConstant(divs)), 1L)
+          (IR_FunctionCall(IR_InternalFunctionAccess.floord, divd, IR_IntegerConstant(divs)), 1L)
         else
           (IR_Division(divd, IR_IntegerConstant(divs)), 1L)
     }
