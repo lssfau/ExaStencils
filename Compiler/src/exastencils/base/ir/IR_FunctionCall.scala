@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.hack.ir.HACK_IR_UndeterminedFunctionAccess
 import exastencils.prettyprinting.PpStream
+
 /// IR_FunctionCall
 
 object IR_FunctionCall {

@@ -97,9 +97,9 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       }
 
       var functionName = communicateStatement.op match {
-        case "begin"  => s"beginExch${ communicateStatement.field.codeName }"
-        case "finish" => s"finishExch${ communicateStatement.field.codeName }"
-        case "both"   => s"exch${ communicateStatement.field.codeName }"
+        case "begin"  => s"beginExch${ communicateStatement.field.field.name }_"
+        case "finish" => s"finishExch${ communicateStatement.field.field.name }_"
+        case "both"   => s"exch${ communicateStatement.field.field.name }_"
       }
       functionName += /*s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +*/
         communicateStatement.targets.map(t => s"${ t.target }_${

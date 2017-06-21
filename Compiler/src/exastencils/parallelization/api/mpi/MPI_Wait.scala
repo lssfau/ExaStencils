@@ -15,6 +15,8 @@ case object MPI_WaitForRequest extends IR_FuturePlainFunction {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
   override var name = "waitForMPIReq"
+  allowInlining = false
+
   override def prettyprint_decl() : String = prettyprint
 
   def request = IR_VariableAccess("request", IR_PointerDatatype(IR_SpecialDatatype("MPI_Request")))
@@ -36,7 +38,6 @@ case object MPI_WaitForRequest extends IR_FuturePlainFunction {
 
   override def generateFct() = {
     val fct = IR_PlainFunction(name, IR_UnitDatatype, IR_FunctionArgument(request), ListBuffer[IR_Statement]())
-    fct.allowInlining = false
 
     // add declarations for local variables
     fct.body += IR_VariableDeclaration(stat)
@@ -57,4 +58,6 @@ case object MPI_WaitForRequest extends IR_FuturePlainFunction {
 
     fct
   }
+
+  def generateFctAccess() = IR_PlainInternalFunctionAccess(name, IR_UnitDatatype)
 }

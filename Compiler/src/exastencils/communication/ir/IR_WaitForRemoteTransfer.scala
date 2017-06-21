@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.datastructures.Transformation._
 import exastencils.deprecated.ir.IR_FieldSelection
-import exastencils.parallelization.api.mpi.MPI_Request
+import exastencils.parallelization.api.mpi._
 
 /// local communication operations
 
@@ -18,7 +18,7 @@ case class IR_WaitForRemoteTransfer(var field : IR_FieldSelection, var neighbor 
     IR_IfCondition(
       IR_IV_RemoteReqOutstanding(field.field, direction, neighbor.index),
       ListBuffer[IR_Statement](
-        IR_FunctionCall("waitForMPIReq", IR_AddressOf(MPI_Request(field.field, direction, neighbor.index))),
+        IR_FunctionCall(MPI_WaitForRequest.generateFctAccess(), IR_AddressOf(MPI_Request(field.field, direction, neighbor.index))),
         IR_Assignment(IR_IV_RemoteReqOutstanding(field.field, direction, neighbor.index), false)))
   }
 }
