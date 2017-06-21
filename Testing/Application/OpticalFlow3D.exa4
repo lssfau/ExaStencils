@@ -204,7 +204,7 @@ Function CalculateGradients@all () : Unit {
 	}}
 	apply bc to GradientY@current
 	
-	if ( levels@coarsest ( ) < levels@current ( ) ) {
+	@(all but coarsest) {
 		CalculateGradients@coarser ( )
 	}
 }
@@ -297,14 +297,14 @@ Function initFields@finest() : Unit {
 		Image2@current = (vf_nodePosition_x@current - 0.1) * (vf_nodePosition_x@current-0.1) - 0.5 * vf_nodePosition_y@current * vf_nodePosition_y@current - 0.5 * vf_nodePosition_z@current * vf_nodePosition_z@current
 	}
 	
-/*	loop over Image1@current {
+	/*loop over Image1@current {
 		Image1@current /= 1.0
 	}
 	loop over Image2@current {
 		Image2@current /= 1.0
-	}
-*/
-	if ( levels@coarsest ( ) < levels@current ( ) ) {
+	}*/
+
+	@(all but coarsest) {
 		initFields@coarser ( )
 	}
 }
