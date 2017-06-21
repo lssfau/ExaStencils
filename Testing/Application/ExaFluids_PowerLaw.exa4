@@ -1055,7 +1055,7 @@ FunctionTemplate StencilRestrictionComponent < self, source, dest, restrictionSt
 	communicate dest
 	apply bc to dest
 
-	@(all but coarsest) {
+	@(all but (coarsest + 1)) {
 		self@coarser ( )
 	}
 }
