@@ -317,7 +317,7 @@ Function initFields@(coarsest to (finest - 1)) () : Unit {
 		Image2@current = RestrictionCell@finer * Image2@finer
 	}
 
-	if ( levels@coarsest ( ) < levels@current ( ) ) {
+	@(all but coarsest) {
 		initFields@coarser ( )
 	}
 }
