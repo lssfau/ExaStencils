@@ -253,7 +253,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     // FIXME: IR_UserFunctionAccess
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("dot", _), args) => IR_FunctionCall("dotProduct", args)
 
-    case IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("readImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("readImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to readImage; usage: readImage ( field, \"filename\" )")
         IR_NullStatement
@@ -266,12 +266,12 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         //stmts += IR_FunctionCall(IR_UserFunctionAccess("cimg_library::CImg< double > imageIn")
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageIn ( \"" + filename + "\" )")
         stmts += IR_LoopOverPoints(field.fieldSelection.field,
-          IR_Assignment(field, HACK_IR_Native("*imageIn.data(x,y)")))
+          IR_Assignment(field, HACK_IR_Native("*imageIn.data(i0,i1)")))
 
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("writeImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("writeImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to writeImage; usage: writeImage ( field, \"filename\" )")
         IR_NullStatement
@@ -286,7 +286,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + " )")
         stmts += IR_LoopOverPoints(field.fieldSelection.field,
-          IR_Assignment(HACK_IR_Native("*imageOut.data(x,y)"), field))
+          IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1)"), field))
         filename match {
           case va : IR_VariableAccess => stmts += IR_MemberFunctionCall("imageOut", "save", IR_MemberFunctionCall(va, "c_str"))
           case other                  => stmts += IR_MemberFunctionCall("imageOut", "save", other)
@@ -296,7 +296,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("writeMappedImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("writeMappedImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to writeMappedImage; usage: writeMappedImage ( field, \"filename\" )")
         IR_NullStatement
@@ -315,7 +315,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageOut ( " + numPoints.mkString(", ") + ", 1. )")
         stmts += IR_LoopOverPoints(field.fieldSelection.field,
-          IR_Assignment(HACK_IR_Native("*imageOut.data(x,y,0,0)"), 360.0 * field))
+          IR_Assignment(HACK_IR_Native("*imageOut.data(i0,i1,0,0)"), 360.0 * field))
 
         stmts += IR_MemberFunctionCall("imageOut", "HSVtoRGB")
         filename match {
@@ -327,7 +327,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(IR_ExternalFunctionAccess("showImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("showImage", _), args)) =>
       if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
         Logger.warn("Malformed call to showImage; usage: showImage ( field.* )")
         IR_NullStatement
@@ -345,7 +345,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         for (i <- fields.indices) {
           stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + " )")
           stmts += IR_LoopOverPoints(fields(i).fieldSelection.field,
-            IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(x,y)"), fields(i)))
+            IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1)"), fields(i)))
           val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
           stmts += HACK_IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
         }
