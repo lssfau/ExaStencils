@@ -9,7 +9,7 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.ir._
 import exastencils.prettyprinting._
 import exastencils.util.ir._
 
@@ -278,11 +278,9 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
           }
         }
         val tmpDet = m.get(i, 0) * calculateDeterminant(tmp) * IR_DoubleConstant(math.pow(-1, i))
-        IR_GeneralSimplify.doUntilDoneStandalone(tmpDet)
-        det += tmpDet
+        det += IR_GeneralSimplifyWrapper.process[IR_Expression](tmpDet)
       }
-      IR_GeneralSimplify.doUntilDoneStandalone(det)
-      return det
+      IR_GeneralSimplifyWrapper.process(det)
     }
   }
 

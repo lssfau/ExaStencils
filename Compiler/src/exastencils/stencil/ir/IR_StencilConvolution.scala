@@ -6,7 +6,7 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.operator.ir._
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.ir._
 import exastencils.util.ir.IR_ResultingDatatype
 
 // TODO: is it really necessary to wrap convolutions in separate nodes?
@@ -35,9 +35,8 @@ case class IR_StencilConvolution(var left : IR_StencilAccess, var right : IR_Fie
   }
 
   override def expand() : Output[IR_Expression] = {
-    val ret : IR_Expression = stencil.entries.indices.map(idx => resolveEntry(idx)).reduceLeft(_ + _)
-    IR_GeneralSimplify.doUntilDoneStandalone(ret)
-    ret
+    val ret = stencil.entries.indices.map(idx => resolveEntry(idx)).reduceLeft(_ + _)
+    IR_GeneralSimplifyWrapper.process[IR_Expression](ret)
   }
 }
 
@@ -62,8 +61,7 @@ case class IR_StencilFieldConvolution(var left : IR_StencilFieldAccess, var righ
   }
 
   override def expand() : Output[IR_Expression] = {
-    val ret : IR_Expression = left.selection.stencilField.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
-    IR_GeneralSimplify.doUntilDoneStandalone(ret)
-    ret
+    val ret = left.selection.stencilField.stencil.entries.indices.view.map(idx => Duplicate(resolveEntry(idx))).reduceLeft(_ + _)
+    IR_GeneralSimplifyWrapper.process[IR_Expression](ret)
   }
 }

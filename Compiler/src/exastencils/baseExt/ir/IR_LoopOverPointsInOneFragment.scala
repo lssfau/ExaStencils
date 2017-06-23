@@ -14,7 +14,7 @@ import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.ir._
 import exastencils.parallelization.ir._
 import exastencils.polyhedron.PolyhedronAccessible
 
@@ -167,7 +167,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
         val newLowerBounds = (0 until numDims).map(dim => {
           var ret : IR_Expression = new IR_Minimum(IR_GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_ (dim)))
           ret = 1 - ret
-          IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(ret))
+          ret = IR_GeneralSimplifyWrapper.process(ret)
           start(dim) + ret
         })
 
@@ -178,7 +178,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
         val newUpperBounds = (0 until numDims).map(dim => {
           var ret : IR_Expression = new IR_Maximum(IR_GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_ (dim)))
           ret = 1 + ret
-          IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(ret))
+          ret = IR_GeneralSimplifyWrapper.process(ret)
           stop(dim) - ret
         })
 

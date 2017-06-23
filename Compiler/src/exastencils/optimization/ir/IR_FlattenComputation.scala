@@ -74,11 +74,10 @@ object IR_FlattenComputation extends QuietDefaultStrategy("Flatten complex compu
       changed = true
       IR_Addition(add.summands.map(ex => IR_Division(ex, Duplicate(div)) : IR_Expression))
 
-    // (a * b) / c => a*c + b*c
+    // (a * b) / c => a * b * (1 / c)
     case IR_Division(mult : IR_Multiplication, div) =>
       changed = true
-      mult.factors += IR_Division(1.0, Duplicate(div))
-      mult
+      IR_Multiplication(mult.factors :+ IR_Division(1.0, div))
   })
 
   this += new Transformation("Flatten nested multiplications", {
