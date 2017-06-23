@@ -1,0 +1,131 @@
+
+Stencil RestrictionCell@all from default restriction on Cell with 'linear'
+Stencil CorrectionCell@all from default prolongation on Cell with 'linear'
+
+Stencil RestrictionFaceX@all from default restriction on Face_x with 'linear'
+Stencil CorrectionFaceX@all from default prolongation on Face_x with 'linear'
+
+Stencil RestrictionFaceY@all from default restriction on Face_y with 'linear'
+Stencil CorrectionFaceY@all from default prolongation on Face_y with 'linear'
+
+Stencil RestrictionCellIntegral@all from default restriction on Cell with 'integral_linear'
+Stencil CorrectionCellIntegral@all from default prolongation on Cell with 'integral_linear'
+
+Stencil RestrictionFaceXIntegral@all from default restriction on Face_x with 'integral_linear'
+Stencil CorrectionFaceXIntegral@all from default prolongation on Face_x with 'integral_linear'
+
+Stencil RestrictionFaceYIntegral@all from default restriction on Face_y with 'integral_linear'
+Stencil CorrectionFaceYIntegral@all from default prolongation on Face_y with 'integral_linear'
+
+
+Field uApprox from u
+Field vApprox from v
+Field pApprox from p
+
+Field uOld from u
+Field vOld from v
+Field pOld from p
+
+Function AssembleAllLevels@finest {
+	AssembleStencil@current ( )
+	AssembleAllLevels@coarser ( )
+}
+
+Function AssembleAllLevels@(coarsest + 1 to finest - 1) {
+	u = RestrictionFaceX@finer * u@finer
+	v = RestrictionFaceY@finer * v@finer
+	p = RestrictionCell@finer  * p@finer
+
+	AssembleStencil@current ( )
+	AssembleAllLevels@coarser ( )
+}
+
+Function AssembleAllLevels@coarsest {
+	u = RestrictionFaceX@finer * u@finer
+	v = RestrictionFaceY@finer * v@finer
+	p = RestrictionCell@finer  * p@finer
+
+	AssembleStencil@current ( )
+}
+
+Function VCycle@(all but coarsest) ( ) : Unit {
+	Smoother ( )
+	
+	UpdateResidual ( )
+	Restriction@coarser ( )
+	
+	VCycle@coarser ( )
+	
+	Correction ( )
+	
+	Smoother ( )
+}
+
+Function VCycle@coarsest ( ) : Unit {
+	// TODO: implement real cgs
+	repeat 100 times {
+		Smoother ( )
+	}
+}
+
+Function UpdateResidual@all {
+	residual_u = rhs_u - ( Laplace_xStag_xStag * u + dx_Cell_xStag * p )
+	residual_v = rhs_v - ( Laplace_yStag_yStag * v + dy_Cell_yStag * p )
+	residual_p = rhs_p - ( dx_xStag_Cell * u + dy_yStag_Cell * v )
+}
+
+
+Function Restriction@(all but finest) {
+	// coarsen current guess
+	uApprox = RestrictionFaceX@finer * u@finer
+	u = uApprox
+	
+	vApprox = RestrictionFaceY@finer * v@finer
+	v = vApprox
+	
+	pApprox = RestrictionCell@finer  * p@finer
+	p = pApprox
+
+	//AssembleStencil@current ( )
+
+	// f = r + A v
+	rhs_u = RestrictionFaceXIntegral@finer * residual_u@finer + Laplace_xStag_xStag * u + dx_Cell_xStag * p
+	rhs_v = RestrictionFaceYIntegral@finer * residual_v@finer + Laplace_yStag_yStag * v + dy_Cell_yStag * p
+	rhs_p = RestrictionCellIntegral@finer  * residual_p@finer + dx_xStag_Cell * u + dy_yStag_Cell * v
+	
+	//rhs_u += uOld * vf_xStagCellVolume / dt
+	//rhs_v += vOld * vf_yStagCellVolume / dt
+	//rhs_v += gravity * rho * vf_yStagCellVolume * vf_yStagCellVolume
+}
+
+Function Correction@(all but coarsest) {
+	// e = u - v
+	u@coarser -= uApprox@coarser
+	v@coarser -= vApprox@coarser
+	p@coarser -= pApprox@coarser
+
+	u += CorrectionFaceX@coarser * u@coarser
+	v += CorrectionFaceY@coarser * v@coarser
+	p += CorrectionCell@coarser  * p@coarser
+}
+
+Function Advance@(all but coarsest) {
+	uOld = u
+	vOld = v
+	pOld = p
+	
+	Advance@coarser ( )
+}
+Function Advance@coarsest {
+	uOld = u
+	vOld = v
+	pOld = p
+}
+
+FunctionTemplate NormResidualComponent < residual > ( ) : Real {
+	return sqrt ( residual * residual )
+}
+
+Instantiate NormResidualComponent < residual_u > as NormResidual_u@finest
+Instantiate NormResidualComponent < residual_v > as NormResidual_v@finest
+Instantiate NormResidualComponent < residual_p > as NormResidual_p@finest

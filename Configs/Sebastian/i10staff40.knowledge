@@ -1,9 +1,9 @@
-dimensionality				= 3
+dimensionality				= 2
 
-minLevel					= 1
-maxLevel					= 5
+minLevel					= 4
+maxLevel					= 10
 
-grid_isUniform				= false
+grid_isUniform				= true
 grid_isStaggered			= true
 grid_isAxisAligned			= true
 
@@ -49,7 +49,7 @@ experimental_NeumannOrder			= 1
 experimental_DirichletOrder			= 2
 
 experimental_layerExtension			= true
-experimental_resolveInverseFunctionCall	= "Runtime"
+//experimental_resolveInverseFunctionCall	= "GaussJordan"
 
 experimental_applySchurCompl		= true
 
@@ -58,3 +58,8 @@ experimental_generateParaviewFiles	= true
 
 opt_conventionalCSE					= false
 opt_loopCarriedCSE					= false
+
+library_CImg					= true
+
+//domain_rect_periodic_x				= true
+

@@ -74,7 +74,8 @@ Function Application ( ) : Unit {
 	initDomain ( )
 	initFieldsWithZero ( )
 	initGeometry ( )
-	InitFields@finest ( )
+	InitFields ( )
+	InitRhs@finest ( )
 
 	stopTimer ( 'setup' )
 
@@ -84,7 +85,7 @@ Function Application ( ) : Unit {
 	destroyGlobals ( )
 }
 
-Function InitFields@finest ( ) : Unit {
+Function InitRhs@finest ( ) : Unit {
 	loop over rhs_u@current {
 		rhs_u@current = 4.0 * sin ( 2.0 * vf_cellCenter_y@current ) * cos ( 4.0 * vf_nodePosition_x@current ) - 64.0 * cos ( 4.0 * vf_cellCenter_y@current )
 		rhs_u@current *= vf_xStagCellVolume@current

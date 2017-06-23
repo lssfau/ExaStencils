@@ -1,0 +1,82 @@
+Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
+
+Layout NoComm< Real, Node >@all {
+	ghostLayers = [ 0, 0, 0 ]
+	duplicateLayers = [ 1, 1, 1 ]
+}
+Layout CommPartTempBlockable< Real, Node >@all {
+	ghostLayers = [ 0, 0, 0 ]
+	duplicateLayers = [ 1, 1, 1 ]
+}
+Layout BasicComm< Real, Node >@all {
+	ghostLayers = [ 1, 1, 1 ] with communication
+	duplicateLayers = [ 1, 1, 1 ] with communication
+}
+Layout CommFullTempBlockable< Real, Node >@all {
+	ghostLayers = [ 1, 1, 1 ] with communication
+	duplicateLayers = [ 1, 1, 1 ] with communication
+}
+
+Field Solution< global, CommFullTempBlockable, None >[2]@finest
+
+Stencil Laplace@all {
+	[ 0,  0,  0] => ( ( 2.0 / ( vf_gridWidth_x@current * vf_gridWidth_x@current ) + 2.0 / ( vf_gridWidth_y@current * vf_gridWidth_y@current ) + 2.0 / ( vf_gridWidth_z@current * vf_gridWidth_z@current ) ) )
+	[ 1,  0,  0] => ( ( -1.0 / ( vf_gridWidth_x@current * vf_gridWidth_x@current ) ) )
+	[-1,  0,  0] => ( ( -1.0 / ( vf_gridWidth_x@current * vf_gridWidth_x@current ) ) )
+	[ 0,  1,  0] => ( ( -1.0 / ( vf_gridWidth_y@current * vf_gridWidth_y@current ) ) )
+	[ 0, -1,  0] => ( ( -1.0 / ( vf_gridWidth_y@current * vf_gridWidth_y@current ) ) )
+	[ 0,  0,  1] => ( ( -1.0 / ( vf_gridWidth_z@current * vf_gridWidth_z@current ) ) )
+	[ 0,  0, -1] => ( ( -1.0 / ( vf_gridWidth_z@current * vf_gridWidth_z@current ) ) )
+}
+Stencil CorrectionStencil@all {
+	[    0,     0,     0] => 0.125
+	[x % 2,     0,     0] => 0.125
+	[    0, y % 2,     0] => 0.125
+	[x % 2, y % 2,     0] => 0.125
+	[    0,     0, z % 2] => 0.125
+	[x % 2,     0, z % 2] => 0.125
+	[    0, y % 2, z % 2] => 0.125
+	[x % 2, y % 2, z % 2] => 0.125
+}
+Stencil RestrictionStencil@all {
+	[ 0,  0,  0] => ( 1.0 / 8.0 )
+	[ 0,  0, -1] => ( 1.0 / 16.0 )
+	[ 0,  0,  1] => ( 1.0 / 16.0 )
+	[ 0, -1,  0] => ( 1.0 / 16.0 )
+	[ 0,  1,  0] => ( 1.0 / 16.0 )
+	[-1,  0,  0] => ( 1.0 / 16.0 )
+	[ 1,  0,  0] => ( 1.0 / 16.0 )
+	[ 0, -1,  1] => ( 1.0 / 32.0 )
+	[ 0, -1, -1] => ( 1.0 / 32.0 )
+	[ 0,  1,  1] => ( 1.0 / 32.0 )
+	[ 0,  1, -1] => ( 1.0 / 32.0 )
+	[-1,  0,  1] => ( 1.0 / 32.0 )
+	[-1,  0, -1] => ( 1.0 / 32.0 )
+	[ 1,  0,  1] => ( 1.0 / 32.0 )
+	[ 1,  0, -1] => ( 1.0 / 32.0 )
+	[-1, -1,  0] => ( 1.0 / 32.0 )
+	[-1,  1,  0] => ( 1.0 / 32.0 )
+	[ 1, -1,  0] => ( 1.0 / 32.0 )
+	[ 1,  1,  0] => ( 1.0 / 32.0 )
+	[-1, -1,  1] => ( 1.0 / 64.0 )
+	[-1, -1, -1] => ( 1.0 / 64.0 )
+	[-1,  1,  1] => ( 1.0 / 64.0 )
+	[-1,  1, -1] => ( 1.0 / 64.0 )
+	[ 1, -1,  1] => ( 1.0 / 64.0 )
+	[ 1, -1, -1] => ( 1.0 / 64.0 )
+	[ 1,  1,  1] => ( 1.0 / 64.0 )
+	[ 1,  1, -1] => ( 1.0 / 64.0 )
+}
+
+Function Application ( ) : Unit {
+	initGlobals ( )
+	initDomain ( )
+	
+	repeat 100 times {
+		communicate ghost of Solution[active]@current
+		communicate ghost of Solution[nextSlot]@current
+	}
+	
+	destroyGlobals ( )
+}
+

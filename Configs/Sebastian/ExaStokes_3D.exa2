@@ -47,70 +47,82 @@ Field rhs_p@(all but finest) with Real on Cell of global = 0.0
 // Operator_AppliedTo_WRT
 
 Operator dx_Cell_xStag from Stencil {
-  [-1,  0,  0] => -vf_cellWidth_y * vf_cellWidth_z
-  [ 0,  0,  0] =>  vf_cellWidth_y * vf_cellWidth_z
+  [-1,  0,  0] => -integrateOverXStaggeredEastFace ( 1.0 )
+  [ 0,  0,  0] =>  integrateOverXStaggeredWestFace ( 1.0 )
 }
 
 Operator dy_Cell_yStag from Stencil {
-  [ 0, -1,  0] => -vf_cellWidth_x * vf_cellWidth_z
-  [ 0,  0,  0] =>  vf_cellWidth_x * vf_cellWidth_z
+  [ 0, -1,  0] => -integrateOverYStaggeredSouthFace ( 1.0 )
+  [ 0,  0,  0] =>  integrateOverYStaggeredNorthFace ( 1.0 )
 }
 
 Operator dz_Cell_zStag from Stencil {
-  [ 0,  0, -1] => -vf_cellWidth_x * vf_cellWidth_y
-  [ 0,  0,  0] =>  vf_cellWidth_x * vf_cellWidth_y
+  [ 0,  0, -1] => -integrateOverZStaggeredBottomFace ( 1.0 )
+  [ 0,  0,  0] =>  integrateOverZStaggeredTopFace ( 1.0 )
 }
 
 
 Operator dx_xStag_Cell from Stencil {
-  [ 0,  0,  0] => -vf_cellWidth_y * vf_cellWidth_z
-  [ 1,  0,  0] =>  vf_cellWidth_y * vf_cellWidth_z
+  [ 0,  0,  0] => -integrateOverWestFace ( 1.0 )
+  [ 1,  0,  0] =>  integrateOverEastFace ( 1.0 )
 }
 Operator dy_yStag_Cell from Stencil {
-  [ 0,  0,  0] => -vf_cellWidth_x * vf_cellWidth_z
-  [ 0,  1,  0] =>  vf_cellWidth_x * vf_cellWidth_z
+  [ 0,  0,  0] => -integrateOverSouthFace ( 1.0 )
+  [ 0,  1,  0] =>  integrateOverNorthFace ( 1.0 )
 }
 Operator dz_zStag_Cell from Stencil {
-  [ 0,  0,  0] => -vf_cellWidth_x * vf_cellWidth_y
-  [ 0,  0,  1] =>  vf_cellWidth_x * vf_cellWidth_y
+  [ 0,  0,  0] => -integrateOverBottomFace ( 1.0 )
+  [ 0,  0,  1] =>  integrateOverTopFace ( 1.0 )
 }
 
 
 Operator Laplace_xStag_xStag from Stencil {
+  [-1,  0,  0] => integrateOverXStaggeredWestFace   ( -1.0 ) / vf_cellWidth_x@[-1, 0, 0]
+  [ 1,  0,  0] => integrateOverXStaggeredEastFace   ( -1.0 ) / vf_cellWidth_x@[0, 0, 0]
+  [ 0, -1,  0] => integrateOverXStaggeredSouthFace  ( -1.0 ) / vf_stagCVWidth_y@[0, 0, 0]
+  [ 0,  1,  0] => integrateOverXStaggeredNorthFace  ( -1.0 ) / vf_stagCVWidth_y@[0, 1, 0]
+  [ 0,  0, -1] => integrateOverXStaggeredBottomFace ( -1.0 ) / vf_stagCVWidth_z@[0, 0, 0]
+  [ 0,  0,  1] => integrateOverXStaggeredTopFace    ( -1.0 ) / vf_stagCVWidth_z@[0, 0, 1]
+
   [ 0,  0,  0] => (
-	  ( 1.0 / vf_cellWidth_x@[0, 0, 0]   + 1.0 / vf_cellWidth_x@[1, 0, 0] )   * vf_cellWidth_y   * vf_cellWidth_z
-    + ( 1.0 / vf_stagCVWidth_y@[0, 0, 0] + 1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_stagCVWidth_x * vf_cellWidth_z
-    + ( 1.0 / vf_stagCVWidth_z@[0, 0, 0] + 1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_stagCVWidth_x * vf_cellWidth_y )
-  [-1,  0,  0] => ( -1.0 / vf_cellWidth_x@[0, 0, 0] )   * vf_cellWidth_y   * vf_cellWidth_z
-  [ 1,  0,  0] => ( -1.0 / vf_cellWidth_x@[1, 0, 0] )   * vf_cellWidth_y   * vf_cellWidth_z
-  [ 0, -1,  0] => ( -1.0 / vf_stagCVWidth_y@[0, 0, 0] ) * vf_stagCVWidth_x * vf_cellWidth_z
-  [ 0,  1,  0] => ( -1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_stagCVWidth_x * vf_cellWidth_z
-  [ 0,  0, -1] => ( -1.0 / vf_stagCVWidth_z@[0, 0, 0] ) * vf_stagCVWidth_x * vf_cellWidth_y
-  [ 0,  0,  1] => ( -1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_stagCVWidth_x * vf_cellWidth_y
+	  integrateOverXStaggeredWestFace   ( 1.0 ) / vf_cellWidth_x@[-1, 0, 0]
+	+ integrateOverXStaggeredEastFace   ( 1.0 ) / vf_cellWidth_x@[0, 0, 0]
+	+ integrateOverXStaggeredSouthFace  ( 1.0 ) / vf_stagCVWidth_y@[0, 0, 0]
+	+ integrateOverXStaggeredNorthFace  ( 1.0 ) / vf_stagCVWidth_y@[0, 1, 0]
+	+ integrateOverXStaggeredBottomFace ( 1.0 ) / vf_stagCVWidth_z@[0, 0, 0]
+	+ integrateOverXStaggeredTopFace    ( 1.0 ) / vf_stagCVWidth_z@[0, 0, 1] )
 }
 
 Operator Laplace_yStag_yStag from Stencil {
+  [-1,  0,  0] => integrateOverYStaggeredWestFace   ( -1.0 ) / vf_stagCVWidth_x@[0, 0, 0]
+  [ 1,  0,  0] => integrateOverYStaggeredEastFace   ( -1.0 ) / vf_stagCVWidth_x@[1, 0, 0]
+  [ 0, -1,  0] => integrateOverYStaggeredSouthFace  ( -1.0 ) / vf_cellWidth_y@[0, -1, 0]
+  [ 0,  1,  0] => integrateOverYStaggeredNorthFace  ( -1.0 ) / vf_cellWidth_y@[0, 0, 0]
+  [ 0,  0, -1] => integrateOverYStaggeredBottomFace ( -1.0 ) / vf_stagCVWidth_z@[0, 0, 0]
+  [ 0,  0,  1] => integrateOverYStaggeredTopFace    ( -1.0 ) / vf_stagCVWidth_z@[0, 0, 1]
+
   [ 0,  0,  0] => (
-      ( 1.0 / vf_stagCVWidth_x + 1.0 / vf_stagCVWidth_x@[1, 0, 0] ) * vf_stagCVWidth_y * vf_cellWidth_z
-    + ( 1.0 / vf_cellWidth_y   + 1.0 / vf_cellWidth_y@[0, 1, 0] )   * vf_cellWidth_x   * vf_cellWidth_z
-    + ( 1.0 / vf_stagCVWidth_z + 1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_cellWidth_x   * vf_stagCVWidth_y )
-  [-1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@[0, 0, 0] ) * vf_stagCVWidth_y * vf_cellWidth_z
-  [ 1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@[1, 0, 0] ) * vf_stagCVWidth_y * vf_cellWidth_z
-  [ 0, -1,  0] => ( -1.0 / vf_cellWidth_y@[0, 0, 0] )   * vf_cellWidth_x   * vf_cellWidth_z
-  [ 0,  1,  0] => ( -1.0 / vf_cellWidth_y@[0, 1, 0] )   * vf_cellWidth_x   * vf_cellWidth_z
-  [ 0,  0, -1] => ( -1.0 / vf_stagCVWidth_z@[0, 0, 0] ) * vf_cellWidth_x   * vf_stagCVWidth_y
-  [ 0,  0,  1] => ( -1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_cellWidth_x   * vf_stagCVWidth_y
+	  integrateOverYStaggeredWestFace   ( 1.0 ) / vf_stagCVWidth_x@[0, 0, 0]
+	+ integrateOverYStaggeredEastFace   ( 1.0 ) / vf_stagCVWidth_x@[1, 0, 0]
+	+ integrateOverYStaggeredSouthFace  ( 1.0 ) / vf_cellWidth_y@[0, -1, 0]
+	+ integrateOverYStaggeredNorthFace  ( 1.0 ) / vf_cellWidth_y@[0, 0, 0]
+	+ integrateOverYStaggeredBottomFace ( 1.0 ) / vf_stagCVWidth_z@[0, 0, 0]
+	+ integrateOverYStaggeredTopFace    ( 1.0 ) / vf_stagCVWidth_z@[0, 0, 1] )
 }
 
 Operator Laplace_zStag_zStag from Stencil {
+  [-1,  0,  0] => integrateOverZStaggeredWestFace   ( -1.0 ) / vf_stagCVWidth_x@[0, 0, 0]
+  [ 1,  0,  0] => integrateOverZStaggeredEastFace   ( -1.0 ) / vf_stagCVWidth_x@[1, 0, 0]
+  [ 0, -1,  0] => integrateOverZStaggeredSouthFace  ( -1.0 ) / vf_stagCVWidth_y@[0, 0, 0]
+  [ 0,  1,  0] => integrateOverZStaggeredNorthFace  ( -1.0 ) / vf_stagCVWidth_y@[0, 1, 0]
+  [ 0,  0, -1] => integrateOverZStaggeredBottomFace ( -1.0 ) / vf_cellWidth_z@[0, 0, -1]
+  [ 0,  0,  1] => integrateOverZStaggeredTopFace    ( -1.0 ) / vf_cellWidth_z@[0, 0, 0]
+
   [ 0,  0,  0] => (
-      ( 1.0 / vf_stagCVWidth_x + 1.0 / vf_stagCVWidth_x@[1, 0, 0] ) * vf_cellWidth_y * vf_stagCVWidth_z
-    + ( 1.0 / vf_stagCVWidth_y + 1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_cellWidth_x * vf_stagCVWidth_z
-    + ( 1.0 / vf_cellWidth_z   + 1.0 / vf_cellWidth_z@[0, 0, 1] )   * vf_cellWidth_x * vf_cellWidth_y )
-  [-1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@[0, 0, 0] ) * vf_cellWidth_y * vf_stagCVWidth_z
-  [ 1,  0,  0] => ( -1.0 / vf_stagCVWidth_x@[1, 0, 0] ) * vf_cellWidth_y * vf_stagCVWidth_z
-  [ 0, -1,  0] => ( -1.0 / vf_stagCVWidth_y@[0, 0, 0] ) * vf_cellWidth_x * vf_stagCVWidth_z
-  [ 0,  1,  0] => ( -1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_cellWidth_x * vf_stagCVWidth_z
-  [ 0,  0, -1] => ( -1.0 / vf_cellWidth_z@[0, 0, 0] )   * vf_cellWidth_x * vf_cellWidth_y
-  [ 0,  0,  1] => ( -1.0 / vf_cellWidth_z@[0, 0, 1] )   * vf_cellWidth_x * vf_cellWidth_y
+	  integrateOverZStaggeredWestFace   ( 1.0 ) / vf_stagCVWidth_x@[0, 0, 0]
+	+ integrateOverZStaggeredEastFace   ( 1.0 ) / vf_stagCVWidth_x@[1, 0, 0]
+	+ integrateOverZStaggeredSouthFace  ( 1.0 ) / vf_stagCVWidth_y@[0, 0, 0]
+	+ integrateOverZStaggeredNorthFace  ( 1.0 ) / vf_stagCVWidth_y@[0, 1, 0]
+	+ integrateOverZStaggeredBottomFace ( 1.0 ) / vf_cellWidth_z@[0, 0, -1]
+	+ integrateOverZStaggeredTopFace    ( 1.0 ) / vf_cellWidth_z@[0, 0, 0] )
 }
