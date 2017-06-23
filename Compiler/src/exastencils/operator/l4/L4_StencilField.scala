@@ -14,6 +14,9 @@ case class L4_StencilField(
     var field : L4_Field // linked coefficient field
 ) extends L4_LeveledKnowledgeObject[IR_StencilField] {
 
-  override def prettyprintDecl(out : PpStream) : Unit = ???
+  override def prettyprintDecl(out : PpStream) = {
+    out << "StencilField " << name << "< " << field.name << " => " << stencil.name << " >" << '@' << level
+  }
+
   override def progressImpl() = IR_StencilField(name, level, stencil.getProgressedObj(), field.getProgressedObj())
 }

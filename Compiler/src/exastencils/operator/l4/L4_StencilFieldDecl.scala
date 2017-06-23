@@ -21,7 +21,10 @@ case class L4_StencilFieldDecl(
     var stencil : L4_Access,
     var field : L4_Access) extends L4_LeveledKnowledgeDecl {
 
-  override def prettyprint(out : PpStream) = ???
+  override def prettyprint(out : PpStream) = {
+    out << "StencilField " << name << "< " << field.name << " => " << stencil.name << " >"
+    if (levels.isDefined) out << '@' << levels.get
+  }
 
   override def addToKnowledge() : Unit = {
     L4_StencilFieldCollection.add(
