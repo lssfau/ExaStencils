@@ -21,14 +21,14 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
       // find all fields read outside the iteration space
       var fieldsToConsider = ListBuffer[L4_FieldAccessRangeCollector.L4_FieldWithSlot]()
       for (fieldData <- collector.readExtentMax)
-        if (fieldData._2.count(_ != 0) > 0)
+        if (fieldData._2.exists(_ > 0))
           fieldsToConsider += fieldData._1
 
       var commStatements = ListBuffer[L4_Communicate]()
 
       for (field <- fieldsToConsider.sortBy(f => f.field.name + f.field.level + f.slot)) {
         var targets = ListBuffer[L4_CommunicateTarget]()
-        targets += L4_CommunicateTarget("ghost", None, Some(L4_ConstIndex(collector.readExtentMax(field))))
+        targets += L4_CommunicateTarget("ghost", None, None)// FIXME: Some(L4_ConstIndex(collector.readExtentMax(field).map(math.max(_, 0)))))
         commStatements += L4_Communicate(
           L4_FieldAccess(field.field, field.slot),
           "both",

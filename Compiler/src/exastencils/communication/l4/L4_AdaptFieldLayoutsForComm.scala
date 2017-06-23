@@ -20,7 +20,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
     this.register(collector)
     super.apply(node)
     this.unregister(collector)
-    collector.adaptNodeBasedFields()
+    //FIXME: collector.adaptNodeBasedFields()
     actuallyAdapt()
     collector.reset()
   }
@@ -30,7 +30,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
     this.register(collector)
     super.applyStandalone(node)
     this.unregister(collector)
-    collector.adaptNodeBasedFields()
+    //FIXME: collector.adaptNodeBasedFields()
     actuallyAdapt()
     collector.reset()
   }
@@ -102,13 +102,19 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
         for (i <- numGhostLayersLeft.indices) {
           val localization = defLayout.discretization.toLowerCase
           if ("node" == localization || s"face_${ IR_DimToString(i) }" == localization) {
-            // node type localization doesn't require ghost layers for boundary handling - apart from Neumann
+            // node type localization doesn't require ghost layers for all boundary handling cases
             field.boundary match {
               case L4_NeumannBC(order) =>
                 numGhostLayersLeft(i) = math.max(numGhostLayersLeft(i), 1)
                 numGhostLayersRight(i) = math.max(numGhostLayersRight(i), 1)
 
-              case _ =>
+              case _ : L4_FunctionBC => // no info -> assume requirement
+                numGhostLayersLeft(i) = math.max(numGhostLayersLeft(i), 1)
+                numGhostLayersRight(i) = math.max(numGhostLayersRight(i), 1)
+
+              case _ : L4_DirichletBC => // nothing to do
+
+              case other => Logger.warn(s"Unsupported boundary condition $other")
             }
           } else if ("cell" == localization || "face_x" == localization || "face_y" == localization || "face_z" == localization) {
             // cell type localization always requires (at least) on ghost layer for implementing boundary conditions
@@ -133,7 +139,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
         newLayout.name = newLayoutName
         val numGhostLayers = (numGhostLayersLeft, numGhostLayersRight).zipped.map(math.max)
         newLayout.ghostLayers = L4_ConstIndex(numGhostLayers)
-        newLayout.communicatesGhosts = numGhostLayers.count(_ != 0) > 0
+        newLayout.communicatesGhosts = numGhostLayers.exists(_ != 0)
         // FIXME: how to determine if duplicates should communicate? activate by default?
         L4_FieldLayoutCollection.add(newLayout)
 
