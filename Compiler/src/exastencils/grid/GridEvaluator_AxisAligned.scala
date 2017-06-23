@@ -209,27 +209,45 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
       }
     }
 
-    if (stagDim.isDefined) {
-      val curStagDim = stagDim.get
+    Knowledge.dimensionality /* FIXME: numDims */ match {
+      // TODO: refactor
+      case 2 =>
+        if (stagDim.isDefined) {
+          val curStagDim = stagDim.get
 
-      if (curStagDim == faceDim) {
-        val compDim0 = if (0 == faceDim) 1 else 0
-        val compDim1 = if (2 == faceDim) 1 else 2
+          if (curStagDim == faceDim) {
+            val compDim = if (0 == faceDim) 1 else 0
+            geom.cellWidth(level, index, None, compDim) * offsetExp
+          } else {
+            geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * offsetExp
+          }
+        } else {
+          val compDim = if (0 == faceDim) 1 else 0
+          geom.cellWidth(level, index, None, compDim) * offsetExp
+        }
+      case 3 =>
+        if (stagDim.isDefined) {
+          val curStagDim = stagDim.get
 
-        geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * offsetExp
-      } else {
-        val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
+          if (curStagDim == faceDim) {
+            val compDim0 = if (0 == faceDim) 1 else 0
+            val compDim1 = if (2 == faceDim) 1 else 2
 
-        if (compDim < curStagDim)
-          geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * offsetExp
-        else
-          geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * geom.cellWidth(level, index, None, compDim) * offsetExp
-      }
-    } else {
-      val compDim0 = if (0 == faceDim) 1 else 0
-      val compDim1 = if (2 == faceDim) 1 else 2
+            geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * offsetExp
+          } else {
+            val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
 
-      geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * offsetExp
+            if (compDim < curStagDim)
+              geom.cellWidth(level, index, None, compDim) * geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * offsetExp
+            else
+              geom.asInstanceOf[GridGeometry_staggered].stagCVWidth(level, index, None, curStagDim) * geom.cellWidth(level, index, None, compDim) * offsetExp
+          }
+        } else {
+          val compDim0 = if (0 == faceDim) 1 else 0
+          val compDim1 = if (2 == faceDim) 1 else 2
+
+          geom.cellWidth(level, index, None, compDim0) * geom.cellWidth(level, index, None, compDim1) * offsetExp
+        }
     }
   }
 
@@ -381,8 +399,6 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         if (curStagDim == faceDim)
           Logger.error("piecewise integration on faces in the stagger dimension of staggered cells is not supported")
 
-        val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
-
         val centerExp = IR_ExpressionStatement(Duplicate(exp))
         val offsetExp = IR_ExpressionStatement(Duplicate(exp))
 
@@ -397,9 +413,19 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         ShiftFieldAccessIndices.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
         ShiftFieldAccessIndices.applyStandalone(offsetExp)
 
-        IR_VirtualFieldAccess(s"vf_cellWidth_${ IR_DimToString(compDim) }", level, index) *
-          (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp.expression
-            + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, index) * offsetExp.expression)
+        Knowledge.dimensionality /* FIXME: numDims */ match {
+          // TODO: refactor
+          case 2 =>
+            (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp.expression
+              + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, index) * offsetExp.expression)
+
+          case 3 =>
+            val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
+
+            IR_VirtualFieldAccess(s"vf_cellWidth_${ IR_DimToString(compDim) }", level, index) *
+              (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp.expression
+                + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, index) * offsetExp.expression)
+        }
       } else {
         Logger.error("piecewise integration on non-staggered cell interfaces is not supported")
       }
