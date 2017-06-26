@@ -57,7 +57,7 @@ object Isl {
         }
       })
       for (m <- markers) {
-        var oldLibName : String = m.getName
+        var oldLibName : String = m.getName()
         oldLibName = oldLibName.substring(0, oldLibName.length() - markerSuffix.length())
         val oldLibDir = new java.io.File(tmpDir, oldLibName)
         for (f <- oldLibDir.listFiles())
@@ -69,7 +69,7 @@ object Isl {
 
     lurl.getProtocol match {
       case "file" =>
-        val lfile : String = lurl.getPath
+        val lfile : String = lurl.getPath()
         val lpath : String = lfile.substring(0, lfile.lastIndexOf('/'))
         isl.Init.loadNative(lpath)
 
@@ -123,12 +123,13 @@ object Isl {
     loaded = true
   }
 
-  def initCtx() : isl.Ctx = {
+  def newCtx() : isl.Ctx = {
     this.load()
     isl.Ctx.alloc()
   }
 
-  final lazy val ctx = initCtx()
+  // lazy not required here, this class gets loaded only, if anything inside it is used (and it contains only isl related stuff)
+  final val ctx : isl.Ctx = newCtx()
 
   // names are intended to be imported (using "import exastencils.polyhedron.Isl.TypeAliases._")
   object TypeAliases {
