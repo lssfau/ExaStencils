@@ -641,8 +641,8 @@ object Main {
       CUDA_HandleReductions.apply()
     }
 
-    if (Knowledge.opt_useColorSplitting)
-      ColorSplitting.apply()
+    if (Knowledge.opt_useColorSplitting || Knowledge.opt_arrayOfFields)
+      LayoutTansformation.apply()
 
     // before converting kernel functions -> requires linearized accesses
     IR_LinearizeDirectFieldAccess.apply()

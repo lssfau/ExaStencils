@@ -191,6 +191,7 @@ object Knowledge {
   var data_genVariableFieldSizes : Boolean = false
 
   // --- polyhedron optimization ---
+
   // the following polyhedral optimization levels are currently supported:
   //   0: don't do anything  (fastest; obviously)
   //   1: extract a model and recreate an AST after a polyhedral dead code elimination is performed;
@@ -265,6 +266,8 @@ object Knowledge {
   var opt_useAddressPrecalc : Boolean = false
   // [true|false] // only relevant for RBGS smoother currently
   var opt_useColorSplitting : Boolean = false
+  // [true|false] // change memory layout from "field of arrays" to "array of fields"
+  var opt_arrayOfFields : Boolean = false
 
   // unrolling
   // [1~5]
