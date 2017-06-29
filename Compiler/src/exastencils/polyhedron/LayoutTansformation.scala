@@ -1,12 +1,17 @@
 package exastencils.polyhedron
 
+import scala.collection.mutable
+
 import java.util.IdentityHashMap
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_Linearization
+import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.datastructures.DefaultStrategy
+import exastencils.core.collectors.Collector
+import exastencils.datastructures.CustomStrategy
+import exastencils.datastructures.Node
 import exastencils.datastructures.QuietDefaultStrategy
 import exastencils.datastructures.Transformation
 import exastencils.field.ir._
@@ -14,7 +19,7 @@ import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.polyhedron.Isl.TypeAliases._
 
-object LayoutTansformation extends DefaultStrategy("Layout Transformation") {
+object LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
   import scala.language.implicitConversions
 
@@ -23,6 +28,8 @@ object LayoutTansformation extends DefaultStrategy("Layout Transformation") {
   private val tmpNamePrefix : String = "__ir_layout_toReplace_"
   private def tmpName(i : Int) : String = tmpNamePrefix + i
   private def tmpNameIdx(s : String) : Int = s.substring(tmpNamePrefix.length()).toInt
+
+  private val nrColors : Long = 2
 
   private var trafo : isl.MultiAff = null
 
@@ -70,13 +77,13 @@ object LayoutTansformation extends DefaultStrategy("Layout Transformation") {
     var aff = isl.Aff.zeroOnDomain(lSpace)
     for (i <- gridIts)
       aff = aff.setCoefficientSi(T_IN, i, 1)
-    aff = aff.modVal(2L)
+    aff = aff.modVal(nrColors)
     trafo = trafo.setAff(dim, aff)
 
     // compressed access for innermost loop
     aff = isl.Aff.varOnDomain(lSpace, T_SET, min)
-    aff = aff.sub(aff.modVal(2L))
-    aff = aff.scaleDownUi(2)
+    aff = aff.sub(aff.modVal(nrColors))
+    aff = aff.scaleDownUi(nrColors.toInt)
     trafo = trafo.setAff(min, aff)
 
     trafo
@@ -143,7 +150,7 @@ object LayoutTansformation extends DefaultStrategy("Layout Transformation") {
           val cl : Long = c.getNumSi()
           ensure(cl <= Int.MaxValue, "upper bound of transformed memory layout is larger than Int.MaxValue?! " + cl)
           extents(i) = c.getNumSi() + 1 // from 0 to c inclusive
-          val flpd = IR_FieldLayoutPerDim(0, 0, 0, extents(i).toInt, 0, 0, 0)
+        val flpd = IR_FieldLayoutPerDim(0, 0, 0, extents(i).toInt, 0, 0, 0)
           flpd.updateTotal()
           newLayoutsPerDim(i) = flpd
       })
@@ -179,26 +186,99 @@ object LayoutTansformation extends DefaultStrategy("Layout Transformation") {
     return IR_Linearization.linearizeIndex(indices, strides)
   }
 
-  this += new Transformation("transform", {
-    case dfa : IR_DirectFieldAccess =>
-      val layout = dfa.fieldSelection.fieldLayout
-      val newIndex : IR_Expression =
-        if (processedLayouts.containsKey(layout)) {
-          processedLayouts.get(layout)
-        } else {
-          val trafoExtents = adaptLayout(layout)
-          val exprs = createASTforMultiAff(trafoExtents)
-          processedLayouts.put(layout, exprs)
-          exprs
-        }
-      if (newIndex != null) {
-        val wrappedIndex = IR_ExpressionStatement(Duplicate(newIndex))
-        QuietDefaultStrategy("replace", new Transformation("now", {
-          case IR_StringLiteral(id) if id.startsWith(tmpNamePrefix) => Duplicate(dfa.index(tmpNameIdx(id)))
-          case IR_VariableAccess(id, _) if id.startsWith(tmpNamePrefix) => Duplicate(dfa.index(tmpNameIdx(id))) // HACK to deal with the HACK in IR_ExpressionIndex
-        })).applyStandalone(wrappedIndex)
-        IR_LinearizedFieldAccess(dfa.fieldSelection, IR_SimplifyExpression.simplifyIntegralExpr(wrappedIndex.expression))
-      } else
-        dfa
-  })
+  override def apply() : Unit = {
+    this.transaction()
+    Logger.info("Applying strategy " + name)
+
+    this.register(ColorCondCollector)
+    this.execute(new Transformation("transform", {
+      case dfa : IR_DirectFieldAccess =>
+        val layout = dfa.fieldSelection.fieldLayout
+        val newIndex : IR_Expression =
+          if (processedLayouts.containsKey(layout)) {
+            processedLayouts.get(layout)
+          } else {
+            val trafoExtents = adaptLayout(layout)
+            val exprs = createASTforMultiAff(trafoExtents)
+            processedLayouts.put(layout, exprs)
+            exprs
+          }
+        if (newIndex != null) {
+          val wrappedIndex = IR_ExpressionStatement(Duplicate(newIndex))
+          QuietDefaultStrategy("replace", new Transformation("now", {
+            case IR_StringLiteral(id) if id.startsWith(tmpNamePrefix)     => Duplicate(dfa.index(tmpNameIdx(id)))
+            case IR_VariableAccess(id, _) if id.startsWith(tmpNamePrefix) => Duplicate(dfa.index(tmpNameIdx(id))) // HACK to deal with the HACK in IR_ExpressionIndex
+          })).applyStandalone(wrappedIndex)
+          val cSumMap : mutable.HashMap[IR_Expression, Long] = ColorCondCollector.sum
+          if (cSumMap != null && ColorCondCollector.nrCol == nrColors) {
+            QuietDefaultStrategy("simplify color", new Transformation("now", {
+              case mod @ IR_Modulo(sum, IR_IntegerConstant(nr)) if nrColors == nr =>
+                val sumMap : mutable.HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sum)
+                val sumCst : Long = sumMap.remove(IR_SimplifyExpression.constName).getOrElse(0L)
+                if (sumMap == cSumMap)
+                  IR_IntegerConstant((sumCst + ColorCondCollector.color) % nrColors)
+                else
+                  mod
+            })).applyStandalone(wrappedIndex)
+          }
+          val simpl : IR_Expression = IR_SimplifyExpression.simplifyIntegralExpr(wrappedIndex.expression)
+          IR_LinearizedFieldAccess(dfa.fieldSelection, simpl)
+        } else
+          dfa
+    }))
+    this.unregister(ColorCondCollector)
+
+    this.commit()
+  }
+}
+
+object ColorCondCollector extends Collector {
+
+  private final val TMP_ANNOT : String = "tmp"
+  var sum : mutable.HashMap[IR_Expression, Long] = null
+  var color : Long = -1
+  var nrCol : Long = 0
+
+  override def enter(node : Node) : Unit = {
+
+    var cond : IR_Expression = null
+    node match {
+      case loop : IR_LoopOverDimensions if loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEq] =>
+        cond = loop.condition.get
+      case IR_IfCondition(c : IR_EqEq, _, fB) if fB.isEmpty                                                     =>
+        cond = c
+      case _                                                                                                    =>
+        val annot : Option[Any] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
+        if (annot.isDefined && annot.get.isInstanceOf[IR_EqEq])
+          cond = annot.get.asInstanceOf[IR_Expression]
+    }
+
+    cond match {
+      case IR_EqEq(IR_IntegerConstant(c), IR_Modulo(s, IR_IntegerConstant(nr))) =>
+        sum = IR_SimplifyExpression.extractIntegralSum(s)
+        color = c
+        nrCol = nr
+        node.annotate(TMP_ANNOT)
+      case IR_EqEq(IR_Modulo(s, IR_IntegerConstant(nr)), IR_IntegerConstant(c)) =>
+        sum = IR_SimplifyExpression.extractIntegralSum(s)
+        color = c
+        nrCol = nr
+        node.annotate(TMP_ANNOT)
+      case _                                                                    =>
+    }
+  }
+
+  override def leave(node : Node) : Unit = {
+    node match {
+      case _ =>
+        if (node.removeAnnotation(TMP_ANNOT).isDefined)
+          reset()
+    }
+  }
+
+  override def reset() : Unit = {
+    sum = null
+    color = -1
+    nrCol = 0
+  }
 }

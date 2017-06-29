@@ -1,11 +1,11 @@
 package exastencils.optimization
 
+import scala.collection.mutable
+
 import java.util.IdentityHashMap
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir._
 import exastencils.core._
-import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
@@ -26,25 +26,14 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
     }
 
     private def addColorOffset(index : IR_ExpressionIndex, dim : Int, colorOffset : Int) : Boolean = {
-      val cond : IR_Expression = ColorCondCollector.cond
-      if (cond == null)
+      val sumMap : mutable.HashMap[IR_Expression, Long] = ColorCondCollector.sum
+      val nrCol : Long = ColorCondCollector.nrCol
+      val cValue : Long = ColorCondCollector.color
+      if (sumMap == null || nrCol != nrColors || cValue < 0 || cValue >= nrColors)
         return false
-      val (expr, cValue) : (IR_Expression, Long) =
-        cond match {
-          case IR_EqEq(IR_IntegerConstant(c),
-          IR_Modulo(sum, IR_IntegerConstant(nrColors2))) if nrColors == nrColors2 =>
-            (sum, c)
-
-          case IR_EqEq(IR_Modulo(sum, IR_IntegerConstant(nrColors2)),
-          IR_IntegerConstant(c)) if nrColors == nrColors2 =>
-            (sum, c)
-
-          case _ =>
-            return false
-        }
       val accCSum = IR_SimplifyExpression.extractIntegralSum(Duplicate(index).reduce((x, y) => x + y))
       val cOffset : Long = accCSum.remove(IR_SimplifyExpression.constName).getOrElse(0L)
-      if (accCSum != IR_SimplifyExpression.extractIntegralSum(expr))
+      if (accCSum != sumMap)
         return false
       val color : Long = ((cValue + cOffset) % nrColors + nrColors) % nrColors // mathematical modulo
       index(dim) += IR_IntegerConstant(color * colorOffset)
@@ -77,36 +66,4 @@ object ColorSplitting extends DefaultStrategy("Color Splitting") {
       dfa
     }
   })
-}
-
-object ColorCondCollector extends Collector {
-
-  var cond : IR_Expression = null
-
-  override def enter(node : Node) : Unit = {
-    node match {
-      case loop : IR_LoopOverDimensions if loop.condition.isDefined && loop.condition.get.isInstanceOf[IR_EqEq] =>
-        cond = loop.condition.get
-      case IR_IfCondition(c : IR_EqEq, _, fB) if fB.isEmpty                                                     =>
-        cond = c
-      case _                                                                                                    =>
-        val annot : Option[Any] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
-        if (annot.isDefined && annot.get.isInstanceOf[IR_EqEq])
-          cond = annot.get.asInstanceOf[IR_Expression]
-    }
-  }
-
-  override def leave(node : Node) : Unit = {
-    node match {
-      case loop : IR_LoopOverDimensions           => cond = null
-      case IR_IfCondition(c, _, fB) if fB.isEmpty => cond = null
-      case _                                      =>
-        if (node.hasAnnotation(PolyOpt.IMPL_CONDITION_ANNOT))
-          cond = null
-    }
-  }
-
-  override def reset() : Unit = {
-    cond = null
-  }
 }
