@@ -207,7 +207,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| communicateStatement
       ||| returnStatement
       ||| advanceStatement
-      ||| leveledScope
+      ||| levelScope
       ||| solveLocallyStatement
       ||| colorWithStatement)
 
@@ -270,7 +270,7 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ (exp => L4_Return(exp)))
 
-  lazy val leveledScope = locationize(((levelDecl ||| levelAccess) <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => L4_LeveledScope(l, s) })
+  lazy val levelScope = locationize(((levelDecl ||| levelAccess) <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => L4_LevelScope(l, s) })
 
   lazy val equationExpression = locationize((binaryexpression <~ "==") ~ binaryexpression ^^ { case lhs ~ rhs => L4_Equation(lhs, rhs) })
   lazy val solveLocallyComponent = /*locationize*/ (genericAccess <~ "=>") ~ equationExpression ^^ { case f ~ eq => (f, eq) }

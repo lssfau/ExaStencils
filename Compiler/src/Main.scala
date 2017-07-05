@@ -6,7 +6,7 @@ import exastencils.base.l2._
 import exastencils.base.l3._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
-import exastencils.baseExt.l3.L3_ResolveFunctionInstantiations
+import exastencils.baseExt.l3._
 import exastencils.baseExt.l4._
 import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
 import exastencils.communication._
@@ -266,6 +266,8 @@ object Main {
 
       L3_PrepareAccesses.apply()
 
+      L3_ResolveLevelScopes.apply()
+
       L3_ResolveDslFunctionAccesses.apply()
       L3_ResolveMathFunctions.apply()
       L3_ResolveEvaluateFunctions.apply()
@@ -385,7 +387,7 @@ object Main {
 
     L4_PrepareAccesses.apply()
 
-    L4_ResolveLeveledScopes.apply()
+    L4_ResolveLevelScopes.apply()
 
     if (true) {
       // TODO: optionalize value resolution

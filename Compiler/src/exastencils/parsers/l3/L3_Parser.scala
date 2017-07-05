@@ -275,7 +275,8 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| untilLoop
       ||| whileLoop
       ||| functionCall ^^ { L3_ExpressionStatement(_) }
-      ||| returnStatement)
+      ||| returnStatement
+      ||| levelScope)
 
   // #############################################################################
   // ################################## BASE_EXT #################################
@@ -321,6 +322,12 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| "Vec4" ^^ { _ => L3_VectorDatatype(L3_RealDatatype, 4) }
       ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => L3_MatrixDatatype(x, m, n) }
       ||| numericDatatype ~ ("<" ~> integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case x ~ m ~ n => L3_MatrixDatatype(x, m, n) })
+
+  // ######################################
+  // ##### L3_LevelScope
+  // ######################################
+
+  lazy val levelScope = locationize(((levelDecl ||| levelAccess) <~ "{") ~ (statement.+ <~ "}") ^^ { case l ~ s => L3_LevelScope(l, s) })
 
   // ######################################
   // ##### L3_UnresolvedAccess

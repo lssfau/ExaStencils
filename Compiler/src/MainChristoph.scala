@@ -191,7 +191,7 @@ object MainChristoph {
     L4_ResolveLevelSpecifications.apply()
 
     L4_UnfoldLeveledDeclarations.apply()
-    L4_ResolveLeveledScopes.apply()
+    L4_ResolveLevelScopes.apply()
 
     L4_ResolveSpecialConstants.apply()
     L4_ResolveKnowledgeParameterAccess.apply()
