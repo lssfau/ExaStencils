@@ -86,7 +86,8 @@ case class IR_LoopOverDimensions(
   val at1stIt : Array[(ListBuffer[IR_Statement], ListBuffer[(String, Any)])] = Array.fill(numDimensions)((new ListBuffer[IR_Statement](), new ListBuffer[(String, Any)]()))
   var lcCSEApplied : Boolean = false
 
-  var tileSize = ListBuffer(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w).take(numDimensions)
+  var polyOptLevel : Int = 0
+  var tileSize : Array[Int] = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w).take(numDimensions)
 
   if (stepSize == null)
     stepSize = IR_ExpressionIndex(Array.fill(numDimensions)(1))

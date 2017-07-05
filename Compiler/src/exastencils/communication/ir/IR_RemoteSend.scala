@@ -14,7 +14,6 @@ import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.ir.IR_PotentiallyCritical
-import exastencils.polyhedron.PolyhedronAccessible
 
 case class IR_RemoteSend(
     var field : IR_FieldSelection,
@@ -66,7 +65,8 @@ case class IR_CopyToSendBuffer(
         IR_ExpressionIndex(indices.end, indices.begin, _ - _))
       val fieldAccess = IR_DirectFieldAccess(IR_FieldSelection(field.field, field.level, Duplicate(field.slot)), IR_LoopOverDimensions.defIt(numDims))
 
-      val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(tmpBufAccess, fieldAccess))) with PolyhedronAccessible
+      val loop = new IR_LoopOverDimensions(numDims, indices, ListBuffer[IR_Statement](IR_Assignment(tmpBufAccess, fieldAccess)))
+      loop.polyOptLevel = 1
       loop.parallelization.potentiallyParallel = true
       ret += loop
     }

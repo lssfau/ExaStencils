@@ -18,13 +18,6 @@ import exastencils.polyhedron.exploration.Exploration
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
 
-@deprecated("to be integrated with loop annotations/ loop member holding optimization and parallelization information", "15.09.2016")
-trait PolyhedronAccessible {
-  // optimization level  0 [without/fastest] ... 3 [aggressive/slowest]
-  var optLevel : Int = 3
-  var tileSizes : Array[Int] = Array(Knowledge.poly_tileSize_x, Knowledge.poly_tileSize_y, Knowledge.poly_tileSize_z, Knowledge.poly_tileSize_w)
-}
-
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   final val SCOP_ANNOT : String = "PolyScop"
