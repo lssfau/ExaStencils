@@ -41,9 +41,8 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
   }
 
   override def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : IR_LoopOverDimensions with PolyhedronAccessible =>
-      loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
-    case _                                                      => false
+    case loop : IR_LoopOverDimensions => loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
+    case _                            => false
   }
 
   override def apply(node : Node) : Transformation.OutputType = {

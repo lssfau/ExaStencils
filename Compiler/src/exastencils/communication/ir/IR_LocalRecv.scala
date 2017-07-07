@@ -12,7 +12,6 @@ import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
-import exastencils.polyhedron.PolyhedronAccessible
 
 /// IR_LocalRecv
 
@@ -35,7 +34,8 @@ case class IR_LocalRecv(
     if (condition.isDefined)
       innerStmt = IR_IfCondition(condition.get, innerStmt)
 
-    val loop = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt)) with PolyhedronAccessible
+    val loop = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt))
+    loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 
     IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index)),

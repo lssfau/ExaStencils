@@ -17,7 +17,6 @@ import exastencils.grid._
 import exastencils.grid.ir.IR_VirtualFieldAccess
 import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.polyhedron.PolyhedronAccessible
 
 /// IR_HandleBoundaries
 
@@ -157,9 +156,9 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
           val loopOverDims = new IR_LoopOverDimensions(
             numDims,
             adaptedIndexRange,
-            setupFieldUpdate(neigh._1)) with PolyhedronAccessible
+            setupFieldUpdate(neigh._1))
           loopOverDims.parallelization.potentiallyParallel = true
-          loopOverDims.optLevel = 1
+          loopOverDims.polyOptLevel = 1
           IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
         }))), IR_ParallelizationInfo.PotentiallyParallel())
   }

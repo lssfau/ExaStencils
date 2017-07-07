@@ -10,7 +10,6 @@ import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.polyhedron.PolyhedronAccessible
 
 /// IR_InitFieldsWithZero
 
@@ -32,9 +31,9 @@ case class IR_InitFieldsWithZero() extends IR_FuturePlainFunction {
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           IR_Assignment(
             IR_DirectFieldAccess(IR_FieldSelection(field, field.level, slot), Duplicate(index)),
-            0.0) : IR_Statement)) with PolyhedronAccessible
+            0.0) : IR_Statement))
       loopOverDims.parallelization.potentiallyParallel = true
-      loopOverDims.optLevel = 1
+      loopOverDims.polyOptLevel = 1
 
       val wrapped = IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), loopOverDims),

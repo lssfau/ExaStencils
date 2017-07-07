@@ -16,7 +16,6 @@ import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.ir._
-import exastencils.polyhedron.PolyhedronAccessible
 
 // FIXME: refactor: extract functionality, reduce complexity
 case class IR_LoopOverPointsInOneFragment(var domain : Int,
@@ -115,8 +114,8 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
       if (!parallelization.potentiallyParallel)
         IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition)
       else {
-        val ret = new IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition) with PolyhedronAccessible
-        ret.optLevel =
+        val ret = new IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition)
+        ret.polyOptLevel =
           if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
             Knowledge.poly_optLevel_fine
           else

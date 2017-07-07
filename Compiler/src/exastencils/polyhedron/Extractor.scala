@@ -363,7 +363,7 @@ class Extractor extends Collector {
     private final val formatterResult : java.lang.StringBuilder = new java.lang.StringBuilder()
     private final val formatter = new java.util.Formatter(formatterResult)
 
-    def create(root : IR_LoopOverDimensions with PolyhedronAccessible, localContext : isl.Set,
+    def create(root : IR_LoopOverDimensions, localContext : isl.Set,
         globalContext : isl.Set, optLevel : Int, origLoopVars : ArrayBuffer[String],
         modelLoopVars : String, setTempl : String, mapTempl : String, mergeWithPrev : Boolean) : Unit = {
 
@@ -460,7 +460,7 @@ class Extractor extends Collector {
     try {
       if (!curScop.exists())
         node match {
-          case loop : IR_LoopOverDimensions with PolyhedronAccessible =>
+          case loop : IR_LoopOverDimensions =>
             loop.indices.annotate(SKIP_ANNOT)
             loop.stepSize.annotate(SKIP_ANNOT)
             if (loop.condition.isDefined)
@@ -468,7 +468,7 @@ class Extractor extends Collector {
             if (loop.parallelization.reduction.isDefined)
               loop.parallelization.reduction.get.annotate(SKIP_ANNOT)
             // loop.at1stIt is a list of tuple, StateManager does not handle these, so a skip annotation is not required
-            if (loop.parallelizationIsReasonable && loop.optLevel >= 1)
+            if (loop.parallelizationIsReasonable && loop.polyOptLevel >= 1)
               enterLoop(loop, merge)
 
           case _ =>
@@ -620,7 +620,7 @@ class Extractor extends Collector {
 
   /////////////////// methods for node processing \\\\\\\\\\\\\\\\\\\
 
-  private def enterLoop(loop : IR_LoopOverDimensions with PolyhedronAccessible, mergeWithPrev : Boolean) : Unit = {
+  private def enterLoop(loop : IR_LoopOverDimensions, mergeWithPrev : Boolean) : Unit = {
 
     for (step <- loop.stepSize)
       if (step != IR_IntegerConstant(1))
@@ -718,7 +718,7 @@ class Extractor extends Collector {
     templateBuilder.append("->%s[%s]}")
     val mapTemplate : String = templateBuilder.toString()
 
-    curScop.create(loop, localContext, globalContext, loop.optLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
+    curScop.create(loop, localContext, globalContext, loop.polyOptLevel, origLoopVars, modelLoopVars.mkString(","), setTemplate, mapTemplate, mergeWithPrev)
 
     // deal with at1stIt
     val conds = loop.create1stItConds()
