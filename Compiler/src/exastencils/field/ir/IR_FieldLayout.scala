@@ -16,11 +16,13 @@ case class IR_FieldLayout(
     var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}"
     var layoutsPerDim : Array[IR_FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
     var numDimsGrid : Int, // dimensionality of the associated grid; usually lesser than or equal to 3
-    var numDimsData : Int, // dimensionality of the stored data; numDimsGrid for scalar fields, numDimsGrid + 1 for vector fields, numDimsGrid + 2 for matrix fields, etc.
     var referenceOffset : IR_ExpressionIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point
     var communicatesDuplicated : Boolean, // specifies if duplicated values need to be exchanged between processes
     var communicatesGhosts : Boolean // specifies if ghost layer values need to be exchanged between processes
 ) extends IR_LeveledKnowledgeObject {
+
+  // dimensionality of the stored data; numDimsGrid for scalar fields, numDimsGrid + 1 for vector fields, numDimsGrid + 2 for matrix fields, etc.
+  def numDimsData : Int = layoutsPerDim.length
 
   def apply(dim : Int) = layoutsPerDim(dim)
 

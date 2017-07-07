@@ -100,7 +100,7 @@ case class L4_FieldLayout(
     // will be updated afterwards
     val dummyRefOffset = IR_ExpressionIndex(Array.fill(numDimsData)(0))
 
-    val ret = IR_FieldLayout(name, level, progDatatype, finalDiscretization, layouts, numDimsGrid, numDimsData, dummyRefOffset,
+    val ret = IR_FieldLayout(name, level, progDatatype, finalDiscretization, layouts, numDimsGrid, dummyRefOffset,
       communicatesDuplicated, communicatesGhosts)
 
     // update reference offset

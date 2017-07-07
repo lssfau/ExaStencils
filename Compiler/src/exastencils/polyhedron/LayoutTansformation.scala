@@ -110,7 +110,6 @@ object LayoutTansformation extends CustomStrategy("Layout Transformation") {
       }
     }
     var dim = layout.numDimsData
-    ensure(dim == layout.layoutsPerDim.length, "Dimensions do not match! skipping layout")
     var domain = isl.Set.universe(isl.Space.setAlloc(Isl.ctx, 0, dim))
     for (i <- 0 until dim) {
       val total : Long =
@@ -156,7 +155,6 @@ object LayoutTansformation extends CustomStrategy("Layout Transformation") {
       })
     }
     layout.layoutsPerDim = newLayoutsPerDim
-    layout.numDimsData = layout.layoutsPerDim.length // FIXME: why do I need to set this explicitly?!
     layout.referenceOffset = null // not valid anymore
     return (trafo, extents)
   }
