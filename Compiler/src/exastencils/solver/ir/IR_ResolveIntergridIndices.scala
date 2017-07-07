@@ -32,8 +32,7 @@ object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in op
         val idxAdaption = fct.arguments(2 + dim)
 
         // insert old index into index adaptation function
-        IR_ReplaceVariableAccess.toReplace = "i"
-        IR_ReplaceVariableAccess.replacement = Duplicate(fieldAccess.index(dim))
+        IR_ReplaceVariableAccess.replace = Map("i" -> Duplicate(fieldAccess.index(dim)))
         val newIdx = Duplicate(idxAdaption)
         IR_ReplaceVariableAccess.applyStandalone(newIdx)
 

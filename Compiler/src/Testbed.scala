@@ -1,4 +1,5 @@
-import scala.collection.mutable._
+import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -29,8 +30,7 @@ case class IndexMapping(var from : IR_ExpressionIndex, var to : IR_ExpressionInd
     val newOffset = Duplicate(to)
 
     for (d <- 0 until from.length) {
-      IR_ReplaceVariableAccess.toReplace = from.indices(d).prettyprint()/*FIXME: use name of VA*/
-      IR_ReplaceVariableAccess.replacement = 0
+      IR_ReplaceVariableAccess.replace = Map(from.indices(d).prettyprint() -> 0) /*FIXME: use name of VA*/
       IR_ReplaceVariableAccess.applyStandalone(newOffset)
     }
 
@@ -121,8 +121,7 @@ case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var 
       // wrap in ExpressionStatement to allow for matching of top-level accesses, eg when newTo is a single VariableAccess
       val newTo = Duplicate(right.index.to)
       for (d <- 0 until numDims) {
-        IR_ReplaceVariableAccess.toReplace = right.index.from.indices(d).prettyprint()/*FIXME: use name of VA*/
-        IR_ReplaceVariableAccess.replacement = left.index.to.indices(d)
+        IR_ReplaceVariableAccess.replace = Map(right.index.from.indices(d).prettyprint() -> left.index.to.indices(d)) /*FIXME: use name of VA*/
         IR_ReplaceVariableAccess.applyStandalone(newTo)
       }
 
@@ -236,8 +235,7 @@ case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var 
       val indices = assembleCases().map(c => {
         val mapTo = Duplicate(entry.index.to)
         for (d <- 0 until numDims) {
-          IR_ReplaceVariableAccess.toReplace = entry.index.from.indices(d).prettyprint()/*FIXME: use name of VA*/
-          IR_ReplaceVariableAccess.replacement = c(d)
+          IR_ReplaceVariableAccess.replace = Map(entry.index.from.indices(d).prettyprint() -> c(d)) /*FIXME: use name of VA*/
           IR_ReplaceVariableAccess.applyStandalone(mapTo)
         }
         mapTo
@@ -256,8 +254,7 @@ case class MatFromStencil(var numDims : Int, var colStride : Array[Double], var 
     newStencil.entries = newStencil.entries.filter(entry => {
       // filter entries with invalid indices
       for (d <- 0 until numDims) {
-        IR_ReplaceVariableAccess.toReplace = entry.index.from.indices(d).prettyprint()/*FIXME: use name of VA*/
-        IR_ReplaceVariableAccess.replacement = c(d)
+        IR_ReplaceVariableAccess.replace = Map(entry.index.from.indices(d).prettyprint() -> c(d)) /*FIXME: use name of VA*/
         IR_ReplaceVariableAccess.applyStandalone(entry.index.to)
       }
 

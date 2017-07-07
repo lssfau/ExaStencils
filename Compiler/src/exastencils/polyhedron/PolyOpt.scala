@@ -16,6 +16,7 @@ import exastencils.logger._
 import exastencils.optimization.IR_IV_LoopCarriedCSBuffer
 import exastencils.polyhedron.exploration.Exploration
 import exastencils.polyhedron.Isl.TypeAliases._
+import exastencils.util.ir.IR_ReplaceVariableAccess
 import isl.Conversions._
 
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
@@ -168,7 +169,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
       var stmts : mutable.Buffer[(String, (ListBuffer[IR_Statement], ArrayBuffer[String]))] = scop.stmts.toBuffer.sortBy(_._1)
       var i : Int = 0
       Logger.pushLevel(Logger.WARNING)
-      for ((lab, (stmt, _)) <- stmts) {
+      for ((_, (stmt, _)) <- stmts) {
         found = false
         this.execute(search, Some(IR_Scope(stmt)))
         if (found) {
@@ -628,16 +629,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def recreateAndInsertAST() : Unit = {
-
-    val replaceCallback = { (repl : mutable.Map[String, IR_Expression], applyAt : Node) =>
-      Logger.pushLevel(Logger.WARNING)
-      this.execute(
-        new Transformation("update loop iterator", {
-          case IR_VariableAccess(str, _) if repl.isDefinedAt(str) => Duplicate(repl(str))
-          case IR_StringLiteral(str) if repl.isDefinedAt(str)     => Duplicate(repl(str))
-        }), Some(applyAt))
-      Logger.popLevel()
-    }
-    this.execute(new ASTBuilderTransformation(replaceCallback))
+    this.execute(new ASTBuilderTransformation())
   }
 }

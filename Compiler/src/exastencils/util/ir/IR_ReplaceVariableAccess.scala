@@ -7,12 +7,11 @@ import exastencils.datastructures._
 /// IR_ReplaceVariableAccess
 
 object IR_ReplaceVariableAccess extends QuietDefaultStrategy("Replace something with something else") {
-  var toReplace : String = ""
-  var replacement : Node = IR_VariableAccess("", IR_UnknownDatatype) // to be overwritten
+  var replace : Map[String, Node] = null // must be replaced
 
   this += new Transformation("Search and replace", {
 // TODO: rely only on IR_VariableAccess => eliminate IR_StringLiteral occurrences
-    case IR_StringLiteral(s) if s == toReplace                  => Duplicate(replacement)
-    case access : IR_VariableAccess if access.name == toReplace => Duplicate(replacement)
+    case IR_VariableAccess(str, _) if replace.isDefinedAt(str) => Duplicate(replace(str))
+    case IR_StringLiteral(str) if replace.isDefinedAt(str)     => Duplicate(replace(str))
   }, false)
 }

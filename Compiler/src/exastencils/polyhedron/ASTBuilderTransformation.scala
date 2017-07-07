@@ -1,6 +1,6 @@
 package exastencils.polyhedron
 
-import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Set }
+import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Set }
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_LoopOverDimensions
@@ -11,12 +11,13 @@ import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.logger._
 import exastencils.optimization._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.util.ir.IR_ReplaceVariableAccess
 import isl.Conversions._
 
-class ASTBuilderTransformation(replaceCallback : (Map[String, IR_Expression], Node) => Unit)
-  extends Transformation("insert optimized loop AST", new ASTBuilderFunction(replaceCallback))
+class ASTBuilderTransformation()
+  extends Transformation("insert optimized loop AST", new ASTBuilderFunction())
 
-private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Expression], Node) => Unit)
+private final class ASTBuilderFunction()
   extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val ZERO_VAL : isl.Val = isl.Val.zero(Isl.ctx)
@@ -230,15 +231,16 @@ private final class ASTBuilderFunction(replaceCallback : (Map[String, IR_Express
         val name : String = args(0).asInstanceOf[IR_StringLiteral].value
         val (oldStmt : ListBuffer[IR_Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
         val stmts : ListBuffer[IR_Statement] = Duplicate(oldStmt)
-        val repl = new HashMap[String, IR_Expression]()
+        var repl = Map[String, IR_Expression]()
         for (d <- 1 until args.length)
-          repl.put(loopVars(loopVars.size - d), args(d))
+          repl += loopVars(loopVars.size - d) -> args(d)
 
-        replaceCallback(repl, IR_Scope(stmts))
+        IR_ReplaceVariableAccess.replace = repl
+        IR_ReplaceVariableAccess.applyStandalone(IR_Scope(stmts))
         if (condition != null)
           for (stmt <- stmts) {
             val cond : IR_Expression = Duplicate(condition)
-            replaceCallback(repl, cond)
+            IR_ReplaceVariableAccess.applyStandalone(cond)
             stmt.annotate(PolyOpt.IMPL_CONDITION_ANNOT, cond)
           }
         stmts

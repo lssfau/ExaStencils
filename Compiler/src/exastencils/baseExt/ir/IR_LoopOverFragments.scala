@@ -48,8 +48,7 @@ object IR_ResolveLoopOverFragments extends DefaultStrategy("Resolve LoopOverFrag
         val scope = IR_Scope(loop.body)
 
         // replace references to old loop iterator
-        IR_ReplaceVariableAccess.toReplace = IR_LoopOverFragments.defIt.name
-        IR_ReplaceVariableAccess.replacement = IR_IntegerConstant(0)
+        IR_ReplaceVariableAccess.replace = Map(IR_LoopOverFragments.defIt.name -> IR_IntegerConstant(0))
         IR_ReplaceVariableAccess.applyStandalone(scope)
 
         // check if scoping is necessary
