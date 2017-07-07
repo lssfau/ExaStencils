@@ -49,10 +49,10 @@ object L4_Validation {
   s += Transformation("find Function calls", {
     case f : L4_FunctionCall =>
       f.function match {
-        case a : L4_PlainFunctionReference   => functionCalls += a.name
-        case a : L4_LeveledFunctionReference => functionCalls += (a.name + a.level)
-        case a : L4_UnresolvedAccess         => functionCalls += (a.name + a.level.getOrElse("-1"))
-        case _                               => println("something else: " + f.function)
+        case a : L4_PlainFunctionReference      => functionCalls += a.name
+        case a : L4_LeveledFunctionReference    => functionCalls += (a.name + a.level)
+        case a : L4_UnresolvedFunctionReference => functionCalls += (a.name + a.level.getOrElse("-1"))
+        case _                                  => println("something else: " + f.function)
       }
       f
   })
