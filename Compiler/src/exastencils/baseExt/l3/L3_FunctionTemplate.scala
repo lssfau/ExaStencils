@@ -16,7 +16,7 @@ object L3_FunctionTemplate {
 
 case class L3_FunctionTemplate(
     var name : String,
-    var returntype : L3_Datatype,
+    var returnType : L3_Datatype,
     var functionArgs : ListBuffer[L3_Function.Argument],
     var templateArgs : ListBuffer[String],
     var statements : ListBuffer[L3_Statement]) extends L3_Statement {

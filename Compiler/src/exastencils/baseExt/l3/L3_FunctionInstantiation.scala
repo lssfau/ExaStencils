@@ -36,7 +36,7 @@ object L3_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
       if (templateOpt.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
       val template = templateOpt.get
       val instantiated = Duplicate(L3_FunctionDecl(functionInst.targetFct, functionInst.targetFctLevel,
-        template.returntype, template.functionArgs, template.statements))
+        template.returnType, template.functionArgs, template.statements))
 
       L3_ReplaceUnresolvedAccess.replacements = Map() ++ (template.templateArgs zip functionInst.args).toMap[String, L3_Expression]
       L3_ReplaceUnresolvedAccess.applyStandalone(instantiated)
@@ -53,7 +53,6 @@ object L3_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
 
     this += new Transformation("Search and replace", {
       case origAccess : L3_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) =>
-        // includes accesses used as identifiers in function calls
         val newAccess = Duplicate(replacements(origAccess.name))
         newAccess match {
           case newAccess : L3_UnresolvedAccess =>
@@ -81,6 +80,18 @@ object L3_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
           case _ =>
         }
         newAccess
+
+      case origRef : L3_UnresolvedFunctionReference if replacements.exists(_._1 == origRef.name) =>
+        replacements(origRef.name) match {
+          case access : L3_UnresolvedAccess =>
+            if (access.slot.isDefined) Logger.warn("Ignoring slot on access in function instantiation")
+            if (access.offset.isDefined) Logger.warn("Ignoring offset on access in function instantiation")
+            if (access.arrayIndex.isDefined) Logger.warn("Ignoring array index on access in function instantiation")
+            if (access.dirAccess.isDefined) Logger.warn("Ignoring direction access on access in function instantiation")
+            L3_UnresolvedFunctionReference(access.name, access.level)
+
+          case _ => ???
+        }
     })
   }
 

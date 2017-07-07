@@ -16,12 +16,12 @@ case class L4_FunctionTemplate(
     var name : String,
     var templateArgs : ListBuffer[String],
     var functionArgs : ListBuffer[L4_Function.Argument],
-    var returntype : L4_Datatype,
+    var returnType : L4_Datatype,
     var statements : ListBuffer[L4_Statement]) extends L4_Node with PrettyPrintable {
 
   override def prettyprint(out : PpStream) = {
     out << "FunctionTemplate " << name << " < " << templateArgs.mkString(", ") << " > ( "
-    out <<< (functionArgs, ", ") << " )" << " : " << returntype << " {\n"
+    out <<< (functionArgs, ", ") << " )" << " : " << returnType << " {\n"
     out <<< (statements, "\n")
     out << "\n}"
   }
