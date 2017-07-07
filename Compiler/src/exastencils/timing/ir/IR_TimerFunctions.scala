@@ -6,15 +6,15 @@ import exastencils.base.ir._
 import exastencils.datastructures._
 import exastencils.logger.Logger
 
-/// IR_TimerFunctionAccess
+/// IR_TimerFunctionReference
 
-case class IR_TimerFunctionAccess(var name : String, var datatype : IR_Datatype) extends IR_FunctionAccess
+case class IR_TimerFunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference
 
 /// IR_ResolveTimerFunctions
 
 object IR_AdaptTimerFunctions extends DefaultStrategy("Adapt function calls to timer functions") {
-  this += new Transformation("Handle function accesses", {
-    case fctCall @ IR_FunctionCall(function : IR_TimerFunctionAccess, args) =>
+  this += new Transformation("Handle function references", {
+    case fctCall @ IR_FunctionCall(function : IR_TimerFunctionReference, args) =>
       // map aliases
       fctCall.function.name = function.name match {
         case "getMeanFromTimer"  => "getMeanTime"

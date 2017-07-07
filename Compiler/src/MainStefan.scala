@@ -208,7 +208,7 @@ object MainStefan {
     }
     L4_ResolveVirtualFieldAccesses.apply()
     L4_ResolveVariableAccesses.apply()
-    L4_ResolveDslFunctionAccesses.apply()
+    L4_ResolveDslFunctionReferences.apply()
     L4_ResolveMathFunctions.apply()
     L4_ResolveTimerFunctions.apply()
     L4_ResolveEvaluateFunctions.apply()

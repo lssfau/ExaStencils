@@ -57,7 +57,7 @@ object MainChristian {
     val root = MyRoot(ListBuffer(ast))
     StateManager.setRoot(root)
     L4_ResolveVariableAccesses.apply()
-    L4_ResolveDslFunctionAccesses.apply()
+    L4_ResolveDslFunctionReferences.apply()
     root.progress
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].baseName = ""
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].externalDependencies.clear()

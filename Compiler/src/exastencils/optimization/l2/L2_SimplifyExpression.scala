@@ -197,14 +197,14 @@ object L2_SimplifyExpression {
         (simplifyIntegralExpr(L2_Division(x + L2_IntegerConstant(const * divs2), L2_IntegerConstant(divs * divs2))), 1L)
 
       case L2_FunctionCall(function, ListBuffer(x, L2_IntegerConstant(divs2))) if floor && "floord" == function.name                                                     =>
-        (L2_FunctionCall(L2_UnresolvedAccess("floord"), ListBuffer(x, L2_IntegerConstant(divs * divs2))), 1L)
+        (L2_FunctionCall(L2_InternalFunctionReference.floord, ListBuffer(x, L2_IntegerConstant(divs * divs2))), 1L)
       case L2_Addition(ListBuffer(L2_FunctionCall(function, ListBuffer(x, L2_IntegerConstant(divs2))), L2_IntegerConstant(const))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(L2_FunctionCall(L2_UnresolvedAccess("floord"), x + L2_IntegerConstant(const * divs2), L2_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(L2_FunctionCall(L2_InternalFunctionReference.floord, x + L2_IntegerConstant(const * divs2), L2_IntegerConstant(divs * divs2))), 1L)
       case L2_Addition(ListBuffer(L2_IntegerConstant(const), L2_FunctionCall(function, ListBuffer(x, L2_IntegerConstant(divs2))))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(L2_FunctionCall(L2_UnresolvedAccess("floord"), x + L2_IntegerConstant(const * divs2), L2_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(L2_FunctionCall(L2_InternalFunctionReference.floord, x + L2_IntegerConstant(const * divs2), L2_IntegerConstant(divs * divs2))), 1L)
       case divd                                                                                                                                                          =>
         if (floor)
-          (L2_FunctionCall(L2_UnresolvedAccess("floord"), divd, L2_IntegerConstant(divs)), 1L)
+          (L2_FunctionCall(L2_InternalFunctionReference.floord, divd, L2_IntegerConstant(divs)), 1L)
         else
           (L2_Division(divd, L2_IntegerConstant(divs)), 1L)
     }

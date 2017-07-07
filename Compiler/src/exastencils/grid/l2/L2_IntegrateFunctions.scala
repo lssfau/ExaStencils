@@ -3,7 +3,6 @@ package exastencils.grid.l2
 import scala.collection.mutable._
 
 import exastencils.base.l2._
-import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
 
@@ -29,18 +28,18 @@ object L2_IntegrateFunctions {
 
 /// L2_ResolveIntegrateFunctions
 
-object L2_ResolveIntegrateFunctions extends DefaultStrategy("Resolve grid function accesses (integrate)") {
+object L2_ResolveIntegrateFunctions extends DefaultStrategy("Resolve grid function references (integrate)") {
   val collector = new L2_LevelCollector
   this.register(collector)
 
-  this += new Transformation("Resolve function accesses", {
-    case L2_FunctionCall(access : L2_UnresolvedAccess, args) if L2_IntegrateFunctions.exists(access.name) =>
+  this += new Transformation("Resolve", {
+    case L2_FunctionCall(ref : L2_UnresolvedFunctionReference, args) if L2_IntegrateFunctions.exists(ref.name) =>
       val level = {
-        if (access.level.isDefined) access.level.get.resolveLevel
+        if (ref.level.isDefined) ref.level.get.resolveLevel
         else if (collector.inLevelScope) collector.getCurrentLevel
-        else Logger.error(s"Missing level for access to field ${ access.name }")
+        else Logger.error(s"Missing level for reference to ${ ref.name }")
       }
 
-      L2_IntegrateOnGrid(access.name, level, args)
+      L2_IntegrateOnGrid(ref.name, level, args)
   })
 }

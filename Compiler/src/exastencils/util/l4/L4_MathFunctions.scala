@@ -1,10 +1,9 @@
 package exastencils.util.l4
 
 import exastencils.base.l4._
-import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
-import exastencils.util.ir.IR_MathFunctionAccess
+import exastencils.util.ir.IR_MathFunctionReference
 
 /// L4_MathFunctions
 
@@ -37,26 +36,26 @@ object L4_MathFunctions {
   def exists(fctName : String) = signatures.contains(fctName)
 }
 
-/// L4_MathFunctionAccess
+/// L4_MathFunctionReference
 
-case class L4_MathFunctionAccess(var name : String, var datatype : L4_Datatype) extends L4_PlainFunctionAccess {
-  override def progress = IR_MathFunctionAccess(name, datatype.progress)
+case class L4_MathFunctionReference(var name : String, var returnType : L4_Datatype) extends L4_PlainFunctionReference {
+  override def progress = IR_MathFunctionReference(name, returnType.progress)
 }
 
 /// L4_ResolveMathFunctions
 
-object L4_ResolveMathFunctions extends DefaultStrategy("Resolve math function accesses") {
-  this += new Transformation("Resolve function accesses", {
-    case L4_FunctionCall(L4_UnresolvedAccess("min", _, level, _, _, _), args) =>
+object L4_ResolveMathFunctions extends DefaultStrategy("Resolve math function references") {
+  this += new Transformation("Resolve", {
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("min", level), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
       L4_Minimum(args)
 
-    case L4_FunctionCall(L4_UnresolvedAccess("max", level, _, _, _, _), args) =>
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("max", level), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
       L4_Maximum(args)
 
-    case access @ L4_UnresolvedAccess(accessName, _, level, _, _, _) if L4_MathFunctions.exists(accessName) =>
-      if (level.isDefined) Logger.warn(s"Found leveled math function $accessName with level ${ level.get }; level is ignored")
-      L4_MathFunctionAccess(accessName, L4_MathFunctions.getValue(accessName).get._2)
+    case L4_UnresolvedFunctionReference(fctName, level) if L4_MathFunctions.exists(fctName) =>
+      if (level.isDefined) Logger.warn(s"Found leveled math function $fctName with level ${ level.get }; level is ignored")
+      L4_MathFunctionReference(fctName, L4_MathFunctions.getValue(fctName).get._2)
   })
 }

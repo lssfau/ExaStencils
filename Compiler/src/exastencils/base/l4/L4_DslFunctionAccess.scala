@@ -1,25 +1,24 @@
 package exastencils.base.l4
 
 import exastencils.base.ir._
-import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
 
-/// L4_PlainDslFunctionAccess
+/// L4_PlainDslFunctionReference
 
-case class L4_PlainDslFunctionAccess(var name : String, var datatype : L4_Datatype) extends L4_PlainFunctionAccess {
-  override def progress = IR_PlainDslFunctionAccess(name, datatype.progress)
+case class L4_PlainDslFunctionReference(var name : String, var returnType : L4_Datatype) extends L4_PlainFunctionReference {
+  override def progress = IR_PlainDslFunctionReference(name, returnType.progress)
 }
 
-/// L4_LeveledDslFunctionAccess
+/// L4_LeveledDslFunctionReference
 
-case class L4_LeveledDslFunctionAccess(var name : String, var level : Int, var datatype : L4_Datatype) extends L4_LeveledFunctionAccess {
-  override def progress = IR_PlainDslFunctionAccess(name + "_" + level, datatype.progress) // FIXME: IR_LeveledDslFunctionAccess(name, level, datatype.progress)
+case class L4_LeveledDslFunctionReference(var name : String, var level : Int, var returnType : L4_Datatype) extends L4_LeveledFunctionReference {
+  override def progress = IR_LeveledDslFunctionReference(name, level, returnType.progress)
 }
 
-/// L4_ResolveDslFunctionAccesses
+/// L4_ResolveDslFunctionReferences
 
-object L4_ResolveDslFunctionAccesses extends DefaultStrategy("Resolve function accesses") {
+object L4_ResolveDslFunctionReferences extends DefaultStrategy("Resolve function references") {
   val declCollector = L4_FunctionCollector
   this.register(declCollector)
 
@@ -28,22 +27,22 @@ object L4_ResolveDslFunctionAccesses extends DefaultStrategy("Resolve function a
 
   this += new Transformation("Collecting function declarations", PartialFunction.empty)
 
-  this += new Transformation("Resolve function accesses", {
-    case access : L4_UnresolvedAccess if declCollector.exists(access.name) =>
-      // check for levels in access and decl
-      if (declCollector.existsPlain(access.name)) {
+  this += new Transformation("Resolve", {
+    case ref : L4_UnresolvedFunctionReference if declCollector.exists(ref.name) =>
+      // check for levels in ref and decl
+      if (declCollector.existsPlain(ref.name)) {
         // access to plain function
-        if (access.level.nonEmpty) Logger.warn(s"Level access in function call to un-leveled function ${ access.name } will be ignored")
-        L4_PlainDslFunctionAccess(access.name, declCollector.getDatatype(access.name))
+        if (ref.level.nonEmpty) Logger.warn(s"Level access in function call to un-leveled function ${ ref.name } will be ignored")
+        L4_PlainDslFunctionReference(ref.name, declCollector.getDatatype(ref.name))
       } else {
         // access to leveled function
         val lvl = {
-          if (access.level.isDefined) access.level.get.resolveLevel
+          if (ref.level.isDefined) ref.level.get.resolveLevel
           else if (levelCollector.inLevelScope) levelCollector.getCurrentLevel
-          else Logger.error(s"Missing level for calling of ${ access.name }")
+          else Logger.error(s"Missing level for calling of ${ ref.name }")
         }
 
-        L4_LeveledDslFunctionAccess(access.name, lvl, declCollector.getDatatype(access.name, lvl))
+        L4_LeveledDslFunctionReference(ref.name, lvl, declCollector.getDatatype(ref.name, lvl))
       }
   })
 }

@@ -268,7 +268,7 @@ object Main {
 
       L3_ResolveLevelScopes.apply()
 
-      L3_ResolveDslFunctionAccesses.apply()
+      L3_ResolveDslFunctionReferences.apply()
       L3_ResolveMathFunctions.apply()
       L3_ResolveEvaluateFunctions.apply()
       L3_ResolveIntegrateFunctions.apply()
@@ -397,7 +397,7 @@ object Main {
     }
 
     L4_ResolveSpecialConstants.apply()
-    L4_ResolveDslFunctionAccesses.apply()
+    L4_ResolveDslFunctionReferences.apply()
     L4_ResolveEvaluateFunctions.apply()
     L4_ResolveIntegrateFunctions.apply()
     L4_ResolveMathFunctions.apply()

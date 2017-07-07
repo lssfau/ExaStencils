@@ -11,9 +11,9 @@ import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.operator.ir._
 
-/// IR_StencilFunctionAccess
+/// IR_StencilFunctionReference
 
-case class IR_StencilFunctionAccess(var name : String, var datatype : IR_Datatype) extends IR_FunctionAccess {}
+case class IR_StencilFunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference {}
 
 /// IR_ResolveStencilFunction
 
@@ -22,7 +22,7 @@ object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functi
   this.register(collector)
 
   this += new Transformation("Resolve", {
-    case fctCall @ IR_FunctionCall(IR_StencilFunctionAccess(fctName, _), args) =>
+    case fctCall @ IR_FunctionCall(IR_StencilFunctionReference(fctName, _), args) =>
       fctName match {
         // diag function
         case "diag" =>

@@ -14,11 +14,11 @@ object L4_ResolveSpecialConstants extends DefaultStrategy("Resolve special const
       L4_RealConstant(math.Pi)
 
     // access to level information
-    case L4_FunctionCall(L4_UnresolvedAccess("levels", Some(L4_SingleLevel(level)), _, _, _, _), ListBuffer())      =>
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("levels", Some(L4_SingleLevel(level))), ListBuffer())      =>
       L4_IntegerConstant(level)
-    case L4_FunctionCall(L4_UnresolvedAccess("levelIndex", Some(L4_SingleLevel(level)), _, _, _, _), ListBuffer())  =>
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("levelIndex", Some(L4_SingleLevel(level))), ListBuffer())  =>
       L4_IntegerConstant(level - Knowledge.minLevel)
-    case L4_FunctionCall(L4_UnresolvedAccess("levelString", Some(L4_SingleLevel(level)), _, _, _, _), ListBuffer()) =>
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("levelString", Some(L4_SingleLevel(level))), ListBuffer()) =>
       L4_StringConstant(level.toString)
   })
 }

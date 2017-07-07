@@ -21,11 +21,11 @@ object L4_ResolveKnowledgeParameterAccess extends DefaultStrategy("Resolve acces
 
   this += new Transformation("special functions and constants", {
     // get knowledge/settings/platform
-    case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getKnowledge" == access.name =>
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("getKnowledge",None), ListBuffer(L4_StringConstant(ident))) =>
       resolveParameterToConstant(Knowledge, ident)
-    case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getSetting" == access.name   =>
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("getSetting",None), ListBuffer(L4_StringConstant(ident))) =>
       resolveParameterToConstant(Settings, ident)
-    case L4_FunctionCall(access : L4_UnresolvedAccess, ListBuffer(L4_StringConstant(ident))) if "getPlatform" == access.name  =>
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("getPlatform",None), ListBuffer(L4_StringConstant(ident))) =>
       resolveParameterToConstant(Platform, ident)
   })
 }

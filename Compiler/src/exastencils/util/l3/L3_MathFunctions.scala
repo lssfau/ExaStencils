@@ -1,10 +1,9 @@
 package exastencils.util.l3
 
 import exastencils.base.l3._
-import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
-import exastencils.util.l4.L4_MathFunctionAccess
+import exastencils.util.l4.L4_MathFunctionReference
 
 /// L3_MathFunctions
 
@@ -37,26 +36,26 @@ object L3_MathFunctions {
   def exists(fctName : String) = signatures.contains(fctName)
 }
 
-/// L3_MathFunctionAccess
+/// L3_MathFunctionReference
 
-case class L3_MathFunctionAccess(var name : String, var datatype : L3_Datatype) extends L3_PlainFunctionAccess {
-  override def progress = L4_MathFunctionAccess(name, datatype.progress)
+case class L3_MathFunctionReference(var name : String, var returnType : L3_Datatype) extends L3_PlainFunctionReference {
+  override def progress = L4_MathFunctionReference(name, returnType.progress)
 }
 
 /// L3_ResolveMathFunctions
 
-object L3_ResolveMathFunctions extends DefaultStrategy("Resolve math function accesses") {
-  this += new Transformation("Resolve function accesses", {
-    case L3_FunctionCall(L3_UnresolvedAccess("min", level, _, _, _, _), args) =>
+object L3_ResolveMathFunctions extends DefaultStrategy("Resolve math function references") {
+  this += new Transformation("Resolve", {
+    case L3_FunctionCall(L3_UnresolvedFunctionReference("min", level), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
       L3_Minimum(args)
 
-    case L3_FunctionCall(L3_UnresolvedAccess("max", level, _, _, _, _), args) =>
+    case L3_FunctionCall(L3_UnresolvedFunctionReference("max", level), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
       L3_Maximum(args)
 
-    case access @ L3_UnresolvedAccess(accessName, level, _, _, _, _) if L3_MathFunctions.exists(accessName) =>
-      if (level.isDefined) Logger.warn(s"Found leveled math function $accessName with level ${ level.get }; level is ignored")
-      L3_MathFunctionAccess(accessName, L3_MathFunctions.getValue(accessName).get._2)
+    case L3_UnresolvedFunctionReference(fctName, level) if L3_MathFunctions.exists(fctName) =>
+      if (level.isDefined) Logger.warn(s"Found leveled math function $fctName with level ${ level.get }; level is ignored")
+      L3_MathFunctionReference(fctName, L3_MathFunctions.getValue(fctName).get._2)
   })
 }

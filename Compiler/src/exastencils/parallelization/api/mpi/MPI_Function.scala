@@ -2,6 +2,6 @@ package exastencils.parallelization.api.mpi
 
 import exastencils.base.ir._
 
-/// MPI_FunctionAccess
+/// MPI_FunctionReference
 
-case class MPI_FunctionAccess(var name : String, var datatype : IR_Datatype) extends IR_FunctionAccess
+case class MPI_FunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference

@@ -16,7 +16,7 @@ import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.field.l4._
-import exastencils.util.ir.IR_MathFunctionAccess
+import exastencils.util.ir.IR_MathFunctionReference
 
 /// GridGeometry_nonUniform_staggered_AA
 
@@ -106,7 +106,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
           IR_Assignment(Duplicate(baseAccess), 0.0),
           IR_IfCondition(IR_LowerEqual(innerIt, 1 * zoneSize),
             IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 0 * zoneSize, dim)
-              + zoneLength * IR_FunctionCall(IR_MathFunctionAccess.pow, ListBuffer[IR_Expression](step * (IR_LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
+              + zoneLength * IR_FunctionCall(IR_MathFunctionReference.pow, ListBuffer[IR_Expression](step * (IR_LoopOverDimensions.defItForDim(dim) - 0.0 * zoneSize), expo))),
             IR_IfCondition(IR_LowerEqual(innerIt, 2 * zoneSize),
               IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 1 * zoneSize, dim)
                 + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 1.0 * zoneSize)),
@@ -115,7 +115,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
                   + zoneLength * step * (IR_LoopOverDimensions.defItForDim(dim) - 2.0 * zoneSize)),
                 IR_IfCondition(IR_LowerEqual(innerIt, 4 * zoneSize),
                   IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + 3 * zoneSize, dim)
-                    + zoneLength * (1.0 - IR_FunctionCall(IR_MathFunctionAccess.pow, ListBuffer[IR_Expression](1.0 - step * (IR_LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
+                    + zoneLength * (1.0 - IR_FunctionCall(IR_MathFunctionReference.pow, ListBuffer[IR_Expression](1.0 - step * (IR_LoopOverDimensions.defItForDim(dim) - 3.0 * zoneSize), expo)))),
                   IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1, dim)))))))))
     innerLoop.parallelization.potentiallyParallel = false
 
@@ -166,7 +166,7 @@ object GridGeometry_nonUniform_staggered_AA extends GridGeometry_nonUniform with
           IR_Assignment(Duplicate(baseAccess), 0.0),
           IR_IfCondition(IR_LowerEqual(innerIt, zoneSize_1),
             IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt, dim)
-              + zoneLength_1 * IR_FunctionCall(IR_MathFunctionAccess.pow, ListBuffer[IR_Expression](step_1 * IR_LoopOverDimensions.defItForDim(dim), expo))),
+              + zoneLength_1 * IR_FunctionCall(IR_MathFunctionReference.pow, ListBuffer[IR_Expression](step_1 * IR_LoopOverDimensions.defItForDim(dim), expo))),
             IR_IfCondition(IR_LowerEqual(innerIt, zoneSize_1 + zoneSize_2),
               IR_Assignment(Duplicate(baseAccess), GridUtil.offsetAccess(baseAccess, -1 * innerIt + zoneSize_1, dim)
                 + zoneLength_2 * step_2 * (IR_LoopOverDimensions.defItForDim(dim) - zoneSize_1)),

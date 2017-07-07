@@ -18,7 +18,7 @@ object L4_ResolveBoundaryHandlingFunctions {
     for (field <- L4_FieldCollection.objects) {
       field.boundary match {
         case L4_DirichletBC(fctCall : L4_FunctionCall, _) =>
-          if (fctCall.function.asInstanceOf[L4_FunctionAccess].datatype == L4_UnitDatatype)
+          if (fctCall.function.asInstanceOf[L4_FunctionReference].returnType == L4_UnitDatatype)
             field.boundary = L4_FunctionBC(fctCall)
         case _                                            =>
       }

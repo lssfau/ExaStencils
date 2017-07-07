@@ -21,5 +21,5 @@ case object OMP_WaitForFlag extends IR_FuturePlainFunction {
         IR_Assignment(IR_DerefAccess(flag), IR_BooleanConstant(false))))
   }
 
-  def generateFctAccess() = IR_PlainInternalFunctionAccess(name, IR_UnitDatatype)
+  def generateFctAccess() = IR_PlainInternalFunctionReference(name, IR_UnitDatatype)
 }

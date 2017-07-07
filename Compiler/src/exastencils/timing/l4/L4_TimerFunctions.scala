@@ -3,10 +3,9 @@ package exastencils.timing.l4
 import scala.collection.immutable.HashMap
 
 import exastencils.base.l4._
-import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
-import exastencils.timing.ir.IR_TimerFunctionAccess
+import exastencils.timing.ir.IR_TimerFunctionReference
 
 // L4_TimerFunctions
 
@@ -29,23 +28,23 @@ object L4_TimerFunctions {
   def exists(fctName : String) = functions.contains(fctName)
 }
 
-/// L4_TimerFunctionAccess
+/// L4_TimerFunctionReference
 
-case class L4_TimerFunctionAccess(var name : String, var datatype : L4_Datatype) extends L4_PlainFunctionAccess {
-  override def progress = IR_TimerFunctionAccess(name, datatype.progress)
+case class L4_TimerFunctionReference(var name : String, var returnType : L4_Datatype) extends L4_PlainFunctionReference {
+  override def progress = IR_TimerFunctionReference(name, returnType.progress)
 }
 
 /// L4_ResolveTimerFunctions
 
-object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function accesses") {
-  this += new Transformation("Resolve function accesses", {
-    case access : L4_UnresolvedAccess if L4_TimerFunctions.exists(access.name) =>
-      if (access.level.isDefined) Logger.warn(s"Found leveled timing function ${ access.name } with level ${ access.level.get }; level is ignored")
-      L4_TimerFunctionAccess(access.name, L4_TimerFunctions.getDatatype(access.name))
+object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function references") {
+  this += new Transformation("Resolve", {
+    case L4_UnresolvedFunctionReference(fctName, level) if L4_TimerFunctions.exists(fctName) =>
+      if (level.isDefined) Logger.warn(s"Found leveled timing function ${ fctName } with level ${ level.get }; level is ignored")
+      L4_TimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName))
   })
 
   this += new Transformation("Convert string constants in function call arguments", {
-    case fctCall @ L4_FunctionCall(_ : L4_TimerFunctionAccess, args) =>
+    case fctCall @ L4_FunctionCall(_ : L4_TimerFunctionReference, args) =>
       L4_ConvertStringConstantsToLiterals.applyStandalone(args)
       fctCall
   })

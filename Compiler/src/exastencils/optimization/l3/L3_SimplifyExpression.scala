@@ -197,14 +197,14 @@ object L3_SimplifyExpression {
         (simplifyIntegralExpr(L3_Division(x + L3_IntegerConstant(const * divs2), L3_IntegerConstant(divs * divs2))), 1L)
 
       case L3_FunctionCall(function, ListBuffer(x, L3_IntegerConstant(divs2))) if floor && "floord" == function.name                                                     =>
-        (L3_FunctionCall(L3_UnresolvedAccess("floord"), ListBuffer(x, L3_IntegerConstant(divs * divs2))), 1L)
+        (L3_FunctionCall(L3_InternalFunctionReference.floord, ListBuffer(x, L3_IntegerConstant(divs * divs2))), 1L)
       case L3_Addition(ListBuffer(L3_FunctionCall(function, ListBuffer(x, L3_IntegerConstant(divs2))), L3_IntegerConstant(const))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(L3_FunctionCall(L3_UnresolvedAccess("floord"), x + L3_IntegerConstant(const * divs2), L3_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(L3_FunctionCall(L3_InternalFunctionReference.floord, x + L3_IntegerConstant(const * divs2), L3_IntegerConstant(divs * divs2))), 1L)
       case L3_Addition(ListBuffer(L3_IntegerConstant(const), L3_FunctionCall(function, ListBuffer(x, L3_IntegerConstant(divs2))))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(L3_FunctionCall(L3_UnresolvedAccess("floord"), x + L3_IntegerConstant(const * divs2), L3_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(L3_FunctionCall(L3_InternalFunctionReference.floord, x + L3_IntegerConstant(const * divs2), L3_IntegerConstant(divs * divs2))), 1L)
       case divd                                                                                                                                                          =>
         if (floor)
-          (L3_FunctionCall(L3_UnresolvedAccess("floord"), divd, L3_IntegerConstant(divs)), 1L)
+          (L3_FunctionCall(L3_InternalFunctionReference.floord, divd, L3_IntegerConstant(divs)), 1L)
         else
           (L3_Division(divd, L3_IntegerConstant(divs)), 1L)
     }

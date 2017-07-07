@@ -3,7 +3,6 @@ package exastencils.grid.l3
 import scala.collection.mutable._
 
 import exastencils.base.l3._
-import exastencils.baseExt.l3.L3_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
 
@@ -29,18 +28,18 @@ object L3_EvaluateFunctions {
 
 /// L3_ResolveEvaluateFunctions
 
-object L3_ResolveEvaluateFunctions extends DefaultStrategy("Resolve grid function accesses (evaluate)") {
+object L3_ResolveEvaluateFunctions extends DefaultStrategy("Resolve grid function references (evaluate)") {
   val collector = new L3_LevelCollector
   this.register(collector)
 
-  this += new Transformation("Resolve function accesses", {
-    case L3_FunctionCall(access : L3_UnresolvedAccess, args) if L3_EvaluateFunctions.exists(access.name) =>
+  this += new Transformation("Resolve", {
+    case L3_FunctionCall(ref : L3_UnresolvedFunctionReference, args) if L3_EvaluateFunctions.exists(ref.name) =>
       val level = {
-        if (access.level.isDefined) access.level.get.resolveLevel
+        if (ref.level.isDefined) ref.level.get.resolveLevel
         else if (collector.inLevelScope) collector.getCurrentLevel
-        else Logger.error(s"Missing level for access to field ${ access.name }")
+        else Logger.error(s"Missing level for reference to ${ ref.name }")
       }
 
-      L3_EvaluateOnGrid(access.name, level, args)
+      L3_EvaluateOnGrid(ref.name, level, args)
   })
 }

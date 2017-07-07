@@ -31,7 +31,7 @@ case object MPI_WaitForRequest extends IR_FuturePlainFunction {
     IR_IfCondition("MPI_ERR_IN_STATUS" EqEq result, ListBuffer[IR_Statement](
       IR_VariableDeclaration(msg),
       IR_VariableDeclaration(len),
-      IR_FunctionCall(MPI_FunctionAccess("MPI_Error_string", IR_IntegerDatatype),
+      IR_FunctionCall(MPI_FunctionReference("MPI_Error_string", IR_IntegerDatatype),
         IR_MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressOf(len)),
       IR_RawPrint("\"MPI Error encountered (\"", msg, "\")\"")))
   }
@@ -59,5 +59,5 @@ case object MPI_WaitForRequest extends IR_FuturePlainFunction {
     fct
   }
 
-  def generateFctAccess() = IR_PlainInternalFunctionAccess(name, IR_UnitDatatype)
+  def generateFctAccess() = IR_PlainInternalFunctionReference(name, IR_UnitDatatype)
 }

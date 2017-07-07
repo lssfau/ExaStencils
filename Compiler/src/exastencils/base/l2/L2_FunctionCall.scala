@@ -8,14 +8,14 @@ import exastencils.prettyprinting._
 /// L2_FunctionCall
 
 object L2_FunctionCall {
-  def apply(function : L2_Access, arguments : Option[List[L2_Expression]]) =
+  def apply(function : L2_FunctionReference, arguments : Option[List[L2_Expression]]) =
     new L2_FunctionCall(function, arguments.getOrElse(List()).to[ListBuffer])
 
-  def apply(function : L2_Access, args : L2_Expression*) =
+  def apply(function : L2_FunctionReference, args : L2_Expression*) =
     new L2_FunctionCall(function, args.to[ListBuffer])
 }
 
-case class L2_FunctionCall(var function : L2_Access, var arguments : ListBuffer[L2_Expression]) extends L2_Expression {
+case class L2_FunctionCall(var function : L2_FunctionReference, var arguments : ListBuffer[L2_Expression]) extends L2_Expression {
   def prettyprint(out : PpStream) = { out << function << " ( " <<< (arguments, ", ") << " )" }
   def progress = L3_FunctionCall(function.progress, arguments.map(_.progress))
   def name = function.name

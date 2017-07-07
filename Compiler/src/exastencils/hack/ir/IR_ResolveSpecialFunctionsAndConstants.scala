@@ -95,7 +95,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     // functions
     // FIXME: datatypes for function accesses
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("concat", _), args) => Logger.error("Concat expression is deprecated => will be deleted soon")
 
     // Vector functions
     case f : IR_FunctionCall if !Knowledge.experimental_internalHighDimTypes && (f.name == "cross" || f.name == "crossproduct") =>
@@ -215,33 +215,33 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       func.body.append(IR_Return(0))
       func
 
-    // FIXME: IR_UserFunctionAccess's
+    // FIXME: IR_UserFunctionReference's
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnBoundary(fieldAccess.fieldSelection, getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnEastBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnEastBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(1, 0, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnWestBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnWestBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(-1, 0, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnNorthBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnNorthBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 1, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnSouthBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnSouthBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, -1, 0)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnTopBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnTopBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, 1)), getIndex(fieldAccess))
 
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("isOnBottomBoundaryOf", _), args) =>
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("isOnBottomBoundaryOf", _), args) =>
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)), getIndex(fieldAccess))
 
@@ -250,10 +250,10 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case IR_ElementwiseMultiplication(left, right) => IR_FunctionCall("elementwiseMul", ListBuffer(left, right))
     case IR_ElementwiseDivision(left, right)       => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
     case IR_ElementwiseModulo(left, right)         => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
-    // FIXME: IR_UserFunctionAccess
-    case IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("dot", _), args) => IR_FunctionCall("dotProduct", args)
+    // FIXME: IR_UserFunctionReference
+    case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("dot", _), args) => IR_FunctionCall("dotProduct", args)
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("readImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("readImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to readImage; usage: readImage ( field, \"filename\" )")
         IR_NullStatement
@@ -263,7 +263,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
         val stmts = ListBuffer[IR_Statement]()
 
-        //stmts += IR_FunctionCall(IR_UserFunctionAccess("cimg_library::CImg< double > imageIn")
+        //stmts += IR_FunctionCall(IR_UserFunctionReference("cimg_library::CImg< double > imageIn")
         stmts += HACK_IR_Native("cimg_library::CImg< double > imageIn ( \"" + filename + "\" )")
         stmts += IR_LoopOverPoints(field.fieldSelection.field,
           IR_Assignment(field, HACK_IR_Native("*imageIn.data(i0,i1)")))
@@ -271,7 +271,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("writeImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("writeImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to writeImage; usage: writeImage ( field, \"filename\" )")
         IR_NullStatement
@@ -296,7 +296,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("writeMappedImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("writeMappedImage", _), args)) =>
       if (args.size != 2 || !args(0).isInstanceOf[IR_FieldAccess]) {
         Logger.warn("Malformed call to writeMappedImage; usage: writeMappedImage ( field, \"filename\" )")
         IR_NullStatement
@@ -327,7 +327,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("showImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("showImage", _), args)) =>
       if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
         Logger.warn("Malformed call to showImage; usage: showImage ( field.* )")
         IR_NullStatement
@@ -346,6 +346,10 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
           stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + " )")
           stmts += IR_LoopOverPoints(fields(i).fieldSelection.field,
             IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1)"), fields(i)))
+
+          // hack: flip image for correct representation
+          stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
+
           val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
           stmts += HACK_IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
         }
@@ -355,7 +359,7 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
         IR_Scope(stmts)
       }
 
-    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionAccess("showMappedImage", _), args)) =>
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("showMappedImage", _), args)) =>
       if (0 == args.size || !args.map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
         Logger.warn("Malformed call to showImage; usage: showMappedImage ( field.* )")
         IR_NullStatement
@@ -380,6 +384,8 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
             IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
 
           stmts += IR_MemberFunctionCall(tmpImgs(i), "HSVtoRGB")
+          // hack: flip image for correct representation
+          stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
 
           val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
           stmts += HACK_IR_Native("cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
