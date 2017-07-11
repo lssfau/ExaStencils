@@ -9,14 +9,12 @@ import java.text.DecimalFormat
 
 import exastencils.base.ir._
 import exastencils.config._
-import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.optimization.IR_IV_LoopCarriedCSBuffer
 import exastencils.polyhedron.exploration.Exploration
 import exastencils.polyhedron.Isl.TypeAliases._
-import exastencils.util.ir.IR_ReplaceVariableAccess
 import isl.Conversions._
 
 object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
