@@ -84,11 +84,19 @@ object L3_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
       case origRef : L3_UnresolvedFunctionReference if replacements.exists(_._1 == origRef.name) =>
         replacements(origRef.name) match {
           case access : L3_UnresolvedAccess =>
+            val newRef = L3_UnresolvedFunctionReference(access.name, Duplicate(access.level))
+
+            if (origRef.level.isDefined) {
+              if (newRef.level.isDefined) Logger.warn("Overriding level on reference in function instantiation")
+              newRef.level = origRef.level
+            }
+
             if (access.slot.isDefined) Logger.warn("Ignoring slot on access in function instantiation")
             if (access.offset.isDefined) Logger.warn("Ignoring offset on access in function instantiation")
             if (access.arrayIndex.isDefined) Logger.warn("Ignoring array index on access in function instantiation")
             if (access.dirAccess.isDefined) Logger.warn("Ignoring direction access on access in function instantiation")
-            L3_UnresolvedFunctionReference(access.name, access.level)
+
+            newRef
 
           case _ => ???
         }
