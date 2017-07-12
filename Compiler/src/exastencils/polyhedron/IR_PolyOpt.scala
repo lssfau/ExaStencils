@@ -17,7 +17,7 @@ import exastencils.polyhedron.exploration.Exploration
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._
 
-object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
+object IR_PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   final val SCOP_ANNOT : String = "PolyScop"
   final val IMPL_CONDITION_ANNOT : String = "ImplCondition"
@@ -30,12 +30,12 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
 
   /** Register the name of a side-effect free function, that is safe to be used inside a scop. */
   def registerSideeffectFree(functionName : String) : Unit = {
-    Extractor.registerSideeffectFree(functionName)
+    IR_PolyExtractor.registerSideeffectFree(functionName)
   }
 
   /** Register the name of a symbolic constant, that is not modified inside a scop. */
   def registerSymbolicConstant(constName : String) : Unit = {
-    Extractor.registerSymbolicConstant(constName)
+    IR_PolyExtractor.registerSymbolicConstant(constName)
   }
 
   override def apply() : Unit = {
@@ -135,7 +135,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def extractPolyModel() : Seq[Scop] = {
-    val extr = new Extractor()
+    val extr = new IR_PolyExtractor()
     this.register(extr)
     this.execute(new Transformation("extract model", PartialFunction.empty))
     this.unregister(extr)
@@ -407,7 +407,7 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
     if (scop.root.parallelization.reduction.isEmpty)
       return
 
-    val name : String = Extractor.replaceSpecial(scop.root.parallelization.reduction.get.target.prettyprint())
+    val name : String = IR_PolyExtractor.replaceSpecial(scop.root.parallelization.reduction.get.target.prettyprint())
     val stmts = mutable.Set[String]()
     scop.writes.foreachMap({ map : isl.Map =>
       if (map.getTupleName(T_OUT) == name)
@@ -627,6 +627,6 @@ object PolyOpt extends CustomStrategy("Polyhedral optimizations") {
   }
 
   private def recreateAndInsertAST() : Unit = {
-    this.execute(new ASTBuilderTransformation())
+    this.execute(new IR_ASTBuilderTransformation())
   }
 }

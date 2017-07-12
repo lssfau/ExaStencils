@@ -19,7 +19,7 @@ import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.polyhedron.Isl.TypeAliases._
 
-object LayoutTansformation extends CustomStrategy("Layout Transformation") {
+object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
   import scala.language.implicitConversions
 
@@ -178,7 +178,7 @@ object LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
     val build = isl.AstBuild.alloc(pwmaff.getCtx())
     val expr : isl.AstExpr = build.accessFromPwMultiAff(pwmaff)
-    val args : Array[IR_Expression] = ASTExpressionBuilder.processArgs(expr)
+    val args : Array[IR_Expression] = IR_ASTExpressionBuilder.processArgs(expr)
     val indices = IR_ExpressionIndex(args.iterator.drop(1).toArray)
     val strides = IR_ExpressionIndex(extents.map(IR_IntegerConstant(_) : IR_Expression))
     return IR_Linearization.linearizeIndex(indices, strides)
@@ -246,7 +246,7 @@ object ColorCondCollector extends Collector {
       case IR_IfCondition(c : IR_EqEq, _, fB) if fB.isEmpty                                                     =>
         cond = c
       case _                                                                                                    =>
-        val annot : Option[Any] = node.getAnnotation(PolyOpt.IMPL_CONDITION_ANNOT)
+        val annot : Option[Any] = node.getAnnotation(IR_PolyOpt.IMPL_CONDITION_ANNOT)
         if (annot.isDefined && annot.get.isInstanceOf[IR_EqEq])
           cond = annot.get.asInstanceOf[IR_Expression]
     }

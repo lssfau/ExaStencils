@@ -14,10 +14,10 @@ import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_ReplaceVariableAccess
 import isl.Conversions._
 
-class ASTBuilderTransformation()
-  extends Transformation("insert optimized loop AST", new ASTBuilderFunction())
+class IR_ASTBuilderTransformation()
+  extends Transformation("insert optimized loop AST", new IR_ASTBuilderFunction())
 
-private final class ASTBuilderFunction()
+private final class IR_ASTBuilderFunction()
   extends PartialFunction[Node, Transformation.OutputType] {
 
   private final val ZERO_VAL : isl.Val = isl.Val.zero(Isl.ctx)
@@ -36,20 +36,20 @@ private final class ASTBuilderFunction()
     // remove all annotations for the merged scops, as they are invalid now
     var s : Scop = scop.nextMerge
     while (s != null) {
-      s.root.removeAnnotation(PolyOpt.SCOP_ANNOT)
+      s.root.removeAnnotation(IR_PolyOpt.SCOP_ANNOT)
       s = s.nextMerge
     }
   }
 
   override def isDefinedAt(node : Node) : Boolean = node match {
-    case loop : IR_LoopOverDimensions => loop.hasAnnotation(PolyOpt.SCOP_ANNOT)
+    case loop : IR_LoopOverDimensions => loop.hasAnnotation(IR_PolyOpt.SCOP_ANNOT)
     case _                            => false
   }
 
   override def apply(node : Node) : Transformation.OutputType = {
 
     val loop = node.asInstanceOf[IR_LoopOverDimensions]
-    val scop : Scop = node.removeAnnotation(PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
+    val scop : Scop = node.removeAnnotation(IR_PolyOpt.SCOP_ANNOT).get.asInstanceOf[Scop]
     if (scop.remove)
       return IR_NullStatement
     parallelization = Duplicate(scop.root.parallelization)
@@ -186,7 +186,7 @@ private final class ASTBuilderFunction()
         if (node.forIsDegenerate()) {
           val islIt : isl.AstExpr = node.forGetIterator()
           assume(islIt.getType == isl.AstExprType.ExprId, "isl for node iterator is not an ExprId")
-          val decl : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, islIt.getId.getName, ASTExpressionBuilder.processIslExpr(node.forGetInit()))
+          val decl : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, islIt.getId.getName, IR_ASTExpressionBuilder.processIslExpr(node.forGetInit()))
           processIslNode(node.forGetBody()).+=:(decl)
 
         } else {
@@ -197,9 +197,9 @@ private final class ASTBuilderFunction()
           // TODO: is parallelize_omp still required?
           parallelize_omp &= !parOMP // if code must be parallelized, then now (parNow) XOR later (parallelize)
           val it : IR_VariableAccess = IR_VariableAccess(itStr, IR_IntegerDatatype)
-          val init : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, itStr, ASTExpressionBuilder.processIslExpr(node.forGetInit()))
-          val cond : IR_Expression = ASTExpressionBuilder.processIslExpr(node.forGetCond())
-          val incr : IR_Statement = IR_Assignment(it, ASTExpressionBuilder.processIslExpr(node.forGetInc()), "+=")
+          val init : IR_Statement = IR_VariableDeclaration(IR_IntegerDatatype, itStr, IR_ASTExpressionBuilder.processIslExpr(node.forGetInit()))
+          val cond : IR_Expression = IR_ASTExpressionBuilder.processIslExpr(node.forGetCond())
+          val incr : IR_Statement = IR_Assignment(it, IR_ASTExpressionBuilder.processIslExpr(node.forGetInc()), "+=")
 
           val body : ListBuffer[IR_Statement] = processIslNode(node.forGetBody())
           parallelize_omp |= parOMP // restore overall parallelization level
@@ -211,7 +211,7 @@ private final class ASTBuilderFunction()
         }
 
       case isl.AstNodeType.NodeIf =>
-        val cond : IR_Expression = ASTExpressionBuilder.processIslExpr(node.ifGetCond())
+        val cond : IR_Expression = IR_ASTExpressionBuilder.processIslExpr(node.ifGetCond())
         val thenBranch : ListBuffer[IR_Statement] = processIslNode(node.ifGetThen())
         if (node.ifHasElse()) {
           val els : ListBuffer[IR_Statement] = processIslNode(node.ifGetElse())
@@ -227,7 +227,7 @@ private final class ASTBuilderFunction()
       case isl.AstNodeType.NodeUser =>
         val expr : isl.AstExpr = node.userGetExpr()
         assume(expr.getOpType == isl.AstOpType.OpCall, "user node is no OpCall?!")
-        val args : Array[IR_Expression] = ASTExpressionBuilder.processArgs(expr)
+        val args : Array[IR_Expression] = IR_ASTExpressionBuilder.processArgs(expr)
         val name : String = args(0).asInstanceOf[IR_StringLiteral].value
         val (oldStmt : ListBuffer[IR_Statement], loopVars : ArrayBuffer[String]) = oldStmts(name)
         val stmts : ListBuffer[IR_Statement] = Duplicate(oldStmt)
@@ -241,7 +241,7 @@ private final class ASTBuilderFunction()
           for (stmt <- stmts) {
             val cond : IR_Expression = Duplicate(condition)
             IR_ReplaceVariableAccess.applyStandalone(cond)
-            stmt.annotate(PolyOpt.IMPL_CONDITION_ANNOT, cond)
+            stmt.annotate(IR_PolyOpt.IMPL_CONDITION_ANNOT, cond)
           }
         stmts
 

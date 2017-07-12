@@ -6,7 +6,7 @@ import exastencils.base.ir._
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_IV_NeighborIsValid
 
-object ASTExpressionBuilder {
+object IR_ASTExpressionBuilder {
 
   /** Convert an isl.AstExpr to an IR_Expression. */
   def processIslExpr(expr : isl.AstExpr) : IR_Expression = {

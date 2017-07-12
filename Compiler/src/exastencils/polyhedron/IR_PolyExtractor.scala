@@ -17,7 +17,7 @@ import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_MathFunctions
 
 /** Object for all "static" attributes */
-object Extractor {
+object IR_PolyExtractor {
 
   /** constants for read/write annotations */
   private final object Access extends Enumeration {
@@ -307,13 +307,13 @@ object Extractor {
 
 private final case class ExtractionException(msg : String) extends Exception(msg)
 
-class Extractor extends Collector {
+class IR_PolyExtractor extends Collector {
 
   private final val DEBUG : Boolean = false
 
   /** import all "static" attributes to allow an unqualified access */
 
-  import exastencils.polyhedron.Extractor._
+  import exastencils.polyhedron.IR_PolyExtractor._
 
   /** current access node is a read/write access */
   private var isRead, isWrite : Boolean = false
@@ -735,7 +735,7 @@ class Extractor extends Collector {
     val scop = curScop.finish()
     if (scop != null) {
       scop.updateLoopVars()
-      loop.annotate(PolyOpt.SCOP_ANNOT, scop)
+      loop.annotate(IR_PolyOpt.SCOP_ANNOT, scop)
       scops += scop
       mergeScops = true
     }

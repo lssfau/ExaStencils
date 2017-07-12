@@ -270,7 +270,7 @@ object MainJeremias {
 
     IR_MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
-      PolyOpt.apply()
+      IR_PolyOpt.apply()
     IR_ResolveLoopOverDimensions.apply()
 
     IR_TypeInference.apply()

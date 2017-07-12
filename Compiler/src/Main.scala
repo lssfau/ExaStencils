@@ -629,7 +629,7 @@ object Main {
 
     IR_MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
-      PolyOpt.apply(polyOptExplID)
+      IR_PolyOpt.apply(polyOptExplID)
     IR_ResolveLoopOverDimensions.apply()
 
     IR_TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
@@ -643,7 +643,7 @@ object Main {
     }
 
     if (Knowledge.opt_useColorSplitting || Knowledge.opt_arrayOfFields)
-      LayoutTansformation.apply()
+      IR_LayoutTansformation.apply()
 
     // before converting kernel functions -> requires linearized accesses
     IR_LinearizeDirectFieldAccess.apply()

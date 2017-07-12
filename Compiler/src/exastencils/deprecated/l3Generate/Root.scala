@@ -44,7 +44,7 @@ case class Root() {
     }
 
     if (Knowledge.l3tmp_kelvin) {
-      PolyOpt.registerSideeffectFree("bcSol")
+      IR_PolyOpt.registerSideeffectFree("bcSol")
       printer.println(s"Function bcSol (xPos : Real, yPos : Real) : Real {")
       printer.println(s"\tif ( yPos >= 1.0 ) { return ( UN ) }")
       printer.println(s"\tif ( xPos >= 1.0 ) { return ( UE ) }")

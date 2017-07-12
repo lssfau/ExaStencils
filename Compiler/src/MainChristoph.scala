@@ -300,7 +300,7 @@ object MainChristoph {
 
     IR_MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
-      PolyOpt.apply(polyOptExplID)
+      IR_PolyOpt.apply(polyOptExplID)
     IR_ResolveLoopOverDimensions.apply()
 
     IR_TypeInference.apply() // second sweep for any newly introduced nodes - TODO: check if this is necessary
