@@ -276,9 +276,6 @@ object MainJeremias {
 
     TypeInference.apply()
 
-    if (Knowledge.opt_useColorSplitting)
-      ColorSplitting.apply()
-
     IR_ResolveSlotOperations.apply()
     IR_ResolveBoundedScalar.apply()
 

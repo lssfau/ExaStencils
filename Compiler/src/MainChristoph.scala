@@ -315,9 +315,6 @@ object MainChristoph {
       CUDA_HandleReductions.apply()
     }
 
-    if (Knowledge.opt_useColorSplitting)
-      ColorSplitting.apply()
-
     // before converting kernel functions -> requires linearized accesses
     IR_LinearizeDirectFieldAccess.apply()
     IR_LinearizeExternalFieldAccess.apply()
