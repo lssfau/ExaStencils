@@ -1,4 +1,4 @@
-package exastencils.optimization
+package exastencils.optimization.ir
 
 import scala.collection.mutable.{ ArrayBuffer, Buffer, ListBuffer, Map, Set }
 
@@ -29,7 +29,7 @@ private final class Renamer(reserved : Set[String], inUse : Set[String]) {
   }
 }
 
-object Inlining extends CustomStrategy("Function inlining") {
+object IR_Inlining extends CustomStrategy("Function inlining") {
 
   override def apply() : Unit = {
     this.apply(false)
@@ -201,11 +201,11 @@ object Inlining extends CustomStrategy("Function inlining") {
 
   private final class Analyzer extends StackCollector {
 
-    private[Inlining] val functions = Map[String, IR_Function]()
-    private[Inlining] val flatFunctionBody = Map[String, Buffer[IR_Statement]]((null, ArrayBuffer()))
+    private[IR_Inlining] val functions = Map[String, IR_Function]()
+    private[IR_Inlining] val flatFunctionBody = Map[String, Buffer[IR_Statement]]((null, ArrayBuffer()))
     // values of calls: (call itself, statement containing it, statement's parent, function containing statement)
-    private[Inlining] val calls = Map[String, ListBuffer[(IR_FunctionCall, IR_Statement, Node, String)]]()
-    private[Inlining] val potConflicts = Map[String, Set[String]]()
+    private[IR_Inlining] val calls = Map[String, ListBuffer[(IR_FunctionCall, IR_Statement, Node, String)]]()
+    private[IR_Inlining] val potConflicts = Map[String, Set[String]]()
 
     private var curFunc : String = null
     private var inlinable : Boolean = false

@@ -1,4 +1,4 @@
-package exastencils.optimization
+package exastencils.optimization.ir
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -8,7 +8,7 @@ import exastencils.field.ir._
 import exastencils.logger._
 import exastencils.optimization.ir._
 
-object SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expressions") {
+object IR_SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expressions") {
 
   private final val DEBUG : Boolean = false
 

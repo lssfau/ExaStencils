@@ -1,4 +1,4 @@
-package exastencils.optimization
+package exastencils.optimization.ir
 
 import scala.collection.convert.Wrappers.JSetWrapper
 import scala.collection.mutable.{ ArrayBuffer, BitSet, Buffer, HashMap, ListBuffer, Map, Set }
@@ -21,7 +21,7 @@ import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting._
 import exastencils.util.ir.IR_Print
 
-object CommonSubexpressionElimination extends CustomStrategy("Common subexpression elimination") {
+object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpression elimination") {
   private final val REPLACE_ANNOT : String = "CSE_repl"
   private final val REMOVE_ANNOT : String = "CSE_rem"
   private final val ID_ANNOT : String = "CSE_ID"
@@ -142,7 +142,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       case n if n.hasAnnotation(REPLACE_ANNOT)             => Duplicate(n.getAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]) // duplicate here
     }), Some(parent)) // modifications in a list result in a new list created, so work with original parent and not with wrapped body
 
-    SimplifyFloatExpressions.applyStandalone(parent)
+    IR_SimplifyFloatExpressions.applyStandalone(parent)
     IR_GeneralSimplify.doUntilDoneStandalone(parent, true)
   }
 
@@ -184,7 +184,7 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
           IR_Subtraction(strLit, IR_IntegerConstant(loopIncr))
       }, false), Some(prevItBody))
 
-      SimplifyFloatExpressions.applyStandalone(prevItBody)
+      IR_SimplifyFloatExpressions.applyStandalone(prevItBody)
       IR_GeneralSimplify.doUntilDoneStandalone(prevItBody, true)
 
       val coll = new CollectBaseCSes(curFunc)
@@ -260,9 +260,9 @@ object CommonSubexpressionElimination extends CustomStrategy("Common subexpressi
       if (decls.nonEmpty) {
         val (stmts, annots) = loop.at1stIt(dim)
         stmts ++= firstInits
-        annots += ((Vectorization.COND_VECTABLE, None))
+        annots += ((IR_Vectorization.COND_VECTABLE, None))
         if (tmpBufLen.isEmpty)
-          annots += ((Vectorization.COND_IGN_INCR, None))
+          annots += ((IR_Vectorization.COND_IGN_INCR, None))
         // prepend to body
         decls ++=:
           nextUpdates ++=:

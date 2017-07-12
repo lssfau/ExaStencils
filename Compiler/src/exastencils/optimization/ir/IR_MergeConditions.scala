@@ -1,10 +1,10 @@
-package exastencils.optimization
+package exastencils.optimization.ir
 
 import exastencils.base.ir._
 import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 
-object MergeConditions extends DefaultStrategy("Fuse Conditions") {
+object IR_MergeConditions extends DefaultStrategy("Fuse Conditions") {
 
   private val collector = new StackCollector()
   private var parent : Node = null

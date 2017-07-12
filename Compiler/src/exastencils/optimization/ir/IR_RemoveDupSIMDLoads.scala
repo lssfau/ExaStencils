@@ -1,4 +1,4 @@
-package exastencils.optimization
+package exastencils.optimization.ir
 
 import scala.collection.mutable._
 
@@ -10,10 +10,9 @@ import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
-import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.simd._
 
-object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") {
+object IR_RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") {
 
   private[optimization] final val ADD_BEFORE_ANNOT = "RDSL_AddB"
   private[optimization] final val REPL_ANNOT = "RDSL_Repl"
@@ -42,7 +41,7 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
   }
 
   private val SortLoads : PartialFunction[Node, Transformation.OutputType] = {
-    case l : IR_ForLoop if l.hasAnnotation(Vectorization.VECT_ANNOT) =>
+    case l : IR_ForLoop if l.hasAnnotation(IR_Vectorization.VECT_ANNOT) =>
       val newBody = new ListBuffer[IR_Statement]()
       val toSort = new ArrayBuffer[(IR_Statement, IR_Expression, IR_Expression)]()
       for (s <- l.body) {
@@ -89,7 +88,7 @@ object RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") 
 
 private[optimization] final class Analyze extends StackCollector {
 
-  import RemoveDupSIMDLoads._
+  import IR_RemoveDupSIMDLoads._
 
   private var preLoopDecls : ListBuffer[IR_Statement] = null
   private var loads : HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (IR_VariableDeclaration, Buffer[List[Node]])] = null
@@ -108,7 +107,7 @@ private[optimization] final class Analyze extends StackCollector {
       IR_Assignment(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
       _, _) if lVar == lVar2 && lVar2 == lVar3 //
       =>
-        if (node.removeAnnotation(Vectorization.VECT_ANNOT).isDefined) {
+        if (node.removeAnnotation(IR_Vectorization.VECT_ANNOT).isDefined) {
           preLoopDecls = new ListBuffer[IR_Statement]
           node.annotate(ADD_BEFORE_ANNOT, preLoopDecls)
           loads = new HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (IR_VariableDeclaration, Buffer[List[Node]])]()
@@ -294,7 +293,7 @@ private[optimization] final class Analyze extends StackCollector {
 
 private final object Adapt extends PartialFunction[Node, Transformation.OutputType] {
 
-  import RemoveDupSIMDLoads._
+  import IR_RemoveDupSIMDLoads._
 
   def isDefinedAt(node : Node) : Boolean = {
     node.hasAnnotation(ADD_BEFORE_ANNOT) || node.hasAnnotation(REPL_ANNOT) || node.hasAnnotation(REMOVE_ANNOT)

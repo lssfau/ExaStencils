@@ -1,4 +1,4 @@
-package exastencils.optimization
+package exastencils.optimization.ir
 
 import scala.collection.mutable._
 
@@ -6,11 +6,9 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
-object Unrolling extends DefaultStrategy("Loop unrolling") {
+object IR_Unrolling extends DefaultStrategy("Loop unrolling") {
 
   final val UNROLLED_ANNOT : String = "UNDone"
 
@@ -135,14 +133,14 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     }
 
     val oldBody = Duplicate(loop.body) // duplicate for later use in post loop
-    loop.begin = IR_VariableDeclaration(IR_IntegerDatatype, itVar, Unrolling.startVarAcc)
-    loop.end = IR_Lower(itVarAcc, Unrolling.intermVarAcc)
+    loop.begin = IR_VariableDeclaration(IR_IntegerDatatype, itVar, IR_Unrolling.startVarAcc)
+    loop.end = IR_Lower(itVarAcc, IR_Unrolling.intermVarAcc)
     loop.inc = IR_Assignment(itVarAcc, IR_IntegerConstant(newStride), "+=")
     // duplicate private vars would also be possible...
     val interleave : Boolean = Knowledge.opt_unroll_interleave && loop.parallelization.potentiallyParallel && loop.parallelization.privateVars.isEmpty
     loop.body = duplicateStmts(loop.body, Knowledge.opt_unroll, itVar, oldStride, interleave)
 
-    val annot = loop.removeAnnotation(Unrolling.UNROLLED_ANNOT)
+    val annot = loop.removeAnnotation(IR_Unrolling.UNROLLED_ANNOT)
     val unrolled : Boolean = annot.isDefined
     var res : ListBuffer[IR_Statement] = null
     var intermDecl : IR_VariableDeclaration = null
@@ -150,12 +148,12 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     if (unrolled) {
       res = new ListBuffer[IR_Statement]()
       intermDecl = annot.get.asInstanceOf[IR_VariableDeclaration]
-      intermDecl.initialValue = Some(Unrolling.getIntermExpr(newStride))
+      intermDecl.initialValue = Some(IR_Unrolling.getIntermExpr(newStride))
     } else {
       val (boundsDecls, postLoop_) : (ListBuffer[IR_Statement], IR_Statement) =
-        Unrolling.getBoundsDeclAndPostLoop(itVar, start, endExcl, oldStride, oldBody, Duplicate(loop.parallelization.reduction))
+        IR_Unrolling.getBoundsDeclAndPostLoop(itVar, start, endExcl, oldStride, oldBody, Duplicate(loop.parallelization.reduction))
       postLoop = postLoop_
-      intermDecl = Unrolling.getIntermDecl(newStride)
+      intermDecl = IR_Unrolling.getIntermDecl(newStride)
       res = boundsDecls += intermDecl
     }
     res += loop
@@ -163,7 +161,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
       res += postLoop
 
     loop.annotate(SKIP_ANNOT)
-    loop.annotate(Unrolling.UNROLLED_ANNOT, intermDecl)
+    loop.annotate(IR_Unrolling.UNROLLED_ANNOT, intermDecl)
     if (unrolled)
       res
     else

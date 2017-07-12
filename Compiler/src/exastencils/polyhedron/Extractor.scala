@@ -12,7 +12,7 @@ import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.logger._
-import exastencils.optimization._
+import exastencils.optimization.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_MathFunctions
 

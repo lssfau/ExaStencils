@@ -22,8 +22,7 @@ import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
 import exastencils.logger._
 import exastencils.operator.l4.L4_ProcessStencilDeclarations
-import exastencils.optimization._
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
@@ -269,12 +268,12 @@ object MainJeremias {
     else
       IR_Expand.doUntilDone()
 
-    MergeConditions.apply()
+    IR_MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
       PolyOpt.apply()
     IR_ResolveLoopOverDimensions.apply()
 
-    TypeInference.apply()
+    IR_TypeInference.apply()
 
     IR_ResolveSlotOperations.apply()
     IR_ResolveBoundedScalar.apply()
@@ -297,18 +296,18 @@ object MainJeremias {
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_useAddressPrecalc)
-      AddressPrecalculation.apply()
+      IR_AddressPrecalculation.apply()
 
-    SimplifyFloatExpressions.apply()
+    IR_SimplifyFloatExpressions.apply()
 
     if (Knowledge.opt_vectorize)
-      Vectorization.apply()
+      IR_Vectorization.apply()
 
     if (Knowledge.opt_unroll > 1)
-      Unrolling.apply()
+      IR_Unrolling.apply()
 
     if (Knowledge.opt_vectorize)
-      RemoveDupSIMDLoads.apply()
+      IR_RemoveDupSIMDLoads.apply()
 
     IR_AddInternalVariables.apply()
     if (Knowledge.useFasterExpand)
@@ -338,7 +337,7 @@ object MainJeremias {
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_maxInliningSize > 0)
-      Inlining.apply()
+      IR_Inlining.apply()
 
     PrintToFile.apply()
     PrettyprintingManager.finish()

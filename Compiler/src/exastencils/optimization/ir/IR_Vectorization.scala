@@ -1,4 +1,4 @@
-package exastencils.optimization
+package exastencils.optimization.ir
 
 import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Queue }
 
@@ -12,7 +12,7 @@ import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
 import exastencils.simd._
 
-object Vectorization extends DefaultStrategy("Vectorization") {
+object IR_Vectorization extends DefaultStrategy("Vectorization") {
 
   final val VECT_ANNOT : String = "VECT"
   final val COND_VECTABLE : String = "VECT_C"
@@ -41,12 +41,12 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     if (skipSubTree)
       return false
 
-    node.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
+    node.removeAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations
     node match {
       case loop : IR_ForLoop =>
         loop.parallelization.isInnermost &&
           (loop.parallelization.potentiallyParallel || loop.parallelization.isVectorizable) &&
-          !loop.hasAnnotation(Vectorization.VECT_ANNOT)
+          !loop.hasAnnotation(IR_Vectorization.VECT_ANNOT)
       case _                 =>
         false
     }
@@ -268,7 +268,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       for (stmt <- body)
         stmt match {
           case IR_Assignment(acc @ IR_ArrayAccess(_, index, true), _, _) =>
-            val annot = acc.getAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
+            val annot = acc.getAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT)
             val ind : IR_Expression = if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index
             val const : Long = IR_SimplifyExpression.extractIntegralSum(ind).getOrElse(IR_SimplifyExpression.constName, 0L)
             val residue : Long = (const % vs + vs) % vs
@@ -282,7 +282,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       collectIndexExprs += new Transformation("seaching...", {
         case acc @ IR_ArrayAccess(_, index, true) =>
           if (containsVarAcc(index, ctx.itName)) {
-            val annot = acc.removeAnnotation(AddressPrecalculation.ORIG_IND_ANNOT)
+            val annot = acc.removeAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT)
             indexExprs += IR_SimplifyExpression.extractIntegralSum(if (annot.isDefined) annot.get.asInstanceOf[IR_Expression] else index)
           }
           acc
@@ -333,13 +333,13 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     def itVarAcc = IR_VariableAccess(itVar, IR_IntegerDatatype)
     val newIncr : Long = incr * vs
 
-    oldLoop.begin = IR_VariableDeclaration(IR_IntegerDatatype, itVar, Unrolling.startVarAcc)
-    oldLoop.end = IR_Lower(itVarAcc, Unrolling.intermVarAcc)
+    oldLoop.begin = IR_VariableDeclaration(IR_IntegerDatatype, itVar, IR_Unrolling.startVarAcc)
+    oldLoop.end = IR_Lower(itVarAcc, IR_Unrolling.intermVarAcc)
     oldLoop.inc = IR_Assignment(itVarAcc, IR_IntegerConstant(newIncr), "+=")
     oldLoop.body = ctx.popScope()
 
     var postLoop : IR_Statement = null
-    val annot = oldLoop.removeAnnotation(Unrolling.UNROLLED_ANNOT)
+    val annot = oldLoop.removeAnnotation(IR_Unrolling.UNROLLED_ANNOT)
     val unrolled : Boolean = annot.isDefined
     var res : ListBuffer[IR_Statement] = null
     if (unrolled) {
@@ -347,7 +347,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     } else {
       // old AST will be replaced completely, so we can reuse the body once here (and duplicate later)
       val (boundsDecls, postLoop_) : (ListBuffer[IR_Statement], IR_Statement) =
-        Unrolling.getBoundsDeclAndPostLoop(itVar, begin, endExcl, incr, body, Duplicate(reduction))
+        IR_Unrolling.getBoundsDeclAndPostLoop(itVar, begin, endExcl, incr, body, Duplicate(reduction))
       postLoop = postLoop_
       res = boundsDecls
     }
@@ -361,31 +361,31 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       val replItVar = new QuietDefaultStrategy("Replace iteration variable...")
       replItVar += new Transformation("seaching...", {
         case IR_VariableAccess(name, _) if name == itVar =>
-          Unrolling.startVarAcc
+          IR_Unrolling.startVarAcc
       })
       // ensure node itself is found, too
       replItVar.applyStandalone(wrappedAlignExpr)
-      val preEndExpr = IR_Minimum(Unrolling.endVarAcc,
-        Unrolling.startVarAcc + ((IR_IntegerConstant(vs) - (wrappedAlignExpr.expression Mod IR_IntegerConstant(vs))) Mod IR_IntegerConstant(vs)))
+      val preEndExpr = IR_Minimum(IR_Unrolling.endVarAcc,
+        IR_Unrolling.startVarAcc + ((IR_IntegerConstant(vs) - (wrappedAlignExpr.expression Mod IR_IntegerConstant(vs))) Mod IR_IntegerConstant(vs)))
       res += IR_VariableDeclaration(IR_IntegerDatatype, preEndVar, preEndExpr)
 
-      res += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, itVar, Unrolling.startVarAcc),
+      res += IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, itVar, IR_Unrolling.startVarAcc),
         IR_Lower(itVarAcc, preEndVarAcc),
         IR_Assignment(itVarAcc, IR_IntegerConstant(incr), "+="),
         Duplicate(body))
 
-      res += IR_Assignment(Unrolling.startVarAcc, preEndVarAcc, "=")
+      res += IR_Assignment(IR_Unrolling.startVarAcc, preEndVarAcc, "=")
     }
     var intermDecl : IR_VariableDeclaration = null
     if (unrolled) {
       intermDecl = annot.get.asInstanceOf[IR_VariableDeclaration]
-      intermDecl.initialValue = Some(Unrolling.getIntermExpr(newIncr))
+      intermDecl.initialValue = Some(IR_Unrolling.getIntermExpr(newIncr))
     } else {
-      intermDecl = Unrolling.getIntermDecl(newIncr)
+      intermDecl = IR_Unrolling.getIntermDecl(newIncr)
       res += intermDecl
     }
 
-    val emptyLoopGuard = IR_IfCondition(IR_Lower(Unrolling.startVarAcc, Unrolling.intermVarAcc), new ListBuffer[IR_Statement]())
+    val emptyLoopGuard = IR_IfCondition(IR_Lower(IR_Unrolling.startVarAcc, IR_Unrolling.intermVarAcc), new ListBuffer[IR_Statement]())
     emptyLoopGuard.trueBody ++= ctx.getPreLoopStmts()
     emptyLoopGuard.trueBody += oldLoop
     emptyLoopGuard.trueBody ++= ctx.getPostLoopStmts()
@@ -395,8 +395,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     if (!unrolled)
       res += postLoop
 
-    oldLoop.annotate(Vectorization.VECT_ANNOT)
-    oldLoop.annotate(Unrolling.UNROLLED_ANNOT, intermDecl)
+    oldLoop.annotate(IR_Vectorization.VECT_ANNOT)
+    oldLoop.annotate(IR_Unrolling.UNROLLED_ANNOT, intermDecl)
     IR_Scope(res)
   }
 
@@ -449,8 +449,8 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, dataType))
         ctx.addStmt(new IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(initVec)))
 
-      case IR_IfCondition(cond, trueBody, falseBody) if stmt.hasAnnotation(Vectorization.COND_VECTABLE) =>
-        if (stmt.hasAnnotation(Vectorization.COND_IGN_INCR))
+      case IR_IfCondition(cond, trueBody, falseBody) if stmt.hasAnnotation(IR_Vectorization.COND_VECTABLE) =>
+        if (stmt.hasAnnotation(IR_Vectorization.COND_IGN_INCR))
           ctx.ignIncr = true
         ctx.pushScope()
         for (s <- trueBody)

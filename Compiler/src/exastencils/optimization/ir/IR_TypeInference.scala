@@ -1,4 +1,4 @@
-package exastencils.optimization
+package exastencils.optimization.ir
 
 import scala.collection.mutable.Map
 
@@ -11,7 +11,7 @@ import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger._
 
-object TypeInference extends CustomStrategy("Type inference") {
+object IR_TypeInference extends CustomStrategy("Type inference") {
   private[optimization] final val TYPE_ANNOT = "InfType"
   private[optimization] final val SKIP_ANNOT = "TypSkip"
   var warnMissingDeclarations : Boolean = false
@@ -47,7 +47,7 @@ object TypeInference extends CustomStrategy("Type inference") {
 
 private final class AnnotateStringConstants extends ScopeCollector(Map[String, IR_Datatype]()) {
 
-  import TypeInference._
+  import IR_TypeInference._
 
   override def cloneCurScope() : Map[String, IR_Datatype] = {
     curScope.clone()
@@ -106,7 +106,7 @@ private final class AnnotateStringConstants extends ScopeCollector(Map[String, I
 
 private final object CreateVariableAccesses extends PartialFunction[Node, Transformation.OutputType] {
 
-  import TypeInference._
+  import IR_TypeInference._
 
   override def isDefinedAt(node : Node) : Boolean = {
     (node.isInstanceOf[IR_StringLiteral] || node.isInstanceOf[IR_VariableAccess]) && node.hasAnnotation(TYPE_ANNOT)

@@ -12,7 +12,6 @@ import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_IV_FieldData
 import exastencils.logger.Logger
-import exastencils.optimization.IR_IV_LoopCarriedCSBuffer
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.ir.IR_ParallelizationInfo

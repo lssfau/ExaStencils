@@ -12,7 +12,7 @@ import exastencils.config._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
-import exastencils.optimization.IR_IV_LoopCarriedCSBuffer
+import exastencils.optimization.ir.IR_IV_LoopCarriedCSBuffer
 import exastencils.polyhedron.exploration.Exploration
 import exastencils.polyhedron.Isl.TypeAliases._
 import isl.Conversions._

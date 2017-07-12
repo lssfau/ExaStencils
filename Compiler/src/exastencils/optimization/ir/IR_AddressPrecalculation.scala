@@ -1,4 +1,4 @@
-package exastencils.optimization
+package exastencils.optimization.ir
 
 import scala.collection.immutable.StringLike
 import scala.collection.mutable._
@@ -13,7 +13,7 @@ import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.optimization.ir._
 
-object AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
+object IR_AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
 
   private[optimization] final val ORIG_IND_ANNOT = "AP_OrInd"
 
@@ -58,7 +58,7 @@ private final class ArrayBases(val arrayName : String, val arrayDType : IR_Datat
 
 private final class AnnotateLoopsAndAccesses extends Collector {
 
-  import AddressPrecalculation._
+  import IR_AddressPrecalculation._
 
   private def generateName(expr : IR_Expression) : String = {
     filter('_' + expr.prettyprint())
@@ -270,7 +270,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
 private object IntegrateAnnotations extends PartialFunction[Node, Transformation.OutputType] {
 
-  import AddressPrecalculation._
+  import IR_AddressPrecalculation._
 
   def isDefinedAt(node : Node) : Boolean = {
     node.hasAnnotation(DECLS_ANNOT) || node.hasAnnotation(REPL_ANNOT)
