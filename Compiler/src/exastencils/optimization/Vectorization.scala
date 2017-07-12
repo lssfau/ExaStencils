@@ -413,6 +413,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           case "="  => rhsSca
           case "+=" => IR_Addition(lhsSca, rhsSca)
           case "-=" => IR_Subtraction(lhsSca, rhsSca)
+          case "*=" => IR_Multiplication(lhsSca, rhsSca)
           case _    => throw new VectorizationException("cannot deal with assignment operator \"" + assOp + "\" in " + stmt.prettyprint())
         }))
         IR_GeneralSimplify.doUntilDoneStandalone(srcWrap)
