@@ -94,6 +94,7 @@ private[optimization] final class Analyze extends StackCollector {
   private var preLoopDecls : ListBuffer[IR_Statement] = null
   private var loads : HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (IR_VariableDeclaration, Buffer[List[Node]])] = null
   private var load1s : HashMap[SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])] = null
+  private var stores : HashMap[IR_Expression, Buffer[List[Node]]] = null
   private var concShifts : HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])] = null
   private var replaceAcc : HashMap[String, String] = null
   private var upLoopVar : UpdateLoopVar = null
@@ -112,6 +113,7 @@ private[optimization] final class Analyze extends StackCollector {
           node.annotate(ADD_BEFORE_ANNOT, preLoopDecls)
           loads = new HashMap[(IR_Expression, HashMap[IR_Expression, Long]), (IR_VariableDeclaration, Buffer[List[Node]])]()
           load1s = new HashMap[SIMD_Scalar2Vector, (IR_VariableDeclaration, Buffer[List[Node]])]()
+          stores = new HashMap[IR_Expression, Buffer[List[Node]]]()
           concShifts = new HashMap[SIMD_ConcShift, (IR_VariableDeclaration, Buffer[List[Node]])]()
           replaceAcc = new HashMap[String, String]()
           upLoopVar = new UpdateLoopVar(lVar, incr, start)
@@ -162,6 +164,13 @@ private[optimization] final class Analyze extends StackCollector {
           other.get._2 += stack // super.stack
         } else
           load1s(load) = (decl, ArrayBuffer(stack)) // super.stack
+
+      case SIMD_Store(dest, _, _) =>
+        val other = stores.get(dest)
+        if (other.isDefined)
+          other.get += stack // super.stack
+        else
+          stores(dest) = ArrayBuffer(stack) // super.stack
 
       case vAcc @ IR_VariableAccess(vecTmp, SIMD_RealDatatype) if replaceAcc != null =>
         val nju = replaceAcc.get(vecTmp)
@@ -214,9 +223,24 @@ private[optimization] final class Analyze extends StackCollector {
           load.annotate(REMOVE_ANNOT)
         }
       }
+      // test if there are repeated store operations to the same memory location
+      for (ancss <- stores.values) {
+        import scala.util.control.Breaks._
+        for (i <- 0 until ancss.length) breakable {
+          val mayRem = ancss(i)
+          for (j <- i + 1 until ancss.length) {
+            val sameScope = ancss(j)
+            if (mayRem.tail eq sameScope.tail) { // do only remove first if there is a second one in the same scope (exactly the same)
+              mayRem.head.annotate(REMOVE_ANNOT)
+              break // continue i
+            }
+          }
+        }
+      }
       preLoopDecls = null
       loads = null
       load1s = null
+      stores = null
       concShifts = null
       replaceAcc = null
       upLoopVar = null
