@@ -18,6 +18,7 @@ import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
+import exastencils.polyhedron.IR_PolyArrayAccessLike
 import exastencils.prettyprinting._
 import exastencils.util.ir.IR_Print
 
@@ -646,8 +647,10 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
 
 /// IR_LoopCarriedCSBufferAccess
 
-case class IR_LoopCarriedCSBufferAccess(var buffer : IR_IV_LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access with IR_SpecialExpandable {
+case class IR_LoopCarriedCSBufferAccess(var buffer : IR_IV_LoopCarriedCSBuffer, var index : IR_ExpressionIndex) extends IR_Access with IR_SpecialExpandable with IR_PolyArrayAccessLike {
   override def datatype = buffer.datatype
+
+  override def uniqueID : String = buffer.resolveName()
 
   def linearize : IR_ArrayAccess = {
     if (buffer.dimSizes.isEmpty)

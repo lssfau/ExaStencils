@@ -1,5 +1,7 @@
 package exastencils.base.ir
 
+import exastencils.communication.ir.IR_IV_AbstractCommBuffer
+import exastencils.polyhedron.IR_PolyArrayAccessLike
 import exastencils.prettyprinting._
 
 /// IR_Access
@@ -21,7 +23,7 @@ case class IR_VariableAccess(var name : String, var datatype : IR_Datatype) exte
 /// IR_ArrayAccess
 
 // TODO: split into multidimensional (IR_MultiDimArrayAccess) and linear
-case class IR_ArrayAccess(var base : IR_Expression, var index : IR_Expression, var alignedAccessPossible : Boolean = false) extends IR_Access {
+case class IR_ArrayAccess(var base : IR_Expression, var index : IR_Expression, var alignedAccessPossible : Boolean = false) extends IR_Access with IR_PolyArrayAccessLike {
   // TODO: shouldn't this be a deref?
   override def datatype = base.datatype
 
@@ -29,6 +31,15 @@ case class IR_ArrayAccess(var base : IR_Expression, var index : IR_Expression, v
     index match {
       case ind : IR_Index      => out << base << ind
       case ind : IR_Expression => out << base << '[' << ind << ']'
+    }
+  }
+
+  override def uniqueID : String = {
+    base match {
+      case IR_StringLiteral(name)          => name
+      case IR_VariableAccess(name, _)      => name
+      case buff : IR_IV_AbstractCommBuffer => buff.prettyprint()
+      case _                               => null
     }
   }
 }

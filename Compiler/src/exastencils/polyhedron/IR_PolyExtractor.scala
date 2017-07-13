@@ -492,37 +492,16 @@ class IR_PolyExtractor extends Collector {
             ty.annotate(SKIP_ANNOT)
             enterScalarAccess(varName)
 
-          case IR_ArrayAccess(array @ IR_StringLiteral(varName), index, _) =>
-            array.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterArrayAccess(varName, index)
-
-          case IR_ArrayAccess(array @ IR_VariableAccess(varName, ty), index, _) =>
-            ty.annotate(SKIP_ANNOT)
-            array.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterArrayAccess(varName, index)
-
-          case IR_ArrayAccess(tmp : IR_IV_CommBuffer, index, _) =>
-            tmp.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterArrayAccess(tmp.prettyprint(), index)
-
-          case IR_DirectFieldAccess(fieldSelection, index) =>
-            fieldSelection.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterFieldAccess(fieldSelection, index)
-
-          case IR_TempBufferAccess(buffer, index, extent) =>
-            buffer.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            extent.annotate(SKIP_ANNOT)
-            enterTempBufferAccess(buffer, index)
-
-          case IR_LoopCarriedCSBufferAccess(buffer, index) =>
-            buffer.annotate(SKIP_ANNOT)
-            index.annotate(SKIP_ANNOT)
-            enterLoopCarriedCSBufferAccess(buffer, index)
+          case acc : IR_PolyArrayAccessLike =>
+            val id = acc.uniqueID
+            if (id == null)
+              throw new ExtractionException("method uniqueID returned null for object " + acc)
+            for (att <- acc.productIterator)
+              att match {
+                case n : IR_Node => n.annotate(SKIP_ANNOT)
+                case _           =>
+              }
+            enterArrayAccess(id, acc.index)
 
           case d : IR_VariableDeclaration =>
             d.datatype.annotate(SKIP_ANNOT)
@@ -561,7 +540,6 @@ class IR_PolyExtractor extends Collector {
 
           // deny
           case e : IR_ExpressionStatement => throw ExtractionException("cannot deal with ExprStmt: " + e.prettyprint())
-          case IR_ArrayAccess(a, _, _)    => throw ExtractionException("ArrayAccess to base " + a.getClass + " not yet implemented")
           case f : IR_FunctionCall        => throw ExtractionException("function call not in set of allowed ones: " + f.prettyprint())
           case x : Any                    => throw ExtractionException("cannot deal with " + x.getClass)
         }
@@ -596,10 +574,7 @@ class IR_PolyExtractor extends Collector {
         case _ : IR_Assignment                => leaveAssign()
         case _ : IR_StringLiteral             => leaveScalarAccess()
         case _ : IR_VariableAccess            => leaveScalarAccess()
-        case _ : IR_ArrayAccess               => leaveArrayAccess()
-        case _ : IR_DirectFieldAccess         => leaveFieldAccess()
-        case _ : IR_TempBufferAccess          => leaveTempBufferAccess()
-        case _ : IR_LoopCarriedCSBufferAccess => leaveLoopCarriedCSBufferAccess()
+        case _ : IR_PolyArrayAccessLike       => leaveArrayAccess()
         case _ : IR_VariableDeclaration       => leaveDecl()
         case _                                =>
       }
@@ -873,43 +848,6 @@ class IR_PolyExtractor extends Collector {
 
   private def leaveArrayAccess() : Unit = {
     // nothing to do here...
-  }
-
-  private def enterFieldAccess(fSel : IR_FieldSelection, index : IR_ExpressionIndex) : Unit = {
-    val name = new StringBuilder("field")
-    name.append('_').append(fSel.field.name).append(fSel.field.index).append('_').append(fSel.field.level)
-    name.append("_l").append(fSel.level).append('a')//.append(fSel.arrayIndex)
-    name.append('_').append(fSel.fragIdx.prettyprint()).append('_')
-    fSel.slot match {
-      case IR_SlotAccess(_, offset) => name.append('s').append(offset)
-      case s                        => name.append(s.prettyprint())
-    }
-    enterArrayAccess(replaceSpecial(name.toString()), index)
-  }
-
-  private def leaveFieldAccess() : Unit = {
-    leaveArrayAccess()
-  }
-
-  private def enterTempBufferAccess(buffer : IR_IV_CommBuffer, index : IR_ExpressionIndex) : Unit = {
-    val name = new StringBuilder("buffer")
-    name.append('_').append(buffer.direction)
-    name.append('_').append(buffer.field.name).append(buffer.field.index).append('_').append(buffer.field.level)
-    name.append("_n").append(buffer.neighIdx.prettyprint())
-    name.append("_f").append(buffer.fragmentIdx.prettyprint())
-    enterArrayAccess(name.toString(), index)
-  }
-
-  private def leaveTempBufferAccess() : Unit = {
-    leaveArrayAccess()
-  }
-
-  private def enterLoopCarriedCSBufferAccess(buffer : IR_IV_LoopCarriedCSBuffer, index : IR_ExpressionIndex) : Unit = {
-    enterArrayAccess(buffer.resolveName(), index, true)
-  }
-
-  private def leaveLoopCarriedCSBufferAccess() : Unit = {
-    leaveArrayAccess()
   }
 
   private def enterDecl(decl : IR_VariableDeclaration) : Unit = {
