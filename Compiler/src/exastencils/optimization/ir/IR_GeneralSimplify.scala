@@ -112,7 +112,9 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case IR_IfCondition(cond, ListBuffer(IR_Scope(trueBody)), falseBody) => IR_IfCondition(cond, trueBody, falseBody)
     case IR_IfCondition(cond, trueBody, ListBuffer(IR_Scope(falseBody))) => IR_IfCondition(cond, trueBody, falseBody)
     case l @ IR_ForLoop(beg, end, inc, ListBuffer(IR_Scope(body)), red)  =>
-      l.body = body; l // preserve ForLoopStatement instance to ensure all traits are still present
+      l.body = body; l // preserve original node instance to ensure all traits and annotations are still present
+    case l @ IR_LoopOverDimensions(_, _, ListBuffer(IR_Scope(body)), _, _, _, _) =>
+      l.body = body; l // preserve original node instance to ensure all traits and annotations are still present
 
     case IR_EqEq(IR_IntegerConstant(left), IR_IntegerConstant(right))         => IR_BooleanConstant(left == right)
     case IR_Neq(IR_IntegerConstant(left), IR_IntegerConstant(right))          => IR_BooleanConstant(left != right)
