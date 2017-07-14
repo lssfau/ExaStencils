@@ -1,6 +1,7 @@
 package exastencils.base.ir
 
 import exastencils.config.Knowledge
+import exastencils.polyhedron.IR_PolyScalarAccessLike
 import exastencils.prettyprinting.PpStream
 
 trait IR_ConstantExpression extends IR_Expression
@@ -11,8 +12,9 @@ trait IR_Number extends IR_ConstantExpression {
 
 /// strings
 
-case class IR_StringLiteral(var value : String) extends IR_Expression {
+case class IR_StringLiteral(var value : String) extends IR_Expression with IR_PolyScalarAccessLike {
   override def datatype = IR_UnknownDatatype
+  override def uniqueID : String = value
   override def prettyprint(out : PpStream) : Unit = out << value
   override def toString : String = value
 }

@@ -482,12 +482,16 @@ class IR_PolyExtractor extends Collector {
           case a : IR_Assignment =>
             enterAssign(a)
 
-          case IR_StringLiteral(varName) =>
-            enterScalarAccess(varName)
-
-          case IR_VariableAccess(varName, ty) =>
-            ty.annotate(SKIP_ANNOT)
-            enterScalarAccess(varName)
+          case acc : IR_PolyScalarAccessLike =>
+            val id = acc.uniqueID
+            if (id == null)
+              throw new ExtractionException("method uniqueID returned null for object " + acc)
+            for (att <- acc.productIterator)
+              att match {
+                case n : Annotatable => n.annotate(SKIP_ANNOT)
+                case _               =>
+              }
+            enterScalarAccess(id)
 
           case acc : IR_PolyArrayAccessLike =>
             val id = acc.uniqueID
@@ -503,14 +507,6 @@ class IR_PolyExtractor extends Collector {
           case d : IR_VariableDeclaration =>
             d.datatype.annotate(SKIP_ANNOT)
             enterDecl(d)
-
-          case pos @ IR_IV_FragmentPositionBegin(_, frgIdx) =>
-            frgIdx.annotate(SKIP_ANNOT)
-            enterScalarAccess(pos.resolveName())
-
-          case pos @ IR_IV_FragmentPositionEnd(_, frgIdx) =>
-            frgIdx.annotate(SKIP_ANNOT)
-            enterScalarAccess(pos.resolveName())
 
           // ignore
           case IR_FunctionCall(function, _) if allowedFunctions.contains(function.name) =>
@@ -569,8 +565,7 @@ class IR_PolyExtractor extends Collector {
         case l : IR_LoopOverDimensions        => leaveLoop(l)
         case c : IR_IfCondition               => leaveCondition(c)
         case _ : IR_Assignment                => leaveAssign()
-        case _ : IR_StringLiteral             => leaveScalarAccess()
-        case _ : IR_VariableAccess            => leaveScalarAccess()
+        case _ : IR_PolyScalarAccessLike      => leaveScalarAccess()
         case _ : IR_PolyArrayAccessLike       => leaveArrayAccess()
         case _ : IR_VariableDeclaration       => leaveDecl()
         case _                                =>
