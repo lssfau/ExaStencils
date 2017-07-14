@@ -3,12 +3,14 @@ package exastencils.optimization.ir
 import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Queue }
 
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_HigherDimensionalDatatype
+import exastencils.baseExt.ir.IR_MatrixDatatype
+import exastencils.baseExt.ir.IR_VectorDatatype
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.logger.Logger
-import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
 import exastencils.simd._
 
@@ -441,13 +443,24 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           ctx.addStmt(ctx.storesTmp)
         ctx.storesTmp = null
 
-      case IR_VariableDeclaration(dataType, name, Some(init)) =>
+      case decl @ IR_VariableDeclaration(IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype, name, Some(init)) =>
         ctx.addStmt(IR_Comment(stmt.prettyprint()))
         val initWrap = IR_ExpressionStatement(Duplicate(init))
         IR_GeneralSimplify.doUntilDoneStandalone(initWrap)
         val initVec = vectorizeExpr(initWrap.expression, ctx.setLoad())
-        val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, dataType))
+        val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, decl.datatype))
         ctx.addStmt(new IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(initVec)))
+
+      case IR_VariableDeclaration(dt : IR_HigherDimensionalDatatype, name, None) =>
+        ctx.addStmt(IR_Comment(stmt.prettyprint()))
+        val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, dt))
+        val newDt =
+          dt match {
+            case IR_MatrixDatatype(IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype, m, n) => IR_MatrixDatatype(SIMD_RealDatatype, m, n)
+            case IR_VectorDatatype(IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype, m, n) => IR_VectorDatatype(SIMD_RealDatatype, m, n)
+            case _                                                                               => throw new VectorizationException("cannot deal with datatype of variable declaration: " + dt + "; " + stmt.prettyprint())
+          }
+        ctx.addStmt(new IR_VariableDeclaration(newDt, vecTmp, None))
 
       case IR_IfCondition(cond, trueBody, falseBody) if stmt.hasAnnotation(IR_Vectorization.COND_VECTABLE) =>
         if (stmt.hasAnnotation(IR_Vectorization.COND_IGN_INCR))
