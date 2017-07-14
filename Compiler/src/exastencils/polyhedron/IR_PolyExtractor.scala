@@ -4,15 +4,12 @@ import scala.collection.mutable.{ ArrayBuffer, ArrayStack, HashSet, ListBuffer, 
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
-import exastencils.communication.ir._
 import exastencils.config._
 import exastencils.core.collectors._
 import exastencils.datastructures._
-import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.logger._
-import exastencils.optimization.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_MathFunctions
 
@@ -498,8 +495,8 @@ class IR_PolyExtractor extends Collector {
               throw new ExtractionException("method uniqueID returned null for object " + acc)
             for (att <- acc.productIterator)
               att match {
-                case n : IR_Node => n.annotate(SKIP_ANNOT)
-                case _           =>
+                case n : Annotatable => n.annotate(SKIP_ANNOT)
+                case _               =>
               }
             enterArrayAccess(id, acc.index)
 
