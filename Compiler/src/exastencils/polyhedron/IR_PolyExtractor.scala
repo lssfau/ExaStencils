@@ -852,7 +852,10 @@ class IR_PolyExtractor extends Collector {
       enterStmt(stmt) // as a declaration is also a statement
       decl.initialValue.get.annotate(Access.ANNOT, Access.READ)
       isWrite = true
-      enterScalarAccess(decl.name, true)
+      if (decl.datatype.dimensionality > 0)
+        throw new ExtractionException("initialization of a local non-scalar variable not supported (yet)")
+      else
+        enterScalarAccess(decl.name, true)
       isWrite = false
     }
 
