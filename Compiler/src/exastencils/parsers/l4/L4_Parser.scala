@@ -355,7 +355,7 @@ object L4_Parser extends ExaParser with PackratParsers {
     ||| "previousSlot" ^^ (_ => L4_PreviousSlot)
     ||| integerLit ^^ (i => L4_ConstantSlot(i)))
 
-  lazy val advanceStatement = locationize("advance" ~> leveledAccess ^^ (a => L4_AdvanceSlot(a)))
+  lazy val advanceStatement = locationize("advance" ~> genericAccess ^^ (a => L4_AdvanceSlot(a)))
 
   lazy val flatAccess = locationize(ident
     ^^ (id => L4_UnresolvedAccess(id)))

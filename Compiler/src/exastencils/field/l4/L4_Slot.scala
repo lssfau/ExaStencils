@@ -61,6 +61,8 @@ case class L4_AdvanceSlot(var field : L4_Access) extends L4_Statement {
   }
 
   override def progress = {
+    // TODO: check for unsupported modifiers (offset, etc)
+
     IR_AdvanceSlot(IR_IV_ActiveSlot(field.asInstanceOf[L4_FieldAccess].target.getProgressedObj(),
       IR_LoopOverFragments.defIt))
   }
