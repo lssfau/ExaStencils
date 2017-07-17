@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.config.Knowledge
 import exastencils.core._
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir._
 import exastencils.logger.Logger
 
 /// IR_LocalSchurCompl
@@ -31,11 +31,11 @@ object IR_LocalSchurCompl {
   }
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      relax : Option[IR_Expression]) = {
+      jacobiType : Boolean, relax : Option[IR_Expression]) = {
     // TODO: currently assumes special case of 2D/3D velocity-pressure coupling
     Knowledge.dimensionality match {
-      case 2 => invert2D(AVals, fVals, unknowns, relax)
-      case 3 => invert3D(AVals, fVals, unknowns, relax)
+      case 2 => invert2D(AVals, fVals, unknowns, jacobiType, relax)
+      case 3 => invert3D(AVals, fVals, unknowns, jacobiType, relax)
     }
   }
 
@@ -86,7 +86,7 @@ object IR_LocalSchurCompl {
   }
 
   def invert2D(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
+      jacobiType : Boolean, relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
 
     val stmts = ListBuffer[IR_Statement]()
 
@@ -206,20 +206,24 @@ object IR_LocalSchurCompl {
     stmts += IR_Assignment(U2, A22Inv * (F2 - B2 * V))
 
     // write back results
-    for (i <- unknowns.indices)
+    for (i <- unknowns.indices) {
+      val dest = Duplicate(unknowns(i))
+      if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
+
       stmts += IR_IfCondition( // don't write back result on boundaries
         IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
         if (relax.isEmpty)
-          IR_Assignment(Duplicate(unknowns(i)), vecComponentAccess(u(i), i % 2))
+          IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
         else
-          IR_Assignment(Duplicate(unknowns(i)), Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
+          IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
       )
+    }
 
     stmts
   }
 
   def invert3D(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
+      jacobiType : Boolean, relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
 
     val stmts = ListBuffer[IR_Statement]()
 
@@ -363,14 +367,18 @@ object IR_LocalSchurCompl {
     stmts += IR_Assignment(U3, A33Inv * (F3 - B3 * V))
 
     // write back results
-    for (i <- unknowns.indices)
+    for (i <- unknowns.indices) {
+      val dest = Duplicate(unknowns(i))
+      if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
+
       stmts += IR_IfCondition( // don't write back result on boundaries
         IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
         if (relax.isEmpty)
-          IR_Assignment(Duplicate(unknowns(i)), vecComponentAccess(u(i), i % 2))
+          IR_Assignment(dest, vecComponentAccess(u(i), i % 2))
         else
-          IR_Assignment(Duplicate(unknowns(i)), Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
+          IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u(i), i % 2))
       )
+    }
 
     stmts
   }

@@ -65,7 +65,7 @@ class L4_Lexer extends ExaLexer {
   reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")
 
   // solve keywords
-  reserved += ("solve", "locally", "relax")
+  reserved += ("solve", "locally", "jacobi", "relax")
 
   // math keywords
   //  reserved += ()
