@@ -27,12 +27,18 @@ object L2_Lexer extends ExaLexer {
   // base => L2_LevelSpecifications
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
+  // base => L2_Declaration
+  reserved += ("Var", "Variable", "Val", "Value")
+
   // baseExt => L2_FieldIteratorAccess
   reserved += ("i0", "i1", "i2", "x", "y", "z")
 
   // baseExt => L2_FieldDeclarations
   reserved += ("Field", "with", "on", "of", "boundary")
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
+
+  // baseExt => L2_GlobalSection
+  reserved += ("Globals")
 
   // baseExt => L2_OperatorDeclarations
   reserved += ("Operator", "from", "default", "restriction", "prolongation", "on", "with")

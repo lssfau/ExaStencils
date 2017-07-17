@@ -50,6 +50,7 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| stencilDeclaration
       ||| stencilTemplateDeclaration
       ||| stencilFromDefault
+      ||| globals
       ||| function
       ||| functionTemplate
       ||| functionInstantiation
@@ -308,6 +309,13 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val functionInstArgument = binaryexpression ||| booleanexpression
   lazy val functionInstantiation = locationize(((("Inst" ||| "Instantiate") ~> ident) ~ ("<" ~> functionInstArgList.? <~ ">") ~ ("as" ~> ident) ~ levelDecl.?)
     ^^ { case template ~ args ~ target ~ targetLevel => L3_FunctionInstantiation(template, args.getOrElse(List()), target, targetLevel) })
+
+  // ######################################
+  // ##### L3_GlobalSection
+  // ######################################
+
+  lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L3_GlobalSection(_) })
+  lazy val globalEntry : PackratParser[L3_Statement] = locationize(valueDeclaration ||| variableDeclaration)
 
   // ######################################
   // ##### L3_HigherOrderDatatype

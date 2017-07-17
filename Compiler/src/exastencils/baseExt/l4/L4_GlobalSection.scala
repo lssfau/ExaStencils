@@ -20,9 +20,8 @@ object L4_GlobalSection {
   def apply(mixedDeclarations : List[L4_Statement]) : L4_GlobalSection = apply(mixedDeclarations.to[ListBuffer])
 
   def apply(mixedDeclarations : ListBuffer[L4_Statement]) = {
-    val valueDeclarations = mixedDeclarations.filter(_.isInstanceOf[L4_ValueDeclaration]).map(_.asInstanceOf[L4_ValueDeclaration])
-    val variableDeclarations = mixedDeclarations.filter(_.isInstanceOf[L4_VariableDeclaration]).map(_.asInstanceOf[L4_VariableDeclaration])
-    new L4_GlobalSection(valueDeclarations, variableDeclarations)
+    val (valDecl, varDecl) = mixedDeclarations.partition(_.isInstanceOf[L4_ValueDeclaration])
+    new L4_GlobalSection(valDecl.map(_.asInstanceOf[L4_ValueDeclaration]), varDecl.map(_.asInstanceOf[L4_VariableDeclaration]))
   }
 }
 
@@ -46,10 +45,13 @@ case class L4_GlobalSection(
 object L4_UnifyGlobalSections extends DefaultStrategy("Unify all global sections and ensure at least one section exists") {
   var unifiedGlobalSection = L4_GlobalSection()
 
-  // FIXME: use transformation below instead of overriding apply -> requires ability to match root node
   override def apply(applyAtNode : Option[Node]) = {
+    // collect information
     super.apply(applyAtNode)
+
+    // add collected info to root
     ExaRootNode.l4_root.nodes += unifiedGlobalSection
+
     // reset unifiedGlobalSection for potential subsequent runs
     unifiedGlobalSection = L4_GlobalSection()
   }
@@ -60,14 +62,6 @@ object L4_UnifyGlobalSections extends DefaultStrategy("Unify all global sections
       unifiedGlobalSection.variableDeclarations ++= globals.variableDeclarations
       None
   })
-
-  //  this += new Transformation("Write back unified global section", {
-  //    case root : Root =>
-  //      root.otherNodes += unifiedGlobalSection
-  //      // reset unifiedGlobalSection for potential subsequent runs
-  //      unifiedGlobalSection = L4_GlobalSection()
-  //      root
-  //  })
 }
 
 /// L4_InlineGlobalValueDeclarations

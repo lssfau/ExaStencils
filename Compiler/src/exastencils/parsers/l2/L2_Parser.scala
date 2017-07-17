@@ -49,7 +49,9 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| domainDeclaration
       ||| fieldDeclaration
       ||| stencilDeclaration
-      ||| stencilTemplateDeclaration).* ^^ { L2_Root(_) }
+      ||| stencilTemplateDeclaration
+      ||| globals
+    ).* ^^ { L2_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
 
@@ -133,6 +135,18 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| ("Real" ||| "real") ^^ { _ => L2_RealDatatype }
       ||| ("Float" ||| "float") ^^ { _ => L2_FloatDatatype }
       ||| ("Double" ||| "double") ^^ { _ => L2_DoubleDatatype })
+
+  // ######################################
+  // ##### L2_Declaration
+  // ######################################
+
+  lazy val localDeclaration = variableDeclaration ||| valueDeclaration
+
+  lazy val variableDeclaration = locationize((("Var" ||| "Variable") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ dt ~ exp => L2_VariableDeclaration(id, dt, exp) })
+
+  lazy val valueDeclaration = locationize((("Val" ||| "Value") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
+    ^^ { case id ~ dt ~ exp => L2_ValueDeclaration(id, dt, exp) })
 
   // ######################################
   // ##### L2_Function
@@ -220,6 +234,13 @@ object L2_Parser extends ExaParser with PackratParsers {
     locationize(("i0" | "i1" | "i2") ^^ { id => L2_FieldIteratorAccess(id) })
       ||| locationize(("x" | "y" | "z") ^^ { id => L2_FieldIteratorAccess(id) })
     )
+
+  // ######################################
+  // ##### L2_GlobalSection
+  // ######################################
+
+  lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L2_GlobalSection(_) })
+  lazy val globalEntry : PackratParser[L2_Statement] = locationize(valueDeclaration ||| variableDeclaration)
 
   // ######################################
   // ##### L2_HigherOrderDatatype

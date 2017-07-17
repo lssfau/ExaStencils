@@ -6,6 +6,7 @@ import exastencils.base.l2._
 import exastencils.base.l3._
 import exastencils.base.l4._
 import exastencils.baseExt.ir._
+import exastencils.baseExt.l2.L2_UnifyGlobalSections
 import exastencils.baseExt.l3._
 import exastencils.baseExt.l4._
 import exastencils.boundary.ir.L4_ResolveBoundaryHandlingFunctions
@@ -203,6 +204,8 @@ object Main {
       ExaRootNode.l2_root = L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node))
       ExaRootNode.l2_root.flatten()
 
+      L2_UnifyGlobalSections.apply()
+
       // pre-process level specifications in declarations
       L2_ResolveLevelSpecifications.apply()
 
@@ -248,6 +251,8 @@ object Main {
     if (Knowledge.experimental_layerExtension) {
       ExaRootNode.l3_root = L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node))
       ExaRootNode.l3_root.flatten()
+
+      L3_UnifyGlobalSections.apply()
 
       // pre-process level specifications in declarations
       L3_ResolveLevelSpecifications.apply()

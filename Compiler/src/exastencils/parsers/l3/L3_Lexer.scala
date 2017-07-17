@@ -30,7 +30,7 @@ object L3_Lexer extends ExaLexer {
   // baseExt => L3_Conditional
   reserved += ("if", "else", "and", "or")
 
-  // baseExt => L3_LocalDeclarations
+  // base => L3_Declaration
   reserved += ("Var", "Variable", "Val", "Value")
 
   // baseExt => L3_Loops
@@ -47,6 +47,9 @@ object L3_Lexer extends ExaLexer {
 
   // baseExt => L3_FunctionInstantiation
   reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")
+
+  // baseExt => L3_GlobalSection
+  reserved += ("Globals")
 
   // baseExt => L3_OperatorDeclarations
   reserved += ("Operator", "from", "default", "restriction", "prolongation", "on", "with")
