@@ -132,12 +132,9 @@ case class IR_LocalSolve(
     var zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : IR_Expression)
     zeroEqs = zeroEqs.map(IR_SimplifyExpression.simplifyFloatingExpr)
 
-    // flatten computations to facilitate further processing
-    // zeroEqs.foreach(eq => IR_FlattenComputation.doUntilDoneStandalone(IR_ExpressionStatement(eq)))
-    // for (_ <- 0 until 10)
-    // zeroEqs.foreach(eq => IR_FlattenComputation.applyStandalone(IR_ExpressionStatement(eq)))
-    //IR_FlattenComputation.applyStandalone(zeroEqs)
+    // flatten computations to facilitate further processing - also flatten unknowns for comparability
     IR_FlattenComputation.doUntilDoneStandalone(zeroEqs)
+    IR_FlattenComputation.doUntilDoneStandalone(unknowns)
 
     // process single expressions (parts of the equations) - build matrix and rhs
     for (eqNumber <- zeroEqs.indices)
