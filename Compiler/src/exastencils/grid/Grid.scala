@@ -1,5 +1,6 @@
 package exastencils.grid
 
+import exastencils.datastructures.Node
 import exastencils.grid.ir._
 
 /// Grid
@@ -11,13 +12,13 @@ object Grid {
   def getEvaluator = GridEvaluator.getEvaluator
 
   // strategies
-  def applyStrategies() = {
-    IR_PrepareShiftedEvaluationFunctions.apply() // workaround
+  def applyStrategies(node : Option[Node] = None) = {
+    IR_PrepareShiftedEvaluationFunctions.apply(node) // workaround
 
-    IR_ResolveEvaluateOnGrid.apply()
-    IR_ResolveIntegrateOnGrid.apply()
-    IR_ExpandEvaluationExpressions.apply()
+    IR_ResolveEvaluateOnGrid.apply(node)
+    IR_ResolveIntegrateOnGrid.apply(node)
+    IR_ExpandEvaluationExpressions.apply(node)
 
-    IR_ResolveVirtualFieldAccess.apply()
+    IR_ResolveVirtualFieldAccess.apply(node)
   }
 }
