@@ -25,14 +25,14 @@ case class IR_Stencil(
   def numCases(d : Int) : Int = if (colStride(d) >= 1) 1/*colStride(d).toInt*/ else (1.0 / colStride(d)).toInt
 
   def assembleOffsetMap() : Map[IR_Expression, ListBuffer[IR_ConstIndex]] = {
-    val map = HashMap[IR_Expression, ListBuffer[IR_ConstIndex]]().withDefaultValue(ListBuffer())
+    val map = HashMap[IR_Expression, ListBuffer[IR_ConstIndex]]()
 
     assembleCases().foreach(c => {
       val cond = (0 until numDims).map(d => IR_EqEq(c(d), IR_Modulo(IR_FieldIteratorAccess(d), numCases(d)))).reduce(IR_AndAnd)
       val offsets = Duplicate(entries).filter(entry => {
         for (d <- 0 until numDims) {
           IR_ReplaceExpressions.toReplace = entry.row.indices(d)
-          IR_ReplaceExpressions.replacement = c(d)
+          IR_ReplaceExpressions.replacement = c(d).toDouble
           IR_ReplaceExpressions.applyStandalone(entry.col)
         }
 
@@ -42,13 +42,14 @@ case class IR_Stencil(
         }).reduce(_ && _)
       })
 
+      if (!map.contains(cond)) map += (cond -> ListBuffer())
       map(cond) ++= offsets.map(_.asStencilOffsetEntry.offset)
     })
 
     map
   }
 
-  def getReach(dim : Int) = assembleOffsetMap().values.map(_.map(_ (dim)).max).max
+  def getReach(dim : Int) = assembleOffsetMap().values.map(_.map(_ (dim).abs).max).max
 
   def findStencilEntry(offset : IR_ConstIndex) : Option[IR_StencilEntry] = {
     val index = findStencilEntryIndex(offset)
@@ -72,30 +73,47 @@ case class IR_Stencil(
     }
   }
 
-  def printStencilToStr() : String = {
-    ???
-//    var s : String = ""
-//
-//    s += s"Stencil $name:\n\n"
-//
-//    for (z <- -getReach(2) to getReach(2)) {
-//      for (y <- -getReach(1) to getReach(1)) {
-//        for (x <- -getReach(0) to getReach(0))
-//          s += "\t" +
-//            entries.find(
-//              e => e.offset match {
-//                case index : IR_ExpressionIndex if index.length >= 3 => (
-//                  (index(0) match { case IR_IntegerConstant(xOff) if x == xOff => true; case _ => false })
-//                    && (index(1) match { case IR_IntegerConstant(yOff) if y == yOff => true; case _ => false })
-//                    && (index(2) match { case IR_IntegerConstant(zOff) if z == zOff => true; case _ => false }))
-//                case _                                               => false
-//              }).getOrElse(IR_StencilEntry(IR_ExpressionIndex(), 0)).coefficient.prettyprint
-//        s += "\n"
-//      }
-//      s += "\n\n"
-//    }
-//
-//    s
+  def printStencilToStr(noStructure : Boolean = false) : String = {
+    var s : String = s"Stencil $name@$level:\n\n"
+
+    if ((2 == numDims || 3 == numDims) && !colStride.exists(_ != 1) && !noStructure) {
+      // special handling for 2D and 3D intra-level stencils
+
+      val entriesAsOffset = entries.map(Duplicate(_).asStencilOffsetEntry)
+
+      def printEntry(it : Array[Int]) = {
+        s += "\t" +
+          entriesAsOffset.find(
+            e => e.offset match {
+              case index if index.length >= numDims =>
+                (0 until numDims).map(d => index(d) == it(d)).reduce(_ && _)
+              case _                                => false
+            }).getOrElse(IR_StencilOffsetEntry(IR_ConstIndex(), 0)).coefficient.prettyprint
+      }
+
+      numDims match {
+        case 2 =>
+          for (y <- getReach(1) to -getReach(1) by -1) {
+            for (x <- -getReach(0) to getReach(0))
+              printEntry(Array(x, y))
+            s += "\n"
+          }
+        case 3 =>
+          for (z <- -getReach(2) to getReach(2)) {
+            for (y <- getReach(1) to -getReach(1) by -1) {
+              for (x <- -getReach(0) to getReach(0))
+                printEntry(Array(x, y, z))
+              s += "\n"
+            }
+            s += "\n\n"
+          }
+      }
+    } else {
+      // fallback
+      s += entries.map(_.prettyprint()).mkString("\n")
+    }
+
+    s
   }
 
   def squash() = {
