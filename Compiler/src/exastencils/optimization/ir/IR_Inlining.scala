@@ -7,9 +7,9 @@ import java.util.IdentityHashMap
 import exastencils.base.ir._
 import exastencils.config._
 import exastencils.core._
-import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.logger._
+import exastencils.util.ir.IR_StackCollector
 
 private final class Renamer(reserved : Set[String], inUse : Set[String]) {
   private val parTempl : String = "_i%02d_%s"
@@ -199,7 +199,7 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
     true
   }
 
-  private final class Analyzer extends StackCollector {
+  private final class Analyzer extends IR_StackCollector {
 
     private[IR_Inlining] val functions = Map[String, IR_Function]()
     private[IR_Inlining] val flatFunctionBody = Map[String, Buffer[IR_Statement]]((null, ArrayBuffer()))

@@ -6,13 +6,13 @@ import exastencils.base.ir._
 import exastencils.communication.ir.IR_Communicate
 import exastencils.config._
 import exastencils.core.Duplicate
-import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.field.ir.IR_Field
 import exastencils.logger.Logger
 import exastencils.parallelization.ir._
+import exastencils.util.ir.IR_StackCollector
 
 /// IR_RegionSpecification
 
@@ -42,7 +42,7 @@ case class IR_LoopOverPoints(
     var parallelization : IR_ParallelizationInfo = IR_ParallelizationInfo(),
     var condition : Option[IR_Expression] = None) extends IR_Statement with IR_SpecialExpandable with IR_HasParallelizationInfo {
 
-  def expandSpecial(collector : StackCollector) : Output[StatementList] = {
+  def expandSpecial(collector : IR_StackCollector) : Output[StatementList] = {
     val insideFragLoop = collector.stack.exists(_.isInstanceOf[IR_LoopOverFragments])
     val innerLoop =
       if (Knowledge.experimental_splitLoopsForAsyncComm)
@@ -68,7 +68,7 @@ case class IR_LoopOverPoints(
 /// IR_ResolveLoopOverPoints
 
 object IR_ResolveLoopOverPoints extends DefaultStrategy("Resolve LoopOverPoints nodes") {
-  val collector = new StackCollector
+  val collector = new IR_StackCollector
   this.register(collector)
 
   this += new Transformation("Resolve", {

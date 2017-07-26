@@ -3,9 +3,7 @@ package exastencils.optimization.ir
 import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Queue }
 
 import exastencils.base.ir._
-import exastencils.baseExt.ir.IR_HigherDimensionalDatatype
-import exastencils.baseExt.ir.IR_MatrixDatatype
-import exastencils.baseExt.ir.IR_VectorDatatype
+import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
@@ -220,7 +218,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
     }
   }
 
-  private def containsVarAcc(node : Node, varName : String) : Boolean = {
+  private def containsVarAcc(node : IR_Node, varName : String) : Boolean = {
     var found = false
     val search = new QuietDefaultStrategy("Find VariableAccess...")
     search += new Transformation("seaching...", {

@@ -4,12 +4,12 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.operator.ir._
+import exastencils.util.ir.IR_StackCollector
 
 /// IR_StencilFunctionReference
 
@@ -18,7 +18,7 @@ case class IR_StencilFunctionReference(var name : String, var returnType : IR_Da
 /// IR_ResolveStencilFunction
 
 object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functions") {
-  var collector = new StackCollector
+  var collector = new IR_StackCollector
   this.register(collector)
 
   this += new Transformation("Resolve", {

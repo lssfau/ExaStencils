@@ -9,18 +9,18 @@ import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.api.mpi._
+import exastencils.util.ir.IR_StackCollector
 
 /// HACK_IR_ResolveSpecialFunctionsAndConstants
 
 // TODO: split according to functionality and move to appropriate packages
 object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpecialFunctionsAndConstants") {
-  var collector = new StackCollector
+  var collector = new IR_StackCollector
   this.register(collector)
 
   def calculateDeterminant(m : IR_MatrixExpression) : IR_Expression = {

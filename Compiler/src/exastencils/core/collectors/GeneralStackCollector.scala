@@ -1,11 +1,9 @@
 package exastencils.core.collectors
 
-import scala.collection.mutable.Stack
-
 import exastencils.datastructures.Node
 import exastencils.logger._
 
-class StackCollector extends Collector {
+class GeneralStackCollector extends Collector {
   var stack : List[Node] = Nil
 
   def isEmpty : Boolean = { stack.isEmpty }

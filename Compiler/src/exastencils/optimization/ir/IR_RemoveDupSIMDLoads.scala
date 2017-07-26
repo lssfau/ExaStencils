@@ -3,14 +3,13 @@ package exastencils.optimization.ir
 import scala.collection.mutable._
 
 import exastencils.base.ir._
-import exastencils.config.Knowledge
-import exastencils.config.Settings
+import exastencils.config._
 import exastencils.core._
-import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
 import exastencils.simd._
+import exastencils.util.ir.IR_StackCollector
 
 object IR_RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads") {
 
@@ -86,7 +85,7 @@ object IR_RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads
   }
 }
 
-private[optimization] final class Analyze extends StackCollector {
+private[optimization] final class Analyze extends IR_StackCollector {
 
   import IR_RemoveDupSIMDLoads._
 

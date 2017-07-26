@@ -11,16 +11,14 @@ import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_TempBufferAccess
 import exastencils.config._
 import exastencils.core._
-import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
 import exastencils.logger.Logger
-import exastencils.optimization.ir._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.polyhedron.IR_PolyArrayAccessLike
 import exastencils.prettyprinting._
-import exastencils.util.ir.IR_Print
+import exastencils.util.ir._
 
 object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpression elimination") {
   private final val REPLACE_ANNOT : String = "CSE_repl"
@@ -80,7 +78,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     this.commit()
   }
 
-  private def inlineDecls(parent : Node, body : ListBuffer[IR_Statement]) : Unit = {
+  private def inlineDecls(parent : IR_Node, body : ListBuffer[IR_Statement]) : Unit = {
     val accesses = new HashMap[String, (IR_VariableDeclaration, Buffer[IR_Expression])]()
     val usageIn = new HashMap[String, ListBuffer[String]]().withDefault(_ => new ListBuffer[String]())
     var assignTo : String = null
@@ -140,7 +138,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
 
     this.execute(new Transformation("inline removable declarations", {
       case n if n.removeAnnotation(REMOVE_ANNOT).isDefined => List()
-      case n if n.hasAnnotation(REPLACE_ANNOT)             => Duplicate(n.getAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]) // duplicate here
+      case n if n.hasAnnotation(REPLACE_ANNOT)             => Duplicate(n.getAnnotation(REPLACE_ANNOT).get.asInstanceOf[IR_Node]) // duplicate here
     }), Some(parent)) // modifications in a list result in a new list created, so work with original parent and not with wrapped body
 
     IR_SimplifyFloatExpressions.applyStandalone(parent)
@@ -160,7 +158,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
       case d : IR_Datatype   => d
       case IR_NullStatement  => IR_NullStatement
       case IR_NullExpression => IR_NullExpression
-      case node : Node       => // only enumerate subtypes of Node, all others are irrelevant
+      case node : IR_Node    => // only enumerate subtypes of Node, all others are irrelevant
         node.annotate(ID_ANNOT, maxID)
         maxID += 1
         node
@@ -193,12 +191,12 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
       this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(currItBody))
       this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(prevItBody))
       this.unregister(coll)
-      val commonSubs : Map[Node, Subexpression] = coll.commonSubs
+      val commonSubs : Map[IR_Node, Subexpression] = coll.commonSubs
       commonSubs.retain {
         (n, cs) =>
           cs != null &&
             (cs.getPositions().view.map({
-              n : List[Node] => n.last.asInstanceOf[Annotatable].hasAnnotation(ID_ANNOT)
+              n : List[IR_Node] => n.last.asInstanceOf[Annotatable].hasAnnotation(ID_ANNOT)
             }).toSet.size == 2)
       }
 
@@ -209,7 +207,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
           case (_, cs) =>
             cs != null && cs.prio >= 10 && // common subexpression must be large enough to justify the additional memory requirements
               (cs.getPositions().view.map({
-                n : List[Node] => n.last.asInstanceOf[Annotatable].hasAnnotation(ID_ANNOT)
+                n : List[IR_Node] => n.last.asInstanceOf[Annotatable].hasAnnotation(ID_ANNOT)
               }).toSet.size == 2)
         }.map {
           case (_, cs) => (-(cs.prio + math.min(cs.prio, cs.prioBonus * cs.getPositions().size)), cs.ppString, cs)
@@ -308,7 +306,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     njuScopes
   }
 
-  private def collectIDs(node : Node, bs : BitSet) : Boolean = {
+  private def collectIDs(node : IR_Node, bs : BitSet) : Boolean = {
     var disjunct : Boolean = true
     this.execute(new Transformation("collect IDs", {
       case n =>
@@ -326,7 +324,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
       this.register(coll)
       this.execute(new Transformation("collect base common subexpressions", PartialFunction.empty), Some(IR_Scope(body)))
       this.unregister(coll)
-      val commonSubs : Map[Node, Subexpression] = coll.commonSubs
+      val commonSubs : Map[IR_Node, Subexpression] = coll.commonSubs
       commonSubs.retain { (_, cs) => cs != null && cs.getPositions().size > 1 }
       repeat = false
       if (commonSubs.nonEmpty) {
@@ -336,11 +334,11 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     } while (repeat)
   }
 
-  private def findCommonSubs(curFunc : String, commonSubs : Map[Node, Subexpression], orderMap : Map[Any, Int]) : Unit = {
+  private def findCommonSubs(curFunc : String, commonSubs : Map[IR_Node, Subexpression], orderMap : Map[Any, Int]) : Unit = {
     val processedChildren = new java.util.IdentityHashMap[Any, Null]()
-    var nju : ArrayBuffer[List[Node]] = commonSubs.view.flatMap { x => x._2.getPositions() }.to[ArrayBuffer]
-    val njuCommSubs = new HashMap[Node, Subexpression]()
-    def registerCS(node : IR_Expression with Product, prio : Int, prioBonus : Int, pos : List[Node], recurse : Boolean, children : Seq[Any]) : Unit = {
+    var nju : ArrayBuffer[List[IR_Node]] = commonSubs.view.flatMap { x => x._2.getPositions() }.to[ArrayBuffer]
+    val njuCommSubs = new HashMap[IR_Node, Subexpression]()
+    def registerCS(node : IR_Expression with Product, prio : Int, prioBonus : Int, pos : List[IR_Node], recurse : Boolean, children : Seq[Any]) : Unit = {
       if (njuCommSubs.getOrElseUpdate(node, new Subexpression(curFunc, node, prio, prioBonus)).addPosition(pos)) {
         for (child <- children)
           processedChildren.put(child, null)
@@ -349,7 +347,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
       }
     }
 
-    var todo : ArrayBuffer[List[Node]] = new ArrayBuffer[List[Node]]()
+    var todo : ArrayBuffer[List[IR_Node]] = new ArrayBuffer[List[IR_Node]]()
     while (nju.nonEmpty) {
       val tmp = nju
       nju = todo
@@ -376,7 +374,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
               val nrBuffs = buffs.length
 
               if (nrProds <= 2 && nrBuffs == 0) {
-                val childCSes = prods.view.collect({ case n : Node => commonSubs.get(n) })
+                val childCSes = prods.view.collect({ case n : IR_Node => commonSubs.get(n) })
                 if (childCSes.forall(_.isDefined))
                   registerCS(parent, childCSes.map(_.get.prio).sum + 1, 1, pos, true, prods)
 
@@ -384,9 +382,9 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
                 //   this must be in sync with Subexpression.getRepls below
               } else if (nrProds == 0 && nrBuffs == 1) {
                 val dupParents : Array[(IR_Expression with Product, Buffer[PrettyPrintable])] =
-                  duplicateAndFill(parent, { case n : Node => commonSubs.contains(n); case _ => false }, orderMap)
+                  duplicateAndFill(parent, { case n : IR_Node => commonSubs.contains(n); case _ => false }, orderMap)
                 for ((dupPar, dupParChildren) <- dupParents)
-                  registerCS(dupPar, dupParChildren.view.map { case x : Node => commonSubs(x).prio }.sum + 1, 1, pos, dupPar eq parent, dupParChildren)
+                  registerCS(dupPar, dupParChildren.view.map { case x : IR_Node => commonSubs(x).prio }.sum + 1, 1, pos, dupPar eq parent, dupParChildren)
 
               } else
                 Logger.warn("  wat?! unexpected number/type of children:  " + par)
@@ -403,7 +401,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     }
   }
 
-  private def updateAST(body : ListBuffer[IR_Statement], commSubs : Map[Node, Subexpression]) : Boolean = {
+  private def updateAST(body : ListBuffer[IR_Statement], commSubs : Map[IR_Node, Subexpression]) : Boolean = {
     val commSubSorted = commSubs.toList.sortBy {
       case (_, cs) => (-cs.prio, -cs.getPositions().size, cs.ppString)
     }
@@ -427,7 +425,7 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     }
     if (repl)
       this.execute(new Transformation("replace common subexpressions", {
-        case x if x.hasAnnotation(REPLACE_ANNOT) => x.removeAnnotation(REPLACE_ANNOT).get.asInstanceOf[Node]
+        case x if x.hasAnnotation(REPLACE_ANNOT) => x.removeAnnotation(REPLACE_ANNOT).get.asInstanceOf[IR_Node]
       }), Some(IR_Scope(body)))
 
     // add declaration after transformation to prevent modifying it
@@ -527,12 +525,12 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
   }
 }
 
-private class CollectBaseCSes(curFunc : String) extends StackCollector {
+private class CollectBaseCSes(curFunc : String) extends IR_StackCollector {
 
   private final val SKIP_ANNOT : String = "CSE_skip"
   private var skip : Boolean = false
 
-  val commonSubs = new HashMap[Node, Subexpression]()
+  val commonSubs = new HashMap[IR_Node, Subexpression]()
 
   override def enter(node : Node) : Unit = {
     super.enter(node) // adds current node to the stack
@@ -574,7 +572,7 @@ private class CollectBaseCSes(curFunc : String) extends StackCollector {
       =>
 
         // all matched types are subclasses of Expression and Product
-        val cs = commonSubs.getOrElseUpdate(node, new Subexpression(curFunc, node.asInstanceOf[IR_Expression with Product]))
+        val cs = commonSubs.getOrElseUpdate(node.asInstanceOf[IR_Node], new Subexpression(curFunc, node.asInstanceOf[IR_Expression with Product]))
         if (cs != null)
           cs.addPosition(stack) // stack (list) itself is immutable
 
@@ -612,7 +610,7 @@ object Subexpression {
 }
 
 private class Subexpression(val func : String, val witness : IR_Expression with Product, val prio : Int = 1, val prioBonus : Int = 0) {
-  private val positions = new java.util.IdentityHashMap[List[Node], Any]()
+  private val positions = new java.util.IdentityHashMap[List[IR_Node], Any]()
 
   private lazy val tmpVarDatatype : IR_Datatype = IR_RealDatatype
   // FIXME: make generic!
@@ -621,11 +619,11 @@ private class Subexpression(val func : String, val witness : IR_Expression with 
   lazy val declaration = IR_VariableDeclaration(tmpVarDatatype, tmpVarName, Some(witness))
   lazy val ppString : String = witness.prettyprint()
 
-  def addPosition(nju : List[Node]) : Boolean = {
+  def addPosition(nju : List[IR_Node]) : Boolean = {
     positions.put(nju, this) == null
   }
 
-  def getPositions() : Set[List[Node]] = {
+  def getPositions() : Set[List[IR_Node]] = {
     JSetWrapper(positions.keySet())
   }
 
