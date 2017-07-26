@@ -10,4 +10,13 @@ object IR_Root {
 
 case class IR_Root(var nodes : ListBuffer[IR_Node]) extends IR_Node {
   def +=(n : IR_Node*) = nodes ++= n
+
+  // resolve nested root nodes
+  def flatten() = {
+    while (nodes.exists(_.isInstanceOf[IR_Root]))
+      nodes = nodes.flatMap {
+        case root : IR_Root => root.nodes
+        case other          => ListBuffer(other)
+      }
+  }
 }

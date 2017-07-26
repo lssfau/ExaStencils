@@ -9,6 +9,7 @@ import exastencils.prettyprinting._
 /// L2_Root
 
 object L2_Root {
+  def apply() = new L2_Root(ListBuffer())
   def apply(node : L2_Node) = new L2_Root(ListBuffer(node))
   def apply(nodes : List[L2_Node]) = new L2_Root(nodes.to[ListBuffer])
 }

@@ -11,6 +11,7 @@ import exastencils.prettyprinting._
 /// L4_Root
 
 object L4_Root {
+  def apply() = new L4_Root(ListBuffer())
   def apply(node : L4_Node) = new L4_Root(ListBuffer(node))
   def apply(nodes : List[L4_Node]) = new L4_Root(nodes.to[ListBuffer])
 }

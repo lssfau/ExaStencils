@@ -9,6 +9,7 @@ import exastencils.prettyprinting._
 /// L3_Root
 
 object L3_Root {
+  def apply() = new L3_Root(ListBuffer())
   def apply(node : L3_Node) = new L3_Root(ListBuffer(node))
   def apply(nodes : List[L3_Node]) = new L3_Root(nodes.to[ListBuffer])
 }
