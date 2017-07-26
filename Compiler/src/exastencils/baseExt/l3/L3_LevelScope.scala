@@ -6,6 +6,7 @@ import exastencils.base.l3._
 import exastencils.baseExt.l4.L4_LevelScope
 import exastencils.datastructures._
 import exastencils.prettyprinting._
+import exastencils.util.l3.L3_LevelCollector
 
 /// L3_LevelScope
 

@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.util.l3.L3_LevelCollector
 
 /// L3_IntegrateFunctions
 

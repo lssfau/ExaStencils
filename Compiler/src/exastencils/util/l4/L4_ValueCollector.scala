@@ -1,24 +1,25 @@
-package exastencils.core.collectors
+package exastencils.util.l4
 
 import scala.collection.mutable._
 
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
+import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 
-class L4ValueCollector extends Collector {
+class L4_ValueCollector extends Collector {
   private var values = new ListBuffer[HashMap[String, L4_Expression]]()
   private var insideGlobals = false
 
   override def enter(node : Node) : Unit = {
     node match {
-      case x : L4_GlobalSection     => insideGlobals = true
-      case x : L4_Function          => values.clear(); values.+=(new HashMap[String, L4_Expression]())
-      case x : L4_LoopOverFragments => values.+=(new HashMap[String, L4_Expression]())
-      case x : L4_LoopOverField     => values.+=(new HashMap[String, L4_Expression]())
-      case x : L4_ForLoop           => values.+=(new HashMap[String, L4_Expression]())
-      case x : L4_UntilLoop         => values.+=(new HashMap[String, L4_Expression]())
-      case x : L4_IfCondition       => values.+=(new HashMap[String, L4_Expression]())
+      case _ : L4_GlobalSection     => insideGlobals = true
+      case _ : L4_Function          => values.clear(); values.+=(new HashMap[String, L4_Expression]())
+      case _ : L4_LoopOverFragments => values.+=(new HashMap[String, L4_Expression]())
+      case _ : L4_LoopOverField     => values.+=(new HashMap[String, L4_Expression]())
+      case _ : L4_ForLoop           => values.+=(new HashMap[String, L4_Expression]())
+      case _ : L4_UntilLoop         => values.+=(new HashMap[String, L4_Expression]())
+      case _ : L4_IfCondition       => values.+=(new HashMap[String, L4_Expression]())
       case x : L4_ValueDeclaration  =>
         x.identifier match { // ignore Values in Globals
           case v : L4_LeveledIdentifier => if (!insideGlobals) values.last += ((v.name + "@@" + v.level, x.initialValue))
@@ -30,13 +31,13 @@ class L4ValueCollector extends Collector {
 
   override def leave(node : Node) : Unit = {
     node match {
-      case x : L4_GlobalSection     => insideGlobals = false
-      case x : L4_Function          => values.clear()
-      case x : L4_LoopOverFragments => values.trimEnd(1)
-      case x : L4_LoopOverField     => values.trimEnd(1)
-      case x : L4_ForLoop           => values.trimEnd(1)
-      case x : L4_UntilLoop         => values.trimEnd(1)
-      case x : L4_IfCondition       => values.trimEnd(1)
+      case _ : L4_GlobalSection     => insideGlobals = false
+      case _ : L4_Function          => values.clear()
+      case _ : L4_LoopOverFragments => values.trimEnd(1)
+      case _ : L4_LoopOverField     => values.trimEnd(1)
+      case _ : L4_ForLoop           => values.trimEnd(1)
+      case _ : L4_UntilLoop         => values.trimEnd(1)
+      case _ : L4_IfCondition       => values.trimEnd(1)
       case _                        =>
     }
   }

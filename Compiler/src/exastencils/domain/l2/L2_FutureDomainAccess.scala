@@ -1,11 +1,11 @@
 package exastencils.domain.l2
 
-import exastencils.base.l2.L2_LevelCollector
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.knowledge.l2.L2_FutureKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.util.l2.L2_LevelCollector
 
 /// L2_FutureDomainAccess
 

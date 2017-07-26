@@ -5,6 +5,7 @@ import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
+import exastencils.util.l3.L3_LevelCollector
 
 /// L3_LevelSpecification
 

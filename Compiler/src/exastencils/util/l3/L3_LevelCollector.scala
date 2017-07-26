@@ -1,7 +1,8 @@
-package exastencils.base.l3
+package exastencils.util.l3
 
 import scala.collection.mutable.Stack
 
+import exastencils.base.l3._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.knowledge.l3.L3_LeveledKnowledgeDecl

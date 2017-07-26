@@ -3,6 +3,7 @@ package exastencils.base.l4
 import exastencils.base.ir._
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.util.l4.L4_LevelCollector
 
 /// L4_PlainDslFunctionReference
 

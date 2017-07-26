@@ -3,10 +3,10 @@ package exastencils.base.l4
 import exastencils.base.ir._
 import exastencils.baseExt.l4._
 import exastencils.core.Duplicate
-import exastencils.core.collectors._
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.util.l4._
 
 /// L4_ValueDeclaration
 
@@ -83,7 +83,7 @@ object L4_UnfoldLeveledDeclarations extends DefaultStrategy("Unfold leveled decl
 /// L4_InlineValueDeclarations
 
 object L4_InlineValueDeclarations extends DefaultStrategy("Propagate and inline value declarations") {
-  var valueCollector = new L4ValueCollector
+  var valueCollector = new L4_ValueCollector
   register(valueCollector)
 
   // resolve values in expressions by replacing them with their expression => let SimplifyStrategy do the work

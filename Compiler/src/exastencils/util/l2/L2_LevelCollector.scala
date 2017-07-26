@@ -1,7 +1,8 @@
-package exastencils.base.l2
+package exastencils.util.l2
 
 import scala.collection.mutable.Stack
 
+import exastencils.base.l2._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.knowledge.l2._

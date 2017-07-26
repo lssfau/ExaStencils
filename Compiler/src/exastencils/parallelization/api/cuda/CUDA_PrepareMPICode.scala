@@ -9,17 +9,17 @@ import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.core.collectors.FctNameCollector
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
+import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_PrepareMPICode
 
 object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
-  val collector = new FctNameCollector
+  val collector = new IR_FctNameCollector
   this.register(collector)
 
   var fieldAccesses = HashMap[String, IR_IV_FieldData]()

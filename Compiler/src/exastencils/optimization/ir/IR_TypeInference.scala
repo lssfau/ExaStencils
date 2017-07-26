@@ -5,11 +5,11 @@ import scala.collection.mutable.Map
 import exastencils.base.ir._
 import exastencils.config.Settings
 import exastencils.core.Duplicate
-import exastencils.core.collectors.ScopeCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.logger._
+import exastencils.util.ir.IR_ScopeCollector
 
 object IR_TypeInference extends CustomStrategy("Type inference") {
   private[optimization] final val TYPE_ANNOT = "InfType"
@@ -45,7 +45,7 @@ object IR_TypeInference extends CustomStrategy("Type inference") {
   }
 }
 
-private final class AnnotateStringConstants extends ScopeCollector(Map[String, IR_Datatype]()) {
+private final class AnnotateStringConstants extends IR_ScopeCollector(Map[String, IR_Datatype]()) {
 
   import IR_TypeInference._
 

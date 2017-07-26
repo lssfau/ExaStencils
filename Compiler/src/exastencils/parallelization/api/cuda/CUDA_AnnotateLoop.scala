@@ -4,10 +4,10 @@ import scala.collection._
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.core.collectors.FctNameCollector
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
+import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_AnnotateLoop
 
@@ -15,7 +15,7 @@ import exastencils.optimization.ir._
   * This transformation is used to calculate the annotations for CUDA loops.
   */
 object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for CUDA loops") {
-  val collector = new FctNameCollector
+  val collector = new IR_FctNameCollector
   this.register(collector)
 
   /**

@@ -4,18 +4,17 @@ import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.core.collectors.IRLevelCollector
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
 import exastencils.operator.ir.IR_StencilFieldAccess
 import exastencils.optimization.ir.IR_SimplifyExpression
-import exastencils.util.ir.IR_ReplaceVariableAccess
+import exastencils.util.ir._
 
 /// IR_ResolveIntergridIndices
 
 object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in operations between two grid levels") {
-  val collector = new IRLevelCollector
+  val collector = new IR_LevelCollector
   this.register(collector)
 
   // TODO: checking for being inside a valid level scope is currently required for setting up geometric information of grids with varying cell sizes

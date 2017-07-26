@@ -7,6 +7,7 @@ import exastencils.knowledge.l2.L2_FutureKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.operator.l3.L3_FutureStencilAccess
 import exastencils.prettyprinting.PpStream
+import exastencils.util.l2.L2_LevelCollector
 
 /// L2_FutureStencilAccess
 

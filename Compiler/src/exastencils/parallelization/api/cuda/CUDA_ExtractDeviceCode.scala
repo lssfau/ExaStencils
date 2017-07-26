@@ -7,9 +7,9 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.core._
-import exastencils.core.collectors.FctNameCollector
 import exastencils.datastructures._
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_ExtractHostAndDeviceCode
 
@@ -17,7 +17,7 @@ import exastencils.optimization.ir.IR_SimplifyExpression
   * This transformation is used to convert annotated code into CUDA kernel code.
   */
 object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUDA loop in kernel code") {
-  val collector = new FctNameCollector
+  val collector = new IR_FctNameCollector
   this.register(collector)
 
   /**

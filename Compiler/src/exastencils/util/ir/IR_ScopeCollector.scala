@@ -1,11 +1,12 @@
-package exastencils.core.collectors
+package exastencils.util.ir
 
 import scala.collection.mutable.ArrayStack
 
 import exastencils.base.ir._
+import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 
-abstract class ScopeCollector[T](init : T) extends Collector {
+abstract class IR_ScopeCollector[T](init : T) extends Collector {
 
   private final val START_COND_BLOCK_ANNOT = "FirstElse"
 

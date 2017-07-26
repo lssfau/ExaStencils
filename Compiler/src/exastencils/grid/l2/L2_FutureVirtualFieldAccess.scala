@@ -7,6 +7,7 @@ import exastencils.grid.l3.L3_FutureVirtualFieldAccess
 import exastencils.knowledge.l2.L2_FutureKnowledgeAccess
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
+import exastencils.util.l2.L2_LevelCollector
 
 /// L2_FutureVirtualFieldAccess
 

@@ -2,9 +2,9 @@ package exastencils.base.l4
 
 import exastencils.base.ir._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
-import exastencils.core.collectors.L4VariableCollector
 import exastencils.datastructures._
 import exastencils.prettyprinting._
+import exastencils.util.l4.L4_VariableCollector
 
 trait L4_Access extends L4_Expression {
   def name : String
@@ -21,7 +21,7 @@ case class L4_VariableAccess(var name : String, var datatype : L4_Datatype) exte
 /// L4_ResolveVariableAccesses
 
 object L4_ResolveVariableAccesses extends DefaultStrategy("Resolve variable accesses") {
-  var collector = new L4VariableCollector
+  var collector = new L4_VariableCollector
   register(collector)
 
   // FIXME: apply to globals first

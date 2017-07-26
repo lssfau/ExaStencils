@@ -5,7 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.core.Duplicate
-import exastencils.core.collectors.StatementCollector
+import exastencils.core.collectors._
 import exastencils.datastructures._
 
 /// IR_Fortranify
@@ -76,7 +76,30 @@ object IR_Fortranify extends DefaultStrategy("Prepare functions for fortran inte
   /// IR_FortranifyFunctionsInsideStatement
 
   object IR_FortranifyFunctionsInsideStatement extends QuietDefaultStrategy("Looking for function inside statements") {
-    val collector = new StatementCollector
+
+    class IR_StatementCollector extends Collector {
+      var insideStatement : Int = 0
+
+      override def enter(node : Node) : Unit = {
+        node match {
+          case _ : IR_Statement => insideStatement += 1
+          case _                =>
+        }
+      }
+
+      override def leave(node : Node) : Unit = {
+        node match {
+          case _ : IR_Statement => insideStatement -= 1
+          case _                =>
+        }
+      }
+
+      override def reset() : Unit = {
+        insideStatement = 0
+      }
+    }
+
+    val collector = new IR_StatementCollector
 
     var functionsToBeProcessed : HashMap[String, ListBuffer[(Int, IR_Datatype)]] = HashMap()
     var callByValReplacements : HashMap[String, IR_Statement] = HashMap()

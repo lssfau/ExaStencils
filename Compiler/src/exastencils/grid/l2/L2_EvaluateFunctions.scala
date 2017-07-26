@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.l2._
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.util.l2.L2_LevelCollector
 
 /// L2_EvaluateFunctions
 

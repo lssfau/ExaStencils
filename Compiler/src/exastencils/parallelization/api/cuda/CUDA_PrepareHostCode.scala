@@ -8,9 +8,9 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.core.collectors.FctNameCollector
 import exastencils.datastructures._
 import exastencils.field.ir._
+import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_PrepareHostCode
 
@@ -20,7 +20,7 @@ import exastencils.field.ir._
   */
 object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
-  val collector = new FctNameCollector
+  val collector = new IR_FctNameCollector
   this.register(collector)
 
   def syncBeforeHost(access : String, others : Iterable[String]) = {

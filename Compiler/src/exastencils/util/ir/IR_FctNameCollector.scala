@@ -1,12 +1,13 @@
-package exastencils.core.collectors
+package exastencils.util.ir
 
 import scala.collection.mutable.Stack
 
 import exastencils.base.ir.IR_FunctionLike
+import exastencils.core.collectors.Collector
 import exastencils.datastructures._
 import exastencils.logger._
 
-class FctNameCollector extends Collector {
+class IR_FctNameCollector extends Collector {
   private val nameStack = new Stack[String]
 
   override def enter(node : Node) : Unit = {
