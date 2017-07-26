@@ -2,6 +2,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ExaRootNode
 import exastencils.base.ir._
+import exastencils.base.l1.L1_Root
 import exastencils.base.l2._
 import exastencils.base.l3._
 import exastencils.base.l4._
@@ -179,6 +180,11 @@ object Main {
       StrategyTimer.startTiming("Handling Layer 1")
 
     // add L1 code here
+    if (Knowledge.experimental_layerExtension) {
+      ExaRootNode.l1_root = L1_Root() // dummy node
+
+      ExaRootNode.progressToL2()
+    }
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 1")
@@ -201,8 +207,7 @@ object Main {
     }
 
     if (Knowledge.experimental_layerExtension) {
-      ExaRootNode.l2_root = L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node))
-      ExaRootNode.l2_root.flatten()
+      ExaRootNode.mergeL2(L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node)))
 
       L2_UnifyGlobalSections.apply()
 
@@ -231,13 +236,10 @@ object Main {
 
       L2_ProcessBoundaryDeclarations.apply()
 
-      if (ExaRootNode.l2_root.nodes.nonEmpty) {
-        Logger.warn(s"L2 root has ${ ExaRootNode.l2_root.nodes.length } unprocessed nodes remaining:")
-        ExaRootNode.l2_root.nodes.foreach(Logger.warn(_))
-      }
-
       // progress knowledge to L3
       L2_KnowledgeContainer.progress()
+
+      ExaRootNode.progressToL3()
     }
 
     if (Settings.timeStrategies)
@@ -249,8 +251,7 @@ object Main {
       StrategyTimer.startTiming("Handling Layer 3")
 
     if (Knowledge.experimental_layerExtension) {
-      ExaRootNode.l3_root = L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node))
-      ExaRootNode.l3_root.flatten()
+      ExaRootNode.mergeL3(L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node)))
 
       L3_UnifyGlobalSections.apply()
 
@@ -294,6 +295,8 @@ object Main {
 
       // progress knowledge to L4
       L3_KnowledgeContainer.progress()
+
+      ExaRootNode.progressToL4()
     } else if (Knowledge.l3tmp_generateL4) {
       val l3gen_root = l3Generate.Root()
       val l4Filenames = Settings.getL4file
@@ -309,30 +312,17 @@ object Main {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
-    // store the l3 root
-    val l3root = if (Knowledge.experimental_layerExtension)
-      ExaRootNode.l3_root
-    else
-      null
-
-    if (Settings.inputFromJson)
-      ExaRootNode.l4_root = L4_Parser.parseFile(InputReader.layer4)
-    else
-      ExaRootNode.l4_root = L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node))
-    ExaRootNode.l4_root.flatten()
-
-    L4_Validation.apply()
-
     if (Knowledge.experimental_layerExtension) {
-      // add some extra nodes to test functionalities
-      val newL4Root = l3root.progress // progress root
-      L4_IntroduceSlots.apply(Some(newL4Root))
-      L4_WrapFieldFieldConvolutions.apply(Some(newL4Root))
-      L4_AddLoopsToFieldAssignments.apply(Some(newL4Root))
-      L4_AddCommunicationToLoops.apply(Some(newL4Root))
-      L4_AdaptFieldLayoutsForComm.apply(Some(newL4Root))
+      L4_IntroduceSlots.apply()
+      L4_WrapFieldFieldConvolutions.apply()
+      L4_AddLoopsToFieldAssignments.apply()
+      L4_AddCommunicationToLoops.apply()
+      L4_AdaptFieldLayoutsForComm.apply()
 
-      ExaRootNode.l4_root.nodes ++= newL4Root.nodes // TODO: other collections
+      if (Settings.inputFromJson)
+        ExaRootNode.mergeL4(L4_Parser.parseFile(InputReader.layer4))
+      else
+        ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))
 
       if (true) {
         L4_UnresolveOperatorTimesField.apply()
@@ -345,10 +335,8 @@ object Main {
         L4_CombineLeveledFunctionDecls.apply()
         // L4_GenerateLeveledKnowledgeDecls.apply()
       }
-    }
 
-    // re-print the merged L4 state
-    if (Knowledge.experimental_layerExtension) {
+      // re-print the merged L4 state
       val repFileName = { val tmp = Settings.getL4file.head.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
       val l4_printed = ExaRootNode.l4_root.prettyprint()
 
@@ -360,8 +348,15 @@ object Main {
       L4_KnowledgeContainer.clear()
 
       ExaRootNode.l4_root = L4_Parser.parseFile(repFileName)
-      L4_Validation.apply()
+    } else {
+      if (Settings.inputFromJson)
+        ExaRootNode.l4_root = L4_Parser.parseFile(InputReader.layer4)
+      else
+        ExaRootNode.l4_root = L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node))
+      ExaRootNode.l4_root.flatten()
     }
+
+    L4_Validation.apply()
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Handling Layer 4")
@@ -454,7 +449,7 @@ object Main {
     if (Knowledge.data_alignFieldPointers)
       IR_AddPaddingToFieldLayouts.apply()
 
-    ExaRootNode.ProgressToIR()
+    ExaRootNode.progressToIR()
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")

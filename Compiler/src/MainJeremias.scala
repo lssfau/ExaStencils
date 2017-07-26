@@ -169,7 +169,7 @@ object MainJeremias {
 
     L4_ProcessStencilDeclarations.apply()
 
-    ExaRootNode.ProgressToIR()
+    ExaRootNode.progressToIR()
 
     if (!Knowledge.domain_rect_generate) {
       if (Knowledge.domain_readFromFile) {

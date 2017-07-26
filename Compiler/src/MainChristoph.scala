@@ -202,7 +202,7 @@ object MainChristoph {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Progressing from L4 to IR")
 
-    ExaRootNode.ProgressToIR()
+    ExaRootNode.progressToIR()
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")

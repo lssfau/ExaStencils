@@ -261,7 +261,7 @@ object MainStefan {
     if (Knowledge.data_alignFieldPointers)
       IR_AddPaddingToFieldLayouts.apply()
 
-    ExaRootNode.ProgressToIR()
+    ExaRootNode.progressToIR()
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming("Progressing from L4 to IR")
