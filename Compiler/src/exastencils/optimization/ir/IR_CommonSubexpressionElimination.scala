@@ -83,46 +83,46 @@ object IR_CommonSubexpressionElimination extends CustomStrategy("Common subexpre
     val usageIn = new HashMap[String, ListBuffer[String]]().withDefault(_ => new ListBuffer[String]())
     var assignTo : String = null
     this.execute(new Transformation("find removable declarations", {
-      case decl @ IR_VariableDeclaration(_ : IR_ScalarDatatype, vName, Some(init)) =>
+      case decl @ IR_VariableDeclaration(_ : IR_ScalarDatatype, vName, Some(init), _) =>
         accesses(vName) = (decl, new ArrayBuffer[IR_Expression]())
         assignTo = vName
         decl
-      case ass @ IR_Assignment(IR_VariableAccess(vName, _), _, _)                  =>
+      case ass @ IR_Assignment(IR_VariableAccess(vName, _), _, _)                     =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         ass
-      case inc @ IR_PreDecrement(IR_VariableAccess(vName, _))                      =>
+      case inc @ IR_PreDecrement(IR_VariableAccess(vName, _))                         =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PreIncrement(IR_VariableAccess(vName, _))                      =>
+      case inc @ IR_PreIncrement(IR_VariableAccess(vName, _))                         =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostIncrement(IR_VariableAccess(vName, _))                     =>
+      case inc @ IR_PostIncrement(IR_VariableAccess(vName, _))                        =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case inc @ IR_PostDecrement(IR_VariableAccess(vName, _))                     =>
+      case inc @ IR_PostDecrement(IR_VariableAccess(vName, _))                        =>
         accesses.remove(vName)
         for (declName <- usageIn(vName))
           accesses.remove(declName)
         usageIn(vName).clear()
         assignTo = vName
         inc
-      case acc @ IR_VariableAccess(vName, _)                                       =>
+      case acc @ IR_VariableAccess(vName, _)                                          =>
         for ((_, uses) <- accesses.get(vName))
           uses += acc
         usageIn(vName) += assignTo
@@ -543,7 +543,7 @@ private class CollectBaseCSes(curFunc : String) extends IR_StackCollector {
         c.annotate(SKIP_ANNOT)
         skip = true
 
-      case IR_VariableDeclaration(dt, name, _)                                 =>
+      case IR_VariableDeclaration(dt, name, _, _)                              =>
         commonSubs(IR_VariableAccess(name, dt)) = null
       case IR_Assignment(vAcc : IR_VariableAccess, _, _)                       =>
         commonSubs(vAcc) = null

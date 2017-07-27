@@ -165,11 +165,11 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val localDeclaration = variableDeclaration ||| valueDeclaration
 
-  lazy val variableDeclaration = locationize((("Var" ||| "Variable") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
-    ^^ { case id ~ dt ~ exp => L3_VariableDeclaration(id, dt, exp) })
+  lazy val variableDeclaration = locationize((("Var" ||| "Variable") ~> ident) ~ levelDecl.? ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ levels ~ dt ~ exp => L3_VariableDeclaration(id, levels, dt, exp, false) })
 
-  lazy val valueDeclaration = locationize((("Val" ||| "Value") ~> ident) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
-    ^^ { case id ~ dt ~ exp => L3_ValueDeclaration(id, dt, exp) })
+  lazy val valueDeclaration = locationize((("Val" ||| "Value") ~> ident) ~ levelDecl.? ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
+    ^^ { case id ~ levels ~ dt ~ exp => L3_VariableDeclaration(id, levels, dt, Some(exp), true) })
 
   // ######################################
   // ##### L3_FunctionDecl
@@ -315,7 +315,7 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L3_GlobalSection(_) })
-  lazy val globalEntry : PackratParser[L3_Statement] = locationize(valueDeclaration ||| variableDeclaration)
+  lazy val globalEntry : PackratParser[L3_VariableDeclaration] = locationize(valueDeclaration ||| variableDeclaration)
 
   // ######################################
   // ##### L3_HigherOrderDatatype

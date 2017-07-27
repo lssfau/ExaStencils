@@ -214,11 +214,11 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val statementInsideRepeat = statement ||| breakStatement
 
-  lazy val variableDeclaration = locationize((("Var" ||| "Variable") ~> identifierWithOptDeclLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
-    ^^ { case id ~ dt ~ exp => L4_VariableDeclaration(id, dt, exp) })
+  lazy val variableDeclaration = locationize((("Var" ||| "Variable") ~> ident) ~ levelDecl.? ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ levels ~ dt ~ exp => L4_VariableDeclaration(id, levels, dt, exp, false) })
 
-  lazy val valueDeclaration = locationize((("Val" ||| "Value") ~> identifierWithOptDeclLevel) ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
-    ^^ { case id ~ dt ~ exp => L4_ValueDeclaration(id, dt, exp) })
+  lazy val valueDeclaration = locationize((("Val" ||| "Value") ~> ident) ~ levelDecl.? ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
+    ^^ { case id ~ levels ~ dt ~ exp => L4_VariableDeclaration(id, levels, dt, Some(exp), true) })
 
   lazy val repeatNTimes = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^ { case n ~ i ~ s => L4_ForLoop(n.toInt, i, s) })
   lazy val contractionLoop = locationize(("repeat" ~> numericLit <~ "times") ~ ("count" ~> (flatAccess ||| leveledAccess)).? ~ contractionClause ~ ("{" ~> statementInsideRepeat.+ <~ "}") ^^ { case n ~ i ~ c ~ s => L4_ContractingLoop(n.toInt, i, c, s) })
@@ -286,7 +286,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L4_GlobalSection(_) })
-  lazy val globalEntry : PackratParser[L4_Statement] = locationize(valueDeclaration ||| variableDeclaration)
+  lazy val globalEntry : PackratParser[L4_VariableDeclaration] = locationize(valueDeclaration ||| variableDeclaration)
 
   // ######################################
   // ##### Object Declarations

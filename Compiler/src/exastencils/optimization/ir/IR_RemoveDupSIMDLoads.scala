@@ -46,16 +46,16 @@ object IR_RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads
       for (s <- l.body) {
         s match {
           case IR_VariableDeclaration(SIMD_RealDatatype, _,
-          Some(SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), _))) //
+          Some(SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), _)), _) //
           =>
             toSort += ((s, base, index))
 
           case IR_VariableDeclaration(SIMD_RealDatatype, _,
-          Some(SIMD_Scalar2Vector(IR_ArrayAccess(base, index, _)))) //
+          Some(SIMD_Scalar2Vector(IR_ArrayAccess(base, index, _))), _) //
           =>
             toSort += ((s, base, index))
 
-          case IR_VariableDeclaration(SIMD_RealDatatype, _, Some(sh : SIMD_ConcShift)) =>
+          case IR_VariableDeclaration(SIMD_RealDatatype, _, Some(sh : SIMD_ConcShift), _) =>
             toSort += ((s, sh, null))
 
           case _ =>
@@ -101,7 +101,7 @@ private[optimization] final class Analyze extends IR_StackCollector {
   override def enter(node : Node) : Unit = {
     super.enter(node)
     node match {
-      case loop @ IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, lVar, Some(start)),
+      case loop @ IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, lVar, Some(start), _),
       IR_Lower(IR_VariableAccess(lVar3, _), end),
       IR_Assignment(IR_VariableAccess(lVar2, _), IR_IntegerConstant(incr), "+="),
       _, _) if lVar == lVar2 && lVar2 == lVar3 //
@@ -122,7 +122,7 @@ private[optimization] final class Analyze extends IR_StackCollector {
         }
 
       case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp,
-      Some(load @ SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), aligned))) =>
+      Some(load @ SIMD_Load(IR_AddressOf(IR_ArrayAccess(base, index, _)), aligned)), _) =>
 
         val indSum : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
         val other = loads.get((base, indSum))
@@ -154,7 +154,7 @@ private[optimization] final class Analyze extends IR_StackCollector {
           }
         }
 
-      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(load : SIMD_Scalar2Vector)) if load1s != null =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(load : SIMD_Scalar2Vector), _) if load1s != null =>
         val other = load1s.get(load)
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name
@@ -182,7 +182,7 @@ private[optimization] final class Analyze extends IR_StackCollector {
   override def leave(node : Node) : Unit = {
     node match {
       // search for duplicate SIMD_ConcShift AFTER VariableAccesses in the subtree are replaced
-      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(cShift : SIMD_ConcShift)) =>
+      case decl @ IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(cShift : SIMD_ConcShift), _) =>
         val other = concShifts.get(cShift)
         if (other.isDefined) {
           replaceAcc(vecTmp) = other.get._1.name

@@ -128,13 +128,13 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
     // determine which variables must be renamed
     val reserved = Set[String]()
     this.execute(new Transformation("prepare", {
-      case v @ IR_VariableDeclaration(_, vname, _) =>
+      case v @ IR_VariableDeclaration(_, vname, _, _) =>
         reserved += vname
         v
-      case a @ IR_VariableAccess(vname, _)         =>
+      case a @ IR_VariableAccess(vname, _)            =>
         reserved += vname
         a
-      case s @ IR_StringLiteral(vname)             =>
+      case s @ IR_StringLiteral(vname)                =>
         reserved += vname
         s
     }), Some(callScope))
@@ -145,10 +145,10 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
     var exit = false
     var retStmt : IR_Return = null
     this.execute(new Transformation("rename conflicts", {
-      case IR_VariableDeclaration(t, vname, i) if potConflicts.contains(vname) => IR_VariableDeclaration(t, rename(vname), i)
-      case IR_VariableAccess(vname, t) if potConflicts.contains(vname)         => IR_VariableAccess(rename(vname), t)
-      case IR_StringLiteral(vname) if potConflicts.contains(vname)             => IR_StringLiteral(rename(vname))
-      case ret : IR_Return                                                     =>
+      case IR_VariableDeclaration(t, vname, i, _) if potConflicts.contains(vname) => IR_VariableDeclaration(t, rename(vname), i)
+      case IR_VariableAccess(vname, t) if potConflicts.contains(vname)            => IR_VariableAccess(rename(vname), t)
+      case IR_StringLiteral(vname) if potConflicts.contains(vname)                => IR_StringLiteral(rename(vname))
+      case ret : IR_Return                                                        =>
         if (ret.expr.isEmpty != (funcStmt.datatype == IR_UnitDatatype))
           exit = true
         retStmt = ret
@@ -175,8 +175,8 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
     if (potConflToUpdate != null) {
       // update potConflicts of function to inline in for later call to this method
       for (stmt <- body) stmt match {
-        case IR_VariableDeclaration(_, vname, _) => potConflToUpdate += vname
-        case _                                   => // ignore
+        case IR_VariableDeclaration(_, vname, _, _) => potConflToUpdate += vname
+        case _                                      => // ignore
       }
     }
 

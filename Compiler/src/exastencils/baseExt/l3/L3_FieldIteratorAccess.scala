@@ -25,7 +25,7 @@ object L3_FieldIteratorAccess {
   }
 }
 
-class L3_FieldIteratorAccess() extends L3_VariableAccess("i", L3_IntegerDatatype) {
+class L3_FieldIteratorAccess() extends L3_PlainVariableAccess("i", L3_IntegerDatatype, false) {
   private var dim_ : Int = 0
   def dim_=(d : Int) = {
     dim_ = d

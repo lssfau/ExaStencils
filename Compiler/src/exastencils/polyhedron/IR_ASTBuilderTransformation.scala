@@ -7,12 +7,9 @@ import exastencils.baseExt.ir.IR_LoopOverDimensions
 import exastencils.core._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
-import exastencils.domain.ir.IR_IV_NeighborIsValid
 import exastencils.logger._
-import exastencils.optimization._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.util.ir.IR_ReplaceVariableAccess
-import isl.Conversions._
 
 class IR_ASTBuilderTransformation()
   extends Transformation("insert optimized loop AST", new IR_ASTBuilderFunction())
@@ -107,7 +104,7 @@ private final class IR_ASTBuilderFunction()
     })
 
     // mark all additionally declared variables as private
-    for (IR_VariableDeclaration(dt, name, _) <- scop.decls)
+    for (IR_VariableDeclaration(dt, name, _, _) <- scop.decls)
       parallelization.privateVars += IR_VariableAccess(name, dt)
 
     // build AST generation options

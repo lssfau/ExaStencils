@@ -196,15 +196,8 @@ object MainStefan {
 
     L4_ResolveLevelSpecifications.apply()
 
-    L4_UnfoldLeveledDeclarations.apply()
     L4_ResolveLevelScopes.apply()
 
-    if (true) {
-      // TODO: optionalize value resolution
-      L4_InlineValueDeclarations.apply()
-      // resolve globals AFTER L4_InlineValueDeclarations (lower precedence than local values!)
-      L4_InlineGlobalValueDeclarations.apply()
-    }
     L4_ResolveVirtualFieldAccesses.apply()
     L4_ResolveVariableAccesses.apply()
     L4_ResolveDslFunctionReferences.apply()

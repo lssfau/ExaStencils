@@ -68,7 +68,7 @@ private final class AnnotateStringConstants extends IR_ScopeCollector(Map[String
       return
 
     node match {
-      case IR_VariableDeclaration(ty : IR_Datatype, name : String, _) =>
+      case IR_VariableDeclaration(ty : IR_Datatype, name : String, _, _) =>
         declare(name, ty)
 
       case node @ IR_StringLiteral(str) =>

@@ -5,15 +5,13 @@ import exastencils.baseExt.ir._
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
-import exastencils.logger._
-import exastencils.optimization.ir._
 
 object IR_SimplifyFloatExpressions extends DefaultStrategy("Simplify floating expressions") {
 
   private final val DEBUG : Boolean = false
 
   this += new Transformation("optimize", {
-    case d @ IR_VariableDeclaration(IR_RealDatatype, _, Some(expr)) =>
+    case d @ IR_VariableDeclaration(IR_RealDatatype, _, Some(expr), _) =>
       d.initialValue = Some(simplify(expr))
       d
 

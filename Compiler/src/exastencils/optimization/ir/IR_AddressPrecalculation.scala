@@ -11,7 +11,6 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.logger._
-import exastencils.optimization.ir._
 
 object IR_AddressPrecalculation extends CustomStrategy("Perform address precalculation") {
 
@@ -111,18 +110,18 @@ private final class AnnotateLoopsAndAccesses extends Collector {
 
     // TODO: add support for MultiIndexExpression?
     val inMap : HashMap[IR_Expression, Long] =
-    try {
-      IR_SimplifyExpression.extractIntegralSum(ind)
-    } catch {
-      case ex : EvaluationException =>
-        var cause : Throwable = ex
-        while (cause.getCause != null)
-          cause = cause.getCause
-        val stackTraceHead = cause.getStackTrace()(0)
-        Logger.dbg("[APC]  cannot deal with index expression  (" + ex.msg + ")  in  " + ind.prettyprint() +
-          "  (" + stackTraceHead.getFileName + ':' + stackTraceHead.getLineNumber + ')')
-        return (ind, outMap)
-    }
+      try {
+        IR_SimplifyExpression.extractIntegralSum(ind)
+      } catch {
+        case ex : EvaluationException =>
+          var cause : Throwable = ex
+          while (cause.getCause != null)
+            cause = cause.getCause
+          val stackTraceHead = cause.getStackTrace()(0)
+          Logger.dbg("[APC]  cannot deal with index expression  (" + ex.msg + ")  in  " + ind.prettyprint() +
+            "  (" + stackTraceHead.getFileName + ':' + stackTraceHead.getLineNumber + ')')
+          return (ind, outMap)
+      }
 
     // constant part should stay inside the loop, as this reduces the number of required pointers outside
     for ((expr, value) <- inMap)
@@ -215,7 +214,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
           case _                         => // nothing; expand match here, if more vars should stay inside the loop
         }
 
-      case IR_VariableDeclaration(_, nName, _) if isInInner() && isValid() =>
+      case IR_VariableDeclaration(_, nName, _, _) if isInInner() && isValid() =>
         inVars += nName
 
       case _ => // ignore
@@ -245,7 +244,7 @@ private final class AnnotateLoopsAndAccesses extends Collector {
         inVars = null
         chVars.clear()
         toAnalyze.clear()
-      case _                                                     => // ignore
+      case _                                               => // ignore
     }
   }
 

@@ -226,9 +226,9 @@ object L3_SimplifyExpression {
         res = new HashMap[L3_Expression, Long]()
         res(fia) = 1l // preserve datatype if some
 
-      case L3_VariableAccess(varName, dt) =>
+      case va : L3_VariableAccess =>
         res = new HashMap[L3_Expression, Long]()
-        res(L3_VariableAccess(varName, dt)) = 1l // preserve datatype if some
+        res(va) = 1l // preserve datatype if some
 
       case L3_Negative(neg) =>
         res = extractIntegralSumRec(neg)
@@ -470,9 +470,9 @@ object L3_SimplifyExpression {
         res = new HashMap[L3_Expression, Double]()
         res(fia) = 1d // preserve datatype if some
 
-      case L3_VariableAccess(varName, dt) =>
+      case va : L3_VariableAccess =>
         res = new HashMap[L3_Expression, Double]()
-        res(L3_VariableAccess(varName, dt)) = 1d // preserve datatype if some
+        res(va) = 1d // preserve datatype if some
 
       case call : L3_FunctionCall =>
         if (call.name.contains("std::rand")) // HACK

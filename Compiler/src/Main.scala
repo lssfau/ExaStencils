@@ -215,6 +215,7 @@ object Main {
       L2_ResolveLevelSpecifications.apply()
 
       L2_UnfoldKnowledgeDeclarations.apply()
+      L2_UnfoldLeveledVariableDeclarations.apply()
 
       // resolve current, etc.
       L2_ResolveRelativeLevels.apply()
@@ -222,6 +223,7 @@ object Main {
       L2_PrepareDeclarations.apply()
 
       L2_PrepareAccesses.apply()
+      L2_ResolveVariableAccesses.apply()
 
       L2_ResolveMathFunctions.apply()
       L2_ResolveEvaluateFunctions.apply()
@@ -263,6 +265,7 @@ object Main {
       L3_ProcessFunctionDeclarations.apply()
 
       L3_UnfoldKnowledgeDeclarations.apply()
+      L3_UnfoldLeveledVariableDeclarations.apply()
 
       // resolve current, etc.
       L3_ResolveRelativeLevels.apply()
@@ -270,6 +273,7 @@ object Main {
       L3_PrepareDeclarations.apply()
 
       L3_PrepareAccesses.apply()
+      L3_ResolveVariableAccesses.apply()
 
       L3_ResolveLevelScopes.apply()
 
@@ -375,9 +379,8 @@ object Main {
     L4_UnfoldFunctionDeclarations.apply()
     L4_ProcessFunctionDeclarations.apply()
 
-    L4_UnfoldLeveledDeclarations.apply()
-
     L4_UnfoldKnowledgeDeclarations.apply()
+    L4_UnfoldLeveledVariableDeclarations.apply()
 
     // resolve current, etc.
     L4_ResolveRelativeLevels.apply()
@@ -385,15 +388,9 @@ object Main {
     L4_PrepareDeclarations.apply()
 
     L4_PrepareAccesses.apply()
+    L4_ResolveVariableAccesses.apply()
 
     L4_ResolveLevelScopes.apply()
-
-    if (true) {
-      // TODO: optionalize value resolution
-      L4_InlineValueDeclarations.apply()
-      // resolve globals _after_ L4_InlineValueDeclarations (lower precedence than local values!)
-      L4_InlineGlobalValueDeclarations.apply()
-    }
 
     L4_ResolveSpecialConstants.apply()
     L4_ResolveDslFunctionReferences.apply()

@@ -52,8 +52,8 @@ object L4_SimplifyExpression {
     case L4_StringLiteral(value) if extremaLookup.contains(value) =>
       extremaLookup(value)
 
-    case L4_VariableAccess(name, dType) if extremaLookup.contains(name) =>
-      extremaLookup(name)
+    case va : L4_VariableAccess if extremaLookup.contains(va.name) =>
+      extremaLookup(va.name)
 
     case L4_Addition(sums : ListBuffer[L4_Expression]) =>
       sums.view.map(s => evalIntegralExtrema(s, extremaLookup)).reduce { (x, y) =>
@@ -223,13 +223,17 @@ object L4_SimplifyExpression {
         res = new HashMap[L4_Expression, Long]()
         res(constName) = i
 
-      case L4_VariableAccess(varName, _) =>
+      case L4_PlainVariableAccess(varName, _, isConst) =>
         res = new HashMap[L4_Expression, Long]()
-        res(L4_VariableAccess(varName, L4_IntegerDatatype)) = 1L
+        res(L4_PlainVariableAccess(varName, L4_IntegerDatatype, isConst)) = 1L
+
+      case L4_LeveledVariableAccess(varName, level, _, isConst) =>
+        res = new HashMap[L4_Expression, Long]()
+        res(L4_LeveledVariableAccess(varName, level, L4_IntegerDatatype, isConst)) = 1L
 
       case L4_StringLiteral(varName) =>
         res = new HashMap[L4_Expression, Long]()
-        res(L4_VariableAccess(varName, L4_IntegerDatatype)) = 1L // ONLY VariableAccess in res keys, NO StringConstant
+        res(L4_PlainVariableAccess(varName, L4_IntegerDatatype, false)) = 1L // ONLY VariableAccess in res keys, NO StringConstant
 
       case L4_Negative(neg) =>
         res = extractIntegralSumRec(neg)
@@ -379,10 +383,10 @@ object L4_SimplifyExpression {
     val const : Long = sumMap.getOrElse(constName, 0L)
 
     val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0L).toSeq.sortWith({
-      case ((L4_VariableAccess(v1, _), _), (L4_VariableAccess(v2, _), _)) => v1 < v2
-      case ((v1 : L4_VariableAccess, _), _)                               => true
-      case (_, (v2 : L4_VariableAccess, _))                               => false
-      case ((e1, _), (e2, _))                                             => e1.prettyprint() < e2.prettyprint()
+      case ((v1 : L4_VariableAccess, _), (v2 : L4_VariableAccess, _)) => v1.name < v2.name
+      case ((v1 : L4_VariableAccess, _), _)                           => true
+      case (_, (v2 : L4_VariableAccess, _))                           => false
+      case ((e1, _), (e2, _))                                         => e1.prettyprint() < e2.prettyprint()
     })
 
     if (sumSeq.isEmpty)
@@ -467,15 +471,15 @@ object L4_SimplifyExpression {
         res = new HashMap[L4_Expression, Double]()
         res(constName) = d
 
-      case L4_VariableAccess(varName, dt) =>
+      case va : L4_VariableAccess =>
         res = new HashMap[L4_Expression, Double]()
-        res(L4_VariableAccess(varName, dt)) = 1d // preserve datatype if some
+        res(va) = 1d // preserve datatype if some
 
       case L4_StringLiteral(varName) =>
         if (varName.contains("std::rand")) // HACK
           throw EvaluationException("don't optimze code containing a call to std::rand")
         res = new HashMap[L4_Expression, Double]()
-        res(L4_VariableAccess(varName, L4_RealDatatype)) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
+        res(L4_PlainVariableAccess(varName, L4_RealDatatype, false)) = 1d // ONLY VariableAccess in res keys, NO StringLiteral
 
       case call : L4_FunctionCall =>
         if (call.name.contains("std::rand")) // HACK
@@ -659,10 +663,10 @@ object L4_SimplifyExpression {
     val const : Double = sumMap.getOrElse(constName, 0d)
 
     val sumSeq = sumMap.view.filter(s => s._1 != constName && s._2 != 0d).toSeq.sortWith({
-      case ((L4_VariableAccess(v1, _), _), (L4_VariableAccess(v2, _), _)) => v1 < v2
-      case ((v1 : L4_VariableAccess, _), _)                               => true
-      case (_, (v2 : L4_VariableAccess, _))                               => false
-      case ((e1, _), (e2, _))                                             => e1.prettyprint() < e2.prettyprint()
+      case ((v1 : L4_VariableAccess, _), (v2 : L4_VariableAccess, _)) => v1.name < v2.name
+      case ((v1 : L4_VariableAccess, _), _)                           => true
+      case (_, (v2 : L4_VariableAccess, _))                           => false
+      case ((e1, _), (e2, _))                                         => e1.prettyprint() < e2.prettyprint()
     })
 
     if (sumSeq.isEmpty)

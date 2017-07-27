@@ -54,9 +54,9 @@ object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations
     case advanceSlot : IR_AdvanceSlot =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
-        case _ : IR_LoopOverFragments                                                                     => true
-        case IR_ForLoop(IR_VariableDeclaration(_, it, _), _, _, _, _) if IR_LoopOverFragments.defIt == it => true
-        case _                                                                                            => false
+        case _ : IR_LoopOverFragments                                                                             => true
+        case IR_ForLoop(IR_VariableDeclaration(_, it, _, _), _, _, _, _) if IR_LoopOverFragments.defIt.name == it => true
+        case _                                                                                                    => false
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial()
       else

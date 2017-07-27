@@ -54,7 +54,7 @@ object IR_Unrolling extends DefaultStrategy("Loop unrolling") {
     val (lower, isDecl) : (IR_Expression, Boolean) =
       begin match {
         case IR_Assignment(IR_VariableAccess(itVar2, IR_IntegerDatatype), init, "=") if itVar == itVar2 => (init, false)
-        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init)) if itVar == itVar2          => (init, true)
+        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init), _) if itVar == itVar2       => (init, true)
 
         case _ => throw UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
@@ -103,7 +103,7 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
     node match {
       case loop : IR_ForLoop =>
         loop.parallelization.isInnermost && loop.removeAnnotation(SKIP_ANNOT).isEmpty
-      case _                                       =>
+      case _                 =>
         false
     }
   }
@@ -192,8 +192,8 @@ private final object UnrollInnermost extends PartialFunction[Node, Transformatio
 
     val lower : IR_Expression =
       begin match {
-        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init)) if itVar == itVar2 => init
-        case _                                                                                 => throw UnrollException("cannot interpret loop begin: " + begin.prettyprint())
+        case IR_VariableDeclaration(IR_IntegerDatatype, itVar2, Some(init), _) if itVar == itVar2 => init
+        case _                                                                                    => throw UnrollException("cannot interpret loop begin: " + begin.prettyprint())
       }
 
     val upperExcl : IR_Expression =

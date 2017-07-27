@@ -100,7 +100,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
 
   this += new Transformation("declarations", {
     // Definition of matrix variable including initialisation -> split into decl and assignment
-    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(exp : IR_Expression)) => {
+    case decl @ IR_VariableDeclaration(matrix : IR_MatrixDatatype, _, Some(exp : IR_Expression), _) => {
       val newStmts = ListBuffer[IR_Statement]()
       // split declaration and definition so each part can be handled by subsequent transformations
       newStmts += IR_VariableDeclaration(matrix, decl.name, None)

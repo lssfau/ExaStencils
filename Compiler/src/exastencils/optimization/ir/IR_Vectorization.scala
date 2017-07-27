@@ -67,7 +67,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
     // excessive testing if loop header allows vectorization
     loop match {
-      case IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, itName, Some(lBound)), condExpr, incrExpr, body, parallelization) =>
+      case IR_ForLoop(IR_VariableDeclaration(IR_IntegerDatatype, itName, Some(lBound), _), condExpr, incrExpr, body, parallelization) =>
 
         val uBoundExcl : IR_Expression =
           condExpr match {
@@ -441,7 +441,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
           ctx.addStmt(ctx.storesTmp)
         ctx.storesTmp = null
 
-      case decl @ IR_VariableDeclaration(IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype, name, Some(init)) =>
+      case decl @ IR_VariableDeclaration(IR_RealDatatype | IR_DoubleDatatype | IR_FloatDatatype, name, Some(init), _) =>
         ctx.addStmt(IR_Comment(stmt.prettyprint()))
         val initWrap = IR_ExpressionStatement(Duplicate(init))
         IR_GeneralSimplify.doUntilDoneStandalone(initWrap)
@@ -449,7 +449,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
         val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, decl.datatype))
         ctx.addStmt(new IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, Some(initVec)))
 
-      case IR_VariableDeclaration(dt : IR_HigherDimensionalDatatype, name, None) =>
+      case IR_VariableDeclaration(dt : IR_HigherDimensionalDatatype, name, None, _) =>
         ctx.addStmt(IR_Comment(stmt.prettyprint()))
         val (vecTmp : String, true) = ctx.getName(IR_VariableAccess(name, dt))
         val newDt =

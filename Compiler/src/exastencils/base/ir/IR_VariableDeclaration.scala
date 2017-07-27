@@ -13,7 +13,7 @@ object IR_VariableDeclaration {
   = new IR_VariableDeclaration(variable.datatype, variable.name, Some(initialValue))
 }
 
-case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String, var initialValue : Option[IR_Expression] = None) extends IR_Statement {
+case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String, var initialValue : Option[IR_Expression] = None, var isConst : Boolean = false) extends IR_Statement {
   var alignment : Int = 1
 
   override def prettyprint(out : PpStream) : Unit = {
@@ -31,7 +31,7 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
         }
 
       case x : IR_MatrixDatatype =>
-        if(exastencils.config.Knowledge.experimental_internalHighDimTypes) {
+        if (exastencils.config.Knowledge.experimental_internalHighDimTypes) {
 //          x.datatype.prettyprint(out)
 //          out << ' ' << name << '[' << x.sizeM << ']' << '[' << x.sizeN << ']'
           out << x << ' ' << name

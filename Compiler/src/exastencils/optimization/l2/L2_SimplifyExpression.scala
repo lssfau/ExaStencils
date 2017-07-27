@@ -226,9 +226,9 @@ object L2_SimplifyExpression {
         res = new HashMap[L2_Expression, Long]()
         res(fia) = 1l // preserve datatype if some
 
-      case L2_VariableAccess(varName, dt) =>
+      case va : L2_VariableAccess =>
         res = new HashMap[L2_Expression, Long]()
-        res(L2_VariableAccess(varName, dt)) = 1l // preserve datatype if some
+        res(va) = 1l // preserve datatype if some
 
       case L2_Negative(neg) =>
         res = extractIntegralSumRec(neg)
@@ -470,9 +470,9 @@ object L2_SimplifyExpression {
         res = new HashMap[L2_Expression, Double]()
         res(fia) = 1d // preserve datatype if some
 
-      case L2_VariableAccess(varName, dt) =>
+      case va : L2_VariableAccess =>
         res = new HashMap[L2_Expression, Double]()
-        res(L2_VariableAccess(varName, dt)) = 1d // preserve datatype if some
+        res(va) = 1d // preserve datatype if some
 
       case call : L2_FunctionCall =>
         if (call.name.contains("std::rand")) // HACK

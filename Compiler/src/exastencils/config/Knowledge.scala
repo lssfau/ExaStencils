@@ -463,6 +463,11 @@ object Knowledge {
   // eliminate occurrences of cudaContext - required for PizDaint
   var experimental_eliminateCudaContext : Boolean = false
 
+  // control inlining of value declarations on applicable layers
+  var experimental_l2_inlineValueDeclarations : Boolean = false
+  var experimental_l3_inlineValueDeclarations : Boolean = false
+  var experimental_l4_inlineValueDeclarations : Boolean = true
+
   /// paper project - SISC
 
   // [16~64§sisc2015_numNodes*2]

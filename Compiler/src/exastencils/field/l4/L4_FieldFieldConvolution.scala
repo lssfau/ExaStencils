@@ -54,7 +54,7 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
             // add temporary variable
             for (tmpVar <- tmpVarMap.toList.sortBy(_._1.name)) {
               // FIXME: data type - tmpVar._2.lhs.resolveField.gridDatatype // FIXME: default value according to data type
-              newBody += L4_VariableDeclaration(L4_BasicIdentifier(tmpVar._1.name), L4_RealDatatype, Some(L4_RealConstant(0)))
+              newBody += L4_VariableDeclaration(tmpVar._1.name, None, L4_RealDatatype, Some(L4_RealConstant(0)), false)
             }
 
             // add reduction loop
@@ -91,7 +91,7 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
       case conv : L4_FieldFieldConvolution =>
         // TODO: incorporate rhs's dt as well
         val datatype = conv.lhs.target.datatype
-        val tmpVar = L4_VariableAccess(s"reductionVar_$tmpVarCounter", datatype)
+        val tmpVar = L4_PlainVariableAccess(s"reductionVar_$tmpVarCounter", datatype, false)
 
         tmpVarMap += (tmpVar -> conv)
 
