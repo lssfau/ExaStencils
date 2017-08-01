@@ -30,7 +30,7 @@ case class L3_DefaultRestrictionStencil(
   override def progress = Logger.error(s"Trying to progress l3 default stencil $name; this is not supported")
 
   override def generateStencil() = {
-    L3_DefaultRestriction.generate(name, levels.get.asInstanceOf[L3_SingleLevel].level,
+    L3_DefaultRestriction.generate(name, levels.get.resolveLevel,
       numDims, localization, interpolation)
   }
 
@@ -55,7 +55,7 @@ case class L3_DefaultProlongationStencil(
   override def progress = Logger.error(s"Trying to progress l3 default stencil $name; this is not supported")
 
   override def generateStencil() = {
-    L3_DefaultProlongation.generate(name, levels.get.asInstanceOf[L3_SingleLevel].level,
+    L3_DefaultProlongation.generate(name, levels.get.resolveLevel,
       numDims, localization, interpolation)
   }
 

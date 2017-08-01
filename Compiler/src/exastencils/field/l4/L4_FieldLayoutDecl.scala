@@ -116,7 +116,7 @@ case class L4_FieldLayoutDecl(
   }
 
   override def addToKnowledge() : Unit = {
-    val level = levels.get.asInstanceOf[L4_SingleLevel].level
+    val level = levels.get.resolveLevel
     L4_FieldLayoutCollection.add(composeLayout(level))
   }
 

@@ -27,7 +27,7 @@ case class L2_StencilFromExpression(
 
     val stencil = expression.asInstanceOf[L2_StencilAccess].target
     stencil.name = name
-    stencil.level = levels.get.asInstanceOf[L2_SingleLevel].level
+    stencil.level = levels.get.resolveLevel
 
     L2_StencilCollection.add(stencil)
   }
@@ -72,10 +72,10 @@ object L2_ResolveStencilExpression extends DefaultStrategy("Resolve operations i
 
       L2_Multiplication(result)
 
-    case L2_FunctionCall(fctAccess : L2_Access, ListBuffer(toTranspose : L2_StencilAccess)) if "transpose" == fctAccess.name =>
+    case L2_FunctionCall(fctRef : L2_FunctionReference, ListBuffer(toTranspose : L2_StencilAccess)) if "transpose" == fctRef.name =>
       L2_StencilAccess(L2_StencilOps.transpose(toTranspose.target))
 
-    case L2_FunctionCall(fctAccess : L2_Access, args) if "kron" == fctAccess.name =>
+    case L2_FunctionCall(fctRef : L2_FunctionReference, args) if "kron" == fctRef.name =>
       def processArgs(arguments : ListBuffer[L2_Expression]) : L2_Expression = {
         if (1 == arguments.length) {
           arguments.head

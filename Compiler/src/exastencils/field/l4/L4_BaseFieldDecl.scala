@@ -33,7 +33,7 @@ case class L4_BaseFieldDecl(
     L4_FieldDecl.runningIndex += 1
 
     L4_FieldCollection.add(
-      L4_Field(name, levels.get.asInstanceOf[L4_SingleLevel].level,
+      L4_Field(name, levels.get.resolveLevel,
         index,
         domain.asInstanceOf[L4_DomainAccess].target,
         fieldLayout.asInstanceOf[L4_FieldLayoutAccess].target,

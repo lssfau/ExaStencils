@@ -27,7 +27,7 @@ case class L3_StencilFromExpression(
 
     val stencil = expression.asInstanceOf[L3_StencilAccess].target
     stencil.name = name
-    stencil.level = levels.get.asInstanceOf[L3_SingleLevel].level
+    stencil.level = levels.get.resolveLevel
 
     L3_StencilCollection.add(stencil)
   }
@@ -72,10 +72,10 @@ object L3_ResolveStencilExpression extends DefaultStrategy("Resolve operations i
 
       L3_Multiplication(result)
 
-    case L3_FunctionCall(fctAccess : L3_Access, ListBuffer(toTranspose : L3_StencilAccess)) if "transpose" == fctAccess.name =>
+    case L3_FunctionCall(fctRef : L3_FunctionReference, ListBuffer(toTranspose : L3_StencilAccess)) if "transpose" == fctRef.name =>
       L3_StencilAccess(L3_StencilOps.transpose(toTranspose.target))
 
-    case L3_FunctionCall(fctAccess : L3_Access, args) if "kron" == fctAccess.name =>
+    case L3_FunctionCall(fctRef : L3_FunctionReference, args) if "kron" == fctRef.name =>
       def processArgs(arguments : ListBuffer[L3_Expression]) : L3_Expression = {
         if (1 == arguments.length) {
           arguments.head

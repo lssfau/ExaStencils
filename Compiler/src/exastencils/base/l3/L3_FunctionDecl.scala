@@ -48,7 +48,7 @@ case class L3_FunctionDecl(
     if (levels.isEmpty)
       L3_PlainFunction(name, datatype, parameters, body)
     else
-      L3_LeveledFunction(name, levels.get.asInstanceOf[L3_SingleLevel].level, datatype, parameters, body)
+      L3_LeveledFunction(name, levels.get.resolveLevel, datatype, parameters, body)
   }
 }
 

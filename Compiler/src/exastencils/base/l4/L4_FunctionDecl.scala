@@ -50,7 +50,7 @@ case class L4_FunctionDecl(
     if (levels.isEmpty)
       L4_PlainFunction(name, datatype, parameters, body)
     else
-      L4_LeveledFunction(name, levels.get.asInstanceOf[L4_SingleLevel].level, datatype, parameters, body)
+      L4_LeveledFunction(name, levels.get.resolveLevel, datatype, parameters, body)
   }
 }
 
