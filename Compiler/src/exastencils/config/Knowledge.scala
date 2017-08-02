@@ -468,6 +468,10 @@ object Knowledge {
   var experimental_l3_inlineValueDeclarations : Boolean = false
   var experimental_l4_inlineValueDeclarations : Boolean = true
 
+  var experimental_l2_resolveVirtualFields : Boolean = true
+  var experimental_l3_resolveVirtualFields : Boolean = true
+  var experimental_l4_resolveVirtualFields : Boolean = true
+
   /// paper project - SISC
 
   // [16~64§sisc2015_numNodes*2]
