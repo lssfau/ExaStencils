@@ -4,6 +4,7 @@ import exastencils.base.ir._
 import exastencils.core._
 import exastencils.field.ir.IR_FieldAccess
 
+@deprecated("Switch to IR_GridUtil instead", "02.08.17")
 object GridUtil {
   // helper functions of shifting indices and accesses
   def offsetIndex(index : IR_ExpressionIndex, offset : IR_Expression, dim : Int) : IR_ExpressionIndex = {
