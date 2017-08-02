@@ -23,6 +23,8 @@ object L2_FieldIteratorAccess {
       Logger.error(s"Invalid identifier in L2 FieldIteratorAccess: $ident")
     }
   }
+
+  def fullIndex(numDims : Int) = L2_ExpressionIndex((0 until numDims).map(this (_) : L2_Expression).toArray)
 }
 
 class L2_FieldIteratorAccess() extends L2_PlainVariableAccess("i", L2_IntegerDatatype, false) {

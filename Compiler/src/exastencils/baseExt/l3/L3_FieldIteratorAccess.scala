@@ -23,6 +23,8 @@ object L3_FieldIteratorAccess {
       Logger.error(s"Invalid identifier in L3 FieldIteratorAccess: $ident")
     }
   }
+
+  def fullIndex(numDims : Int) = L3_ExpressionIndex((0 until numDims).map(this (_) : L3_Expression).toArray)
 }
 
 class L3_FieldIteratorAccess() extends L3_PlainVariableAccess("i", L3_IntegerDatatype, false) {

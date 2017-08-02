@@ -10,6 +10,8 @@ object IR_FieldIteratorAccess {
     ret.dim = dim
     ret
   }
+
+  def fullIndex(numDims : Int) = IR_ExpressionIndex((0 until numDims).map(this (_) : IR_Expression).toArray)
 }
 
 class IR_FieldIteratorAccess() extends IR_VariableAccess("i", IR_IntegerDatatype) {
