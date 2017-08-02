@@ -2,28 +2,40 @@ package exastencils.grid.ir
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
+import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.grid.GridGeometry
+import exastencils.knowledge.ir.IR_LeveledKnowledgeAccess
+import exastencils.logger.Logger
 
 /// IR_VirtualFieldAccess
 
 case class IR_VirtualFieldAccess(
-    var fieldName : String,
-    var level : Int,
+    var target : IR_VirtualField,
     var index : IR_ExpressionIndex,
-    var arrayIndex : Option[Int] = None,
-    var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_Access with IR_SpecialExpandable with IR_CanBeOffset {
-  // TODO: extends IR_MultiDimFieldAccess
-  // FIXME: datatype
-  override def datatype = IR_RealDatatype
+    var fragIdx : IR_Expression = IR_LoopOverFragments.defIt) extends IR_LeveledKnowledgeAccess with IR_SpecialExpandable with IR_CanBeOffset {
 
+  override def datatype = target.datatype
   override def offsetWith(offset : IR_ConstIndex) = { index += offset }
+
+  def tryResolve : IR_Expression = {
+    if (!target.resolutionPossible)
+      Logger.warn(s"Access to ir virtual field without resolution found: ${ target.name }@${ target.level }")
+
+    target match {
+      case scalar : IR_VirtualFieldPerDim =>
+        scalar.resolve(index)
+
+      case vector : IR_VirtualFieldWithVec =>
+        IR_MatrixExpression(target.datatype.asInstanceOf[IR_MatrixDatatype],
+          vector.listPerDim.map(IR_VirtualFieldAccess(_, Duplicate(index)) : IR_Expression))
+    }
+  }
 }
 
-/// IR_ResolveVirtualFieldAccess
+/// IR_ResolveVirtualFieldAccesses
 
-object IR_ResolveVirtualFieldAccess extends DefaultStrategy("Resolve virtual fields") {
-  this += new Transformation("SearchAndReplace", {
-    case virtualField : IR_VirtualFieldAccess => GridGeometry.getGeometry.invokeAccessResolve(virtualField)
+object IR_ResolveVirtualFieldAccesses extends DefaultStrategy("Resolve accesses to virtual fields") {
+  this += new Transformation("Resolve", {
+    case access : IR_VirtualFieldAccess => access.tryResolve
   })
 }

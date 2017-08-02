@@ -40,6 +40,12 @@ object IR_MatrixExpression {
     }
     tmp
   }
+
+  def apply(datatype : IR_MatrixDatatype, expressions : ListBuffer[IR_Expression]) : IR_MatrixExpression = {
+    val tmp = IR_MatrixExpression(datatype.datatype, datatype.sizeM, datatype.sizeN)
+    tmp.expressions = expressions.toArray
+    tmp
+  }
 }
 
 case class IR_MatrixExpression(var innerDatatype : Option[IR_Datatype], var rows : Int, var columns : Int) extends IR_Expression {

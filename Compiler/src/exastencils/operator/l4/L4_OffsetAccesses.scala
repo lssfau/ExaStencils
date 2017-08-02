@@ -19,10 +19,7 @@ object L4_OffsetAccesses extends QuietDefaultStrategy("Offset accesses to (virtu
       field
 
     case field : L4_VirtualFieldAccess =>
-      if (field.offset.isDefined)
-        field.offset = Some(field.offset.get + offset)
-      else
-        field.offset = Some(offset)
+      field.index += offset
       field
   })
 }

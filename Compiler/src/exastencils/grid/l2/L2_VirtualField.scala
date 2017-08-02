@@ -33,7 +33,7 @@ trait L2_VirtualField extends L2_LeveledKnowledgeObject[L3_VirtualField] {
 trait L2_VirtualFieldWithVec extends L2_VirtualField {
   override def datatype = L2_MatrixDatatype(L2_RealDatatype, numDims, 1)
 
-  def listPerDim : ListBuffer[L2_VirtualFieldPerDim]
+  def listPerDim : ListBuffer[L2_VirtualField]
 }
 
 /// L2_VirtualFieldWithScalar

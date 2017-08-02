@@ -112,8 +112,11 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
               a0 = () => { 0.5 }
               a1 = () => { 0.5 }
             } else {
-              Logger.warn(s"Trying to evaluate $fieldAccess on face dimension $faceDim of a ${ stagDim.get } staggered CV. This is not unique. Defaulting to leftmost candidate")
-              return GridUtil.offsetAccess(fieldAccess, 1, stagDim.get)
+              a0 = () => { geom.cellCenterToFace(level, Duplicate(baseIndex), None, faceDim) }
+              a1 = () => { geom.cellCenterToFace(level, GridUtil.offsetIndex(baseIndex, 1, faceDim), None, faceDim) }
+
+              //Logger.warn(s"Trying to evaluate $fieldAccess on face dimension $faceDim of a ${ stagDim.get } staggered CV. This is not unique. Defaulting to leftmost candidate")
+              //return GridUtil.offsetAccess(fieldAccess, 1, stagDim.get)
             }
           } else {
             return fieldAccess // value is located at the evaluation region
@@ -413,18 +416,20 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         ShiftFieldAccessIndices.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
         ShiftFieldAccessIndices.applyStandalone(offsetExp)
 
+        def cellCenterToFace(dim : Int, level : Int, index : IR_ExpressionIndex) = 0.5 * IR_VirtualFieldAccess(IR_VF_CellWidthPerDim.find(level, dim), index)
+
         Knowledge.dimensionality /* FIXME: numDims */ match {
           // TODO: refactor
           case 2 =>
-            (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp.expression
-              + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, index) * offsetExp.expression)
+            (cellCenterToFace(curStagDim, level, IR_GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp.expression
+              + cellCenterToFace(curStagDim, level, index) * offsetExp.expression)
 
           case 3 =>
             val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
 
-            IR_VirtualFieldAccess(s"vf_cellWidth_${ IR_DimToString(compDim) }", level, index) *
-              (IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp.expression
-                + IR_VirtualFieldAccess(s"vf_cellCenterToFace_${ IR_DimToString(curStagDim) }", level, index) * offsetExp.expression)
+            IR_VirtualFieldAccess(IR_VF_CellWidthPerDim.find(level, compDim), index) *
+              (cellCenterToFace(curStagDim, level, IR_GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp.expression
+                + cellCenterToFace(curStagDim, level, index) * offsetExp.expression)
         }
       } else {
         Logger.error("piecewise integration on non-staggered cell interfaces is not supported")

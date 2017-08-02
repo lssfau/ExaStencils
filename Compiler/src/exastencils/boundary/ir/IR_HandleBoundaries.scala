@@ -13,8 +13,7 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.grid._
-import exastencils.grid.ir.IR_VirtualFieldAccess
+import exastencils.grid.ir._
 import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 
@@ -31,27 +30,22 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
     // apply local trafo and replace boundaryCoord
     val strat = QuietDefaultStrategy("ResolveBoundaryCoordinates")
     strat += new Transformation("SearchAndReplace", {
-      case virtualField : IR_VirtualFieldAccess if virtualField.fieldName.startsWith("boundaryCoord") || virtualField.fieldName.startsWith("vf_boundaryCoord") =>
-        val evalDim = virtualField.fieldName match {
-          case "boundaryCoord_x" | "vf_boundaryCoord_x" => 0
-          case "boundaryCoord_y" | "vf_boundaryCoord_y" => 1
-          case "boundaryCoord_z" | "vf_boundaryCoord_z" => 2
-          case _                                        => Logger.error(s"Invalid virtual field named ${ virtualField.fieldName } found")
-        }
+      case virtualField @ IR_VirtualFieldAccess(target : IR_VF_BoundaryPositionPerDim, index, fragIdx) =>
+        val evalDim = target.dim
 
         field.fieldLayout.discretization match {
           // TODO: adapt for grids that are not axis-parallel
           case discr if "node" == discr || ("face_x" == discr && 0 == evalDim) || ("face_y" == discr && 1 == evalDim) || ("face_z" == discr && 2 == evalDim) =>
-            virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
+            virtualField.target = IR_VF_NodePositionPerDim.find(target.level, evalDim)
 
           case discr if "cell" == discr || ("face_x" == discr && 0 != evalDim) || ("face_y" == discr && 1 != evalDim) || ("face_z" == discr && 2 != evalDim) =>
             if (0 == neigh.dir(evalDim)) { // simple projection
-              virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "cellCenter")
+              virtualField.target = IR_VF_CellCenterPerDim.find(target.level, evalDim)
             } else if (neigh.dir(evalDim) < 0) { // snap to left boundary
-              virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
+              virtualField.target = IR_VF_NodePositionPerDim.find(target.level, evalDim)
             } else { // snap to right boundary
-              virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
-              virtualField.index = GridUtil.offsetIndex(virtualField.index, 1, evalDim)
+              virtualField.target = IR_VF_NodePositionPerDim.find(target.level, evalDim)
+              virtualField.index = IR_GridUtil.offsetIndex(virtualField.index, 1, evalDim)
             }
         }
         virtualField
@@ -122,14 +116,14 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
                   val nonZero = neigh.dir.zipWithIndex.filter(_._1 != 0)
                   if (nonZero.length != 1) Logger.error("Malformed neighbor index vector " + neigh.dir.mkString(", "))
                   val dim = nonZero(0)._2
-                  def x = IR_VirtualFieldAccess(s"vf_cellCenter_${ IR_DimToString(dim) }", field.level, index + offsetIndex)
+                  def x = IR_VirtualFieldAccess(IR_VF_CellCenterPerDim.find(field.level, dim), index + offsetIndex)
                   def x_0_5 =
                     if (neigh.dir(dim) > 0)
-                      IR_VirtualFieldAccess(s"vf_nodePosition_${ IR_DimToString(dim) }", field.level, index + offsetIndex)
+                      IR_VirtualFieldAccess(IR_VF_NodePositionPerDim.find(field.level, dim), index + offsetIndex)
                     else
-                      IR_VirtualFieldAccess(s"vf_nodePosition_${ IR_DimToString(dim) }", field.level, index)
-                  def x_1 = IR_VirtualFieldAccess(s"vf_cellCenter_${ IR_DimToString(dim) }", field.level, index)
-                  def x_2 = IR_VirtualFieldAccess(s"vf_cellCenter_${ IR_DimToString(dim) }", field.level, index + offsetIndexWithTrafo(i => -i))
+                      IR_VirtualFieldAccess(IR_VF_NodePositionPerDim.find(field.level, dim), index)
+                  def x_1 = IR_VirtualFieldAccess(IR_VF_CellCenterPerDim.find(field.level, dim), index)
+                  def x_2 = IR_VirtualFieldAccess(IR_VF_CellCenterPerDim.find(field.level, dim), index + offsetIndexWithTrafo(i => -i))
                   w_0_5 = ((x - x_1) * (x - x_2)) / ((x_0_5 - x_1) * (x_0_5 - x_2))
                   w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
                   w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))

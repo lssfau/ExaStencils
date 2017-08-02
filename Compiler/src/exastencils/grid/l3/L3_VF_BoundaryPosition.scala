@@ -4,10 +4,14 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l3._
 import exastencils.domain.l3.L3_Domain
-import exastencils.grid.l4.L4_VirtualField
+import exastencils.grid.l4._
 import exastencils.logger.Logger
 
 /// L3_VF_BoundaryPositionAsVec
+
+object L3_VF_BoundaryPositionAsVec {
+  def find(level : Int) = L3_VirtualField.findVirtualField(s"vf_boundaryPosition", level)
+}
 
 case class L3_VF_BoundaryPositionAsVec(
     var level : Int,
@@ -19,10 +23,15 @@ case class L3_VF_BoundaryPositionAsVec(
   override def localization = L3_AtBoundary
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L3_VF_BoundaryPositionPerDim(level, domain, _) : L3_VirtualFieldPerDim).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L3_VF_BoundaryPositionPerDim.find(level, _)).to[ListBuffer]
+  override def progressImpl() = L4_VF_BoundaryPositionAsVec(level, domain.getProgressedObj())
 }
 
 /// L3_VF_BoundaryPositionPerDim
+
+object L3_VF_BoundaryPositionPerDim {
+  def find(level : Int, dim : Int) = L3_VirtualField.findVirtualField(s"vf_boundaryPosition_$dim", level)
+}
 
 case class L3_VF_BoundaryPositionPerDim(
     var level : Int,
@@ -41,6 +50,5 @@ case class L3_VF_BoundaryPositionPerDim(
   override def resolutionPossible = false
 
   override def resolve(index : L3_ExpressionIndex) = Logger.error("Trying to resolve boundary position; unsupported")
-
-  override def progressImpl() = /* FIXME */ L4_VirtualField("vf_boundaryCoord_" + L3_Localization.dimToString(dim), level, domain.getProgressedObj(), datatype.progress, localization.name)
+  override def progressImpl() = L4_VF_BoundaryPositionPerDim(level, domain.getProgressedObj(), dim)
 }

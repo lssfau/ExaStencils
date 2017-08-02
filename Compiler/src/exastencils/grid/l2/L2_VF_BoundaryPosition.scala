@@ -9,6 +9,10 @@ import exastencils.logger.Logger
 
 /// L2_VF_BoundaryPositionAsVec
 
+object L2_VF_BoundaryPositionAsVec {
+  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_boundaryPosition", level)
+}
+
 case class L2_VF_BoundaryPositionAsVec(
     var level : Int,
     var domain : L2_Domain
@@ -19,11 +23,15 @@ case class L2_VF_BoundaryPositionAsVec(
   override def localization = L2_AtBoundary
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L2_VF_BoundaryPositionPerDim(level, domain, _) : L2_VirtualFieldPerDim).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L2_VF_BoundaryPositionPerDim.find(level, _)).to[ListBuffer]
   override def progressImpl() = L3_VF_BoundaryPositionAsVec(level, domain.getProgressedObj())
 }
 
 /// L2_VF_BoundaryPositionPerDim
+
+object L2_VF_BoundaryPositionPerDim {
+  def find(level : Int, dim : Int) = L2_VirtualField.findVirtualField(s"vf_boundaryPosition_$dim", level)
+}
 
 case class L2_VF_BoundaryPositionPerDim(
     var level : Int,

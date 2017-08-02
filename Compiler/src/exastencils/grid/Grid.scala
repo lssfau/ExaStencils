@@ -19,6 +19,6 @@ object Grid {
     IR_ResolveIntegrateOnGrid.apply(node)
     IR_ExpandEvaluationExpressions.apply(node)
 
-    IR_ResolveVirtualFieldAccess.apply(node)
+    IR_ResolveVirtualFieldAccesses.apply(node)
   }
 }

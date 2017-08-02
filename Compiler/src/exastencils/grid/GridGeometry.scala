@@ -54,28 +54,28 @@ abstract class GridGeometry() {
 
   // helper method to map names of special fields to actual member functions implementing the resolving step
   def invokeAccessResolve(virtualField : IR_VirtualFieldAccess) : IR_Expression = {
-    var functionName = virtualField.fieldName
+    var functionName = virtualField.target.name
     if (functionName.startsWith("vf_")) functionName = functionName.substring(3)
     functionName.substring(functionName.length() - 2) match {
       case "_x" =>
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level : Integer, virtualField.index, virtualField.arrayIndex, 0 : Integer).asInstanceOf[IR_Expression]
+        method.get.invoke(this, virtualField.level : Integer, virtualField.index, None, 0 : Integer).asInstanceOf[IR_Expression]
 
       case "_y" =>
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level : Integer, virtualField.index, virtualField.arrayIndex, 1 : Integer).asInstanceOf[IR_Expression]
+        method.get.invoke(this, virtualField.level : Integer, virtualField.index, None, 1 : Integer).asInstanceOf[IR_Expression]
 
       case "_z" =>
         val method = resolveGridMemberFunction(functionName.substring(0, functionName.length - 2))
         if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level : Integer, virtualField.index, virtualField.arrayIndex, 2 : Integer).asInstanceOf[IR_Expression]
+        method.get.invoke(this, virtualField.level : Integer, virtualField.index, None, 2 : Integer).asInstanceOf[IR_Expression]
 
       case _ =>
         val method = resolveGridMemberFunction(functionName)
         if (method.isEmpty) Logger.debug(s"Trying to access invalid method $functionName")
-        method.get.invoke(this, virtualField.level : Integer, virtualField.index, virtualField.arrayIndex).asInstanceOf[IR_Expression]
+        method.get.invoke(this, virtualField.level : Integer, virtualField.index, None).asInstanceOf[IR_Expression]
 
     }
   }

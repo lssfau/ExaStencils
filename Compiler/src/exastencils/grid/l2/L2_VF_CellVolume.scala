@@ -8,6 +8,10 @@ import exastencils.grid.l3.L3_VF_CellVolume
 
 /// L2_VF_CellVolume
 
+object L2_VF_CellVolume {
+  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_cellVolume", level)
+}
+
 case class L2_VF_CellVolume(
     var level : Int,
     var domain : L2_Domain
@@ -20,7 +24,7 @@ case class L2_VF_CellVolume(
 
   override def resolve(index : L2_ExpressionIndex) = {
     (0 until domain.numDims).map(dim =>
-      L2_VirtualFieldAccess(L2_VF_CellWidthPerDim(level, domain, dim), index) : L2_Expression
+      L2_VirtualFieldAccess(L2_VF_CellWidthPerDim.find(level, dim), index) : L2_Expression
     ).reduce(_ * _)
   }
 

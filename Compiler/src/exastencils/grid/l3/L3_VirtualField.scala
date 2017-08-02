@@ -26,7 +26,6 @@ trait L3_VirtualField extends L3_LeveledKnowledgeObject[L4_VirtualField] {
   def numDims = domain.numDims
 
   override def prettyprintDecl(out : PpStream) = Logger.error("Trying to print the declaration of a virtual field - unsupported")
-  override def progressImpl() = /* FIXME */ L4_VirtualField(name, level, domain.getProgressedObj(), datatype.progress, localization.name)
 }
 
 /// L3_VirtualFieldWithVec
@@ -34,7 +33,7 @@ trait L3_VirtualField extends L3_LeveledKnowledgeObject[L4_VirtualField] {
 trait L3_VirtualFieldWithVec extends L3_VirtualField {
   override def datatype = L3_MatrixDatatype(L3_RealDatatype, numDims, 1)
 
-  def listPerDim : ListBuffer[L3_VirtualFieldPerDim]
+  def listPerDim : ListBuffer[L3_VirtualField]
 }
 
 /// L3_VirtualFieldWithScalar
@@ -49,6 +48,4 @@ trait L3_VirtualFieldWithScalar extends L3_VirtualField {
 
 trait L3_VirtualFieldPerDim extends L3_VirtualFieldWithScalar {
   def dim : Int
-
-  override def progressImpl() = /* FIXME */ L4_VirtualField(name.dropRight(1) + L3_Localization.dimToString(dim), level, domain.getProgressedObj(), datatype.progress, localization.name)
 }

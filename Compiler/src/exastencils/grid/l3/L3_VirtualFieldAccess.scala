@@ -48,7 +48,7 @@ case class L3_VirtualFieldAccess(
     }
   }
 
-  def progress = L4_VirtualFieldAccess(target.getProgressedObj(), Some(extractOffset.progress))
+  def progress = L4_VirtualFieldAccess(target.getProgressedObj(), index.progress)
 }
 
 /// L3_ResolveVirtualFieldAccesses

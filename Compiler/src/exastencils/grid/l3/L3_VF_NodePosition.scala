@@ -4,9 +4,14 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l3._
 import exastencils.domain.l3.L3_Domain
+import exastencils.grid.l4._
 import exastencils.logger.Logger
 
 /// L3_VF_NodePositionAsVec
+
+object L3_VF_NodePositionAsVec {
+  def find(level : Int) = L3_VirtualField.findVirtualField(s"vf_nodePosition", level)
+}
 
 case class L3_VF_NodePositionAsVec(
     var level : Int,
@@ -18,10 +23,16 @@ case class L3_VF_NodePositionAsVec(
   override def localization = L3_AtNode
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L3_VF_NodePositionPerDim(level, domain, _) : L3_VirtualFieldPerDim).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L3_VF_NodePositionPerDim.find(level, _)).to[ListBuffer]
+
+  override def progressImpl() = L4_VF_NodePositionAsVec(level, domain.getProgressedObj())
 }
 
 /// L3_VF_NodePositionPerDim
+
+object L3_VF_NodePositionPerDim {
+  def find(level : Int, dim : Int) = L3_VirtualField.findVirtualField(s"vf_nodePosition_$dim", level)
+}
 
 case class L3_VF_NodePositionPerDim(
     var level : Int,
@@ -35,5 +46,6 @@ case class L3_VF_NodePositionPerDim(
   override def resolutionPossible = false
 
   override def resolve(index : L3_ExpressionIndex) = Logger.error("Trying to resolve node position; unsupported")
-  // FIXME: index(dim) * L3_VirtualFieldAccess(L3_VF_NodePositionPerDim(level, domain, dim), index) + L3_IV_FragmentPositionBegin(dim)
+
+  override def progressImpl() = L4_VF_NodePositionPerDim(level, domain.getProgressedObj(), dim)
 }

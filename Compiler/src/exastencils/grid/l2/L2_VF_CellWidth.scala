@@ -10,6 +10,10 @@ import exastencils.grid.l3._
 
 /// L2_VF_CellWidthAsVec
 
+object L2_VF_CellWidthAsVec {
+  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_cellWidth", level)
+}
+
 case class L2_VF_CellWidthAsVec(
     var level : Int,
     var domain : L2_Domain
@@ -20,12 +24,16 @@ case class L2_VF_CellWidthAsVec(
   override def localization = L2_AtCellCenter
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L2_VF_CellWidthPerDim(level, domain, _) : L2_VirtualFieldPerDim).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L2_VF_CellWidthPerDim.find(level, _)).to[ListBuffer]
 
   override def progressImpl() = L3_VF_CellWidthAsVec(level, domain.getProgressedObj())
 }
 
 /// L2_VF_CellWidthPerDim
+
+object L2_VF_CellWidthPerDim {
+  def find(level : Int, dim : Int) = L2_VirtualField.findVirtualField(s"vf_cellWidth_$dim", level)
+}
 
 case class L2_VF_CellWidthPerDim(
     var level : Int,

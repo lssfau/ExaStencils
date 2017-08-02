@@ -5,8 +5,13 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.domain.l3.L3_Domain
+import exastencils.grid.l4._
 
 /// L3_VF_CellCenterAsVec
+
+object L3_VF_CellCenterAsVec {
+  def find(level : Int) = L3_VirtualField.findVirtualField(s"vf_cellCenter", level)
+}
 
 case class L3_VF_CellCenterAsVec(
     var level : Int,
@@ -18,10 +23,16 @@ case class L3_VF_CellCenterAsVec(
   override def localization = L3_AtCellCenter
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L3_VF_CellCenterPerDim(level, domain, _) : L3_VirtualFieldPerDim).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L3_VF_CellCenterPerDim.find(level, _)).to[ListBuffer]
+
+  override def progressImpl() = L4_VF_CellCenterAsVec(level, domain.getProgressedObj())
 }
 
 /// L3_VF_CellCenterPerDim
+
+object L3_VF_CellCenterPerDim {
+  def find(level : Int, dim : Int) = L3_VirtualField.findVirtualField(s"vf_cellCenter_$dim", level)
+}
 
 case class L3_VF_CellCenterPerDim(
     var level : Int,
@@ -36,7 +47,9 @@ case class L3_VF_CellCenterPerDim(
 
   override def resolve(index : L3_ExpressionIndex) = {
     // nodePos + 0.5 cellWidth
-    L3_VirtualFieldAccess(L3_VF_NodePositionPerDim(level, domain, dim), index) +
-      0.5 * L3_VirtualFieldAccess(L3_VF_CellWidthPerDim(level, domain, dim), index)
+    L3_VirtualFieldAccess(L3_VF_NodePositionPerDim.find(level, dim), index) +
+      0.5 * L3_VirtualFieldAccess(L3_VF_CellWidthPerDim.find(level, dim), index)
   }
+
+  override def progressImpl() = L4_VF_CellCenterPerDim(level, domain.getProgressedObj(), dim)
 }

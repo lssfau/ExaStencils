@@ -9,6 +9,10 @@ import exastencils.logger.Logger
 
 /// L2_VF_NodePositionAsVec
 
+object L2_VF_NodePositionAsVec {
+  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_nodePosition", level)
+}
+
 case class L2_VF_NodePositionAsVec(
     var level : Int,
     var domain : L2_Domain
@@ -19,12 +23,16 @@ case class L2_VF_NodePositionAsVec(
   override def localization = L2_AtNode
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L2_VF_NodePositionPerDim(level, domain, _) : L2_VirtualFieldPerDim).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L2_VF_NodePositionPerDim.find(level, _)).to[ListBuffer]
 
   override def progressImpl() = L3_VF_NodePositionAsVec(level, domain.getProgressedObj())
 }
 
 /// L2_VF_NodePositionPerDim
+
+object L2_VF_NodePositionPerDim {
+  def find(level : Int, dim : Int) = L2_VirtualField.findVirtualField(s"vf_nodePosition_$dim", level)
+}
 
 case class L2_VF_NodePositionPerDim(
     var level : Int,
@@ -38,7 +46,6 @@ case class L2_VF_NodePositionPerDim(
   override def resolutionPossible = false
 
   override def resolve(index : L2_ExpressionIndex) = Logger.error("Trying to resolve node position; unsupported")
-  // FIXME: index(dim) * L2_VirtualFieldAccess(L2_VF_NodePositionPerDim(level, domain, dim), index) + L2_IV_FragmentPositionBegin(dim)
 
   override def progressImpl() = L3_VF_NodePositionPerDim(level, domain.getProgressedObj(), dim)
 }
