@@ -9,4 +9,5 @@ case class IR_DomainFromAABB(var name : String, aabb : IR_AABB) extends IR_Domai
   IR_Domain.runningIndex += 1
 
   override def HACK_shape : Any = ???
+  override def numDims = aabb.numDims
 }

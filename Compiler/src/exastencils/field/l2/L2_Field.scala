@@ -18,8 +18,10 @@ case class L2_Field(
     var initial : Option[L2_Expression],
     var boundary : L2_BoundaryCondition) extends L2_LeveledKnowledgeObject[L3_Field] {
 
-  def fieldLayoutName = s"defLayout$localization"
   override def prettyprintDecl(out : PpStream) : Unit = ???
+
+  def codeName = name + "_" + level
+  def numDimsGrid = domain.numDims
 
   override def progressImpl() = {
     L3_Field(

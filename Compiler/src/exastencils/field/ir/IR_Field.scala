@@ -17,6 +17,8 @@ case class IR_Field(
     var boundary : IR_BoundaryCondition // the boundary condition to be enforced when calling apply bc
 ) extends IR_LeveledKnowledgeObject {
 
+  def numDimsGrid = domain.numDims
+
   // shortcuts to layout options
   def gridDatatype = fieldLayout.datatype
   def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype

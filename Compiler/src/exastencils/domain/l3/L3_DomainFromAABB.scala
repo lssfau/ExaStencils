@@ -10,6 +10,8 @@ import exastencils.util.l3.L3_AABB
 case class L3_DomainFromAABB(var name : String, aabb : L3_AABB) extends L3_Domain {
   override def prettyprintDecl(out : PpStream) = out << "Domain " << name << "< " << aabb << " >"
   override def progressImpl() = L4_DomainFromAABB(name, aabb.progress)
+
+  override def numDims = aabb.numDims
 }
 
 /// L3_DomainFromAABBDecl

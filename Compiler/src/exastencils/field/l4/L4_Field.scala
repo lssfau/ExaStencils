@@ -1,7 +1,6 @@
 package exastencils.field.l4
 
 import exastencils.boundary.l4.L4_BoundaryCondition
-import exastencils.config.Knowledge
 import exastencils.domain.l4.L4_Domain
 import exastencils.field.ir.IR_Field
 import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
@@ -20,15 +19,15 @@ case class L4_Field(
 
   def datatype = fieldLayout.datatype
 
-  // FIXME: handle numDimsGrid
-  def numDimsGrid = Knowledge.dimensionality
-
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << name
     out << "< " << domain.name << ", " << fieldLayout.name << ", " << boundary << " >"
     if (numSlots > 1) out << "[" << numSlots << "]"
     out << "@" << level
   }
+
+  def codeName = name + "_" + level
+  def numDimsGrid = domain.numDims
 
   override def progressImpl() = {
     IR_Field(

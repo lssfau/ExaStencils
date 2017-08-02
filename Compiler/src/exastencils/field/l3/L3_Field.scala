@@ -32,6 +32,9 @@ case class L3_Field(
 
   override def prettyprintDecl(out : PpStream) : Unit = ???
 
+  def codeName = name + "_" + level
+  def numDimsGrid = domain.numDims
+
   override def progressImpl() = {
     L4_Field(
       name,
