@@ -4,6 +4,8 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4.L4_ImplicitConversion._
 import exastencils.base.l4._
+import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.domain.l4.L4_Domain
 import exastencils.grid.ir._
 
@@ -11,6 +13,7 @@ import exastencils.grid.ir._
 
 object L4_VF_CellCenterAsVec {
   def find(level : Int) = L4_VirtualField.findVirtualField(s"vf_cellCenter", level)
+  def access(level : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level), index)
 }
 
 case class L4_VF_CellCenterAsVec(
@@ -32,6 +35,7 @@ case class L4_VF_CellCenterAsVec(
 
 object L4_VF_CellCenterPerDim {
   def find(level : Int, dim : Int) = L4_VirtualField.findVirtualField(s"vf_cellCenter_$dim", level)
+  def access(level : Int, dim : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level, dim), index)
 }
 
 case class L4_VF_CellCenterPerDim(
@@ -46,9 +50,31 @@ case class L4_VF_CellCenterPerDim(
   override def resolutionPossible = true
 
   override def resolve(index : L4_ExpressionIndex) = {
-    // nodePos + 0.5 cellWidth
-    L4_VirtualFieldAccess(L4_VF_NodePositionPerDim.find(level, dim), index) +
-      0.5 * L4_VirtualFieldAccess(L4_VF_CellWidthPerDim.find(level, dim), index)
+    if (Knowledge.grid_isUniform) {
+      // nodePos + 0.5 * cellWidth
+      L4_VF_NodePositionPerDim.access(level, dim, index) + 0.5 * L4_VF_CellWidthPerDim.access(level, dim, index)
+
+    } else if (Knowledge.grid_isAxisAligned) {
+      // interpolation of two node positions suffices
+      0.5 * (L4_VF_NodePositionPerDim.access(level, dim, index)
+        + L4_VF_NodePositionPerDim.access(level, dim, L4_GridUtil.offsetIndex(index, 1, dim)))
+
+    } else {
+      // interpolation of the current cell's corner positions
+
+      var accesses = ListBuffer[L4_VirtualFieldAccess](L4_VF_NodePositionPerDim.access(level, dim, index))
+
+      for (d <- 0 until numDims)
+        accesses = accesses.flatMap(base => {
+          val left = Duplicate(base)
+          val right = Duplicate(base)
+          right.index = L4_GridUtil.offsetIndex(right.index, 1, d)
+
+          ListBuffer(left, right)
+        })
+
+      (1.0 / accesses.length) * L4_Addition(accesses.map(_.asInstanceOf[L4_Expression]))
+    }
   }
 
   override def progressImpl() = IR_VF_CellCenterPerDim(level, domain.getProgressedObj(), dim)

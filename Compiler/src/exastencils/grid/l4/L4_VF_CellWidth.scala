@@ -7,11 +7,13 @@ import exastencils.base.l4._
 import exastencils.config.Knowledge
 import exastencils.domain.l4.L4_Domain
 import exastencils.grid.ir._
+import exastencils.logger.Logger
 
 /// L4_VF_CellWidthAsVec
 
 object L4_VF_CellWidthAsVec {
   def find(level : Int) = L4_VirtualField.findVirtualField(s"vf_cellWidth", level)
+  def access(level : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level), index)
 }
 
 case class L4_VF_CellWidthAsVec(
@@ -33,6 +35,7 @@ case class L4_VF_CellWidthAsVec(
 
 object L4_VF_CellWidthPerDim {
   def find(level : Int, dim : Int) = L4_VirtualField.findVirtualField(s"vf_cellWidth_$dim", level)
+  def access(level : Int, dim : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level, dim), index)
 }
 
 case class L4_VF_CellWidthPerDim(
@@ -47,11 +50,19 @@ case class L4_VF_CellWidthPerDim(
   override def resolutionPossible = true
 
   override def resolve(index : L4_ExpressionIndex) = {
-    val levelIndex = level - Knowledge.minLevel
-    dim match {
-      case 0 => Knowledge.discr_hx(levelIndex)
-      case 1 => Knowledge.discr_hy(levelIndex)
-      case 2 => Knowledge.discr_hz(levelIndex)
+    if (Knowledge.grid_isUniform) {
+      val levelIndex = level - Knowledge.minLevel
+      dim match {
+        case 0 => Knowledge.discr_hx(levelIndex)
+        case 1 => Knowledge.discr_hy(levelIndex)
+        case 2 => Knowledge.discr_hz(levelIndex)
+      }
+
+    } else if (Knowledge.grid_isAxisAligned) {
+      L4_VF_NodePositionPerDim.access(level, dim, L4_GridUtil.offsetIndex(index, 1, dim)) - L4_VF_NodePositionPerDim.access(level, dim, index)
+
+    } else {
+      Logger.error("Currently unsupported")
     }
   }
 

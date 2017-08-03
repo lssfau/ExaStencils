@@ -116,14 +116,14 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
                   val nonZero = neigh.dir.zipWithIndex.filter(_._1 != 0)
                   if (nonZero.length != 1) Logger.error("Malformed neighbor index vector " + neigh.dir.mkString(", "))
                   val dim = nonZero(0)._2
-                  def x = IR_VirtualFieldAccess(IR_VF_CellCenterPerDim.find(field.level, dim), index + offsetIndex)
+                  def x = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndex)
                   def x_0_5 =
                     if (neigh.dir(dim) > 0)
-                      IR_VirtualFieldAccess(IR_VF_NodePositionPerDim.find(field.level, dim), index + offsetIndex)
+                      IR_VF_NodePositionPerDim.access(field.level, dim, index + offsetIndex)
                     else
-                      IR_VirtualFieldAccess(IR_VF_NodePositionPerDim.find(field.level, dim), index)
-                  def x_1 = IR_VirtualFieldAccess(IR_VF_CellCenterPerDim.find(field.level, dim), index)
-                  def x_2 = IR_VirtualFieldAccess(IR_VF_CellCenterPerDim.find(field.level, dim), index + offsetIndexWithTrafo(i => -i))
+                      IR_VF_NodePositionPerDim.access(field.level, dim, index)
+                  def x_1 = IR_VF_CellCenterPerDim.access(field.level, dim, index)
+                  def x_2 = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndexWithTrafo(i => -i))
                   w_0_5 = ((x - x_1) * (x - x_2)) / ((x_0_5 - x_1) * (x_0_5 - x_2))
                   w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
                   w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))

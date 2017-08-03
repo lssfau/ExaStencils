@@ -11,6 +11,7 @@ import exastencils.logger.Logger
 
 object L4_VF_NodePositionAsVec {
   def find(level : Int) = L4_VirtualField.findVirtualField(s"vf_nodePosition", level)
+  def access(level : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level), index)
 }
 
 case class L4_VF_NodePositionAsVec(
@@ -32,6 +33,7 @@ case class L4_VF_NodePositionAsVec(
 
 object L4_VF_NodePositionPerDim {
   def find(level : Int, dim : Int) = L4_VirtualField.findVirtualField(s"vf_nodePosition_$dim", level)
+  def access(level : Int, dim : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level, dim), index)
 }
 
 case class L4_VF_NodePositionPerDim(

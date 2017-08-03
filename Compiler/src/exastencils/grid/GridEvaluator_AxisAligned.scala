@@ -416,7 +416,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
         ShiftFieldAccessIndices.requiredAnnot = Some(WrappingFieldAccesses.pIntAnnot)
         ShiftFieldAccessIndices.applyStandalone(offsetExp)
 
-        def cellCenterToFace(dim : Int, level : Int, index : IR_ExpressionIndex) = 0.5 * IR_VirtualFieldAccess(IR_VF_CellWidthPerDim.find(level, dim), index)
+        def cellCenterToFace(dim : Int, level : Int, index : IR_ExpressionIndex) = 0.5 * IR_VF_CellWidthPerDim.access(level, dim, index)
 
         Knowledge.dimensionality /* FIXME: numDims */ match {
           // TODO: refactor
@@ -427,7 +427,7 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
           case 3 =>
             val compDim = if (0 != faceDim && 0 != curStagDim) 0 else if (1 != faceDim && 1 != curStagDim) 1 else 2
 
-            IR_VirtualFieldAccess(IR_VF_CellWidthPerDim.find(level, compDim), index) *
+            IR_VF_CellWidthPerDim.access(level, compDim, index) *
               (cellCenterToFace(curStagDim, level, IR_GridUtil.offsetIndex(index, -1, curStagDim)) * centerExp.expression
                 + cellCenterToFace(curStagDim, level, index) * offsetExp.expression)
         }

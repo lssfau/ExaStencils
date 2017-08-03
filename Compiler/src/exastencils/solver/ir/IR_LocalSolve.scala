@@ -19,11 +19,6 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
   })
 }
 
-/// IR_Equation
-
-// TODO: move eq node to more fitting file/package
-case class IR_Equation(var lhs : IR_Expression, var rhs : IR_Expression) extends IR_Node
-
 /// IR_LocalSolve
 
 case class IR_LocalSolve(

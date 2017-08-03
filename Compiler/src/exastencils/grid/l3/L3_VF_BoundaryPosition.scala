@@ -11,6 +11,7 @@ import exastencils.logger.Logger
 
 object L3_VF_BoundaryPositionAsVec {
   def find(level : Int) = L3_VirtualField.findVirtualField(s"vf_boundaryPosition", level)
+  def access(level : Int, index : L3_ExpressionIndex) = L3_VirtualFieldAccess(find(level), index)
 }
 
 case class L3_VF_BoundaryPositionAsVec(
@@ -31,6 +32,7 @@ case class L3_VF_BoundaryPositionAsVec(
 
 object L3_VF_BoundaryPositionPerDim {
   def find(level : Int, dim : Int) = L3_VirtualField.findVirtualField(s"vf_boundaryPosition_$dim", level)
+  def access(level : Int, dim : Int, index : L3_ExpressionIndex) = L3_VirtualFieldAccess(find(level, dim), index)
 }
 
 case class L3_VF_BoundaryPositionPerDim(

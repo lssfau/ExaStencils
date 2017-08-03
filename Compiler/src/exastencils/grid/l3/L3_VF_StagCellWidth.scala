@@ -4,13 +4,16 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
+import exastencils.config.Knowledge
 import exastencils.domain.l3.L3_Domain
 import exastencils.grid.l4._
+import exastencils.logger.Logger
 
 /// L3_VF_StagCellWidthAsVec
 
 object L3_VF_StagCellWidthAsVec {
   def find(level : Int, stagDim : Int) = L3_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth", level)
+  def access(level : Int, stagDim : Int, index : L3_ExpressionIndex) = L3_VirtualFieldAccess(find(level, stagDim), index)
 }
 
 case class L3_VF_StagCellWidthAsVec(
@@ -33,6 +36,7 @@ case class L3_VF_StagCellWidthAsVec(
 
 object L3_VF_StagCellWidthPerDim {
   def find(level : Int, stagDim : Int, dim : Int) = L3_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth_$dim", level)
+  def access(level : Int, stagDim : Int, dim : Int, index : L3_ExpressionIndex) = L3_VirtualFieldAccess(find(level, stagDim, dim), index)
 }
 
 case class L3_VF_StagCellWidthPerDim(
@@ -48,12 +52,18 @@ case class L3_VF_StagCellWidthPerDim(
   override def resolutionPossible = true
 
   override def resolve(index : L3_ExpressionIndex) = {
-    if (dim == stagDim)
-      0.5 * (
-        L3_VirtualFieldAccess(L3_VF_CellWidthPerDim.find(level, dim), L3_GridUtil.offsetIndex(index, -1, dim))
-          + L3_VirtualFieldAccess(L3_VF_CellWidthPerDim.find(level, dim), index))
-    else
-      L3_VirtualFieldAccess(L3_VF_CellWidthPerDim.find(level, dim), index)
+    if (!Knowledge.grid_isStaggered) Logger.error("Trying to resolve a staggered quantity on a non-staggered grid; unsupported")
+
+    if (Knowledge.grid_isAxisAligned) { // includes uniform grids
+      if (dim == stagDim) // half of this cell and half of the left neighbor cell
+        0.5 * (L3_VF_CellWidthPerDim.access(level, dim, L3_GridUtil.offsetIndex(index, -1, dim))
+          + L3_VF_CellWidthPerDim.access(level, dim, index))
+      else // just the un-staggered cell width
+        L3_VF_CellWidthPerDim.access(level, dim, index)
+
+    } else {
+      Logger.error("Currently unsupported")
+    }
   }
 
   override def progressImpl() = L4_VF_StagCellWidthPerDim(level, domain.getProgressedObj(), stagDim, dim)
