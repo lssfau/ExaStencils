@@ -46,16 +46,19 @@ case class L2_MathFunctionReference(var name : String, var returnType : L2_Datat
 
 object L2_ResolveMathFunctions extends DefaultStrategy("Resolve math function references") {
   this += new Transformation("Resolve", {
-    case L2_FunctionCall(L2_UnresolvedFunctionReference("min", level), args) =>
+    case L2_FunctionCall(L2_UnresolvedFunctionReference("min", level, offset), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled min function with level ${ level.get }; level is ignored")
+      if (offset.isDefined) Logger.warn(s"Found offset access on min function; offset is ignored")
       L2_Minimum(args)
 
-    case L2_FunctionCall(L2_UnresolvedFunctionReference("max", level), args) =>
+    case L2_FunctionCall(L2_UnresolvedFunctionReference("max", level, offset), args) =>
       if (level.isDefined) Logger.warn(s"Found leveled max function with level ${ level.get }; level is ignored")
+      if (offset.isDefined) Logger.warn(s"Found offset access on max function; offset is ignored")
       L2_Maximum(args)
 
-    case L2_UnresolvedFunctionReference(fctName, level) if L2_MathFunctions.exists(fctName) =>
+    case L2_UnresolvedFunctionReference(fctName, level, offset) if L2_MathFunctions.exists(fctName) =>
       if (level.isDefined) Logger.warn(s"Found leveled math function $fctName with level ${ level.get }; level is ignored")
+      if (offset.isDefined) Logger.warn(s"Found offset access on math function $fctName; offset is ignored")
       L2_MathFunctionReference(fctName, L2_MathFunctions.getValue(fctName).get._2)
   })
 }

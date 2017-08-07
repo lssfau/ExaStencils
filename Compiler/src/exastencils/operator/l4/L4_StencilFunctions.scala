@@ -28,8 +28,9 @@ case class L4_StencilFunctionReference(var name : String, var returnType : L4_Da
 
 object L4_ResolveStencilFunctions extends DefaultStrategy("Resolve stencil function references") {
   this += new Transformation("Resolve", {
-    case L4_UnresolvedFunctionReference(fctName, level) if L4_StencilFunctions.exists(fctName) =>
+    case L4_UnresolvedFunctionReference(fctName, level, offset) if L4_StencilFunctions.exists(fctName) =>
       if (level.isDefined) Logger.warn(s"Found leveled stencil function ${ fctName } with level ${ level.get }; level is ignored")
+      if (offset.isDefined) Logger.warn(s"Found stencil function ${ fctName } with offset; offset is ignored")
       L4_StencilFunctionReference(fctName, L4_StencilFunctions.getDatatype(fctName))
   })
 }

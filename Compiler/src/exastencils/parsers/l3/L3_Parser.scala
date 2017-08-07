@@ -182,7 +182,7 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val returnStatement = locationize("return" ~> (binaryexpression ||| booleanexpression).? ^^ { L3_Return })
 
-  lazy val functionReference = locationize(ident ~ levelAccess.? ^^ { case id ~ level => L3_UnresolvedFunctionReference(id, level) })
+  lazy val functionReference = locationize(ident ~ levelAccess.? ~ ("@" ~> constIndex).? ^^ { case id ~ level ~ offset => L3_UnresolvedFunctionReference(id, level, offset) })
   lazy val functionCallArgumentList = /*locationize*/ ((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex }
   lazy val functionCall = locationize(functionReference ~ ("(" ~> functionCallArgumentList.? <~ ")") ^^ { case id ~ args => L3_FunctionCall(id, args) })
 

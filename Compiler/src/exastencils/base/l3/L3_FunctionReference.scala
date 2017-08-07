@@ -26,13 +26,18 @@ trait L3_LeveledFunctionReference extends L3_FunctionReference {
 
 /// L3_UnresolvedFunctionReference
 
-case class L3_UnresolvedFunctionReference(var name : String, var level : Option[L3_LevelSpecification]) extends L3_FunctionReference {
+case class L3_UnresolvedFunctionReference(
+    var name : String,
+    var level : Option[L3_LevelSpecification],
+    var offset : Option[L3_ConstIndex]) extends L3_FunctionReference {
+
   override def returnType = L3_UnknownDatatype
 
   override def prettyprint(out : PpStream) = {
     out << name
     if (level.isDefined) out << '@' << level.get
+    if (offset.isDefined) out << '@' << offset.get
   }
 
-  override def progress = L4_UnresolvedFunctionReference(name, L3_ProgressOption(level)(_.progress))
+  override def progress = L4_UnresolvedFunctionReference(name, L3_ProgressOption(level)(_.progress), L3_ProgressOption(offset)(_.progress))
 }

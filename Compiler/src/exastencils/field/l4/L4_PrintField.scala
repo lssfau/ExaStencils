@@ -24,8 +24,9 @@ case class L4_PrintField(var filename : L4_Expression, var field : L4_FieldAcces
 
 object L4_ResolvePrintFieldFunctions extends DefaultStrategy("Resolve print field function references") {
   this += new Transformation("Resolve", {
-    case L4_ExpressionStatement(L4_FunctionCall(L4_UnresolvedFunctionReference("printField", level), args)) =>
+    case L4_ExpressionStatement(L4_FunctionCall(L4_UnresolvedFunctionReference("printField", level, offset), args)) =>
       if (level.isDefined) Logger.warn(s"Found leveled print field function with level ${ level.get }; level is ignored")
+      if (offset.isDefined) Logger.warn(s"Found print field function with offset; offset is ignored")
       args match {
         case ListBuffer(field : L4_FieldAccess)                      => // option 1: only field -> deduce name
           L4_PrintField(L4_StringConstant(field.target.name + ".dat"), field)

@@ -19,8 +19,9 @@ case class L4_BuildString(var stringName : L4_Expression, var toPrint : ListBuff
 
 object L4_ResolveBuildStringFunctions extends DefaultStrategy("Resolve build string function references") {
   this += new Transformation("Resolve", {
-    case L4_ExpressionStatement(L4_FunctionCall(L4_UnresolvedFunctionReference("buildString", level), args)) =>
+    case L4_ExpressionStatement(L4_FunctionCall(L4_UnresolvedFunctionReference("buildString", level, offset), args)) =>
       if (level.isDefined) Logger.warn(s"Found leveled buildString function with level ${ level.get }; level is ignored")
+      if (offset.isDefined) Logger.warn(s"Found buildString function with offset; offset is ignored")
       L4_BuildString(args(0), args.slice(1, args.size))
   })
 }

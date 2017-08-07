@@ -41,6 +41,6 @@ object L3_ResolveEvaluateFunctions extends DefaultStrategy("Resolve grid functio
         else Logger.error(s"Missing level for reference to ${ ref.name }")
       }
 
-      L3_EvaluateOnGrid(ref.name, level, args)
+      L3_EvaluateOnGrid(ref.name, level, args, ref.offset)
   })
 }

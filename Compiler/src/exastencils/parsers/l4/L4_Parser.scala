@@ -174,7 +174,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val functionArgumentList = (functionArgument <~ ("," | newline)).* ~ functionArgument ^^ { case args ~ arg => args :+ arg }
   lazy val functionArgument = locationize(((ident <~ ":") ~ datatype) ^^ { case id ~ t => L4_Function.Argument(id, t) })
 
-  lazy val functionReference = locationize(ident ~ levelAccess.? ^^ { case id ~ level => L4_UnresolvedFunctionReference(id, level) })
+  lazy val functionReference = locationize(ident ~ levelAccess.? ~ ("@" ~> constIndex).? ^^ { case id ~ level ~ offset => L4_UnresolvedFunctionReference(id, level, offset) })
   lazy val functionCallArgumentList = /*locationize*/ ((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex }
   lazy val functionCall = locationize(functionReference ~ ("(" ~> functionCallArgumentList.? <~ ")")
     ^^ { case id ~ args => L4_FunctionCall(id, args.getOrElse(List()).to[ListBuffer]) })

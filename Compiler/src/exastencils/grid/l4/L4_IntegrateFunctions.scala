@@ -41,6 +41,6 @@ object L4_ResolveIntegrateFunctions extends DefaultStrategy("Resolve grid functi
         else Logger.error(s"Missing level for reference to ${ ref.name }")
       }
 
-      L4_IntegrateOnGrid(ref.name, level, args)
+      L4_IntegrateOnGrid(ref.name, level, args, ref.offset)
   })
 }

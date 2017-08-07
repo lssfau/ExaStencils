@@ -11,7 +11,7 @@ case class IR_IntegrateOnGrid(
     var name : String,
     var level : Int,
     var expression : IR_Expression,
-    var offset : Option[IR_ConstIndex] = None) extends IR_Expression with IR_CanBeOffset {
+    var offset : Option[IR_ConstIndex]) extends IR_Expression with IR_CanBeOffset {
 
   override def datatype : IR_Datatype = /* FIXME */ IR_UnknownDatatype
   override def prettyprint(out : PpStream) = out << "\n --- NOT VALID ; NODE_TYPE = " << this.getClass.getName << "\n"

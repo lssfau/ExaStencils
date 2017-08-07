@@ -41,6 +41,6 @@ object L4_ResolveEvaluateFunctions extends DefaultStrategy("Resolve grid functio
         else Logger.error(s"Missing level for reference to ${ ref.name }")
       }
 
-      L4_EvaluateOnGrid(ref.name, level, args)
+      L4_EvaluateOnGrid(ref.name, level, args, ref.offset)
   })
 }

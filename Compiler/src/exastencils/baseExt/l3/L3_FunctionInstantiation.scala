@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l3._
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.logger._
+import exastencils.logger.Logger
 import exastencils.prettyprinting._
 
 /// L3_FunctionInstantiation
@@ -84,15 +84,19 @@ object L3_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
       case origRef : L3_UnresolvedFunctionReference if replacements.exists(_._1 == origRef.name) =>
         replacements(origRef.name) match {
           case access : L3_UnresolvedAccess =>
-            val newRef = L3_UnresolvedFunctionReference(access.name, Duplicate(access.level))
+            val newRef = L3_UnresolvedFunctionReference(access.name, Duplicate(access.level), Duplicate(access.offset))
 
             if (origRef.level.isDefined) {
               if (newRef.level.isDefined) Logger.warn("Overriding level on reference in function instantiation")
               newRef.level = origRef.level
             }
 
+            if (origRef.offset.isDefined) {
+              if (newRef.offset.isDefined) Logger.warn("Overriding offset on reference in function instantiation")
+              newRef.offset = origRef.offset
+            }
+
             if (access.slot.isDefined) Logger.warn("Ignoring slot on access in function instantiation")
-            if (access.offset.isDefined) Logger.warn("Ignoring offset on access in function instantiation")
             if (access.arrayIndex.isDefined) Logger.warn("Ignoring array index on access in function instantiation")
             if (access.dirAccess.isDefined) Logger.warn("Ignoring direction access on access in function instantiation")
 

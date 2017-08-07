@@ -28,16 +28,22 @@ trait L4_LeveledFunctionReference extends L4_FunctionReference {
 
 /// L4_UnresolvedFunctionReference
 
-case class L4_UnresolvedFunctionReference(var name : String, var level : Option[L4_LevelSpecification]) extends L4_FunctionReference {
+case class L4_UnresolvedFunctionReference(
+    var name : String,
+    var level : Option[L4_LevelSpecification],
+    var offset : Option[L4_ConstIndex]) extends L4_FunctionReference {
+
   override def returnType = L4_UnknownDatatype
 
   override def prettyprint(out : PpStream) = {
     out << name
     if (level.isDefined) out << '@' << level.get
+    if (offset.isDefined) out << '@' << offset.get
   }
 
   override def progress : IR_FunctionReference = {
     Logger.warn(s"Progressing unresolved function reference on L4: $name" + (if (level.isDefined) s"@${ level.get.prettyprint() }" else ""))
+    if (offset.isDefined) Logger.warn(s"  and ignoring offset ${ offset.get.prettyprint() }")
     HACK_IR_UndeterminedFunctionReference(prettyprint(), IR_UnknownDatatype)
   }
 }

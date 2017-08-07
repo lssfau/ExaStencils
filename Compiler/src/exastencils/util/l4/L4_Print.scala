@@ -19,8 +19,9 @@ case class L4_Print(var toPrint : ListBuffer[L4_Expression]) extends L4_Statemen
 
 object L4_ResolvePrintFunctions extends DefaultStrategy("Resolve print function references") {
   this += new Transformation("Resolve", {
-    case L4_ExpressionStatement(L4_FunctionCall(L4_UnresolvedFunctionReference("print", level), args)) =>
+    case L4_ExpressionStatement(L4_FunctionCall(L4_UnresolvedFunctionReference("print", level, offset), args)) =>
       if (level.isDefined) Logger.warn(s"Found leveled print function with level ${ level.get }; level is ignored")
+      if (offset.isDefined) Logger.warn(s"Found print function with offset; offset is ignored")
       L4_Print(args)
   })
 }
