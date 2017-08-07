@@ -6,16 +6,20 @@ sealed abstract class L1_StencilParameter(val dim : Int, val len : Int) {
 }
 
 object L1_StencilParameter {
-  implicit def doubleToEntry(value : Double) : L1_StencilEntry = L1_StencilEntry(value)
-  implicit def doubleSeqToEntrySeq(values : Double*) : Seq[L1_StencilEntry] = values map { x => L1_StencilEntry(x) }
+  implicit def doubleToEntry(value : Double) : L1_StencilEntry = L1_StencilEntry(L1_Value(value))
+  implicit def doubleSeqToEntrySeq(values : Double*) : Seq[L1_StencilEntry] = values map { x => L1_StencilEntry(L1_Value(x)) }
 }
 
-final case class L1_StencilEntry(val value : Double) extends L1_StencilParameter(0, 1) {
-  implicit def doubleToEntry(_value : Double) = L1_StencilEntry(_value)
+object L1_StencilEntry {
+  //  def apply(value : L1_MathTree) = new L1_StencilEntry(value)
+  def apply(value : Double) = new L1_StencilEntry(L1_Value(value))
+}
+
+final case class L1_StencilEntry(val value : L1_MathTree) extends L1_StencilParameter(0, 1) {
   def *(stencil : L1_Stencil) : L1_Stencil = stencil * this
-  def *(e : L1_StencilEntry) : L1_StencilEntry = value * e.value
-  def /(e : L1_StencilEntry) : L1_StencilEntry = value / e.value
-  def +(e : L1_StencilEntry) : L1_StencilEntry = value + e.value
+  def *(e : L1_StencilEntry) : L1_StencilEntry = L1_StencilEntry(L1_Multiplication(value, e.value))
+  def /(e : L1_StencilEntry) : L1_StencilEntry = L1_StencilEntry(L1_Division(value, e.value))
+  def +(e : L1_StencilEntry) : L1_StencilEntry = L1_StencilEntry(L1_Addition(value, e.value))
   override def toString = value.toString
 }
 
@@ -56,7 +60,7 @@ final class L1_Stencil(val entries : Seq[L1_StencilParameter]) extends L1_Stenci
 
   def buildEmptyEntry : L1_StencilParameter = {
     if (this.dim == 1) {
-      L1_StencilEntry(0)
+      L1_StencilEntry(L1_Value(0))
     } else {
       val subEntry = entries(0).asInstanceOf[L1_Stencil].buildEmptyEntry
       new L1_Stencil(Seq.fill(entries(0).len)(subEntry))

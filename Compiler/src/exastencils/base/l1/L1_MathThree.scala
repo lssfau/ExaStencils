@@ -26,7 +26,7 @@ case class L1_Access(name : String) extends L1_MathTree
 sealed abstract class L1_Differentiable extends L1_MathTree // leaf
 case class L1_Function() extends L1_Differentiable // Represents the 0th derivative
 case class L1_Derivation(direction : Int, number : Int) extends L1_Differentiable // Single Derivation
-case class L1_NestedDerivation(devs : Seq[L1_Derivation]) extends L1_Differentiable // Nested Derivations
+case class L1_asNestedDerivation(devs : Seq[L1_Derivation]) extends L1_Differentiable // Nested Derivations
 case class L1_Laplace() extends L1_Differentiable // Laplace operator
 
 case class L1_Equation(left : L1_MathTree, right : L1_MathTree); // Root for the PDE
@@ -42,18 +42,18 @@ object L1_MathTree {
     * @throws  IllegalArgumentException for subclasses that cannot be evaluated
     * @return The evaluated value as Double
     */
-  def evaluate(expr : L1_MathTree) : Double = {
-    expr match {
-      case L1_Addition(left, right)       => evaluate(left) + evaluate(right)
-      case L1_Subtraction(left, right)    => evaluate(left) - evaluate(right)
-      case L1_Multiplication(left, right) => evaluate(left) * evaluate(right)
-      case L1_Division(left, right)       => evaluate(left) / evaluate(right)
-      case L1_Exponential(base, power)    => math.pow(evaluate(base), evaluate(power))
-      case L1_Value(t)                    => t
-      case _ : L1_Differentiable          => throw new IllegalArgumentException("cant evaluate expression including derivatives")
-      case unknown                        => throw new RuntimeException("MathExpr.evaluate: unknown expression \"" + unknown + "\"")
-    }
-  }
+  //  def evaluate(expr : L1_MathTree) : Double = {
+  //    expr match {
+  //      case L1_Addition(left, right)       => evaluate(left) + evaluate(right)
+  //      case L1_Subtraction(left, right)    => evaluate(left) - evaluate(right)
+  //      case L1_Multiplication(left, right) => evaluate(left) * evaluate(right)
+  //      case L1_Division(left, right)       => evaluate(left) / evaluate(right)
+  //      case L1_Exponential(base, power)    => math.pow(evaluate(base), evaluate(power))
+  //      case L1_Value(t)                    => t
+  //      case _ : L1_Differentiable          => throw new IllegalArgumentException("cant evaluate expression including derivatives")
+  //      case unknown                        => throw new RuntimeException("MathExpr.evaluate: unknown expression \"" + unknown + "\"")
+  //    }
+  //  }
 
   /**
     * Tries to create a stencil-discretization of the given MathTree if possible,
@@ -63,8 +63,8 @@ object L1_MathTree {
     * @throws  IllegalArgumentException for MathTrees that cannot be discretized
     * @return The resulting Stencil
     */
-  def createStencil(expr : L1_MathTree, dims : Int) : L1_Stencil = {
-    def createStencil(expr : L1_MathTree) : L1_Stencil = expr match {
+  def createStencil(expr : L1_MathTree, dims : Int) : L1_MathTree = {
+    def createStencil(expr : L1_MathTree) : L1_MathTree = expr match {
       case L1_Addition(left : L1_Value, right)                                                          => throw new IllegalArgumentException("Addition of Stencil and Value not supported")
       case L1_Addition(left, right : L1_Value)                                                          => throw new IllegalArgumentException("Addition of Stencil and Value not supported")
       case L1_Subtraction(left : L1_Value, right)                                                       => throw new IllegalArgumentException("Subtraction of Stencil and Value not supported")
@@ -76,15 +76,17 @@ object L1_MathTree {
       case L1_Exponential(left, right)                                                                  => throw new IllegalArgumentException("Exponentiation with Stencils not supported")
       case L1_Value(_)                                                                                  => throw new IllegalArgumentException("FD-Discretization of single Values not supported")
 
-      case L1_Addition(left, right)    => createStencil(left) + createStencil(right)
-      case L1_Subtraction(left, right) => createStencil(left) - createStencil(right)
+      case L1_Addition(left, right)    => L1_Addition(createStencil(left), createStencil(right))
+      case L1_Subtraction(left, right) => L1_Subtraction(createStencil(left), createStencil(right))
 
-      case L1_Multiplication(left : L1_Value, right) => createStencil(right) * left.t
-      case L1_Multiplication(left, right : L1_Value) => createStencil(left) * right.t
+      case L1_Multiplication(left : L1_Value, right) => L1_Multiplication(createStencil(right), left)
+      case L1_Multiplication(left, right : L1_Value) => L1_Multiplication(createStencil(left), right)
 
-      case L1_Division(left, right) => createStencil(left) / right.asInstanceOf[L1_Value].t
+      case L1_Multiplication(left, right) => L1_Multiplication(createStencil(left), createStencil(right))
 
-      case dev : L1_Differentiable => discretizeDifferentiable(dev, dims)
+      //case L1_Division(left, right) => createStencil(left) / right.asInstanceOf[L1_Value].t
+
+      //case dev : L1_Differentiable => discretizeDifferentiable(dev, dims)
     }
     assert(dims >= 1)
     createStencil(simplify(expr))
@@ -144,11 +146,11 @@ object L1_MathTree {
   def simplify(expr : L1_MathTree) : L1_MathTree = {
     def simplifyOnce(expr : L1_MathTree) : L1_MathTree = {
       expr match {
-        case expr @ L1_Addition(left : L1_Value, right : L1_Value)       => L1_Value(evaluate(expr))
-        case expr @ L1_Subtraction(left : L1_Value, right : L1_Value)    => L1_Value(evaluate(expr))
-        case expr @ L1_Multiplication(left : L1_Value, right : L1_Value) => L1_Value(evaluate(expr))
-        case expr @ L1_Division(left : L1_Value, right : L1_Value)       => L1_Value(evaluate(expr))
-        case expr @ L1_Exponential(left : L1_Value, right : L1_Value)    => L1_Value(evaluate(expr))
+        case expr @ L1_Addition(left : L1_Value, right : L1_Value)       => L1_Value(left.t + right.t)
+        case expr @ L1_Subtraction(left : L1_Value, right : L1_Value)    => L1_Value(left.t - right.t)
+        case expr @ L1_Multiplication(left : L1_Value, right : L1_Value) => L1_Value(left.t * right.t)
+        case expr @ L1_Division(left : L1_Value, right : L1_Value)       => L1_Value(left.t / right.t)
+        case expr @ L1_Exponential(base : L1_Value, power : L1_Value)    => L1_Value(math.pow(base.t, power.t))
         case default                                                     => default
       }
     }
