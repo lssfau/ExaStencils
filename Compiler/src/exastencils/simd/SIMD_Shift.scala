@@ -20,7 +20,7 @@ case class SIMD_ConcShift(var left : IR_VariableAccess, var right : IR_VariableA
 
   override def datatype = IR_UnitDatatype
   override def prettyprint(out : PpStream) : Unit = {
-    Platform.simd_instructionSet match {
+    Platform.simd_instructionSet match { // TODO: use palignr
       case "SSE3" =>
         if (Knowledge.useDblPrecision) offset match {
           case 1 => out << "_mm_shuffle_pd(" << left << ", " << right << ", 1)"
