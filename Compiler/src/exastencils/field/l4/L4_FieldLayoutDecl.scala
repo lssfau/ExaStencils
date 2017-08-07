@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
+import exastencils.grid.l4._
 import exastencils.knowledge.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
@@ -26,19 +27,19 @@ case class L4_FieldLayoutOption(
 /// L4_FieldLayoutDecl
 
 object L4_FieldLayoutDecl {
-  def apply(name : String, levels : Option[L4_LevelSpecification], datatype : L4_Datatype, discretization : String, options : List[L4_FieldLayoutOption]) =
-    new L4_FieldLayoutDecl(name, levels, datatype, discretization, options.to[ListBuffer])
+  def apply(name : String, levels : Option[L4_LevelSpecification], datatype : L4_Datatype, localization : String, options : List[L4_FieldLayoutOption]) =
+    new L4_FieldLayoutDecl(name, levels, datatype, L4_Localization.resolve(localization), options.to[ListBuffer])
 }
 
 case class L4_FieldLayoutDecl(
     var name : String,
     var levels : Option[L4_LevelSpecification],
     var datatype : L4_Datatype,
-    var discretization : String,
+    var localization : L4_Localization,
     var options : ListBuffer[L4_FieldLayoutOption]) extends L4_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) : Unit = {
-    out << "Layout " << name << "< " << datatype << ", " << discretization << " >" << '@' << levels.get << " {\n"
+    out << "Layout " << name << "< " << datatype << ", " << localization << " >" << '@' << levels.get << " {\n"
     out <<< (options, "\n")
     out << "\n}"
   }
@@ -48,7 +49,7 @@ case class L4_FieldLayoutDecl(
     if (option.isDefined)
       option.get.value
     else
-      L4_FieldLayout.getDefaultValue(optionName, discretization)
+      L4_FieldLayout.getDefaultValue(optionName, localization)
   }
 
   def evalFieldLayoutBoolean(optionName : String) : Boolean = {
@@ -56,7 +57,7 @@ case class L4_FieldLayoutDecl(
     if (option.isDefined)
       option.get.hasCommunication
     else
-      L4_FieldLayout.getDefaultBoolean(optionName, discretization)
+      L4_FieldLayout.getDefaultBoolean(optionName, localization)
   }
 
   def composeLayout(level : Int) : L4_FieldLayout = {
@@ -73,30 +74,22 @@ case class L4_FieldLayoutDecl(
         providedInnerPoints.get.value
       } else {
         // attempt automatic deduction - TODO: adapt for edge data structures
-        discretization match {
-          case "node"      => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)).toArray)
-          case "cell"      => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
-          case "face_x"    => L4_ConstIndex((0 until numDimsGrid).map(dim =>
-            if (0 == dim)
+        localization match {
+          case L4_AtNode       => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)).toArray)
+          case L4_AtCellCenter => L4_ConstIndex((0 until numDimsGrid).map(dim => ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
+
+          case L4_AtFaceCenter(faceDim) => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+            if (dim == faceDim)
               ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
             else
               ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
-          case "face_y"    => L4_ConstIndex((0 until numDimsGrid).map(dim =>
-            if (1 == dim)
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
-            else
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
-          case "face_z"    => L4_ConstIndex((0 until numDimsGrid).map(dim =>
-            if (2 == dim)
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
-            else
-              ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)).toArray)
-          case "edge_node" => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+
+          case L4_HACK_OtherLocalization("edge_node") => L4_ConstIndex((0 until numDimsGrid).map(dim =>
             if (0 == dim)
               ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 1) - 2 * numDup(dim)
             else
               0).toArray)
-          case "edge_cell" => L4_ConstIndex((0 until numDimsGrid).map(dim =>
+          case L4_HACK_OtherLocalization("edge_cell") => L4_ConstIndex((0 until numDimsGrid).map(dim =>
             if (0 == dim)
               ((Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level)) + 0) - 2 * numDup(dim)
             else
@@ -107,7 +100,7 @@ case class L4_FieldLayoutDecl(
     // compile final layout
     L4_FieldLayout(
       name, level, numDimsGrid,
-      datatype, discretization,
+      datatype, localization,
       numGhost,
       evalFieldLayoutBoolean("ghostLayers"),
       numDup,

@@ -8,6 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.grid.ir._
 
 /// IR_ApplyBCFunction
 
@@ -29,19 +30,13 @@ case class IR_ApplyBCFunction(
     curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(dim =>
-          fieldSelection.fieldLayout.discretization match {
-            case discretization if "node" == discretization
-              || ("face_x" == discretization && 0 == dim)
-              || ("face_y" == discretization && 1 == dim)
-              || ("face_z" == discretization && 2 == dim) => dim match {
+          fieldSelection.fieldLayout.localization match {
+            case IR_AtNode | IR_AtFaceCenter(`dim`)   => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
               case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
               case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
             }
-            case discretization if "cell" == discretization
-              || ("face_x" == discretization && 0 != dim)
-              || ("face_y" == discretization && 1 != dim)
-              || ("face_z" == discretization && 2 != dim) => dim match {
+            case IR_AtCellCenter | IR_AtFaceCenter(_) => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
               case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
               case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) - 1
@@ -49,19 +44,13 @@ case class IR_ApplyBCFunction(
           })),
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(dim =>
-          fieldSelection.fieldLayout.discretization match {
-            case discretization if "node" == discretization
-              || ("face_x" == discretization && 0 == dim)
-              || ("face_y" == discretization && 1 == dim)
-              || ("face_z" == discretization && 2 == dim) => dim match {
+          fieldSelection.fieldLayout.localization match {
+            case IR_AtNode | IR_AtFaceCenter(`dim`)   => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
               case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
               case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) // DRE, GRE
             }
-            case discretization if "cell" == discretization
-              || ("face_x" == discretization && 0 != dim)
-              || ("face_y" == discretization && 1 != dim)
-              || ("face_z" == discretization && 2 != dim) => dim match {
+            case IR_AtCellCenter | IR_AtFaceCenter(_) => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
               case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) + 1
               case i if neigh.dir(i) > 0  => resolveIndex("DRE", i)

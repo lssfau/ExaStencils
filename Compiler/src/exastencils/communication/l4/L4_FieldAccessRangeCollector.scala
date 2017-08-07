@@ -7,6 +7,7 @@ import exastencils.baseExt.l4._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.field.l4.{ L4_Field, L4_SlotSpecification, _ }
+import exastencils.grid.l4._
 import exastencils.logger.Logger
 import exastencils.operator.l4._
 
@@ -41,14 +42,12 @@ class L4_FieldAccessRangeCollector() extends Collector {
   def adaptNodeBasedFields() = {
     def adapt(map : HashMap[L4_FieldWithSlot, Array[Int]]) = {
       for (field <- map) {
-        // deduct offset due to node-based discretizations
-        field._1.fieldLayout.discretization.toLowerCase match {
-          case "node"   => field._2.transform(_ - 1)
-          case "face_x" => field._2(0) -= 1
-          case "face_y" => field._2(1) -= 1
-          case "face_z" => field._2(2) -= 1
-          case "cell"   =>
-          case other    => Logger.warn(s"Found unknown discretization $other")
+        // deduct offset due to node-based localization
+        field._1.fieldLayout.localization match {
+          case L4_AtNode                => field._2.transform(_ - 1)
+          case L4_AtFaceCenter(faceDim) => field._2(faceDim) -= 1
+          case L4_AtCellCenter          =>
+          case other                    => Logger.warn(s"Found unknown localization $other")
         }
       }
     }
@@ -167,14 +166,12 @@ class L4_FieldAccessRangeCollector() extends Collector {
         beginOffset = extractMinOffsetArray(numDims, loop.startOffset)
         endOffset = extractMaxOffsetArray(numDims, loop.endOffset).map(-1 * _) // invert due to specification in DSL
 
-        // count cell iterations -> increase end offset for each dimension where node discretization is present
-        field.fieldLayout.discretization.toLowerCase match {
-          case "node"   => endOffset = endOffset.map(_ + 1)
-          case "face_x" => endOffset(0) += 1
-          case "face_y" => endOffset(1) += 1
-          case "face_z" => endOffset(2) += 1
-          case "cell"   =>
-          case other    => Logger.warn(s"Encountered unknown localization $other")
+        // count cell iterations -> increase end offset for each dimension where node localization is present
+        field.fieldLayout.localization match {
+          case L4_AtNode                => endOffset = endOffset.map(_ + 1)
+          case L4_AtFaceCenter(faceDim) => endOffset(faceDim) += 1
+          case L4_AtCellCenter          =>
+          case other                    => Logger.warn(s"Found unknown localization $other")
         }
 
         // account for contracting loops

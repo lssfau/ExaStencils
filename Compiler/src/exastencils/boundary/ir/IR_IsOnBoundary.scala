@@ -34,7 +34,7 @@ case class IR_IsOnSpecBoundary(var field : IR_FieldSelection, var neigh : Neighb
   override def datatype = IR_UnitDatatype
 
   override def expand() : Output[IR_Expression] = {
-    // should work for node, cell and face discretizations
+    // should work for node, cell and face localizations
 
     var conditions = ListBuffer[IR_Expression](IR_Negation(IR_IV_NeighborIsValid(field.domainIndex, neigh.index)))
     for (dim <- 0 until field.field.fieldLayout.numDimsGrid) {

@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4.L4_ImplicitConversion._
 import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_FieldIteratorAccess
+import exastencils.grid.l4._
 
 object L4_DefaultRestriction {
   def stencilNodeLinear(level : Int) : L4_Stencil = {
@@ -41,29 +42,21 @@ object L4_DefaultRestriction {
       L4_StencilMappingEntry(itAsIndex, L4_ExpressionIndex(2.0 * it + 1.0), 1.0)))
   }
 
-  def generate(name : String, level : Int, numDims : Int, localization : String, interpolation : String) : L4_Stencil = {
+  def generate(name : String, level : Int, numDims : Int, localization : L4_Localization, interpolation : String) : L4_Stencil = {
     val stencils = (0 until numDims).map(dim => {
       interpolation match {
-        case "linear" => localization.toLowerCase() match {
-          case "node"               => stencilNodeLinear(level)
-          case "cell"               => stencilCellLinear(level)
-          case "face_x" if 0 == dim => stencilNodeLinear(level)
-          case "face_x"             => stencilCellLinear(level)
-          case "face_y" if 1 == dim => stencilNodeLinear(level)
-          case "face_y"             => stencilCellLinear(level)
-          case "face_z" if 2 == dim => stencilNodeLinear(level)
-          case "face_z"             => stencilCellLinear(level)
+        case "linear" => localization match {
+          case L4_AtNode                                  => stencilNodeLinear(level)
+          case L4_AtCellCenter                            => stencilCellLinear(level)
+          case L4_AtFaceCenter(faceDim) if faceDim == dim => stencilNodeLinear(level)
+          case L4_AtFaceCenter(_)                         => stencilCellLinear(level)
         }
 
-        case "integral_linear" => localization.toLowerCase() match {
-          case "node"               => stencilNodeIntegralLinear(level)
-          case "cell"               => stencilCellIntegralLinear(level)
-          case "face_x" if 0 == dim => stencilNodeIntegralLinear(level)
-          case "face_x"             => stencilCellIntegralLinear(level)
-          case "face_y" if 1 == dim => stencilNodeIntegralLinear(level)
-          case "face_y"             => stencilCellIntegralLinear(level)
-          case "face_z" if 2 == dim => stencilNodeIntegralLinear(level)
-          case "face_z"             => stencilCellIntegralLinear(level)
+        case "integral_linear" => localization match {
+          case L4_AtNode                                  => stencilNodeIntegralLinear(level)
+          case L4_AtCellCenter                            => stencilCellIntegralLinear(level)
+          case L4_AtFaceCenter(faceDim) if faceDim == dim => stencilNodeIntegralLinear(level)
+          case L4_AtFaceCenter(_)                         => stencilCellIntegralLinear(level)
         }
       }
     })

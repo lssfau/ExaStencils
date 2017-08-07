@@ -5,6 +5,7 @@ import exastencils.baseExt.l3._
 import exastencils.boundary.l3.L3_BoundaryCondition
 import exastencils.domain.l3.L3_Domain
 import exastencils.field.l4._
+import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3.L3_LeveledKnowledgeObject
 import exastencils.prettyprinting.PpStream
 
@@ -15,7 +16,7 @@ case class L3_Field(
     var level : Int,
     var domain : L3_Domain,
     var datatype : L3_Datatype,
-    var localization : String,
+    var localization : L3_Localization,
     var initial : Option[L3_Expression],
     var boundary : L3_BoundaryCondition) extends L3_LeveledKnowledgeObject[L4_Field] {
 
@@ -28,7 +29,7 @@ case class L3_Field(
     }
   }
 
-  def fieldLayoutName = s"defLayoutFor_${ printDatatype(datatype) }_on_$localization"
+  def fieldLayoutName = s"defLayoutFor_${ printDatatype(datatype) }_on_${ localization.prettyprint() }"
 
   override def prettyprintDecl(out : PpStream) : Unit = ???
 

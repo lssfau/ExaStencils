@@ -13,6 +13,7 @@ import exastencils.datastructures._
 import exastencils.datastructures.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
+import exastencils.grid.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir._
 import exastencils.parallelization.ir._
@@ -53,11 +54,8 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     } else {
       // basic case -> just eliminate 'real' boundaries
       for (dim <- 0 until numDims) {
-        field.fieldLayout.discretization match {
-          case discr if "node" == discr
-            || ("face_x" == discr && 0 == dim)
-            || ("face_y" == discr && 1 == dim)
-            || ("face_z" == discr && 2 == dim) =>
+        field.fieldLayout.localization match {
+          case IR_AtNode | IR_AtFaceCenter(`dim`) =>
             if (Knowledge.experimental_useStefanOffsets) {
               start(dim) = field.fieldLayout.idxById("IB", dim) - field.referenceOffset(dim) + startOffset(dim)
               stop(dim) = field.fieldLayout.idxById("IE", dim) - field.referenceOffset(dim) - endOffset(dim)
@@ -85,10 +83,8 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
                 stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
               //              }
             }
-          case discr if "cell" == discr
-            || ("face_x" == discr && 0 != dim)
-            || ("face_y" == discr && 1 != dim)
-            || ("face_z" == discr && 2 != dim) =>
+
+          case IR_AtCellCenter | IR_AtFaceCenter(_) =>
             start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
             stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
         }

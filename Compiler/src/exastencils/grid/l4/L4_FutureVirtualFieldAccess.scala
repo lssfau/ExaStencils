@@ -53,4 +53,3 @@ object L4_PrepareVirtualFieldAccesses extends DefaultStrategy("Prepare accesses 
       L4_FutureVirtualFieldAccess(access.name, lvl, access.offset, access.arrayIndex)
   })
 }
-

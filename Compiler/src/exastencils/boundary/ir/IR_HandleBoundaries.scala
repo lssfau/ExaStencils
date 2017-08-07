@@ -33,12 +33,12 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
       case virtualField @ IR_VirtualFieldAccess(target : IR_VF_BoundaryPositionPerDim, index, fragIdx) =>
         val evalDim = target.dim
 
-        field.fieldLayout.discretization match {
+        field.fieldLayout.localization match {
           // TODO: adapt for grids that are not axis-parallel
-          case discr if "node" == discr || ("face_x" == discr && 0 == evalDim) || ("face_y" == discr && 1 == evalDim) || ("face_z" == discr && 2 == evalDim) =>
+          case IR_AtNode | IR_AtFaceCenter(`evalDim`) =>
             virtualField.target = IR_VF_NodePositionPerDim.find(target.level, evalDim)
 
-          case discr if "cell" == discr || ("face_x" == discr && 0 != evalDim) || ("face_y" == discr && 1 != evalDim) || ("face_z" == discr && 2 != evalDim) =>
+          case IR_AtCellCenter | IR_AtFaceCenter(_) =>
             if (0 == neigh.dir(evalDim)) { // simple projection
               virtualField.target = IR_VF_CellCenterPerDim.find(target.level, evalDim)
             } else if (neigh.dir(evalDim) < 0) { // snap to left boundary
@@ -64,73 +64,71 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
     def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))
 
     bc match {
-      case IR_NeumannBC(order)                 =>
+      case IR_NeumannBC(order) =>
         // TODO: move this logic to the appropriate bc classes
-        field.fieldLayout.discretization match {
-          case d if "node" == d
-            || ("face_x" == d && 0 != neigh.dir(0))
-            || ("face_y" == d && 0 != neigh.dir(1))
-            || ("face_z" == d && 0 != neigh.dir(2)) =>
-            order match {
-              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index), IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
-              case 2 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
-                ((4.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
-                  + ((-1.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i))))
-              case 3 => // TODO: do we want this? what do we do on the coarser levels?
-                statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
-                  ((3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -1 * i)))
-                    + ((-3.0 / 2.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i)))
-                    + ((1.0 / 3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -3 * i))))
-            }
-          case d if "cell" == d
-            || ("face_x" == d && 0 == neigh.dir(0))
-            || ("face_y" == d && 0 == neigh.dir(1))
-            || ("face_z" == d && 0 == neigh.dir(2)) =>
-            order match {
-              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex), IR_FieldAccess(fieldSel, index))
-            }
+
+        def forNode() = order match {
+          case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index), IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+          case 2 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
+            ((4.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+              + ((-1.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i))))
+          case 3 => // TODO: do we want this? what do we do on the coarser levels?
+            statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
+              ((3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -1 * i)))
+                + ((-3.0 / 2.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i)))
+                + ((1.0 / 3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -3 * i))))
         }
+
+        def forCell() = order match {
+          case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex), IR_FieldAccess(fieldSel, index))
+        }
+
+        field.fieldLayout.localization match {
+          case IR_AtNode                                           => forNode()
+          case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => forNode()
+          case IR_AtCellCenter                                     => forCell()
+          case IR_AtFaceCenter(_)                                  => forCell()
+        }
+
       case IR_DirichletBC(boundaryExpr, order) =>
-        field.fieldLayout.discretization match {
-          case d if "node" == d
-            || ("face_x" == d && 0 != neigh.dir(0))
-            || ("face_y" == d && 0 != neigh.dir(1))
-            || ("face_z" == d && 0 != neigh.dir(2)) =>
-            statements += IR_Assignment(IR_FieldAccess(fieldSel, index), boundaryExpr)
-          case d if "cell" == d
-            || ("face_x" == d && 0 == neigh.dir(0))
-            || ("face_y" == d && 0 == neigh.dir(1))
-            || ("face_z" == d && 0 == neigh.dir(2)) =>
-            order match {
-              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
-                (2.0 * boundaryExpr) - IR_FieldAccess(fieldSel, index))
-              case 2 =>
-                // determine weights for interpolation
-                var w_0_5, w_1, w_2 : IR_Expression = 0
-                if (Knowledge.grid_isUniform) {
-                  w_0_5 = 8.0 / 3.0
-                  w_1 = -2
-                  w_2 = 1.0 / 3.0
-                } else {
-                  // non-linear => use Lagrange polynomials
-                  val nonZero = neigh.dir.zipWithIndex.filter(_._1 != 0)
-                  if (nonZero.length != 1) Logger.error("Malformed neighbor index vector " + neigh.dir.mkString(", "))
-                  val dim = nonZero(0)._2
-                  def x = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndex)
-                  def x_0_5 =
-                    if (neigh.dir(dim) > 0)
-                      IR_VF_NodePositionPerDim.access(field.level, dim, index + offsetIndex)
-                    else
-                      IR_VF_NodePositionPerDim.access(field.level, dim, index)
-                  def x_1 = IR_VF_CellCenterPerDim.access(field.level, dim, index)
-                  def x_2 = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndexWithTrafo(i => -i))
-                  w_0_5 = ((x - x_1) * (x - x_2)) / ((x_0_5 - x_1) * (x_0_5 - x_2))
-                  w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
-                  w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))
-                }
-                statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
-                  w_0_5 * boundaryExpr + w_1 * IR_FieldAccess(fieldSel, index) + w_2 * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+        def forNode() = statements += IR_Assignment(IR_FieldAccess(fieldSel, index), boundaryExpr)
+
+        def forCell() = order match {
+          case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
+            (2.0 * boundaryExpr) - IR_FieldAccess(fieldSel, index))
+          case 2 =>
+            // determine weights for interpolation
+            var w_0_5, w_1, w_2 : IR_Expression = 0
+            if (Knowledge.grid_isUniform) {
+              w_0_5 = 8.0 / 3.0
+              w_1 = -2
+              w_2 = 1.0 / 3.0
+            } else {
+              // non-linear => use Lagrange polynomials
+              val nonZero = neigh.dir.zipWithIndex.filter(_._1 != 0)
+              if (nonZero.length != 1) Logger.error("Malformed neighbor index vector " + neigh.dir.mkString(", "))
+              val dim = nonZero(0)._2
+              def x = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndex)
+              def x_0_5 =
+                if (neigh.dir(dim) > 0)
+                  IR_VF_NodePositionPerDim.access(field.level, dim, index + offsetIndex)
+                else
+                  IR_VF_NodePositionPerDim.access(field.level, dim, index)
+              def x_1 = IR_VF_CellCenterPerDim.access(field.level, dim, index)
+              def x_2 = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndexWithTrafo(i => -i))
+              w_0_5 = ((x - x_1) * (x - x_2)) / ((x_0_5 - x_1) * (x_0_5 - x_2))
+              w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
+              w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))
             }
+            statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
+              w_0_5 * boundaryExpr + w_1 * IR_FieldAccess(fieldSel, index) + w_2 * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+        }
+
+        field.fieldLayout.localization match {
+          case IR_AtNode                                           => forNode()
+          case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => forNode()
+          case IR_AtCellCenter                                     => forCell()
+          case IR_AtFaceCenter(_)                                  => forCell()
         }
     }
 

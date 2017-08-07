@@ -298,11 +298,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 => L4_HACK_DomainDecl(id, List(l1, l2, l3), List(u1, u2, u3)) })
       ||| locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ",") ~ (realIndex <~ "to") ~ (realIndex <~ ">") ^^ { case id ~ l1 ~ u1 ~ l2 ~ u2 ~ l3 ~ u3 ~ l4 ~ u4 ~ l5 ~ u5 => L4_HACK_DomainDecl(id, List(l1, l2, l3, l4, l5), List(u1, u2, u3, u4, u5)) }))
 
-  lazy val discretization = ("Node" ||| "node" ||| "Cell" ||| "cell"
-    ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
-    ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
-    ^^ (d => d))
-  lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (discretization <~ ">") ~ levelDecl.? ~ ("{" ~> layoutOptions <~ "}")
+  lazy val layout = locationize(("Layout" ~> ident) ~ ("<" ~> datatype <~ ",") ~ (localization <~ ">") ~ levelDecl.? ~ ("{" ~> layoutOptions <~ "}")
     ^^ { case id ~ dt ~ disc ~ level ~ opts => L4_FieldLayoutDecl(id, level, dt, disc.toLowerCase, opts) })
   lazy val layoutOptions = (
     (layoutOption <~ ",").* ~ layoutOption ^^ { case opts ~ opt => opts.::(opt) }

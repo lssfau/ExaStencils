@@ -23,7 +23,7 @@ case class IR_Field(
   def gridDatatype = fieldLayout.datatype
   def resolveBaseDatatype = fieldLayout.datatype.resolveBaseDatatype
   def resolveDeclType = fieldLayout.datatype.resolveDeclType
-  def discretization = fieldLayout.discretization
+  def localization = fieldLayout.localization
   def referenceOffset = fieldLayout.referenceOffset
   def communicatesDuplicated = fieldLayout.communicatesDuplicated
   def communicatesGhosts = fieldLayout.communicatesGhosts

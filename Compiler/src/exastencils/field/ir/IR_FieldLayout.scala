@@ -4,6 +4,7 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_Linearization
 import exastencils.config._
+import exastencils.grid.ir.IR_Localization
 import exastencils.knowledge.ir._
 import exastencils.logger.Logger
 
@@ -13,7 +14,7 @@ case class IR_FieldLayout(
     var name : String, // will be used to find the field
     var level : Int, // the (geometric) level the layout is associated with
     var datatype : IR_Datatype, // represents the (original) data type; may be multidimensional, i.e. vectors, matrices, etc.
-    var discretization : String, // specifies where data is located; currently allowed values are "node", "cell" and "face_{x,y,z}"
+    var localization : IR_Localization, // specifies where data is located
     var layoutsPerDim : Array[IR_FieldLayoutPerDim], // represents the number of data points and their distribution in each dimension
     var numDimsGrid : Int, // dimensionality of the associated grid; usually lesser than or equal to 3
     var referenceOffset : IR_ExpressionIndex, // specifies the (index) offset from the lower corner of the field to the first reference point; in case of node-centered data points the reference point is the first vertex point

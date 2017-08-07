@@ -8,6 +8,7 @@ import exastencils.boundary.l3.L3_NoBC
 import exastencils.datastructures._
 import exastencils.domain.l3._
 import exastencils.field.l3._
+import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3._
 import exastencils.logger._
 import exastencils.prettyprinting._
@@ -16,13 +17,13 @@ import exastencils.prettyprinting._
 
 object L3_StencilFieldDecl {
   def apply(name : String, levels : Option[L3_LevelSpecification], localization : String, domainName : String, offsets : List[L3_ConstIndex]) =
-    new L3_StencilFieldDecl(name, levels, localization, domainName, offsets.to[ListBuffer])
+    new L3_StencilFieldDecl(name, levels, L3_Localization.resolve(localization), domainName, offsets.to[ListBuffer])
 }
 
 case class L3_StencilFieldDecl(
     var name : String,
     var levels : Option[L3_LevelSpecification],
-    var localization : String,
+    var localization : L3_Localization,
     var domainName : String,
     var offsets : ListBuffer[L3_ConstIndex]) extends L3_LeveledKnowledgeDecl {
 

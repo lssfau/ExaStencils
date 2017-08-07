@@ -12,6 +12,7 @@ import exastencils.datastructures.ir._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.grid.GridGeometry
+import exastencils.grid.ir._
 import exastencils.parallelization.api.mpi._
 import exastencils.util.ir.IR_Print
 
@@ -31,14 +32,11 @@ case class IR_PrintField(var filename : IR_Expression, var field : IR_FieldSelec
 
   def getPos(field : IR_FieldSelection, dim : Int) : IR_Expression = {
     // TODO: add function to field (layout) to decide node/cell for given dim
-    field.field.discretization match {
-      case "node"                                   => GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
-      case "cell"                                   => GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
-      case discr @ ("face_x" | "face_y" | "face_z") =>
-        if (s"face_${ IR_DimToString(dim) }" == discr)
-          GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
-        else
-          GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
+    field.field.localization match {
+      case IR_AtNode              => GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case IR_AtCellCenter        => GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case IR_AtFaceCenter(`dim`) => GridGeometry.getGeometry.nodePosition(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
+      case IR_AtFaceCenter(_)     => GridGeometry.getGeometry.cellCenter(field.level, IR_LoopOverDimensions.defIt(numDimsGrid), None, dim)
     }
   }
 

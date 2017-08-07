@@ -15,6 +15,7 @@ import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
 import exastencils.field.l4._
+import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_Native
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
@@ -60,7 +61,7 @@ object GridGeometry_nonAA extends GridGeometry {
     def getLayoutDecl = {
       L4_FieldLayoutDecl(
         layout, Some(L4_AllLevels),
-        datatype, "node",
+        datatype, L4_AtNode,
         ListBuffer(
           L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(2)), true),
           L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(1)), true)))
@@ -78,7 +79,7 @@ object GridGeometry_nonAA extends GridGeometry {
     def getLayoutDecl = {
       L4_FieldLayoutDecl(
         layout, Some(L4_AllLevels),
-        datatype, "cell",
+        datatype, L4_AtCellCenter,
         ListBuffer(
           L4_FieldLayoutOption("ghostLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(2)), true),
           L4_FieldLayoutOption("duplicateLayers", L4_ConstIndex(Array.fill(Knowledge.dimensionality)(0)), true)))

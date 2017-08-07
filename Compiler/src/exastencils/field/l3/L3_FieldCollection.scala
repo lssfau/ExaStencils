@@ -7,6 +7,7 @@ import exastencils.base.l3._
 import exastencils.base.l4.L4_ConstIndex
 import exastencils.config.Knowledge
 import exastencils.field.l4._
+import exastencils.grid.l3.L3_Localization
 import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3._
 
@@ -30,7 +31,7 @@ object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Fie
   }
 
   def prepareFieldLayouts() = {
-    var requiredLayouts = HashMap[(String, Int), (L3_Datatype, String)]()
+    var requiredLayouts = HashMap[(String, Int), (L3_Datatype, L3_Localization)]()
     for (field <- objects)
       requiredLayouts += ((field.fieldLayoutName, field.level) -> (field.datatype, field.localization))
 
@@ -43,10 +44,10 @@ object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Fie
         layout._1._2, // level
         1, // FIXME: numDimsGrid
         layout._2._1.progress, // datatype
-        layout._2._2, // localization
-        L4_FieldLayout.default_ghostLayers(layout._2._2), // to be determined later
+        layout._2._2.progress, // localization
+        L4_FieldLayout.default_ghostLayers(layout._2._2.progress), // to be determined later
         false,
-        L4_FieldLayout.default_duplicateLayers(layout._2._2),
+        L4_FieldLayout.default_duplicateLayers(layout._2._2.progress),
         false,
         defIndex)
 
