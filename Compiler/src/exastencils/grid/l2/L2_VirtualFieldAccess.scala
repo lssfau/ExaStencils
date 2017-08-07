@@ -43,8 +43,8 @@ case class L2_VirtualFieldAccess(
       return this // do nothing
 
     target match {
-      case scalar : L2_VirtualFieldPerDim  => scalar.resolve(index)
-      case vector : L2_VirtualFieldWithVec => this // FIXME: L2_VectorExpression(vector.listPerDim.zipWithIndex.map((va, dim) => L2_VirtualFieldAccess(va, Duplicate(offset), dim)))
+      case scalar : L2_VirtualFieldWithScalar => scalar.resolve(index)
+      case vector : L2_VirtualFieldWithVec    => this // FIXME: L2_VectorExpression(vector.listPerDim.zipWithIndex.map((va, dim) => L2_VirtualFieldAccess(va, Duplicate(offset), dim)))
     }
   }
 

@@ -46,8 +46,7 @@ case class L4_VirtualFieldAccess(
       return this // do nothing
 
     target match {
-      case scalar : L4_VirtualFieldPerDim =>
-        scalar.resolve(index)
+      case scalar : L4_VirtualFieldWithScalar => scalar.resolve(index)
 
       case vector : L4_VirtualFieldWithVec =>
         L4_MatrixExpression(Some(target.datatype), List(vector.listPerDim.map(L4_VirtualFieldAccess(_, Duplicate(index))).toList))

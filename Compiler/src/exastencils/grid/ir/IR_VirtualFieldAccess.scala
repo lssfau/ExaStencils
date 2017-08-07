@@ -22,8 +22,7 @@ case class IR_VirtualFieldAccess(
       Logger.warn(s"Access to ir virtual field without resolution found: ${ target.name }@${ target.level }")
 
     target match {
-      case scalar : IR_VirtualFieldPerDim =>
-        scalar.resolve(index)
+      case scalar : IR_VirtualFieldWithScalar => scalar.resolve(index)
 
       case vector : IR_VirtualFieldWithVec =>
         IR_MatrixExpression(target.datatype.asInstanceOf[IR_MatrixDatatype],
