@@ -22,7 +22,9 @@ case class L3_VF_StagCellVolume(
 ) extends L3_VirtualFieldWithScalar {
 
   override def name = s"vf_stag_${ stagDim }_cellVolume"
-  override def knownAliases = ListBuffer("") // TODO
+  override def knownAliases = ListBuffer(s"vf_stag_${ stagDim }_cellVol",
+    s"vf_${ L3_Localization.dimToString(stagDim) }StagCellVolume", s"vf_${ L3_Localization.dimToString(stagDim) }StagCellVol")
+  
   override def localization = L3_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 

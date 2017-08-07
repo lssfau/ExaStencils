@@ -22,7 +22,7 @@ case class IR_VF_StagCellWidthAsVec(
 ) extends IR_VirtualFieldWithVec {
 
   override def name = s"vf_stag_${ stagDim }_cellWidth"
-  override def knownAliases = ListBuffer("") // TODO
+  override def knownAliases = ListBuffer(s"vf_${ IR_Localization.dimToString(stagDim) }StagCVWidth", s"vf_${ IR_Localization.dimToString(stagDim) }StagCellWidth")
   override def localization = IR_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
@@ -44,7 +44,14 @@ case class IR_VF_StagCellWidthPerDim(
 ) extends IR_VirtualFieldPerDim {
 
   override def name = s"vf_stag_${ stagDim }_cellWidth_$dim"
-  override def knownAliases = ListBuffer("") // TODO
+  override def knownAliases = {
+    def aliases = ListBuffer(
+      s"vf_${ IR_Localization.dimToString(stagDim) }StagCVWidth_${ IR_Localization.dimToString(dim) }",
+      s"vf_${ IR_Localization.dimToString(stagDim) }StagCellWidth_$dim}",
+      s"vf_stag_${ stagDim }_cellWidth_${ IR_Localization.dimToString(dim) }")
+    if (dim == stagDim) aliases += s"vf_stagCVWidth_${ IR_Localization.dimToString(dim) }" // backwards compatibility
+    aliases
+  }
   override def localization = IR_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 

@@ -5,8 +5,8 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.l4._
 import exastencils.config.Knowledge
 import exastencils.domain.l4.L4_Domain
-import exastencils.logger.Logger
 import exastencils.grid.ir.IR_VF_StagCellVolume
+import exastencils.logger.Logger
 
 /// L4_VF_StagCellVolume
 
@@ -22,7 +22,9 @@ case class L4_VF_StagCellVolume(
 ) extends L4_VirtualFieldWithScalar {
 
   override def name = s"vf_stag_${ stagDim }_cellVolume"
-  override def knownAliases = ListBuffer("") // TODO
+  override def knownAliases = ListBuffer(s"vf_stag_${ stagDim }_cellVol",
+    s"vf_${ L4_Localization.dimToString(stagDim) }StagCellVolume", s"vf_${ L4_Localization.dimToString(stagDim) }StagCellVol")
+  
   override def localization = L4_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 

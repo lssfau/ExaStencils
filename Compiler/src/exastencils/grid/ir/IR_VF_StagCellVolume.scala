@@ -21,7 +21,9 @@ case class IR_VF_StagCellVolume(
 ) extends IR_VirtualFieldWithScalar {
 
   override def name = s"vf_stag_${ stagDim }_cellVolume"
-  override def knownAliases = ListBuffer("") // TODO
+  override def knownAliases = ListBuffer(s"vf_stag_${ stagDim }_cellVol",
+    s"vf_${ IR_Localization.dimToString(stagDim) }StagCellVolume", s"vf_${ IR_Localization.dimToString(stagDim) }StagCellVol")
+  
   override def localization = IR_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 

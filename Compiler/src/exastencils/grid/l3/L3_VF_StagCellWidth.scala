@@ -23,7 +23,7 @@ case class L3_VF_StagCellWidthAsVec(
 ) extends L3_VirtualFieldWithVec {
 
   override def name = s"vf_stag_${ stagDim }_cellWidth"
-  override def knownAliases = ListBuffer("") // TODO
+  override def knownAliases = ListBuffer(s"vf_${ L3_Localization.dimToString(stagDim) }StagCVWidth", s"vf_${ L3_Localization.dimToString(stagDim) }StagCellWidth")
   override def localization = L3_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
@@ -47,7 +47,14 @@ case class L3_VF_StagCellWidthPerDim(
 ) extends L3_VirtualFieldPerDim {
 
   override def name = s"vf_stag_${ stagDim }_cellWidth_$dim"
-  override def knownAliases = ListBuffer("") // TODO
+  override def knownAliases = {
+    def aliases = ListBuffer(
+      s"vf_${ L3_Localization.dimToString(stagDim) }StagCVWidth_${ L3_Localization.dimToString(dim) }",
+      s"vf_${ L3_Localization.dimToString(stagDim) }StagCellWidth_$dim}",
+      s"vf_stag_${ stagDim }_cellWidth_${ L3_Localization.dimToString(dim) }")
+    if (dim == stagDim) aliases += s"vf_stagCVWidth_${ L3_Localization.dimToString(dim) }" // backwards compatibility
+    aliases
+  }
   override def localization = L3_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
