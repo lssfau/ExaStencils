@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l3._
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.domain.l3.L3_Domain
 import exastencils.logger.Logger
 import exastencils.grid.l4.L4_VF_CellVolume
@@ -27,7 +28,7 @@ case class L3_VF_CellVolume(
 
   override def resolve(index : L3_ExpressionIndex) = {
     if (Knowledge.grid_isAxisAligned) // includes uniform grids
-      (0 until domain.numDims).map(dim => L3_VF_CellWidthPerDim.access(level, dim, index) : L3_Expression).reduce(_ * _)
+      (0 until domain.numDims).map(dim => L3_VF_CellWidthPerDim.access(level, dim, Duplicate(index)) : L3_Expression).reduce(_ * _)
     else
       Logger.error("Currently unsupported")
   }

@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.logger.Logger
 
@@ -23,7 +24,7 @@ case class IR_VF_StagCellVolume(
   override def name = s"vf_stag_${ stagDim }_cellVolume"
   override def knownAliases = ListBuffer(s"vf_stag_${ stagDim }_cellVol",
     s"vf_${ IR_Localization.dimToString(stagDim) }StagCellVolume", s"vf_${ IR_Localization.dimToString(stagDim) }StagCellVol")
-  
+
   override def localization = IR_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
@@ -31,7 +32,7 @@ case class IR_VF_StagCellVolume(
     if (!Knowledge.grid_isStaggered) Logger.error("Trying to resolve a staggered quantity on a non-staggered grid; unsupported")
 
     if (Knowledge.grid_isAxisAligned) // includes uniform grids
-      (0 until domain.numDims).map(dim => IR_VF_StagCellWidthPerDim.access(level, stagDim, dim, index) : IR_Expression).reduce(_ * _)
+      (0 until domain.numDims).map(dim => IR_VF_StagCellWidthPerDim.access(level, stagDim, dim, Duplicate(index)) : IR_Expression).reduce(_ * _)
     else
       Logger.error("Currently unsupported")
   }

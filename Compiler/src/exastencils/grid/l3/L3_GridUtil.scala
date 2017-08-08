@@ -28,12 +28,12 @@ object L3_GridUtil {
     modAccess
   }
 
-  // helper functions for projecting indices and accesses
+  /// helper functions for projecting indices and accesses
 
   def projectIdx(index : L3_ExpressionIndex, dim : Int) = {
     val modIndex = Duplicate(index)
     for (i <- 0 until modIndex.length; if dim != i)
-      modIndex(dim) *= 0 // keeps null entries, sets non-null entries to 0
+      modIndex(i) *= 0 // keeps null entries, sets non-null entries to 0
     modIndex
   }
 }

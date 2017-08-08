@@ -32,6 +32,8 @@ case object IR_AtNode extends IR_Localization {
 /// IR_AtCells
 
 case object IR_AtCellCenter extends IR_Localization {
+  exastencils.core.Duplicate.registerConstant(this)
+
   def name = "Cell"
 }
 

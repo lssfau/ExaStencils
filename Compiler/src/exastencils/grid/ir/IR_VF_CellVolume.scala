@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
 import exastencils.logger.Logger
 
@@ -26,7 +27,7 @@ case class IR_VF_CellVolume(
 
   override def resolve(index : IR_ExpressionIndex) = {
     if (Knowledge.grid_isAxisAligned) // includes uniform grids
-      (0 until domain.numDims).map(dim => IR_VF_CellWidthPerDim.access(level, dim, index) : IR_Expression).reduce(_ * _)
+      (0 until domain.numDims).map(dim => IR_VF_CellWidthPerDim.access(level, dim, Duplicate(index)) : IR_Expression).reduce(_ * _)
     else
       Logger.error("Currently unsupported")
   }

@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
@@ -51,7 +52,7 @@ case class IR_VF_NodePositionPerDim(
 
   override def resolve(index : IR_ExpressionIndex) : IR_Expression = {
     if (Knowledge.grid_isUniform)
-      index(dim) * IR_VF_CellWidthPerDim.access(level, dim, index) + IR_IV_FragmentPositionBegin(dim)
+      index(dim) * IR_VF_CellWidthPerDim.access(level, dim, Duplicate(index)) + IR_IV_FragmentPositionBegin(dim)
     else if (Knowledge.grid_isAxisAligned)
       IR_FieldAccess(IR_FieldSelection(associatedField, level, 0), IR_GridUtil.projectIdx(index, dim))
     else

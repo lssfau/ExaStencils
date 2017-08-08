@@ -37,6 +37,8 @@ case object L3_AtNode extends L3_Localization {
 /// L3_AtCells
 
 case object L3_AtCellCenter extends L3_Localization {
+  exastencils.core.Duplicate.registerConstant(this)
+
   def name = "Cell"
   def progress = L4_AtCellCenter
 }

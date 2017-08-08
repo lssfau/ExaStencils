@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l2._
 import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.domain.l2.L2_Domain
 import exastencils.logger.Logger
 import exastencils.grid.l3.L3_VF_StagCellVolume
@@ -32,7 +33,7 @@ case class L2_VF_StagCellVolume(
     if (!Knowledge.grid_isStaggered) Logger.error("Trying to resolve a staggered quantity on a non-staggered grid; unsupported")
 
     if (Knowledge.grid_isAxisAligned) // includes uniform grids
-      (0 until domain.numDims).map(dim => L2_VF_StagCellWidthPerDim.access(level, stagDim, dim, index) : L2_Expression).reduce(_ * _)
+      (0 until domain.numDims).map(dim => L2_VF_StagCellWidthPerDim.access(level, stagDim, dim, Duplicate(index)) : L2_Expression).reduce(_ * _)
     else
       Logger.error("Currently unsupported")
   }
