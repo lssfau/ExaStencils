@@ -48,7 +48,7 @@ case class L4_VF_StagCellWidthPerDim(
 
   override def name = s"vf_stag_${ stagDim }_cellWidth_$dim"
   override def knownAliases = {
-    def aliases = ListBuffer(
+    var aliases = ListBuffer(
       s"vf_${ L4_Localization.dimToString(stagDim) }StagCVWidth_${ L4_Localization.dimToString(dim) }",
       s"vf_${ L4_Localization.dimToString(stagDim) }StagCellWidth_$dim}",
       s"vf_stag_${ stagDim }_cellWidth_${ L4_Localization.dimToString(dim) }")
