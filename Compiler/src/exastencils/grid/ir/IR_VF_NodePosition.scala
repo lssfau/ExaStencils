@@ -9,6 +9,7 @@ import exastencils.core.Duplicate
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir._
+import exastencils.logger.Logger
 
 /// IR_VF_NodePositionAsVec
 
@@ -48,7 +49,12 @@ case class IR_VF_NodePositionPerDim(
   override def localization = IR_AtNode
   override def resolutionPossible = true
 
-  def associatedField = IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_Localization.dimToString(dim) }", level).get
+  def associatedField = {
+    if (!Knowledge.grid_isUniform)
+      IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_Localization.dimToString(dim) }", level).get
+    else
+      Logger.error("Trying to access associated field for IR_VF_StagCellWidthPerDim; not found")
+  }
 
   override def resolve(index : IR_ExpressionIndex) : IR_Expression = {
     if (Knowledge.grid_isUniform)

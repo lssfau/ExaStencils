@@ -56,12 +56,14 @@ case class L4_VF_StagCellWidthPerDim(
     aliases
   }
   override def localization = L4_AtFaceCenter(stagDim)
-  override def resolutionPossible = true
+  override def resolutionPossible = Knowledge.grid_isUniform || (Knowledge.grid_isAxisAligned && !Knowledge.grid_halveStagBoundaryVolumes)
 
   override def resolve(index : L4_ExpressionIndex) = {
     if (!Knowledge.grid_isStaggered) Logger.error("Trying to resolve a staggered quantity on a non-staggered grid; unsupported")
 
-    if (Knowledge.grid_isAxisAligned) { // includes uniform grids
+    if (Knowledge.grid_isUniform || (Knowledge.grid_isAxisAligned && !Knowledge.grid_halveStagBoundaryVolumes)) {
+      // construct data on the fly if the grid is either uniform or non-uniform but without halved control volumes at the boundaries
+
       if (dim == stagDim) // half of this cell and half of the left neighbor cell
         0.5 * (L4_VF_CellWidthPerDim.access(level, dim, L4_GridUtil.offsetIndex(index, -1, dim))
           + L4_VF_CellWidthPerDim.access(level, dim, index))
