@@ -15,11 +15,18 @@ object L2_FieldAccess {
 
 case class L2_FieldAccess(
     var target : L2_Field,
-    var offset : Option[L2_ConstIndex] = None) extends L2_LeveledKnowledgeAccess {
+    var offset : Option[L2_ConstIndex] = None) extends L2_LeveledKnowledgeAccess with L2_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level
     if (offset.isDefined) out << '@' << offset.get
+  }
+
+  override def offsetWith(newOffset : L2_ConstIndex) = {
+    if (offset.isEmpty)
+      offset = Some(newOffset)
+    else
+      offset = Some(offset.get + newOffset)
   }
 
   override def progress = {

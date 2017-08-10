@@ -1,5 +1,6 @@
 package exastencils.operator.l2
 
+import exastencils.base.l2.L2_MayBlockResolution
 import exastencils.datastructures._
 import exastencils.knowledge.l2._
 import exastencils.logger._
@@ -25,7 +26,7 @@ object L2_PrepareStencilDeclarations extends DefaultStrategy("Prepare knowledge 
 
 object L2_ProcessStencilDeclarations extends DefaultStrategy("Integrate L2 stencil declarations with knowledge") {
   this += Transformation("Process new stencils", {
-    case decl : L2_StencilDecl if !L2_FutureKnowledgeAccess.existsInStmt(decl) =>
+    case decl : L2_StencilDecl if L2_MayBlockResolution.isDone(decl) =>
       decl.addToKnowledge()
       None // consume declaration statement
   })

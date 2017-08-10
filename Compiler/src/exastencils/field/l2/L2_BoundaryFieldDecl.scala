@@ -27,7 +27,7 @@ case class L2_BoundaryFieldDecl(
 
 object L2_ProcessBoundaryDeclarations extends DefaultStrategy("Integrate L2 boundary declarations with knowledge") {
   this += Transformation("Adapt bc's of new fields", {
-    case decl : L2_BoundaryFieldDecl if !L2_FutureKnowledgeAccess.existsInStmt(decl) =>
+    case decl : L2_BoundaryFieldDecl if L2_MayBlockResolution.isDone(decl) =>
       decl.addToKnowledge()
       None // consume declaration statement
   })

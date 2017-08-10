@@ -26,11 +26,15 @@ object L2_VirtualFieldAccess {
 
 case class L2_VirtualFieldAccess(
     var target : L2_VirtualField,
-    var index : L2_ExpressionIndex) extends L2_LeveledKnowledgeAccess {
+    var index : L2_ExpressionIndex) extends L2_LeveledKnowledgeAccess with L2_CanBeOffset with L2_MayBlockResolution {
 
-  def prettyprint(out : PpStream) = {
+  allDone = !(target.resolutionPossible && Knowledge.experimental_l2_resolveVirtualFields)
+
+  override def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level << '@' << extractOffset
   }
+
+  override def offsetWith(offset : L2_ConstIndex) = index += offset
 
   def extractOffset = {
     var offset = Duplicate(index) - L2_FieldIteratorAccess.fullIndex(target.numDims)
@@ -48,7 +52,7 @@ case class L2_VirtualFieldAccess(
     }
   }
 
-  def progress = L3_VirtualFieldAccess(target.getProgressedObj(), index.progress)
+  override def progress = L3_VirtualFieldAccess(target.getProgressedObj(), index.progress)
 }
 
 /// L2_ResolveVirtualFieldAccesses
@@ -57,11 +61,10 @@ object L2_ResolveVirtualFieldAccesses extends DefaultStrategy("Resolve accesses 
   this += new Transformation("Resolve applicable future accesses", {
     // check if declaration has already been processed and promote access if possible
     case access : L2_FutureVirtualFieldAccess if L2_VirtualFieldCollection.exists(access.name, access.level) =>
-      def newAccess = access.toVirtualFieldAccess
-      // attempt further resolution if requested
-      if (Knowledge.experimental_l2_resolveVirtualFields)
-        newAccess.tryResolve
-      else
-        newAccess
+      access.toVirtualFieldAccess
+
+    // attempt further resolution if requested
+    case access : L2_VirtualFieldAccess if Knowledge.experimental_l2_resolveVirtualFields =>
+      access.tryResolve
   })
 }

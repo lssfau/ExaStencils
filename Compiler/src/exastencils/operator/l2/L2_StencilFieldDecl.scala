@@ -74,7 +74,7 @@ object L2_PrepareStencilFieldDeclarations extends DefaultStrategy("Prepare knowl
 
 object L2_ProcessStencilFieldDeclarations extends DefaultStrategy("Integrate L2 stencil template declarations with knowledge") {
   this += Transformation("Process new stencil templates", {
-    case decl : L2_StencilFieldDecl if !L2_FutureKnowledgeAccess.existsInStmt(decl) =>
+    case decl : L2_StencilFieldDecl if L2_MayBlockResolution.isDone(decl) =>
       decl.addToKnowledge()
       None // consume declaration statement
   })

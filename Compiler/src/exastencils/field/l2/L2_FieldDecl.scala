@@ -1,5 +1,6 @@
 package exastencils.field.l2
 
+import exastencils.base.l2.L2_MayBlockResolution
 import exastencils.datastructures._
 import exastencils.knowledge.l2._
 import exastencils.logger._
@@ -25,7 +26,7 @@ object L2_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge fo
 
 object L2_ProcessFieldDeclarations extends DefaultStrategy("Integrate L2 field declarations with knowledge") {
   this += Transformation("Process field declarations", {
-    case decl : L2_FieldDecl if !L2_FutureKnowledgeAccess.existsInStmt(decl) =>
+    case decl : L2_FieldDecl if L2_MayBlockResolution.isDone(decl) =>
       decl.addToKnowledge()
       None // consume declaration statement
   })
