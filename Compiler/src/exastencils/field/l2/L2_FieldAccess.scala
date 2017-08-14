@@ -22,6 +22,8 @@ case class L2_FieldAccess(
     if (offset.isDefined) out << '@' << offset.get
   }
 
+  def getOffset = offset.getOrElse(L2_ConstIndex(Array.fill(target.numDimsGrid)(0)))
+
   override def offsetWith(newOffset : L2_ConstIndex) = {
     if (offset.isEmpty)
       offset = Some(newOffset)

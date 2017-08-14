@@ -43,6 +43,8 @@ case class L4_FieldAccess(
     if (arrayIndex.isDefined) out << '[' << arrayIndex.get << ']'
   }
 
+  def getOffset = offset.getOrElse(L4_ConstIndex(Array.fill(target.numDimsGrid)(0)))
+
   def progress : IR_FieldAccess = {
     val field = target.getProgressedObj()
 

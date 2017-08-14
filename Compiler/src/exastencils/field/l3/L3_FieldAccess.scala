@@ -22,6 +22,8 @@ case class L3_FieldAccess(
     if (offset.isDefined) out << '@' << offset.get
   }
 
+  def getOffset = offset.getOrElse(L3_ConstIndex(Array.fill(target.numDimsGrid)(0)))
+
   override def progress = {
     L4_FieldAccess(target.getProgressedObj(),
       L4_ActiveSlot,
