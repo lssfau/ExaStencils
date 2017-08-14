@@ -29,11 +29,13 @@ object L4_VirtualFieldAccess {
 case class L4_VirtualFieldAccess(
     var target : L4_VirtualField,
     var index : L4_ExpressionIndex,
-    var arrayIndex : Option[Int] = None) extends L4_LeveledKnowledgeAccess {
+    var arrayIndex : Option[Int] = None) extends L4_LeveledKnowledgeAccess with L4_CanBeOffset {
 
   def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level << '@' << extractOffset
   }
+
+  override def offsetWith(offset : L4_ConstIndex) = index += offset
 
   def extractOffset = {
     var offset = Duplicate(index) - L4_FieldIteratorAccess.fullIndex(target.numDims)

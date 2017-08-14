@@ -26,11 +26,13 @@ object L3_VirtualFieldAccess {
 
 case class L3_VirtualFieldAccess(
     var target : L3_VirtualField,
-    var index : L3_ExpressionIndex) extends L3_LeveledKnowledgeAccess {
+    var index : L3_ExpressionIndex) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset {
 
   def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level << '@' << extractOffset
   }
+
+  override def offsetWith(offset : L3_ConstIndex) = index += offset
 
   def extractOffset = {
     var offset = Duplicate(index) - L3_FieldIteratorAccess.fullIndex(target.numDims)

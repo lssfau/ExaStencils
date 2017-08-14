@@ -33,7 +33,7 @@ case class L4_FieldAccess(
     var target : L4_Field,
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None) extends L4_KnowledgeAccess {
+    var arrayIndex : Option[Int] = None) extends L4_KnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << target.name
@@ -44,6 +44,13 @@ case class L4_FieldAccess(
   }
 
   def getOffset = offset.getOrElse(L4_ConstIndex(Array.fill(target.numDimsGrid)(0)))
+
+  override def offsetWith(newOffset : L4_ConstIndex) = {
+    if (offset.isEmpty)
+      offset = Some(newOffset)
+    else
+      offset = Some(offset.get + newOffset)
+  }
 
   def progress : IR_FieldAccess = {
     val field = target.getProgressedObj()
