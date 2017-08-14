@@ -130,7 +130,7 @@ object L4_PrepareFieldLayoutDeclarations extends DefaultStrategy("Prepare knowle
 
 object L4_ProcessFieldLayoutDeclarations extends DefaultStrategy("Integrate L4 field layout declarations with knowledge") {
   this += Transformation("Process field layout declarations", {
-    case decl : L4_FieldLayoutDecl if !L4_FutureKnowledgeAccess.existsInStmt(decl) =>
+    case decl : L4_FieldLayoutDecl if L4_MayBlockResolution.isDone(decl) =>
       decl.addToKnowledge()
       None // consume declaration statement
   })

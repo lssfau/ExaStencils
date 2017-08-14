@@ -29,7 +29,9 @@ object L4_VirtualFieldAccess {
 case class L4_VirtualFieldAccess(
     var target : L4_VirtualField,
     var index : L4_ExpressionIndex,
-    var arrayIndex : Option[Int] = None) extends L4_LeveledKnowledgeAccess with L4_CanBeOffset {
+    var arrayIndex : Option[Int] = None) extends L4_LeveledKnowledgeAccess with L4_CanBeOffset with L4_MayBlockResolution {
+
+  allDone = !(target.resolutionPossible && Knowledge.experimental_l4_resolveVirtualFields)
 
   def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level << '@' << extractOffset
@@ -73,11 +75,10 @@ object L4_ResolveVirtualFieldAccesses extends DefaultStrategy("Resolve accesses 
   this += new Transformation("Resolve applicable future accesses", {
     // check if declaration has already been processed and promote access if possible
     case access : L4_FutureVirtualFieldAccess if L4_VirtualFieldCollection.exists(access.name, access.level) =>
-      def newAccess = access.toVirtualFieldAccess
-      // attempt further resolution if requested
-      if (Knowledge.experimental_l4_resolveVirtualFields)
-        newAccess.tryResolve
-      else
-        newAccess
+      access.toVirtualFieldAccess
+
+    // attempt further resolution if requested
+    case access : L4_VirtualFieldAccess if !access.allDone =>
+      access.tryResolve
   })
 }

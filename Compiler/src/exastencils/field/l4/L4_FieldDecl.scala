@@ -1,5 +1,6 @@
 package exastencils.field.l4
 
+import exastencils.base.l4.L4_MayBlockResolution
 import exastencils.datastructures._
 import exastencils.knowledge.l4._
 import exastencils.logger._
@@ -29,7 +30,7 @@ object L4_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge fo
 
 object L4_ProcessFieldDeclarations extends DefaultStrategy("Integrate L4 field declarations with knowledge") {
   this += Transformation("Process field declarations", {
-    case decl : L4_FieldDecl if !L4_FutureKnowledgeAccess.existsInStmt(decl) =>
+    case decl : L4_FieldDecl if L4_MayBlockResolution.isDone(decl) =>
       decl.addToKnowledge()
       None // consume declaration statement
   })

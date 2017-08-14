@@ -64,7 +64,7 @@ object L2_ResolveVirtualFieldAccesses extends DefaultStrategy("Resolve accesses 
       access.toVirtualFieldAccess
 
     // attempt further resolution if requested
-    case access : L2_VirtualFieldAccess if Knowledge.experimental_l2_resolveVirtualFields =>
+    case access : L2_VirtualFieldAccess if !access.allDone =>
       access.tryResolve
   })
 }

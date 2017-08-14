@@ -26,7 +26,9 @@ object L3_VirtualFieldAccess {
 
 case class L3_VirtualFieldAccess(
     var target : L3_VirtualField,
-    var index : L3_ExpressionIndex) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset {
+    var index : L3_ExpressionIndex) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset with L3_MayBlockResolution {
+
+  allDone = !(target.resolutionPossible && Knowledge.experimental_l3_resolveVirtualFields)
 
   def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level << '@' << extractOffset
@@ -59,11 +61,10 @@ object L3_ResolveVirtualFieldAccesses extends DefaultStrategy("Resolve accesses 
   this += new Transformation("Resolve applicable future accesses", {
     // check if declaration has already been processed and promote access if possible
     case access : L3_FutureVirtualFieldAccess if L3_VirtualFieldCollection.exists(access.name, access.level) =>
-      def newAccess = access.toVirtualFieldAccess
-      // attempt further resolution if requested
-      if (Knowledge.experimental_l3_resolveVirtualFields)
-        newAccess.tryResolve
-      else
-        newAccess
+      access.toVirtualFieldAccess
+
+    // attempt further resolution if requested
+    case access : L3_VirtualFieldAccess if !access.allDone =>
+      access.tryResolve
   })
 }

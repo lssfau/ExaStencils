@@ -52,7 +52,7 @@ object L4_PrepareStencilFieldDeclarations extends DefaultStrategy("Prepare knowl
 
 object L4_ProcessStencilFieldDeclarations extends DefaultStrategy("Integrate L4 stencil template declarations with knowledge") {
   this += Transformation("Process new stencil templates", {
-    case decl : L4_StencilFieldDecl if !L4_FutureKnowledgeAccess.existsInStmt(decl) =>
+    case decl : L4_StencilFieldDecl if L4_MayBlockResolution.isDone(decl) =>
       decl.addToKnowledge()
       None // consume declaration statement
   })
