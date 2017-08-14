@@ -16,6 +16,10 @@ abstract class L2_StencilDecl extends L2_LeveledKnowledgeDecl {
 
 object L2_PrepareStencilDeclarations extends DefaultStrategy("Prepare knowledge for L2 stencils") {
   this += Transformation("Process new stencils", {
+    case decl : L2_OperatorFromEquation =>
+      decl.addDeclarations()
+      decl // preserve declaration statement
+
     case decl : L2_StencilDecl =>
       L2_StencilCollection.addDeclared(decl.name, decl.levels)
       decl // preserve declaration statement

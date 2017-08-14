@@ -51,6 +51,7 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| stencilDeclaration
       ||| stencilTemplateDeclaration
       ||| globals
+      ||| operatorFromEq
     ).* ^^ { L2_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -354,4 +355,14 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| stencilTemplateEntry.+)
   lazy val stencilTemplateEntry = locationize((constIndex <~ "=>") ^^ { offset => offset })
 
+  /// TO BE INTEGRATED
+
+  lazy val equation = locationize((binaryexpression <~ ("=" | "==")) ~ binaryexpression ^^ { case lhs ~ rhs => L2_Equation(lhs, rhs) })
+  lazy val operatorMapping = locationize((genericAccess <~ "=>") ~ ident ~ levelDecl.? ^^ { case field ~ name ~ level => L2_OperatorMapping(name, level, field) })
+
+  lazy val operatorFromEqEntry = locationize((("equation" ~ "for") ~> genericAccess) ~ ("{" ~> equation <~ "}") ~ (("store" ~ "in" ~ "{") ~> operatorMapping.* <~ "}")
+    ^^ { case field ~ eq ~ map => L2_OperatorFromEqEntry(field, eq, map) })
+
+  lazy val operatorFromEq = locationize((("generate" ~ "operators") ~> levelDecl.?) ~ ("{" ~> operatorFromEqEntry.* <~ "}")
+    ^^ { case level ~ entries => L2_OperatorFromEquation(level, entries) })
 }
