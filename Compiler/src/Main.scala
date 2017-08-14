@@ -236,10 +236,12 @@ object Main {
         matches += L2_ResolveAccesses.applyAndCountMatches()
 
         if (Knowledge.experimental_l2_resolveVirtualFields) {
-          L2_ResolveEvaluateOnGrid.apply()
-          matches += (if (L2_ResolveEvaluateOnGrid.results.isEmpty) 0 else L2_ResolveEvaluateOnGrid.results.last._2.matches)
+          // integrate before evaluate -> might be nested
           L2_ResolveIntegrateOnGrid.apply()
           matches += (if (L2_ResolveIntegrateOnGrid.results.isEmpty) 0 else L2_ResolveIntegrateOnGrid.results.last._2.matches)
+
+          L2_ResolveEvaluateOnGrid.apply()
+          matches += (if (L2_ResolveEvaluateOnGrid.results.isEmpty) 0 else L2_ResolveEvaluateOnGrid.results.last._2.matches)
         }
       } while (matches > 0)
 

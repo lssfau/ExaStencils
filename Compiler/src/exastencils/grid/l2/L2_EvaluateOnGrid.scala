@@ -3,7 +3,7 @@ package exastencils.grid.l2
 import scala.collection.mutable._
 
 import exastencils.base.l2.L2_ImplicitConversion._
-import exastencils.base.l2.{ L2_ConstantExpression, _ }
+import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_FieldIteratorAccess
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
@@ -49,6 +49,17 @@ case class L2_EvaluateOnGrid(
 
   allDone = !Knowledge.experimental_l2_resolveVirtualFields
 
+  def numDims = /*FIXME*/ Knowledge.dimensionality
+  def stagDim = L2_GridUtil.faceToDims(name.replace("evalAt", ""))._1
+  def faceDim = L2_GridUtil.faceToDims(name.replace("evalAt", ""))._2
+
+  def fieldAccess() : L2_FieldAccess = {
+    expression match {
+      case fieldAccess : L2_FieldAccess => fieldAccess
+      case other                        => Logger.error(s"$other in evaluate is not of type L2_FieldAccess")
+    }
+  }
+
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (offset.isDefined) out << offset
@@ -74,7 +85,7 @@ case class L2_EvaluateOnGrid(
 
   def resolveForFieldAccess(fieldAccess : L2_FieldAccess, interpolation : String) : L2_Expression = {
     val field = fieldAccess.target
-    val (stagDim, faceDim) = L2_GridUtil.faceToDims(name)
+    val (stagDim, faceDim) = L2_GridUtil.faceToDims(name.replace("evalAt", ""))
 
     // construct index
     var index = L2_FieldIteratorAccess.fullIndex(field.numDimsGrid)
@@ -82,7 +93,7 @@ case class L2_EvaluateOnGrid(
       index += offset.get
 
     // take into account that right-hand interfaces can be targets too
-    val faceOffset = L2_GridUtil.offsetForFace(name)
+    val faceOffset = L2_GridUtil.offsetForFace(name.replace("evalAt", ""))
     if (0 != faceOffset) L2_GridUtil.offsetIndex(index, faceOffset, faceDim)
 
     // placeholder to interpolation weights

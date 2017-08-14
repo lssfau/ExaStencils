@@ -121,7 +121,7 @@ case class L2_IntegrateOnGrid(
               case L2_AtFaceCenter(fd) if faceDim == fd => // direct sampling
                 fieldAccess
 
-              case L2_AtFaceCenter(fd) =>  // interpolation, piecewiseIntegration
+              case L2_AtFaceCenter(fd) => // interpolation, piecewiseIntegration
                 addPIntAnnot(fd, L2_EvaluateOnGrid(stagDim, faceDim, level, fieldAccess))
 
               case other => Logger.error(s"Unknown or unsupported localization $other for field $fieldAccess in basic integration")
@@ -157,35 +157,56 @@ case class L2_IntegrateOnGrid(
           Logger.error(s"Virtual field accesses ($fieldAccess) are currently unsupported within evaluation and integration functions")
 
         case eval : L2_EvaluateOnGrid =>
-          eval /* TODO
-          if (eval.faceDim != faceDim) Logger.error(s"Found unaligned eval for faceDim ${ eval.faceDim } in integration for faceDim $faceDim in eval for ${ eval.fieldAccess }")
-          if (eval.stagDim != stagDim) Logger.error(s"Found unaligned eval for stagDim ${ eval.stagDim } in integration for stagDim $stagDim in eval for ${ eval.fieldAccess }")
+          if (eval.faceDim != faceDim) Logger.error(s"Found unaligned eval for faceDim ${ eval.faceDim } in integration for faceDim $faceDim in eval for ${ eval.expression }")
+          if (eval.stagDim != stagDim) Logger.error(s"Found unaligned eval for stagDim ${ eval.stagDim } in integration for stagDim $stagDim in eval for ${ eval.expression }")
 
-          val discr = eval.fieldAccess.fieldSelection.field.localization
-          if (stagDim.isDefined) {
-            val curStagDim = stagDim.get
-            discr match {
-              case L2_AtCellCenter if curStagDim == faceDim => eval.fieldAccess // direct sampling
-              case L2_AtCellCenter if curStagDim != faceDim =>
-                eval.fieldAccess = L2_GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim)
-                addPIntAnnot(eval) // interpolation with offset, piecewiseIntegration
-              case L2_AtFaceCenter(`curStagDim`)            => // field localization matches CV
-                eval // orig eval is fine
-              case L2_AtFaceCenter(fd)                      => // -1 in CV's stag dim and +1 in field localization's stag dim => ignore eval as direct sampling is possible
-                addPIntAnnot(L2_GridUtil.offsetAccess(L2_GridUtil.offsetAccess(eval.fieldAccess, -1, curStagDim), 1, fd)) // direct sampling with offset, piecewiseIntegration
-              case _                                        => Logger.error(s"Unknown or unsupported localization $discr for field ${ eval.fieldAccess } in staggered integration")
+          // prevent double shift; occurs in, e.g., integrateRight ( evalRight ( exp ) )
+          val evalOffset = L2_GridUtil.offsetForFace(eval.name.replace("evalAt", ""))
+          val integrateOffset = L2_GridUtil.offsetForFace(name.replace("integrateOver", ""))
+          if (evalOffset != integrateOffset) Logger.error("Nested evaluate and integrate face don't match")
+          if (evalOffset > 0) eval.offsetWith(L2_GridUtil.offsetIndex(L2_ConstIndex(Array.fill(eval.numDims)(0)), 1, eval.faceDim))
+
+          if (stagDim.isEmpty) {
+            eval.fieldAccess().target.localization match {
+              case L2_AtCellCenter => // interpolation (already sufficient)
+                eval
+
+              case L2_AtFaceCenter(fd) if faceDim == fd => // direct sampling
+                eval.expression
+
+              case L2_AtFaceCenter(fd) => // interpolation, piecewiseIntegration
+                addPIntAnnot(fd, eval)
+
+              case other => Logger.error(s"Unknown or unsupported localization $other for field ${ eval.fieldAccess() } in basic integration")
             }
           } else {
-            discr match {
-              case L2_AtCellCenter            => eval // interpolation
-              case L2_AtFaceCenter(`faceDim`) =>
-                eval.fieldAccess = L2_GridUtil.offsetAccess(eval.fieldAccess, 1, faceDim)
-                eval // direct sampling with offset
-              case L2_AtFaceCenter(_)         =>
-                addPIntAnnot(eval) // interpolation, piecewiseIntegration
-              case _                          => Logger.error(s"Unknown or unsupported localization $discr for field ${ eval.fieldAccess } in basic integration")
+            val curStagDim = stagDim.get
+            eval.fieldAccess().target.localization match {
+              case L2_AtCellCenter if curStagDim == faceDim => // direct sampling with offset
+                L2_GridUtil.offsetAccess(eval.fieldAccess(), -1, curStagDim)
+
+              case L2_AtCellCenter if curStagDim != faceDim => // interpolation with offset, piecewiseIntegration
+                eval.expression = L2_GridUtil.offsetAccess(eval.fieldAccess(), -1, curStagDim)
+                addPIntAnnot(curStagDim, eval)
+
+              case L2_AtFaceCenter(`curStagDim`) => // field localization matches CV -> interpolation
+                eval
+
+              case L2_AtFaceCenter(fd) if faceDim == curStagDim => // direct sampling with offset, piecewiseIntegration
+                eval.expression = L2_GridUtil.offsetAccess(eval.fieldAccess(), -1, curStagDim)
+                addPIntAnnot(fd, eval)
+
+              case L2_AtFaceCenter(fd) if faceDim == fd => // direct sampling with offset, piecewiseIntegration
+                eval.expression = L2_GridUtil.offsetAccess(eval.fieldAccess(), -1, curStagDim)
+                addPIntAnnot(curStagDim, eval)
+
+              case L2_AtFaceCenter(fd) => // interpolation with offset, double piecewiseIntegration
+                eval.expression = L2_GridUtil.offsetAccess(eval.fieldAccess(), -1, curStagDim)
+                addPIntAnnot(curStagDim, addPIntAnnot(fd, eval))
+
+              case other => Logger.error(s"Unknown or unsupported localization $other for field ${ eval.fieldAccess() } in staggered integration")
             }
-          }*/
+          }
 
         case _ : L2_IntegrateOnGrid =>
           Logger.error("Integration functions called inside other integration functions are currently not supported")
@@ -254,7 +275,16 @@ case class L2_IntegrateOnGrid(
 /// L2_ResolveIntegrateOnGrid
 
 object L2_ResolveIntegrateOnGrid extends DefaultStrategy("Resolve grid integrations") {
+  def isDoneIgnoreEval(expr : L2_Expression) = {
+    StateManager.findFirst({ n : L2_MayBlockResolution =>
+      n match {
+        case _ : L2_EvaluateOnGrid            => false
+        case mayBlock : L2_MayBlockResolution => !mayBlock.allDone
+      }
+    }, expr).isEmpty
+  }
+
   this += new Transformation("Resolve", {
-    case integrate : L2_IntegrateOnGrid if L2_MayBlockResolution.isDone(integrate) => integrate.resolve()
+    case integrate : L2_IntegrateOnGrid if isDoneIgnoreEval(integrate) => integrate.resolve()
   })
 }
