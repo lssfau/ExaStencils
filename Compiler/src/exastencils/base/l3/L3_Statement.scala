@@ -9,6 +9,11 @@ trait L3_Statement extends L3_Node with L3_Progressable with PrettyPrintable {
   def progress : L4_Statement
 }
 
+/// L3_StatementWrapper
+
+// exists to provide convenient way to wrap for applying transformations
+case class L3_StatementWrapper(stmt : L3_Statement) extends L3_Node
+
 /// L3_NullStatement
 
 case object L3_NullStatement extends L3_Statement {

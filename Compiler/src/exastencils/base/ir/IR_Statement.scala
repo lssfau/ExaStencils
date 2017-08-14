@@ -6,6 +6,11 @@ import exastencils.prettyprinting._
 
 trait IR_Statement extends IR_Node with PrettyPrintable
 
+/// IR_StatementWrapper
+
+// exists to provide convenient way to wrap for applying transformations
+case class IR_StatementWrapper(stmt : IR_Statement) extends IR_Node
+
 /// IR_NullStatement
 
 case object IR_NullStatement extends IR_Statement {
