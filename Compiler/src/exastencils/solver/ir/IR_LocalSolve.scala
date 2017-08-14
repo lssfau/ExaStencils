@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.config.Knowledge
-import exastencils.core._
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
@@ -124,8 +123,7 @@ case class IR_LocalSolve(
 
   def sortEquations() = {
     // preparation: bring all entries to left side and simplify
-    var zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : IR_Expression)
-    zeroEqs = zeroEqs.map(IR_SimplifyExpression.simplifyFloatingExpr)
+    val zeroEqs = equations.map(_.asZeroEquation())
 
     // flatten computations to facilitate further processing - also flatten unknowns for comparability
     IR_FlattenComputation.doUntilDoneStandalone(zeroEqs)
