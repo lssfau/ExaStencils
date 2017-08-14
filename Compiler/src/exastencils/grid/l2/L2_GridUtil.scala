@@ -42,13 +42,8 @@ object L2_GridUtil {
   def faceToDimStrings(face : String) = {
     val pattern = """(XStaggered|YStaggered|ZStaggered)?(East|West|North|South|Top|Bottom)Face""".r
     face match {
-      case pattern(null, faceDim) =>
-        Logger.warn("Only " + faceDim)
-        (None, faceDim)
-
-      case pattern(stagDim, faceDim) =>
-        Logger.warn(stagDim + " and " + faceDim)
-        (Some(stagDim), faceDim)
+      case pattern(null, faceDim)    => (None, faceDim)
+      case pattern(stagDim, faceDim) => (Some(stagDim), faceDim)
     }
   }
 
@@ -60,12 +55,14 @@ object L2_GridUtil {
       case Some("XStaggered") => Some(0)
       case Some("YStaggered") => Some(1)
       case Some("ZStaggered") => Some(2)
+      case Some(other)        => Logger.error(s"Unsupported identifier $other")
     }
 
     val faceDim = faceDimStr match {
       case "East" | "West"   => 0
       case "North" | "South" => 1
       case "Top" | "Bottom"  => 2
+      case other             => Logger.error(s"Unsupported identifier $other")
     }
 
     (stagDim, faceDim)
@@ -86,16 +83,17 @@ object L2_GridUtil {
 
   def dimsToFace(stagDim : Option[Int], faceDim : Int) = {
     val stagDimStr = stagDim match {
-      case None    => None
-      case Some(0) => Some("XStaggered")
-      case Some(1) => Some("YStaggered")
-      case Some(2) => Some("ZStaggered")
+      case None        => None
+      case Some(0)     => Some("XStaggered")
+      case Some(1)     => Some("YStaggered")
+      case Some(2)     => Some("ZStaggered")
+      case Some(other) => Logger.error(s"Unsupported dimension $other")
     }
 
     val faceDimStr = faceDim match {
-      case 0 => "East"
-      case 1 => "North"
-      case 2 => "Top"
+      case 0     => "East"
+      case 1     => "North"
+      case other => Logger.error(s"Unsupported dimension $other")
     }
 
     dimStringsToFace(stagDimStr, faceDimStr)
