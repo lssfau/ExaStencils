@@ -7,7 +7,7 @@ import exastencils.baseExt.l4._
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
-import exastencils.knowledge.l4.L4_KnowledgeAccess
+import exastencils.knowledge.l4._
 import exastencils.logger.Logger
 import exastencils.prettyprinting.PpStream
 
@@ -33,7 +33,7 @@ case class L4_FieldAccess(
     var target : L4_Field,
     var slot : L4_SlotSpecification,
     var offset : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None) extends L4_KnowledgeAccess with L4_CanBeOffset {
+    var arrayIndex : Option[Int] = None) extends L4_LeveledKnowledgeAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << target.name

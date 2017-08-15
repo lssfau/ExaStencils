@@ -18,6 +18,7 @@ case class L4_Field(
     var boundary : L4_BoundaryCondition) extends L4_LeveledKnowledgeObject[IR_Field] {
 
   def datatype = fieldLayout.datatype
+  def localization = fieldLayout.localization
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Field " << name

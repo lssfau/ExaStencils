@@ -296,6 +296,15 @@ object Main {
         matches = 0
         matches += L3_ProcessDeclarations.applyAndCountMatches()
         matches += L3_ResolveAccesses.applyAndCountMatches()
+
+        if (Knowledge.experimental_l3_resolveVirtualFields) {
+          // integrate before evaluate -> might be nested
+          L3_ResolveIntegrateOnGrid.apply()
+          matches += (if (L3_ResolveIntegrateOnGrid.results.isEmpty) 0 else L3_ResolveIntegrateOnGrid.results.last._2.matches)
+
+          L3_ResolveEvaluateOnGrid.apply()
+          matches += (if (L3_ResolveEvaluateOnGrid.results.isEmpty) 0 else L3_ResolveEvaluateOnGrid.results.last._2.matches)
+        }
       } while (matches > 0)
 
       L3_ProcessBoundaryDeclarations.apply()
@@ -413,6 +422,15 @@ object Main {
       matches = 0
       matches += L4_ProcessDeclarations.applyAndCountMatches()
       matches += L4_ResolveAccesses.applyAndCountMatches()
+
+      if (Knowledge.experimental_l4_resolveVirtualFields) {
+        // integrate before evaluate -> might be nested
+        L4_ResolveIntegrateOnGrid.apply()
+        matches += (if (L4_ResolveIntegrateOnGrid.results.isEmpty) 0 else L4_ResolveIntegrateOnGrid.results.last._2.matches)
+
+        L4_ResolveEvaluateOnGrid.apply()
+        matches += (if (L4_ResolveEvaluateOnGrid.results.isEmpty) 0 else L4_ResolveEvaluateOnGrid.results.last._2.matches)
+      }
     } while (matches > 0)
 
     if (ExaRootNode.l4_root.nodes.exists(_.isInstanceOf[L4_KnowledgeDecl])) {
