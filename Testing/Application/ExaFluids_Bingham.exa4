@@ -627,31 +627,19 @@ Function UpdatePropertiesNN@finest ( ) : Unit {
 	loop over vis@current {
 		// TODO: add evalAtCellCenter, evalAtXFaceCenter, evalAtXYCorner, etc
 		// du/dx and dv/dx and dw/dx
-		Val dudx : Real = ( evalAtEastFace ( u[active]@current ) - evalAtWestFace ( u[active]@current ) ) / vf_cellWidth_x@current
-
-		Val dvdx : Real = 0.5 * ( evalAtEastFace ( v[active]@current ) - evalAtWestFace ( v[active]@current )
-			+ evalAtEastFace ( v[active]@current@[0, 1, 0] ) - evalAtWestFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_x@current
-
-		Val dwdx : Real = 0.5 * ( evalAtEastFace ( w[active]@current ) - evalAtWestFace ( w[active]@current )
-			+ evalAtEastFace ( w[active]@current@[0, 0, 1] ) - evalAtWestFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_x@current
+		Val dudx : Real = ( u@[1, 0, 0] - u@[0, 0, 0] ) / vf_cellWidth_x
+		Val dvdx : Real = 0.5 * ( v@[1, 0, 0] - v@[0, 0, 0] + v@[1, 1, 0] - v@[0, 1, 0] ) / vf_cellWidth_x
+		Val dwdx : Real = 0.5 * ( w@[1, 0, 0] - w@[0, 0, 0] + w@[1, 0, 1] - w@[0, 0, 1] ) / vf_cellWidth_x
 
 		// du/dy and dv/dy and dw/dy
-		Val dudy : Real = 0.5 * ( evalAtNorthFace ( u[active]@current ) - evalAtSouthFace ( u[active]@current )
-			+ evalAtNorthFace ( u[active]@current@[1, 0, 0] ) - evalAtSouthFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_y@current
-
-		Val dvdy : Real = ( evalAtNorthFace ( v[active]@current ) - evalAtSouthFace ( v[active]@current ) ) / vf_cellWidth_y@current
-
-		Val dwdy : Real = 0.5 * ( evalAtNorthFace ( w[active]@current ) - evalAtSouthFace ( w[active]@current )
-			+ evalAtNorthFace ( w[active]@current@[0, 0, 1] ) - evalAtSouthFace ( w[active]@current@[0, 0, 1] ) ) / vf_cellWidth_y@current
+		Val dudy : Real = 0.5 * ( u@[0, 1, 0] - u@[0, 0, 0] + u@[1, 1, 0] - u@[1, 0, 0] ) / vf_cellWidth_y
+		Val dvdy : Real = ( v@[0, 1, 0] - v@[0, 0, 0] ) / vf_cellWidth_y
+		Val dwdy : Real = 0.5 * ( w@[0, 1, 0] - w@[0, 0, 0] + w@[0, 1, 1] - w@[0, 0, 1] ) / vf_cellWidth_y
 
 		// du/dz and dv/dz and dw/dz
-		Val dudz : Real = 0.5 * ( evalAtTopFace ( u[active]@current ) - evalAtBottomFace ( u[active]@current )
-			+ evalAtTopFace ( u[active]@current@[1, 0, 0] ) - evalAtBottomFace ( u[active]@current@[1, 0, 0] ) ) / vf_cellWidth_z@current
-
-		Val dvdz : Real = 0.5 * ( evalAtTopFace ( v[active]@current ) - evalAtBottomFace ( v[active]@current )
-			+ evalAtTopFace ( v[active]@current@[0, 1, 0] ) - evalAtBottomFace ( v[active]@current@[0, 1, 0] ) ) / vf_cellWidth_z@current
-
-		Val dwdz : Real = ( evalAtTopFace ( w[active]@current ) - evalAtBottomFace ( w[active]@current ) ) / vf_cellWidth_z@current
+		Val dudz : Real = 0.5 * ( u@[0, 0, 1] - u@[0, 0, 0] + u@[1, 0, 1] - u@[1, 0, 0] ) / vf_cellWidth_z
+		Val dvdz : Real = 0.5 * ( v@[0, 0, 1] - v@[0, 0, 0] + v@[0, 1, 1] - v@[0, 1, 0] ) / vf_cellWidth_z
+		Val dwdz : Real = ( w@[0, 0, 1] - w@[0, 0, 0] ) / vf_cellWidth_z
 
 		// compile values
 		Val gamap : Real = 2.0 * ( dvdy**2 + dudx**2 + dwdz**2 ) + ( dvdx + dudy )**2 + ( dwdx + dudz )**2 + ( dvdz + dwdy )**2
