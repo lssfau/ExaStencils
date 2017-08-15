@@ -98,7 +98,12 @@ object GridEvaluator_AxisAligned extends GridEvaluator {
       field.localization match {
         case IR_AtCellCenter =>
           if (stagDim.isDefined) {
-            return fieldAccess // value is located at the evaluation region
+            if (stagDim.get == faceDim) {
+              return fieldAccess // value is located at the evaluation region
+            } else {
+              a0 = () => { geom.cellCenterToFace(level, Duplicate(baseIndex), None, faceDim) }
+              a1 = () => { geom.cellCenterToFace(level, GridUtil.offsetIndex(baseIndex, 1, faceDim), None, faceDim) }
+            }
           } else {
             a0 = () => { geom.cellCenterToFace(level, Duplicate(baseIndex), None, faceDim) }
             a1 = () => { geom.cellCenterToFace(level, GridUtil.offsetIndex(baseIndex, 1, faceDim), None, faceDim) }
