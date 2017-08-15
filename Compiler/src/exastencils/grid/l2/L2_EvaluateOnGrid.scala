@@ -37,7 +37,7 @@ object L2_EvaluateOnGrid {
   }
 
   def apply(stagDim : Option[Int], faceDim : Int, level : Int, expression : L2_Expression, interpolation : String = "default") =
-    new L2_EvaluateOnGrid(s"evaluateAt${ L2_GridUtil.dimsToFace(stagDim, faceDim) }", level, expression, interpolation, None)
+    new L2_EvaluateOnGrid(s"evalAt${ L2_GridUtil.dimsToFace(stagDim, faceDim) }", level, expression, interpolation, None)
 }
 
 case class L2_EvaluateOnGrid(
@@ -75,6 +75,14 @@ case class L2_EvaluateOnGrid(
       offset = Some(offset.get + newOffset)
   }
 
+  def getEffectiveOffset = {
+    val effectiveOffset = offset.getOrElse(L2_ConstIndex(Array.fill(numDims)(0)))
+
+    // take into account that right-hand interfaces can be targets too
+    val faceOffset = L2_GridUtil.offsetForFace(name.replace("evalAt", ""))
+    L2_GridUtil.offsetIndex(effectiveOffset, faceOffset, faceDim)
+  }
+
   def resolve() = {
     expression match {
       case fieldAccess : L2_FieldAccess  => resolveForFieldAccess(fieldAccess, interpolation)
@@ -89,8 +97,7 @@ case class L2_EvaluateOnGrid(
 
     // construct index
     var index = L2_FieldIteratorAccess.fullIndex(field.numDimsGrid)
-    if (offset.isDefined)
-      index += offset.get
+    index += getEffectiveOffset
 
     // take into account that right-hand interfaces can be targets too
     val faceOffset = L2_GridUtil.offsetForFace(name.replace("evalAt", ""))
@@ -101,8 +108,8 @@ case class L2_EvaluateOnGrid(
     var a1 : (() => L2_Expression) = () => { L2_NullExpression }
 
     // placeholder for interpolation values
-    def x0 = Duplicate(fieldAccess)
-    def x1 = L2_GridUtil.offsetAccess(fieldAccess, -1, faceDim)
+    def x0() = { val access = Duplicate(fieldAccess); access.offsetWith(getEffectiveOffset); access }
+    def x1() = { val access = L2_GridUtil.offsetAccess(fieldAccess, -1, faceDim); access.offsetWith(getEffectiveOffset); access }
 
     // special handling for different localizations
     field.localization match {
@@ -115,7 +122,9 @@ case class L2_EvaluateOnGrid(
           a1 = () => { 0.5 * L2_VF_CellWidthPerDim.access(level, faceDim, L2_GridUtil.offsetIndex(index, -1, faceDim)) }
 
         case Some(`faceDim`) => // cell localized quantities are evaluated at staggered cell interfaces -> no interpolation necessary
-          return L2_GridUtil.offsetAccess(fieldAccess, -1, faceDim)
+          val ret = L2_GridUtil.offsetAccess(fieldAccess, -1, faceDim)
+          ret.offsetWith(getEffectiveOffset)
+          return ret
 
         case Some(_) => // cell localized quantities are evaluated at staggered cell interface that align with regular cell interfaces -> ambiguous
           Logger.error(s"Trying to evaluate field ${ fieldAccess.prettyprint() } on face ${ L2_GridUtil.dimsToFace(stagDim, faceDim) }; this is not unique")
@@ -123,14 +132,16 @@ case class L2_EvaluateOnGrid(
 
       case L2_AtFaceCenter(fd) => stagDim match {
         case None if fd == faceDim => // face localized quantities align with cell interfaces -> no interpolation necessary
-          return fieldAccess
+          val ret = Duplicate(fieldAccess)
+          ret.offsetWith(getEffectiveOffset)
+          return ret
 
         case None => // face localized quantities are evaluated at cell interfaces that don't align with the face dimension -> ambiguous
           Logger.error(s"Trying to evaluate field ${ fieldAccess.prettyprint() } on face ${ L2_GridUtil.dimsToFace(stagDim, faceDim) }; this is not unique")
 
         case Some(`fd`) => // face localization and control volume staggering match -> use distance between (stag) cell center and (stag) face
-          a0 = () => { 0.5 * L2_VF_StagCellWidthPerDim.access(level, stagDim.get, faceDim, Duplicate(index)) }
-          a1 = () => { 0.5 * L2_VF_StagCellWidthPerDim.access(level, stagDim.get, faceDim, L2_GridUtil.offsetIndex(index, -1, faceDim)) }
+          a0 = () => 0.5
+          a1 = () => 0.5
 
         case Some(_) => // face localization and control volume staggering don't match -> ambiguous
           Logger.error(s"Trying to evaluate field ${ fieldAccess.prettyprint() } on face ${ L2_GridUtil.dimsToFace(stagDim, faceDim) }; this is not unique")
@@ -139,8 +150,8 @@ case class L2_EvaluateOnGrid(
 
     // compile evaluation
     interpolation match {
-      case "linear" | "default" => (a1() * x0 + a0() * x1) / (a0() + a1())
-      case "harmonicMean"       => ((a0() + a1()) * (x0 * x1)) / (a1() * x0 + a0() * x1)
+      case "linear" | "default" => (a1() * x0() + a0() * x1()) / (a0() + a1())
+      case "harmonicMean"       => ((a0() + a1()) * (x0() * x1())) / (a1() * x0() + a0() * x1())
       case _                    =>
         Logger.warn(s"Trying to use interpolation scheme $interpolation which is unknown - falling back to default scheme")
         resolveForFieldAccess(fieldAccess, "default")

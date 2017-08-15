@@ -54,13 +54,11 @@ case class L2_IntegrateOnGrid(
   }
 
   def getEffectiveOffset = {
-    var effectiveOffset = offset.getOrElse(L2_ConstIndex(Array.fill(numDims)(0)))
+    val effectiveOffset = offset.getOrElse(L2_ConstIndex(Array.fill(numDims)(0)))
 
     // take into account that right-hand interfaces can be targets too
     val faceOffset = L2_GridUtil.offsetForFace(name.replace("integrateOver", ""))
-    if (0 != faceOffset) effectiveOffset = L2_GridUtil.offsetIndex(effectiveOffset, faceOffset, faceDim)
-
-    effectiveOffset
+    L2_GridUtil.offsetIndex(effectiveOffset, faceOffset, faceDim)
   }
 
   def doIntegrate(exp : L2_Expression) = {
@@ -74,8 +72,7 @@ case class L2_IntegrateOnGrid(
       else // integrate over staggered cell interface
         L2_VF_StagCellWidthPerDim.access(level, stagDim.get, dim, Duplicate(index))
 
-    def area = (0 until /*FIXME*/ Knowledge.dimensionality).filter(_ != faceDim).map(
-      dim => cellInterfaceFor(dim) : L2_Expression).reduce(_ * _)
+    def area = (0 until numDims).filter(_ != faceDim).map(dim => cellInterfaceFor(dim) : L2_Expression).reduce(_ * _)
 
     // define offset expression
     def offsetExp = {
@@ -85,6 +82,7 @@ case class L2_IntegrateOnGrid(
       wrapped.expression
     }
 
+    // TODO: shift area?
     area * offsetExp
   }
 
@@ -134,7 +132,7 @@ case class L2_IntegrateOnGrid(
                 L2_GridUtil.offsetAccess(fieldAccess, -1, curStagDim)
 
               case L2_AtCellCenter if curStagDim != faceDim => // interpolation with offset, piecewiseIntegration
-                addPIntAnnot(curStagDim, L2_EvaluateOnGrid(stagDim, faceDim, level, L2_GridUtil.offsetAccess(fieldAccess, -1, curStagDim)))
+                addPIntAnnot(curStagDim, L2_EvaluateOnGrid(None, faceDim, level, L2_GridUtil.offsetAccess(fieldAccess, -1, curStagDim)))
 
               case L2_AtFaceCenter(`curStagDim`) => // field localization matches CV -> interpolation
                 L2_EvaluateOnGrid(stagDim, faceDim, level, fieldAccess)
@@ -162,9 +160,9 @@ case class L2_IntegrateOnGrid(
 
           // prevent double shift; occurs in, e.g., integrateRight ( evalRight ( exp ) )
           val evalOffset = L2_GridUtil.offsetForFace(eval.name.replace("evalAt", ""))
-          val integrateOffset = L2_GridUtil.offsetForFace(name.replace("integrateOver", ""))
+          val integrateOffset = L2_GridUtil.offsetForFace(L2_IntegrateOnGrid.this.name.replace("integrateOver", ""))
           if (evalOffset != integrateOffset) Logger.error("Nested evaluate and integrate face don't match")
-          if (evalOffset > 0) eval.offsetWith(L2_GridUtil.offsetIndex(L2_ConstIndex(Array.fill(eval.numDims)(0)), 1, eval.faceDim))
+          if (evalOffset != 0) eval.offsetWith(L2_GridUtil.offsetIndex(L2_ConstIndex(Array.fill(eval.numDims)(0)), -evalOffset, eval.faceDim))
 
           if (stagDim.isEmpty) {
             eval.fieldAccess().target.localization match {
@@ -186,7 +184,9 @@ case class L2_IntegrateOnGrid(
                 L2_GridUtil.offsetAccess(eval.fieldAccess(), -1, curStagDim)
 
               case L2_AtCellCenter if curStagDim != faceDim => // interpolation with offset, piecewiseIntegration
+                eval.name = s"evalAt${ L2_GridUtil.dimsToFace(None, faceDim) }" // evaluate at un-staggered cell interface
                 eval.expression = L2_GridUtil.offsetAccess(eval.fieldAccess(), -1, curStagDim)
+                eval.expression = L2_GridUtil.offsetAccess(eval.fieldAccess(), 1, faceDim)
                 addPIntAnnot(curStagDim, eval)
 
               case L2_AtFaceCenter(`curStagDim`) => // field localization matches CV -> interpolation
@@ -248,11 +248,14 @@ case class L2_IntegrateOnGrid(
         // piecewise integration is required for the current dimension
 
         val (lowerLength, upperLength) = stagDim match {
-          case None | Some(`dim`) =>
+          case None        => // 'normal' cell -> piecewise integration across lower and upper half of the cell
             (0.5 * L2_VF_CellWidthPerDim.access(level, dim, Duplicate(index)),
-              0.5 * L2_VF_CellWidthPerDim.access(level, dim, L2_GridUtil.offsetIndex(index, 1, dim)))
-          case Some(_)            =>
+              0.5 * L2_VF_CellWidthPerDim.access(level, dim, Duplicate(index)))
+          case Some(`dim`) => // integration in the direction of the staggering -> half of the left cell and half of the current cell
             (0.5 * L2_VF_CellWidthPerDim.access(level, dim, L2_GridUtil.offsetIndex(index, -1, dim)),
+              0.5 * L2_VF_CellWidthPerDim.access(level, dim, Duplicate(index)))
+          case Some(_)     => // integration on a staggered cell, but not in the direction of the staggering -> handle like an unstaggered cell
+            (0.5 * L2_VF_CellWidthPerDim.access(level, dim, Duplicate(index)),
               0.5 * L2_VF_CellWidthPerDim.access(level, dim, Duplicate(index)))
         }
 
@@ -261,6 +264,10 @@ case class L2_IntegrateOnGrid(
         L2_OffsetAllWithAnnotation.offset = L2_GridUtil.offsetIndex(L2_ConstIndex(Array.fill(numDims)(0)), 1, dim)
         L2_OffsetAllWithAnnotation.requiredAnnot = s"${ L2_WrapFieldAccessesForIntegration.pIntAnnot }_$dim"
         L2_OffsetAllWithAnnotation.applyStandalone(upperResult)
+
+        L2_OffsetAllApplicable.offset = getEffectiveOffset
+        L2_OffsetAllApplicable.applyStandalone(lowerResult)
+        L2_OffsetAllApplicable.applyStandalone(upperResult)
 
         result = lowerLength * lowerResult.expression + upperLength * upperResult.expression
       }
