@@ -42,6 +42,7 @@ object IR_GridUtil {
     face match {
       case pattern(null, faceDim)    => (None, faceDim)
       case pattern(stagDim, faceDim) => (Some(stagDim), faceDim)
+      case other                     => Logger.error(face)
     }
   }
 
@@ -89,8 +90,9 @@ object IR_GridUtil {
     }
 
     val faceDimStr = faceDim match {
-      case 0     => "East"
-      case 1     => "North"
+      case 0     => "West"
+      case 1     => "South"
+      case 2     => "Bottom"
       case other => Logger.error(s"Unsupported dimension $other")
     }
 

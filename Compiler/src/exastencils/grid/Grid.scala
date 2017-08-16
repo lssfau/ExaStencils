@@ -13,11 +13,8 @@ object Grid {
 
   // strategies
   def applyStrategies(node : Option[Node] = None) = {
-    IR_PrepareShiftedEvaluationFunctions.apply(node) // workaround
-
-    IR_ResolveEvaluateOnGrid.apply(node)
-    IR_ResolveIntegrateOnGrid.apply(node)
-    IR_ExpandEvaluationExpressions.apply(node)
+    IR_ResolveIntegrateOnGrid.apply()
+    IR_ResolveEvaluateOnGrid.apply()
 
     IR_ResolveVirtualFieldAccesses.apply(node)
   }
