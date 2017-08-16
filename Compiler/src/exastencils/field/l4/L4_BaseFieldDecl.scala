@@ -29,7 +29,7 @@ case class L4_BaseFieldDecl(
   }
 
   override def addToKnowledge() : Unit = {
-    def index = L4_FieldDecl.runningIndex
+    val index = L4_FieldDecl.runningIndex
     L4_FieldDecl.runningIndex += 1
 
     L4_FieldCollection.add(

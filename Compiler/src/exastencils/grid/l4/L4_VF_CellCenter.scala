@@ -4,9 +4,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4.L4_ImplicitConversion._
 import exastencils.base.l4._
+import exastencils.baseExt.l4.L4_VectorDatatype
+import exastencils.boundary.l4.L4_NoBC
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.l4.L4_Domain
+import exastencils.field.l4._
 import exastencils.grid.ir._
 
 /// L4_VF_CellCenterAsVec
@@ -27,6 +30,25 @@ case class L4_VF_CellCenterAsVec(
   override def resolutionPossible = true
 
   override def listPerDim = (0 until numDims).map(L4_VF_CellCenterPerDim.find(level, _)).to[ListBuffer]
+
+  override def addAdditionalFieldsToKnowledge() = {
+    if (!Knowledge.grid_isAxisAligned) {
+      val layout = L4_FieldLayout(
+        s"vf_cellCenterAsVec_layout", level, numDims,
+        L4_VectorDatatype(L4_RealDatatype, Knowledge.dimensionality), L4_AtCellCenter,
+        L4_ConstIndex(Array.fill(domain.numDims)(2)), communicatesGhosts = true,
+        L4_ConstIndex(Array.fill(domain.numDims)(0)), communicatesDuplicated = true,
+        L4_ConstIndex((0 until numDims).toArray.map(dim => (1 << level) * Knowledge.domain_fragmentLengthAsVec(dim))))
+
+      val fieldIndex = L4_FieldDecl.runningIndex
+      L4_FieldDecl.runningIndex += 1
+
+      val field = L4_Field(s"cell_center", level, fieldIndex, domain, layout, 1, L4_NoBC)
+
+      L4_FieldLayoutCollection.add(layout)
+      L4_FieldCollection.add(field)
+    }
+  }
 
   override def progressImpl() = IR_VF_CellCenterAsVec(level, domain.getProgressedObj())
 }

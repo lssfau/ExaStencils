@@ -4,8 +4,10 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4.L4_ImplicitConversion._
 import exastencils.base.l4._
+import exastencils.boundary.l4.L4_NoBC
 import exastencils.config.Knowledge
 import exastencils.domain.l4.L4_Domain
+import exastencils.field.l4._
 import exastencils.grid.ir._
 import exastencils.logger.Logger
 
@@ -57,6 +59,30 @@ case class L4_VF_StagCellWidthPerDim(
   }
   override def localization = L4_AtFaceCenter(stagDim)
   override def resolutionPossible = Knowledge.grid_isUniform || (Knowledge.grid_isAxisAligned && !Knowledge.grid_halveStagBoundaryVolumes)
+
+  override def addAdditionalFieldsToKnowledge() = {
+    if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && Knowledge.grid_isStaggered) {
+      // TODO: Knowledge.grid_halveStagBoundaryVolumes
+
+      def zeroIndex = L4_ConstIndex(Array.fill(domain.numDims)(0))
+      def oneIndex = L4_ConstIndex(Array.fill(domain.numDims)(1))
+
+      val layout = L4_FieldLayout(
+        s"vf_stagCellWidthPerDim_${ dim }_layout", level, numDims,
+        L4_RealDatatype, L4_HACK_OtherLocalization("Edge_Node"),
+        L4_GridUtil.offsetIndex(zeroIndex, 2, dim), communicatesGhosts = true,
+        L4_GridUtil.offsetIndex(zeroIndex, 1, dim), communicatesDuplicated = true,
+        L4_GridUtil.offsetIndex(oneIndex, ((1 << level) * Knowledge.domain_fragmentLengthAsVec(dim) - 1) - 1, dim))
+
+      val fieldIndex = L4_FieldDecl.runningIndex
+      L4_FieldDecl.runningIndex += 1
+
+      val field = L4_Field(s"stag_cv_width_${ IR_Localization.dimToString(dim) }", level, fieldIndex, domain, layout, 1, L4_NoBC)
+
+      L4_FieldLayoutCollection.add(layout)
+      L4_FieldCollection.add(field)
+    }
+  }
 
   override def resolve(index : L4_ExpressionIndex) = {
     if (!Knowledge.grid_isStaggered) Logger.error("Trying to resolve a staggered quantity on a non-staggered grid; unsupported")

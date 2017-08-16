@@ -26,6 +26,8 @@ trait L4_VirtualField extends L4_LeveledKnowledgeObject[IR_VirtualField] {
   def numDims = domain.numDims
 
   override def prettyprintDecl(out : PpStream) = Logger.error("Trying to print the declaration of a virtual field - unsupported")
+
+  def addAdditionalFieldsToKnowledge() : Unit = {}
 }
 
 /// L4_VirtualFieldWithVec

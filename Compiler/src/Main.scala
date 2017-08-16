@@ -385,9 +385,6 @@ object Main {
 
     L4_UnifyGlobalSections.apply()
 
-    // add specialized fields for geometric data - TODO: decide if better left here or moved to ir
-    GridGeometry.getGeometry.initL4()
-
     // go to IR
 
     // pre-process level specifications in declarations

@@ -89,7 +89,11 @@ object L4_PrepareVirtualFieldDeclarations extends DefaultStrategy("Prepare knowl
 
 object L4_ProcessVirtualFieldDeclarations extends DefaultStrategy("Integrate L4 virtual field declarations with knowledge") {
   override def apply(applyAtNode : Option[Node] = None) = {
-    L4_DefaultVirtualFields.assemble().foreach(L4_VirtualFieldCollection.add)
+    L4_DefaultVirtualFields.assemble().foreach(vf =>
+      if (!L4_VirtualFieldCollection.exists(vf.name, vf.level)) {
+        L4_VirtualFieldCollection.add(vf)
+        vf.addAdditionalFieldsToKnowledge()
+      })
 
     super.apply(applyAtNode)
   }
