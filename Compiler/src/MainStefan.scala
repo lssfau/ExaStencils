@@ -18,7 +18,7 @@ import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.field.ir._
 import exastencils.field.l4._
 import exastencils.globals.ir._
-import exastencils.grid._
+import exastencils.grid.ir._
 import exastencils.grid.l4._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.hack.l4.HACK_L4_ResolveNativeFunctions
@@ -321,7 +321,11 @@ object MainStefan {
         Knowledge.discr_hz = Array[Double](l3Generate.Domains.getGlobalWidths(2) /
           (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * fLayout(2).numInnerLayers))
     }
-    Grid.applyStrategies()
+
+    IR_ResolveIntegrateOnGrid.apply()
+    IR_ResolveEvaluateOnGrid.apply()
+    IR_ResolveVirtualFieldAccesses.apply()
+
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
     IR_ResolveLocalSolve.apply()

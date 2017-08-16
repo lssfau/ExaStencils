@@ -29,7 +29,7 @@ import exastencils.field.l2._
 import exastencils.field.l3._
 import exastencils.field.l4._
 import exastencils.globals.ir._
-import exastencils.grid._
+import exastencils.grid.ir._
 import exastencils.grid.l2._
 import exastencils.grid.l3._
 import exastencils.grid.l4._
@@ -542,7 +542,11 @@ object Main {
             level => globalSize.widthAsDouble(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
       }
     }
-    Grid.applyStrategies()
+
+    IR_ResolveIntegrateOnGrid.apply()
+    IR_ResolveEvaluateOnGrid.apply()
+    IR_ResolveVirtualFieldAccesses.apply()
+
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
     IR_ResolveLoopOverPoints.apply()
@@ -569,7 +573,9 @@ object Main {
     IR_ResolveStencilFunction.apply()
 
     // resolve new virtual field accesses
-    Grid.applyStrategies()
+    IR_ResolveIntegrateOnGrid.apply()
+    IR_ResolveEvaluateOnGrid.apply()
+    IR_ResolveVirtualFieldAccesses.apply()
 
     IR_ResolveLocalSolve.apply()
     IR_GeneralSimplify.doUntilDone()

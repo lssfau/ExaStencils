@@ -17,7 +17,7 @@ import exastencils.deprecated.l3Generate
 import exastencils.domain.ir.IR_DomainFunctions
 import exastencils.field.ir._
 import exastencils.globals.ir._
-import exastencils.grid._
+import exastencils.grid.ir._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
@@ -253,7 +253,9 @@ object MainChristoph {
     } while (convChanged)
 
     IR_ResolveStencilFunction.apply()
-    Grid.applyStrategies()
+    IR_ResolveIntegrateOnGrid.apply()
+    IR_ResolveEvaluateOnGrid.apply()
+    IR_ResolveVirtualFieldAccesses.apply()
     if (Knowledge.domain_fragmentTransformation) CreateGeomCoordinates.apply() // TODO: remove after successful integration
 
     IR_ResolveLoopOverPointsInOneFragment.apply()
