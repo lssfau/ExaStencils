@@ -9,7 +9,6 @@ import exastencils.grid.ir._
 object Grid {
   // shortcut functions
   def getGeometry = GridGeometry.getGeometry
-  def getEvaluator = GridEvaluator.getEvaluator
 
   // strategies
   def applyStrategies(node : Option[Node] = None) = {
