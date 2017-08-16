@@ -27,6 +27,12 @@ object IR_GridUtil {
     modAccess
   }
 
+  def offsetAccess(fieldAccess : IR_FieldAccess, offset : IR_Expression, dim : Int) : IR_FieldAccess = {
+    val modAccess = Duplicate(fieldAccess)
+    modAccess.index(dim) += offset
+    modAccess
+  }
+
   /// helper functions for projecting indices and accesses
 
   def projectIdx(index : IR_ExpressionIndex, dim : Int) = {

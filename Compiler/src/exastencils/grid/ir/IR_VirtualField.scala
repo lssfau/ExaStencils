@@ -21,6 +21,9 @@ trait IR_VirtualField extends IR_LeveledKnowledgeObject {
   def resolutionPossible : Boolean
 
   def numDims = domain.numDims
+
+  def generateInitCode() : ListBuffer[IR_Statement] = ListBuffer()
+  def generateInitCodeDependsOn() : ListBuffer[IR_VirtualField] = ListBuffer()
 }
 
 /// IR_VirtualFieldWithVec

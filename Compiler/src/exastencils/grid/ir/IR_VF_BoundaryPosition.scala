@@ -9,7 +9,7 @@ import exastencils.logger.Logger
 /// IR_VF_BoundaryPositionAsVec
 
 object IR_VF_BoundaryPositionAsVec {
-  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_boundaryPosition", level)
+  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_boundaryPosition", level).asInstanceOf[IR_VF_BoundaryPositionAsVec]
   def access(level : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level), index)
 }
 
@@ -23,13 +23,13 @@ case class IR_VF_BoundaryPositionAsVec(
   override def localization = IR_AtBoundary
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(IR_VF_BoundaryPositionPerDim.find(level, _)).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(IR_VF_BoundaryPositionPerDim.find(level, _) : IR_VirtualField).to[ListBuffer]
 }
 
 /// IR_VF_BoundaryPositionPerDim
 
 object IR_VF_BoundaryPositionPerDim {
-  def find(level : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_boundaryPosition_$dim", level)
+  def find(level : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_boundaryPosition_$dim", level).asInstanceOf[IR_VF_BoundaryPositionPerDim]
   def access(level : Int, dim : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level, dim), index)
 }
 

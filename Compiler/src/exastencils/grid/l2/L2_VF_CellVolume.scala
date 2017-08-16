@@ -12,7 +12,7 @@ import exastencils.grid.l3.L3_VF_CellVolume
 /// L2_VF_CellVolume
 
 object L2_VF_CellVolume {
-  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_cellVolume", level)
+  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_cellVolume", level).asInstanceOf[L2_VF_CellVolume]
   def access(level : Int, index : L2_ExpressionIndex) = L2_VirtualFieldAccess(find(level), index)
 }
 

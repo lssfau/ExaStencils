@@ -11,7 +11,7 @@ import exastencils.logger.Logger
 /// IR_VF_CellWidthAsVec
 
 object IR_VF_CellWidthAsVec {
-  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_cellWidth", level)
+  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_cellWidth", level).asInstanceOf[IR_VF_CellWidthAsVec]
   def access(level : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level), index)
 }
 
@@ -25,13 +25,13 @@ case class IR_VF_CellWidthAsVec(
   override def localization = IR_AtCellCenter
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(IR_VF_CellWidthPerDim.find(level, _)).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(IR_VF_CellWidthPerDim.find(level, _) : IR_VirtualField).to[ListBuffer]
 }
 
 /// IR_VF_CellWidthPerDim
 
 object IR_VF_CellWidthPerDim {
-  def find(level : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_cellWidth_$dim", level)
+  def find(level : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_cellWidth_$dim", level).asInstanceOf[IR_VF_CellWidthPerDim]
   def access(level : Int, dim : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level, dim), index)
 }
 

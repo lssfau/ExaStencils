@@ -11,7 +11,7 @@ import exastencils.logger.Logger
 /// IR_VF_CellVolume
 
 object IR_VF_CellVolume {
-  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_cellVolume", level)
+  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_cellVolume", level).asInstanceOf[IR_VF_CellVolume]
   def access(level : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level), index)
 }
 

@@ -14,7 +14,7 @@ import exastencils.logger.Logger
 /// IR_VF_NodePositionAsVec
 
 object IR_VF_NodePositionAsVec {
-  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_nodePosition", level)
+  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_nodePosition", level).asInstanceOf[IR_VF_NodePositionAsVec]
   def access(level : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level), index)
 }
 
@@ -28,13 +28,40 @@ case class IR_VF_NodePositionAsVec(
   override def localization = IR_AtNode
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(IR_VF_NodePositionPerDim.find(level, _)).to[ListBuffer]
+  def associatedField = {
+    if (!Knowledge.grid_isAxisAligned)
+      IR_FieldCollection.getByIdentifier(name, level).get
+    else
+      Logger.error("Trying to access associated field for IR_VF_NodePositionAsVec; not found")
+  }
+
+  override def listPerDim = (0 until numDims).map(IR_VF_NodePositionPerDim.find(level, _) : IR_VirtualField).to[ListBuffer]
+
+  override def generateInitCode() = {
+    val stmts = ListBuffer[IR_Statement]()
+
+    if (!Knowledge.grid_isAxisAligned) {
+      Knowledge.grid_spacingModel match {
+        case "uniform" => stmts ++= IR_SetupNodePositions.for_nonAA_Uniform(level)
+        case "random"  => stmts ++= IR_SetupNodePositions.for_nonAA_Random(level)
+      }
+    }
+
+    stmts
+  }
+
+  override def generateInitCodeDependsOn() = {
+    if (!Knowledge.grid_isAxisAligned && "random" == Knowledge.grid_spacingModel && level != Knowledge.maxLevel)
+      ListBuffer(IR_VF_NodePositionAsVec.find(level + 1))
+    else
+      ListBuffer()
+  }
 }
 
 /// IR_VF_NodePositionPerDim
 
 object IR_VF_NodePositionPerDim {
-  def find(level : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_nodePosition_$dim", level)
+  def find(level : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_nodePosition_$dim", level).asInstanceOf[IR_VF_NodePositionPerDim]
   def access(level : Int, dim : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level, dim), index)
 }
 
@@ -51,9 +78,9 @@ case class IR_VF_NodePositionPerDim(
 
   def associatedField = {
     if (!Knowledge.grid_isUniform)
-      IR_FieldCollection.getByIdentifier(s"node_pos_${ IR_Localization.dimToString(dim) }", level).get
+      IR_FieldCollection.getByIdentifier(name, level).get
     else
-      Logger.error("Trying to access associated field for IR_VF_StagCellWidthPerDim; not found")
+      Logger.error("Trying to access associated field for IR_VF_NodePositionPerDim; not found")
   }
 
   override def resolve(index : IR_ExpressionIndex) : IR_Expression = {
@@ -63,5 +90,30 @@ case class IR_VF_NodePositionPerDim(
       IR_FieldAccess(IR_FieldSelection(associatedField, level, 0), IR_GridUtil.projectIdx(index, dim))
     else
       IR_FieldAccess(IR_FieldSelection(associatedField, level, 0), index)
+  }
+
+  override def generateInitCode() = {
+    val stmts = ListBuffer[IR_Statement]()
+
+    if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform) {
+      Knowledge.grid_spacingModel match {
+        case "uniform" => stmts ++= IR_SetupNodePositions.for_AA_Uniform(level, dim)
+
+        // setup only on fine level, afterwards restriction
+        case "linearFct" if level == Knowledge.maxLevel => stmts ++= IR_SetupNodePositions.for_AA_LinearFct(level, dim)
+        case "diego" if level == Knowledge.maxLevel     => stmts ++= IR_SetupNodePositions.for_AA_Diego(level, dim)
+        case "diego2" if level == Knowledge.maxLevel    => stmts ++= IR_SetupNodePositions.for_AA_Diego2(level, dim)
+        case "diego" | "diego2" | "linearFct"           => stmts ++= IR_SetupNodePositions.for_AA_restrictFromFiner(level, dim)
+      }
+    }
+
+    stmts
+  }
+
+  override def generateInitCodeDependsOn() = {
+    if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && "uniform" != Knowledge.grid_spacingModel && level != Knowledge.maxLevel)
+      ListBuffer(IR_VF_NodePositionPerDim.find(level + 1, dim))
+    else
+      ListBuffer()
   }
 }

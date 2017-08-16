@@ -14,7 +14,7 @@ import exastencils.logger.Logger
 /// L4_VF_StagCellWidthAsVec
 
 object L4_VF_StagCellWidthAsVec {
-  def find(level : Int, stagDim : Int) = L4_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth", level)
+  def find(level : Int, stagDim : Int) = L4_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth", level).asInstanceOf[L4_VF_StagCellWidthAsVec]
   def access(level : Int, stagDim : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level, stagDim), index)
 }
 
@@ -29,7 +29,7 @@ case class L4_VF_StagCellWidthAsVec(
   override def localization = L4_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L4_VF_StagCellWidthPerDim.find(level, stagDim, _)).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L4_VF_StagCellWidthPerDim.find(level, stagDim, _) : L4_VirtualField).to[ListBuffer]
 
   override def progressImpl() = IR_VF_StagCellWidthAsVec(level, domain.getProgressedObj(), stagDim)
 }
@@ -37,7 +37,7 @@ case class L4_VF_StagCellWidthAsVec(
 /// L4_VF_StagCellWidthPerDim
 
 object L4_VF_StagCellWidthPerDim {
-  def find(level : Int, stagDim : Int, dim : Int) = L4_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth_$dim", level)
+  def find(level : Int, stagDim : Int, dim : Int) = L4_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth_$dim", level).asInstanceOf[L4_VF_StagCellWidthPerDim]
   def access(level : Int, stagDim : Int, dim : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level, stagDim, dim), index)
 }
 
@@ -61,14 +61,12 @@ case class L4_VF_StagCellWidthPerDim(
   override def resolutionPossible = Knowledge.grid_isUniform || (Knowledge.grid_isAxisAligned && !Knowledge.grid_halveStagBoundaryVolumes)
 
   override def addAdditionalFieldsToKnowledge() = {
-    if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && Knowledge.grid_isStaggered) {
-      // TODO: Knowledge.grid_halveStagBoundaryVolumes
-
+    if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && Knowledge.grid_isStaggered && stagDim == dim && Knowledge.grid_halveStagBoundaryVolumes) {
       def zeroIndex = L4_ConstIndex(Array.fill(domain.numDims)(0))
       def oneIndex = L4_ConstIndex(Array.fill(domain.numDims)(1))
 
       val layout = L4_FieldLayout(
-        s"vf_stagCellWidthPerDim_${ dim }_layout", level, numDims,
+        s"${ name }_layout", level, numDims,
         L4_RealDatatype, L4_HACK_OtherLocalization("Edge_Node"),
         L4_GridUtil.offsetIndex(zeroIndex, 2, dim), communicatesGhosts = true,
         L4_GridUtil.offsetIndex(zeroIndex, 1, dim), communicatesDuplicated = true,
@@ -77,7 +75,7 @@ case class L4_VF_StagCellWidthPerDim(
       val fieldIndex = L4_FieldDecl.runningIndex
       L4_FieldDecl.runningIndex += 1
 
-      val field = L4_Field(s"stag_cv_width_${ IR_Localization.dimToString(dim) }", level, fieldIndex, domain, layout, 1, L4_NoBC)
+      val field = L4_Field(name, level, fieldIndex, domain, layout, 1, L4_NoBC)
 
       L4_FieldLayoutCollection.add(layout)
       L4_FieldCollection.add(field)

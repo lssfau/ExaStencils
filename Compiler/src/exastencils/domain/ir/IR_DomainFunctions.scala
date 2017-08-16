@@ -7,7 +7,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config.Knowledge
 import exastencils.deprecated.domain.ir._
-import exastencils.grid.GridGeometry
+import exastencils.grid.ir._
 
 case class IR_DomainFunctions() extends IR_FunctionCollection(
   "Domains/DomainGenerated",
@@ -21,7 +21,18 @@ case class IR_DomainFunctions() extends IR_FunctionCollection(
 
   if (Knowledge.domain_rect_generate) {
     functions += IR_InitGeneratedDomain()
-    functions += IR_PlainFunction("initGeometry", IR_UnitDatatype, GridGeometry.getGeometry.generateInitCode())
+
+    // assemble init statements for applicable virtual fields
+    val initStmts = ListBuffer[IR_Statement]()
+
+    var dependencies = IR_VirtualFieldCollection.objects.map(vf => (vf, vf.generateInitCodeDependsOn()))
+    while (dependencies.nonEmpty) {
+      val (canBeDone, waiting) = dependencies.partition(_._2.isEmpty)
+      initStmts ++= canBeDone.flatMap(_._1.generateInitCode())
+      dependencies = waiting.map(e => (e._1, e._2.filterNot(canBeDone.map(_._1).contains)))
+    }
+
+    functions += IR_PlainFunction("initGeometry", IR_UnitDatatype, initStmts)
   } else {
     externalDependencies += ("iostream", "fstream")
     val rvTemplateFunc = IR_PlainFunction(

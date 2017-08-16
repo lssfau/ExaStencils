@@ -10,7 +10,7 @@ import exastencils.logger.Logger
 /// L2_VF_NodePositionAsVec
 
 object L2_VF_NodePositionAsVec {
-  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_nodePosition", level)
+  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_nodePosition", level).asInstanceOf[L2_VF_NodePositionAsVec]
   def access(level : Int, index : L2_ExpressionIndex) = L2_VirtualFieldAccess(find(level), index)
 }
 
@@ -24,7 +24,7 @@ case class L2_VF_NodePositionAsVec(
   override def localization = L2_AtNode
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L2_VF_NodePositionPerDim.find(level, _)).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L2_VF_NodePositionPerDim.find(level, _) : L2_VirtualField).to[ListBuffer]
 
   override def progressImpl() = L3_VF_NodePositionAsVec(level, domain.getProgressedObj())
 }
@@ -32,7 +32,7 @@ case class L2_VF_NodePositionAsVec(
 /// L2_VF_NodePositionPerDim
 
 object L2_VF_NodePositionPerDim {
-  def find(level : Int, dim : Int) = L2_VirtualField.findVirtualField(s"vf_nodePosition_$dim", level)
+  def find(level : Int, dim : Int) = L2_VirtualField.findVirtualField(s"vf_nodePosition_$dim", level).asInstanceOf[L2_VF_NodePositionPerDim]
   def access(level : Int, dim : Int, index : L2_ExpressionIndex) = L2_VirtualFieldAccess(find(level, dim), index)
 }
 

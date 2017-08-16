@@ -12,7 +12,7 @@ import exastencils.logger.Logger
 /// L4_VF_CellWidthAsVec
 
 object L4_VF_CellWidthAsVec {
-  def find(level : Int) = L4_VirtualField.findVirtualField(s"vf_cellWidth", level)
+  def find(level : Int) = L4_VirtualField.findVirtualField(s"vf_cellWidth", level).asInstanceOf[L4_VF_CellWidthAsVec]
   def access(level : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level), index)
 }
 
@@ -26,7 +26,7 @@ case class L4_VF_CellWidthAsVec(
   override def localization = L4_AtCellCenter
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L4_VF_CellWidthPerDim.find(level, _)).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L4_VF_CellWidthPerDim.find(level, _) : L4_VirtualField).to[ListBuffer]
 
   override def progressImpl() = IR_VF_CellWidthAsVec(level, domain.getProgressedObj())
 }
@@ -34,7 +34,7 @@ case class L4_VF_CellWidthAsVec(
 /// L4_VF_CellWidthPerDim
 
 object L4_VF_CellWidthPerDim {
-  def find(level : Int, dim : Int) = L4_VirtualField.findVirtualField(s"vf_cellWidth_$dim", level)
+  def find(level : Int, dim : Int) = L4_VirtualField.findVirtualField(s"vf_cellWidth_$dim", level).asInstanceOf[L4_VF_CellWidthPerDim]
   def access(level : Int, dim : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level, dim), index)
 }
 

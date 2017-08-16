@@ -7,11 +7,13 @@ import exastencils.base.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.domain.ir.IR_Domain
+import exastencils.field.ir.IR_FieldCollection
+import exastencils.logger.Logger
 
 /// IR_VF_CellCenterAsVec
 
 object IR_VF_CellCenterAsVec {
-  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_cellCenter", level)
+  def find(level : Int) = IR_VirtualField.findVirtualField(s"vf_cellCenter", level).asInstanceOf[IR_VF_CellCenterAsVec]
   def access(level : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level), index)
 }
 
@@ -25,13 +27,37 @@ case class IR_VF_CellCenterAsVec(
   override def localization = IR_AtCellCenter
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(IR_VF_CellCenterPerDim.find(level, _)).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(IR_VF_CellCenterPerDim.find(level, _) : IR_VirtualField).to[ListBuffer]
+
+  def associatedField = {
+    if (!Knowledge.grid_isAxisAligned)
+      IR_FieldCollection.getByIdentifier(name, level).get
+    else
+      Logger.error("Trying to access associated field for IR_VF_CellCenterAsVec; not found")
+  }
+
+  override def generateInitCode() = {
+    val stmts = ListBuffer[IR_Statement]()
+
+    if (!Knowledge.grid_isAxisAligned) {
+      stmts ++= IR_SetupCellCenter.for_nonAA(level)
+    }
+
+    stmts
+  }
+
+  override def generateInitCodeDependsOn() = {
+    if (!Knowledge.grid_isAxisAligned)
+      ListBuffer(IR_VF_NodePositionAsVec.find(level))
+    else
+      ListBuffer()
+  }
 }
 
 /// IR_VF_CellCenterPerDim
 
 object IR_VF_CellCenterPerDim {
-  def find(level : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_cellCenter_$dim", level)
+  def find(level : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_cellCenter_$dim", level).asInstanceOf[IR_VF_CellCenterPerDim]
   def access(level : Int, dim : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level, dim), index)
 }
 

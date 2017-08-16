@@ -12,7 +12,7 @@ import exastencils.grid.l3._
 /// L2_VF_CellCenterAsVec
 
 object L2_VF_CellCenterAsVec {
-  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_cellCenter", level)
+  def find(level : Int) = L2_VirtualField.findVirtualField(s"vf_cellCenter", level).asInstanceOf[L2_VF_CellCenterAsVec]
   def access(level : Int, index : L2_ExpressionIndex) = L2_VirtualFieldAccess(find(level), index)
 }
 
@@ -26,7 +26,7 @@ case class L2_VF_CellCenterAsVec(
   override def localization = L2_AtCellCenter
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L2_VF_CellCenterPerDim.find(level, _)).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L2_VF_CellCenterPerDim.find(level, _) : L2_VirtualField).to[ListBuffer]
 
   override def progressImpl() = L3_VF_CellCenterAsVec(level, domain.getProgressedObj())
 }
@@ -34,7 +34,7 @@ case class L2_VF_CellCenterAsVec(
 /// L2_VF_CellCenterPerDim
 
 object L2_VF_CellCenterPerDim {
-  def find(level : Int, dim : Int) = L2_VirtualField.findVirtualField(s"vf_cellCenter_$dim", level)
+  def find(level : Int, dim : Int) = L2_VirtualField.findVirtualField(s"vf_cellCenter_$dim", level).asInstanceOf[L2_VF_CellCenterPerDim]
   def access(level : Int, dim : Int, index : L2_ExpressionIndex) = L2_VirtualFieldAccess(find(level, dim), index)
 }
 

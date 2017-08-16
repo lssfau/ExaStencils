@@ -12,7 +12,7 @@ import exastencils.logger.Logger
 /// L4_VF_StagCellVolume
 
 object L4_VF_StagCellVolume {
-  def find(level : Int, stagDim : Int) = L4_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellVolume", level)
+  def find(level : Int, stagDim : Int) = L4_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellVolume", level).asInstanceOf[L4_VF_StagCellVolume]
   def access(level : Int, stagDim : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level, stagDim), index)
 }
 

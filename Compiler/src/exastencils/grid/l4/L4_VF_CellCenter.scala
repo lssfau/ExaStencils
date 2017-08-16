@@ -15,7 +15,7 @@ import exastencils.grid.ir._
 /// L4_VF_CellCenterAsVec
 
 object L4_VF_CellCenterAsVec {
-  def find(level : Int) = L4_VirtualField.findVirtualField(s"vf_cellCenter", level)
+  def find(level : Int) = L4_VirtualField.findVirtualField(s"vf_cellCenter", level).asInstanceOf[L4_VF_CellCenterAsVec]
   def access(level : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level), index)
 }
 
@@ -29,12 +29,12 @@ case class L4_VF_CellCenterAsVec(
   override def localization = L4_AtCellCenter
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(L4_VF_CellCenterPerDim.find(level, _)).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(L4_VF_CellCenterPerDim.find(level, _) : L4_VirtualField).to[ListBuffer]
 
   override def addAdditionalFieldsToKnowledge() = {
     if (!Knowledge.grid_isAxisAligned) {
       val layout = L4_FieldLayout(
-        s"vf_cellCenterAsVec_layout", level, numDims,
+        s"${ name }_layout", level, numDims,
         L4_VectorDatatype(L4_RealDatatype, Knowledge.dimensionality), L4_AtCellCenter,
         L4_ConstIndex(Array.fill(domain.numDims)(2)), communicatesGhosts = true,
         L4_ConstIndex(Array.fill(domain.numDims)(0)), communicatesDuplicated = true,
@@ -43,7 +43,7 @@ case class L4_VF_CellCenterAsVec(
       val fieldIndex = L4_FieldDecl.runningIndex
       L4_FieldDecl.runningIndex += 1
 
-      val field = L4_Field(s"cell_center", level, fieldIndex, domain, layout, 1, L4_NoBC)
+      val field = L4_Field(name, level, fieldIndex, domain, layout, 1, L4_NoBC)
 
       L4_FieldLayoutCollection.add(layout)
       L4_FieldCollection.add(field)
@@ -56,7 +56,7 @@ case class L4_VF_CellCenterAsVec(
 /// L4_VF_CellCenterPerDim
 
 object L4_VF_CellCenterPerDim {
-  def find(level : Int, dim : Int) = L4_VirtualField.findVirtualField(s"vf_cellCenter_$dim", level)
+  def find(level : Int, dim : Int) = L4_VirtualField.findVirtualField(s"vf_cellCenter_$dim", level).asInstanceOf[L4_VF_CellCenterPerDim]
   def access(level : Int, dim : Int, index : L4_ExpressionIndex) = L4_VirtualFieldAccess(find(level, dim), index)
 }
 

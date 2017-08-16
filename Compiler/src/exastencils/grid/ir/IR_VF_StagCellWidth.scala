@@ -13,7 +13,7 @@ import exastencils.logger.Logger
 /// IR_VF_StagCellWidthAsVec
 
 object IR_VF_StagCellWidthAsVec {
-  def find(level : Int, stagDim : Int) = IR_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth", level)
+  def find(level : Int, stagDim : Int) = IR_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth", level).asInstanceOf[IR_VF_StagCellWidthAsVec]
   def access(level : Int, stagDim : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level, stagDim), index)
 }
 
@@ -28,13 +28,13 @@ case class IR_VF_StagCellWidthAsVec(
   override def localization = IR_AtFaceCenter(stagDim)
   override def resolutionPossible = true
 
-  override def listPerDim = (0 until numDims).map(IR_VF_StagCellWidthPerDim.find(level, stagDim, _)).to[ListBuffer]
+  override def listPerDim = (0 until numDims).map(IR_VF_StagCellWidthPerDim.find(level, stagDim, _) : IR_VirtualField).to[ListBuffer]
 }
 
 /// IR_VF_StagCellWidthPerDim
 
 object IR_VF_StagCellWidthPerDim {
-  def find(level : Int, stagDim : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth_$dim", level)
+  def find(level : Int, stagDim : Int, dim : Int) = IR_VirtualField.findVirtualField(s"vf_stag_${ stagDim }_cellWidth_$dim", level).asInstanceOf[IR_VF_StagCellWidthPerDim]
   def access(level : Int, stagDim : Int, dim : Int, index : IR_ExpressionIndex) = IR_VirtualFieldAccess(find(level, stagDim, dim), index)
 }
 
@@ -58,8 +58,8 @@ case class IR_VF_StagCellWidthPerDim(
   override def resolutionPossible = true
 
   def associatedField = {
-    if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && (dim == stagDim))
-      IR_FieldCollection.getByIdentifier(s"stag_cv_width_${ IR_Localization.dimToString(dim) }", level).get
+    if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && (dim == stagDim) && stagDim == dim)
+      IR_FieldCollection.getByIdentifier(name, level).get
     else
       Logger.error("Trying to access associated field for IR_VF_StagCellWidthPerDim; not found")
   }
@@ -88,5 +88,24 @@ case class IR_VF_StagCellWidthPerDim(
     } else {
       Logger.error("Currently unsupported")
     }
+  }
+
+  override def generateInitCode() = {
+    if (!Knowledge.grid_isStaggered) Logger.error("Trying to generate init code for a staggered quantity on a non-staggered grid; unsupported")
+
+    val stmts = ListBuffer[IR_Statement]()
+
+    if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && Knowledge.grid_halveStagBoundaryVolumes && stagDim == dim) {
+      stmts ++= IR_SetupStagCellWidth.for_AA(level, dim)
+    }
+
+    stmts
+  }
+
+  override def generateInitCodeDependsOn() = {
+    if (Knowledge.grid_isAxisAligned && !Knowledge.grid_isUniform && Knowledge.grid_halveStagBoundaryVolumes && stagDim == dim)
+      ListBuffer(IR_VF_NodePositionPerDim.find(level, dim))
+    else
+      ListBuffer()
   }
 }
