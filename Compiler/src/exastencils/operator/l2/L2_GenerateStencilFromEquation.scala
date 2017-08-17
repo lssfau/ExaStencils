@@ -22,6 +22,9 @@ object L2_GenerateStencilFromEquation {
   var rhs : L2_Expression = 0
 
   def matchUnknowns(target : L2_FieldAccess) : Option[L2_StencilOffsetEntry] = {
+    // skip frozen field accesses
+    if (target.frozen) return None
+
     val findStencil = stencils.find(_._1.name == target.name)
 
     // check if a stencil is defined for the target field

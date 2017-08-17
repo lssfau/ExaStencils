@@ -13,7 +13,8 @@ import exastencils.util.l2.L2_LevelCollector
 
 case class L2_FutureFieldAccess(
     var name : String, var level : Int,
-    var offset : Option[L2_ConstIndex] = None) extends L2_FutureKnowledgeAccess {
+    var offset : Option[L2_ConstIndex] = None,
+    var frozen : Boolean = false) extends L2_FutureKnowledgeAccess {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
@@ -51,5 +52,18 @@ object L2_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fiel
       if (access.arrayIndex.isDefined) Logger.warn(s"Discarding meaningless array access on ${ access.name }")
 
       L2_FutureFieldAccess(access.name, lvl, access.offset)
+  })
+}
+
+/// L2_ResolveFrozenFields
+
+object L2_ResolveFrozenFields extends DefaultStrategy("Resolve frozen field accesses") {
+  this += new Transformation("Resolve", {
+    case fct : L2_FunctionCall if "frozen" == fct.name =>
+      if (fct.arguments.length != 1) Logger.error("Calls to frozen need exactly one argument")
+      if (!fct.arguments.head.isInstanceOf[L2_FutureFieldAccess]) Logger.error("Calls to frozen must done with exactly one field access")
+      val fieldAccess = fct.arguments.head.asInstanceOf[L2_FutureFieldAccess]
+      fieldAccess.frozen = true
+      fieldAccess
   })
 }

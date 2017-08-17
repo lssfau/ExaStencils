@@ -225,6 +225,7 @@ object Main {
       L2_PrepareAccesses.apply()
       L2_ResolveVariableAccesses.apply()
 
+      L2_ResolveFrozenFields.apply()
       L2_ResolveMathFunctions.apply()
       L2_ResolveEvaluateFunctions.apply()
       L2_ResolveIntegrateFunctions.apply()

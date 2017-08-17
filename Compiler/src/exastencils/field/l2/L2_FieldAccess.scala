@@ -10,16 +10,19 @@ import exastencils.prettyprinting.PpStream
 
 object L2_FieldAccess {
   def apply(access : L2_FutureFieldAccess) =
-    new L2_FieldAccess(L2_FieldCollection.getByIdentifier(access.name, access.level).get, access.offset)
+    new L2_FieldAccess(L2_FieldCollection.getByIdentifier(access.name, access.level).get, access.offset, access.frozen)
 }
 
 case class L2_FieldAccess(
     var target : L2_Field,
-    var offset : Option[L2_ConstIndex] = None) extends L2_LeveledKnowledgeAccess with L2_CanBeOffset {
+    var offset : Option[L2_ConstIndex] = None,
+    var frozen : Boolean = false) extends L2_LeveledKnowledgeAccess with L2_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
+    if (frozen) out << "frozen ( "
     out << target.name << '@' << target.level
     if (offset.isDefined) out << '@' << offset.get
+    if (frozen) out << " )"
   }
 
   def getOffset = offset.getOrElse(L2_ConstIndex(Array.fill(target.numDimsGrid)(0)))
@@ -31,10 +34,7 @@ case class L2_FieldAccess(
       offset = Some(offset.get + newOffset)
   }
 
-  override def progress = {
-    L3_FieldAccess(target.getProgressedObj(),
-      L2_ProgressOption(offset)(_.progress))
-  }
+  override def progress = L3_FieldAccess(target.getProgressedObj(), L2_ProgressOption(offset)(_.progress))
 }
 
 /// L2_ResolveFieldAccesses
