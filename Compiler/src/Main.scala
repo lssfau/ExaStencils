@@ -63,6 +63,9 @@ import exastencils.performance._
 import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir._
+import exastencils.solver.l2.L2_EquationCollection
+import exastencils.solver.l3.L3_EquationCollection
+import exastencils.solver.l4.L4_EquationCollection
 import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
@@ -136,6 +139,7 @@ object Main {
       L2_StencilCollection
       L2_StencilFieldCollection
       L2_VirtualFieldCollection
+      L2_EquationCollection
     }
     {
       L3_DomainCollection
@@ -143,6 +147,7 @@ object Main {
       L3_StencilCollection
       L3_StencilFieldCollection
       L3_VirtualFieldCollection
+      L3_EquationCollection
     }
     {
       L4_DomainCollection
@@ -152,6 +157,7 @@ object Main {
       L4_StencilFieldCollection
       L4_VirtualFieldCollection
       L4_ExternalFieldCollection
+      L4_EquationCollection
     }
 
     if (Settings.timeStrategies)

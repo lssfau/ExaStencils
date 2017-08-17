@@ -10,7 +10,6 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.logger.Logger
 import exastencils.polyhedron.IR_PolyArrayAccessLike
-import exastencils.prettyprinting.PpStream
 
 /// IR_MultiDimFieldAccess
 
@@ -69,8 +68,6 @@ case class IR_FieldAccess(
     var fieldSelection : IR_FieldSelection,
     var index : IR_ExpressionIndex,
     var offset : Option[IR_ConstIndex] = None) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
-
-  override def prettyprint(out : PpStream) = out << fieldSelection.field.name << "@" << index
 
   override def datatype = {
     val layout = fieldSelection.field.fieldLayout

@@ -27,7 +27,7 @@ case class L2_OperatorFromEquation(
     for (entry <- entries) {
       targetFields = entry.mapping.map(_.unknown.asInstanceOf[L2_FieldAccess])
 
-      process(entry.equation)
+      process(entry.resolveEquation())
 
       for (rawStencil <- stencils) {
         val stencilName = entry.mapping.find(rawStencil._1 == _.unknown).get.name
@@ -60,19 +60,5 @@ case class L2_OperatorMapping(
     var name : String,
     var levels : Option[L2_LevelSpecification],
     var unknown : L2_Access) extends L2_Node {
-
-}
-
-/// L2_OperatorFromEqEntry
-
-object L2_OperatorFromEqEntry {
-  def apply(targetField : L2_Access, equation : L2_Equation, mapping : List[L2_OperatorMapping]) =
-    new L2_OperatorFromEqEntry(targetField, equation, mapping.to[ListBuffer])
-}
-
-case class L2_OperatorFromEqEntry(
-    var targetField : L2_Access,
-    var equation : L2_Equation,
-    var mapping : ListBuffer[L2_OperatorMapping]) extends L2_Node {
 
 }

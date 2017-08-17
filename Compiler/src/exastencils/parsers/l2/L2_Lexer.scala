@@ -53,6 +53,9 @@ object L2_Lexer extends ExaLexer {
   // boundary
   reserved += ("None", "Neumann")
 
+  // baseExt => L2_EquationDecl
+  reserved += ("Equation")
+
   /// TO BE INTEGRATED
-  reserved += ("generate", "operators", "equation", "for", "store", "in")
+  reserved += ("generate", "operators", "equation", "for", "store", "in", "is")
 }

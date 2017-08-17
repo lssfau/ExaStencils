@@ -13,6 +13,7 @@ import exastencils.domain.l2._
 import exastencils.field.l2._
 import exastencils.operator.l2._
 import exastencils.parsers._
+import exastencils.solver.l2.L2_EquationDecl
 
 object L2_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = L2_Lexer
@@ -52,6 +53,7 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| stencilTemplateDeclaration
       ||| globals
       ||| operatorFromEq
+      ||| equationDeclaration
     ).* ^^ { L2_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -356,13 +358,25 @@ object L2_Parser extends ExaParser with PackratParsers {
   lazy val stencilTemplateEntry = (stencilEntry
     ||| locationize((constIndex <~ "=>") ^^ { offset => L2_StencilOffsetEntry(offset, L2_NullExpression) }))
 
+  // #############################################################################
+  // ################################### SOLVER ##################################
+  // #############################################################################
+
+  lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equation <~ "}")
+    ^^ { case id ~ levels ~ eq => L2_EquationDecl(id, levels, eq) })
+
   /// TO BE INTEGRATED
 
   lazy val equation = locationize((binaryexpression <~ ("=" | "==")) ~ binaryexpression ^^ { case lhs ~ rhs => L2_Equation(lhs, rhs) })
   lazy val operatorMapping = locationize((genericAccess <~ "=>") ~ ident ~ levelDecl.? ^^ { case field ~ name ~ level => L2_OperatorMapping(name, level, field) })
 
-  lazy val operatorFromEqEntry = locationize((("equation" ~ "for") ~> genericAccess) ~ ("{" ~> equation <~ "}") ~ (("store" ~ "in" ~ "{") ~> operatorMapping.* <~ "}")
-    ^^ { case field ~ eq ~ map => L2_OperatorFromEqEntry(field, eq, map) })
+  lazy val operatorFromInlineEq = locationize((("equation" ~ "for") ~> genericAccess) ~ ("{" ~> equation <~ "}") ~ (("store" ~ "in" ~ "{") ~> operatorMapping.* <~ "}")
+    ^^ { case field ~ eq ~ map => L2_OperatorFromInlineEq(field, eq, map) })
+
+  lazy val operatorFromNamedEq = locationize((("equation" ~ "for") ~> genericAccess) ~ ("is" ~> genericAccess) ~ (("store" ~ "in" ~ "{") ~> operatorMapping.* <~ "}")
+    ^^ { case field ~ eq ~ map => L2_OperatorFromNamedEq(field, eq, map) })
+
+  lazy val operatorFromEqEntry = operatorFromInlineEq | operatorFromNamedEq
 
   lazy val operatorFromEq = locationize((("generate" ~ "operators") ~> levelDecl.?) ~ ("{" ~> operatorFromEqEntry.* <~ "}")
     ^^ { case level ~ entries => L2_OperatorFromEquation(level, entries) })
