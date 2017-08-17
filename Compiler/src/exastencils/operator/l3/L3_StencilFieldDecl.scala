@@ -16,8 +16,8 @@ import exastencils.prettyprinting._
 /// L3_StencilFieldDecl
 
 object L3_StencilFieldDecl {
-  def apply(name : String, levels : Option[L3_LevelSpecification], localization : String, domainName : String, offsets : List[L3_ConstIndex]) =
-    new L3_StencilFieldDecl(name, levels, L3_Localization.resolve(localization), domainName, offsets.to[ListBuffer])
+  def apply(name : String, levels : Option[L3_LevelSpecification], localization : String, domainName : String, entries : List[L3_StencilEntry]) =
+    new L3_StencilFieldDecl(name, levels, L3_Localization.resolve(localization), domainName, entries.to[ListBuffer])
 }
 
 case class L3_StencilFieldDecl(
@@ -25,7 +25,9 @@ case class L3_StencilFieldDecl(
     var levels : Option[L3_LevelSpecification],
     var localization : L3_Localization,
     var domainName : String,
-    var offsets : ListBuffer[L3_ConstIndex]) extends L3_LeveledKnowledgeDecl {
+    var entries : ListBuffer[L3_StencilEntry]) extends L3_LeveledKnowledgeDecl {
+
+  def offsets = entries.map(_.asStencilOffsetEntry.offset)
 
   override def prettyprint(out : PpStream) = {
     out << "Operator " << name << " from StencilField on " << localization << " of " << domainName << " {\n"

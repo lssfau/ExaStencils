@@ -16,8 +16,8 @@ import exastencils.prettyprinting._
 /// L2_StencilFieldDecl
 
 object L2_StencilFieldDecl {
-  def apply(name : String, levels : Option[L2_LevelSpecification], localization : String, domainName : String, offsets : List[L2_ConstIndex]) =
-    new L2_StencilFieldDecl(name, levels, L2_Localization.resolve(localization), domainName, offsets.to[ListBuffer])
+  def apply(name : String, levels : Option[L2_LevelSpecification], localization : String, domainName : String, entries : List[L2_StencilEntry]) =
+    new L2_StencilFieldDecl(name, levels, L2_Localization.resolve(localization), domainName, entries.to[ListBuffer])
 }
 
 case class L2_StencilFieldDecl(
@@ -25,7 +25,9 @@ case class L2_StencilFieldDecl(
     var levels : Option[L2_LevelSpecification],
     var localization : L2_Localization,
     var domainName : String,
-    var offsets : ListBuffer[L2_ConstIndex]) extends L2_LeveledKnowledgeDecl {
+    var entries : ListBuffer[L2_StencilEntry]) extends L2_LeveledKnowledgeDecl {
+
+  def offsets = entries.map(_.asStencilOffsetEntry.offset)
 
   override def prettyprint(out : PpStream) = {
     out << "Operator " << name << " from StencilField on " << localization << " of " << domainName << " {\n"
@@ -41,9 +43,13 @@ case class L2_StencilFieldDecl(
     // TODO: warn for divergent lengths?
     val numDims = offsets.map(_.length).max
 
+    var defValue : Option[L2_Expression] = None
+    if (entries.exists(_.coefficient != L2_NullExpression))
+      defValue = Some(L2_VectorExpression(entries.map(_.coefficient), false))
+
     val field = L2_Field(name + "_Data", level, domain,
       L2_VectorDatatype(L2_RealDatatype /*FIXME: datatype*/ , offsets.length),
-      localization, None, L2_NoBC)
+      localization, defValue, L2_NoBC)
 
     val stencil = L2_Stencil(name + "_Stencil", level, numDims, Array.fill(numDims)(1.0),
       offsets.zipWithIndex.map { case (offset, i) =>

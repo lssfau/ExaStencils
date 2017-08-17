@@ -349,11 +349,12 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val stencilTemplateDeclaration = locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
-    ^^ { case id ~ levels ~ local ~ domain ~ offsets => L2_StencilFieldDecl(id, levels, local, domain, offsets) })
+    ^^ { case id ~ levels ~ local ~ domain ~ entries => L2_StencilFieldDecl(id, levels, local, domain, entries) })
   lazy val stencilTemplateEntries = (
     (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilTemplateEntry.+)
-  lazy val stencilTemplateEntry = locationize((constIndex <~ "=>") ^^ { offset => offset })
+  lazy val stencilTemplateEntry = (stencilEntry
+    ||| locationize((constIndex <~ "=>") ^^ { offset => L2_StencilOffsetEntry(offset, L2_NullExpression) }))
 
   /// TO BE INTEGRATED
 
