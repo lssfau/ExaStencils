@@ -31,12 +31,20 @@ case class L2_OperatorFromEquation(
 
       for (rawStencil <- stencils) {
         val stencilName = entry.mapping.find(rawStencil._1 == _.unknown).get.name
-        val stencilEntries = rawStencil._2.map(entry => L2_StencilOffsetEntry(Duplicate(entry.offset), Duplicate(entry.coefficient)).asStencilMappingEntry)
-        val stencil = L2_Stencil(stencilName, L2_LevelSpecification.asSingleLevel(levels), 2, Array(1, 1), stencilEntries)
+        val stencilEntries = rawStencil._2.map(entry => L2_StencilOffsetEntry(Duplicate(entry.offset), Duplicate(entry.coefficient)))
 
-        //Logger.debug("New stencil:\n" + stencil.printStencilToStr(true))
+        if (true) {
+          val stencil = L2_Stencil(stencilName, L2_LevelSpecification.asSingleLevel(levels), 2, Array(1, 1), stencilEntries.map(_.asStencilMappingEntry))
 
-        L2_StencilCollection.add(stencil)
+          //Logger.debug("New stencil:\n" + stencil.printStencilToStr(true))
+
+          L2_StencilCollection.add(stencil)
+        } else {
+          // inherit localization from target field
+          val localization = entry.targetField.asInstanceOf[L2_FieldAccess].target.localization
+          val decl = L2_StencilFieldDecl(stencilName, levels, localization, "global", stencilEntries.map(_.asInstanceOf[L2_StencilEntry]))
+          decl.addToKnowledge()
+        }
       }
     }
   }
