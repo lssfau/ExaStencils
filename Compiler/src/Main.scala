@@ -64,8 +64,8 @@ import exastencils.polyhedron._
 import exastencils.prettyprinting._
 import exastencils.solver.ir._
 import exastencils.solver.l2.L2_EquationCollection
-import exastencils.solver.l3.L3_EquationCollection
-import exastencils.solver.l4.L4_EquationCollection
+import exastencils.solver.l3._
+import exastencils.solver.l4._
 import exastencils.stencil.ir._
 import exastencils.timing.ir._
 import exastencils.timing.l4.L4_ResolveTimerFunctions
@@ -317,6 +317,8 @@ object Main {
       L3_ProcessBoundaryDeclarations.apply()
       L3_ProcessFieldOverrides.apply()
 
+      L3_ResolveSolverForEquations.apply()
+
       L3_ResolveFieldFieldConvolutions.apply()
       L3_ResolveOperatorTimesField.apply()
 
@@ -345,6 +347,7 @@ object Main {
       L4_IntroduceSlots.apply()
       L4_WrapFieldFieldConvolutions.apply()
       L4_AddLoopsToFieldAssignments.apply()
+      L4_AddLoopsToLocalSolve.apply()
       L4_AddCommunicationToLoops.apply()
       L4_AdaptFieldLayoutsForComm.apply()
 

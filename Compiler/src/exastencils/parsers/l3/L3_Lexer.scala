@@ -60,4 +60,7 @@ object L3_Lexer extends ExaLexer {
 
   // boundary
   reserved += ("None", "Neumann")
+
+  /// TO BE INTEGRATED
+  reserved += ("generate", "solver", "for", "in", "and")
 }

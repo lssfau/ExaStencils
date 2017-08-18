@@ -12,6 +12,7 @@ import exastencils.boundary.l3._
 import exastencils.field.l3._
 import exastencils.operator.l3._
 import exastencils.parsers._
+import exastencils.solver.l3._
 
 object L3_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = L3_Lexer
@@ -54,6 +55,7 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| function
       ||| functionTemplate
       ||| functionInstantiation
+      ||| solverForEq
     ).* ^^ { L3_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -424,4 +426,10 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| stencilTemplateEntry.+)
   lazy val stencilTemplateEntry = (stencilEntry
     ||| locationize((constIndex <~ "=>") ^^ { offset => L3_StencilOffsetEntry(offset, L3_NullExpression) }))
+
+  /// TO BE INTEGRATED
+
+  lazy val solverForEqEntry = locationize((ident <~ "in") ~ ident ^^ { case sol ~ equation => L3_SolverForEqEntry(sol, equation) })
+  lazy val solverForEq = locationize((("generate" ~ "solver" ~ "for") ~> (solverForEqEntry <~ "and").* ~ solverForEqEntry)
+    ^^ { case entries ~ tail => L3_SolverForEquation(entries :+ tail) })
 }
