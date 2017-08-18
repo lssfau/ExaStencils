@@ -119,7 +119,6 @@ case class L3_SolverForEquation(var entries : ListBuffer[L3_SolverForEqEntry]) e
 
       val fct = L3_LeveledFunction(s"gen_mgCycle", level, L3_UnitDatatype, ListBuffer(), solverStmts)
       ExaRootNode.l3_root.nodes += fct
-
     }
   }
 
@@ -150,15 +149,13 @@ case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Nod
   def generateUpdateRes(level : Int) : L3_Statement = {
     // Residual = RHS - LHS
     L3_Assignment(L3_FieldAccess(resPerLevel(level)),
-      Duplicate(getEq(level).rhs - getEq(level).lhs),
-      "=", None)
+      Duplicate(getEq(level).rhs - getEq(level).lhs))
   }
 
   def generateRestriction(level : Int) : L3_Statement = {
     // RHS@coarser = Restriction * Residual
     L3_Assignment(L3_FieldAccess(rhsPerLevel(level - 1)),
-      L3_StencilAccess(restrictPerLevel(level)) * L3_FieldAccess(resPerLevel(level)),
-      "=", None)
+      L3_StencilAccess(restrictPerLevel(level)) * L3_FieldAccess(resPerLevel(level)))
   }
 
   def generateCorrection(level : Int) : L3_Statement = {
@@ -170,8 +167,7 @@ case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Nod
 
   def generateSetSolZero(level : Int) : L3_Statement = {
     // Solution = 0
-    L3_Assignment(L3_FieldAccess(getSolField(level)), 0.0,
-      "=", None)
+    L3_Assignment(L3_FieldAccess(getSolField(level)), 0.0)
   }
 }
 

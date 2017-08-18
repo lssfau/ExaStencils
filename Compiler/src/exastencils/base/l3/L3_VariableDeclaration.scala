@@ -8,6 +8,14 @@ import exastencils.prettyprinting.PpStream
 
 /// L3_VariableDeclaration
 
+object L3_VariableDeclaration {
+  def apply(access : L3_PlainVariableAccess)
+  = new L3_VariableDeclaration(access.name, None, access.datatype, None, access.isConst)
+
+  def apply(access : L3_PlainVariableAccess, initialValue : L3_Expression)
+  = new L3_VariableDeclaration(access.name, None, access.datatype, Some(initialValue), access.isConst)
+}
+
 case class L3_VariableDeclaration(
     var name : String,
     var levels : Option[L3_DeclarationLevelSpecification],

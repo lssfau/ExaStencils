@@ -6,6 +6,10 @@ import exastencils.prettyprinting._
 
 /// L3_Assignment
 
+object L3_Assignment {
+  def apply(dest : L3_Access, src : L3_Expression) = new L3_Assignment(dest, src, "=", None)
+}
+
 // TODO: use specialized compound assignment and eliminate op member
 case class L3_Assignment(var dest : L3_Access, var src : L3_Expression, var op : String, var condition : Option[L3_Expression]) extends L3_Statement {
   override def prettyprint(out : PpStream) = out << dest << ' ' << op << ' ' << src << '\n'
