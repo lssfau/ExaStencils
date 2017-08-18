@@ -92,6 +92,7 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
         // TODO: incorporate rhs's dt as well
         val datatype = conv.lhs.target.datatype
         val tmpVar = L4_PlainVariableAccess(s"reductionVar_$tmpVarCounter", datatype, false)
+        tmpVarCounter += 1 // TODO: reset counter when leaving scope
 
         tmpVarMap += (tmpVar -> conv)
 
