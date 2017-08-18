@@ -11,10 +11,10 @@ import exastencils.solver.ir.IR_NamedEquation
 
 case class L4_NamedEquation(
     var name : String, var level : Int,
-    var eq : L4_Equation) extends L4_LeveledKnowledgeObject[IR_NamedEquation] {
+    var equation : L4_Equation) extends L4_LeveledKnowledgeObject[IR_NamedEquation] {
 
-  def lhs = eq.lhs
-  def rhs = eq.rhs
+  def lhs = equation.lhs
+  def rhs = equation.rhs
 
   override def prettyprintDecl(out : PpStream) = {
     out << "Equation " << name << '@' << level << " {\n"
@@ -22,7 +22,7 @@ case class L4_NamedEquation(
     out << "\n}"
   }
 
-  override def progressImpl() = IR_NamedEquation(name, level, eq.progress)
+  override def progressImpl() = IR_NamedEquation(name, level, equation.progress)
 
   def asZeroEquation() : L4_Expression = {
     val zeroEq : L4_Expression = Duplicate(lhs - rhs)

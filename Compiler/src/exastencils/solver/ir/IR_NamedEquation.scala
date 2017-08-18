@@ -9,10 +9,10 @@ import exastencils.optimization.ir.IR_GeneralSimplifyWrapper
 
 case class IR_NamedEquation(
     var name : String, var level : Int,
-    var eq : IR_Equation) extends IR_LeveledKnowledgeObject {
+    var equation : IR_Equation) extends IR_LeveledKnowledgeObject {
 
-  def lhs = eq.lhs
-  def rhs = eq.rhs
+  def lhs = equation.lhs
+  def rhs = equation.rhs
 
   def asZeroEquation() : IR_Expression = {
     val zeroEq : IR_Expression = Duplicate(lhs - rhs)

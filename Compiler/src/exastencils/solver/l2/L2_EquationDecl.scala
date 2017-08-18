@@ -9,10 +9,10 @@ import exastencils.prettyprinting.PpStream
 /// L2_EquationDecl
 
 case class L2_EquationDecl(
-    var name : String, var levels : Option[L2_LevelSpecification], eq : L2_Equation) extends L2_LeveledKnowledgeDecl {
+    var name : String, var levels : Option[L2_LevelSpecification], equation : L2_Equation) extends L2_LeveledKnowledgeDecl {
 
   override def prettyprint(out : PpStream) = out << "--- FIXME ---"
-  override def addToKnowledge() = L2_EquationCollection.add(L2_NamedEquation(name, L2_LevelSpecification.asSingleLevel(levels), eq))
+  override def addToKnowledge() = L2_EquationCollection.add(L2_NamedEquation(name, L2_LevelSpecification.asSingleLevel(levels), equation))
   override def progress = Logger.error(s"Trying to progress L2 equation declaration for equation $name; this is not supported")
 }
 

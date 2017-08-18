@@ -12,6 +12,7 @@ abstract class L2_OperatorFromEqEntry extends L2_Node {
   def targetField : L2_Access
   def mapping : ListBuffer[L2_OperatorMapping]
   def resolveEquation() : L2_Equation
+  def updateEquation(eq : L2_Equation) : Unit
 }
 
 /// L2_OperatorFromInlineEq
@@ -27,6 +28,7 @@ case class L2_OperatorFromInlineEq(
     var mapping : ListBuffer[L2_OperatorMapping]) extends L2_OperatorFromEqEntry {
 
   def resolveEquation() = equation
+  override def updateEquation(eq : L2_Equation) = { equation = eq }
 }
 
 /// L2_OperatorFromNamedEq
@@ -43,7 +45,7 @@ case class L2_OperatorFromNamedEq(
 
   def resolveEquation() = {
     val eqAccess = equation.asInstanceOf[L2_EquationAccess]
-    val eq = Duplicate(eqAccess.target.eq)
+    val eq = Duplicate(eqAccess.target.equation)
 
     if (eqAccess.offset.isDefined) {
       L2_OffsetAllApplicable.offset = eqAccess.offset.get
@@ -51,5 +53,10 @@ case class L2_OperatorFromNamedEq(
     }
 
     eq
+  }
+
+  def updateEquation(eq : L2_Equation) = {
+    val eqAccess = equation.asInstanceOf[L2_EquationAccess]
+    eqAccess.target.equation = eq
   }
 }
