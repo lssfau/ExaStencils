@@ -10,6 +10,7 @@ import exastencils.field.l4.{ L4_Field, L4_SlotSpecification, _ }
 import exastencils.grid.l4._
 import exastencils.logger.Logger
 import exastencils.operator.l4._
+import exastencils.solver.l4.L4_LocalSolve
 
 /// L4_FieldAccessRangeCollector
 
@@ -203,6 +204,12 @@ class L4_FieldAccessRangeCollector() extends Collector {
 
       // TODO: other convolutions - or unify convolutions
       // TODO: model StencilFieldAccesses
+
+      case solve : L4_LocalSolve =>
+        if (ignore) Logger.warn("Found local solve outside kernel")
+
+        solve.unknowns.map(_.asInstanceOf[L4_FieldAccess]).foreach(field => processWriteExtent(L4_FieldWithSlot(field.target, field.slot), field.offset))
+      // accesses in equations are handled recursively
 
       case field : L4_FieldAccess =>
         if (!ignore)

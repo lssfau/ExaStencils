@@ -3,7 +3,9 @@ package exastencils.solver.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.baseExt.l4.L4_UnresolvedAccess
+import exastencils.baseExt.l4._
+import exastencils.core.Duplicate
+import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.prettyprinting._
 import exastencils.solver.ir._
@@ -22,6 +24,9 @@ case class L4_LocalSolve(
     var jacobiType : Boolean,
     var relax : Option[L4_Expression]) extends L4_Statement {
 
+  // used to generate loop over field when coming from L3
+  var fieldForLoop : L4_Access = _
+
   override def prettyprint(out : PpStream) : Unit = {
     out << "solve locally "
     if (jacobiType) out << "with jacobi "
@@ -39,4 +44,13 @@ case class L4_LocalSolve(
       jacobiType,
       L4_ProgressOption(relax)(_.progress))
   }
+}
+
+/// L4_AddLoopsToLocalSolve
+
+object L4_AddLoopsToLocalSolve extends DefaultStrategy("Add loop statements around local solve statements") {
+  this += new Transformation("Add loops", {
+    case solve : L4_LocalSolve =>
+      L4_LoopOverField(Duplicate(solve.fieldForLoop), solve)
+  }, false /* recursion must be switched of due to wrapping mechanism */)
 }
