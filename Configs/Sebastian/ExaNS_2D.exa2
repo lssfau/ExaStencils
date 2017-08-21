@@ -1,4 +1,24 @@
-Domain global< [ 0, 0 ] to [ 0.01, 0.01 ] >
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
+
+
+Globals {
+	// problem specification
+	Var topVel : Real = 1e-4
+	Var gravity : Real = 0.0 // 9.81
+
+	// assume water @25 Celsius
+	Var mue : Real = 8.9e-4
+	Var rho : Real = 997.0479
+	Var rho_0 : Real = 997.0479
+
+	// assume honey
+	// Var mue : Real = 8.0
+	// Var rho : Real = 1.42e3
+	// Var rho_0 : Real = 1.42e3
+
+	Val nue : Real = mue / rho
+	Val Re : Real = topVel * 1.0 / nue
+}
 
 
 Field u with Real on Face_x of global = 0.0
@@ -27,26 +47,51 @@ Field rhs_v@all with Real on Face_y of global = 0.0
 Field rhs_p@all with Real on Cell of global = 0.0
 
 
+//Field uOld from u
+//Field vOld from v
+//Field pOld from p
+
+
 Field velMag@all with Real on Cell of global = 0.0
 Field uVis@all with Real on Cell of global = 0.0
 Field vVis@all with Real on Cell of global = 0.0
 Field pVis@all with Real on Cell of global = 0.0
 
+generate operators @all {
+	equation for u {
+		integrateOverXStaggeredEastFace ( 1.0 / rho_0 ) * p@[0, 0] - integrateOverXStaggeredWestFace ( 1.0 / rho_0 ) * p@[-1, 0] = 0
+	} store in {
+		p => B1
+	}
+	
+	equation for v {
+		integrateOverYStaggeredNorthFace ( 1.0 / rho_0 ) * p@[0,0 ] - integrateOverYStaggeredSouthFace ( 1.0 / rho_0 ) * p@[0, -1] = 0
+	} store in {
+		p => B2
+	}
+	
+	equation for p {
+		integrateOverEastFace ( rho ) * u@[1, 0] - integrateOverWestFace ( rho ) * u@[0, 0] + integrateOverNorthFace ( rho ) * v@[0, 1] - integrateOverSouthFace ( rho ) * v@[0, 0] = 0
+	} store in {
+		u => C1
+		v => C2
+	}
+}
 
 // Operator_AppliedTo_WRT
 
-Operator dx_Cell_xStag from Stencil {
-  [-1,  0] => -integrateOverXStaggeredEastFace ( 1.0 / rho_0 )
-  [ 0,  0] =>  integrateOverXStaggeredWestFace ( 1.0 / rho_0 )
+/*Operator dx_Cell_xStag from Stencil {
+  [-1,  0] => -integrateOverXStaggeredWestFace ( 1.0 / rho_0 )
+  [ 0,  0] =>  integrateOverXStaggeredEastFace ( 1.0 / rho_0 )
 }
 
 Operator dy_Cell_yStag from Stencil {
   [ 0, -1] => -integrateOverYStaggeredSouthFace ( 1.0 / rho_0 )
   [ 0,  0] =>  integrateOverYStaggeredNorthFace ( 1.0 / rho_0 )
-}
+}*/
 
 
-Operator dx_xStag_Cell from Stencil {
+/*Operator dx_xStag_Cell from Stencil {
   [ 0,  0] => -integrateOverWestFace ( rho )
   [ 1,  0] =>  integrateOverEastFace ( rho )
 }
@@ -54,7 +99,7 @@ Operator dx_xStag_Cell from Stencil {
 Operator dy_yStag_Cell from Stencil {
   [ 0,  0] => -integrateOverSouthFace ( rho )
   [ 0,  1] =>  integrateOverNorthFace ( rho )
-}
+}*/
 
 
 /*Operator AuStencil  from StencilTemplate on Face_x of global {
@@ -78,6 +123,21 @@ Operator Laplace_yStag_yStag from StencilTemplate on Face_y of global {
   [ 0, -1] => //( -1.0 / vf_cellWidth_y@[0, -1] ) * vf_cellWidth_x
   [ 0,  1] => //( -1.0 / vf_cellWidth_y@[0, 0] ) * vf_cellWidth_x
 }
+
+Operator A12 from StencilTemplate on Face_x of global {
+  [-1,  0] =>
+  [ 0,  0] =>
+  [-1,  1] =>
+  [ 0,  1] =>
+}
+
+Operator A21 from StencilTemplate on Face_y of global {
+  [ 0, -1] =>
+  [ 0,  0] =>
+  [ 1, -1] =>
+  [ 1,  0] =>
+}
+
 /*
 Operator Laplace_xStag_xStag from Laplace_xSxS + Conv_xSxS + dt_xSxS
 
@@ -86,7 +146,7 @@ Operator Laplace_xSxS from Stencil {
 	[ 1,  0] => - integrateOverXStaggeredEastFace  ( nue ) / vf_cellWidth_x@[ 0, 0]
 	[ 0, -1] => - integrateOverXStaggeredSouthFace ( nue ) / vf_stagCVWidth_y@[0, 0]
 	[ 0,  1] => - integrateOverXStaggeredNorthFace ( nue ) / vf_stagCVWidth_y@[0, 1]
-	
+
 	[ 0,  0] => ( integrateOverXStaggeredWestFace  ( nue ) / vf_cellWidth_x@[-1, 0] + integrateOverXStaggeredEastFace  ( nue ) / vf_cellWidth_x@[ 0, 0] + integrateOverXStaggeredSouthFace ( nue ) / vf_stagCVWidth_y@[0, 0] + integrateOverXStaggeredNorthFace ( nue ) / vf_stagCVWidth_y@[0, 1] )
 }
 

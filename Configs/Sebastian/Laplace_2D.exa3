@@ -14,7 +14,7 @@ override bc for Residual@finest with 0.0
 //Operator CorrectionStencil from default prolongation on Node with 'linear'
 
 /*
-update Smoother ( x_l, b_l ) = D^-1 ( b - (L + U) x )
+update Smoother ( x_l, b_l ) = D^-1 ( b - (L + U) Solution )
 update MG ( x_l, b_l, l )
 	if ( 0 == l ) CGS
 	else
@@ -47,6 +47,59 @@ Function VCycle@((coarsest + 1) to finest) {
 }
 
 Function VCycle@coarsest {
+	if ( 1 ) {
+		CG@current ()
+	} else {
+		BiCGSTAB@current ()
+	}
+}
+
+Field rHat@coarsest from Residual
+Field nuTmp@coarsest from Solution
+Field pTmp@coarsest from Solution
+Field h@coarsest from Solution
+Field s@coarsest from Solution
+Field t@coarsest from Solution
+
+Function BiCGSTAB@coarsest {
+	Residual = RHS - Laplace_Stencil * Solution
+	Var initRes : Real = NormResidual ( )
+	rHat = Residual
+	
+	Var rho : Real = 1
+	Var rhoOld : Real
+	Var alpha : Real = 1
+	Var beta : Real
+	Var omega : Real = 1
+	
+	nuTmp = 0
+	pTmp = 0
+	Var cgsSteps : Integer = 0
+	
+	repeat 512 times count cgsSteps {
+		rhoOld = rho
+		rho = rHat * Residual
+		beta = ( rho / rhoOld ) * ( alpha / omega )
+		pTmp = Residual + beta * ( pTmp - omega * nuTmp )
+		nuTmp = Laplace_Stencil * pTmp
+		alpha = rho / ( rHat * nuTmp )
+		h = Solution + alpha * pTmp
+		// if h is accurate enough, then set xi = h and quit
+		s = Residual - alpha * nuTmp
+		t = Laplace_Stencil * s
+		omega = ( t * s ) / ( t * t )
+		Solution = h + omega * s
+		// if Solution is accurate enough, then quit
+		Residual = s - omega * t
+		if ( NormResidual ( ) < 1e-3 * initRes ) {
+			print ( cgsSteps )
+			return
+		}
+	}
+	print ( 'Maximum number of cgs iterations (', 512, ') was exceeded' )
+}
+
+Function CG@coarsest {
 	Residual = RHS - ( Laplace_Stencil * Solution )
 	Var res : Real = NormResidual ( )
 	Var initialRes : Real = res

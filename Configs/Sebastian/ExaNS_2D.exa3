@@ -26,38 +26,106 @@ Field uOld from u
 Field vOld from v
 Field pOld from p
 
-Function AssembleAllLevels@finest {
-	AssembleStencil@current ( )
-	AssembleAllLevels@coarser ( )
+Function TimeStep@finest {
+	if ( dt == curTime ) {
+		// first iteration
+		FMG@coarsest ( )
+	} else {
+		FMG@finest ( )
+	}
 }
 
-Function AssembleAllLevels@(coarsest + 1 to finest - 1) {
-	u = RestrictionFaceX@finer * u@finer
-	v = RestrictionFaceY@finer * v@finer
-	p = RestrictionCell@finer  * p@finer
+Function FMG@all {
+	curFinest = levels@current ( )
+	
+	if ( nonLinearNewton and newtonSwitch > 0 ) {
+		nonLinearNewton = false
+		print ( 'nonLinearNewton:', 'false' )
+	}
 
-	AssembleStencil@current ( )
-	AssembleAllLevels@coarser ( )
+	UpdateRhs ( )
+	AssembleStencil ( )
+	UpdateResidual ( )
+
+	Var initRes : Real    = NormResidual_L2 ()
+	Var curRes  : Real    = initRes
+	Var prevRes : Real    = curRes
+	Var numIt   : Integer = 0
+
+	Var minIt   : Integer = 0
+	//if ( curTime > dt ) {
+		// not the first iteration
+		minIt = 1
+	//}
+
+	repeat until ( numIt >= minIt && ( curRes <= resThres || numIt >= 100 ) ) {
+		// current level is already set up
+		@(all but coarsest) {
+			AssembleAllLevels@coarser ( true )
+		}
+		RelaxSystem@current ( )
+
+		// perform single cycle
+		VCycle ( )
+
+		if ( !nonLinearNewton and numIt >= newtonSwitch ) {
+			nonLinearNewton = true
+			print ( 'nonLinearNewton:', 'true' )
+		}
+
+		// check for convergence
+		prevRes = curRes
+		UpdateRhs ( )
+		AssembleStencil ( )
+		UpdateResidual ( )
+		curRes = NormResidual_L2@current()
+		numIt += 1
+		
+		print ( 'convergence rate:', curRes / prevRes )
+	}
+
+	print ( levels@current ( ), 'took', numIt, 'iterations' )
+
+	// go to finer level if applicable
+	@(all but finest) {
+		// propagation
+		u@finer = CorrectionFaceX * u
+		v@finer = CorrectionFaceY * v
+		p@finer = CorrectionCell * p
+
+		// solve on finer level
+		FMG@finer ( )
+	}
 }
 
-Function AssembleAllLevels@coarsest {
-	u = RestrictionFaceX@finer * u@finer
-	v = RestrictionFaceY@finer * v@finer
-	p = RestrictionCell@finer  * p@finer
+
+Function AssembleAllLevels@all ( useFinerSol : Boolean ) {
+	@(all but finest) {
+		if ( useFinerSol ) {
+			u = RestrictionFaceX@finer * u@finer
+			v = RestrictionFaceY@finer * v@finer
+			p = RestrictionCell@finer  * p@finer
+		}
+	}
 
 	AssembleStencil@current ( )
+
+	@(all but coarsest) {
+		AssembleAllLevels@coarser ( true )
+	}
 }
+
 
 Function VCycle@(all but coarsest) ( ) : Unit {
 	Smoother ( )
-	
+
 	UpdateResidual ( )
 	Restriction@coarser ( )
-	
+
 	VCycle@coarser ( )
-	
+
 	Correction ( )
-	
+
 	Smoother ( )
 }
 
@@ -69,9 +137,9 @@ Function VCycle@coarsest ( ) : Unit {
 }
 
 Function UpdateResidual@all {
-	residual_u = rhs_u - ( Laplace_xStag_xStag * u + dx_Cell_xStag * p )
-	residual_v = rhs_v - ( Laplace_yStag_yStag * v + dy_Cell_yStag * p )
-	residual_p = rhs_p - ( dx_xStag_Cell * u + dy_yStag_Cell * v )
+	residual_u = rhs_u - ( Laplace_xStag_xStag * u + A12 * v + B1 * p )
+	residual_v = rhs_v - ( Laplace_yStag_yStag * v + A21 * u + B2 * p )
+	residual_p = rhs_p - ( C1 * u + C2 * v )
 }
 
 
@@ -79,23 +147,29 @@ Function Restriction@(all but finest) {
 	// coarsen current guess
 	uApprox = RestrictionFaceX@finer * u@finer
 	u = uApprox
-	
+
 	vApprox = RestrictionFaceY@finer * v@finer
 	v = vApprox
-	
+
 	pApprox = RestrictionCell@finer  * p@finer
 	p = pApprox
 
 	//AssembleStencil@current ( )
 
 	// f = r + A v
-	rhs_u = RestrictionFaceXIntegral@finer * residual_u@finer + Laplace_xStag_xStag * u + dx_Cell_xStag * p
-	rhs_v = RestrictionFaceYIntegral@finer * residual_v@finer + Laplace_yStag_yStag * v + dy_Cell_yStag * p
-	rhs_p = RestrictionCellIntegral@finer  * residual_p@finer + dx_xStag_Cell * u + dy_yStag_Cell * v
-	
+	rhs_u = RestrictionFaceXIntegral@finer * residual_u@finer + Laplace_xStag_xStag * u + A12 * v + B1 * p
+	rhs_v = RestrictionFaceYIntegral@finer * residual_v@finer + Laplace_yStag_yStag * v + A21 * u + B2 * p
+	rhs_p = RestrictionCellIntegral@finer  * residual_p@finer + C1 * u + C2 * v
+
 	//rhs_u += uOld * vf_xStagCellVolume / dt
 	//rhs_v += vOld * vf_yStagCellVolume / dt
 	//rhs_v += gravity * rho * vf_yStagCellVolume * vf_yStagCellVolume
+}
+
+Function dummy@all {
+	u = u
+	v = v
+	p = p
 }
 
 Function Correction@(all but coarsest) {
@@ -113,7 +187,7 @@ Function Advance@(all but coarsest) {
 	uOld = u
 	vOld = v
 	pOld = p
-	
+
 	Advance@coarser ( )
 }
 Function Advance@coarsest {
@@ -126,6 +200,6 @@ FunctionTemplate NormResidualComponent < residual > ( ) : Real {
 	return sqrt ( residual * residual )
 }
 
-Instantiate NormResidualComponent < residual_u > as NormResidual_u@finest
-Instantiate NormResidualComponent < residual_v > as NormResidual_v@finest
-Instantiate NormResidualComponent < residual_p > as NormResidual_p@finest
+Instantiate NormResidualComponent < residual_u > as NormResidual_u@all
+Instantiate NormResidualComponent < residual_v > as NormResidual_v@all
+Instantiate NormResidualComponent < residual_p > as NormResidual_p@all

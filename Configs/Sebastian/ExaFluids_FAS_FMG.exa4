@@ -1055,7 +1055,7 @@ Function AdvanceFields@finest ( ) : Unit {
 	}
 	advance rho@current
 
-	if ( levels@coarser ( ) >= levels@coarsest ( ) ) {
+	@(all but coarsest) {
 		AdvanceFields@coarser ( )
 	}
 }
@@ -1120,7 +1120,7 @@ Function AdvanceFields@(coarsest to (finest - 1)) ( ) : Unit {
 	}
 	advance phi7@current
 
-	if ( levels@coarser ( ) >= levels@coarsest ( ) ) {
+	@(all but coarsest) {
 		AdvanceFields@coarser ( )
 	}
 }

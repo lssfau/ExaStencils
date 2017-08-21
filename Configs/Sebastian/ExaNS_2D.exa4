@@ -1,33 +1,26 @@
 
 Globals {
+	Var curFinest : Int = levels@finest ( )
+	
 	Var useVanka : Boolean = true
-	Var vankaRelax : Real = 0.8
+	Var vankaRelax : Real = 0.6
+	Var jacobiRelax : Real = 0.8
+
 	Var handleConvection : Boolean = true
-	
-	Var gravity : Real = 0.0 // 9.81
-	Var topVel : Real = 0.001
-	
-	// assume water @25 Celsius
-	Var mue : Real = 8.9e-4
-	Var rho : Real = 997.0479
-	Var rho_0 : Real = 997.0479
-	
-	// assume honey
-	//Var mue : Real = 8.0
-	//Var rho : Real = 1.42e3
-	//Var rho_0 : Real = 1.42e3
-	
-	Val nue : Real = mue / rho
-	Val Re : Real = topVel * 0.01 / nue
-	
-	Var dt : Real = 1.0
+	Var nonLinearNewton : Boolean = true
+	Var newtonOnlyOnFinest : Boolean = false
+	Var newtonSwitch : Int = 0
+
+	Var dt : Real = 1.0e30
 	Var curTime : Real = 0.0
 	Var maxTime : Real = 10.0
-	
+
 	Var printInterval : Real = 1.0
 	Var nextPrint : Real = 0.0
 
 	Var relaxFactor : Real = 1.0
+
+	Var resThres : Real = 1e-12
 }
 
 Function applyBC_u@all ( ) : Unit {
@@ -85,13 +78,13 @@ Function Application ( ) : Unit {
 
 		curTime += dt
 		Advance@finest ( )
-		Solve@finest ( )
+		TimeStep@finest ( )
 	}
 	print ( 'Total time to solve: ', getTotalFromTimer ( 'timeToSolve' ) )
 	print ( 'Mean time per vCycle: ', getMeanFromTimer ( 'cycle' ) )
 
 	print ( 'Reynolds number:', Re )
-	
+
 	if ( true ) {
 		vis@finest ( )
 	}
@@ -100,14 +93,30 @@ Function Application ( ) : Unit {
 	destroyGlobals ( )
 }
 
-Function UpdateRhs@finest {
+Function UpdateRhs@all {
 	loop over rhs_u {
 		rhs_u = uOld * vf_xStagCellVolume / dt
 	}
-	
+
 	loop over rhs_v {
 		rhs_v = vOld * vf_yStagCellVolume / dt
 		rhs_v += gravity * rho * vf_yStagCellVolume * vf_yStagCellVolume
+	}
+	
+	UpdateRhsForNewton( )
+}
+
+Function UpdateRhsForNewton@all {
+	if ( handleConvection and nonLinearNewton and !( newtonOnlyOnFinest and curFinest != levels@current ( ) ) ) {
+		loop over rhs_u {
+			rhs_u += integrateOverXStaggeredEastFace  ( u * u ) - integrateOverXStaggeredWestFace  ( u * u )
+			rhs_u += integrateOverXStaggeredNorthFace ( v * u ) - integrateOverXStaggeredSouthFace ( v * u )
+		}
+
+		loop over rhs_v {
+			rhs_v += integrateOverYStaggeredEastFace  ( u * v ) - integrateOverYStaggeredWestFace  ( u * v )
+			rhs_v += integrateOverYStaggeredNorthFace ( v * v ) - integrateOverYStaggeredSouthFace ( v * v )
+		}
 	}
 }
 
@@ -125,11 +134,31 @@ Function AssembleStencil@all {
 			Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( u )
 			Laplace_xStag_xStag:[ 1,  0] += 0.5 * integrateOverXStaggeredEastFace  ( u )
 			Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredEastFace  ( u )
-			
+
 			Laplace_xStag_xStag:[ 0, -1] -= 0.5 * integrateOverXStaggeredSouthFace ( v )
 			Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredSouthFace ( v )
 			Laplace_xStag_xStag:[ 0,  1] += 0.5 * integrateOverXStaggeredNorthFace ( v )
 			Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredNorthFace ( v )
+
+			if ( nonLinearNewton and !( newtonOnlyOnFinest and curFinest != levels@current ( ) ) ) {
+				Laplace_xStag_xStag:[-1,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( u )
+				Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( u )
+				Laplace_xStag_xStag:[ 1,  0] += 0.5 * integrateOverXStaggeredEastFace  ( u )
+				Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredEastFace  ( u )
+
+				A12:[-1,  0] = -0.5 * integrateOverXStaggeredSouthFace ( u )
+				A12:[ 0,  0] = -0.5 * integrateOverXStaggeredSouthFace ( u )
+				A12:[-1,  1] =  0.5 * integrateOverXStaggeredNorthFace ( u )
+				A12:[ 0,  1] =  0.5 * integrateOverXStaggeredNorthFace ( u )
+			} else {
+				A12:[-1,  0] = 0
+				A12:[ 0,  0] = 0
+				A12:[-1,  1] = 0
+				A12:[ 0,  1] = 0
+			}
+
+			//Laplace_xStag_xStag:[ 0,  0] -= integrateOverXStaggeredEastFace ( u ) - integrateOverXStaggeredWestFace ( u )
+			//Laplace_xStag_xStag:[ 0,  0] -= integrateOverXStaggeredNorthFace ( v ) - integrateOverXStaggeredSouthFace ( v )
 		}
 
 		Laplace_xStag_xStag:[ 0,  0] += vf_xStagCellVolume / dt
@@ -148,109 +177,97 @@ Function AssembleStencil@all {
 			Laplace_yStag_yStag:[ 0,  0] -= 0.5 * integrateOverYStaggeredWestFace  ( u )
 			Laplace_yStag_yStag:[ 1,  0] += 0.5 * integrateOverYStaggeredEastFace  ( u )
 			Laplace_yStag_yStag:[ 0,  0] += 0.5 * integrateOverYStaggeredEastFace  ( u )
-			
+
 			Laplace_yStag_yStag:[ 0, -1] -= 0.5 * integrateOverYStaggeredSouthFace ( v )
 			Laplace_yStag_yStag:[ 0,  0] -= 0.5 * integrateOverYStaggeredSouthFace ( v )
 			Laplace_yStag_yStag:[ 0,  1] += 0.5 * integrateOverYStaggeredNorthFace ( v )
 			Laplace_yStag_yStag:[ 0,  0] += 0.5 * integrateOverYStaggeredNorthFace ( v )
+
+			if ( nonLinearNewton and !( newtonOnlyOnFinest and curFinest != levels@current ( ) ) ) {
+				A21:[ 0, -1] = -0.5 * integrateOverYStaggeredWestFace ( v )
+				A21:[ 0,  0] = -0.5 * integrateOverYStaggeredWestFace ( v )
+				A21:[ 1, -1] =  0.5 * integrateOverYStaggeredEastFace ( v )
+				A21:[ 1,  0] =  0.5 * integrateOverYStaggeredEastFace ( v )
+
+				Laplace_yStag_yStag:[ 0, -1] -= 0.5 * integrateOverYStaggeredSouthFace ( v )
+				Laplace_yStag_yStag:[ 0,  0] -= 0.5 * integrateOverYStaggeredSouthFace ( v )
+				Laplace_yStag_yStag:[ 0,  1] += 0.5 * integrateOverYStaggeredNorthFace ( v )
+				Laplace_yStag_yStag:[ 0,  0] += 0.5 * integrateOverYStaggeredNorthFace ( v )
+			} else {
+				A21:[ 0, -1] = 0
+				A21:[ 0,  0] = 0
+				A21:[ 1, -1] = 0
+				A21:[ 1,  0] = 0
+			}
+
+			//Laplace_yStag_yStag:[ 0,  0] -= integrateOverYStaggeredEastFace ( u ) - integrateOverYStaggeredWestFace ( u )
+			//Laplace_yStag_yStag:[ 0,  0] -= integrateOverYStaggeredNorthFace ( v ) - integrateOverYStaggeredSouthFace ( v )
 		}
 
-		Laplace_xStag_xStag:[ 0,  0] += vf_yStagCellVolume / dt
+		Laplace_yStag_yStag:[ 0,  0] += vf_yStagCellVolume / dt
 	}
 }
 
 Function RelaxSystem@all {
 	loop over rhs_u {
-		rhs_u = ( 1.0 / relaxFactor ) * rhs_u - ( ( 1.0 - relaxFactor ) / relaxFactor ) * ( Laplace_xStag_xStag * u + dx_Cell_xStag * p )
+		rhs_u = ( 1.0 / relaxFactor ) * rhs_u - ( ( 1.0 - relaxFactor ) / relaxFactor ) * ( Laplace_xStag_xStag * u + A12 * v + B1 * p )
 	}
 
 	loop over rhs_v {
-		rhs_v = ( 1.0 / relaxFactor ) * rhs_v - ( ( 1.0 - relaxFactor ) / relaxFactor ) * ( Laplace_yStag_yStag * v + dy_Cell_yStag * p )
+		rhs_v = ( 1.0 / relaxFactor ) * rhs_v - ( ( 1.0 - relaxFactor ) / relaxFactor ) * ( Laplace_yStag_yStag * v + A21 * u + B2 * p )
 	}
 
 	loop over rhs_p {
-		rhs_p = ( 1.0 / relaxFactor ) * rhs_p - ( ( 1.0 - relaxFactor ) / relaxFactor ) * ( dx_xStag_Cell * u + dy_yStag_Cell * v )
+		rhs_p = ( 1.0 / relaxFactor ) * rhs_p - ( ( 1.0 - relaxFactor ) / relaxFactor ) * ( C1 * u + C2 * v )
 	}
-	
+
 	/*loop over rhs_u {
 		@finest {
 			rhs_u -= ( 1.0 - 1.0 / relaxFactor ) * Laplace_xStag_xStag:[0, 0] * u
 		}
 		Laplace_xStag_xStag:[0, 0] /= relaxFactor
 	}
-	
+
 	loop over rhs_v {
 		@finest {
 			rhs_v -= ( 1.0 - 1.0 / relaxFactor ) * Laplace_yStag_yStag:[0, 0] * v
 		}
 		Laplace_yStag_yStag:[0, 0] /= relaxFactor
 	}
-	
+
 	@(all but coarsest) {
 		RelaxSystem@coarser ( )
 	}*/
 }
 
-Function Solve@finest ( ) : Unit {
-	// TODO: merge into norm
-	UpdateRhs@finest ( )
-	AssembleStencil@finest ( )
-	UpdateResidual@finest ( )
-	Var initRes : Real    = NormResidual_L2@current()
-	Var curRes  : Real    = initRes
-	Var prevRes : Real    = curRes
-	Var numIt   : Integer = 0
-
-	//print ( 'Starting residual at 0', initRes )
-	printVal ( initRes )
-	startTimer ( 'timeToSolve' )
-
-	// TODO: check with Lisa
-	//repeat until ( numIt > 0 && ( curRes <= 1e-6 * initRes || numIt >= 10 ) ) {
-	repeat until ( numIt > 0 && ( curRes <= 1e-8 || numIt >= 10 ) ) {
-		startTimer ( 'cycle' )
-		UpdateRhs@current ( )
-		AssembleAllLevels@current ( )
-		RelaxSystem@current ( )
-		VCycle@finest (  )
-		stopTimer ( 'cycle' )
-
-		if ( getTotalFromTimer ( 'cycle' ) > 1200000 ) {
-			print ( 'Aborting solve after', getTotalFromTimer ( 'cycle' ), 'ms which exceeds the limit of', 1200000, 'ms' )
-			return
-		}
-
-		startTimer ( 'convergenceChecking' )
-		prevRes = curRes
-		// TODO: merge into norm
-		UpdateRhs@finest ( )
-		AssembleStencil@finest ( )
-		UpdateResidual@finest ( )
-		curRes = NormResidual_L2@current()
-		print ( 'Residual:', curRes, 'Residual reduction:', ( initRes / curRes ), 'Convergence factor:', ( curRes / prevRes ) )
-		numIt += 1
-		stopTimer ( 'convergenceChecking' )
+Function updateVis@finest {
+	Var uMax : Real = 0.0
+	loop over u with reduction( max : uMax ) {
+		uMax = max ( uMax, fabs ( u ) )
+	}
+	Var vMax : Real = 0.0
+	loop over v with reduction( max : vMax ) {
+		vMax = max ( vMax, fabs ( v ) )
 	}
 
-	stopTimer ( 'timeToSolve' )
-}
-
-Function updateVis@finest {
 	Val scale : Real = 1.0 / topVel
 	Var pMax : Real = 0.0
 	loop over p with reduction( max : pMax ) {
 		pMax = max ( pMax, fabs ( p ) )
 	}
 	Val scaleP : Real = 1.0 / pMax
-	loop over velMag {
+	Var velMagMax : Real = 0.0
+	loop over velMag with reduction( max : velMagMax ) {
 		velMag = sqrt ( ( 0.5 * ( u + u@[1,0] ) ) ** 2 + ( 0.5 * ( v + v@[0,1] ) ) ** 2 )
+		velMagMax = max ( velMagMax, velMag )
 		velMag = scale * velMag
 		uVis = 0.5 + 0.5 * scale * u
 		vVis = 0.5 + 0.5 * scale * v
 		pVis = 0.5 + 0.5 * scaleP * p
 	}
-	
+
 	print ( 'pMax@', levels@current ( ), pMax )
+	print ( 'uMax:', uMax, 'vMax:', vMax, 'velMagMax:', velMagMax )
 	updateVis@coarser ( )
 }
 
@@ -268,7 +285,7 @@ Function updateVis@(all but finest) {
 		vVis = 0.5 + 0.5 * scale * vApprox
 		pVis = 0.5 + 0.5 * scaleP * pApprox
 	}
-	
+
 	print ( 'pMax@', levels@current ( ), pMax )
 	@(all but coarsest) {
 		updateVis@coarser ( )
@@ -307,7 +324,7 @@ Function printVal ( toPrint : Real ) : Unit {
     }
 }
 
-Function NormResidual_max@finest ( ) : Real {
+Function NormResidual_max@all ( ) : Real {
 	Var res_u : Real = NormResidual_u ( )
 	Var res_v : Real = NormResidual_v ( )
 	Var res_p : Real = NormResidual_p ( )
@@ -321,12 +338,12 @@ Function NormResidual_max@finest ( ) : Real {
 	return max ( res_u, res_v, res_p )
 }
 
-Function NormResidual_L2@finest ( ) : Real {
+Function NormResidual_L2@all ( ) : Real {
 	Var res_u : Real = NormResidual_u ( )
 	Var res_v : Real = NormResidual_v ( )
 	Var res_p : Real = NormResidual_p ( )
 
-	print ( res_u, res_v, res_p )
+	print ( levels@current ( ), res_u, res_v, res_p )
 	//print ( 'res_u', res_u )
 	//print ( 'res_v', res_v )
 	//print ( 'res_p', res_p )
@@ -351,7 +368,7 @@ Function Distributive@all ( ) : Unit {
 		1 == ( i0 + i1 ) % 2,
 
 		loop over u {
-			u += ( ( rhs_u - dx_Cell_xStag * p - Laplace_xStag_xStag * u ) / Laplace_xStag_xStag:[0, 0] )
+			u += ( ( rhs_u - B1 * p - Laplace_xStag_xStag * u ) / Laplace_xStag_xStag:[0, 0] )
 		}
 
 		communicate u
@@ -363,7 +380,7 @@ Function Distributive@all ( ) : Unit {
 		1 == ( i0 + i1 ) % 2,
 
 		loop over v {
-			v += ( ( rhs_v - dy_Cell_yStag * p - Laplace_yStag_yStag * v ) / Laplace_yStag_yStag:[0, 0] )
+			v += ( ( rhs_v - B2 * p - Laplace_yStag_yStag * v ) / Laplace_yStag_yStag:[0, 0] )
 		}
 
 		communicate v
@@ -375,7 +392,7 @@ Function Distributive@all ( ) : Unit {
 		1 == ( i0 + i1 ) % 2,
 
 		loop over p {
-			Var delta : Real = rhs_p - ( dx_xStag_Cell * u + dy_yStag_Cell * v )
+			Var delta : Real = rhs_p - ( C1 * u + C2 * v )
 			//delta /= vf_cellVolume
 
 			Var numNeigh : Int = 4
@@ -433,56 +450,87 @@ Function Vanka@all ( ) : Unit {
 	Val stride_x : Int = 1
 	Val stride_y : Int = 1
 
-	if ( 1 == stride_x && 1 == stride_y ) {
-		color with {
-			0 == ( i0 + i1 ) % 2,
-			1 == ( i0 + i1 ) % 2,
+	Var useJac : Boolean = false
 
-			/*( 0 == i0 % 3 && 0 == i1 % 3 ) ,
-			( 1 == i0 % 3 && 0 == i1 % 3 ) ,
-			( 2 == i0 % 3 && 0 == i1 % 3 ) ,
-			( 0 == i0 % 3 && 1 == i1 % 3 ) ,
-			( 1 == i0 % 3 && 1 == i1 % 3 ) ,
-			( 2 == i0 % 3 && 1 == i1 % 3 ) ,
-			( 0 == i0 % 3 && 2 == i1 % 3 ) ,
-			( 1 == i0 % 3 && 2 == i1 % 3 ) ,
-			( 2 == i0 % 3 && 2 == i1 % 3 ) ,*/
-
-			loop over p {
-				solve locally relax vankaRelax {
+	if ( useJac ) {
+		loop over p {
+			if ( i0 > 0 or i1 > 0 ) {
+				solve locally with jacobi relax vankaRelax {
 					// FIXME: inherit field access offset in stencil convolution
 
-					u@[0, 0] => Laplace_xStag_xStag@[0, 0] * u@[0, 0] + dx_Cell_xStag@[0, 0] * p@[0, 0] == rhs_u@[0, 0]
-					u@[1, 0] => Laplace_xStag_xStag@[1, 0] * u@[1, 0] + dx_Cell_xStag@[1, 0] * p@[1, 0] == rhs_u@[1, 0]
+					u@[0, 0] => Laplace_xStag_xStag@[0, 0] * u@[0, 0] + A12@[0, 0] * v@[0, 0] + B1@[0, 0] * p@[0, 0] == rhs_u@[0, 0]
+					u@[1, 0] => Laplace_xStag_xStag@[1, 0] * u@[1, 0] + A12@[1, 0] * v@[1, 0] + B1@[1, 0] * p@[1, 0] == rhs_u@[1, 0]
 
-					v@[0, 0] => Laplace_yStag_yStag@[0, 0] * v@[0, 0] + dy_Cell_yStag@[0, 0] * p@[0, 0] == rhs_v@[0, 0]
-					v@[0, 1] => Laplace_yStag_yStag@[0, 1] * v@[0, 1] + dy_Cell_yStag@[0, 1] * p@[0, 1] == rhs_v@[0, 1]
+					v@[0, 0] => Laplace_yStag_yStag@[0, 0] * v@[0, 0] + A21@[0, 0] * u@[0, 0] + B2@[0, 0] * p@[0, 0] == rhs_v@[0, 0]
+					v@[0, 1] => Laplace_yStag_yStag@[0, 1] * v@[0, 1] + A21@[0, 1] * u@[0, 1] + B2@[0, 1] * p@[0, 1] == rhs_v@[0, 1]
 
-					p@[0, 0] => dx_xStag_Cell@[0, 0] * u@[0, 0] + dy_yStag_Cell@[0, 0] * v@[0, 0] == rhs_p@[0, 0]
+					p@[0, 0] => C1@[0, 0] * u@[0, 0] + C2@[0, 0] * v@[0, 0] == rhs_p@[0, 0]
 				}
 			}
-
-			communicate u
-			apply bc to u
-			communicate v
-			apply bc to v
-			communicate p
-			apply bc to p
 		}
-	} else if ( 2 == stride_x && 1 == stride_y ) {
-		loop over p stepping [2, 1, 1] {
-			solve locally relax vankaRelax {
-				u@[0, 0] => Laplace_xStag_xStag@[0, 0] * u@[0, 0] + dx_Cell_xStag@[0, 0] * p@[0, 0] == rhs_u@[0, 0]
-				u@[1, 0] => Laplace_xStag_xStag@[1, 0] * u@[1, 0] + dx_Cell_xStag@[1, 0] * p@[1, 0] == rhs_u@[1, 0]
-				u@[2, 0] => Laplace_xStag_xStag@[2, 0] * u@[2, 0] + dx_Cell_xStag@[2, 0] * p@[2, 0] == rhs_u@[2, 0]
 
-				v@[0, 0] => Laplace_yStag_yStag@[0, 0] * v@[0, 0] + dy_Cell_yStag@[0, 0] * p@[0, 0] == rhs_v@[0, 0]
-				v@[0, 1] => Laplace_yStag_yStag@[0, 1] * v@[0, 1] + dy_Cell_yStag@[0, 1] * p@[0, 1] == rhs_v@[0, 1]
-				v@[1, 0] => Laplace_yStag_yStag@[1, 0] * v@[1, 0] + dy_Cell_yStag@[1, 0] * p@[1, 0] == rhs_v@[1, 0]
-				v@[1, 1] => Laplace_yStag_yStag@[1, 1] * v@[1, 1] + dy_Cell_yStag@[1, 1] * p@[1, 1] == rhs_v@[1, 1]
+		advance u
+		advance v
+		advance p
 
-				p@[0, 0] => dx_xStag_Cell@[0, 0] * u@[0, 0] + dy_yStag_Cell@[0, 0] * v@[0, 0] == rhs_p@[0, 0]
-				p@[1, 0] => dx_xStag_Cell@[1, 0] * u@[1, 0] + dy_yStag_Cell@[1, 0] * v@[1, 0] == rhs_p@[1, 0]
+		communicate u
+		apply bc to u
+		communicate v
+		apply bc to v
+		communicate p
+		apply bc to p
+	} else {
+		if ( 1 == stride_x && 1 == stride_y ) {
+			color with {
+				0 == ( i0 + i1 ) % 2,
+				1 == ( i0 + i1 ) % 2,
+
+				/*( 0 == i0 % 3 && 0 == i1 % 3 ) ,
+				( 1 == i0 % 3 && 0 == i1 % 3 ) ,
+				( 2 == i0 % 3 && 0 == i1 % 3 ) ,
+				( 0 == i0 % 3 && 1 == i1 % 3 ) ,
+				( 1 == i0 % 3 && 1 == i1 % 3 ) ,
+				( 2 == i0 % 3 && 1 == i1 % 3 ) ,
+				( 0 == i0 % 3 && 2 == i1 % 3 ) ,
+				( 1 == i0 % 3 && 2 == i1 % 3 ) ,
+				( 2 == i0 % 3 && 2 == i1 % 3 ) ,*/
+
+				loop over p {
+					solve locally relax vankaRelax {
+						// FIXME: inherit field access offset in stencil convolution
+
+						u@[0, 0] => Laplace_xStag_xStag@[0, 0] * u@[0, 0] + A12@[0, 0] * v@[0, 0] + B1@[0, 0] * p@[0, 0] == rhs_u@[0, 0]
+						u@[1, 0] => Laplace_xStag_xStag@[1, 0] * u@[1, 0] + A12@[1, 0] * v@[1, 0] + B1@[1, 0] * p@[1, 0] == rhs_u@[1, 0]
+
+						v@[0, 0] => Laplace_yStag_yStag@[0, 0] * v@[0, 0] + A21@[0, 0] * u@[0, 0] + B2@[0, 0] * p@[0, 0] == rhs_v@[0, 0]
+						v@[0, 1] => Laplace_yStag_yStag@[0, 1] * v@[0, 1] + A21@[0, 1] * u@[0, 1] + B2@[0, 1] * p@[0, 1] == rhs_v@[0, 1]
+
+						p@[0, 0] => C1@[0, 0] * u@[0, 0] + C2@[0, 0] * v@[0, 0] == rhs_p@[0, 0]
+					}
+				}
+
+				communicate u
+				apply bc to u
+				communicate v
+				apply bc to v
+				communicate p
+				apply bc to p
+			}
+		} else if ( 2 == stride_x && 1 == stride_y ) {
+			loop over p stepping [2, 1, 1] {
+				solve locally relax vankaRelax {
+					u@[0, 0] => Laplace_xStag_xStag@[0, 0] * u@[0, 0] + A12@[0, 0] * v@[0, 0] + B1@[0, 0] * p@[0, 0] == rhs_u@[0, 0]
+					u@[1, 0] => Laplace_xStag_xStag@[1, 0] * u@[1, 0] + A12@[1, 0] * v@[1, 0] + B1@[1, 0] * p@[1, 0] == rhs_u@[1, 0]
+					u@[2, 0] => Laplace_xStag_xStag@[2, 0] * u@[2, 0] + A12@[2, 0] * v@[2, 0] + B1@[2, 0] * p@[2, 0] == rhs_u@[2, 0]
+
+					v@[0, 0] => Laplace_yStag_yStag@[0, 0] * v@[0, 0] + A21@[0, 0] * u@[0, 0] + B2@[0, 0] * p@[0, 0] == rhs_v@[0, 0]
+					v@[0, 1] => Laplace_yStag_yStag@[0, 1] * v@[0, 1] + A21@[0, 1] * u@[0, 1] + B2@[0, 1] * p@[0, 1] == rhs_v@[0, 1]
+					v@[1, 0] => Laplace_yStag_yStag@[1, 0] * v@[1, 0] + A21@[1, 0] * u@[1, 0] + B2@[1, 0] * p@[1, 0] == rhs_v@[1, 0]
+					v@[1, 1] => Laplace_yStag_yStag@[1, 1] * v@[1, 1] + A21@[1, 1] * u@[1, 1] + B2@[1, 1] * p@[1, 1] == rhs_v@[1, 1]
+
+					p@[0, 0] => C1@[0, 0] * u@[0, 0] + C2@[0, 0] * v@[0, 0] == rhs_p@[0, 0]
+					p@[1, 0] => C1@[1, 0] * u@[1, 0] + C2@[1, 0] * v@[1, 0] == rhs_p@[1, 0]
+				}
 			}
 		}
 	}

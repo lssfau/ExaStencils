@@ -16,23 +16,31 @@ Field RHS with Real on Node of global = 0.0
 	[ 0,  1] =>
 }*/
 
-/*Operator Laplace_Stencil@finest from Stencil {
-//Operator Laplace_Stencil@(all but finest) from Stencil {
+Operator Laplace_Stencil from Stencil {
+	[ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 )
+	[-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+	[ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+	[ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
+	[ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
+}
+
+/*//Operator Laplace_Stencil@finest from Stencil {
+Operator Laplace_Stencil from Stencil {
 	[ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 )
 	[-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
 	[ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
 	[ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
 	[ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
 }*/
-Operator Laplace_Stencil@finest from Stencil {
+/*Operator Laplace_Stencil@finest from Stencil {
 	[ 0,  0] =>  2.0 / ( ( 1.0 / 256.0 ) ** 2 ) + 2.0 / ( ( 1.0 / 256.0 ) ** 2 )
 	[-1,  0] => -1.0 / ( ( 1.0 / 256.0 ) ** 2 )
 	[ 1,  0] => -1.0 / ( ( 1.0 / 256.0 ) ** 2 )
 	[ 0, -1] => -1.0 / ( ( 1.0 / 256.0 ) ** 2 )
 	[ 0,  1] => -1.0 / ( ( 1.0 / 256.0 ) ** 2 )
-}
+}*/
 
-Operator Laplace_Stencil@(all but finest) from Restriction@finer * Laplace_Stencil@finer * Prolongation@current
+//Operator Laplace_Stencil@(all but finest) from Restriction@finer * Laplace_Stencil@finer * Prolongation@current
 /*
 Operator RA@finest from Restriction@current * Laplace_Stencil@current
 Operator RAP@(finest-1) from RA@finer * Prolongation@current

@@ -1,10 +1,15 @@
 
-Stencil RestrictionCell@all from default restriction on Cell with 'integral_linear'
-Stencil CorrectionCell@all from default prolongation on Cell with 'integral_linear'
+Stencil RestrictionCell  from default restriction  on Cell   with 'integral_linear'
+Stencil CorrectionCell   from default prolongation on Cell   with 'integral_linear'
 
-Stencil RestrictionFaceX@all from default restriction on Face_x with 'integral_linear'
-Stencil CorrectionFaceX@all from default prolongation on Face_x with 'integral_linear'
+Stencil RestrictionFaceX from default restriction  on Face_x with 'integral_linear'
+Stencil CorrectionFaceX  from default prolongation on Face_x with 'integral_linear'
 
-Stencil RestrictionFaceY@all from default restriction on Face_y with 'integral_linear'
-Stencil CorrectionFaceY@all from default prolongation on Face_y with 'integral_linear'
+Stencil RestrictionFaceY from default restriction  on Face_y with 'integral_linear'
+Stencil CorrectionFaceY  from default prolongation on Face_y with 'integral_linear'
 
+Function UpdateResidual_u@all {
+	residual_u = rhs_u - ( A11 * u + B1 * p )
+}
+
+generate solver for u in uEquation and v in vEquation and p in pEquation
