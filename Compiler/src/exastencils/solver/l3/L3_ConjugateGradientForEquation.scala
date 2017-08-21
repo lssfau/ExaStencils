@@ -17,7 +17,7 @@ object L3_ConjugateGradientForEquation {
   def generateResNormFunction(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
     val fctBody = ListBuffer[L3_Statement]()
 
-    def resNorm = L3_PlainVariableAccess("resNorm", L3_RealDatatype, false)
+    def resNorm = L3_PlainVariableAccess("gen_resNorm", L3_RealDatatype, false)
     fctBody += L3_VariableDeclaration(resNorm, 0.0)
 
     entries.foreach(entry =>
@@ -59,9 +59,9 @@ object L3_ConjugateGradientForEquation {
     stmts ++= entries.map(_.generateUpdateRes(level))
 
     // shortcuts for residual norm
-    def curRes = L3_PlainVariableAccess("curRes", L3_RealDatatype, false)
-    def initRes = L3_PlainVariableAccess("initRes", L3_RealDatatype, false)
-    def nextRes = L3_PlainVariableAccess("nextRes", L3_RealDatatype, false)
+    def curRes = L3_PlainVariableAccess("gen_curRes", L3_RealDatatype, false)
+    def initRes = L3_PlainVariableAccess("gen_initRes", L3_RealDatatype, false)
+    def nextRes = L3_PlainVariableAccess("gen_nextRes", L3_RealDatatype, false)
     def callResNorm = L3_FunctionCall(L3_LeveledDslFunctionReference("gen_resNorm", level, L3_RealDatatype))
 
     stmts += L3_VariableDeclaration(curRes, callResNorm)
@@ -71,7 +71,7 @@ object L3_ConjugateGradientForEquation {
       stmts += L3_Assignment(L3_FieldAccess(tmp0(entry)), L3_FieldAccess(entry.resPerLevel(level))))
 
     // main loop
-    def cgSteps = L3_PlainVariableAccess("cgSteps", L3_IntegerDatatype, false)
+    def cgSteps = L3_PlainVariableAccess("gen_cgSteps", L3_IntegerDatatype, false)
     def maxSteps = 512
 
     stmts += L3_VariableDeclaration(cgSteps, 0)
@@ -97,12 +97,12 @@ object L3_ConjugateGradientForEquation {
 
     // alpha calculation
     def alphaNom(entry : L3_SolverForEqEntry) =
-      L3_PlainVariableAccess(s"alphaNom_${ entry.getSolField(level).name }", L3_RealDatatype, false)
+      L3_PlainVariableAccess(s"gen_alphaNom_${ entry.getSolField(level).name }", L3_RealDatatype, false)
     def alphaDenom(entry : L3_SolverForEqEntry) =
-      L3_PlainVariableAccess(s"alphaDenom_${ entry.getSolField(level).name }", L3_RealDatatype, false)
+      L3_PlainVariableAccess(s"gen_alphaDenom_${ entry.getSolField(level).name }", L3_RealDatatype, false)
 
-    def alpha = L3_PlainVariableAccess("alpha", L3_RealDatatype, false)
-    def beta = L3_PlainVariableAccess("beta", L3_RealDatatype, false)
+    def alpha = L3_PlainVariableAccess("gen_alpha", L3_RealDatatype, false)
+    def beta = L3_PlainVariableAccess("gen_beta", L3_RealDatatype, false)
 
     entries.foreach(entry => {
       loopStmts += L3_VariableDeclaration(alphaNom(entry), L3_FieldAccess(entry.resPerLevel(level)) * L3_FieldAccess(entry.resPerLevel(level)))

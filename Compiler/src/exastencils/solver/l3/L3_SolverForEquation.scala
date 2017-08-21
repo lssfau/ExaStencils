@@ -114,7 +114,11 @@ case class L3_SolverForEquation(var entries : ListBuffer[L3_SolverForEqEntry]) e
 
       } else {
         // cgs
-        solverStmts ++= L3_ConjugateGradientForEquation.generateFor(entries, level)
+
+        if (1 == entries.length) // TODO: find a better way to decide which solver to be used
+          solverStmts ++= L3_ConjugateGradientForEquation.generateFor(entries, level)
+        else
+          solverStmts ++= L3_BiCGStabForEquation.generateFor(entries, level)
       }
 
       val fct = L3_LeveledFunction(s"gen_mgCycle", level, L3_UnitDatatype, ListBuffer(), solverStmts)
