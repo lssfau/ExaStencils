@@ -395,5 +395,44 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
 
         IR_Scope(stmts)
       }
+
+    case IR_ExpressionStatement(IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("showMappedImageAndWaitWhen", _), args)) =>
+      if (args.size < 2 || !args.drop(1).map(_.isInstanceOf[IR_FieldAccess]).reduce(_ && _)) {
+        Logger.warn("Malformed call to showMappedImageAndWaitWhen; usage: showMappedImageAndWaitWhen ( condition, field.* )")
+        IR_NullStatement
+      } else {
+        val condition = args(0)
+        val fields = args.drop(1).map(_.asInstanceOf[IR_FieldAccess])
+        val fieldLayouts = fields.map(_.fieldSelection.field.fieldLayout)
+        val numPoints = fieldLayouts.map(fieldLayout => (0 until fieldLayout.numDimsGrid).map(dim =>
+          fieldLayout.layoutsPerDim(dim).numDupLayersLeft + fieldLayout.layoutsPerDim(dim).numInnerLayers + fieldLayout.layoutsPerDim(dim).numDupLayersRight).toList)
+
+        val tmpImgs = fields.indices.map(i => s"imageShow$i")
+        val displays = fields.indices.map(i => s"cImgDisp$i")
+
+        val stmts = ListBuffer[IR_Statement]()
+
+        for (i <- fields.indices) {
+          while (numPoints(i).length < 3) numPoints(i) :+= 1
+          // add color channels
+          numPoints(i) :+= 3
+
+          stmts += HACK_IR_Native("cimg_library::CImg< double > " + tmpImgs(i) + " ( " + numPoints(i).mkString(", ") + ", 1. )")
+          stmts += IR_LoopOverPoints(fields(i).fieldSelection.field,
+            IR_Assignment(HACK_IR_Native("*" + tmpImgs(i) + ".data(i0,i1,0,0)"), 360.0 * fields(i)))
+
+          stmts += IR_MemberFunctionCall(tmpImgs(i), "HSVtoRGB")
+          // hack: flip image for correct representation
+          stmts += IR_MemberFunctionCall(tmpImgs(i), "mirror", HACK_IR_Native("'y'"))
+
+          val dispName = fields(i).fieldSelection.field.name + "@" + fields(i).fieldSelection.field.level
+          stmts += HACK_IR_Native("static cimg_library::CImgDisplay " + displays(i) + "(" + tmpImgs(i) + ", \"" + dispName + "\")")
+          stmts += IR_Assignment(displays(i), tmpImgs(i))
+        }
+        stmts += IR_WhileLoop(IR_AndAnd(IR_Negation(condition), fields.indices.map(i => IR_Negation(IR_MemberFunctionCall(displays(i), "is_closed")) : IR_Expression).reduceLeft(IR_OrOr)),
+          fields.indices.map(i => IR_MemberFunctionCall(displays(i), "wait") : IR_Statement).to[ListBuffer])
+
+        IR_Scope(stmts)
+      }
   })
 }
