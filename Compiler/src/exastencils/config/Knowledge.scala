@@ -142,6 +142,19 @@ object Knowledge {
 
   /// === Layer 3 ===
 
+  /// solver setup information
+
+  // coloring mode used in the generated smoother
+  // may be one of the following: 'None', 'RB' or '2-way', '4-way' (2D only), '8-way' (3D only), '9-way' (2D only), '27-way' (3D only)
+  var solver_smoother_coloring : String = "None"
+
+  // damping factor used in the generated smoother
+  var solver_smoother_damping : Double = 0.8
+
+  // coarse grid solver
+  // may be one of the following: 'CG' or 'ConjugateGradient', 'BiCGStab', 'MinRes', 'ConjugateResidual'
+  var solver_cgs : String = "CG"
+
   /// === Layer 4 ===
 
   // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir

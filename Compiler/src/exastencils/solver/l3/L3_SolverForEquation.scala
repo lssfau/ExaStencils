@@ -143,10 +143,21 @@ case class L3_SolverForEquation(
       } else {
         // cgs
 
-        if (1 == entries.length) // TODO: find a better way to decide which solver to be used
-          solverStmts ++= L3_ConjugateGradientForEquation.generateFor(entries, level)
-        else
-          solverStmts ++= L3_BiCGStabForEquation.generateFor(entries, level)
+        Knowledge.solver_cgs.toLowerCase() match {
+          case "cg" | "conjugategradient" | "conjugategradients" =>
+            solverStmts ++= L3_ConjugateGradientForEquation.generateFor(entries, level)
+
+          case "bicgstab" =>
+            solverStmts ++= L3_BiCGStabForEquation.generateFor(entries, level)
+
+          case "minres" =>
+            solverStmts ++= L3_MinResForEquation.generateFor(entries, level)
+
+          case "conjugateresidual" | "conjugateresiduals" =>
+            solverStmts ++= L3_ConjugateResidualForEquation.generateFor(entries, level)
+
+          case _ => Logger.error(s"Unsupported coarse grid solver: ${ Knowledge.solver_cgs }")
+        }
       }
 
       val fct = L3_LeveledFunction(s"gen_mgCycle", level, L3_UnitDatatype, ListBuffer(), solverStmts)
