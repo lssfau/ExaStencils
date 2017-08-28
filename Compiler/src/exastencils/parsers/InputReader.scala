@@ -22,12 +22,12 @@ object InputReader {
   def layer4 = layer4_
 
   def read(filename : String) = {
-    val lines = io.Source.fromFile(filename).getLines.mkString
+    val lines = scala.io.Source.fromFile(filename).getLines.mkString
     readJson(lines)
   }
 
   def read() = {
-    val lines = io.Source.stdin.getLines.mkString
+    val lines = scala.io.Source.stdin.getLines.mkString
     readJson(lines)
   }
 

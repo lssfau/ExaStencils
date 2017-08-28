@@ -12,7 +12,7 @@ import exastencils.parsers._
 class ParserDomainFile extends ExaParser {
 
   def parseHeader(filename : String) : Unit = {
-    val file = io.Source.fromFile(filename)
+    val file = scala.io.Source.fromFile(filename)
     val lines = file.getLines.dropWhile { s => s != "DATA" }.drop(1)
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines.takeWhile { s => s != "DOMAINS" }))
     val scanner = new lexical.Scanner(reader)
@@ -51,7 +51,7 @@ class ParserDomainFile extends ExaParser {
       booleanLit ^^ { _.booleanValue() }
 
   def parseBody(filename : String) : Unit = {
-    val file = io.Source.fromFile(filename)
+    val file = scala.io.Source.fromFile(filename)
     val lines = file.getLines.dropWhile { s => s != "DOMAINS" }.drop(1)
     val readerDomains = new PagedSeqReader(PagedSeq.fromLines(lines.takeWhile { s => s != "BLOCKS" }))
     val scannerDomains = new lexical.Scanner(readerDomains)
