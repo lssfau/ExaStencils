@@ -13,6 +13,6 @@ object L3_ColorLoops {
 }
 
 case class L3_ColorLoops(var colors : ListBuffer[L3_Expression], var stmts : ListBuffer[L3_Statement]) extends L3_Statement {
-  override def prettyprint(out : PpStream) = out << "color with {\n" <<< (colors, ",\n") << ",\n" <<< (stmts, "\n") << "}\n"
+  override def prettyprint(out : PpStream) = out << "color with {\n" <<< (colors, ",\n") << ",\n" <<< (stmts, "\n") << "\n}"
   override def progress = L4_ColorLoops(colors.map(_.progress), stmts.map(_.progress))
 }

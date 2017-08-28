@@ -16,7 +16,7 @@ object L4_ColorLoops {
 }
 
 case class L4_ColorLoops(var colors : ListBuffer[L4_Expression], var stmts : ListBuffer[L4_Statement]) extends L4_Statement {
-  override def prettyprint(out : PpStream) = out << "color with {\n" <<< (colors, ",\n") << ",\n" <<< (stmts, "\n") << "}\n"
+  override def prettyprint(out : PpStream) = out << "color with {\n" <<< (colors, ",\n") << ",\n" <<< (stmts, "\n") << "\n}"
 
   def generateStmtsForColor(color : L4_Expression) = {
     val newStmts = Duplicate(stmts)

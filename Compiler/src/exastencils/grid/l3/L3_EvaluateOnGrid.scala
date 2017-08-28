@@ -146,6 +146,8 @@ case class L3_EvaluateOnGrid(
         case Some(_) => // face localization and control volume staggering don't match -> ambiguous
           Logger.error(s"Trying to evaluate field ${ fieldAccess.prettyprint() } on face ${ L3_GridUtil.dimsToFace(stagDim, faceDim) }; this is not unique")
       }
+
+      case other => Logger.error(s"Unsupported localization in evaluate: ${ other.name }")
     }
 
     // compile evaluation

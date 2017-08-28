@@ -87,14 +87,6 @@ object L3_VankaForEquation {
 
     def numDims = /* FIXME */ Knowledge.dimensionality
 
-    def generateColorCases(numColorsPerDim : Int) : ListBuffer[ListBuffer[Int]] = {
-      var colors = (0 until numColorsPerDim).map(ListBuffer(_)).to[ListBuffer]
-      for (_ <- 1 until numDims)
-        colors = (0 until numColorsPerDim).to[ListBuffer].flatMap(c => colors.map(_ :+ c))
-
-      colors
-    }
-
     def generateColors(numColorsPerDim : Int) = {
       var colorCases = (0 until numColorsPerDim).map(ListBuffer(_)).to[ListBuffer]
       for (_ <- 1 until numDims)

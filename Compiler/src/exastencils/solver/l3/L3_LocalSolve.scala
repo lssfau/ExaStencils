@@ -25,7 +25,7 @@ case class L3_LocalSolve(
   override def prettyprint(out : PpStream) : Unit = {
     out << "solve locally "
     if (jacobiType) out << "with jacobi "
-    if (relax.isDefined) out << "relax " << relax.get
+    if (relax.isDefined) out << "relax " << relax.get << ' '
     out << "{\n"
     for (i <- unknowns.indices)
       out << unknowns(i) << " => " << equations(i) << "\n"
