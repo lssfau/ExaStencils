@@ -2,37 +2,17 @@ package exastencils.solver.l3
 
 import scala.collection.mutable._
 
-import exastencils.base.ExaRootNode
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_ForLoop
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.datastructures._
 import exastencils.field.l3._
-import exastencils.util.l3.L3_MathFunctionReference
 
 /// L3_BiCGStabForEquation
 
-object L3_BiCGStabForEquation {
-  def generateResNormFunction(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
-    val fctBody = ListBuffer[L3_Statement]()
-
-    def resNorm = L3_PlainVariableAccess("gen_resNorm", L3_RealDatatype, false)
-    fctBody += L3_VariableDeclaration(resNorm, 0.0)
-
-    entries.foreach(entry =>
-      fctBody += L3_Assignment(resNorm,
-        L3_FieldAccess(entry.resPerLevel(level)) * L3_FieldAccess(entry.resPerLevel(level)),
-        "+=", None))
-
-    fctBody += L3_Return(Some(L3_FunctionCall(L3_MathFunctionReference("sqrt", L3_RealDatatype), resNorm)))
-
-    val fct = L3_LeveledFunction(s"gen_resNorm", level, L3_RealDatatype, ListBuffer(), fctBody)
-    ExaRootNode.l3_root.nodes += fct
-  }
-
-  def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
+object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
+  override def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
     // set up function for norm of residual
     generateResNormFunction(entries, level)
     // set up temporary fields
@@ -123,21 +103,8 @@ object L3_BiCGStabForEquation {
       loopStmts += L3_Assignment(L3_FieldAccess(p(entry)),
         L3_FieldAccess(entry.resPerLevel(level)) + beta * (L3_FieldAccess(p(entry)) - omega * L3_FieldAccess(nu(entry)))))
 
-    for (entry <- entries) {
-      val assignment = L3_Assignment(L3_FieldAccess(nu(entry)), Duplicate(entry.getEq(level).lhs))
-
-      object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses with temporary fields") {
-        this += new Transformation("Search and replace", {
-          case access @ L3_FieldAccess(field, _) if entries.exists(field == _.getSolField(level)) =>
-            access.target = p(entries.find(field == _.getSolField(level)).get)
-            access
-        })
-      }
-
-      L3_ReplaceAccesses.applyStandalone(assignment)
-
-      loopStmts += assignment
-    }
+    entries.foreach(entry =>
+      loopStmts += generateOperatorApplication(nu(entry), entry.getEq(level).lhs, p, entries, entry, level))
 
     def alphaDenom = L3_PlainVariableAccess("gen_alphaDenom", L3_RealDatatype, false)
     loopStmts += L3_VariableDeclaration(alphaDenom, 0.0)
@@ -153,21 +120,8 @@ object L3_BiCGStabForEquation {
     entries.foreach(entry =>
       loopStmts += L3_Assignment(L3_FieldAccess(s(entry)), L3_FieldAccess(entry.resPerLevel(level)) - alpha * L3_FieldAccess(nu(entry))))
 
-    for (entry <- entries) {
-      val assignment = L3_Assignment(L3_FieldAccess(t(entry)), Duplicate(entry.getEq(level).lhs))
-
-      object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses with temporary fields") {
-        this += new Transformation("Search and replace", {
-          case access @ L3_FieldAccess(field, _) if entries.exists(field == _.getSolField(level)) =>
-            access.target = s(entries.find(field == _.getSolField(level)).get)
-            access
-        })
-      }
-
-      L3_ReplaceAccesses.applyStandalone(assignment)
-
-      loopStmts += assignment
-    }
+    entries.foreach(entry =>
+      loopStmts += generateOperatorApplication(t(entry), entry.getEq(level).lhs, s, entries, entry, level))
 
     def omegaNom = L3_PlainVariableAccess("gen_omegaNom", L3_RealDatatype, false)
     def omegaDenom = L3_PlainVariableAccess("gen_omegaDenom", L3_RealDatatype, false)
@@ -198,4 +152,5 @@ object L3_BiCGStabForEquation {
 
     stmts
   }
+
 }
