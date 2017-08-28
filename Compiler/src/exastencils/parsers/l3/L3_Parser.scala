@@ -427,9 +427,15 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val stencilTemplateEntry = (stencilEntry
     ||| locationize((constIndex <~ "=>") ^^ { offset => L3_StencilOffsetEntry(offset, L3_NullExpression) }))
 
-  /// TO BE INTEGRATED
+  // #############################################################################
+  // ################################### SOLVER ##################################
+  // #############################################################################
 
+  /// L3_SolverForEquation
+
+  lazy val solverForEqConfig = (ident <~ "=") ~ literal ^^ { case param ~ value => (param, value) }
+  lazy val solverForEqConfigs = solverForEqConfig.*
   lazy val solverForEqEntry = locationize((ident <~ "in") ~ ident ^^ { case sol ~ equation => L3_SolverForEqEntry(sol, equation) })
-  lazy val solverForEq = locationize((("generate" ~ "solver" ~ "for") ~> (solverForEqEntry <~ "and").* ~ solverForEqEntry)
-    ^^ { case entries ~ tail => L3_SolverForEquation(entries :+ tail) })
+  lazy val solverForEq = locationize((("generate" ~ "solver" ~ "for") ~> (solverForEqEntry <~ "and").* ~ solverForEqEntry ~ (("with" ~ "{") ~> solverForEqConfigs <~ "}").?)
+    ^^ { case entries ~ tail ~ options => L3_SolverForEquation(entries :+ tail, options.getOrElse(List())) })
 }

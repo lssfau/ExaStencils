@@ -30,6 +30,8 @@ class ExaParser extends StandardTokenParsers with PackratParsers {
   lazy val listdelimiter = newline | ","
   lazy val newline = "\n" | "\r\n"
 
+  lazy val literal = integerLit ||| realLit ||| booleanLit ||| stringLit
+
   lazy val integerLit = (
     numericLit ^^ { case n if isInt(n) => n.toInt }
       ||| ("-" ~> numericLit ^^ { case n if isInt(n) => -n.toInt }))

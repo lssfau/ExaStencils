@@ -8,21 +8,29 @@ import exastencils.base.l3._
 import exastencils.base.l4.L4_Statement
 import exastencils.boundary.l3._
 import exastencils.config.Knowledge
-import exastencils.core.Duplicate
+import exastencils.core._
 import exastencils.datastructures._
 import exastencils.domain.l3._
 import exastencils.field.l3._
 import exastencils.grid.l3.L3_Localization
+import exastencils.logger.Logger
 import exastencils.operator.l3._
 import exastencils.prettyprinting.PpStream
 
 /// L3_SolverForEquation
 
 object L3_SolverForEquation {
-  def apply(entries : List[L3_SolverForEqEntry]) = new L3_SolverForEquation(entries.to[ListBuffer])
+  def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)]) = {
+    val newOptions = HashMap[String, Any]()
+    options.foreach(newOptions += _)
+    new L3_SolverForEquation(entries.to[ListBuffer], newOptions)
+  }
 }
 
-case class L3_SolverForEquation(var entries : ListBuffer[L3_SolverForEqEntry]) extends L3_Statement {
+case class L3_SolverForEquation(
+    var entries : ListBuffer[L3_SolverForEqEntry],
+    var options : HashMap[String, Any]) extends L3_Statement {
+
   override def prettyprint(out : PpStream) = {
     out << "generate solver for "
     entries.foreach(e => out << e.solName << " in " << e.eqName << " and ")
@@ -30,6 +38,26 @@ case class L3_SolverForEquation(var entries : ListBuffer[L3_SolverForEqEntry]) e
   }
 
   override def progress : L4_Statement = ???
+
+  def generate() = {
+    updateKnowledge()
+
+    generateFields()
+    genOperators()
+    generateFunctions()
+  }
+
+  def updateKnowledge() = {
+    for (option <- options) {
+      try {
+        UniversalSetter(Knowledge, option._1, option._2)
+      } catch {
+        case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Knowledge.${ option._1 } to ${ option._2 } but this parameter is undefined")
+        case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ option._1 } to ${ option._2 } but data types are incompatible")
+      }
+
+    }
+  }
 
   def genOperators() = {
     for (level <- Knowledge.levels) {
@@ -181,10 +209,7 @@ object L3_ResolveSolverForEquations extends DefaultStrategy("Resolve solver for 
   this += new Transformation("Resolve", {
     // check if declaration has already been processed and promote access if possible
     case solver : L3_SolverForEquation if L3_MayBlockResolution.isDone(solver) =>
-      solver.generateFields()
-      solver.genOperators()
-      solver.generateFunctions()
-
+      solver.generate()
       None // consume statement
   })
 }
