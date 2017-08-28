@@ -37,9 +37,6 @@ class L4_Lexer extends ExaLexer {
   reserved += ("Unit", "String", "Integer", "Int", "Real", "Complex", "Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "Boolean", "Bool", "T")
   reserved += ("Vec2", "Vec3", "Vec4")
 
-  // boolean keywords
-  reserved += ("true", "false")
-
   // level specification keywords
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
