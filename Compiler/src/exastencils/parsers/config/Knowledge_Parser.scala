@@ -51,12 +51,5 @@ class Knowledge_Parser extends ExaParser {
   lazy val settingsfile = setting.*
 
   lazy val setting = ("import" ~> stringLit ^^ (path => parseFile(path))
-    ||| ident ~ "=" ~ expr ^^ { case id ~ "=" ~ ex => setParameter(id, ex) })
-
-  lazy val expr = stringLit ^^ { _.toString } |
-    "-".? ~ numericLit ^^ {
-      case s ~ n if isInt(s.getOrElse("") + n) => (s.getOrElse("") + n).toInt : AnyVal
-      case s ~ n                               => (s.getOrElse("") + n).toDouble : AnyVal
-    } |
-    booleanLit ^^ { _.booleanValue() }
+    ||| ident ~ "=" ~ literal ^^ { case id ~ "=" ~ ex => setParameter(id, ex) })
 }
