@@ -151,9 +151,24 @@ object Knowledge {
   // damping factor used in the generated smoother
   var solver_smoother_damping : Double = 0.8
 
+  // number of pre-smoothing steps
+  var solver_smoother_numPre : Int = 3
+
+  // number of post-smoothing steps
+  var solver_smoother_numPost : Int = 3
+
+  // determines if the smoother implements Jacobi-type updates
+  var solver_smoother_jacobiType : Boolean = false
+
   // coarse grid solver
   // may be one of the following: 'CG' or 'ConjugateGradient', 'BiCGStab', 'MinRes', 'ConjugateResidual'
   var solver_cgs : String = "CG"
+
+  // maximum number of coarse grid solver iterations
+  var solver_cgs_maxNumIts : Int = 512
+
+  // target reduction of the residual norm for the coarse grid solver
+  var solver_cgs_targetResReduction : Double = 0.001
 
   /// === Layer 4 ===
 

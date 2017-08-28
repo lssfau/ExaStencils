@@ -48,14 +48,13 @@ case class L3_SolverForEquation(
   }
 
   def updateKnowledge() = {
-    for (option <- options) {
+    for ((option, value) <- options) {
       try {
-        UniversalSetter(Knowledge, option._1, option._2)
+        UniversalSetter(Knowledge, option, value)
       } catch {
-        case ex : java.lang.NoSuchFieldException     => Logger.warning(s"Trying to set parameter Knowledge.${ option._1 } to ${ option._2 } but this parameter is undefined")
-        case ex : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ option._1 } to ${ option._2 } but data types are incompatible")
+        case _ : java.lang.NoSuchFieldException     => Logger.error(s"Trying to set parameter Knowledge.${ option } to ${ value } but this parameter is undefined")
+        case _ : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ option } to ${ value } but data types are incompatible")
       }
-
     }
   }
 
@@ -120,7 +119,7 @@ case class L3_SolverForEquation(
         // regular cycle
 
         // smoother
-        solverStmts ++= L3_VankaForEquation.generateFor(entries, level)
+        solverStmts ++= L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPre)
 
         // update residual
         solverStmts ++= entries.map(_.generateUpdateRes(level))
@@ -138,7 +137,7 @@ case class L3_SolverForEquation(
         solverStmts ++= entries.map(_.generateCorrection(level))
 
         // smoother
-        solverStmts ++= L3_VankaForEquation.generateFor(entries, level)
+        solverStmts ++= L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost)
 
       } else {
         // cgs

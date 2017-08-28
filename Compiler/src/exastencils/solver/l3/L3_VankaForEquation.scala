@@ -22,7 +22,7 @@ object L3_VankaForEquation {
     val unknowns = ListBuffer[L3_Expression](L3_FieldAccess(entry.getSolField(level)))
     val equations = ListBuffer[L3_Equation](Duplicate(entry.getEq(level)))
 
-    L3_LocalSolve(unknowns, equations, false, Some(omega), L3_FieldAccess(entry.getSolField(level)))
+    L3_LocalSolve(unknowns, equations, Knowledge.solver_smoother_jacobiType, Some(omega), L3_FieldAccess(entry.getSolField(level)))
   }
 
   def generateLocalSolveForAligned(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
@@ -36,7 +36,7 @@ object L3_VankaForEquation {
       equations += Duplicate(entry.getEq(level))
     }
 
-    L3_LocalSolve(unknowns, equations, false, Some(omega), L3_FieldAccess(entries.head.getSolField(level)))
+    L3_LocalSolve(unknowns, equations, Knowledge.solver_smoother_jacobiType, Some(omega), L3_FieldAccess(entries.head.getSolField(level)))
   }
 
   def generateLocalSolveForMixed(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
@@ -70,11 +70,13 @@ object L3_VankaForEquation {
       }
     }
 
-    L3_LocalSolve(unknowns, equations, false, Some(omega), L3_FieldAccess(entryAtCell.get.getSolField(level)))
+    L3_LocalSolve(unknowns, equations, Knowledge.solver_smoother_jacobiType, Some(omega), L3_FieldAccess(entryAtCell.get.getSolField(level)))
   }
 
-  def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
+  def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int, numSteps : Int) = {
     val stmts = ListBuffer[L3_Statement]()
+
+    /// generate local solve statement
 
     var localSolve : L3_Statement = {
       if (1 == entries.length)
@@ -84,6 +86,8 @@ object L3_VankaForEquation {
       else
         generateLocalSolveForMixed(entries, level)
     }
+
+    /// add coloring
 
     def numDims = /* FIXME */ Knowledge.dimensionality
 
@@ -127,7 +131,9 @@ object L3_VankaForEquation {
       case _ => Logger.error(s"Unsupported coloring scheme ${ Knowledge.solver_smoother_coloring }")
     }
 
-    stmts += L3_ForLoop(4, None, ListBuffer(localSolve))
+    /// assemble final loop
+
+    stmts += L3_ForLoop(numSteps, None, ListBuffer(localSolve))
 
     stmts
   }

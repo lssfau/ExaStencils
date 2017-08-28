@@ -6,6 +6,7 @@ import exastencils.base.ExaRootNode
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_ForLoop
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.l3._
@@ -106,7 +107,6 @@ object L3_BiCGStabForEquation {
 
     // main loop
     def cgSteps = L3_PlainVariableAccess("gen_cgSteps", L3_IntegerDatatype, false)
-    def maxSteps = 512
 
     stmts += L3_VariableDeclaration(cgSteps, 0)
 
@@ -189,12 +189,12 @@ object L3_BiCGStabForEquation {
 
     // exit criterion
     loopStmts += L3_Assignment(curRes, callResNorm)
-    loopStmts += L3_IfCondition(L3_LowerEqual(curRes, 0.001 * initRes), ListBuffer[L3_Statement](L3_Return(None)), ListBuffer())
+    loopStmts += L3_IfCondition(L3_LowerEqual(curRes, Knowledge.solver_cgs_targetResReduction * initRes), ListBuffer[L3_Statement](L3_Return(None)), ListBuffer())
 
-    stmts += L3_ForLoop(maxSteps, Some(cgSteps), loopStmts)
+    stmts += L3_ForLoop(Knowledge.solver_cgs_maxNumIts, Some(cgSteps), loopStmts)
 
     stmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype),
-      ListBuffer[L3_Expression](L3_StringConstant("Maximum number of cgs iterations ("), maxSteps, L3_StringConstant(") was exceeded")))
+      ListBuffer[L3_Expression](L3_StringConstant("Maximum number of cgs iterations ("), Knowledge.solver_cgs_maxNumIts, L3_StringConstant(") was exceeded")))
 
     stmts
   }

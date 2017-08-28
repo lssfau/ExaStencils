@@ -6,6 +6,7 @@ import exastencils.base.ExaRootNode
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_ForLoop
+import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.l3._
@@ -110,7 +111,6 @@ object L3_ConjugateResidualForEquation {
 
     // main loop
     def cgsSteps = L3_PlainVariableAccess("gen_cgsSteps", L3_IntegerDatatype, false)
-    def maxSteps = 512
 
     stmts += L3_VariableDeclaration(cgsSteps, 0)
 
@@ -139,7 +139,7 @@ object L3_ConjugateResidualForEquation {
     loopStmts += L3_VariableDeclaration(nextRes, callResNorm)
 
     // exit criterion
-    loopStmts += L3_IfCondition(L3_LowerEqual(nextRes, 0.001 * initRes), ListBuffer[L3_Statement](L3_Return(None)), ListBuffer())
+    loopStmts += L3_IfCondition(L3_LowerEqual(nextRes, Knowledge.solver_cgs_targetResReduction * initRes), ListBuffer[L3_Statement](L3_Return(None)), ListBuffer())
 
     for (entry <- entries) {
       val assignment = L3_Assignment(L3_FieldAccess(ar(entry)), Duplicate(entry.getEq(level).lhs))
@@ -176,10 +176,10 @@ object L3_ConjugateResidualForEquation {
 
     loopStmts += L3_Assignment(curRes, nextRes)
 
-    stmts += L3_ForLoop(maxSteps, Some(cgsSteps), loopStmts)
+    stmts += L3_ForLoop(Knowledge.solver_cgs_maxNumIts, Some(cgsSteps), loopStmts)
 
     stmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype),
-      ListBuffer[L3_Expression](L3_StringConstant("Maximum number of cgs iterations ("), maxSteps, L3_StringConstant(") was exceeded")))
+      ListBuffer[L3_Expression](L3_StringConstant("Maximum number of cgs iterations ("), Knowledge.solver_cgs_maxNumIts, L3_StringConstant(") was exceeded")))
 
     stmts
   }
