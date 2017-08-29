@@ -59,6 +59,14 @@ case class L3_SolverForEquation(
   }
 
   def genOperators() = {
+    def defInterpolation = {
+      Knowledge.discr_type.toLowerCase() match {
+        case "fd" | "finitedifference" | "finitedifferences" => "linear"
+        case "fv" | "finitevolume" | "finitevolumes"         => "integral_linear"
+        case _                                               => Logger.error(s"Unsupported discretization type ${ Knowledge.discr_type }")
+      }
+    }
+
     for (level <- Knowledge.levels) {
       // tuples with number of dimensions and localization
       val localizations = Set[(Int, L3_Localization)]()
@@ -68,11 +76,11 @@ case class L3_SolverForEquation(
       }
 
       for (local <- localizations) {
-        val restriction = L3_DefaultRestriction.generate(s"gen_restriction_${ local._1 }D_${ local._2.name }", level, local._1, local._2, /*FIXME*/ "integral_linear")
+        val restriction = L3_DefaultRestriction.generate(s"gen_restriction_${ local._1 }D_${ local._2.name }", level, local._1, local._2, defInterpolation)
         L3_StencilCollection.add(restriction)
         entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.restrictPerLevel += (level -> restriction))
 
-        val prolongation = L3_DefaultProlongation.generate(s"gen_prolongation_${ local._1 }D_${ local._2.name }", level, local._1, local._2, /*FIXME*/ "integral_linear")
+        val prolongation = L3_DefaultProlongation.generate(s"gen_prolongation_${ local._1 }D_${ local._2.name }", level, local._1, local._2, defInterpolation)
         L3_StencilCollection.add(prolongation)
         entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.prolongPerLevel += (level -> prolongation))
       }

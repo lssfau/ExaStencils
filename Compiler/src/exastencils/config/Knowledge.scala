@@ -133,6 +133,11 @@ object Knowledge {
   var grid_halveStagBoundaryVolumes : Boolean = false
 
   /// discretization information
+
+  // type of discretization
+  // may be one of the following: 'FD' or 'finiteDifferences', 'FV' or 'finiteVolumes'
+  var discr_type : String = "FD"
+
   // TODO: ignore for IDE support for now
 
   // (uniform) grid width per dimension and level
