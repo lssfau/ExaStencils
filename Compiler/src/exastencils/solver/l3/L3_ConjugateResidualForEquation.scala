@@ -66,9 +66,9 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
       stmts += generateOperatorApplication(ar(entry), entry.getEq(level).lhs, resFieldMap, entries, entry, level))
 
     // main loop
-    def cgsSteps = L3_PlainVariableAccess("gen_cgsSteps", L3_IntegerDatatype, false)
+    def curStep = L3_PlainVariableAccess("gen_curStep", L3_IntegerDatatype, false)
 
-    stmts += L3_VariableDeclaration(cgsSteps, 0)
+    stmts += L3_VariableDeclaration(curStep, 0)
 
     val loopStmts = ListBuffer[L3_Statement]()
 
@@ -95,7 +95,14 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
     loopStmts += L3_VariableDeclaration(nextRes, callResNorm)
 
     // exit criterion
-    loopStmts += L3_IfCondition(L3_LowerEqual(nextRes, Knowledge.solver_cgs_targetResReduction * initRes), ListBuffer[L3_Statement](L3_Return(None)), ListBuffer())
+    val returnStmts = ListBuffer[L3_Statement]()
+    if (L3_IterativeSolverForEquation.generateDebugPrints) {
+      returnStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
+        L3_StringConstant("ConjugateResidual took"), curStep, L3_StringConstant("steps to reduce residual from"), initRes, L3_StringConstant("to"), curRes))
+    }
+    returnStmts += L3_Return(None)
+
+    loopStmts += L3_IfCondition(L3_LowerEqual(nextRes, Knowledge.solver_cgs_targetResReduction * initRes), returnStmts, ListBuffer())
 
     entries.foreach(entry =>
       loopStmts += generateOperatorApplication(ar(entry), entry.getEq(level).lhs, resFieldMap, entries, entry, level))
@@ -119,7 +126,7 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
 
     loopStmts += L3_Assignment(curRes, nextRes)
 
-    stmts += L3_ForLoop(Knowledge.solver_cgs_maxNumIts, Some(cgsSteps), loopStmts)
+    stmts += L3_ForLoop(Knowledge.solver_cgs_maxNumIts, Some(curStep), loopStmts)
 
     stmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype),
       ListBuffer[L3_Expression](L3_StringConstant("Maximum number of cgs iterations ("), Knowledge.solver_cgs_maxNumIts, L3_StringConstant(") was exceeded")))

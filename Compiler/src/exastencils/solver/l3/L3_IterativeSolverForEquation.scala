@@ -12,6 +12,8 @@ import exastencils.logger.Logger
 import exastencils.util.l3.L3_MathFunctionReference
 
 object L3_IterativeSolverForEquation {
+  var generateDebugPrints : Boolean = false
+
   def generateIterativeSolver(solver : String, entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
     solver.toLowerCase() match {
       case "cg" | "conjugategradient" | "conjugategradients" => L3_ConjugateGradientForEquation.generateFor(entries, level)
