@@ -33,10 +33,18 @@ object L3_MathFunctions {
     "fabs" -> (List(L3_RealDatatype) -> L3_RealDatatype))
 
   def getValue(fctName : String) = signatures.get(fctName)
+  def getDatatype(fctName : String) = getValue(fctName).get._2
   def exists(fctName : String) = signatures.contains(fctName)
 }
 
 /// L3_MathFunctionReference
+
+object L3_MathFunctionReference {
+  def pow = new L3_MathFunctionReference("pow", L3_MathFunctions.getDatatype("pow"))
+  def sqrt = new L3_MathFunctionReference("sqrt", L3_MathFunctions.getDatatype("sqrt"))
+
+  def fabs = new L3_MathFunctionReference("fabs", L3_MathFunctions.getDatatype("fabs"))
+}
 
 case class L3_MathFunctionReference(var name : String, var returnType : L3_Datatype) extends L3_PlainFunctionReference {
   override def progress = L4_MathFunctionReference(name, returnType.progress)
