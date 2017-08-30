@@ -12,6 +12,9 @@ import exastencils.field.l3._
 /// L3_ConjugateGradientForEquation
 
 object L3_ConjugateGradientForEquation extends L3_IterativeSolverForEquation {
+
+  import L3_IterativeSolverForEquation._
+
   override def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
     // set up function for norm of residual
     generateResNormFunction(entries, level)

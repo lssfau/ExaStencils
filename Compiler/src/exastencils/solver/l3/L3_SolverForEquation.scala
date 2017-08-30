@@ -6,6 +6,7 @@ import exastencils.base.ExaRootNode
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.base.l4.L4_Statement
+import exastencils.baseExt.l3.L3_UntilLoop
 import exastencils.boundary.l3._
 import exastencils.config.Knowledge
 import exastencils.core._
@@ -15,6 +16,7 @@ import exastencils.field.l3._
 import exastencils.grid.l3.L3_Localization
 import exastencils.logger.Logger
 import exastencils.operator.l3._
+import exastencils.optimization.l3.L3_GeneralSimplifyWrapper
 import exastencils.prettyprinting.PpStream
 
 /// L3_SolverForEquation
@@ -130,8 +132,57 @@ case class L3_SolverForEquation(
   }
 
   def generateFunctions() = {
-    for (level <- Knowledge.levels if level != Knowledge.maxLevel)
+    for (level <- Knowledge.levels if level != Knowledge.maxLevel) {
       entries.foreach(_.prepEqForMG(level))
+      entries.transform(L3_GeneralSimplifyWrapper.process)
+    }
+
+    // add solve function
+
+    if (true) {
+      val solveStmts = ListBuffer[L3_Statement]()
+      def level = Knowledge.maxLevel
+
+      L3_IterativeSolverForEquation.generateResNormFunction(entries, level)
+
+      solveStmts ++= entries.map(_.generateUpdateRes(level))
+
+      def initRes = L3_PlainVariableAccess("gen_initRes", L3_RealDatatype, false)
+      def prevRes = L3_PlainVariableAccess("gen_prevRes", L3_RealDatatype, false)
+      def curRes = L3_PlainVariableAccess("gen_curRes", L3_RealDatatype, false)
+      def callResNorm = L3_FunctionCall(L3_LeveledDslFunctionReference("gen_resNorm", level, L3_RealDatatype))
+
+      solveStmts += L3_VariableDeclaration(initRes, callResNorm)
+      solveStmts += L3_VariableDeclaration(curRes, initRes)
+      solveStmts += L3_VariableDeclaration(prevRes, curRes)
+
+      solveStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
+        L3_StringConstant("Starting residual: "), initRes))
+
+      val loopStmts = ListBuffer[L3_Statement]()
+      def curIt = L3_PlainVariableAccess("gen_curIt", L3_IntegerDatatype, false)
+      solveStmts += L3_VariableDeclaration(curIt, 0)
+
+      loopStmts += L3_Assignment(curIt, 1, "+=", None)
+
+      loopStmts += L3_FunctionCall(L3_LeveledDslFunctionReference("gen_mgCycle", level, L3_UnitDatatype))
+      loopStmts ++= entries.map(_.generateUpdateRes(level))
+      loopStmts += L3_Assignment(prevRes, curRes)
+      loopStmts += L3_Assignment(curRes, callResNorm)
+
+      loopStmts += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), ListBuffer[L3_Expression](
+        L3_StringConstant("Residual after"), curIt, L3_StringConstant("iterations is"), curRes,
+        L3_StringConstant("--- convergence factor is"), curRes / prevRes))
+
+      // TODO: error calculation
+
+      solveStmts += L3_UntilLoop(
+        (curIt >= Knowledge.solver_maxNumIts) OrOr (curRes <= Knowledge.solver_targetResReduction * initRes),
+        loopStmts)
+
+      val fct = L3_LeveledFunction(s"gen_solve", level, L3_UnitDatatype, ListBuffer(), solveStmts)
+      ExaRootNode.l3_root.nodes += fct
+    }
 
     for (level <- Knowledge.levels) {
       val solverStmts = ListBuffer[L3_Statement]()

@@ -23,26 +23,28 @@ object L3_IterativeSolverForEquation {
       case _                                                 => Logger.error(s"Unsupported iterative solver: ${ solver }")
     }
   }
-}
 
-trait L3_IterativeSolverForEquation {
-  def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) : ListBuffer[L3_Statement]
+  val resNormFctDoneForLevels = HashSet[Int]()
 
   def generateResNormFunction(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
-    val fctBody = ListBuffer[L3_Statement]()
+    if (!resNormFctDoneForLevels.contains(level)) { // only generate once per level
+      resNormFctDoneForLevels += level
 
-    def resNorm = L3_PlainVariableAccess("gen_resNorm", L3_RealDatatype, false)
-    fctBody += L3_VariableDeclaration(resNorm, 0.0)
+      val fctBody = ListBuffer[L3_Statement]()
 
-    entries.foreach(entry =>
-      fctBody += L3_Assignment(resNorm,
-        L3_FieldAccess(entry.resPerLevel(level)) * L3_FieldAccess(entry.resPerLevel(level)),
-        "+=", None))
+      def resNorm = L3_PlainVariableAccess("gen_resNorm", L3_RealDatatype, false)
+      fctBody += L3_VariableDeclaration(resNorm, 0.0)
 
-    fctBody += L3_Return(Some(L3_FunctionCall(L3_MathFunctionReference("sqrt", L3_RealDatatype), resNorm)))
+      entries.foreach(entry =>
+        fctBody += L3_Assignment(resNorm,
+          L3_FieldAccess(entry.resPerLevel(level)) * L3_FieldAccess(entry.resPerLevel(level)),
+          "+=", None))
 
-    val fct = L3_LeveledFunction(s"gen_resNorm", level, L3_RealDatatype, ListBuffer(), fctBody)
-    ExaRootNode.l3_root.nodes += fct
+      fctBody += L3_Return(Some(L3_FunctionCall(L3_MathFunctionReference("sqrt", L3_RealDatatype), resNorm)))
+
+      val fct = L3_LeveledFunction(s"gen_resNorm", level, L3_RealDatatype, ListBuffer(), fctBody)
+      ExaRootNode.l3_root.nodes += fct
+    }
   }
 
   def generateOperatorApplication(dest : L3_Field, srcExpr : L3_Expression, srcMap : HashMap[L3_SolverForEqEntry, L3_Field],
@@ -61,4 +63,8 @@ trait L3_IterativeSolverForEquation {
 
     assignment
   }
+}
+
+trait L3_IterativeSolverForEquation {
+  def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) : ListBuffer[L3_Statement]
 }

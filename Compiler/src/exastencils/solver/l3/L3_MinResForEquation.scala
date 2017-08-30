@@ -16,6 +16,8 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
   // following "Numerik linearer Gleichungssysteme: Direkte und iterative Verfahren" by C. Kanzow
   //           chapter 6, page 247, alg. 6.19
 
+  import L3_IterativeSolverForEquation._
+
   override def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
     // set up function for norm of residual
     generateResNormFunction(entries, level)

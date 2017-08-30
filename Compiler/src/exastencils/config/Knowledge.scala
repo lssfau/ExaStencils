@@ -149,6 +149,12 @@ object Knowledge {
 
   /// solver setup information
 
+  // target reduction of the residual norm for the whole solver
+  var solver_targetResReduction : Double = 1e-5
+
+  // maximum number of iterations for the whole solver
+  var solver_maxNumIts : Int = 128
+
   // coloring mode used in the generated smoother
   // may be one of the following: 'None', 'RB' or '2-way', '4-way' (2D only), '8-way' (3D only), '9-way' (2D only), '27-way' (3D only)
   var solver_smoother_coloring : String = "None"
