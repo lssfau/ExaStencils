@@ -343,59 +343,74 @@ object Exploration {
 
   private def createVectorizable(prefix : PartialSchedule) : Seq[PartialSchedule] = {
 
+    // basic idea of this algorithm: memory access mapping is an identity (ignoring the tuple name)
+    //   new access (using the new schedule) is the reversed schedule mapping
+    //   innermost access dimension is a linear combination of the schedule for which the outer loop indices disappear und and the inner index has coefficient of 1
+    //   i.e., given all constraints from the schedule we need to find the coefficients for which the upper hold and we use these to compute the constant part of the array access
+    //   this constant part must be 0, so we can compute modifications to the schedule to ensure this
+
     val prefixes = new ArrayBuffer[PartialSchedule]()
     prefixes += prefix
 
-    // create array of indices to take care about later
+    // create array of indices to all but the innermost loop iterators to take care about later
     // return null, if memory is not traversed linearly -> vectorization impossible anyway
     val sVecs = prefix.scheduleVectors
-    val indices = new Array[Int](prefix.domInfo.nrIt - prefix.domInfo.nrStmts)
+    val indices = new Array[Int](prefix.domInfo.nrIt - prefix.domInfo.nrStmts) // should contain indices to all except the innermost iterator coefficients
     var i : Int = 0
     val lastVec = sVecs.last
-    for ((_, StmtCoeffInfo(start, nr, _, _)) <- prefix.domInfo.stmtInfo) {
+    for ((_, StmtCoeffInfo(start, nr, _, _)) <- prefix.domInfo.stmtInfo) { // for each statement
       val lDimInd = start + nr - 1
-      for (j <- start until lDimInd) {
-        indices(i) = j
+      for (j <- start until lDimInd) { // indices for all iterator coefficients except last one
+        indices(i) = j // save all indices (for direct access later)
         i += 1
       }
-      for (i <- 0 until sVecs.length - 1)
-        if (sVecs(i)(lDimInd) != 0)
-          return prefixes
+      for (j <- 0 until sVecs.length - 1) // all except last (which is lastVec)
+        if (sVecs(j)(lDimInd) != 0)
+          return prefixes // no linear memory access
       if (lastVec(lDimInd) == 0)
-        return prefixes
+        return prefixes // no linear memory access
     }
 
     val ctx = prefix.domInfo.ctx
     val nrInp = sVecs.length
-    val cstStart = lastVec.length - prefix.domInfo.nrStmts
+    val endExcl = lastVec.length
+    val cstStart = endExcl - prefix.domInfo.nrStmts
 
-    // additive offsets for last dim
+    // offsetsMap should be a mapping from the coefficients of the schedule dimensions to the constants of the innermost memory access
+    //   (padded with zeros in the beginning to match the width of a schedule vector)
+    // constant value in access according to not restricted coefficients
     var mAff = isl.MultiAff.zero(isl.Space.alloc(ctx, 0, nrInp, lastVec.length))
-    for (pos <- cstStart until lastVec.length) {
+    for (pos <- cstStart until endExcl) {
       var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(isl.Space.setAlloc(ctx, 0, nrInp)))
-      for (i <- 0 until nrInp)
-        aff = aff.setCoefficientSi(T_IN, i, -sVecs(i)(pos))
+      for (d <- 0 until nrInp)
+        aff = aff.setCoefficientSi(T_IN, d, sVecs(d)(pos))
       mAff = mAff.setAff(pos, aff)
     }
     var offsetsMap : isl.Map = isl.BasicMap.fromMultiAff(mAff)
 
-    // create constraints for input
-    for (iVec <- indices) {
+    // restrict coefficients in a way that they form an equation like a*k = ..., where k is the innermost loop iterator (of the original domain) and the rhs does not contain any other iterator of the schedule domain
+    for (iVec <- indices) { // loop over all except the innermost iterator dimensions
       var aff = isl.Aff.zeroOnDomain(isl.LocalSpace.fromSpace(isl.Space.setAlloc(ctx, 0, nrInp)))
       for (d <- 0 until nrInp)
         aff = aff.setCoefficientSi(T_IN, d, sVecs(d)(iVec))
       offsetsMap = offsetsMap.intersectDomain(aff.zeroBasicSet())
     }
-    // last must be positive (and not 0)
-    //  Note: T_SET is not a bug (at least not in this code here...):
-    //    T_SET (for isl.Aff.varOnDomain) == T_IN (for aff.setCoefficient*); the other does NOT work (in neither of both)
-    val aff = isl.Aff.varOnDomain(isl.LocalSpace.fromSpace(isl.Space.setAlloc(ctx, 0, nrInp)), T_SET, nrInp - 1)
-    offsetsMap = offsetsMap.intersectDomain(aff.neg().negBasicSet())
-    var coeffsSet : isl.Set = offsetsMap.domain()
-    // coeff for last dim must be positive, but as small as possible
-    coeffsSet = coeffsSet.moveDims(T_PAR, 0, T_SET, nrInp - 1, 1).moveDims(T_SET, 0, T_PAR, 0, 1) // -.- isl requires: dst_type != src_type
-    coeffsSet = coeffsSet.lexmin()
-    coeffsSet = coeffsSet.moveDims(T_PAR, 0, T_SET, 0, 1).moveDims(T_SET, nrInp - 1, T_PAR, 0, 1)
+    // we search for the absolutely smallest values of the domain, so they must be bounded
+    var domain = offsetsMap.domain()
+    val old = offsetsMap
+    for (i <- 0 until nrInp) {
+      // bounds checks are only reliable for the polyhedral hull of a 1D set (for {[i,i]} both methods return true)
+      val d = domain.projectOut(T_SET, 0, i).projectOut(T_SET, 1, nrInp - i - 1).polyhedralHull()
+      if (!d.dimHasLowerBound(T_SET, 0) && !d.dimHasUpperBound(T_SET, 0)) {
+        domain = domain.lowerBoundVal(T_SET, i, isl.Val.intFromSi(ctx, 0))
+        offsetsMap = offsetsMap.intersectDomain(domain)
+      }
+    }
+    // coefficient for innermost dim must not be 0, since it is the only one that contains the innermost loop iterator
+    domain = isl.Set.universe(domain.getSpace())
+    domain = domain.fixVal(T_SET, nrInp - 1, isl.Val.intFromSi(ctx, 0)).complement()
+    offsetsMap = Isl.simplify(offsetsMap.intersectDomain(domain))
+    val coeffsSet : isl.Set = offsetsMap.domain().lexmin()
 
     val coeffs : isl.Point = coeffsSet.samplePoint()
     val offsetPoint : isl.Point = coeffsSet.apply(offsetsMap).samplePoint()
@@ -404,6 +419,7 @@ object Exploration {
     for (i <- 0 until offsetArray.length)
       offsetArray(i) = offsetPoint.getCoordinateVal(T_SET, i)
 
+    // if constants are already 0 we are done and everything is fine
     if (offsetArray.forall(_ == 0)) {
       prefix.cstVectable = true
       return prefixes // adding a zero vector is boring...
@@ -411,14 +427,11 @@ object Exploration {
 
     // find possible dims (coeff not 0)
     val offsetCoeffsBuffer = new ArrayBuffer[(Int, Int)]()
-    for (i <- 0 until coeffs.getSpace().dim(T_SET)) {
+    for (i <- 0 until nrInp) {
       val c : Int = coeffs.getCoordinateVal(T_SET, i)
       if (c != 0)
         offsetCoeffsBuffer += ((c, i))
     }
-
-    if (offsetCoeffsBuffer.isEmpty)
-      return prefixes
 
     val prefixBnds : Int =
       if (prefix.bands.last == 0) // last band may be empty (precisely: it is empty)
@@ -435,7 +448,7 @@ object Exploration {
       while (i < sVecs.length) {
         var schedVec = sVecs(i)
         if (i == index) {
-          val actualOffset = Util.divEArrayPW(offsetArray, coeff, null)
+          val actualOffset = Util.divEArrayPW(offsetArray, -coeff, null)
           if (actualOffset == null)
             Breaks.break() // continue
           schedVec = Util.addArrayPW(schedVec, actualOffset, actualOffset)
