@@ -29,6 +29,7 @@ import exastencils.field.l2._
 import exastencils.field.l3._
 import exastencils.field.l4._
 import exastencils.globals.ir._
+import exastencils.globals.l4.L4_AddDefaultApplication
 import exastencils.grid.ir._
 import exastencils.grid.l2._
 import exastencils.grid.l3._
@@ -403,6 +404,9 @@ object Main {
         ExaRootNode.l4_root = L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node))
       ExaRootNode.l4_root.flatten()
     }
+
+    if (Knowledge.l4_genDefaultApplication)
+      L4_AddDefaultApplication.apply()
 
     L4_Validation.apply()
 

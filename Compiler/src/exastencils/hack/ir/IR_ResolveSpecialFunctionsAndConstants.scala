@@ -190,20 +190,11 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
     case func : IR_Function if "Application" == func.name =>
       func.datatype = IR_IntegerDatatype
       func.name = "main"
-      if (!func.parameters.isEmpty)
+      if (func.parameters.nonEmpty)
         Logger.warning("function Application is not allowed to have parameters, omitting them")
       func.parameters = ListBuffer(IR_FunctionArgument("argc", IR_IntegerDatatype), IR_FunctionArgument("argv", IR_SpecialDatatype("char**")))
       func.allowFortranInterface = false
       func.allowInlining = false
-      //if (true) {
-      //func.body.append(new ConditionStatement(new MPI_IsRootProc,
-      //  """#ifdef TRACK_CALLS
-      //CallTracker::PrintCallStack();
-      //#endif"""))
-      //func.body.append("""#ifdef TRACK_CALLS
-      //CallTracker::ClearCallStack();
-      //#endif""")
-      //}
       if (Knowledge.cuda_enabled) {
         func.body.prepend(CUDA_Init)
         func.body.append(CUDA_Finalize)

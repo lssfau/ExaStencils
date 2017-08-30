@@ -186,6 +186,9 @@ object Knowledge {
   // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
   var l4_genSepLayoutsPerField : Boolean = true
 
+  // generates a default application assuming a generated solver _if_ no application function is provided
+  var l4_genDefaultApplication : Boolean = false
+
   /// === Post Layer 4 ===
 
   /// --- general parameters ---
