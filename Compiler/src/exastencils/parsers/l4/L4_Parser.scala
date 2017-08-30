@@ -55,7 +55,7 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   //###########################################################
 
-  lazy val program = ((
+  lazy val program = (
     import_
       ||| domain
       ||| layout
@@ -67,8 +67,8 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| globals
       ||| function
       ||| functionTemplate
-      ||| functionInstantiation).+
-    ^^ { L4_Root(_) })
+      ||| functionInstantiation
+    ).* ^^ { L4_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
 
