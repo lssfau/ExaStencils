@@ -2,7 +2,6 @@ package exastencils.parsers.l2
 
 import scala.collection.immutable.PagedSeq
 import scala.collection.mutable._
-import scala.io._
 import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 
@@ -22,12 +21,17 @@ object L2_Parser extends ExaParser with PackratParsers {
     parseTokens(new lexical.Scanner(s))
   }
 
+  private val prevDirs = new Stack[java.io.File]().push(null)
   def parseFile(filename : String) : L2_Root = {
-    val lines = Source.fromFile(filename).getLines
+    val file = new java.io.File(prevDirs.top, filename)
+    val lines = scala.io.Source.fromFile(file).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
 
-    parseTokens(scanner)
+    prevDirs.push(file.getAbsoluteFile.getParentFile)
+    val ret = parseTokens(scanner)
+    prevDirs.pop()
+    ret.asInstanceOf[L2_Root]
   }
 
   protected def parseTokens(tokens : lexical.Scanner) : L2_Root = {
