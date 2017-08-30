@@ -217,6 +217,14 @@ object Main {
 
       L2_UnifyGlobalSections.apply()
 
+      // re-print the merged state
+      val repFileName = { val tmp = Settings.getL2file.head.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
+      val l2_printed = ExaRootNode.l2_root.prettyprint()
+
+      val outFile = new java.io.FileWriter(repFileName)
+      outFile.write(Indenter.addIndentations(l2_printed))
+      outFile.close()
+
       // pre-process level specifications in declarations
       L2_ResolveLevelSpecifications.apply()
 
@@ -272,6 +280,14 @@ object Main {
       ExaRootNode.mergeL3(L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node)))
 
       L3_UnifyGlobalSections.apply()
+
+      // re-print the merged state
+      val repFileName = { val tmp = Settings.getL3file.head.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
+      val l3_printed = ExaRootNode.l3_root.prettyprint()
+
+      val outFile = new java.io.FileWriter(repFileName)
+      outFile.write(Indenter.addIndentations(l3_printed))
+      outFile.close()
 
       // pre-process level specifications in declarations
       L3_ResolveLevelSpecifications.apply()

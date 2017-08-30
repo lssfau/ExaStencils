@@ -31,10 +31,23 @@ case class L3_SolverForEquation(
     var entries : ListBuffer[L3_SolverForEqEntry],
     var options : HashMap[String, Any]) extends L3_Statement {
 
+  def printAnyVal(v : Any) = {
+    v match {
+      case c : Char   => s"'$c'"
+      case s : String => '"' + s + '"'
+      case other      => other
+    }
+  }
+
   override def prettyprint(out : PpStream) = {
     out << "generate solver for "
     entries.foreach(e => out << e.solName << " in " << e.eqName << " and ")
     out.removeLast(" and ".length)
+    if (options.nonEmpty) {
+      out << " with {\n"
+      options.foreach(o => out << o._1 << " = " << printAnyVal(o._2) << "\n")
+      out << "}"
+    }
   }
 
   override def progress : L4_Statement = ???

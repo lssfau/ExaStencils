@@ -17,7 +17,11 @@ case class L2_BaseStencilDecl(
     var levels : Option[L2_LevelSpecification],
     var entries : ListBuffer[L2_StencilEntry]) extends L2_StencilDecl {
 
-  override def prettyprint(out : PpStream) = out << "--- FIXME ---"
+  override def prettyprint(out : PpStream) = {
+    out << "Operator " << name
+    if (levels.isDefined) out << '@' << levels.get
+    out << " from Stencil {\n" <<< (entries, "\n") << "\n}"
+  }
 
   override def addToKnowledge() : Unit = {
     // TODO: check stencil - numDims for entries, stride, etc.

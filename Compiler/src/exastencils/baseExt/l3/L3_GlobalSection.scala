@@ -16,7 +16,10 @@ object L3_GlobalSection {
 }
 
 case class L3_GlobalSection(var declarations : ListBuffer[L3_VariableDeclaration]) extends L3_Node with PrettyPrintable with L3_Progressable {
-  override def prettyprint(out : PpStream) = out << "Globals {\n" <<< (declarations, "\n") << "\n}\n"
+  override def prettyprint(out : PpStream) = {
+    if (declarations.nonEmpty) out << "Globals {\n" <<< (declarations, "\n") << "\n}"
+  }
+
   override def progress = L4_GlobalSection(declarations.map(_.progress))
 }
 

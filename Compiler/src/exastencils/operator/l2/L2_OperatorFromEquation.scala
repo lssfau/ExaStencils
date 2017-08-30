@@ -7,7 +7,7 @@ import exastencils.base.l2._
 import exastencils.core.Duplicate
 import exastencils.field.l2.L2_FieldAccess
 import exastencils.optimization.l2.L2_GeneralSimplifyWrapper
-import exastencils.prettyprinting.PpStream
+import exastencils.prettyprinting._
 
 /// L2_OperatorFromEquation
 
@@ -21,7 +21,11 @@ case class L2_OperatorFromEquation(
     var entries : ListBuffer[L2_OperatorFromEqEntry]) extends L2_StencilDecl {
 
   override def name : String = ???
-  override def prettyprint(out : PpStream) : Unit = ???
+  override def prettyprint(out : PpStream) : Unit = {
+    out << "generate operators"
+    if (levels.isDefined) out << " @" << levels.get
+    out << " {\n" <<< (entries, "\n") << "\n}"
+  }
 
   override def addToKnowledge() = {
     import L2_GenerateStencilFromEquation._
@@ -75,6 +79,10 @@ case class L2_OperatorFromEquation(
 case class L2_OperatorMapping(
     var name : String,
     var levels : Option[L2_LevelSpecification],
-    var unknown : L2_Access) extends L2_Node {
+    var unknown : L2_Access) extends L2_Node with PrettyPrintable {
 
+  override def prettyprint(out : PpStream) = {
+    out << unknown << " => " << name
+    if (levels.isDefined) out << '@' << levels.get
+  }
 }

@@ -15,7 +15,11 @@ case class L3_StencilFromExpression(
     var levels : Option[L3_LevelSpecification],
     var expression : L3_Expression) extends L3_StencilDecl {
 
-  override def prettyprint(out : PpStream) = out << "--- FIXME ---"
+  override def prettyprint(out : PpStream) = {
+    out << "Operator " << name
+    if (levels.isDefined) out << '@' << levels.get
+    out << " from " << expression
+  }
 
   override def addToKnowledge() : Unit = {
     while (!expression.isInstanceOf[L3_StencilAccess]) {

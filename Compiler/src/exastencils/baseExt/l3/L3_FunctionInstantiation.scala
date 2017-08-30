@@ -36,7 +36,7 @@ object L3_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
       if (templateOpt.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
       val template = templateOpt.get
       val instantiated = Duplicate(L3_FunctionDecl(functionInst.targetFct, functionInst.targetFctLevel,
-        template.returnType, template.functionArgs, template.statements))
+        template.datatype, template.functionArgs, template.statements))
 
       L3_ReplaceUnresolvedAccess.replacements = Map() ++ (template.templateArgs zip functionInst.args).toMap[String, L3_Expression]
       L3_ReplaceUnresolvedAccess.applyStandalone(instantiated)

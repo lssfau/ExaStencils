@@ -14,7 +14,12 @@ case class L3_BoundaryFieldDecl(
     var levels : Option[L3_LevelSpecification],
     var boundary : L3_BoundaryCondition) extends L3_LeveledKnowledgeDecl {
 
-  override def prettyprint(out : PpStream) = out << "--- FIXME ---"
+  override def prettyprint(out : PpStream) = {
+    out << "Field " << name
+    if (levels.isDefined) out << '@' << levels.get
+    out << " on boundary = " << boundary
+  }
+
   override def progress = Logger.error(s"Trying to progress L3 boundary declaration for field $name; this is not supported")
 
   def addToKnowledge() : Unit = {

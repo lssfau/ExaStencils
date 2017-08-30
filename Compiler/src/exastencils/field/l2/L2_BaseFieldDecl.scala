@@ -21,7 +21,12 @@ case class L2_BaseFieldDecl(
     var domain : L2_Access,
     var initial : Option[L2_Expression]) extends L2_FieldDecl {
 
-  override def prettyprint(out : PpStream) = out << "--- FIXME ---"
+  override def prettyprint(out : PpStream) = {
+    out << "Field " << name
+    if (levels.isDefined) out << '@' << levels.get
+    out << " with " << datatype << " on " << localization << " of " << domain
+    if (initial.isDefined) out << " = " << initial.get
+  }
 
   override def addToKnowledge() : Unit = {
     L2_FieldCollection.add(

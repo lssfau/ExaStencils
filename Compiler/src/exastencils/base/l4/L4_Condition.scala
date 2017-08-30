@@ -9,7 +9,7 @@ import exastencils.prettyprinting.PpStream
 
 case class L4_IfCondition(var condition : L4_Expression, var trueBody : ListBuffer[L4_Statement], var falseBody : ListBuffer[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) = {
-    out << "if (" << condition << ") {\n"
+    out << "if ( " << condition << " ) {\n"
     out <<< (trueBody, "\n")
     if (falseBody.nonEmpty) {
       out << "\n} else {\n"

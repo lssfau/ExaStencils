@@ -25,14 +25,14 @@ case class L3_ForLoop(
 /// L3_UntilLoop
 
 case class L3_UntilLoop(var comparison : L3_Expression, var body : ListBuffer[L3_Statement]) extends L3_Statement {
-  override def prettyprint(out : PpStream) = out << "repeat until " << comparison << "{\n" <<< (body, "\n") << "\n}"
+  override def prettyprint(out : PpStream) = out << "repeat until " << comparison << " {\n" <<< (body, "\n") << "\n}"
   override def progress = L4_UntilLoop(comparison.progress, body.map(_.progress))
 }
 
 /// L3_WhileLoop
 
 case class L3_WhileLoop(var comparison : L3_Expression, var body : ListBuffer[L3_Statement]) extends L3_Statement {
-  override def prettyprint(out : PpStream) = { out << "repeat while " << comparison << "{\n" <<< body << "}\n" }
+  override def prettyprint(out : PpStream) = { out << "repeat while " << comparison << " {\n" <<< body << "}\n" }
 
   override def progress = L4_WhileLoop(comparison.progress, body.map(_.progress))
 }

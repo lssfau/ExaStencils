@@ -4,11 +4,12 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l2._
 import exastencils.core.Duplicate
+import exastencils.prettyprinting._
 import exastencils.solver.l2.L2_EquationAccess
 
 /// L2_OperatorFromEqEntry
 
-abstract class L2_OperatorFromEqEntry extends L2_Node {
+abstract class L2_OperatorFromEqEntry extends L2_Node with PrettyPrintable {
   def targetField : L2_Access
   def mapping : ListBuffer[L2_OperatorMapping]
   def resolveEquation() : L2_Equation
@@ -27,7 +28,13 @@ case class L2_OperatorFromInlineEq(
     var equation : L2_Equation,
     var mapping : ListBuffer[L2_OperatorMapping]) extends L2_OperatorFromEqEntry {
 
-  def resolveEquation() = equation
+  override def prettyprint(out : PpStream) = {
+    out << "equation for " << targetField << " {\n"
+    out << equation << "\n} store in {\n"
+    out <<< (mapping, "\n") << "\n}"
+  }
+
+  override def resolveEquation() = equation
   override def updateEquation(eq : L2_Equation) = { equation = eq }
 }
 
@@ -42,6 +49,11 @@ case class L2_OperatorFromNamedEq(
     var targetField : L2_Access,
     var equation : L2_Access,
     var mapping : ListBuffer[L2_OperatorMapping]) extends L2_OperatorFromEqEntry {
+
+  override def prettyprint(out : PpStream) = {
+    out << "equation for " << targetField << " is " << equation << " store in {\n"
+    out <<< (mapping, "\n") << "\n}"
+  }
 
   def resolveEquation() = {
     val eqAccess = equation.asInstanceOf[L2_EquationAccess]

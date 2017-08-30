@@ -30,10 +30,12 @@ case class L2_StencilFieldDecl(
   def offsets = entries.map(_.asStencilOffsetEntry.offset)
 
   override def prettyprint(out : PpStream) = {
-    out << "Operator " << name << " from StencilField on " << localization << " of " << domainName << " {\n"
-    for (offset <- offsets)
-      out << offset << " =>\n"
-    out << "}"
+    out << "Operator " << name << " from StencilField on " << localization << " of " << domainName << " {"
+    entries.foreach(e => {
+      out << "\n" << e.asStencilOffsetEntry.offset << " => "
+      if (e.coefficient != L2_NullExpression) out << ' ' << e.coefficient
+    })
+    out << "\n}"
   }
 
   override def addToKnowledge() : Unit = {

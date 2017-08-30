@@ -27,7 +27,10 @@ case class L3_DefaultRestrictionStencil(
     var localization : L3_Localization,
     var interpolation : String) extends L3_StencilFromDefault {
 
-  override def prettyprint(out : PpStream) = out << "Operator " << name << " from default restriction ( " << numDims << ", " << localization << ", " << interpolation << " )"
+  override def prettyprint(out : PpStream) = {
+    out << "Stencil " << name << " from default restriction on " << localization << " with \"" << interpolation << '"'
+  }
+
   override def progress = Logger.error(s"Trying to progress l3 default stencil $name; this is not supported")
 
   override def generateStencil() = L3_DefaultRestriction.generate(name, levels.get.resolveLevel, numDims, localization, interpolation)
@@ -48,7 +51,10 @@ case class L3_DefaultProlongationStencil(
     var localization : L3_Localization,
     var interpolation : String) extends L3_StencilFromDefault {
 
-  override def prettyprint(out : PpStream) = out << "Operator " << name << " from default restriction ( " << numDims << ", " << localization << ", " << interpolation << " )"
+  override def prettyprint(out : PpStream) = {
+    out << "Stencil " << name << " from default prolongation on " << localization << " with \"" << interpolation << '"'
+  }
+
   override def progress = Logger.error(s"Trying to progress l3 default stencil $name; this is not supported")
 
   override def generateStencil() = L3_DefaultProlongation.generate(name, levels.get.resolveLevel, numDims, localization, interpolation)

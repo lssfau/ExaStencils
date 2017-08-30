@@ -15,7 +15,11 @@ case class L2_StencilFromExpression(
     var levels : Option[L2_LevelSpecification],
     var expression : L2_Expression) extends L2_StencilDecl {
 
-  override def prettyprint(out : PpStream) = out << "--- FIXME ---"
+  override def prettyprint(out : PpStream) = {
+    out << "Operator " << name
+    if (levels.isDefined) out << '@' << levels.get
+    out << " from " << expression
+  }
 
   override def addToKnowledge() : Unit = {
     while (!expression.isInstanceOf[L2_StencilAccess]) {

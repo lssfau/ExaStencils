@@ -12,7 +12,7 @@ object L3_Assignment {
 
 // TODO: use specialized compound assignment and eliminate op member
 case class L3_Assignment(var dest : L3_Access, var src : L3_Expression, var op : String, var condition : Option[L3_Expression]) extends L3_Statement {
-  override def prettyprint(out : PpStream) = out << dest << ' ' << op << ' ' << src << '\n'
+  override def prettyprint(out : PpStream) = out << dest << ' ' << op << ' ' << src
   override def progress = L4_Assignment(dest.progress, src.progress, op, L3_ProgressOption(condition)(_.progress))
 }
 

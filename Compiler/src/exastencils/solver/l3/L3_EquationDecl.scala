@@ -8,17 +8,15 @@ import exastencils.prettyprinting.PpStream
 
 /// L3_EquationDecl
 
-case class L3_EquationDecl(
-    var name : String, var levels : Option[L3_LevelSpecification],
-    var lhs : L3_Expression, var rhs : L3_Expression) extends L3_LeveledKnowledgeDecl {
+case class L3_EquationDecl(var name : String, var levels : Option[L3_LevelSpecification], var equation : L3_Equation) extends L3_LeveledKnowledgeDecl {
 
-  override def prettyprint(out : PpStream) = out << "--- FIXME ---"
-
-  override def addToKnowledge() : Unit = {
-    L3_EquationCollection.add(
-      L3_NamedEquation(name, L3_LevelSpecification.asSingleLevel(levels), L3_Equation(lhs, rhs)))
+  override def prettyprint(out : PpStream) = {
+    out << "Equation " << name
+    if (levels.isDefined) out << '@' << levels.get
+    out << " {\n" << equation << "\n}"
   }
 
+  override def addToKnowledge() = L3_EquationCollection.add(L3_NamedEquation(name, L3_LevelSpecification.asSingleLevel(levels), equation))
   override def progress = Logger.error(s"Trying to progress L3 equation declaration for equation $name; this is not supported")
 }
 

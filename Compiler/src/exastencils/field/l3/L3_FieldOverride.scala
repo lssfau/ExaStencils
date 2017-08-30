@@ -16,7 +16,7 @@ case class L3_OverrideFieldBC(
   override def prettyprint(out : PpStream) = {
     out << "override bc of " << fieldName
     if (levels.isDefined) out << "@" << levels.get
-    out << "with" << newBC
+    out << " with " << newBC
   }
 
   override def progress = Logger.error(s"Trying to progress l3 field override statement for field $fieldName; this is not supported")
