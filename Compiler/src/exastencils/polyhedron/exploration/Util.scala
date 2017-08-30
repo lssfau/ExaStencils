@@ -75,6 +75,10 @@ object Util {
     while (i < length) {
       if (in(i) % c != 0)
         return null // not exactly dividable... no result
+      i += 1
+    }
+    i = 0
+    while (i < length) {
       res(i) = in(i) / c
       i += 1
     }

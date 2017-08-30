@@ -23,7 +23,7 @@ class Platform_Parser extends ExaParser {
   private val prevDirs = new Stack[java.io.File]().push(null)
   def parseFile(filename : String) : Unit = {
     val file = new java.io.File(prevDirs.top, filename)
-    val lines = io.Source.fromFile(file).getLines
+    val lines = scala.io.Source.fromFile(file).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
 
