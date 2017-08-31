@@ -51,9 +51,9 @@ case class L4_LoopOverField(
 
   override def prettyprint(out : PpStream) = {
     out << "loop over " << field << ' '
-    if (region.isDefined) out << "only " << region.get
+    if (region.isDefined) out << "only " << region.get << ' '
     if (seq) out << "sequentially "
-    if (condition.isDefined) out << "where " << condition.get
+    if (condition.isDefined) out << "where " << condition.get << ' '
     if (startOffset.isDefined) out << "starting " << startOffset.get << ' '
     if (endOffset.isDefined) out << "ending " << endOffset.get << ' '
     if (increment.isDefined) out << "stepping " << increment.get << ' '

@@ -26,7 +26,7 @@ case class L4_Communicate(
   override def prettyprint(out : PpStream) = {
     if ("both" != op) out << op + ' '
     out << "communicate " <<< (targets, " ") << (if (targets.isEmpty) "" else " of ") << field
-    if (condition.isDefined) out << " where " << condition
+    if (condition.isDefined) out << " where " << condition.get
   }
 
   override def progress : IR_Communicate = {

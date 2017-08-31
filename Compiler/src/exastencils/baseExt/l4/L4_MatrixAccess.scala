@@ -15,10 +15,12 @@ case class L4_MatrixExpression(
     Logger.error("Rows of matrix must be of equal length")
 
   def prettyprint(out : PpStream) = {
-    out << '['
-    expressions.foreach(out <<< (_, " "))
-    out << ']'
+    out << "{ "
+    expressions.foreach(out << "{ " <<< (_, ", ") << " }, ")
+    out.removeLast(", ".length)
+    out << " }"
   }
+
   def progress = IR_MatrixExpression(L4_ProgressOption(datatype)(_.progress), this.rows, this.columns, expressions.flatten.map(_.progress).toArray)
 
   def rows = expressions.length
