@@ -46,4 +46,5 @@ l3tmp_numPre               = 3
 l3tmp_numPost              = 3
 l3tmp_genTemporalBlocking  = false
 
+l3tmp_generateL4           = true
 l3tmp_genForAutoTests      = true

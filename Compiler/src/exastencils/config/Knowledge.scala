@@ -533,7 +533,7 @@ object Knowledge {
   var sisc2015_numOMP_z : Int = 2
 
   /// BEGIN HACK config options for generating L4 DSL file
-  var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
+  var l3tmp_generateL4 : Boolean = false // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
 
   /// SPL connected
   var l3tmp_smoother : String = "Jac"
