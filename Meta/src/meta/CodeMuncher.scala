@@ -79,11 +79,14 @@ object CodeMuncher {
       // replace freestanding occurrences
       string = replaceIn(string, spacers, spacers)
 
+      // replace triple quotes
+      string = string.replaceAllLiterally("\"\"\"", "\"\"\" + \"\\\"\\\"\\\"\" + \"\"\"")
+
       if (codeVariants.contains(string))
         codeVariants(string) += layer
       else
         codeVariants += ((string, ListBuffer(layer)))
-    })
+    } : Unit)
 
     val codeVariantsSorted = codeVariants.toList.sortBy(_._2.head.lc)
 

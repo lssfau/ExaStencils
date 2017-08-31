@@ -1,12 +1,30 @@
 package meta
 
+import scala.collection.mutable.ListBuffer
+
 /// Layer
+
+object Layer {
+  def all = ListBuffer(L2, L3, L4, IR)
+  def L2_L3 = ListBuffer(L2, L3)
+  def L3_L4 = ListBuffer(L3, L4)
+  def L2_L3_L4 = ListBuffer(L2, L3, L4)
+}
 
 abstract class Layer {
   def lc : String
   def uc : String
   def hasNext : Boolean
   def next : Layer
+}
+
+/// L1
+
+object L1 extends Layer {
+  override def lc = "l1"
+  override def uc = "L1"
+  override def hasNext = true
+  override def next = L2
 }
 
 /// L2
@@ -42,7 +60,7 @@ object IR extends Layer {
   override def lc = "ir"
   override def uc = "IR"
   override def hasNext = false
-  override def next = ???
+  override def next = { println("WARN: Using next of IR"); IR }
 }
 
 /// MetaLayer

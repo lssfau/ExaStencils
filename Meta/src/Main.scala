@@ -1,10 +1,17 @@
+import exastencils.grid.meta._
+import exastencils.util.meta.ME_CollectFieldAccesses
 import meta._
 
 object Main {
   def main(args : Array[String]) : Unit = {
-    collect()
-    //generate()
-    duplicate()
+    println(s"Performing operation '${ args(0) }'")
+
+    args(0) match {
+      case "collect"   => collect()
+      case "generate"  => generate()
+      case "duplicate" => duplicate()
+      case other       => println(s"Unknown operation $other")
+    }
   }
 
   def collect() = {
@@ -19,10 +26,19 @@ object Main {
   }
 
   def duplicate() = {
+    import Layer._
+
+    all /* dummy */
+
 //    for (entry <- GeneratorList.entries)
 //      entry.duplicateFromTo(L2, L3)
 
 //    ME_XXX.duplicateFromTo(IR, L2)
 
+    //ME_EvaluateOnGrid.duplicateFromTo(L4, L2)
+    ME_EvaluateOnGrid.duplicateFromTo(L4, IR)
+//    ME_IntegrateOnGrid.duplicateFromTo(L4, L2)
+    ME_IntegrateOnGrid.duplicateFromTo(L4, IR)
+    ME_CollectFieldAccesses.duplicateFromTo(L4, IR)
   }
 }

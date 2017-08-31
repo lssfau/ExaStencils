@@ -33,6 +33,10 @@ trait Generatable {
   def filenameForLayer(layer : Layer) : String
   def generateForLayer(layer : Layer) : String
 
+  def duplicateFromTo(copyFrom : Layer, layer : ListBuffer[Layer]) : Unit = {
+    layer.foreach(duplicateFromTo(copyFrom, _))
+  }
+
   def duplicateFromTo(copyFrom : Layer, layer : Layer) = {
     var filename = filenameForLayer(layer)
     filename = Printer.process(filename, layer)
