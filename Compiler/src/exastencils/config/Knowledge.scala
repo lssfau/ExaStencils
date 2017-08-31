@@ -491,9 +491,6 @@ object Knowledge {
   // Export loop kernels to pseudo-C and kerncraft YAML kernel descriptions.
   var experimental_kerncraftExport : Boolean = false
 
-  // enables support for layers 2 and 3
-  var experimental_layerExtension : Boolean = false
-
   // enables internal handling of high-dimensional data type
   var experimental_internalHighDimTypes : Boolean = true
 
