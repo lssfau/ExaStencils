@@ -1,5 +1,6 @@
 import scala.collection.mutable.ListBuffer
 
+import exastencils.app.ExaLayerHandler
 import exastencils.base.ExaRootNode
 import exastencils.config._
 import exastencils.core._
@@ -116,11 +117,7 @@ object ConfigRunner {
       val goOn = initSubsequent(configuration)
 
       if (goOn && runnerConfig.constraints.map(_.eval()).fold(true)(_ && _)) {
-        Main.handleL1()
-        Main.handleL2()
-        Main.handleL3()
-        Main.handleL4()
-        Main.handleIR()
+        ExaLayerHandler.handleAllLayers()
 
         Main.print()
         configNames += Settings.configName
@@ -134,7 +131,7 @@ object ConfigRunner {
           Logger.debug(s"Configuration filtered due to constraints: ${ configuration.print() }")
       }
 
-      Main.shutdown()
+      Main.localShutdown()
     }
 
     printCompileScript(configNames)
