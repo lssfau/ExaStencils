@@ -44,10 +44,13 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 1")
 
     // add L1 code here
-    if (Knowledge.experimental_layerExtension) {
-      ExaRootNode.l1_root = L1_Root() // dummy node
-      ExaRootNode.progressToL2()
-    }
+    ExaRootNode.l1_root = L1_Root() // dummy node
+    ExaRootNode.l1_root.flatten()
+    print()
+
+    // add more code here
+
+    ExaRootNode.progressToL2()
 
     if (Settings.timeStrategies) StrategyTimer.stopTiming("Handling Layer 1")
   }

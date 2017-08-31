@@ -6,13 +6,11 @@ import exastencils.base.l3._
 import exastencils.baseExt.l3._
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
-import exastencils.deprecated.l3Generate
 import exastencils.domain.l3.L3_DomainCollection
 import exastencils.field.l3._
 import exastencils.grid.l3._
 import exastencils.knowledge.l3.L3_KnowledgeContainer._
 import exastencils.knowledge.l3._
-import exastencils.logger.Logger
 import exastencils.operator.l3._
 import exastencils.parsers.l3.L3_Parser
 import exastencils.prettyprinting.Indenter
@@ -61,9 +59,11 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
   override def handle() : Unit = {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 3")
 
-    if (Knowledge.experimental_layerExtension) {
-      ExaRootNode.mergeL3(L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node)))
+    ExaRootNode.mergeL3(L3_Root(Settings.getL3file.map(L3_Parser.parseFile(_) : L3_Node)))
+    ExaRootNode.l3_root.flatten()
+    print()
 
+    if (ExaRootNode.l3_root.nodes.nonEmpty) {
       L3_UnifyGlobalSections.apply()
 
       print()
@@ -118,17 +118,12 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       L3_ResolveOperatorTimesField.apply()
 
       L3_FieldCollection.addInitFieldsFunction()
-
-      // progress knowledge to L4
-      L3_KnowledgeContainer.progress()
-
-      ExaRootNode.progressToL4()
-    } else if (Knowledge.l3tmp_generateL4) {
-      val l3gen_root = l3Generate.Root()
-      val l4Filenames = Settings.getL4file
-      if (l4Filenames.length != 1) Logger.error("l3tmp_generateL4 requires exactly one Layer4 file provided in settings")
-      l3gen_root.printToL4(l4Filenames.head)
     }
+
+    // progress knowledge to L4
+    L3_KnowledgeContainer.progress()
+
+    ExaRootNode.progressToL4()
 
     if (Settings.timeStrategies) StrategyTimer.stopTiming("Handling Layer 3")
   }

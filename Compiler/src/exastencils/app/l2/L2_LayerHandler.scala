@@ -72,12 +72,12 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
           level => l3Generate.Domains.getGlobalWidths(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
     }
 
-    if (Knowledge.experimental_layerExtension) {
-      ExaRootNode.mergeL2(L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node)))
+    ExaRootNode.mergeL2(L2_Root(Settings.getL2file.map(L2_Parser.parseFile(_) : L2_Node)))
+    ExaRootNode.l2_root.flatten()
+    print()
 
+    if (ExaRootNode.l2_root.nodes.nonEmpty) {
       L2_UnifyGlobalSections.apply()
-
-      print()
 
       // pre-process level specifications in declarations
       L2_ResolveLevelSpecifications.apply()
@@ -115,12 +115,12 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
       } while (matches > 0)
 
       L2_ProcessBoundaryDeclarations.apply()
-
-      // progress knowledge to L3
-      L2_KnowledgeContainer.progress()
-
-      ExaRootNode.progressToL3()
     }
+
+    // progress knowledge to L3
+    L2_KnowledgeContainer.progress()
+
+    ExaRootNode.progressToL3()
 
     if (Settings.timeStrategies) StrategyTimer.stopTiming("Handling Layer 2")
   }
