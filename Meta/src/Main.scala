@@ -1,5 +1,3 @@
-import exastencils.grid.meta._
-import exastencils.util.meta.ME_CollectFieldAccesses
 import meta._
 
 object Main {
@@ -34,11 +32,5 @@ object Main {
 //      entry.duplicateFromTo(L2, L3)
 
 //    ME_XXX.duplicateFromTo(IR, L2)
-
-    //ME_EvaluateOnGrid.duplicateFromTo(L4, L2)
-    ME_EvaluateOnGrid.duplicateFromTo(L4, IR)
-//    ME_IntegrateOnGrid.duplicateFromTo(L4, L2)
-    ME_IntegrateOnGrid.duplicateFromTo(L4, IR)
-    ME_CollectFieldAccesses.duplicateFromTo(L4, IR)
   }
 }
