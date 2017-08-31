@@ -22,6 +22,15 @@ import exastencils.util.l2.L2_ResolveMathFunctions
 
 trait L2_LayerHandler extends LayerHandler
 
+/// L2_DummyLayerHandler 
+
+object L2_DummyLayerHandler extends L2_LayerHandler {
+  def initialize() : Unit = {}
+  def handle() : Unit = {}
+  def print() : Unit = {}
+  def shutdown() : Unit = {}
+}
+
 /// L2_DefaultLayerHandler
 
 object L2_DefaultLayerHandler extends L2_LayerHandler {

@@ -11,6 +11,15 @@ import exastencils.prettyprinting.Indenter
 
 trait L1_LayerHandler extends LayerHandler
 
+/// L1_DummyLayerHandler
+
+object L1_DummyLayerHandler extends L1_LayerHandler {
+  def initialize() : Unit = {}
+  def handle() : Unit = {}
+  def print() : Unit = {}
+  def shutdown() : Unit = {}
+}
+
 /// L1_DefaultLayerHandler
 
 object L1_DefaultLayerHandler extends L1_LayerHandler {

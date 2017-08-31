@@ -1,6 +1,6 @@
 import scala.collection.mutable.ListBuffer
 
-import exastencils.app.ExaLayerHandler
+import exastencils.app._
 import exastencils.app.ir.IR_DefaultLayerHandler
 import exastencils.base.ExaRootNode
 import exastencils.config._
@@ -98,6 +98,7 @@ object Main {
       val start : Long = System.nanoTime()
 
       localInitialize(args)
+      ExaLayerHandler.maskUnusedLayers()
       ExaLayerHandler.initializeAllLayers()
 
       ExaLayerHandler.handleAllLayers()

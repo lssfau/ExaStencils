@@ -53,6 +53,14 @@ object Settings {
   var debugL4File : String = ""
   def getDebugL4file : String = if (debugL4File.isEmpty) debugL4File else getBasePath + debugL4File
 
+  def minLayerFileProvided : Int = {
+    if (getL1file.nonEmpty) 1
+    else if (getL2file.nonEmpty) 2
+    else if (getL3file.nonEmpty) 3
+    else if (getL4file.nonEmpty) 4
+    else 5
+  }
+
   /// config file for polyhedral search space exploration
 
   var poly_explorationConfig : String = ""

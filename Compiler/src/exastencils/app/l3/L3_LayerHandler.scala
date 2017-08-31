@@ -23,6 +23,15 @@ import exastencils.util.l3.L3_ResolveMathFunctions
 
 trait L3_LayerHandler extends LayerHandler
 
+/// L3_DummyLayerHandler 
+
+object L3_DummyLayerHandler extends L3_LayerHandler {
+  def initialize() : Unit = {}
+  def handle() : Unit = {}
+  def print() : Unit = {}
+  def shutdown() : Unit = {}
+}
+
 /// L3_DefaultLayerHandler
 
 object L3_DefaultLayerHandler extends L3_LayerHandler {

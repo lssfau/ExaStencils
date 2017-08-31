@@ -33,6 +33,15 @@ import exastencils.util._
 
 trait IR_LayerHandler extends LayerHandler
 
+/// IR_DummyLayerHandler 
+
+object IR_DummyLayerHandler extends IR_LayerHandler {
+  def initialize() : Unit = {}
+  def handle() : Unit = {}
+  def print() : Unit = {}
+  def shutdown() : Unit = {}
+}
+
 /// IR_DefaultLayerHandler
 
 object IR_DefaultLayerHandler extends IR_LayerHandler {

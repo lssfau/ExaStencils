@@ -31,6 +31,15 @@ import exastencils.util.l4._
 
 trait L4_LayerHandler extends LayerHandler
 
+/// L4_DummyLayerHandler 
+
+object L4_DummyLayerHandler extends L4_LayerHandler {
+  def initialize() : Unit = {}
+  def handle() : Unit = {}
+  def print() : Unit = {}
+  def shutdown() : Unit = {}
+}
+
 /// L4_DefaultLayerHandler
 
 object L4_DefaultLayerHandler extends L4_LayerHandler {
