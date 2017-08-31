@@ -23,6 +23,7 @@ import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
 import exastencils.performance._
 import exastencils.polyhedron._
+import exastencils.prettyprinting.PrintToFile
 import exastencils.solver.ir._
 import exastencils.stencil.ir._
 import exastencils.timing.ir._
@@ -35,7 +36,7 @@ trait IR_LayerHandler extends LayerHandler
 /// IR_DefaultLayerHandler
 
 object IR_DefaultLayerHandler extends IR_LayerHandler {
-  /* FIXME: move somewhere reasonable */ var polyOptExplID : Int = 0
+  /* FIXME: move somewhere more reasonable */ var polyOptExplID : Int = 0
 
   override def initialize() : Unit = {
     // TODO: use KnowledgeContainer structure
@@ -44,6 +45,10 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
   override def shutdown() : Unit = {
     // TODO: use KnowledgeContainer structure; remove IR_ClearKnowledge
     IR_ClearKnowledge.apply()
+  }
+
+  override def print() : Unit = {
+    PrintToFile.apply()
   }
 
   override def handle() : Unit = {

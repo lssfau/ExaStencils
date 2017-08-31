@@ -5,6 +5,7 @@ import exastencils.base.ExaRootNode
 import exastencils.base.l1.L1_Root
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
+import exastencils.prettyprinting.Indenter
 
 /// L1_LayerHandler
 
@@ -20,6 +21,14 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
 
   override def shutdown() : Unit = {
     // nothing to do here yet
+  }
+
+  override def print() : Unit = {
+    if (Settings.getDebugL1file.nonEmpty) {
+      val outFile = new java.io.FileWriter(Settings.getDebugL1file)
+      outFile.write(Indenter.addIndentations(ExaRootNode.l1_root.prettyprint()))
+      outFile.close()
+    }
   }
 
   override def handle() : Unit = {

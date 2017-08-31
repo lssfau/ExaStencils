@@ -41,6 +41,14 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
     L3_KnowledgeContainer.clear()
   }
 
+  override def print() : Unit = {
+    if (Settings.getDebugL3file.nonEmpty) {
+      val outFile = new java.io.FileWriter(Settings.getDebugL3file)
+      outFile.write(Indenter.addIndentations(ExaRootNode.l3_root.prettyprint()))
+      outFile.close()
+    }
+  }
+
   override def handle() : Unit = {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 3")
 
@@ -49,13 +57,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
 
       L3_UnifyGlobalSections.apply()
 
-      // re-print the merged state
-      val repFileName = { val tmp = Settings.getL3file.head.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
-      val l3_printed = ExaRootNode.l3_root.prettyprint()
-
-      val outFile = new java.io.FileWriter(repFileName)
-      outFile.write(Indenter.addIndentations(l3_printed))
-      outFile.close()
+      print()
 
       // pre-process level specifications in declarations
       L3_ResolveLevelSpecifications.apply()

@@ -88,7 +88,7 @@ object Main {
 
   def print() = {
     Logger.dbg("Prettyprinting to folder " + new java.io.File(Settings.getOutputPath).getAbsolutePath)
-    PrintToFile.apply()
+    ExaLayerHandler.ir_handler.print()
     PrettyprintingManager.finish()
   }
 

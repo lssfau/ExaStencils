@@ -40,6 +40,14 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     L2_KnowledgeContainer.clear()
   }
 
+  override def print() : Unit = {
+    if (Settings.getDebugL2file.nonEmpty) {
+      val outFile = new java.io.FileWriter(Settings.getDebugL2file)
+      outFile.write(Indenter.addIndentations(ExaRootNode.l2_root.prettyprint()))
+      outFile.close()
+    }
+  }
+
   override def handle() : Unit = {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 2")
 
@@ -60,13 +68,7 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
 
       L2_UnifyGlobalSections.apply()
 
-      // re-print the merged state
-      val repFileName = { val tmp = Settings.getL2file.head.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
-      val l2_printed = ExaRootNode.l2_root.prettyprint()
-
-      val outFile = new java.io.FileWriter(repFileName)
-      outFile.write(Indenter.addIndentations(l2_printed))
-      outFile.close()
+      print()
 
       // pre-process level specifications in declarations
       L2_ResolveLevelSpecifications.apply()

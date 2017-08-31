@@ -51,6 +51,14 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     L4_KnowledgeContainer.clear()
   }
 
+  override def print() : Unit = {
+    if (Settings.getDebugL4file.nonEmpty) {
+      val outFile = new java.io.FileWriter(Settings.getDebugL4file)
+      outFile.write(Indenter.addIndentations(ExaRootNode.l4_root.prettyprint()))
+      outFile.close()
+    }
+  }
+
   override def handle() : Unit = {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 4")
 
@@ -79,18 +87,13 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
         // L4_GenerateLeveledKnowledgeDecls.apply()
       }
 
-      // re-print the merged L4 state
-      val repFileName = { val tmp = Settings.getL4file.head.split('.'); tmp.dropRight(1).mkString(".") + "_rep." + tmp.last }
-      val l4_printed = ExaRootNode.l4_root.prettyprint()
+      print()
+      val oldL4COde = ExaRootNode.l4_root.prettyprint()
 
-      val outFile = new java.io.FileWriter(repFileName)
-      outFile.write(Indenter.addIndentations(l4_printed))
-      outFile.close()
-
-      // re-parse the file to check for errors - also clear knowledge collections
+      // re-parse the code to check for errors - also clear knowledge collections
       L4_KnowledgeContainer.clear()
 
-      ExaRootNode.l4_root = L4_Parser.parseFile(repFileName)
+      ExaRootNode.l4_root = L4_Parser.parse(oldL4COde).asInstanceOf[L4_Root]
     } else {
       if (Settings.inputFromJson)
         ExaRootNode.l4_root = L4_Parser.parseFile(InputReader.layer4)
