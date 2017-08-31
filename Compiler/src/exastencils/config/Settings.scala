@@ -26,20 +26,32 @@ object Settings {
   var l1file : ListBuffer[String] = ListBuffer()
   def getL1file : ListBuffer[String] = l1file.map(getBasePath + _)
 
+  var debugL1File : String = ""
+  def getDebugL1file : String = if (debugL1File.isEmpty) debugL1File else getBasePath + debugL1File
+
   /// layer 2
 
   var l2file : ListBuffer[String] = ListBuffer()
   def getL2file : ListBuffer[String] = l2file.map(getBasePath + _)
+
+  var debugL2File : String = ""
+  def getDebugL2file : String = if (debugL2File.isEmpty) debugL2File else getBasePath + debugL2File
 
   /// layer 3
 
   var l3file : ListBuffer[String] = ListBuffer()
   def getL3file : ListBuffer[String] = l3file.map(getBasePath + _)
 
+  var debugL3File : String = ""
+  def getDebugL3file : String = if (debugL3File.isEmpty) debugL3File else getBasePath + debugL3File
+
   /// layer 4
 
   var l4file : ListBuffer[String] = ListBuffer()
   def getL4file : ListBuffer[String] = l4file.map(getBasePath + _)
+
+  var debugL4File : String = ""
+  def getDebugL4file : String = if (debugL4File.isEmpty) debugL4File else getBasePath + debugL4File
 
   /// config file for polyhedral search space exploration
 
