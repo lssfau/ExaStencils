@@ -5,7 +5,7 @@ import exastencils.config._
 object Layouts {
   def genSet(mapping : (Int => Int)) = { Knowledge.dimensions.map(mapping).mkString(", ") }
 
-  def addLayouts(printer : java.io.PrintWriter) = {
+  def addLayouts(printer : java.io.PrintStream) = {
     var fieldDatatype = (if (Knowledge.l3tmp_genVectorFields) s"Vector<Real, ${ Knowledge.l3tmp_numVecDims }>" else "Real") +
       (if (Knowledge.l3tmp_genCellBasedDiscr) ", Cell" else ", Node")
     var scalarDatatype = "Real, " + (if (Knowledge.l3tmp_genCellBasedDiscr) "Cell" else "Node")

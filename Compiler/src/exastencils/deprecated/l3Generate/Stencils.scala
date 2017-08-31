@@ -13,7 +13,7 @@ object Stencils {
       s"Laplace$postfix@current"
   }
 
-  def addLaplaceStencil(printer : java.io.PrintWriter, postfix : String) = {
+  def addLaplaceStencil(printer : java.io.PrintStream, postfix : String) = {
     // special coefficient function
     if ("Kappa_VC" == Knowledge.l3tmp_exactSolution) {
       printer.println(s"Function getCoefficient ( xPos : Real, yPos : Real${ if (Knowledge.dimensionality > 2) ", zPos : Real" else "" } ) : Real {")
@@ -49,7 +49,7 @@ object Stencils {
     }
   }
 
-  def addDefaultStencils(printer : java.io.PrintWriter) = {
+  def addDefaultStencils(printer : java.io.PrintStream) = {
     printer.print("Stencil CorrectionStencil@all from default prolongation on ")
     if (Knowledge.l3tmp_genCellBasedDiscr)
       printer.print("Cell")

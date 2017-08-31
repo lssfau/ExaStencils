@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object Error {
-  def addReductionFunction(printer : java.io.PrintWriter, postfix : String) = {
+  def addReductionFunction(printer : java.io.PrintStream, postfix : String) = {
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
       printer.println(s"Function NormError${ postfix }_$vecDim@(finest) ( ) : Real {")
       if (Knowledge.l3tmp_useMaxNormForError) {

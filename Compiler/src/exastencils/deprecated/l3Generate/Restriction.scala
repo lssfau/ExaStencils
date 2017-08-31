@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object Restriction {
-  def addFunction(printer : java.io.PrintWriter, postfix : String) = {
+  def addFunction(printer : java.io.PrintStream, postfix : String) = {
     printer.println(s"Function Restriction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
     if (Knowledge.l3tmp_genAsyncCommunication)
       printer.println(s"\tfinish communicate Residual$postfix@current", "ghost")

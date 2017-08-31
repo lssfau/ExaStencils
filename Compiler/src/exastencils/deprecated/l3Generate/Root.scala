@@ -1,17 +1,22 @@
 package exastencils.deprecated.l3Generate
 
-import exastencils.base.l3.L3_Root
 import exastencils.config._
-import exastencils.datastructures._
 import exastencils.polyhedron._
-
-import scala.collection.mutable.ListBuffer
 
 case class Root() {
   def printToL4(filename : String) : Unit = {
     val file = new java.io.File(filename)
     if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
     val printer = new java.io.PrintWriter(filename)
+
+    printer.append(print)
+
+    printer.close()
+  }
+
+  def print() : String = {
+    val bos = new java.io.ByteArrayOutputStream
+    val printer = new java.io.PrintStream(bos)
 
     if (Knowledge.l3tmp_kelvin) {
       Settings.additionalIncludes += "random"
@@ -142,6 +147,7 @@ case class Root() {
     // Application
     Application.addFunction(printer)
 
-    printer.close()
+    printer.flush()
+    bos.toString()
   }
 }

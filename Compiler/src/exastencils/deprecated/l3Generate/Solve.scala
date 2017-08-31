@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object Solve {
-  def addFunction(printer : java.io.PrintWriter) = {
+  def addFunction(printer : java.io.PrintStream) = {
     printer.println("Function Solve ( ) : Unit {")
     if (Knowledge.l3tmp_genAsyncCommunication)
       printer.println("\tUpResidual@finest ( ( 0 ) )")

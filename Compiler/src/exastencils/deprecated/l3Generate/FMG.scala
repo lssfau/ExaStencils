@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object FMG {
-  def addFunctions(printer : java.io.PrintWriter) = {
+  def addFunctions(printer : java.io.PrintStream) = {
     // specialized boundary handling functions
     val fields = if ("Jac" == Knowledge.l3tmp_smoother) {
       if (Knowledge.l3tmp_useSlotsForJac)

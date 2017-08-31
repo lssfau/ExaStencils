@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object Cycle {
-  def printBody(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean, numCycleCalls : Int) = {
+  def printBody(printer : java.io.PrintStream, postfix : String, tempBlocking : Boolean, numCycleCalls : Int) = {
     if (Knowledge.l3tmp_genTimersPerFunction)
       printer.println(s"\tstartTimer ( ${ if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'preSmoothing${ postfix }_', levels@current() )" else s"'preSmoothing$postfix'" } )")
     if (!tempBlocking)
@@ -58,7 +58,7 @@ object Cycle {
       printer.println(s"\tstopTimer ( ${ if (Knowledge.l3tmp_genTimersPerLevel) s"concat ( 'postSmoothing${ postfix }_', levels@current() )" else s"'postSmoothing$postfix'" } )")
   }
 
-  def addCycle(printer : java.io.PrintWriter, postfix : String) = {
+  def addCycle(printer : java.io.PrintStream, postfix : String) = {
     if ("Jac" == Knowledge.l3tmp_smoother && !Knowledge.l3tmp_useSlotVariables) {
       Knowledge.l3tmp_numPre /= 2
       Knowledge.l3tmp_numPost /= 2

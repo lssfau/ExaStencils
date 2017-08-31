@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.config._
 
 object Application {
-  def addFunction(printer : java.io.PrintWriter) = {
+  def addFunction(printer : java.io.PrintStream) = {
     printer.println("Function Application ( ) : Unit {")
 
     if (!Knowledge.l3tmp_genForAutoTests || Knowledge.l3tmp_printTimersToFile)

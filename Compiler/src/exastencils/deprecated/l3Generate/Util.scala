@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object Util {
-  def addFunctions(printer : java.io.PrintWriter, postfix : String) = {
+  def addFunctions(printer : java.io.PrintStream, postfix : String) = {
     printer.println(s"Function SetSolution$postfix@all (value : Real) : Unit {")
     printer.println(s"\tloop over Solution$postfix@current {")
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims)
@@ -12,7 +12,7 @@ object Util {
     printer.println(s"}")
   }
 
-  def addPrintAutoTestValueCode(printer : java.io.PrintWriter, toPrint : String) = {
+  def addPrintAutoTestValueCode(printer : java.io.PrintStream, toPrint : String) = {
     val maxPrec = Knowledge.l3tmp_autoTestMaxPrecision
     var threshold = if (Knowledge.useDblPrecision) 1e-12 else 1e-5
     var curPrec = 0

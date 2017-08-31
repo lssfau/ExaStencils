@@ -38,7 +38,7 @@ object Fields {
       Array(s"RHS$postfix@$level")
   }
 
-  def addFields(printer : java.io.PrintWriter, postfix : String, domain : String) = {
+  def addFields(printer : java.io.PrintStream, postfix : String, domain : String) = {
     if ("Zero" != Knowledge.l3tmp_exactSolution || (Knowledge.l3tmp_kelvin && "" == postfix)) {
       var bc = if (Knowledge.l3tmp_kelvin && "" == postfix) "bcSol(vf_nodePosition_x@current, vf_nodePosition_y@current)"
       else if (Knowledge.experimental_Neumann) "Neumann"

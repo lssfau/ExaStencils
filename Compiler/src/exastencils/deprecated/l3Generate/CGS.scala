@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object CGS {
-  def addFunction(printer : java.io.PrintWriter, postfix : String) = {
+  def addFunction(printer : java.io.PrintStream, postfix : String) = {
     printer.println(s"Function VCycle$postfix@coarsest ( ) : Unit {")
 
     if (Knowledge.l3tmp_genTimersPerFunction)

@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object InitFields {
-  def addFunction(printer : java.io.PrintWriter, postfix : String) = {
+  def addFunction(printer : java.io.PrintStream, postfix : String) = {
     printer.println(s"Function InitSolution$postfix ( ) : Unit {")
     if (Knowledge.l3tmp_initSolWithRand) {
       // FIXME: seq HACK

@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object StencilFields {
-  def addStencilFields(printer : java.io.PrintWriter, postfix : String, domain : String) = {
+  def addStencilFields(printer : java.io.PrintStream, postfix : String, domain : String) = {
     if (Knowledge.l3tmp_genStencilFields) {
       printer.println(s"Field LaplaceCoeff$postfix< $domain, NoCommSF, 0.0 >@(coarsest to ${ Knowledge.l3tmp_tempBlockingMinLevel - 1 })")
       if (Knowledge.l3tmp_genStencilStencilConv)

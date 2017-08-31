@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object Residual {
-  def addUpdateBody(printer : java.io.PrintWriter, postfix : String, stencil : String) = {
+  def addUpdateBody(printer : java.io.PrintStream, postfix : String, stencil : String) = {
     if (Knowledge.l3tmp_genTemporalBlocking)
       Communication.exch(printer, s"Solution$postfix[active]@current", s"dup ghost [ ${ Array.fill(Knowledge.dimensionality)(0).mkString(", ") } ]")
     else
@@ -25,7 +25,7 @@ object Residual {
     }
   }
 
-  def addUpdateFunction(printer : java.io.PrintWriter, postfix : String) = {
+  def addUpdateFunction(printer : java.io.PrintStream, postfix : String) = {
     val levels = if (Knowledge.l3tmp_genStencilStencilConv && !Knowledge.l3tmp_genStencilFields) "finest" else "all"
     val params = if (Knowledge.l3tmp_genAsyncCommunication) "startComm : Integer" else ""
 
@@ -40,7 +40,7 @@ object Residual {
     }
   }
 
-  def addReductionFunction(printer : java.io.PrintWriter, postfix : String) = {
+  def addReductionFunction(printer : java.io.PrintStream, postfix : String) = {
     for (vecDim <- 0 until Knowledge.l3tmp_numVecDims) {
       if (!Knowledge.l3tmp_useMaxNorm)
         printer.println(s"Function NormResidual${ postfix }_$vecDim@(coarsest and finest) ( ) : Real {")

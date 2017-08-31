@@ -15,7 +15,7 @@ object Smoothers {
       s"( 1.0 / diag ( $stencil ) )"
   }
 
-  def addBodyBefore(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean) = {
+  def addBodyBefore(printer : java.io.PrintStream, postfix : String, tempBlocking : Boolean) = {
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\tloop over fragments {")
     if (tempBlocking) {
@@ -25,14 +25,14 @@ object Smoothers {
       printer.println("] {")
     }
   }
-  def addBodyAfter(printer : java.io.PrintWriter, postfix : String, tempBlocking : Boolean) = {
+  def addBodyAfter(printer : java.io.PrintStream, postfix : String, tempBlocking : Boolean) = {
     if (tempBlocking)
       printer.println(s"\t}")
     if (Knowledge.l3tmp_genFragLoops)
       printer.println(s"\t}")
   }
 
-  def addBodyJac(printer : java.io.PrintWriter, postfix : String, stencil : String, tempBlocking : Boolean) = {
+  def addBodyJac(printer : java.io.PrintStream, postfix : String, stencil : String, tempBlocking : Boolean) = {
     if (Knowledge.l3tmp_useSlotVariables && Knowledge.l3tmp_useSlotsForJac) {
       Communication.exch(printer, s"Solution$postfix[active]@current", "ghost")
       if (tempBlocking)
@@ -64,7 +64,7 @@ object Smoothers {
     }
   }
 
-  def addBodyRBGS(printer : java.io.PrintWriter, postfix : String, stencil : String, tempBlocking : Boolean) = {
+  def addBodyRBGS(printer : java.io.PrintStream, postfix : String, stencil : String, tempBlocking : Boolean) = {
     if (Knowledge.l3tmp_useConditionsForRBGS && !tempBlocking)
       Communication.exch(printer, s"Solution$postfix@current", "", s"1 == ((64 + x + y${ if (Knowledge.dimensionality > 2) " + z" else "" }) % 2)") // FIXME: '64 + ' to prevent neg values
     else
@@ -122,7 +122,7 @@ object Smoothers {
     addBodyAfter(printer, postfix, tempBlocking)
   }
 
-  def addBodyGS(printer : java.io.PrintWriter, postfix : String, stencil : String, tempBlocking : Boolean) = {
+  def addBodyGS(printer : java.io.PrintStream, postfix : String, stencil : String, tempBlocking : Boolean) = {
     Communication.exch(printer, s"Solution$postfix@current")
     if (tempBlocking)
       Communication.exch(printer, s"RHS$postfix@current")
@@ -137,7 +137,7 @@ object Smoothers {
     addBodyAfter(printer, postfix, tempBlocking)
   }
 
-  def addBodyBS(printer : java.io.PrintWriter, postfix : String, stencil : String, tempBlocking : Boolean) = {
+  def addBodyBS(printer : java.io.PrintStream, postfix : String, stencil : String, tempBlocking : Boolean) = {
     Communication.exch(printer, s"Solution$postfix@current")
     if (tempBlocking)
       Communication.exch(printer, s"RHS$postfix@current")
@@ -174,7 +174,7 @@ object Smoothers {
     addBodyAfter(printer, postfix, tempBlocking)
   }
 
-  def addFunction(printer : java.io.PrintWriter, postfix : String) = {
+  def addFunction(printer : java.io.PrintStream, postfix : String) = {
     val bodyFunction = Knowledge.l3tmp_smoother match {
       case "Jac"  => (stencil : String, tempBlocking : Boolean) => addBodyJac(printer, postfix, stencil, tempBlocking)
       case "RBGS" => (stencil : String, tempBlocking : Boolean) => addBodyRBGS(printer, postfix, stencil, tempBlocking)
