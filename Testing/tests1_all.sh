@@ -166,17 +166,17 @@ do
   if [[ "${exafiles}" = "*" ]]; then
     exafiles=""
   fi
-  # test if ${exafiles} exist, create absolute paths and add dummy files (if necessary)
+  # test if ${exafiles} exist and create absolute paths
   IFS=';' read -a exaf <<< $exafiles
   exafiles=""
   for f in "${exaf[@]}"; do
     abs="${TESTING_DIR}/${f}"
     if [[ -f "${abs}" ]]; then
       case ${abs} in
-        *.exa1) EXADUMMY[1]="X";;
-        *.exa2) EXADUMMY[2]="X";;
-        *.exa3) EXADUMMY[3]="X";;
-        *.exa4) EXADUMMY[4]="X";;
+        *.exa1) ;;
+        *.exa2) ;;
+        *.exa3) ;;
+        *.exa4) ;;
         *)
           echo "<span style=\"color: #FF8000\">WARNING: skip input file '${f}' (unknown file extension)</span>"
           continue # do not add it to ${exafiles}
@@ -189,12 +189,6 @@ do
       continue 2 # continue outer while loop
     fi
   done
-  for ((i=1;i<=4;i+=1)); do
-    if [[ -z ${EXADUMMY[${i}]} ]]; then
-      exafiles="${exafiles}${TEST_DIR}/gen.exa${i};"
-    fi
-  done
-  unset EXADUMMY
 
   COMPILE_CONSTR=""
   if [[ ${constraints} =~ GPU ]] || [[ ${constraints} = "E5" ]]; then
