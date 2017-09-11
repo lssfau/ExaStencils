@@ -9,7 +9,6 @@ import java.io.PrintStream
 import exastencils.config.Knowledge
 import exastencils.polyhedron.Isl
 import exastencils.polyhedron.Isl.TypeAliases._
-import isl.Conversions._
 import org.exastencils.schedopt.chernikova.Chernikova
 import org.exastencils.schedopt.chernikova.Generators
 
@@ -397,7 +396,6 @@ object Exploration {
     }
     // we search for the absolutely smallest values of the domain, so they must be bounded
     var domain = offsetsMap.domain()
-    val old = offsetsMap
     for (i <- 0 until nrInp) {
       // bounds checks are only reliable for the polyhedral hull of a 1D set (for {[i,i]} both methods return true)
       val d = domain.projectOut(T_SET, 0, i).projectOut(T_SET, 1, nrInp - i - 1).polyhedralHull()
@@ -487,7 +485,7 @@ object PartialSchedule {
 
     val ctx : isl.Ctx = domInfo.ctx
     var schedule : isl.UnionMap = isl.UnionMap.empty(domInfo.scheduleParamSpace)
-    implicit val int2Val = (i : Int) => isl.Val.intFromSi(ctx, i)
+    implicit val int2Val : Int => isl.Val = isl.Val.intFromSi(ctx, _)
 
     for ((stmt, sInfo) <- domInfo.stmtInfo) {
       val setSpace : isl.Space = domInfo.scheduleParamSpace.addDims(T_SET, sInfo.nrIt)
@@ -517,7 +515,7 @@ object PartialSchedule {
     val ctx = domInfo.ctx
     val nrPoints : Int = vectors.size
     val coeffsWithIndex : Iterable[(Array[Int], Int)] = vectors.view.zipWithIndex
-    implicit val int2Val = (i : Int) => isl.Val.intFromSi(ctx, i)
+    implicit val int2Val : Int => isl.Val = isl.Val.intFromSi(ctx, _)
 
     var mAff = isl.MultiAff.zero(isl.Space.alloc(ctx, 0, nrPoints, nr))
     for (pos <- 0 until nr) {
