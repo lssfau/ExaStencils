@@ -35,6 +35,6 @@ object ValidateL4 {
     else
       ExaRootNode.l4_root = L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node))
     ExaRootNode.l4_root.flatten()
-    L4_Validation.apply
+    L4_Validation.apply()
   }
 }

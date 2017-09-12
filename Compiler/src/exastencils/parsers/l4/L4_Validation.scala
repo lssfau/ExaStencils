@@ -12,9 +12,7 @@ import exastencils.logger._
 
 /// L4_Validation
 
-object L4_Validation {
-  val s = DefaultStrategy("Validate L4 Input")
-  def apply() = s.apply()
+object L4_Validation extends DefaultStrategy("Validate L4 Input") {
 
   // rename identifiers that happen to have the same name as C/C++ keywords or start with "_"
   // identifiers starting with "_" are protected for internal use
@@ -28,7 +26,7 @@ object L4_Validation {
     "typeid", "typename", "union", "unsigned", "using", "virtual", "void", "volatile", "wchar_t", "while", "xor", "xor_eq")
 
   // No need to transform Domain- and LayoutDeclarationStatements because their names are not outputted.
-  s += Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
+  this += Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
     case x : L4_Identifier if protectedkeywords.contains(x.name)                                              =>
       x.name = "user_" + x.name; x
     case x : L4_Identifier if x.name.startsWith("_")                                                          =>
@@ -43,10 +41,10 @@ object L4_Validation {
       x.name = "user_" + x.name; x
   })
 
-  var functionCalls = ListBuffer[String]()
-  var functions = ListBuffer[String]()
+  val functionCalls = ListBuffer[String]()
+  val functions = ListBuffer[String]()
 
-  s += Transformation("find Function calls", {
+  this += Transformation("find Function calls", {
     case f : L4_FunctionCall =>
       f.function match {
         case a : L4_PlainFunctionReference      => functionCalls += a.name
@@ -57,28 +55,26 @@ object L4_Validation {
       f
   })
 
-  s += Transformation("check destroyGlobals", {
+  this += Transformation("check destroyGlobals", {
     case f : L4_Function if f.name == "Application" =>
-      var last = f.body.last
-      last match {
-        case c : L4_FunctionCall => if (c.function.name != "destroyGlobals") Logger.error("destroyGlobals has to be last statement in Application()")
+      f.body.last match {
+        case c : L4_FunctionCall =>
+          if (c.function.name != "destroyGlobals")
+            Logger.error("destroyGlobals has to be last statement in Application()")
         case _                   =>
       }
       f
   })
 
-  s += Transformation("Check assignment of vectors and matrices", {
+  this += Transformation("Check assignment of vectors and matrices", {
     case x : L4_VariableDeclaration if x.datatype.isInstanceOf[L4_VectorDatatype] && x.initialValue.isDefined && x.initialValue.get.isInstanceOf[L4_VectorExpression] =>
       if (x.datatype.asInstanceOf[L4_VectorDatatype].numElements != x.initialValue.get.asInstanceOf[L4_VectorExpression].length)
-        Logger.error("Sizes of vectors must match for assignments!");
+        Logger.error("Sizes of vectors must match for assignments!")
       x
 
     case x : L4_VariableDeclaration if x.datatype.isInstanceOf[L4_MatrixDatatype] && x.initialValue.isDefined && x.initialValue.get.isInstanceOf[L4_MatrixExpression] =>
       if (x.datatype.asInstanceOf[L4_MatrixDatatype].numRows != x.datatype.asInstanceOf[L4_MatrixDatatype].numRows || x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns != x.datatype.asInstanceOf[L4_MatrixDatatype].numColumns)
-        Logger.error("Sizes of matrices must match for assignments!");
+        Logger.error("Sizes of matrices must match for assignments!")
       x
   })
-
-  s.apply()
-
 }
