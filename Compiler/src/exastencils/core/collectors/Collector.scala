@@ -10,6 +10,12 @@ import exastencils.datastructures._
   * state. This is a basic trait that must be implemented by concrete implementations.
   */
 trait Collector {
+
+  /**
+    * Specifies if this collector can be applied concurrently to different functions of the AST. Default is false.
+    */
+  var isParallel : Boolean = false
+
   /**
     * Is called when a new [[exastencils.datastructures.Node]] is visited.
     *
