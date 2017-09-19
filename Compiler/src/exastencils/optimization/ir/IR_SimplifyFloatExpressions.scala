@@ -43,7 +43,7 @@ object IR_SimplifyFloatExpressions extends DefaultStrategy("Simplify floating ex
     case a @ IR_Assignment(fa : IR_MultiDimFieldAccess, src, op) =>
       a.src = simplify(src)
       a
-  })
+  }, isParallel = true)
 
   private final def simplify(expr : IR_Expression) : IR_Expression = {
     try {

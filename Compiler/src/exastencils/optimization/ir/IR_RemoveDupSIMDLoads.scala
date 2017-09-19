@@ -24,14 +24,14 @@ object IR_RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
-    this.execute(new Transformation("sort", SortLoads))
+    this.execute(new Transformation("sort", SortLoads, isParallel = true))
 
     val annotate = new Analyze()
     this.register(annotate)
-    this.execute(new Transformation("analyze", PartialFunction.empty))
+    this.execute(new Transformation("analyze", PartialFunction.empty, isParallel = true))
     this.unregister(annotate)
 
-    this.execute(new Transformation("adapt", Adapt))
+    this.execute(new Transformation("adapt", Adapt, isParallel = true))
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)

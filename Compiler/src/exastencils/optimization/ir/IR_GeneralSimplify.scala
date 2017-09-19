@@ -2,6 +2,8 @@ package exastencils.optimization.ir
 
 import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
 
+import java.util.concurrent.atomic.AtomicInteger
+
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
@@ -14,14 +16,14 @@ import exastencils.util.ir.IR_ResultingDatatype
 
 object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions") {
   // hack: since Addition and Multiplication lead always to a match, we don't count these if nothing was changed
-  var negMatches : Int = 0
+  var negMatches = new AtomicInteger(0)
   var compactAST : Boolean = false
 
   def doUntilDone(node : Option[Node] = None) = {
     do {
-      negMatches = 0
+      negMatches.set(0)
       apply(node)
-    } while (results.last._2.matches - negMatches > 0) // FIXME: cleaner code
+    } while (results.last._2.matches - negMatches.get() > 0) // FIXME: cleaner code
   }
 
   def doUntilDoneStandalone(node : Node, compactAST : Boolean = false) = {
@@ -29,9 +31,9 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     val oldLvl = Logger.getLevel
     Logger.setLevel(Logger.WARNING)
     do {
-      negMatches = 0
+      negMatches.set(0)
       applyStandalone(node)
-    } while (results.last._2.matches - negMatches > 0) // FIXME: cleaner code
+    } while (results.last._2.matches - negMatches.get() > 0) // FIXME: cleaner code
     Logger.setLevel(oldLvl)
     this.compactAST = false
   }
@@ -40,25 +42,25 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case add : IR_Addition =>
       val nju = simplifyAdd(add.summands)
       if (nju == add)
-        negMatches += 1
+        negMatches.incrementAndGet()
       nju
 
     case sub : IR_Subtraction =>
       val nju = simplifyAdd(List(sub))
       if (nju == sub)
-        negMatches += 1
+        negMatches.incrementAndGet()
       nju
 
     case mult : IR_Multiplication =>
       val nju = simplifyMult(mult.factors)
       if (nju == mult)
-        negMatches += 1
+        negMatches.incrementAndGet()
       nju
 
     case old @ IR_Negative(IR_Multiplication(facs)) =>
       val nju = simplifyMult(facs.clone() += IR_IntegerConstant(-1L))
       if (nju == old)
-        negMatches += 1
+        negMatches.incrementAndGet()
       nju
 
     // deal with constants
@@ -159,7 +161,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       } else {
         if (fBranch.isEmpty) IR_NullStatement else fBranch
       }
-  })
+  }, isParallel = true)
 
   private def simplifyAdd(sum : Seq[IR_Expression]) : IR_Expression = {
     var intCst : Long = 0L

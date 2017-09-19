@@ -25,18 +25,18 @@ object IR_TypeInference extends CustomStrategy("Type inference") {
 
     val annotate = new AnnotateStringConstants()
     this.register(annotate)
-    this.execute(new Transformation("load global declarations first", PartialFunction.empty), Some(IR_GlobalCollection.get))
-    this.execute(new Transformation("infer types", PartialFunction.empty))
+    this.execute(new Transformation("load global declarations first", PartialFunction.empty, isParallel = true), Some(IR_GlobalCollection.get))
+    this.execute(new Transformation("infer types", PartialFunction.empty, isParallel = true))
     this.unregister(annotate)
 
-    this.execute(new Transformation("replace nodes", CreateVariableAccesses))
+    this.execute(new Transformation("replace nodes", CreateVariableAccesses, isParallel = true))
 
     this.execute(new Transformation("remove annotations", {
       case node : Node =>
         node.removeAnnotation(TYPE_ANNOT)
         node.removeAnnotation(SKIP_ANNOT)
         node
-    }))
+    }, isParallel = true))
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)

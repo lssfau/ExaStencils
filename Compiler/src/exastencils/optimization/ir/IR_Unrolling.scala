@@ -89,7 +89,7 @@ object IR_Unrolling extends DefaultStrategy("Loop unrolling") {
       stmts += IR_Assignment(intermVarAcc, intermExpr, "=")
   }
 
-  this += new Transformation("optimize", UnrollInnermost)
+  this += new Transformation("optimize", UnrollInnermost, isParallel = true)
 }
 
 private final case class UnrollException(msg : String) extends Exception(msg)

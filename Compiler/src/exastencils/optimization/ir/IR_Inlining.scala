@@ -50,7 +50,7 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
 
     val analyzer = new Analyzer()
     this.register(analyzer)
-    this.execute(new Transformation("collect", PartialFunction.empty))
+    this.execute(new Transformation("collect", PartialFunction.empty, isParallel = true))
     this.unregister(analyzer)
 
     // first, decide which functions should be inlined
@@ -109,7 +109,7 @@ object IR_Inlining extends CustomStrategy("Function inlining") {
 
     this.execute(new Transformation("remove inlined functions", {
       case f : IR_Function if toRemove.containsKey(f) && f.name != "main" => List() // main should not have "allowInlining" be set, but...
-    }))
+    }, isParallel = true))
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)

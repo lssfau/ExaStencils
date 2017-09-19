@@ -1,6 +1,7 @@
 package exastencils.optimization.ir
 
 import scala.collection.mutable.{ ArrayBuffer, HashMap, ListBuffer, Map, Queue }
+import scala.util.DynamicVariable
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
@@ -18,7 +19,7 @@ object IR_Vectorization extends DefaultStrategy("Vectorization") {
   final val COND_VECTABLE : String = "VECT_C"
   final val COND_IGN_INCR : String = "VECT_ign++"
 
-  this += new Transformation("optimize", VectorizeInnermost, false)
+  this += new Transformation("optimize", VectorizeInnermost, recursive = false, isParallel = true)
 }
 
 final class VectorizationException(val msg : String) extends Exception(msg)
@@ -27,18 +28,18 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   private val DEBUG : Boolean = false
 
-  private var skipSubTree : Boolean = false
+  private var skipSubTree = new DynamicVariable[Boolean](false)
 
   override def isDefinedAt(node : Node) : Boolean = {
     // do not vectorize device code!
     val cuAnn = CUDA_Util.CUDA_LOOP_ANNOTATION
     node match {
-      case n if n.hasAnnotation(cuAnn) => skipSubTree = true
-      case _ : CUDA_Kernel             => skipSubTree = true
-      case _ : IR_FunctionLike         => skipSubTree = false
+      case n if n.hasAnnotation(cuAnn) => skipSubTree.value = true
+      case _ : CUDA_Kernel             => skipSubTree.value = true
+      case _ : IR_FunctionLike         => skipSubTree.value = false
       case _                           => // no change in skipSubTree
     }
-    if (skipSubTree)
+    if (skipSubTree.value)
       return false
 
     node.removeAnnotation(IR_AddressPrecalculation.ORIG_IND_ANNOT) // remove old annotations

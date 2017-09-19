@@ -2,6 +2,7 @@ package exastencils.optimization.ir
 
 import scala.collection.immutable.StringLike
 import scala.collection.mutable._
+import scala.util.DynamicVariable
 
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_InternalVariable
@@ -28,10 +29,10 @@ object IR_AddressPrecalculation extends CustomStrategy("Perform address precalcu
 
     val annotate = new AnnotateLoopsAndAccesses()
     this.register(annotate)
-    this.execute(new Transformation("Find relevant loops and accesses", PartialFunction.empty))
+    this.execute(new Transformation("Find relevant loops and accesses", PartialFunction.empty, isParallel = true))
     this.unregister(annotate)
 
-    this.execute(new Transformation("Optimize", IntegrateAnnotations))
+    this.execute(new Transformation("Optimize", IntegrateAnnotations, isParallel = true))
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
