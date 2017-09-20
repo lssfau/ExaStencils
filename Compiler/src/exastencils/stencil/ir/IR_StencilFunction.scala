@@ -30,7 +30,7 @@ object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functi
             case access : IR_StencilAccess =>
               // stencil access => find entry with 0 offset and return coefficient
               val centralOffset = IR_ConstIndex(Array.fill(Knowledge.dimensionality)(0))
-              access.target.findStencilEntry(centralOffset).get.coefficient
+              Duplicate(access.target.findStencilEntry(centralOffset).get.coefficient)
 
             case access : IR_StencilFieldAccess =>
               // stencil field access => find entry with 0 offset in linked stencil and compile field access
