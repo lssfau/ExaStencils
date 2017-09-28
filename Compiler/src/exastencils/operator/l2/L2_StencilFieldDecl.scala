@@ -73,6 +73,7 @@ object L2_PrepareStencilFieldDeclarations extends DefaultStrategy("Prepare knowl
     case decl : L2_StencilFieldDecl =>
       L2_FieldCollection.addDeclared(decl.name + "_Data", decl.levels)
       L2_StencilCollection.addDeclared(decl.name + "_Stencil", decl.levels)
+      L2_StencilFieldCollection.addDeclared(decl.name, decl.levels)
 
       decl // preserve declaration statement
   })
