@@ -45,11 +45,9 @@ l3tmp_printError               = true
 l3tmp_smoother                 = "RBGS"
 */
 
-experimental_Neumann           = true
-experimental_NeumannOrder      = 1
-experimental_DirichletOrder    = 2
+discr_defaultNeumannOrder      = 1
+discr_defaultDirichletOrder    = 2
 
-experimental_layerExtension    = true
 //experimental_resolveInverseFunctionCall = "Runtime"
 
 experimental_applySchurCompl   = true

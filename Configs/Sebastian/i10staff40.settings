@@ -22,6 +22,12 @@ l2file              = "Examples\Poisson\3D_FV_Poisson.exa2"
 l3file              = "Examples\Poisson\3D_FV_Poisson.exa3"
 l4file              = "Examples\Poisson\3D_FV_Poisson.exa4"*/
 
+l1file              = "Examples\Stokes\2D_FV_Stokes.exa1"
+l2file              = "Examples\Stokes\2D_FV_Stokes.exa2"
+l3file              = "Examples\Stokes\2D_FV_Stokes.exa3"
+l4file              = "Examples\Stokes\2D_FV_Stokes.exa4"
+
+
 /*l1file              = "Configs\Sebastian\ExaFluids.exa1"
 l2file              = "Configs\Sebastian\ExaFluids.exa2"
 l3file              = "Configs\Sebastian\ExaFluids.exa3"
@@ -34,10 +40,10 @@ l4file              = "Configs\Sebastian\Laplace_2D.exa4"*/
 l2file              = "Configs\Sebastian\ExaStokes_3D.exa2"
 l3file              = "Configs\Sebastian\ExaStokes_3D.exa3"
 l4file              = "Configs\Sebastian\ExaStokes_3D.exa4"*/
-l1file              = "Configs\Sebastian\ExaStokes_2D.exa1"
+/*l1file              = "Configs\Sebastian\ExaStokes_2D.exa1"
 l2file              = "Configs\Sebastian\ExaStokes_2D.exa2"
 l3file              = "Configs\Sebastian\ExaStokes_2D.exa3"
-l4file              = "Configs\Sebastian\ExaStokes_2D.exa4"
+l4file              = "Configs\Sebastian\ExaStokes_2D.exa4"*/
 /*l1file              = "Configs\Sebastian\SWE.exa1"
 l2file              = "Configs\Sebastian\SWE.exa2"
 l3file              = "Configs\Sebastian\SWE.exa3"
