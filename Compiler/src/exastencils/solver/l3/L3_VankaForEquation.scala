@@ -7,7 +7,7 @@ import exastencils.base.l3._
 import exastencils.baseExt.l3._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.field.l3.L3_FieldAccess
+import exastencils.field.l3._
 import exastencils.grid.l3._
 import exastencils.logger.Logger
 
@@ -131,9 +131,14 @@ object L3_VankaForEquation {
       case _ => Logger.error(s"Unsupported coloring scheme ${ Knowledge.solver_smoother_coloring }")
     }
 
+    /// add advance statements
+    var loopBody = ListBuffer(localSolve)
+    if (Knowledge.solver_smoother_jacobiType)
+      loopBody ++= entries.map(e => L3_AdvanceSlot(L3_FieldAccess(e.getSolField(level))))
+
     /// assemble final loop
 
-    stmts += L3_ForLoop(numSteps, None, ListBuffer(localSolve))
+    stmts += L3_ForLoop(numSteps, None, loopBody)
 
     stmts
   }
