@@ -1,0 +1,3 @@
+
+// using the default solver setup routine is sufficient
+import '../lib/solver_singleScalarEquation.exa3'
