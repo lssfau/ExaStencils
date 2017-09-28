@@ -1,0 +1,15 @@
+dimensionality                 = 2
+
+minLevel                       = 2
+maxLevel                       = 8
+
+discr_type                     = "FiniteVolumes"
+
+discr_defaultNeumannOrder      = 1
+discr_defaultDirichletOrder    = 2
+
+grid_isStaggered               = true
+
+// omp parallelization on exactly one fragment in one block
+import '../lib/domain_onePatch.knowledge'
+import '../lib/parallelization_pureOmp.knowledge'
