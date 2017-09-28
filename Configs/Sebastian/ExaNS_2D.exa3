@@ -18,6 +18,18 @@ Stencil RestrictionFaceYIntegral@all from default restriction on Face_y with 'in
 Stencil CorrectionFaceYIntegral@all from default prolongation on Face_y with 'integral_linear'
 
 
+generate solver for u in uEquation and v in vEquation and p in pEquation with {
+	solver_smoother_jacobiType    = false
+	solver_smoother_numPre        = 4
+	solver_smoother_numPost       = 4
+	solver_smoother_damping       = 0.6
+	solver_smoother_coloring      = "red-black"
+	solver_cgs                    = "BiCGStab"
+	solver_cgs_maxNumIts          = 128
+	solver_cgs_targetResReduction = 1e-3
+}
+
+
 Field uApprox from u
 Field vApprox from v
 Field pApprox from p
@@ -66,7 +78,11 @@ Function FMG@all {
 		RelaxSystem@current ( )
 
 		// perform single cycle
-		VCycle ( )
+		if ( 0 ) {
+			gen_mgCycle@current ( )
+		} else {
+			VCycle ( )
+		}
 
 		if ( !nonLinearNewton and numIt >= newtonSwitch ) {
 			nonLinearNewton = true

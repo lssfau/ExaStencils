@@ -99,6 +99,80 @@ Function BiCGSTAB@coarsest {
 	print ( 'Maximum number of cgs iterations (', 512, ') was exceeded' )
 }
 
+/*Function MinRes@coarsest {
+	k = 0
+	Residual = RHS - ( Laplace_Stencil * Solution )
+	zeta0 = NormRes
+	zeta = zeta0
+	v = 0
+	vNew = r / c
+	betaNew = 0
+	c = 1
+	s = 0
+	cNew = 1
+	sNew = 0
+	p = 0
+	pNew = 0
+	for ... {
+		beta = betaNew
+		vOld = v
+		v = nNew
+		vNew = Av - beta * vOld
+		alpha = vNew * v
+		vNew -= alpha * v
+		betaNew = || vNew ||
+		vNew /= betaNew
+		
+	}	
+}*/
+
+/*
+Function MinRes@coarsest {
+	Residual = RHS - ( Laplace_Stencil * Solution )
+	Var initialRes : Real = NormResidual ( )
+	VecP = Residual
+	Var cgSteps : Integer = 0
+	
+	p[active] = Residual
+	s[active] = Laplace_Stencil * p[active]
+	
+	p[next] = p[active]
+	s[next] = s[active]
+
+	repeat 512 times count cgSteps {
+		advance p
+		advance s
+
+		p[next] = p[active]
+		s[next] = s[active]
+
+		//VecGradP = Laplace_Stencil * VecP
+		Var alphaDenom : Real = s[active] * s[active]
+		Var alpha : Real = ( Residual * s[active] ) / alphaDenom
+		Solution += alpha * p[active]
+		Residual -= alpha * s[active]
+		Var nextRes : Real = NormResidual ( )
+
+		if ( nextRes <= 0.001 * initialRes ) {
+			return
+		}
+
+		p[previous] = s[active]
+		s[previous] = Laplace_Stencil * s[active]
+		
+		Var beta1 : Real = ( s[previous] * s[active] ) / ( s[active] * s[active] )
+		p[previous] -= beta1 * p[active]
+		s[previous] -= beta1 * s[active]
+		
+		if ( cgSteps > 0 ) {
+			Var beta2 : Real = ( s[previous] * s[next] ) / ( s[next] * s[next] )
+			p[previous] -= beta2 * p[next]
+			s[previous] -= beta2 * s[next]
+		}
+	}
+	print ( 'Maximum number of cgs iterations (', 512, ') was exceeded' )
+}
+*/
 Function CG@coarsest {
 	Residual = RHS - ( Laplace_Stencil * Solution )
 	Var res : Real = NormResidual ( )

@@ -57,6 +57,45 @@ Field uVis@all with Real on Cell of global = 0.0
 Field vVis@all with Real on Cell of global = 0.0
 Field pVis@all with Real on Cell of global = 0.0
 
+/*		Laplace_xStag_xStag:[-1,  0] = - integrateOverXStaggeredWestFace  ( nue ) / vf_cellWidth_x@[-1, 0]
+		Laplace_xStag_xStag:[ 1,  0] = - integrateOverXStaggeredEastFace  ( nue ) / vf_cellWidth_x@[ 0, 0]
+		Laplace_xStag_xStag:[ 0, -1] = - integrateOverXStaggeredSouthFace ( nue ) / vf_stagCVWidth_y@[0, 0]
+		Laplace_xStag_xStag:[ 0,  1] = - integrateOverXStaggeredNorthFace ( nue ) / vf_stagCVWidth_y@[0, 1]
+		Laplace_xStag_xStag:[ 0,  0] = - ( Laplace_xStag_xStag:[-1, 0] + Laplace_xStag_xStag:[1, 0] + Laplace_xStag_xStag:[0, -1] + Laplace_xStag_xStag:[0, 1] )
+
+			Laplace_xStag_xStag:[-1,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( frozen ( u ) )
+			Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( frozen ( u ) )
+			Laplace_xStag_xStag:[ 1,  0] += 0.5 * integrateOverXStaggeredEastFace  ( frozen ( u ) )
+			Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredEastFace  ( frozen ( u ) )
+
+			Laplace_xStag_xStag:[ 0, -1] -= 0.5 * integrateOverXStaggeredSouthFace ( frozen ( v ) )
+			Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredSouthFace ( frozen ( v ) )
+			Laplace_xStag_xStag:[ 0,  1] += 0.5 * integrateOverXStaggeredNorthFace ( frozen ( v ) )
+			Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredNorthFace ( frozen ( v ) )
+*/
+Equation uEquation@finest {
+	Laplace_xStag_xStag * u + A12 * v + B1 * p == rhs_u
+}
+Equation uEquation@(all but finest) {
+	Laplace_xStag_xStag * u + A12 * v + B1 * p == 0.0
+}
+
+Equation vEquation@finest {
+	Laplace_yStag_yStag * v + A21 * u + B2 * p == rhs_v
+}
+Equation vEquation@(all but finest) {
+	Laplace_yStag_yStag * v + A21 * u + B2 * p == 0.0
+}
+
+Equation pEquation@finest {
+	C1 * u + C2 * v == rhs_p
+}
+Equation pEquation@(all but finest) {
+	C1 * u + C2 * v == 0.0
+}
+
+
+
 generate operators @all {
 	equation for u {
 		integrateOverXStaggeredEastFace ( 1.0 / rho_0 ) * p@[0, 0] - integrateOverXStaggeredWestFace ( 1.0 / rho_0 ) * p@[-1, 0] = 0

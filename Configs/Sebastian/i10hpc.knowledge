@@ -1,68 +1,55 @@
-generateFortranInterface			= false
+dimensionality				= 2
 
-// problem description
+minLevel					= 4
+maxLevel					= 10
 
-dimensionality						= 3
+grid_isUniform				= true
+grid_isStaggered			= true
+grid_isAxisAligned			= true
 
-minLevel							= 0
-maxLevel							= 7
+grid_spacingModel			= "linearFct"
+
+domain_onlyRectangular		= true
+domain_numBlocks			= 1
+domain_numFragmentsPerBlock	= 1
+
+domain_rect_generate			= true
+domain_rect_numBlocks_x			= 1
+domain_rect_numBlocks_y			= 1
+domain_rect_numBlocks_z			= 1
+domain_rect_numFragsPerBlock_x	= 1
+domain_rect_numFragsPerBlock_y	= 1
+domain_rect_numFragsPerBlock_z	= 1
+
+omp_enabled					= true
+omp_numThreads				= 4
+
+mpi_enabled					= false
+mpi_numThreads				= 1
+
+omp_parallelizeLoopOverFragments	= false
+omp_parallelizeLoopOverDimensions	= true
+
+l3tmp_generateL4			= false
+/*l3tmp_genForAutoTests		= false
+
+l3tmp_exactSolution			= "Trigonometric"
+l3tmp_genCellBasedDiscr		= true
+l3tmp_genHDepStencils		= true
+
+l3tmp_printError			= true
+
+l3tmp_smoother				= "RBGS"
+*/
+//library_CImg				= true
+//experimental_NeumannOrder	= 1
 
 experimental_Neumann				= true
 experimental_NeumannOrder			= 1
 experimental_DirichletOrder			= 2
 
-grid_isUniform						= false
-grid_isStaggered					= true
-grid_isAxisAligned					= true
-
-grid_spacingModel					= "linearFct"
-
-// code generation
-
-l3tmp_generateL4					= false
-l3tmp_genForAutoTests				= true
-
-// domain partioning
-
-domain_numBlocks					= 1
-domain_numFragmentsPerBlock			= 1
-
-domain_onlyRectangular				= true
-
-domain_fragmentLength_x				= 1
-domain_fragmentLength_y				= 1
-domain_fragmentLength_z				= 1
-
-domain_rect_generate				= true
-domain_rect_numBlocks_x				= 2
-domain_rect_numBlocks_y				= 2
-domain_rect_numBlocks_z				= 2
-domain_rect_numFragsPerBlock_x		= 1
-domain_rect_numFragsPerBlock_y		= 1
-domain_rect_numFragsPerBlock_z		= 1
-
-// parallelization
-
-comm_strategyFragment				= 6
-
-omp_enabled							= true
-omp_numThreads						= 4
-
-mpi_enabled							= true
-mpi_numThreads						= 8
-
-omp_parallelizeLoopOverFragments	= false
-omp_parallelizeLoopOverDimensions	= true
-
-// optimization
-
-mpi_useCustomDatatypes				= false
-poly_optLevel_fine					= 0
-opt_useAddressPrecalc				= true
-opt_vectorize						= false
-opt_unroll							= 1
-
-// other
+experimental_layerExtension			= true
+//experimental_resolveInverseFunctionCall	= "Runtime"
 
 experimental_applySchurCompl		= true
 
@@ -72,4 +59,7 @@ experimental_generateParaviewFiles	= true
 opt_conventionalCSE					= false
 opt_loopCarriedCSE					= false
 
-//opt_maxInliningSize					= 0
+library_CImg					= true
+
+//domain_rect_periodic_x				= true
+

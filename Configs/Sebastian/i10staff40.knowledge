@@ -10,6 +10,8 @@ grid_isAxisAligned             = true
 grid_spacingModel              = "linearFct"
 //grid_halveStagBoundaryVolumes  = true
 
+discr_type                     = "FV"
+
 domain_onlyRectangular         = true
 domain_numBlocks               = 1
 domain_numFragmentsPerBlock    = 1
