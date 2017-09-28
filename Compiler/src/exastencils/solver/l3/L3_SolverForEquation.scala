@@ -11,7 +11,6 @@ import exastencils.boundary.l3._
 import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
-import exastencils.domain.l3._
 import exastencils.field.l3._
 import exastencils.grid.l3.L3_Localization
 import exastencils.logger.Logger
@@ -91,42 +90,62 @@ case class L3_SolverForEquation(
       }
 
       for (local <- localizations) {
-        val restriction = L3_DefaultRestriction.generate(s"gen_restriction_${ local._1 }D_${ local._2.name }", level, local._1, local._2, defInterpolation)
-        L3_StencilCollection.add(restriction)
-        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.restrictPerLevel += (level -> restriction))
+        // restriction for residual -> can be the value of an integral if FV are used
+        val restrictionForRes = L3_DefaultRestriction.generate(s"gen_restrictionForRes_${ local._1 }D_${ local._2.name }", level, local._1, local._2, defInterpolation)
+        L3_StencilCollection.add(restrictionForRes)
+        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.restrictForResPerLevel += (level -> restrictionForRes))
 
-        val prolongation = L3_DefaultProlongation.generate(s"gen_prolongation_${ local._1 }D_${ local._2.name }", level, local._1, local._2, defInterpolation)
-        L3_StencilCollection.add(prolongation)
-        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.prolongPerLevel += (level -> prolongation))
+        // restriction for solution -> always use linear
+        val restrictionForSol = L3_DefaultRestriction.generate(s"gen_restrictionForSol_${ local._1 }D_${ local._2.name }", level, local._1, local._2, "linear")
+        L3_StencilCollection.add(restrictionForSol)
+        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.restrictForSolPerLevel += (level -> restrictionForSol))
+
+        // prolongation for solution -> always use linear
+        val prolongationForSol = L3_DefaultProlongation.generate(s"gen_prolongationForSol_${ local._1 }D_${ local._2.name }", level, local._1, local._2, "linear")
+        L3_StencilCollection.add(prolongationForSol)
+        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.prolongForSolPerLevel += (level -> prolongationForSol))
       }
     }
   }
 
   def generateFields() = {
-    entries.foreach(entry => {
-      val domain = L3_DomainCollection.getByIdentifier("global").get
+    // TODO: how to inherit function boundary conditions?
 
+    entries.foreach(entry => {
       for (level <- Knowledge.levels) {
         val solField = entry.getSolField(level)
 
+        // add a rhs for all levels but the finest (which was already declared on L2 by the user)
         if (level != Knowledge.maxLevel) {
-          val rhsField = L3_Field(s"gen_rhs_${ solField.name }", level, domain,
-            solField.datatype, solField.localization, Some(0.0), L3_NoBC)
+          val rhsField = Duplicate.forceClone(solField)
+          rhsField.name = s"gen_rhs_${ solField.name }"
+          rhsField.initial = Some(0.0)
+          rhsField.boundary = L3_NoBC
 
           L3_FieldCollection.add(rhsField)
           entry.rhsPerLevel += (level -> rhsField)
         }
 
-        val resBC = solField.boundary match {
+        // add residual fields
+        val resField = Duplicate.forceClone(solField)
+        resField.name = s"gen_residual_${ solField.name }"
+        resField.initial = Some(0.0)
+        resField.boundary = solField.boundary match {
           case L3_DirichletBC(_)                   => L3_DirichletBC(0.0)
           case other @ (L3_NoBC | L3_NeumannBC(_)) => other
         }
 
-        val resField = L3_Field(s"gen_residual_${ solField.name }", level, domain,
-          solField.datatype, solField.localization, Some(0.0), resBC)
-
         L3_FieldCollection.add(resField)
         entry.resPerLevel += (level -> resField)
+
+        // add approximations (if required) for all levels but the finest
+        if (Knowledge.solver_useFAS) {
+          val approxField = Duplicate.forceClone(solField)
+          approxField.name = s"gen_approx_${ solField.name }"
+
+          L3_FieldCollection.add(approxField)
+          entry.approxPerLevel += (level -> approxField)
+        }
       }
     })
   }
@@ -196,17 +215,18 @@ case class L3_SolverForEquation(
         // update residual
         solverStmts ++= entries.map(_.generateUpdateRes(level))
 
-        // update rhs@coarser
-        solverStmts ++= entries.map(_.generateRestriction(level))
+        // restriction
+        solverStmts ++= generateRestriction(level)
 
         // update solution@coarser
-        solverStmts ++= entries.map(_.generateSetSolZero(level - 1))
+        if (!Knowledge.solver_useFAS)
+          solverStmts ++= entries.map(_.generateSetSolZero(level - 1))
 
         // recursion
         solverStmts += L3_FunctionCall(L3_LeveledDslFunctionReference("gen_mgCycle", level - 1, L3_UnitDatatype))
 
         // correction
-        solverStmts ++= entries.map(_.generateCorrection(level))
+        solverStmts ++= generateCorrection(level)
 
         // smoother
         solverStmts ++= L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost)
@@ -221,6 +241,63 @@ case class L3_SolverForEquation(
     }
   }
 
+  def generateRestriction(level : Int) : ListBuffer[L3_Statement] = {
+    val stmts = ListBuffer[L3_Statement]()
+
+    if (Knowledge.solver_useFAS) {
+      // todo: merge first two steps
+      // SolutionApprox@coarser = Restriction * Solution
+      stmts ++= entries.map(entry => L3_Assignment(L3_FieldAccess(entry.approxPerLevel(level - 1)),
+        L3_StencilAccess(entry.restrictForSolPerLevel(level)) * L3_FieldAccess(entry.getSolField(level))))
+
+      // Solution@coarser = SolutionApprox@coarser
+      stmts ++= entries.map(entry => L3_Assignment(L3_FieldAccess(entry.getSolField(level - 1)),
+        L3_FieldAccess(entry.approxPerLevel(level - 1))))
+
+      // RHS@coarser = Restriction * Residual + A@coarser * Approx@coarser
+      stmts ++= entries.map(entry => {
+        // generate operator application first
+        val opApplication = Duplicate(L3_ExpressionStatement(entry.getEq(level - 1).lhs))
+        object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses with approximation variants") {
+          this += new Transformation("Search and replace", {
+            case access @ L3_FieldAccess(field, _) if entries.exists(field == _.getSolField(level - 1)) =>
+              access.target = entries.find(field == _.getSolField(level - 1)).get.getSolField(level - 1) // FIXME: approxPerLevel(level - 1)
+              access
+          })
+        }
+
+        L3_ReplaceAccesses.applyStandalone(opApplication)
+
+        // assemble assignment
+        L3_Assignment(L3_FieldAccess(entry.rhsPerLevel(level - 1)),
+          L3_StencilAccess(entry.restrictForResPerLevel(level)) * L3_FieldAccess(entry.resPerLevel(level))
+            + opApplication.expression)
+      })
+    } else {
+      // RHS@coarser = Restriction * Residual
+      stmts ++= entries.map(entry => L3_Assignment(L3_FieldAccess(entry.rhsPerLevel(level - 1)),
+        L3_StencilAccess(entry.restrictForResPerLevel(level)) * L3_FieldAccess(entry.resPerLevel(level))))
+    }
+
+    stmts
+  }
+
+  def generateCorrection(level : Int) : ListBuffer[L3_Statement] = {
+    val stmts = ListBuffer[L3_Statement]()
+
+    if (Knowledge.solver_useFAS) {
+      // Solution@coarser -= Approx@coarser
+      stmts ++= entries.map(entry => L3_Assignment(L3_FieldAccess(entry.getSolField(level - 1)),
+        L3_FieldAccess(entry.approxPerLevel(level - 1)), "-=", None))
+    }
+
+    // Solution += Prolongation@coarser * Solution@coarser
+    stmts ++= entries.map(entry => L3_Assignment(L3_FieldAccess(entry.getSolField(level)),
+      L3_StencilAccess(entry.prolongForSolPerLevel(level - 1)) * L3_FieldAccess(entry.getSolField(level - 1)),
+      "+=", None))
+
+    stmts
+  }
 }
 
 /// L3_SolverForEqEntry
@@ -228,9 +305,11 @@ case class L3_SolverForEquation(
 case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Node {
   var rhsPerLevel = HashMap[Int, L3_Field]()
   var resPerLevel = HashMap[Int, L3_Field]()
+  var approxPerLevel = HashMap[Int, L3_Field]()
 
-  var restrictPerLevel = HashMap[Int, L3_Stencil]()
-  var prolongPerLevel = HashMap[Int, L3_Stencil]()
+  var restrictForResPerLevel = HashMap[Int, L3_Stencil]()
+  var restrictForSolPerLevel = HashMap[Int, L3_Stencil]()
+  var prolongForSolPerLevel = HashMap[Int, L3_Stencil]()
 
   var localEqPerLevel = HashMap[Int, L3_Equation]()
 
@@ -249,19 +328,6 @@ case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Nod
     // Residual = RHS - LHS
     L3_Assignment(L3_FieldAccess(resPerLevel(level)),
       Duplicate(getEq(level).rhs - getEq(level).lhs))
-  }
-
-  def generateRestriction(level : Int) : L3_Statement = {
-    // RHS@coarser = Restriction * Residual
-    L3_Assignment(L3_FieldAccess(rhsPerLevel(level - 1)),
-      L3_StencilAccess(restrictPerLevel(level)) * L3_FieldAccess(resPerLevel(level)))
-  }
-
-  def generateCorrection(level : Int) : L3_Statement = {
-    // Solution += Prolongation@coarser * Solution@coarser
-    L3_Assignment(L3_FieldAccess(getSolField(level)),
-      L3_StencilAccess(prolongPerLevel(level - 1)) * L3_FieldAccess(getSolField(level - 1)),
-      "+=", None)
   }
 
   def generateSetSolZero(level : Int) : L3_Statement = {

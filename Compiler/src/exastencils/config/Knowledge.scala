@@ -155,6 +155,9 @@ object Knowledge {
   // maximum number of iterations for the whole solver
   var solver_maxNumIts : Int = 128
 
+  // toggle usage of the full approximation scheme (FAS)
+  var solver_useFAS : Boolean = false
+
   // coloring mode used in the generated smoother
   // may be one of the following: 'None', 'RB' or '2-way', '4-way' (2D only), '8-way' (3D only), '9-way' (2D only), '27-way' (3D only)
   var solver_smoother_coloring : String = "None"
