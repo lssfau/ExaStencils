@@ -19,12 +19,19 @@ case class L4_StencilAccess(
     var target : L4_Stencil,
     var offset : Option[L4_ConstIndex] = None,
     var dirAccess : Option[L4_ConstIndex] = None,
-    var arrayIndex : Option[Int] = None) extends L4_OperatorAccess {
+    var arrayIndex : Option[Int] = None) extends L4_OperatorAccess with L4_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << target.name << '@' << target.level
     if (offset.isDefined) out << "@" << offset.get
     if (dirAccess.isDefined) out << ":" << dirAccess.get
+  }
+
+  override def offsetWith(newOffset : L4_ConstIndex) = {
+    if (offset.isEmpty)
+      offset = Some(newOffset)
+    else
+      offset = Some(offset.get + newOffset)
   }
 
   def progress : IR_StencilAccess = {

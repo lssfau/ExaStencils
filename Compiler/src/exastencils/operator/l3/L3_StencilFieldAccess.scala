@@ -17,12 +17,19 @@ object L3_StencilFieldAccess {
 case class L3_StencilFieldAccess(
     var target : L3_StencilField,
     var offset : Option[L3_ConstIndex] = None,
-    var dirAccess : Option[L3_ConstIndex] = None) extends L3_LeveledKnowledgeAccess {
+    var dirAccess : Option[L3_ConstIndex] = None) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset {
 
   override def prettyprint(out : PpStream) = {
     out << name << '@' << level
     if (offset.isDefined) out << '@' << offset.get
     if (dirAccess.isDefined) out << ':' << dirAccess.get
+  }
+
+  override def offsetWith(newOffset : L3_ConstIndex) = {
+    if (offset.isEmpty)
+      offset = Some(newOffset)
+    else
+      offset = Some(offset.get + newOffset)
   }
 
   def progress = {
