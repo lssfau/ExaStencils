@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_ForLoop
+import exastencils.boundary.l3.L3_NoBC
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.l3._
@@ -28,7 +29,7 @@ object L3_ConjugateGradientForEquation extends L3_IterativeSolverForEquation {
       val tmp0Field = L3_Field(s"gen_cgTmp0_${ entry.getSolField(level).name }", level, res.domain,
         res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
       val tmp1Field = L3_Field(s"gen_cgTmp1_${ entry.getSolField(level).name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
 
       L3_FieldCollection.add(tmp0Field)
       L3_FieldCollection.add(tmp1Field)

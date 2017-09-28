@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_ForLoop
+import exastencils.boundary.l3.L3_NoBC
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.l3._
@@ -31,17 +32,17 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
       val res = entry.resPerLevel(level)
 
       val nuField = L3_Field(s"gen_nu_${ sol.name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
       val pField = L3_Field(s"gen_p_${ sol.name }", level, res.domain,
         res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
       val hField = L3_Field(s"gen_h_${ sol.name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
       val sField = L3_Field(s"gen_s_${ sol.name }", level, res.domain,
         res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
       val tField = L3_Field(s"gen_t_${ sol.name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
       val resHatField = L3_Field(s"gen_resHat_${ sol.name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
 
       L3_FieldCollection.add(nuField)
       L3_FieldCollection.add(pField)

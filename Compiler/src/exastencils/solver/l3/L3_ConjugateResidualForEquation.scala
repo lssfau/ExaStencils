@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_ForLoop
+import exastencils.boundary.l3.L3_NoBC
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.l3._
@@ -29,9 +30,9 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
       val pField = L3_Field(s"gen_p_${ entry.getSolField(level).name }", level, res.domain,
         res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
       val apField = L3_Field(s"gen_ap_${ entry.getSolField(level).name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
       val arField = L3_Field(s"gen_ar_${ entry.getSolField(level).name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
 
       L3_FieldCollection.add(pField)
       L3_FieldCollection.add(apField)

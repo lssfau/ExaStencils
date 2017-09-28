@@ -5,6 +5,7 @@ import scala.collection.mutable._
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
 import exastencils.baseExt.l3.L3_ForLoop
+import exastencils.boundary.l3.L3_NoBC
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
 import exastencils.field.l3._
@@ -37,21 +38,21 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
       val res = entry.resPerLevel(level)
 
       val pOldField = L3_Field(s"gen_pOld_${ entry.getSolField(level).name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
       val pField = L3_Field(s"gen_p_${ entry.getSolField(level).name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
       val pNewField = L3_Field(s"gen_pNew_${ entry.getSolField(level).name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
 
       val vOldField = L3_Field(s"gen_vOld_${ entry.getSolField(level).name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
       val vField = L3_Field(s"gen_v_${ entry.getSolField(level).name }", level, res.domain,
         res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
       val vNewField = L3_Field(s"gen_vNew_${ entry.getSolField(level).name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
 
       val avField = L3_Field(s"gen_av_${ entry.getSolField(level).name }", level, res.domain,
-        res.datatype, res.localization, Some(0.0), Duplicate(res.boundary))
+        res.datatype, res.localization, Some(0.0), L3_NoBC)
 
       L3_FieldCollection.add(pOldField)
       L3_FieldCollection.add(pField)
