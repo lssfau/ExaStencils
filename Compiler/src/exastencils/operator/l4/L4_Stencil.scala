@@ -46,7 +46,7 @@ case class L4_Stencil(
 
         entry.col.indices.map(L4_SimplifyExpression.simplifyFloatingExpr(_) match {
           case L4_RealConstant(v) => v.isValidInt
-          case other              => Logger.warn(other); false
+          case other              => Logger.warn(s"Found $other in stencil $name@$level"); false
         }).reduce(_ && _)
       })
 

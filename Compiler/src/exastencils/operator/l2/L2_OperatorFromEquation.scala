@@ -41,10 +41,13 @@ case class L2_OperatorFromEquation(
 
       for (rawStencil <- stencils) {
         val stencilName = entry.mapping.find(rawStencil._1 == _.unknown).get.name
+        val stencilNumDims = entry.mapping.find(rawStencil._1 == _.unknown).get.unknown.asInstanceOf[L2_FieldAccess].target.numDimsGrid
         val stencilEntries = rawStencil._2.map(entry => L2_StencilOffsetEntry(Duplicate(entry.offset), Duplicate(entry.coefficient)))
 
-        if (true) {
-          val stencil = L2_Stencil(stencilName, level, 2, Array(1, 1), stencilEntries.map(_.asStencilMappingEntry))
+        val generateConstStencil = true /* TODO: expose in DSL */
+
+        if (generateConstStencil) {
+          val stencil = L2_Stencil(stencilName, level, stencilNumDims, Array.fill(stencilNumDims)(1), stencilEntries.map(_.asStencilMappingEntry))
 
           //Logger.debug("New stencil:\n" + stencil.printStencilToStr(true))
 
