@@ -208,7 +208,17 @@ class L4_FieldAccessRangeCollector() extends Collector {
       case solve : L4_LocalSolve =>
         if (ignore) Logger.warn("Found local solve outside kernel")
 
-        solve.unknowns.map(_.asInstanceOf[L4_FieldAccess]).foreach(field => processWriteExtent(L4_FieldWithSlot(field.target, field.slot), field.offset))
+        def slot(field : L4_FieldAccess) : L4_SlotSpecification = {
+          field.slot match {
+            case sth if !solve.jacobiType => sth
+            case L4_ActiveSlot            => L4_NextSlot
+            case c : L4_ConstantSlot      => L4_ConstantSlot(c.number + 1)
+            case other                    => Logger.error(s"Unsupported slot modifier ${ other.prettyprint() }")
+          }
+        }
+
+        solve.unknowns.map(_.asInstanceOf[L4_FieldAccess]).foreach(field => processWriteExtent(L4_FieldWithSlot(field.target, slot(field)), field.offset))
+
       // accesses in equations are handled recursively
 
       case field : L4_FieldAccess =>
