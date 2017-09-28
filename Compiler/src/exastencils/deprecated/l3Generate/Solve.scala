@@ -36,7 +36,7 @@ object Solve {
       printer.println("\t\tstartTimer ( 'cycle' )")
     printer.println("\t\tVCycle@finest (  )")
 
-    if (Knowledge.experimental_NeumannNormalize) {
+    if (Knowledge.l3tmp_NeumannNormalize) {
       printer.println(s"\t\tVar integral : Real = 0.0")
       if (Knowledge.l3tmp_genCellBasedDiscr)
         printer.println(s"\t\tloop over Solution[currentSlot]@finest with reduction( + : integral ) {")

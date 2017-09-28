@@ -138,6 +138,11 @@ object Knowledge {
   // may be one of the following: 'FD' or 'finiteDifferences', 'FV' or 'finiteVolumes'
   var discr_type : String = "FD"
 
+  // may currently be 1 or 2
+  var discr_defaultNeumannOrder : Int = 1
+  // allows setting the interpolation order for Dirichlet BCs for cell or face localized quantities
+  var discr_defaultDirichletOrder : Int = 1
+
   // TODO: ignore for IDE support for now
 
   // (uniform) grid width per dimension and level
@@ -449,16 +454,6 @@ object Knowledge {
 
   /// experimental features
 
-  // highly experimental -> use only if you know what you are doing
-  var experimental_Neumann : Boolean = false
-  // may currently be 1 or 2
-  var experimental_NeumannOrder : Int = 2
-  // normalize solution after each v-cycle
-  var experimental_NeumannNormalize : Boolean = false
-
-  // allows setting the interpolation order for Dirichlet BCs for cell or face localized quantities
-  var experimental_DirichletOrder : Int = 1
-
   // generates call stacks for all employed timers
   var experimental_timerEnableCallStacks : Boolean = false
 
@@ -534,6 +529,11 @@ object Knowledge {
 
   /// BEGIN HACK config options for generating L4 DSL file
   var l3tmp_generateL4 : Boolean = false // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
+
+  // activate Neumann bc in generated test cases
+  var l3tmp_Neumann : Boolean = false
+  // normalize solution after each v-cycle
+  var l3tmp_NeumannNormalize : Boolean = false
 
   /// SPL connected
   var l3tmp_smoother : String = "Jac"
@@ -664,7 +664,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa_VC", l3tmp_sisc && l3tmp_genStencilFields, "Kappa_VC is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa", l3tmp_sisc && !l3tmp_genStencilFields, "Kappa is required as l3tmp_exactSolution for constant stencils and l3tmp_sisc")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_sisc && l3tmp_genStencilFields, "l3tmp_genHDepStencils must be true for variable stencils and l3tmp_sisc")
-      Constraints.condEnsureValue(experimental_Neumann, false, l3tmp_sisc, "Neumann boundary conditions are not compatible with l3tmp_sisc")
+      Constraints.condEnsureValue(l3tmp_Neumann, false, l3tmp_sisc, "Neumann boundary conditions are not compatible with l3tmp_sisc")
 
       if (l3tmp_sisc)
         Constraints.updateValue(l3tmp_maxNumCGSSteps, 1024)
@@ -730,12 +730,12 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires non-zero right hand sides")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires grid width dependent stencils")
 
-      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && "Kappa_VC" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
+      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, l3tmp_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", l3tmp_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && "Kappa_VC" != l3tmp_exactSolution && !l3tmp_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
 
-      Constraints.condEnsureValue(experimental_NeumannOrder, 1, experimental_Neumann && l3tmp_genCellBasedDiscr, "experimental_OrderNeumann must be 1 for cell based discretizations")
-      Constraints.condEnsureValue(experimental_NeumannOrder, 2, experimental_Neumann && experimental_NeumannOrder < 1 || experimental_NeumannOrder > 2, "experimental_OrderNeumann must be between 1 and 2")
+      Constraints.condEnsureValue(discr_defaultNeumannOrder, 1, l3tmp_Neumann && l3tmp_genCellBasedDiscr, "experimental_OrderNeumann must be 1 for cell based discretizations")
+      Constraints.condEnsureValue(discr_defaultNeumannOrder, 2, l3tmp_Neumann && discr_defaultNeumannOrder < 1 || discr_defaultNeumannOrder > 2, "experimental_OrderNeumann must be between 1 and 2")
 
       Constraints.condEnsureValue(l3tmp_initSolWithRand, true, "Zero" == l3tmp_exactSolution && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
       Constraints.condEnsureValue(l3tmp_initSolWithRand, false, "Zero" != l3tmp_exactSolution, "l3tmp_exactSolution not equal to zero requires initial solution of zero")
@@ -744,17 +744,17 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
       Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genCellBasedDiscr, "FMG is currently not compatible with cell based discretizations")
-      Constraints.condEnsureValue(l3tmp_genFMG, false, experimental_Neumann, "FMG is currently not compatible with Neumann BC")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_Neumann, "FMG is currently not compatible with Neumann BC")
       Constraints.condEnsureValue(l3tmp_genFMG, false, 1 != l3tmp_numVecDims, "FMG is currently not compatible with vector fields")
       Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_kelvin, "FMG is currently not compatible with Kelvin mode")
       Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genPeriodicBounds, "FMG is currently not compatible with l3tmp_genPeriodicBounds")
 
       // l3tmp - stencils
-      Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genStencilFields, false, l3tmp_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genStencilFields, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilFields is currently not compatible with cell based discretizations")
       Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
-      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, experimental_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genFMG, "FMG requires the usage of grid width dependent stencils")
 
@@ -779,7 +779,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_useSlotVariables, false, !l3tmp_useSlotsForJac, "invalid if not using l3tmp_useSlotsForJac")
 
       // l3tmp - temporal blocking
-      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
       //      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
       Constraints.condWarn(l3tmp_genTemporalBlocking && "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
       Constraints.condWarn(l3tmp_genTemporalBlocking && "BS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with block smoothers")

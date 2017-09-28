@@ -20,7 +20,7 @@ object Communication {
     if (Knowledge.l3tmp_genTimersForComm)
       printer.println(s"\tstartTimer ( $commName )")
 
-    if (Knowledge.l3tmp_genCellBasedDiscr || Knowledge.experimental_Neumann)
+    if (Knowledge.l3tmp_genCellBasedDiscr || Knowledge.l3tmp_Neumann)
       applyBCs(printer, field)
 
     printer.println(s"\tcommunicate${ if ("" == target) "" else s" $target of" } $field${ if ("" == condition) "" else s" where $condition" }")

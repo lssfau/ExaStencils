@@ -7,8 +7,8 @@ import exastencils.prettyprinting.PpStream
 /// L2_NeumannBC
 
 object L2_NeumannBC {
-  def apply() = new L2_NeumannBC(Knowledge.experimental_NeumannOrder)
-  def apply(order : Option[Int]) = new L2_NeumannBC(order.getOrElse(Knowledge.experimental_NeumannOrder))
+  def apply() = new L2_NeumannBC(Knowledge.discr_defaultNeumannOrder)
+  def apply(order : Option[Int]) = new L2_NeumannBC(order.getOrElse(Knowledge.discr_defaultNeumannOrder))
 }
 
 case class L2_NeumannBC(order : Int) extends L2_BoundaryCondition {

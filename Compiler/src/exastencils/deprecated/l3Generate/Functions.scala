@@ -14,7 +14,7 @@ object Functions {
 
     if (Knowledge.l3tmp_genNonZeroRhs) {
       Knowledge.l3tmp_exactSolution match {
-        case "Polynomial"                                      =>
+        case "Polynomial"                               =>
           if (Knowledge.l3tmp_genPeriodicBounds)
             Knowledge.dimensionality match {
               case 2 => s"( ${ geomCoord }_x@current * ${ geomCoord }_x@current )"
@@ -25,17 +25,17 @@ object Functions {
               case 2 => s"( ${ geomCoord }_x@current * ${ geomCoord }_x@current * ${ geomCoord }_x@current + ${ geomCoord }_y@current * ${ geomCoord }_y@current * ${ geomCoord }_y@current )"
               case 3 => s"( ${ geomCoord }_x@current * ${ geomCoord }_x@current * ${ geomCoord }_x@current + ${ geomCoord }_y@current * ${ geomCoord }_y@current * ${ geomCoord }_y@current + ${ geomCoord }_z@current * ${ geomCoord }_z@current * ${ geomCoord }_z@current )"
             }
-        case "Trigonometric" if Knowledge.experimental_Neumann =>
+        case "Trigonometric" if Knowledge.l3tmp_Neumann =>
           Knowledge.dimensionality match {
             case 2 => s"( cos ( 2.0 * PI * ${ geomCoord }_x@current ) * cos ( 2.0 * PI * ${ geomCoord }_y@current ) )"
             case 3 => s"( cos ( 2.0 * PI * ${ geomCoord }_x@current ) * cos ( 2.0 * PI * ${ geomCoord }_y@current ) * cos ( 2.0 * PI * ${ geomCoord }_z@current ) )"
           }
-        case "Kappa"                                           =>
+        case "Kappa"                                    =>
           Knowledge.dimensionality match {
             case 2 => s"( kappa * ( (${ geomCoord }_x@current - ${ geomCoord }_x@current ** 2) * (${ geomCoord }_y@current - ${ geomCoord }_y@current ** 2) ) )"
             case 3 => s"( kappa * ( (${ geomCoord }_x@current - ${ geomCoord }_x@current ** 2) * (${ geomCoord }_y@current - ${ geomCoord }_y@current ** 2) * (${ geomCoord }_z@current - ${ geomCoord }_z@current ** 2) ) )"
           }
-        case "Kappa_VC"                                        =>
+        case "Kappa_VC"                                 =>
           Knowledge.dimensionality match {
             case 2 => s"( 1.0 - exp ( -1.0 * kappa * ( (${ geomCoord }_x@current - ${ geomCoord }_x@current ** 2) * (${ geomCoord }_y@current - ${ geomCoord }_y@current ** 2) ) ) )"
             case 3 => s"( 1.0 - exp ( -1.0 * kappa * ( (${ geomCoord }_x@current - ${ geomCoord }_x@current ** 2) * (${ geomCoord }_y@current - ${ geomCoord }_y@current ** 2) * (${ geomCoord }_z@current - ${ geomCoord }_z@current ** 2) ) ) )"
@@ -75,7 +75,7 @@ object Functions {
 
     if (Knowledge.l3tmp_genNonZeroRhs) {
       Knowledge.l3tmp_exactSolution match {
-        case "Polynomial"                                      =>
+        case "Polynomial"                               =>
           if (Knowledge.l3tmp_genPeriodicBounds)
             Knowledge.dimensionality match {
               case 2 => s"-2.0"
@@ -86,12 +86,12 @@ object Functions {
               case 2 => s"( -6.0 * ( ${ geomCoord }_x@current + ${ geomCoord }_y@current ) )"
               case 3 => s"( -6.0 * ( ${ geomCoord }_x@current + ${ geomCoord }_y@current + ${ geomCoord }_z@current ) )"
             }
-        case "Trigonometric" if Knowledge.experimental_Neumann =>
+        case "Trigonometric" if Knowledge.l3tmp_Neumann =>
           Knowledge.dimensionality match {
             case 2 => s"( 8.0 * PI * PI * cos ( 2.0 * PI * ${ geomCoord }_x@current ) * cos ( 2.0 * PI * ${ geomCoord }_y@current ) )"
             case 3 => s"( 12.0 * PI * PI * cos ( 2.0 * PI * ${ geomCoord }_x@current ) * cos ( 2.0 * PI * ${ geomCoord }_y@current ) * cos ( 2.0 * PI * ${ geomCoord }_z@current ) )"
           }
-        case "Kappa" | "Kappa_VC"                              =>
+        case "Kappa" | "Kappa_VC"                       =>
           Knowledge.dimensionality match {
             case 2 => s"( 2.0 * kappa * ( (${ geomCoord }_x@current - ${ geomCoord }_x@current ** 2) + (${ geomCoord }_y@current - ${ geomCoord }_y@current ** 2) ) )"
             case 3 => s"( 2.0 * kappa * ( (${ geomCoord }_x@current - ${ geomCoord }_x@current ** 2) * (${ geomCoord }_y@current - ${ geomCoord }_y@current ** 2) + (${ geomCoord }_x@current - ${ geomCoord }_x@current ** 2) * (${ geomCoord }_z@current - ${ geomCoord }_z@current ** 2) + (${ geomCoord }_y@current - ${ geomCoord }_y@current ** 2) * (${ geomCoord }_z@current - ${ geomCoord }_z@current ** 2) ) )"
