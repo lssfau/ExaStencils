@@ -30,12 +30,12 @@ case class L4_Stencil(
 
   override def progressImpl() = IR_Stencil(name, level, numDims, colStride, entries.map(_.progress))
 
-  def numCases(d : Int) : Int = if (colStride(d) >= 1) 1/*colStride(d).toInt*/ else (1.0 / colStride(d)).toInt
+  def numCases(d : Int) : Int = if (colStride(d) >= 1) 1 /*colStride(d).toInt*/ else (1.0 / colStride(d)).toInt
 
   def assembleOffsetMap() : Map[L4_Expression, ListBuffer[L4_ConstIndex]] = {
-    val map = HashMap[L4_Expression, ListBuffer[L4_ConstIndex]]().withDefaultValue(ListBuffer())
+    val map = HashMap[L4_Expression, ListBuffer[L4_ConstIndex]]()
 
-    assembleCases().foreach(c => {
+    assembleCases().foreach[Unit](c => {
       val cond = (0 until numDims).map(d => L4_EqEq(c(d), L4_Modulo(L4_FieldIteratorAccess(d), numCases(d)))).reduce(L4_AndAnd)
       val offsets = Duplicate(entries).filter(entry => {
         for (d <- 0 until numDims) {
@@ -50,7 +50,10 @@ case class L4_Stencil(
         }).reduce(_ && _)
       })
 
-      map(cond) ++= offsets.map(_.asStencilOffsetEntry.offset)
+      if (map.contains(cond))
+        map(cond) ++= offsets.map(_.asStencilOffsetEntry.offset)
+      else
+        map += (cond -> offsets.map(_.asStencilOffsetEntry.offset))
     })
 
     map

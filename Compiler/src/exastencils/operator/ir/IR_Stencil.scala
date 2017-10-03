@@ -22,12 +22,12 @@ case class IR_Stencil(
 
   def datatype = entries.foldLeft(entries.head.datatype)((dt, entry) => IR_ResultingDatatype(dt, entry.datatype))
 
-  def numCases(d : Int) : Int = if (colStride(d) >= 1) 1/*colStride(d).toInt*/ else (1.0 / colStride(d)).toInt
+  def numCases(d : Int) : Int = if (colStride(d) >= 1) 1 /*colStride(d).toInt*/ else (1.0 / colStride(d)).toInt
 
   def assembleOffsetMap() : Map[IR_Expression, ListBuffer[IR_ConstIndex]] = {
     val map = HashMap[IR_Expression, ListBuffer[IR_ConstIndex]]()
 
-    assembleCases().foreach(c => {
+    assembleCases().foreach[Unit](c => {
       val cond = (0 until numDims).map(d => IR_EqEq(c(d), IR_Modulo(IR_FieldIteratorAccess(d), numCases(d)))).reduce(IR_AndAnd)
       val offsets = Duplicate(entries).filter(entry => {
         for (d <- 0 until numDims) {
@@ -42,8 +42,10 @@ case class IR_Stencil(
         }).reduce(_ && _)
       })
 
-      if (!map.contains(cond)) map += (cond -> ListBuffer())
-      map(cond) ++= offsets.map(_.asStencilOffsetEntry.offset)
+      if (map.contains(cond))
+        map(cond) ++= offsets.map(_.asStencilOffsetEntry.offset)
+      else
+        map += (cond -> offsets.map(_.asStencilOffsetEntry.offset))
     })
 
     map
