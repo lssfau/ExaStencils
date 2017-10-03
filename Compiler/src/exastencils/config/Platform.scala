@@ -171,6 +171,7 @@ object Platform {
   // in Hz
   var hw_gpu_frequency : Double = 0.475 * 1000 * 1000 * 1000
   var hw_gpu_numCores : Int = 256
+  var hw_gpu_gpuDirectAvailable : Boolean = true
   var hw_cuda_capability : Int = 2
   var hw_cuda_capabilityMinor : Int = 0
   // amount of shared memory in byte

@@ -8,6 +8,7 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.core.Duplicate
 import exastencils.datastructures._
 import exastencils.field.ir._
@@ -272,10 +273,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
         /// compile final switch
         val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
-          case "Host"        => 1 // CPU by default
-          case "Device"      => 0 // GPU by default
-          case "Performance" => 1 // FIXME: Knowledge flag
-          case "Condition"   => Knowledge.cuda_executionCondition
+          case _ if !Platform.hw_gpu_gpuDirectAvailable => 1 // if GPUDirect is not available default to CPU
+          case "Host"                                   => 1 // CPU by default
+          case "Device"                                 => 0 // GPU by default
+          case "Performance"                            => 1 // FIXME: Knowledge flag
+          case "Condition"                              => Knowledge.cuda_executionCondition
         }
 
         ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))
