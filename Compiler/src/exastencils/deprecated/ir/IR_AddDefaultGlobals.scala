@@ -27,6 +27,14 @@ object IR_AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
       globals
 
     case func : IR_Function if "initGlobals" == func.name =>
+      // init mpi before cuda since cuda might need mpiRank to choose device
+      if (Knowledge.mpi_enabled) {
+        func.body += "mpiCommunicator = " + Knowledge.mpi_defaultCommunicator
+        func.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"
+        func.body += "MPI_Comm_size(mpiCommunicator, &mpiSize)"
+        func.body += "std::srand(mpiRank)"
+      }
+
       if (Knowledge.cuda_enabled) {
         // init device
         func.body ++= ListBuffer[IR_Statement](
@@ -54,13 +62,6 @@ object IR_AddDefaultGlobals extends DefaultStrategy("AddDefaultGlobals") {
           func.body += "cudaDeviceSetCacheConfig(cudaFuncCachePreferShared)"
         if (Knowledge.cuda_favorL1CacheOverSharedMemory)
           func.body += "cudaDeviceSetCacheConfig(cudaFuncCachePreferL1)"
-      }
-
-      if (Knowledge.mpi_enabled) {
-        func.body += "mpiCommunicator = " + Knowledge.mpi_defaultCommunicator
-        func.body += "MPI_Comm_rank(mpiCommunicator, &mpiRank)"
-        func.body += "MPI_Comm_size(mpiCommunicator, &mpiSize)"
-        func.body += "std::srand(mpiRank)"
       }
 
       func
