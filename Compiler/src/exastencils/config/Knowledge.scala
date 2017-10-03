@@ -109,7 +109,7 @@ object Knowledge {
   def domain_rect_numFragsTotalAsVec : Array[Int] = Array(domain_rect_numFragsTotal_x, domain_rect_numFragsTotal_y, domain_rect_numFragsTotal_z)
 
   /// Student project - Jeremias -> support for reading domain partitions from file at runtime
-// TODO: refactor and integrate
+  // TODO: refactor and integrate
 
   // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
   var domain_useCase : String = ""
@@ -379,7 +379,7 @@ object Knowledge {
   // [true|false]
   var cuda_enabled : Boolean = false
   // device id of the CUDA device to be used; only relevant in multi-GPU systems
-  var cuda_deviceId : Int = 0
+  var cuda_deviceId : String = "0"
   // specifies where kernels should be executed by default; may be "Host", "Device", "Performance" or "Condition"
   var cuda_preferredExecution : String = "Performance"
   // specifies a condition to be used to branch for CPU (true) or GPU (false) execution; only used if cuda_preferredExecution == Condition
@@ -824,7 +824,7 @@ object Knowledge {
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
     Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, cuda_enabled && "Performance" == cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
-    Constraints.condEnsureValue(cuda_deviceId, 0, cuda_enabled && cuda_deviceId >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+    Constraints.condEnsureValue(cuda_deviceId, "0", cuda_enabled && cuda_deviceId.forall(_.isDigit) && cuda_deviceId.toInt >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
     Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")
