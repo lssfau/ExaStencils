@@ -1,0 +1,27 @@
+user                = "Sebastian"
+
+basePathPrefix      = "./"
+
+/*l1file              = "Examples\Stokes\2D_FV_Stokes.exa1"
+l2file              = "Examples\Stokes\2D_FV_Stokes.exa2"
+l3file              = "Examples\Stokes\2D_FV_Stokes.exa3"
+l4file              = "Examples\Stokes\2D_FV_Stokes.exa4"*/
+
+l1file              = "Examples\Poisson\3D_FD_Poisson.exa1"
+l2file              = "Examples\Poisson\3D_FD_Poisson.exa2"
+l3file              = "Examples\Poisson\3D_FD_Poisson.exa3"
+l4file              = "Examples\Poisson\3D_FD_Poisson.exa4"
+
+debugL1File         = "Configs\Sebastian\debug.exa1"
+debugL2File         = "Configs\Sebastian\debug.exa2"
+debugL3File         = "Configs\Sebastian\debug.exa3"
+debugL4File         = "Configs\Sebastian\debug.exa4"
+
+htmlLogFile         = "Compiler\log\log.html"
+outputPath          = "generated_tsubame/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+timeStratPercentThreshold = 5
+
+buildfileGenerators = { "MakefileGenerator" }
