@@ -21,7 +21,6 @@ import exastencils.knowledge.l4._
 import exastencils.logger.Logger
 import exastencils.operator.l4._
 import exastencils.optimization.l4.L4_GeneralSimplify
-import exastencils.parsers.InputReader
 import exastencils.parsers.l4._
 import exastencils.prettyprinting.Indenter
 import exastencils.solver.l4._
@@ -87,11 +86,7 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
       ExaRootNode.mergeL4(L4_Parser.parse(l4_code).asInstanceOf[L4_Root])
     }
 
-    if (Settings.inputFromJson)
-      ExaRootNode.mergeL4(L4_Parser.parseFile(InputReader.layer4))
-    else
-      ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))
-
+    ExaRootNode.mergeL4(L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node)))
     ExaRootNode.l4_root.flatten()
 
     if (true) {
