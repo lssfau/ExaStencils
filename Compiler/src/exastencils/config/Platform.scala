@@ -12,6 +12,9 @@ object Platform {
   // the target operating system: "Linux", "Windows", "OSX"
   var targetOS : String = "Windows"
 
+  // optionally set name to compiler binary to be used in Makefile
+  var targetCompilerBinary : String = ""
+
   // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG", "CRAY", "PGI"
   var targetCompiler : String = "MSVC"
 
@@ -191,28 +194,32 @@ object Platform {
   /// resolve functions
 
   def resolveCompiler = {
-    targetCompiler match {
-      case "IBMBG" =>
-        val base = if (Knowledge.mpi_enabled) "mpixlcxx" else "bgxlc++"
-        if (Knowledge.omp_enabled) base + "_r" else base
-      case "IBMXL" =>
-        if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
-      case "GCC"   =>
-        if ("ARM" == targetHardware)
-          "arm-linux-gnueabihf-g++"
-        else if (Knowledge.mpi_enabled)
-          "mpicxx"
-        else
-          "g++"
-      case "MSVC"  =>
-        "" // nothing to do
-      case "ICC"   =>
-        if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
-      case "CLANG" =>
-        "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
-      case "Cray"  =>
-        "CC" // no special wrapper required for PizDaint -> might need to be changed later
-      case "PGI"   => ???
+    if(!targetCompilerBinary.isEmpty) {
+      targetCompilerBinary
+    } else {
+      targetCompiler match {
+        case "IBMBG" =>
+          val base = if (Knowledge.mpi_enabled) "mpixlcxx" else "bgxlc++"
+          if (Knowledge.omp_enabled) base + "_r" else base
+        case "IBMXL" =>
+          if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
+        case "GCC"   =>
+          if ("ARM" == targetHardware)
+            "arm-linux-gnueabihf-g++"
+          else if (Knowledge.mpi_enabled)
+            "mpicxx"
+          else
+            "g++"
+        case "MSVC"  =>
+          "" // nothing to do
+        case "ICC"   =>
+          if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
+        case "CLANG" =>
+          "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
+        case "Cray"  =>
+          "CC" // no special wrapper required for PizDaint -> might need to be changed later
+        case "PGI"   => ???
+      }
     }
   }
 
