@@ -193,7 +193,7 @@ object Settings {
           if (!additionalLibs.contains("cudart.lib")) additionalLibs += "cudart.lib"
           if (!pathsInc.contains("$(CUDA_INC_PATH)")) pathsInc += "$(CUDA_INC_PATH)"
           if (!pathsLib.contains("$(CUDA_LIB_PATH)")) pathsLib += "$(CUDA_LIB_PATH)"
-        case "Linux" | "OSX" =>
+        case "Linux" | "macOS" =>
           if (!additionalLibs.contains("cuda")) additionalLibs += "cuda"
           if (!additionalLibs.contains("cudart")) additionalLibs += "cudart"
       }

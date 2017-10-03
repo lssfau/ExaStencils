@@ -9,7 +9,7 @@ object Platform {
   // name of the target system; e.g. name of the cluster
   var targetName : String = "i10staff40"
 
-  // the target operating system: "Linux", "Windows", "OSX"
+  // the target operating system: "Linux", "Windows", "macOS"
   var targetOS : String = "Windows"
 
   // optionally set name to compiler binary to be used in Makefile
