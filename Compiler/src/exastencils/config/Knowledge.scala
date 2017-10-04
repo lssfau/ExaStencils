@@ -180,7 +180,7 @@ object Knowledge {
   var solver_smoother_jacobiType : Boolean = false
 
   // coarse grid solver
-  // may be one of the following: 'CG' or 'ConjugateGradient', 'BiCGStab', 'MinRes', 'ConjugateResidual'
+  // may be one of the following: 'CG' or 'ConjugateGradient', 'BiCGStab', 'MinRes', 'ConjugateResidual', 'Smoother'
   var solver_cgs : String = "CG"
 
   // maximum number of coarse grid solver iterations
