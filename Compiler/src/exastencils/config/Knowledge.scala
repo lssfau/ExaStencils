@@ -473,7 +473,7 @@ object Knowledge {
 
   var experimental_generateParaviewFiles : Boolean = false
 
-  var experimental_trimBoundsForReductionLoops : Boolean = false
+  var experimental_trimBoundsForReductionLoops : Boolean = true
 
   var experimental_addPerformanceEstimate : Boolean = false
 
