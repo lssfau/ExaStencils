@@ -141,6 +141,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
         newLayout.ghostLayers = L4_ConstIndex(numGhostLayers)
         newLayout.communicatesGhosts = numGhostLayers.exists(_ != 0)
         // FIXME: how to determine if duplicates should communicate? activate by default?
+        newLayout.communicatesDuplicated = newLayout.duplicateLayers.indices.exists(_ != 0)
         L4_FieldLayoutCollection.add(newLayout)
 
         // assign layout to field
