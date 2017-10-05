@@ -83,10 +83,10 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
       L3_PlainVariableAccess(s"gen_alphaDenom_${ entry.getSolField(level).name }", L3_RealDatatype, false)
     def alpha = L3_PlainVariableAccess("gen_alpha", L3_RealDatatype, false)
 
-    entries.foreach(entry => {
-      loopStmts += L3_VariableDeclaration(alphaNom(entry), L3_FieldAccess(entry.resPerLevel(level)) * L3_FieldAccess(ar(entry)))
-      loopStmts += L3_VariableDeclaration(alphaDenom(entry), L3_FieldAccess(ap(entry)) * L3_FieldAccess(ap(entry)))
-    })
+    entries.foreach(entry => loopStmts += L3_VariableDeclaration(alphaNom(entry),
+      L3_FieldFieldConvolution(L3_FieldAccess(entry.resPerLevel(level)), L3_FieldAccess(ar(entry)))))
+    entries.foreach(entry => loopStmts += L3_VariableDeclaration(alphaDenom(entry),
+      L3_FieldFieldConvolution(L3_FieldAccess(ap(entry)), L3_FieldAccess(ap(entry)))))
 
     loopStmts += L3_VariableDeclaration(alpha,
       entries.map(alphaNom(_) : L3_Expression).reduce(_ + _) / entries.map(alphaDenom(_) : L3_Expression).reduce(_ + _))
@@ -117,10 +117,9 @@ object L3_ConjugateResidualForEquation extends L3_IterativeSolverForEquation {
       L3_PlainVariableAccess(s"gen_betaDenom_${ entry.getSolField(level).name }", L3_RealDatatype, false)
     def beta = L3_PlainVariableAccess("gen_beta", L3_RealDatatype, false)
 
-    entries.foreach(entry => {
-      loopStmts += L3_VariableDeclaration(betaNom(entry), L3_FieldAccess(entry.resPerLevel(level)) * L3_FieldAccess(ar(entry)))
-      loopStmts += L3_VariableDeclaration(betaDenom(entry), alphaNom(entry))
-    })
+    entries.foreach(entry => loopStmts += L3_VariableDeclaration(betaNom(entry),
+      L3_FieldFieldConvolution(L3_FieldAccess(entry.resPerLevel(level)), L3_FieldAccess(ar(entry)))))
+    entries.foreach(entry => loopStmts += L3_VariableDeclaration(betaDenom(entry), alphaNom(entry)))
 
     loopStmts += L3_VariableDeclaration(beta,
       entries.map(betaNom(_) : L3_Expression).reduce(_ + _) / entries.map(betaDenom(_) : L3_Expression).reduce(_ + _))

@@ -98,9 +98,8 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
 
     loopStmts += L3_Assignment(rhoOld, rho)
     loopStmts += L3_Assignment(rho, 0.0)
-    entries.foreach(entry =>
-      loopStmts += L3_Assignment(rho, L3_FieldAccess(resHat(entry)) * L3_FieldAccess(entry.resPerLevel(level)),
-        "+=", None))
+    entries.foreach(entry => loopStmts += L3_Assignment(rho,
+      L3_FieldFieldConvolution(L3_FieldAccess(resHat(entry)), L3_FieldAccess(entry.resPerLevel(level))), "+=", None))
 
     loopStmts += L3_Assignment(beta, (rho / rhoOld) * (alpha / omega))
     entries.foreach(entry =>
@@ -112,8 +111,8 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
 
     def alphaDenom = L3_PlainVariableAccess("gen_alphaDenom", L3_RealDatatype, false)
     loopStmts += L3_VariableDeclaration(alphaDenom, 0.0)
-    entries.foreach(entry =>
-      loopStmts += L3_Assignment(alphaDenom, L3_FieldAccess(resHat(entry)) * L3_FieldAccess(nu(entry)), "+=", None))
+    entries.foreach(entry => loopStmts += L3_Assignment(alphaDenom,
+      L3_FieldFieldConvolution(L3_FieldAccess(resHat(entry)), L3_FieldAccess(nu(entry))), "+=", None))
     loopStmts += L3_Assignment(alpha, rho / alphaDenom)
 
     entries.foreach(entry =>
@@ -133,8 +132,10 @@ object L3_BiCGStabForEquation extends L3_IterativeSolverForEquation {
     loopStmts += L3_VariableDeclaration(omegaDenom, 0.0)
 
     entries.foreach(entry => {
-      loopStmts += L3_Assignment(omegaNom, L3_FieldAccess(t(entry)) * L3_FieldAccess(s(entry)), "+=", None)
-      loopStmts += L3_Assignment(omegaDenom, L3_FieldAccess(t(entry)) * L3_FieldAccess(t(entry)), "+=", None)
+      loopStmts += L3_Assignment(omegaNom,
+        L3_FieldFieldConvolution(L3_FieldAccess(t(entry)), L3_FieldAccess(s(entry))), "+=", None)
+      loopStmts += L3_Assignment(omegaDenom,
+        L3_FieldFieldConvolution(L3_FieldAccess(t(entry)), L3_FieldAccess(t(entry))), "+=", None)
     })
 
     loopStmts += L3_Assignment(omega, omegaNom / omegaDenom)

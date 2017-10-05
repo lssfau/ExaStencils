@@ -38,7 +38,7 @@ object L3_IterativeSolverForEquation {
 
       entries.foreach(entry =>
         fctBody += L3_Assignment(resNorm,
-          L3_FieldAccess(entry.resPerLevel(level)) * L3_FieldAccess(entry.resPerLevel(level)),
+          L3_FieldFieldConvolution(L3_FieldAccess(entry.resPerLevel(level)), L3_FieldAccess(entry.resPerLevel(level))),
           "+=", None))
 
       fctBody += L3_Return(Some(L3_FunctionCall(L3_MathFunctionReference("sqrt", L3_RealDatatype), resNorm)))
