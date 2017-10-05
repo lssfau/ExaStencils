@@ -117,6 +117,7 @@ object ConfigRunner {
       val goOn = initSubsequent(configuration)
 
       if (goOn && runnerConfig.constraints.map(_.eval()).fold(true)(_ && _)) {
+        ExaLayerHandler.initializeAllLayers()
         ExaLayerHandler.handleAllLayers()
 
         Main.print()
@@ -131,6 +132,7 @@ object ConfigRunner {
           Logger.debug(s"Configuration filtered due to constraints: ${ configuration.print() }")
       }
 
+      ExaLayerHandler.shutdownAllLayers()
       Main.localShutdown()
     }
 
@@ -147,10 +149,62 @@ object ConfigRunner {
       case "piz_daint" | "pizdaint" =>
         val filename = "../compileGenerated"
 
-        Logger.debug(s"Generating compile script for PizDaint with filename $filename")
+        Logger.debug(s"Generating compile script for ${ Platform.targetName } with filename $filename")
         val printer = PrettyprintingManager.getPrinter(filename)
 
         printer <<< "#!/bin/bash"
+        printer <<< ""
+        printer <<< "configurations=\"" + configNames.mkString(" ") + "\""
+        printer <<< "for config in $configurations"
+        printer <<< "do"
+        printer <<< "\tcd ${config}"
+        printer <<< "\ttime make -j"
+        printer <<< "\tcd .."
+        printer <<< "done"
+
+        printer.finish()
+
+      case "tsubame" | "tsubame3" =>
+        val filename = "../compileGenerated"
+
+        Logger.debug(s"Generating compile script for ${ Platform.targetName } with filename $filename")
+        val printer = PrettyprintingManager.getPrinter(filename)
+
+        printer <<< s"#!/bin/sh"
+
+        // use current work directory to ensure correct location of output files
+        printer <<< s"#$$-cwd"
+        printer <<< s"#$$ -l f_node=${ Platform.hw_numNodes }"
+        printer <<< s"#$$ -l h_rt=0:30:00"
+        printer <<< s"#$$ -N compileGenerated"
+
+        printer <<< ""
+
+        if (Knowledge.cuda_enabled) {
+          printer <<< s"## cuda path propagation"
+          printer <<< s"#$$ -v LD_LIBRARY_PATH=/apps/t3/sles12sp2/cuda/8.0/lib64"
+          printer <<< ""
+        }
+
+        // load modules
+        printer <<< s". /etc/profile.d/modules.sh"
+
+        // on this machine, mpi depends on cuda
+        if (Knowledge.cuda_enabled || Knowledge.mpi_enabled)
+          printer <<< s"module load cuda"
+
+        if ("ICC" == Platform.targetCompiler)
+          printer <<< s"module load intel"
+
+        Platform.mpi_variant.toLowerCase() match {
+          case "openmpi"  => printer <<< s"module load openmpi"
+          case "intelmpi" => printer <<< s"module load intel-mpi"
+          case other      => Logger.error(s"Unsupported mpi variant $other")
+        }
+
+        printer <<< ""
+        printer <<< s"cd ~"
+
         printer <<< ""
         printer <<< "configurations=\"" + configNames.mkString(" ") + "\""
         printer <<< "for config in $configurations"
@@ -169,7 +223,7 @@ object ConfigRunner {
       case "piz_daint" | "pizdaint" =>
         val filename = "../submitGenerated"
 
-        Logger.debug(s"Generating compile script for PizDaint with filename $filename")
+        Logger.debug(s"Generating compile script for ${ Platform.targetName } with filename $filename")
         val printer = PrettyprintingManager.getPrinter(filename)
 
         printer <<< "#!/bin/bash"
@@ -184,6 +238,30 @@ object ConfigRunner {
         Settings.user.toLowerCase() match {
           case "sebastian" | "kuckuk" | "sebastiankuckuk" =>
             printer <<< "watch squeue -u kuckuk"
+          case _                                          =>
+          // nothing to do
+        }
+
+        printer.finish()
+
+      case "tsubame" | "tsubame3" =>
+        val filename = "../submitGenerated"
+
+        Logger.debug(s"Generating compile script for ${ Platform.targetName } with filename $filename")
+        val printer = PrettyprintingManager.getPrinter(filename)
+
+        printer <<< "#!/bin/bash"
+        printer <<< ""
+        printer <<< "configurations=\"" + configNames.mkString(" ") + "\""
+        printer <<< "for config in $configurations"
+        printer <<< "do"
+        printer <<< "\tcd ${config}"
+        printer <<< "\tqsub run"
+        printer <<< "\tcd .."
+        printer <<< "done"
+        Settings.user.toLowerCase() match {
+          case "sebastian" | "kuckuk" | "sebastiankuckuk" =>
+            printer <<< "watch qstat"
           case _                                          =>
           // nothing to do
         }
