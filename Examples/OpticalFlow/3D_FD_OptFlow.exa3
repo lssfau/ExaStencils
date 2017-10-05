@@ -1,0 +1,11 @@
+
+generate solver for u in uEquation and v in vEquation and w in wEquation with {
+  solver_smoother_jacobiType    = false
+  solver_smoother_numPre        = 3
+  solver_smoother_numPost       = 3
+  solver_smoother_damping       = 1.0 // 0.8
+  solver_smoother_coloring      = "red-black"
+  solver_cgs                    = "CG"
+  solver_cgs_maxNumIts          = 128
+  solver_cgs_targetResReduction = 1e-3
+}
