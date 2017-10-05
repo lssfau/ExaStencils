@@ -3,6 +3,8 @@ package exastencils.util
 import scala.reflect.runtime.currentMirror
 import scala.tools.reflect.ToolBox
 
+// on error: go to file -> project structure -> modules -> config runner -> dependencies -> double click scala sdk -> standard library 'plus' -> .../scala-library/jars/scala-compiler-2.x.x.jar
+
 import java.io.File
 
 import exastencils.logger.Logger
