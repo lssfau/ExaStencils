@@ -36,13 +36,13 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
 
   override def apply(node : Option[Node] = None) = {
     counter = 0
-    for (map <- List(declarationMap, ctorMap, dtorMap, bufferSizes, bufferAllocs, fieldAllocs)) map.clear
+    for (map <- List(declarationMap, ctorMap, dtorMap, bufferSizes, bufferAllocs, fieldAllocs, deviceBufferSizes, deviceBufferAllocs, deviceFieldAllocs)) map.clear
     super.apply(node)
   }
 
   override def applyStandalone(node : Node) = {
     counter = 0
-    for (map <- List(declarationMap, ctorMap, dtorMap, bufferSizes, bufferAllocs, fieldAllocs)) map.clear
+    for (map <- List(declarationMap, ctorMap, dtorMap, bufferSizes, bufferAllocs, fieldAllocs, deviceBufferSizes, deviceBufferAllocs, deviceFieldAllocs)) map.clear
     super.applyStandalone(node)
   }
 
