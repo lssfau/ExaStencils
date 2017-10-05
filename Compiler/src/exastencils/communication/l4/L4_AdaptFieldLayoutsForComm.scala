@@ -20,7 +20,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
     this.register(collector)
     super.apply(node)
     this.unregister(collector)
-    //FIXME: collector.adaptNodeBasedFields()
+    collector.adaptNodeBasedFields()
     actuallyAdapt()
     collector.reset()
   }
@@ -30,7 +30,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
     this.register(collector)
     super.applyStandalone(node)
     this.unregister(collector)
-    //FIXME: collector.adaptNodeBasedFields()
+    collector.adaptNodeBasedFields()
     actuallyAdapt()
     collector.reset()
   }

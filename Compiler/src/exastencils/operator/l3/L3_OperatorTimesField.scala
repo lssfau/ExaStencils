@@ -1,5 +1,7 @@
 package exastencils.operator.l3
 
+import scala.collection.mutable.ListBuffer
+
 import exastencils.base.l3._
 import exastencils.datastructures._
 import exastencils.field.l3._
@@ -19,11 +21,27 @@ case class L3_OperatorTimesField(var lhs : L3_OperatorAccess, var rhs : L3_Field
 
 object L3_ResolveOperatorTimesField extends DefaultStrategy("Resolving L3 operator field convolutions") {
   this += new Transformation("Resolve", {
-    // FIXME: traverse and match operand list -> register as multiplication's member function receiving a lambda?
-    case mult @ L3_Multiplication(args) if 2 == args.size =>
-      (args(0), args(1)) match {
-        case (lhs : L3_OperatorAccess, rhs : L3_FieldAccess) => L3_OperatorTimesField(lhs, rhs)
-        case _                                               => mult
+    case mult @ L3_Multiplication(factors) =>
+      val newFactors = ListBuffer[L3_Expression]()
+      var skipNext = false
+      for (i <- factors.indices) factors(i) match {
+        case _ if skipNext => skipNext = false
+
+        case op : L3_OperatorAccess =>
+          if (i + 1 < factors.indices.length && factors(i + 1).isInstanceOf[L3_FieldAccess]) {
+            newFactors += L3_OperatorTimesField(op, factors(i + 1).asInstanceOf[L3_FieldAccess])
+            skipNext = true
+          } else {
+            newFactors += op
+          }
+
+        case other => newFactors += other
+      }
+
+      if (newFactors.length != factors.length) {
+        L3_Multiplication(newFactors)
+      } else {
+        mult
       }
   })
 }

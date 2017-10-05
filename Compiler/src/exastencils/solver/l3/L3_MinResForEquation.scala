@@ -137,16 +137,16 @@ object L3_MinResForEquation extends L3_IterativeSolverForEquation {
     def alpha = L3_PlainVariableAccess("gen_alpha", L3_RealDatatype, false)
 
     loopStmts += L3_VariableDeclaration(alpha, 0.0)
-    entries.foreach(entry =>
-      loopStmts += L3_Assignment(alpha, L3_FieldAccess(vNew(entry)) * L3_FieldAccess(v(entry)), "+=", None))
+    entries.foreach(entry => loopStmts += L3_Assignment(alpha,
+      L3_FieldFieldConvolution(L3_FieldAccess(vNew(entry)), L3_FieldAccess(v(entry))), "+=", None))
 
     // update vNew
     entries.foreach(entry =>
       loopStmts += L3_Assignment(L3_FieldAccess(vNew(entry)), alpha * L3_FieldAccess(v(entry)), "-=", None))
 
     loopStmts += L3_Assignment(betaNew, 0.0)
-    entries.foreach(entry =>
-      loopStmts += L3_Assignment(betaNew, L3_FieldAccess(vNew(entry)) * L3_FieldAccess(vNew(entry)), "+=", None))
+    entries.foreach(entry => loopStmts += L3_Assignment(betaNew,
+      L3_FieldFieldConvolution(L3_FieldAccess(vNew(entry)), L3_FieldAccess(vNew(entry))), "+=", None))
     loopStmts += L3_Assignment(betaNew, L3_FunctionCall(L3_MathFunctionReference.sqrt, betaNew))
 
     entries.foreach(entry => loopStmts += L3_Assignment(L3_FieldAccess(vNew(entry)), betaNew, "/=", None))

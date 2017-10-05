@@ -4,6 +4,7 @@ import scala.collection.immutable.PagedSeq
 import scala.collection.mutable._
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.input.PagedSeqReader
+
 import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.boundary.l4._
@@ -15,7 +16,6 @@ import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldDecl
 import exastencils.operator.l4._
 import exastencils.parsers._
-import exastencils.parsers.l4.L4_Parser.locationize
 import exastencils.solver.l4._
 
 /// L4_Parser

@@ -156,6 +156,8 @@ case class L3_SolverForEquation(
       entries.transform(L3_GeneralSimplifyWrapper.process)
     }
 
+    L3_IterativeSolverForEquation.resNormFctDoneForLevels.clear()
+
     // add solve function
 
     if (true) {

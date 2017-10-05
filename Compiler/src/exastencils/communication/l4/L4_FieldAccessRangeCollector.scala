@@ -179,7 +179,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
         if (!contractionOffsetBegin.isEmpty)
           beginOffset = (beginOffset, contractionOffsetBegin).zipped.map(_ + _)
         if (!contractionOffsetEnd.isEmpty)
-          beginOffset = (endOffset, contractionOffsetEnd).zipped.map(_ + _)
+          endOffset = (endOffset, contractionOffsetEnd).zipped.map(_ + _)
 
       case L4_Assignment(field : L4_FieldAccess, _, _, cond) =>
         if (ignore) Logger.warn("Found assignment to field outside kernel")

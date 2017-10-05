@@ -19,26 +19,23 @@ Field Ix with Real on Node of global = GradX * img0 //+ GradX * img1 // TODO: ch
 Field Iy with Real on Node of global = GradY * img0 //+ GradY * img1
 Field It with Real on Node of global = img1 - img0 // TODO: dt != 1
 
-Field rhs_u@finest with Real on Node of global = - Ix * It
-Field rhs_v@finest with Real on Node of global = - Iy * It
-
 Stencil RestrictionCell from default restriction on Cell with 'linear'
 
 Globals {
-	Val alpha : Real = 1
+  Val alpha : Real = 1
 }
 
 Operator GradX from Stencil {
-	[ 0,  0] =>  0.5 / vf_gridWidth_x
-	[ 0, -1] =>  0.5 / vf_gridWidth_x
-	[-1,  0] => -0.5 / vf_gridWidth_x
-	[-1, -1] => -0.5 / vf_gridWidth_x
+  [ 0,  0] =>  0.5 / vf_gridWidth_x
+  [ 0, -1] =>  0.5 / vf_gridWidth_x
+  [-1,  0] => -0.5 / vf_gridWidth_x
+  [-1, -1] => -0.5 / vf_gridWidth_x
 }
 Operator GradY from Stencil {
-	[ 0,  0] =>  0.5 / vf_gridWidth_y
-	[-1,  0] =>  0.5 / vf_gridWidth_y
-	[ 0, -1] => -0.5 / vf_gridWidth_y
-	[-1, -1] => -0.5 / vf_gridWidth_y
+  [ 0,  0] =>  0.5 / vf_gridWidth_y
+  [-1,  0] =>  0.5 / vf_gridWidth_y
+  [ 0, -1] => -0.5 / vf_gridWidth_y
+  [-1, -1] => -0.5 / vf_gridWidth_y
 }
 
 Operator Laplace from Stencil {
@@ -49,30 +46,27 @@ Operator Laplace from Stencil {
   [ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
 }
 
-Operator uuSten from Stencil {
-  [ 0,  0] => Ix * Ix
-}
-Operator uvSten from Stencil {
-  [ 0,  0] => Ix * Iy
-}
-
-Operator vuSten from Stencil {
-  [ 0,  0] => Iy * Ix
-}
-Operator vvSten from Stencil {
-  [ 0,  0] => Iy * Iy
-}
-
 Equation uEquation@finest {
-  uuSten * u + uvSten * v + alpha**2 * ( Laplace * u ) == rhs_u
+  Ix * ( Ix * u + Iy * v ) + alpha**2 * ( Laplace * u ) == - Ix * It
 }
 Equation uEquation@(all but finest) {
-  uuSten * u + uvSten * v + alpha**2 * ( Laplace * u ) == 0.0
+  Ix * ( Ix * u + Iy * v ) + alpha**2 * ( Laplace * u ) == 0.0
 }
 
 Equation vEquation@finest {
-  vuSten * u + vvSten * v + alpha**2 * ( Laplace * v ) == rhs_v
+  Iy * ( Ix * u + Iy * v ) + alpha**2 * ( Laplace * v ) == - Iy * It
 }
 Equation vEquation@(all but finest) {
-  vuSten * u + vvSten * v + alpha**2 * ( Laplace * v ) == 0.0
+  Iy * ( Ix * u + Iy * v ) + alpha**2 * ( Laplace * v ) == 0.0
+}
+
+generate operators @all {
+  equation for u is uEquation store in {
+    u => uuSten
+    v => uvSten
+  }
+  equation for v is vEquation store in {
+    u => vuSten
+    v => vvSten
+  }
 }

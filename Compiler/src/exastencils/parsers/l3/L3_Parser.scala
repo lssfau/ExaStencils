@@ -8,6 +8,7 @@ import scala.util.parsing.input._
 import exastencils.base.l3._
 import exastencils.baseExt.l3._
 import exastencils.boundary.l3._
+import exastencils.domain.l3.L3_DomainFromAABBDecl
 import exastencils.field.l3._
 import exastencils.operator.l3._
 import exastencils.parsers._
@@ -50,6 +51,7 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val program = (
     import_
+      ||| domainDeclaration
       ||| fieldDeclaration
       ||| overrideFieldInformation
       ||| stencilDeclaration
@@ -360,6 +362,17 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| "None" ^^ { _ => L3_NoBC }
       ||| binaryexpression ^^ { L3_DirichletBC }
     )
+
+  // #############################################################################
+  // ################################### DOMAIN ##################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L3_DomainDecl
+  // ######################################
+
+  lazy val domainDeclaration = locationize(("Domain" ~> ident) ~ ("<" ~> expressionIndex <~ "to") ~ (expressionIndex <~ ">")
+    ^^ { case id ~ l ~ u => L3_DomainFromAABBDecl(id, l, u) })
 
   // #############################################################################
   // #################################### FIELD ##################################
