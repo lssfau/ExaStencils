@@ -6,6 +6,9 @@ import exastencils.base.l2.L2_ImplicitConversion._
 import exastencils.base.l2._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
+import exastencils.field.l2.L2_FieldAccess
+import exastencils.logger.Logger
+import exastencils.operator.l2.L2_StencilAccess
 
 /// L2_FlattenComputation
 
@@ -79,6 +82,45 @@ object L2_FlattenComputation extends QuietDefaultStrategy("Flatten complex compu
       changed = true
       mult.factors += L2_Division(1.0, Duplicate(div))
       mult
+  })
+
+  this += new Transformation("Resolve stencil-field convolutions", {
+    // sten * field => c:[0,0] * field@[0,0] + ...
+    case mult @ L2_Multiplication(factors) =>
+      val newFactors = ListBuffer[L2_Expression]()
+      var localChange = false
+
+      var skipNext = false
+      for (i <- factors.indices) factors(i) match {
+        case _ if skipNext => skipNext = false
+
+        case sten : L2_StencilAccess =>
+          if (sten.target.colStride.exists(_ != 1)) Logger.error("Inter-level stencils are not allowed in operator generation")
+
+          if (i + 1 < factors.indices.length && factors(i + 1).isInstanceOf[L2_FieldAccess]) {
+            val field = factors(i + 1).asInstanceOf[L2_FieldAccess]
+            val summands = sten.target.entries.map(_.asStencilOffsetEntry).map(entry => {
+              val offsetField = Duplicate(field)
+              offsetField.offsetWith(entry.offset)
+              Duplicate(entry.coefficient) * offsetField : L2_Expression
+            })
+            newFactors += L2_Addition(summands)
+            skipNext = true
+            localChange = true
+          } else {
+            Logger.warn(s"Found stray stencil access when generating operators: ${ sten.prettyprint() }")
+            newFactors += sten
+          }
+
+        case other => newFactors += other
+      }
+
+      if (localChange) {
+        changed = true
+        L2_Multiplication(newFactors)
+      } else {
+        mult
+      }
   })
 
   this += new Transformation("Flatten nested multiplications", {
