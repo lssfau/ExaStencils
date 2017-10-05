@@ -19,8 +19,6 @@ object Settings {
       basePathPrefix + "/"
   }
 
-  def inputFromJson : Boolean = false
-
   /// layer 1
 
   var l1file : ListBuffer[String] = ListBuffer()
