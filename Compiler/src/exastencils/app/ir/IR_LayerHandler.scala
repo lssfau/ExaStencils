@@ -165,6 +165,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.experimental_internalHighDimTypes) {
+      IR_ResolveMatrixFunctions.apply()
       IR_SetupMatrixExpressions.apply()
 
       IR_ExtractMatrices.apply()

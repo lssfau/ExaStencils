@@ -4,6 +4,8 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
+import exastencils.baseExt.ir.IR_ResolveMatrixAssignments.annotationMatrixCol
+import exastencils.baseExt.ir.IR_ResolveMatrixAssignments.annotationMatrixRow
 import exastencils.config._
 import exastencils.core._
 import exastencils.datastructures._
@@ -331,28 +333,43 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
     }
   }
 
+  def getElem(exp : IR_Expression, row : Integer, col : Integer) = {
+    exp match {
+      case x : IR_MatrixExpression => x.get(row, col)
+      case x : IR_VariableAccess   => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row, col)))
+      case _                       => Logger.error(s"Dot product argument is of wrong type ${ exp.getClass.getTypeName }: $exp")
+    }
+  }
+
   this += new Transformation("resolution of built-in functions 2/2", {
     case call : IR_FunctionCall if (call.name == "dotProduct" || call.name == "dot") => {
       if (call.arguments.length != 2) {
         Logger.error(s"dotProduct() must have two arguments; has ${ call.arguments.length }")
       }
-      val left = call.arguments(0) match {
-        case me : IR_MatrixExpression => me
-        case other                    => Logger.error(s"Dot product argument is of wrong type ${ other.getClass.getTypeName }: $other")
+
+      val left = call.arguments(0)
+      val right = call.arguments(1)
+
+      val lsize = left match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Dot product argument is of wrong type ${ other.getClass.getTypeName }: $other")
       }
-      val right = call.arguments(1) match {
-        case me : IR_MatrixExpression => me
-        case other                    => Logger.error(s"Dot product argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      val rsize = right match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Dot product argument is of wrong type ${ other.getClass.getTypeName }: $other")
       }
-      if (left.rows != right.rows || left.columns != right.columns) {
+
+      if (lsize != rsize) {
         Logger.warn(left)
         Logger.warn(right)
-        Logger.error(s"Matrix sizes must match for dotProduct() - attempting ${ left.rows }x${ left.columns } * ${ right.rows }x${ right.columns }")
+        Logger.error(s"Matrix sizes must match for dotProduct() - attempting ${ lsize._1 }x${ lsize._2 } * ${ rsize._1 }x${ rsize._2 }")
       }
       var additions = ListBuffer[IR_Expression]()
-      for (row <- 0 until left.rows) {
-        for (col <- 0 until left.columns) {
-          additions += IR_Multiplication(left.get(row, col), right.get(row, col))
+      for (row <- 0 until lsize._1) {
+        for (col <- 0 until lsize._2) {
+          additions += IR_Multiplication(getElem(left, row, col), getElem(right, row, col))
         }
       }
       IR_Addition(additions)
@@ -362,21 +379,28 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       if (call.arguments.length != 2) {
         Logger.error(s"Cross product must have two arguments; has ${ call.arguments.length }")
       }
-      val left = call.arguments(0) match {
-        case me : IR_MatrixExpression => me
-        case other                    => Logger.error(s"Cross product argument is of wrong type ${ other.getClass.getTypeName }: $other")
+
+      val left = call.arguments(0)
+      val right = call.arguments(1)
+
+      val lsize = left match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Cross product argument is of wrong type ${ other.getClass.getTypeName }: $other")
       }
-      val right = call.arguments(1) match {
-        case me : IR_MatrixExpression => me
-        case other                    => Logger.error(s"Cross product argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      val rsize = right match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Cross product argument is of wrong type ${ other.getClass.getTypeName }: $other")
       }
-      if (left.rows != right.rows || left.columns != 1 || right.columns != 1) {
+
+      if (lsize != rsize) {
         Logger.warn(left)
         Logger.warn(right)
-        Logger.error(s"Matrix sizes must match for cross product - attempting ${ left.rows }x${ left.columns } ; ${ right.rows }x${ right.columns }")
+        Logger.error(s"Matrix sizes must match for dotProduct() - attempting ${ lsize._1 }x${ lsize._2 } * ${ rsize._1 }x${ rsize._2 }")
       }
-      left.rows match {
-        case 2     => left.get(0, 0) * right.get(1, 0) - left.get(1, 0) * right.get(0, 0)
+      lsize._1 match {
+        case 2     => getElem(left, 0, 0) * getElem(right, 1, 0) - getElem(left, 1, 0) * getElem(right, 0, 0)
         case 3     => ???
         case other => Logger.error(s"Cross product is not defined for dimensionality $other")
       }
@@ -503,6 +527,202 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       val m = call.arguments(0).asInstanceOf[IR_MatrixExpression]
       calculateDeterminant(m)
     }
+
+      // FIXME shorten this code (less code duplication)
+    case call : IR_FunctionCall if call.name == "__elementwiseAdd" => {
+      if (call.arguments.length != 2) {
+        Logger.error(s"Element-wise operation must have two arguments; has ${ call.arguments.length }")
+      }
+
+      val left = call.arguments(0)
+      val right = call.arguments(1)
+
+      val lsize = left match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+      val rsize = right match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+
+      if (lsize != rsize) {
+        Logger.warn(left)
+        Logger.warn(right)
+        Logger.error(s"Matrix sizes must match for .+ - attempting ${ lsize._1 }x${ lsize._2 } * ${ rsize._1 }x${ rsize._2 }")
+      }
+      var me = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), lsize._1, lsize._2)
+      var additions = ListBuffer[IR_Expression]()
+      for (row <- 0 until lsize._1) {
+        for (col <- 0 until lsize._2) {
+          me.set(row, col, IR_Addition(getElem(left, row, col), getElem(right, row, col)))
+        }
+      }
+      me
+    }
+
+    case call : IR_FunctionCall if call.name == "__elementwiseSub" => {
+      if (call.arguments.length != 2) {
+        Logger.error(s"Element-wise operation must have two arguments; has ${ call.arguments.length }")
+      }
+
+      val left = call.arguments(0)
+      val right = call.arguments(1)
+
+      val lsize = left match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+      val rsize = right match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+
+      if (lsize != rsize) {
+        Logger.warn(left)
+        Logger.warn(right)
+        Logger.error(s"Matrix sizes must match for .- - attempting ${ lsize._1 }x${ lsize._2 } * ${ rsize._1 }x${ rsize._2 }")
+      }
+      var me = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), lsize._1, lsize._2)
+      var additions = ListBuffer[IR_Expression]()
+      for (row <- 0 until lsize._1) {
+        for (col <- 0 until lsize._2) {
+          me.set(row, col, IR_Subtraction(getElem(left, row, col), getElem(right, row, col)))
+        }
+      }
+      me
+    }
+
+    case call : IR_FunctionCall if call.name == "__elementwiseMul" => {
+      if (call.arguments.length != 2) {
+        Logger.error(s"Element-wise operation must have two arguments; has ${ call.arguments.length }")
+      }
+
+      val left = call.arguments(0)
+      val right = call.arguments(1)
+
+      val lsize = left match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+      val rsize = right match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+
+      if (lsize != rsize) {
+        Logger.warn(left)
+        Logger.warn(right)
+        Logger.error(s"Matrix sizes must match for .* - attempting ${ lsize._1 }x${ lsize._2 } * ${ rsize._1 }x${ rsize._2 }")
+      }
+      var me = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), lsize._1, lsize._2)
+      var additions = ListBuffer[IR_Expression]()
+      for (row <- 0 until lsize._1) {
+        for (col <- 0 until lsize._2) {
+          me.set(row, col, IR_Multiplication(getElem(left, row, col), getElem(right, row, col)))
+        }
+      }
+      me
+    }
+
+    case call : IR_FunctionCall if call.name == "__elementwiseDiv" => {
+      if (call.arguments.length != 2) {
+        Logger.error(s"Element-wise operation must have two arguments; has ${ call.arguments.length }")
+      }
+
+      val left = call.arguments(0)
+      val right = call.arguments(1)
+
+      val lsize = left match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+      val rsize = right match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+
+      if (lsize != rsize) {
+        Logger.warn(left)
+        Logger.warn(right)
+        Logger.error(s"Matrix sizes must match for ./ - attempting ${ lsize._1 }x${ lsize._2 } * ${ rsize._1 }x${ rsize._2 }")
+      }
+      var me = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), lsize._1, lsize._2)
+      var additions = ListBuffer[IR_Expression]()
+      for (row <- 0 until lsize._1) {
+        for (col <- 0 until lsize._2) {
+          me.set(row, col, IR_Division(getElem(left, row, col), getElem(right, row, col)))
+        }
+      }
+      me
+    }
+
+    case call : IR_FunctionCall if call.name == "__elementwiseMod" => {
+      if (call.arguments.length != 2) {
+        Logger.error(s"Element-wise operation must have two arguments; has ${ call.arguments.length }")
+      }
+
+      val left = call.arguments(0)
+      val right = call.arguments(1)
+
+      val lsize = left match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+      val rsize = right match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+
+      if (lsize != rsize) {
+        Logger.warn(left)
+        Logger.warn(right)
+        Logger.error(s"Matrix sizes must match for .% - attempting ${ lsize._1 }x${ lsize._2 } * ${ rsize._1 }x${ rsize._2 }")
+      }
+      var me = IR_MatrixExpression(IR_ResultingDatatype(left.datatype, right.datatype), lsize._1, lsize._2)
+      var additions = ListBuffer[IR_Expression]()
+      for (row <- 0 until lsize._1) {
+        for (col <- 0 until lsize._2) {
+          me.set(row, col, IR_Modulo(getElem(left, row, col), getElem(right, row, col)))
+        }
+      }
+      me
+    }
+
+
+    case call : IR_FunctionCall if call.name == "transpose" => {
+      if (call.arguments.length != 1) {
+        Logger.error(s"Transpose operation must have one arguments; has ${ call.arguments.length }")
+      }
+
+      val left = call.arguments(0)
+
+      val lsize = left match {
+        case me : IR_MatrixExpression                            => (me.rows, me.columns)
+        case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+      }
+
+      var me = IR_MatrixExpression(left.datatype, lsize._2, lsize._1)
+      var additions = ListBuffer[IR_Expression]()
+      for (row <- 0 until lsize._1) {
+        for (col <- 0 until lsize._2) {
+          me.set(col, row, getElem(left, row, col))
+        }
+      }
+      me
+    }
+
   })
 
   if (Knowledge.experimental_resolveInverseFunctionCall == "Runtime") {
@@ -613,6 +833,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
     })
   }
+
 }
 
 object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments to matrices") {

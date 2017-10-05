@@ -109,6 +109,8 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case IR_Negative(m : IR_MatrixExpression) =>
       IR_MatrixExpression(m.innerDatatype, m.rows, m.columns, m.expressions.map { y => IR_Negative(y) : IR_Expression })
 
+    case x @ IR_MatrixExpression(_, 1, 1) => x.get(0, 0)
+
     case IR_Scope(ListBuffer(IR_Scope(body))) => IR_Scope(body)
 
     case IR_IfCondition(cond, ListBuffer(IR_Scope(trueBody)), falseBody) => IR_IfCondition(cond, trueBody, falseBody)

@@ -236,11 +236,11 @@ object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("Reso
       val fieldAccess = args(0).asInstanceOf[IR_FieldAccess]
       IR_IsOnSpecBoundary(fieldAccess.fieldSelection, DefaultNeighbors.getNeigh(Array(0, 0, -1)), getIndex(fieldAccess))
 
-    case IR_ElementwiseAddition(left, right)       => IR_FunctionCall("elementwiseAdd", ListBuffer(left, right))
-    case IR_ElementwiseSubtraction(left, right)    => IR_FunctionCall("elementwiseSub", ListBuffer(left, right))
-    case IR_ElementwiseMultiplication(left, right) => IR_FunctionCall("elementwiseMul", ListBuffer(left, right))
-    case IR_ElementwiseDivision(left, right)       => IR_FunctionCall("elementwiseDiv", ListBuffer(left, right))
-    case IR_ElementwiseModulo(left, right)         => IR_FunctionCall("elementwiseMod", ListBuffer(left, right))
+    case IR_ElementwiseAddition(left, right)       => IR_FunctionCall("__elementwiseAdd", ListBuffer(left, right))
+    case IR_ElementwiseSubtraction(left, right)    => IR_FunctionCall("__elementwiseSub", ListBuffer(left, right))
+    case IR_ElementwiseMultiplication(left, right) => IR_FunctionCall("__elementwiseMul", ListBuffer(left, right))
+    case IR_ElementwiseDivision(left, right)       => IR_FunctionCall("__elementwiseDiv", ListBuffer(left, right))
+    case IR_ElementwiseModulo(left, right)         => IR_FunctionCall("__elementwiseMod", ListBuffer(left, right))
     // FIXME: IR_UserFunctionReference
     case IR_FunctionCall(HACK_IR_UndeterminedFunctionReference("dot", _), args) => IR_FunctionCall("dotProduct", args)
 
