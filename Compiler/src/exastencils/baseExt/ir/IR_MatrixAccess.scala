@@ -11,6 +11,7 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
+import exastencils.operator.ir.IR_StencilAccess
 import exastencils.optimization.ir._
 import exastencils.prettyprinting._
 import exastencils.util.ir._
@@ -335,9 +336,9 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
 
   def getElem(exp : IR_Expression, row : Integer, col : Integer) = {
     exp match {
-      case x : IR_MatrixExpression => x.get(row, col)
-      case x : IR_VariableAccess   => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row, col)))
-      case _                       => Logger.error(s"Dot product argument is of wrong type ${ exp.getClass.getTypeName }: $exp")
+      case x : IR_MatrixExpression                                           => x.get(row, col)
+      case x : IR_Expression if (x.datatype.isInstanceOf[IR_MatrixDatatype]) => IR_HighDimAccess(Duplicate(x), new IR_ConstIndex(Array(row, col)))
+      case _                                                                 => Logger.error(s"Dot product argument is of wrong type ${ exp.getClass.getTypeName }: $exp")
     }
   }
 
@@ -528,7 +529,7 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       calculateDeterminant(m)
     }
 
-      // FIXME shorten this code (less code duplication)
+    // FIXME shorten this code (less code duplication)
     case call : IR_FunctionCall if call.name == "__elementwiseAdd" => {
       if (call.arguments.length != 2) {
         Logger.error(s"Element-wise operation must have two arguments; has ${ call.arguments.length }")
@@ -698,7 +699,6 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
       me
     }
-
 
     case call : IR_FunctionCall if call.name == "transpose" => {
       if (call.arguments.length != 1) {
