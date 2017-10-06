@@ -89,7 +89,9 @@ object L3_PrepareVirtualFieldDeclarations extends DefaultStrategy("Prepare knowl
 
 object L3_ProcessVirtualFieldDeclarations extends DefaultStrategy("Integrate L3 virtual field declarations with knowledge") {
   override def apply(applyAtNode : Option[Node] = None) = {
-    L3_DefaultVirtualFields.assemble().foreach(L3_VirtualFieldCollection.add)
+    L3_DefaultVirtualFields.assemble().foreach(vf =>
+      if (!L3_VirtualFieldCollection.exists(vf.name, vf.level))
+        L3_VirtualFieldCollection.add(vf))
 
     super.apply(applyAtNode)
   }
