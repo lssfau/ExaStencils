@@ -82,6 +82,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       // resolve current, etc.
       L3_ResolveRelativeLevels.apply()
 
+      L3_PrepareSolverForEquations.apply()
       L3_PrepareDeclarations.apply()
 
       L3_PrepareAccesses.apply()
@@ -98,6 +99,10 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       do {
         matches = 0
         matches += L3_ProcessDeclarations.applyAndCountMatches()
+
+        L3_ProcessSolverForEquations.apply()
+        matches += (if (L3_ProcessSolverForEquations.results.isEmpty) 0 else L3_ProcessSolverForEquations.results.last._2.matches)
+
         matches += L3_ResolveAccesses.applyAndCountMatches()
 
         if (Knowledge.experimental_l3_resolveVirtualFields) {

@@ -12,7 +12,6 @@ import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.field.l3._
-import exastencils.grid.l3.L3_Localization
 import exastencils.logger.Logger
 import exastencils.operator.l3._
 import exastencils.optimization.l3.L3_GeneralSimplifyWrapper
@@ -32,6 +31,8 @@ case class L3_SolverForEquation(
     var entries : ListBuffer[L3_SolverForEqEntry],
     var options : HashMap[String, Any],
     var modifications : ListBuffer[L3_SolverModification]) extends L3_Statement {
+
+  var processed = false
 
   def printAnyVal(v : Any) = {
     v match {
@@ -57,15 +58,9 @@ case class L3_SolverForEquation(
 
   override def progress : L4_Statement = ???
 
-  def generate() = {
-    updateKnowledge()
+  def prepare() = {
+    // handle options
 
-    generateFields()
-    genOperators()
-    generateFunctions()
-  }
-
-  def updateKnowledge() = {
     for ((option, value) <- options) {
       try {
         UniversalSetter(Knowledge, option, value)
@@ -74,6 +69,17 @@ case class L3_SolverForEquation(
         case _ : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ option } to ${ value } but data types are incompatible")
       }
     }
+
+    // declare knowledge objects
+    declareFields()
+    declareOperators()
+  }
+
+  def process() = {
+    generateFields()
+    generateOperators()
+
+    processed = true
   }
 
   def getModificationsFor(target : String, level : Int) = {
@@ -90,7 +96,17 @@ case class L3_SolverForEquation(
     ret
   }
 
-  def genOperators() = {
+  def declareOperators() = {
+    for (level <- Knowledge.levels) {
+      for (entry <- entries) {
+        L3_StencilCollection.addDeclared(s"gen_restrictionForRes_${ entry.solName }", level)
+        L3_StencilCollection.addDeclared(s"gen_restrictionForSol_${ entry.solName }", level)
+        L3_StencilCollection.addDeclared(s"gen_prolongationForSol_${ entry.solName }", level)
+      }
+    }
+  }
+
+  def generateOperators() = {
     def defInterpolation = {
       Knowledge.discr_type.toLowerCase() match {
         case "fd" | "finitedifference" | "finitedifferences" => "linear"
@@ -100,30 +116,42 @@ case class L3_SolverForEquation(
     }
 
     for (level <- Knowledge.levels) {
-      // tuples with number of dimensions and localization
-      val localizations = Set[(Int, L3_Localization)]()
       for (entry <- entries) {
         val field = entry.getSolField(level)
-        localizations += ((field.numDimsGrid, field.localization))
-      }
 
-      for (local <- localizations) {
         // restriction for residual -> can be the value of an integral if FV are used
-        val restrictionForRes = L3_DefaultRestriction.generate(s"gen_restrictionForRes_${ local._1 }D_${ local._2.name }", level, local._1, local._2, defInterpolation)
+        val restrictionForRes = L3_DefaultRestriction.generate(s"gen_restrictionForRes_${ field.name }", level, field.numDimsGrid, field.localization, defInterpolation)
         L3_StencilCollection.add(restrictionForRes)
-        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.restrictForResPerLevel += (level -> restrictionForRes))
+        entry.restrictForResPerLevel += (level -> restrictionForRes)
 
         // restriction for solution -> always use linear
-        val restrictionForSol = L3_DefaultRestriction.generate(s"gen_restrictionForSol_${ local._1 }D_${ local._2.name }", level, local._1, local._2, "linear")
+        val restrictionForSol = L3_DefaultRestriction.generate(s"gen_restrictionForSol_${ field.name }", level, field.numDimsGrid, field.localization, "linear")
         L3_StencilCollection.add(restrictionForSol)
-        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.restrictForSolPerLevel += (level -> restrictionForSol))
+        entry.restrictForSolPerLevel += (level -> restrictionForSol)
 
         // prolongation for solution -> always use linear
-        val prolongationForSol = L3_DefaultProlongation.generate(s"gen_prolongationForSol_${ local._1 }D_${ local._2.name }", level, local._1, local._2, "linear")
+        val prolongationForSol = L3_DefaultProlongation.generate(s"gen_prolongationForSol_${ field.name }", level, field.numDimsGrid, field.localization, "linear")
         L3_StencilCollection.add(prolongationForSol)
-        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.prolongForSolPerLevel += (level -> prolongationForSol))
+        entry.prolongForSolPerLevel += (level -> prolongationForSol)
       }
     }
+  }
+
+  def declareFields() = {
+    entries.foreach(entry => {
+      for (level <- Knowledge.levels) {
+        // add a rhs for all levels but the finest (which was already declared on L2 by the user)
+        if (level != Knowledge.maxLevel)
+          L3_FieldCollection.addDeclared(s"gen_rhs_${ entry.solName }", level)
+
+        // add residual fields
+        L3_FieldCollection.addDeclared(s"gen_residual_${ entry.solName }", level)
+
+        // add approximations (if required) for all levels but the finest
+        if (Knowledge.solver_useFAS)
+          L3_FieldCollection.addDeclared(s"gen_approx_${ entry.solName }", level)
+      }
+    })
   }
 
   def generateFields() = {
@@ -232,7 +260,7 @@ case class L3_SolverForEquation(
       solveStmts ++= extractStmtsFromMods("append", mods)
 
       // compose function
-      
+
       val fct = L3_LeveledFunction(s"gen_solve", level, L3_UnitDatatype, ListBuffer(), solveStmts)
       ExaRootNode.l3_root.nodes += fct
     }
@@ -390,13 +418,35 @@ case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Nod
   }
 }
 
+/// L3_PrepareSolverForEquations
+
+object L3_PrepareSolverForEquations extends DefaultStrategy("Update knowledge with information from solver for equation nodes and prepare declarations") {
+  this += new Transformation("Process", {
+    // check if declaration has already been processed and promote access if possible
+    case solver : L3_SolverForEquation =>
+      solver.prepare()
+      solver // keep for later
+  })
+}
+
+/// L3_ProcessSolverForEquations
+
+object L3_ProcessSolverForEquations extends DefaultStrategy("Update knowledge with information from solver for equation nodes") {
+  this += new Transformation("Process", {
+    // check if declaration has already been processed and promote access if possible
+    case solver : L3_SolverForEquation if !solver.processed && Knowledge.levels.flatMap(lvl => solver.entries.map(e => L3_FieldCollection.exists(e.solName, lvl))).reduce(_ && _) =>
+      solver.process()
+      solver // keep for later
+  })
+}
+
 /// L3_ResolveSolverForEquations
 
 object L3_ResolveSolverForEquations extends DefaultStrategy("Resolve solver for equation nodes") {
   this += new Transformation("Resolve", {
     // check if declaration has already been processed and promote access if possible
     case solver : L3_SolverForEquation if L3_MayBlockResolution.isDone(solver) =>
-      solver.generate()
+      solver.generateFunctions()
       None // consume statement
   })
 }
