@@ -462,8 +462,9 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   /// L3_SolverModification
 
-  lazy val solverModification = locationize(
+  lazy val solverModification = (locationize(
     (("append" <~ "to") | ("prepend" <~ "to") | "replace") ~ stringLit ~ levelDecl.? ~ ("{" ~> statement.* <~ "}")
-      ^^ { case modification ~ target ~ levels ~ statements => L3_SolverModification(modification, target, statements, levels) })
-
+      ^^ { case modification ~ target ~ levels ~ statements => L3_SolverModificationForStage(modification, target, statements, levels) })
+    ||| locationize("replace" ~ stringLit ~ levelDecl.? ~ ("with" ~> genericAccess)
+    ^^ { case modification ~ target ~ levels ~ access => L3_SolverModificationForObject(modification, target, access, levels) }))
 }

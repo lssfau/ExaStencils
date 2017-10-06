@@ -67,5 +67,5 @@ object L3_Lexer extends ExaLexer {
 
   // L3_Solver
   reserved += ("generate", "solver", "for", "in", "and")
-  reserved += ("modifiers", "replace", "append", "to", "prepend")
+  reserved += ("modifiers", "replace", "append", "to", "prepend", "with")
 }

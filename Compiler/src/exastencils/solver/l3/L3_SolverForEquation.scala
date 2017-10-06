@@ -33,6 +33,7 @@ case class L3_SolverForEquation(
     var modifications : ListBuffer[L3_SolverModification]) extends L3_Statement {
 
   var processed = false
+  var replaceDone = false
 
   def printAnyVal(v : Any) = {
     v match {
@@ -83,7 +84,7 @@ case class L3_SolverForEquation(
   }
 
   def getModificationsFor(target : String, level : Int) = {
-    modifications.filter(
+    modifications.filter(_.isInstanceOf[L3_SolverModificationForStage]).map(_.asInstanceOf[L3_SolverModificationForStage]).filter(
       m => target == m.target && (m.levels match {
         case Some(L3_SingleLevel(`level`)) => true
         case _                             => false
@@ -91,7 +92,7 @@ case class L3_SolverForEquation(
     )
   }
 
-  def extractStmtsFromMods(modification : String, mods : ListBuffer[L3_SolverModification]) = {
+  def extractStmtsFromMods(modification : String, mods : ListBuffer[L3_SolverModificationForStage]) = {
     val ret = mods.filter(modification == _.modification).flatMap(_.statements)
     ret
   }
@@ -380,6 +381,67 @@ case class L3_SolverForEquation(
 
     stmts
   }
+
+  def replaceObjects() = {
+    val mods = modifications.filter(_.isInstanceOf[L3_SolverModificationForObject]).map(_.asInstanceOf[L3_SolverModificationForObject])
+
+    mods.foreach(mod => {
+      val targetName = mod.target
+      val lvl = mod.levels.get.asInstanceOf[L3_SingleLevel].level
+
+      if (L3_FieldCollection.exists(targetName, lvl)) {
+        // get field to be replaced
+        val toReplace = L3_FieldCollection.getByIdentifier(targetName, lvl).get
+        val replacement = mod.access.asInstanceOf[L3_FieldAccess].target
+
+        // replace accesses to field
+        object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses") {
+          this += new Transformation("Search and replace", {
+            case access @ L3_FieldAccess(`toReplace`, _) =>
+              access.target = replacement
+              access
+          })
+        }
+        L3_ReplaceAccesses.applyStandalone(ExaRootNode.l3_root)
+
+        // replace in entries
+        entries.foreach(e =>
+          List(e.rhsPerLevel, e.resPerLevel, e.approxPerLevel).foreach(coll =>
+            if (coll.contains(lvl) && coll(lvl) == toReplace) coll(lvl) = replacement))
+
+        // remove replaced object from collection
+        L3_FieldCollection.objects -= toReplace
+        L3_FieldCollection.declared -= L3_FieldCollection.NameAndLevel(targetName, lvl)
+      } else if (L3_StencilCollection.exists(targetName, lvl)) {
+        // get stencil to be replaced
+        val toReplace = L3_StencilCollection.getByIdentifier(targetName, lvl).get
+        val replacement = mod.access.asInstanceOf[L3_StencilAccess].target
+
+        // replace accesses to stencil
+        object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of stencil accesses") {
+          this += new Transformation("Search and replace", {
+            case access @ L3_StencilAccess(`toReplace`, _, _) =>
+              access.target = replacement
+              access
+          })
+        }
+        L3_ReplaceAccesses.applyStandalone(ExaRootNode.l3_root)
+
+        // replace in entries
+        entries.foreach(e =>
+          List(e.restrictForResPerLevel, e.restrictForSolPerLevel, e.prolongForSolPerLevel).foreach(coll =>
+            if (coll.contains(lvl) && coll(lvl) == toReplace) coll(lvl) = replacement))
+
+        // remove replaced object from collection
+        L3_StencilCollection.objects -= toReplace
+        L3_StencilCollection.declared -= L3_StencilCollection.NameAndLevel(targetName, lvl)
+      } else {
+        Logger.warn(s"Could not locate object $targetName on level $lvl")
+      }
+    })
+
+    replaceDone = true
+  }
 }
 
 /// L3_PrepareSolverForEquations
@@ -400,6 +462,13 @@ object L3_ProcessSolverForEquations extends DefaultStrategy("Update knowledge wi
     // check if declaration has already been processed and promote access if possible
     case solver : L3_SolverForEquation if !solver.processed && Knowledge.levels.flatMap(lvl => solver.entries.map(e => L3_FieldCollection.exists(e.solName, lvl))).reduce(_ && _) =>
       solver.process()
+      solver // keep for later
+  })
+
+  this += new Transformation("Replace", {
+    // check if declaration has already been processed and promote access if possible
+    case solver : L3_SolverForEquation if !solver.replaceDone && L3_MayBlockResolution.isDone(solver) =>
+      solver.replaceObjects()
       solver // keep for later
   })
 }

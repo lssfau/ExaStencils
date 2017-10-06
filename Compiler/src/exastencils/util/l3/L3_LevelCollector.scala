@@ -17,6 +17,7 @@ class L3_LevelCollector extends Collector {
   def enterLevel(level : Option[L3_LevelSpecification]) = {
     level match {
       case Some(L3_SingleLevel(lvl)) => levelStack.push(lvl)
+      case Some(other)               => Logger.warn(other)
       case _                         =>
     }
   }
