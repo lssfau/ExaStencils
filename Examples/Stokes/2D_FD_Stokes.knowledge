@@ -3,7 +3,7 @@ dimensionality                 = 2
 minLevel                       = 2
 maxLevel                       = 8
 
-discr_type                     = "FiniteVolumes"
+discr_type                     = "FiniteDifferences"
 
 discr_defaultNeumannOrder      = 1
 discr_defaultDirichletOrder    = 2
