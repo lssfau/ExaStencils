@@ -21,7 +21,7 @@ import exastencils.util.l3.L3_ResolveMathFunctions
 
 trait L3_LayerHandler extends LayerHandler
 
-/// L3_DummyLayerHandler 
+/// L3_DummyLayerHandler
 
 object L3_DummyLayerHandler extends L3_LayerHandler {
   def initialize() : Unit = {}
@@ -77,6 +77,7 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
 
       L3_UnfoldKnowledgeDeclarations.apply()
       L3_UnfoldLeveledVariableDeclarations.apply()
+      L3_UnfoldSolverModifications.apply()
 
       // resolve current, etc.
       L3_ResolveRelativeLevels.apply()

@@ -21,16 +21,17 @@ import exastencils.prettyprinting.PpStream
 /// L3_SolverForEquation
 
 object L3_SolverForEquation {
-  def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)]) = {
+  def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)], modifications : List[L3_SolverModification]) = {
     val newOptions = HashMap[String, Any]()
     options.foreach(newOptions += _)
-    new L3_SolverForEquation(entries.to[ListBuffer], newOptions)
+    new L3_SolverForEquation(entries.to[ListBuffer], newOptions, modifications.to[ListBuffer])
   }
 }
 
 case class L3_SolverForEquation(
     var entries : ListBuffer[L3_SolverForEqEntry],
-    var options : HashMap[String, Any]) extends L3_Statement {
+    var options : HashMap[String, Any],
+    var modifications : ListBuffer[L3_SolverModification]) extends L3_Statement {
 
   def printAnyVal(v : Any) = {
     v match {
@@ -48,6 +49,9 @@ case class L3_SolverForEquation(
       out << " with {\n"
       options.foreach(o => out << o._1 << " = " << printAnyVal(o._2) << "\n")
       out << "}"
+    }
+    if (modifications.nonEmpty) {
+      out << " modifiers {\n" <<< (modifications, "\n") << "}"
     }
   }
 
@@ -70,6 +74,20 @@ case class L3_SolverForEquation(
         case _ : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ option } to ${ value } but data types are incompatible")
       }
     }
+  }
+
+  def getModificationsFor(target : String, level : Int) = {
+    modifications.filter(
+      m => target == m.target && (m.levels match {
+        case Some(L3_SingleLevel(`level`)) => true
+        case _                             => false
+      })
+    )
+  }
+
+  def extractStmtsFromMods(modification : String, mods : ListBuffer[L3_SolverModification]) = {
+    val ret = mods.filter(modification == _.modification).flatMap(_.statements)
+    ret
   }
 
   def genOperators() = {
@@ -161,7 +179,7 @@ case class L3_SolverForEquation(
     // add solve function
 
     if (true) {
-      val solveStmts = ListBuffer[L3_Statement]()
+      var solveStmts = ListBuffer[L3_Statement]()
       def level = Knowledge.maxLevel
 
       L3_IterativeSolverForEquation.generateResNormFunction(entries, level)
@@ -195,48 +213,82 @@ case class L3_SolverForEquation(
         L3_StringConstant("Residual after"), curIt, L3_StringConstant("iterations is"), curRes,
         L3_StringConstant("--- convergence factor is"), curRes / prevRes))
 
-      // TODO: error calculation
-
       solveStmts += L3_UntilLoop(
         (curIt >= Knowledge.solver_maxNumIts) OrOr (curRes <= Knowledge.solver_targetResReduction * initRes),
         loopStmts)
 
+      // handle modifications
+      val mods = getModificationsFor("solver", level)
+
+      mods.count("replace" == _.modification) match {
+        case 0 => // nothing to do
+
+        case n =>
+          if (n > 1) Logger.warn(s"Found more than one replace modification for the same target (solver)")
+          solveStmts = extractStmtsFromMods("replace", mods)
+      }
+
+      solveStmts = extractStmtsFromMods("prepend", mods) ++ solveStmts
+      solveStmts ++= extractStmtsFromMods("append", mods)
+
+      // compose function
+      
       val fct = L3_LeveledFunction(s"gen_solve", level, L3_UnitDatatype, ListBuffer(), solveStmts)
       ExaRootNode.l3_root.nodes += fct
     }
 
     for (level <- Knowledge.levels) {
-      val solverStmts = ListBuffer[L3_Statement]()
+      var solverStmts = ListBuffer[L3_Statement]()
+
+      def handleStage(name : String, defStmts : ListBuffer[L3_Statement]) = {
+        val mods = getModificationsFor(name, level)
+
+        solverStmts ++= extractStmtsFromMods("prepend", mods)
+
+        mods.count("replace" == _.modification) match {
+          case 0 => solverStmts ++= defStmts
+
+          case n =>
+            if (n > 1) Logger.warn(s"Found more than one replace modification for the same target ($name)")
+            solverStmts ++= extractStmtsFromMods("replace", mods)
+        }
+
+        solverStmts ++= extractStmtsFromMods("append", mods)
+      }
 
       if (level != Knowledge.minLevel) {
         // regular cycle
 
         // smoother
-        solverStmts ++= L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPre)
+        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPre))
 
         // update residual
-        solverStmts ++= entries.map(_.generateUpdateRes(level))
+        handleStage("updateResidual", entries.map(_.generateUpdateRes(level)))
 
         // restriction
-        solverStmts ++= generateRestriction(level)
+        handleStage("restriction", generateRestriction(level))
 
         // update solution@coarser
         if (!Knowledge.solver_useFAS)
-          solverStmts ++= entries.map(_.generateSetSolZero(level - 1))
+          handleStage("setCoarseSolution", entries.map(_.generateSetSolZero(level - 1)))
 
         // recursion
         solverStmts += L3_FunctionCall(L3_LeveledDslFunctionReference("gen_mgCycle", level - 1, L3_UnitDatatype))
 
         // correction
-        solverStmts ++= generateCorrection(level)
+        handleStage("correction", generateCorrection(level))
 
         // smoother
-        solverStmts ++= L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost)
-
+        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost))
       } else {
         // cgs
-        solverStmts ++= L3_IterativeSolverForEquation.generateIterativeSolver(Knowledge.solver_cgs, entries, level)
+        handleStage("cgs", L3_IterativeSolverForEquation.generateIterativeSolver(Knowledge.solver_cgs, entries, level))
       }
+
+      // handle whole cycle as stage
+      val cycleStmts = solverStmts
+      solverStmts = ListBuffer()
+      handleStage("cycle", cycleStmts)
 
       val fct = L3_LeveledFunction(s"gen_mgCycle", level, L3_UnitDatatype, ListBuffer(), solverStmts)
       ExaRootNode.l3_root.nodes += fct

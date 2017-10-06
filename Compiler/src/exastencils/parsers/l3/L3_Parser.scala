@@ -453,6 +453,17 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val solverForEqConfig = (ident <~ "=") ~ literal ^^ { case param ~ value => (param, value) }
   lazy val solverForEqConfigs = solverForEqConfig.*
   lazy val solverForEqEntry = locationize((ident <~ "in") ~ ident ^^ { case sol ~ equation => L3_SolverForEqEntry(sol, equation) })
-  lazy val solverForEq = locationize((("generate" ~ "solver" ~ "for") ~> (solverForEqEntry <~ "and").* ~ solverForEqEntry ~ (("with" ~ "{") ~> solverForEqConfigs <~ "}").?)
-    ^^ { case entries ~ tail ~ options => L3_SolverForEquation(entries :+ tail, options.getOrElse(List())) })
+  lazy val solverForEq = locationize(("generate" ~ "solver" ~ "for") ~> (solverForEqEntry <~ "and").* ~ solverForEqEntry
+    ~ (("with" ~ "{") ~> solverForEqConfigs <~ "}").?
+    ~ (("modifiers" ~ "{") ~> solverModification.* <~ "}").?
+    ^^ { case entries ~ tail ~ options ~ modifiers =>
+    L3_SolverForEquation(entries :+ tail, options.getOrElse(List()), modifiers.getOrElse(List()))
+  })
+
+  /// L3_SolverModification
+
+  lazy val solverModification = locationize(
+    (("append" <~ "to") | ("prepend" <~ "to") | "replace") ~ stringLit ~ levelDecl.? ~ ("{" ~> statement.* <~ "}")
+      ^^ { case modification ~ target ~ levels ~ statements => L3_SolverModification(modification, target, statements, levels) })
+
 }

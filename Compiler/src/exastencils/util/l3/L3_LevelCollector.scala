@@ -7,6 +7,7 @@ import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
 import exastencils.knowledge.l3.L3_LeveledKnowledgeDecl
 import exastencils.logger.Logger
+import exastencils.solver.l3.L3_SolverModification
 
 /// L3_LevelCollector
 
@@ -34,6 +35,7 @@ class L3_LevelCollector extends Collector {
       case decl : L3_LeveledKnowledgeDecl => enterLevel(decl.levels)
       case fct : L3_FunctionDecl          => enterLevel(fct.levels)
       case fct : L3_LeveledFunction       => enterLevel(fct.level)
+      case mod : L3_SolverModification    => enterLevel(mod.levels)
       case _                              =>
     }
   }
@@ -43,6 +45,7 @@ class L3_LevelCollector extends Collector {
       case decl : L3_LeveledKnowledgeDecl => leaveLevel(decl.levels)
       case fct : L3_FunctionDecl          => leaveLevel(fct.levels)
       case fct : L3_LeveledFunction       => leaveLevel(fct.level)
+      case mod : L3_SolverModification    => leaveLevel(mod.levels)
       case _                              =>
     }
   }
