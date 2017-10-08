@@ -137,13 +137,13 @@ case class L3_Power(var left : L3_Expression, var right : L3_Expression) extends
 case class L3_ElementwiseAddition(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
   import L3_BinaryOperators._
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .+ " << right << beforeClosingBracket << ')'
-  override def progress = L4_ElementwiseAddition(left.progress, right.progress)
+  override def progress = ??? // L4_ElementwiseAddition(left.progress, right.progress)
 }
 
 case class L3_ElementwiseSubtraction(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
   import L3_BinaryOperators._
   override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .+ " << right << beforeClosingBracket << ')'
-  override def progress = L4_ElementwiseSubtraction(left.progress, right.progress)
+  override def progress = ??? // L4_ElementwiseSubtraction(left.progress, right.progress)
 }
 
 case class L3_ElementwiseMultiplication(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
@@ -230,7 +230,6 @@ object L3_Minimum {
 }
 
 case class L3_Minimum(var args : ListBuffer[L3_Expression]) extends L3_Expression {
-  import L3_BinaryOperators._
   override def prettyprint(out : PpStream) = out << "min ( " <<< (args, ", ") << " )"
   override def progress = L4_Minimum(args.map(_.progress))
 }
@@ -240,7 +239,6 @@ object L3_Maximum {
 }
 
 case class L3_Maximum(var args : ListBuffer[L3_Expression]) extends L3_Expression {
-  import L3_BinaryOperators._
   override def prettyprint(out : PpStream) = out << "max ( " <<< (args, ", ") << " )"
   override def progress = L4_Maximum(args.map(_.progress))
 }
