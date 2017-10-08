@@ -1,6 +1,8 @@
 package exastencils.optimization.ir
 
-import scala.collection.mutable.{ ArrayBuffer, ListBuffer, Queue }
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Queue
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -106,8 +108,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       IR_VectorExpression(v.innerDatatype, v.expressions.map { x => IR_Negative(x) }, v.rowVector)
 
     // Simplify matrices
-    case IR_Negative(m : IR_MatrixExpression) =>
-      IR_MatrixExpression(m.innerDatatype, m.rows, m.columns, m.expressions.map { y => IR_Negative(y) : IR_Expression })
+    case IR_Negative(m : IR_MatrixExpression) => m.expressions = m.expressions.map { y => IR_Negative(y) : IR_Expression }; m
 
     case x @ IR_MatrixExpression(_, 1, 1) => x.get(0, 0)
 
@@ -214,7 +215,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
             } else {
               if (matExpr.rows != m.rows || matExpr.columns != m.columns) Logger.error("Matrix sizes must match for addition")
               val matExprsView = if (matPos) matExpr.expressions.view else matExpr.expressions.view.map { x => IR_Negative(x) }
-              val mExprs = if (pos) m.expressions.toSeq else m.expressions.view.map { x => IR_Negative(x) }
+              val mExprs = if (pos) m.expressions.view else m.expressions.view.map { x => IR_Negative(x) }
               matExpr = IR_MatrixExpression(Some(IR_ResultingDatatype(matExpr.innerDatatype.getOrElse(IR_RealDatatype), m.innerDatatype.getOrElse(IR_RealDatatype))), m.rows, m.columns, matExprsView.zip(mExprs).map { x => x._1 + x._2 : IR_Expression }.to[Array])
               matPos = true
             }
@@ -256,6 +257,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       if (posSums.isEmpty && negSums.isEmpty) {
         matExpr
       } else {
+        if (!matPos) matExpr.expressions = matExpr.expressions.map { x => IR_Negative(x) }
         IR_Addition(ListBuffer(matExpr) ++ posSums ++ negSums.transform(IR_Negative(_)))
       }
 
