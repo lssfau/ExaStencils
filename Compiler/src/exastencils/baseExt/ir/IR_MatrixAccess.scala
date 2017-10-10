@@ -428,114 +428,118 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       if (call.arguments.length != 1) {
         Logger.error("inverse() must have one argument")
       }
-      val m = call.arguments(0).asInstanceOf[IR_MatrixExpression]
-      val ret = m.rows match {
-        case 1 => IR_MatrixExpression(m.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), m.get(0, 0))))
-        case 2 => {
-          val a = m.get(0, 0)
-          val b = m.get(0, 1)
-          val c = m.get(1, 0)
-          val d = m.get(1, 1)
-          val det : IR_Expression = IR_Division(IR_RealConstant(1.0), (a * d) - (b * c))
-          IR_MatrixExpression(m.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)))
-        }
-        case 3 => {
-          val a = m.get(0, 0)
-          val b = m.get(0, 1)
-          val c = m.get(0, 2)
-          val d = m.get(1, 0)
-          val e = m.get(1, 1)
-          val f = m.get(1, 2)
-          val g = m.get(2, 0)
-          val h = m.get(2, 1)
-          val i = m.get(2, 2)
-          val A = Duplicate(e) * Duplicate(i) - Duplicate(f) * Duplicate(h)
-          val B = IR_IntegerConstant(-1) * (Duplicate(d) * Duplicate(i) - Duplicate(f) * Duplicate(g))
-          val C = Duplicate(d) * Duplicate(h) - Duplicate(e) * Duplicate(g)
-          val D = IR_IntegerConstant(-1) * (Duplicate(b) * Duplicate(i) - Duplicate(c) * Duplicate(h))
-          val E = Duplicate(a) * Duplicate(i) - Duplicate(c) * Duplicate(g)
-          val F = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(h) - Duplicate(b) * Duplicate(g))
-          val G = Duplicate(b) * Duplicate(f) - Duplicate(c) * Duplicate(e)
-          val H = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
-          val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
-          val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
-          IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
-        }
-        case _ => {
-          // TODO gather and exploit knowledge about matrix structure
-          Knowledge.experimental_resolveInverseFunctionCall match {
-            case "Cofactors"   => {
-              val inv_det = IR_IntegerConstant(1) / calculateDeterminant(m)
-              val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
-              for (row <- 0 until m.rows) {
-                for (col <- 0 until m.columns) {
-                  tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * IR_DoubleConstant(math.pow(-1, row + col)) * inv_det)
-                }
-              }
-              tmp
+      call.arguments(0) match {
+        case s : IR_Expression if (s.datatype.isInstanceOf[IR_ScalarDatatype])  => 1 / s
+        case s : IR_Expression if (s.datatype.isInstanceOf[IR_ComplexDatatype]) => 1 / s
+        case m : IR_MatrixExpression                                            =>
+          val ret = m.rows match {
+            case 1 => IR_MatrixExpression(m.innerDatatype, 1, 1, Array(IR_Division(IR_RealConstant(1.0), m.get(0, 0))))
+            case 2 => {
+              val a = m.get(0, 0)
+              val b = m.get(0, 1)
+              val c = m.get(1, 0)
+              val d = m.get(1, 1)
+              val det : IR_Expression = IR_Division(IR_RealConstant(1.0), (a * d) - (b * c))
+              IR_MatrixExpression(m.innerDatatype, 2, 2, Array(Duplicate(det) * Duplicate(d), Duplicate(det) * Duplicate(b) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(c) * IR_IntegerConstant(-1), Duplicate(det) * Duplicate(a)))
             }
-            case "GaussJordan" => {
-              val matrix = Duplicate(m)
-              val other = IR_MatrixExpression(matrix.datatype, matrix.rows, matrix.columns)
-              for (i <- 0 until other.rows) {
-                for (j <- 0 until other.columns) {
-                  if (i == j) other.set(i, j, 1.0); else other.set(i, j, 0.0)
-                }
-              }
-
-              for (i <- matrix.rows - 1 to 0) {
-                var swap = false
-                val topValue = matrix.get(i - 1, i)
-                val currentValue = matrix.get(i, i)
-                (topValue, currentValue) match {
-                  case (top : IR_Number, current : IR_Number) => swap = Math.abs(top.value.asInstanceOf[Number].doubleValue) > Math.abs(current.value.asInstanceOf[Number].doubleValue)
-                  case _                                      =>
-                }
-
-                if (swap) {
-                  for (j <- 0 until matrix.columns) {
-                    var d = matrix.get(i, j)
-                    matrix.set(i, j, matrix.get(i - 1, j))
-                    matrix.set(i - 1, j, d)
-                    d = other.get(i, j)
-                    other.set(i, j, other.get(i - 1, j))
-                    other.set(i - 1, j, d)
-                  }
-                }
-              }
-
-              for (i <- 0 until matrix.rows) {
-                for (j <- 0 until matrix.rows) {
-                  if (j != i) {
-                    val d = matrix.get(j, i) / matrix.get(i, i)
-                    for (k <- 0 until matrix.rows) {
-                      var newExp = matrix.get(j, k) - Duplicate(matrix.get(i, k)) * Duplicate(d)
-                      matrix.set(j, k, newExp)
-
-                      newExp = other.get(j, k) - Duplicate(other.get(i, k)) * Duplicate(d)
-                      other.set(j, k, newExp)
+            case 3 => {
+              val a = m.get(0, 0)
+              val b = m.get(0, 1)
+              val c = m.get(0, 2)
+              val d = m.get(1, 0)
+              val e = m.get(1, 1)
+              val f = m.get(1, 2)
+              val g = m.get(2, 0)
+              val h = m.get(2, 1)
+              val i = m.get(2, 2)
+              val A = Duplicate(e) * Duplicate(i) - Duplicate(f) * Duplicate(h)
+              val B = IR_IntegerConstant(-1) * (Duplicate(d) * Duplicate(i) - Duplicate(f) * Duplicate(g))
+              val C = Duplicate(d) * Duplicate(h) - Duplicate(e) * Duplicate(g)
+              val D = IR_IntegerConstant(-1) * (Duplicate(b) * Duplicate(i) - Duplicate(c) * Duplicate(h))
+              val E = Duplicate(a) * Duplicate(i) - Duplicate(c) * Duplicate(g)
+              val F = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(h) - Duplicate(b) * Duplicate(g))
+              val G = Duplicate(b) * Duplicate(f) - Duplicate(c) * Duplicate(e)
+              val H = IR_IntegerConstant(-1) * (Duplicate(a) * Duplicate(f) - Duplicate(c) * Duplicate(d))
+              val I = Duplicate(a) * Duplicate(e) - Duplicate(b) * Duplicate(d)
+              val det = Duplicate(a) * A + Duplicate(b) * B + Duplicate(c) * C
+              IR_MatrixExpression(m.innerDatatype, 3, 3, Array(Duplicate(A) / Duplicate(det), Duplicate(D) / Duplicate(det), Duplicate(G) / Duplicate(det), Duplicate(B) / Duplicate(det), Duplicate(E) / Duplicate(det), Duplicate(H) / Duplicate(det), Duplicate(C) / Duplicate(det), Duplicate(F) / Duplicate(det), Duplicate(I) / Duplicate(det)))
+            }
+            case _ => {
+              // TODO gather and exploit knowledge about matrix structure
+              Knowledge.experimental_resolveInverseFunctionCall match {
+                case "Cofactors"   => {
+                  val inv_det = IR_IntegerConstant(1) / calculateDeterminant(m)
+                  val tmp = IR_MatrixExpression(Some(m.innerDatatype.getOrElse(IR_RealDatatype)), m.rows, m.columns)
+                  for (row <- 0 until m.rows) {
+                    for (col <- 0 until m.columns) {
+                      tmp.set(col, row, calculateMatrixOfMinorsElement(m, row, col) * IR_DoubleConstant(math.pow(-1, row + col)) * inv_det)
                     }
                   }
+                  tmp
                 }
-              }
+                case "GaussJordan" => {
+                  val matrix = Duplicate(m)
+                  val other = IR_MatrixExpression(matrix.datatype, matrix.rows, matrix.columns)
+                  for (i <- 0 until other.rows) {
+                    for (j <- 0 until other.columns) {
+                      if (i == j) other.set(i, j, 1.0); else other.set(i, j, 0.0)
+                    }
+                  }
 
-              IR_GeneralSimplify.doUntilDoneStandalone(matrix)
+                  for (i <- matrix.rows - 1 to 0) {
+                    var swap = false
+                    val topValue = matrix.get(i - 1, i)
+                    val currentValue = matrix.get(i, i)
+                    (topValue, currentValue) match {
+                      case (top : IR_Number, current : IR_Number) => swap = Math.abs(top.value.asInstanceOf[Number].doubleValue) > Math.abs(current.value.asInstanceOf[Number].doubleValue)
+                      case _                                      =>
+                    }
 
-              for (i <- 0 until matrix.rows) {
-                val d = matrix.get(i, i)
-                for (j <- 0 until matrix.rows) {
-                  val newExp = other.get(i, j) / Duplicate(d)
-                  other.set(i, j, newExp)
+                    if (swap) {
+                      for (j <- 0 until matrix.columns) {
+                        var d = matrix.get(i, j)
+                        matrix.set(i, j, matrix.get(i - 1, j))
+                        matrix.set(i - 1, j, d)
+                        d = other.get(i, j)
+                        other.set(i, j, other.get(i - 1, j))
+                        other.set(i - 1, j, d)
+                      }
+                    }
+                  }
+
+                  for (i <- 0 until matrix.rows) {
+                    for (j <- 0 until matrix.rows) {
+                      if (j != i) {
+                        val d = matrix.get(j, i) / matrix.get(i, i)
+                        for (k <- 0 until matrix.rows) {
+                          var newExp = matrix.get(j, k) - Duplicate(matrix.get(i, k)) * Duplicate(d)
+                          matrix.set(j, k, newExp)
+
+                          newExp = other.get(j, k) - Duplicate(other.get(i, k)) * Duplicate(d)
+                          other.set(j, k, newExp)
+                        }
+                      }
+                    }
+                  }
+
+                  IR_GeneralSimplify.doUntilDoneStandalone(matrix)
+
+                  for (i <- 0 until matrix.rows) {
+                    val d = matrix.get(i, i)
+                    for (j <- 0 until matrix.rows) {
+                      val newExp = other.get(i, j) / Duplicate(d)
+                      other.set(i, j, newExp)
+                    }
+                  }
+                  other
                 }
+                case "Runtime"     => call
+                case _             => call
               }
-              other
             }
-            case "Runtime"     => call
-            case _             => call
           }
-        }
+          ret
       }
-      ret
     }
     case call : IR_FunctionCall if (call.name == "det")     => {
       if (call.arguments.length != 1) {
