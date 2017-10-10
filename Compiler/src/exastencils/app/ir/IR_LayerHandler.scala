@@ -165,23 +165,16 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.experimental_internalHighDimTypes) {
-      IR_ResolveMatrixFunctions.apply()
-      IR_SetupMatrixExpressions.apply()
-
       IR_ExtractMatrices.apply()
-
-      // repeat for new VariableAccesses TODO: generate the correct expressions directly
       IR_SetupMatrixExpressions.apply()
-
       var sthChanged = true
       while (sthChanged) {
         // TODO: move matrix and vector specific parts of IR_GeneralSimplify to specialized strategy
         IR_GeneralSimplify.doUntilDone()
-
         IR_ResolveMatrixFunctions.apply()
         sthChanged = IR_ResolveMatrixFunctions.results.last._2.matches > 0
       }
-
+      IR_GeneralSimplify.doUntilDone()
       IR_ResolveMatrixAssignments.apply()
       IR_LinearizeMatrices.apply()
     }

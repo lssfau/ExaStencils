@@ -85,7 +85,7 @@ object IR_ResultingDatatype {
       case IR_ArrayDatatype(dt, l)     => IR_ArrayDatatype(IR_ResultingDatatype(dt, a), l)
       case IR_ComplexDatatype(dt)      => IR_ComplexDatatype(IR_ResultingDatatype(dt, a))
       case IR_VectorDatatype(dt, l, r) => IR_VectorDatatype(IR_ResultingDatatype(dt, a), l, r)
-      case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a), m, n)
+      case IR_MatrixDatatype(dt, m, n) => IR_MatrixDatatype(IR_ResultingDatatype(dt, a.resolveBaseDatatype), m, n)
       case x : IR_SpecialDatatype      => x
     }
   }
