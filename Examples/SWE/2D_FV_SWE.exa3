@@ -1,0 +1,71 @@
+Globals {
+  Var curTime : Real = 0.0
+  Var maxTime : Real = 1.0e-1
+  Var dt      : Real = 1.0e-5
+
+  Var adaptDt : Boolean = true
+  Var useLF    : Boolean = true
+
+  Var printInterval : Int = -1
+}
+
+
+
+Field uVis from hu
+Field vVis from hv
+Field velMag from h
+Field hVis from h
+
+
+
+Function Solve@finest {
+  Var it : Int = 0
+
+  repeat until curTime >= maxTime {
+    UpdateVis@finest ( )
+
+    if ( 0 == it % 10 ) {
+      print ( curTime, '/', maxTime, 'dt = ', dt )
+    }
+
+    if ( printInterval > 0 and 0 == it % printInterval ) {
+      PrintFields ( it / printInterval )
+    }
+
+    if ( adaptDt ) {
+      UpdateTimestepSize@finest ( )
+    }
+
+    Update ( )
+
+    AdvanceTimestep ( )
+    curTime += dt
+    it += 1
+  }
+}
+
+Function PrintFields@finest ( index : Int ) {
+  uVis = hu / h
+  vVis = hv / h
+
+  Var filename_u : String
+  buildString ( filename_u, "u_", index, ".csv" )
+  Var filename_v : String
+  buildString ( filename_v, "v_", index, ".csv" )
+  Var filename_h : String
+  buildString ( filename_h, "h_", index, ".csv" )
+
+  printField ( filename_u, vVis@current )
+  printField ( filename_v, uVis@current )
+  printField ( filename_h, h@current )
+}
+
+Function AdvanceTimestep@all {
+  h  = hNew
+  hu = huNew
+  hv = hvNew
+}
+
+
+
+

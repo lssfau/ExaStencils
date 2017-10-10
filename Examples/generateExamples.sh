@@ -23,3 +23,7 @@ java -cp ../Compiler/Compiler.jar Main OpticalFlow/2D_FD_OptFlow_onlyL4.settings
 
 java -cp ../Compiler/Compiler.jar Main OpticalFlow/2D_FD_OptFlow_onlyL4_Vec.settings OpticalFlow/2D_FD_OptFlow_onlyL4_Vec.knowledge $platform
 java -cp ../Compiler/Compiler.jar Main OpticalFlow/3D_FD_OptFlow_onlyL4_Vec.settings OpticalFlow/3D_FD_OptFlow_onlyL4_Vec.knowledge $platform
+
+# SWE
+
+java -cp ../Compiler/Compiler.jar Main SWE/2D_FV_SWE.settings SWE/2D_FV_SWE.knowledge $platform
