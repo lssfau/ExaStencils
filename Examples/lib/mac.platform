@@ -1,6 +1,7 @@
 targetOS                    = "macOS"
-targetCompilerBinary        = "g++"
-targetCompiler              = "GCC"
+targetCompilerBinary        = "clang++-mp-4.0"
+targetCompiler              = "CLANG"
 targetCompilerVersion       = 4
-targetCompilerVersionMinor  = 8
+targetCompilerVersionMinor  = 0
+
 
