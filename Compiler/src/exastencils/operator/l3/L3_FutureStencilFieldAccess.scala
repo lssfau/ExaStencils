@@ -39,6 +39,7 @@ case class L3_FutureStencilFieldAccess(
 object L3_PrepareStencilFieldAccesses extends DefaultStrategy("Prepare accesses to stencil fields") {
   val collector = new L3_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L3_UnresolvedAccess if L3_StencilFieldCollection.existsDecl(access.name) =>

@@ -33,6 +33,7 @@ case class L2_FutureEquationAccess(
 object L2_PrepareEquationAccesses extends DefaultStrategy("Prepare accesses to equations") {
   val collector = new L2_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L2_UnresolvedAccess if L2_EquationCollection.existsDecl(access.name) =>

@@ -36,6 +36,7 @@ case class L4_FutureFieldAccess(
 object L4_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fields") {
   val collector = new L4_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L4_UnresolvedAccess if L4_FieldCollection.existsDecl(access.name) =>

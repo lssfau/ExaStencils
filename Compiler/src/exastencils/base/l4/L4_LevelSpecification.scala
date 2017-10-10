@@ -94,6 +94,7 @@ object L4_ResolveLevelSpecifications extends DefaultStrategy("Resolve level spec
 object L4_ResolveRelativeLevels extends DefaultStrategy("Resolve relative level specifications") {
   val collector = new L4_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   def getLevel() : Int = {
     if (collector.inLevelScope)

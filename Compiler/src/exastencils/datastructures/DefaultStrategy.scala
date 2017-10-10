@@ -1,6 +1,7 @@
 package exastencils.datastructures
 
-import scala.collection.mutable.{ Buffer, ListBuffer }
+import scala.collection.mutable.Buffer
+import scala.collection.mutable.ListBuffer
 
 import exastencils.config.Settings
 import exastencils.core._
@@ -9,7 +10,7 @@ import exastencils.logger._
 /**
   * A Strategy that executes its [[exastencils.datastructures.Transformation]]s sequentially.
   *
-  * @param name name The name of the Strategy. Used for traceability and debugging purposes.
+  * @param name Name of the Strategy. Used for traceability and debugging purposes.
   */
 class DefaultStrategy(name : String) extends Strategy(name) {
   protected var transformations_ = new ListBuffer[Transformation]
@@ -90,14 +91,8 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     * @param applyAtNode Optional; specifies a source node where the [[exastencils.datastructures.Transformation]] starts to traverse the program state.
     */
   def apply(applyAtNode : Option[Node] = None) : Unit = {
-    //    var start : Long = 0
-    //    if ("Counting " + "Before" != name && "Counting " + "After" != name) {
-    //      (new CountingStrategy("Before")).apply()
-    //      start = System.nanoTime()
-    //    }
-
+    this.onBefore()
     this.transaction()
-    this.resetCollectors()
     Logger.info(s"""Applying strategy "${ name }"""")
     try {
       transformations_.foreach(transformation => {
@@ -112,11 +107,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
         Logger.warn(s"Rollback will be performed")
         this.abort()
     }
-
-    //    if ("Counting " + "Before" != name && "Counting " + "After" != name) {
-    //      Logger.dbg("Runtime:\t" + math.round((System.nanoTime() - start) / 1e5) / 10.0 + " ms")
-    //      (new CountingStrategy("After")).apply()
-    //    }
+    this.onAfter()
   }
 
   protected override def executeInternal(transformation : Transformation, node : Option[Node] = None) : TransformationResult = {
@@ -139,8 +130,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 
   def applyStandalone(node : Node) : Unit = {
     Logger.info(s"""Applying strategy "${ name }" in standalone mode""")
-
-    this.resetCollectors()
+    this.onBefore()
     try {
       transformations_.foreach(transformation => {
         executeStandaloneInternal(transformation, node)
@@ -151,11 +141,12 @@ class DefaultStrategy(name : String) extends Strategy(name) {
         Logger.warn(s"""Error in Transformation ${ x.transformation.name }""")
         Logger.warn(s"Message: ${ x.msg }")
     }
+    this.onAfter()
   }
 
   def applyStandalone[T](nodes : Buffer[T]) : Unit = {
     final case class NodeLBWrapper(var nodes : Buffer[T]) extends Node {}
-    var wrapper = NodeLBWrapper(nodes)
+    val wrapper = NodeLBWrapper(nodes)
     applyStandalone(wrapper)
     if (nodes ne wrapper.nodes) {
       nodes.clear()
@@ -165,7 +156,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 
   def applyStandalone[T](nodes : Seq[T]) : Seq[T] = {
     final case class NodeSeqWrapper(var nodes : Seq[T]) extends Node {}
-    var wrapper = NodeSeqWrapper(nodes)
+    val wrapper = NodeSeqWrapper(nodes)
     applyStandalone(wrapper)
     wrapper.nodes
   }
@@ -175,7 +166,7 @@ class DefaultStrategy(name : String) extends Strategy(name) {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming(name)
 
-    val result = StateManager.applyStandalone(this, transformation, node)
+    val result = StateManager.applyStandalone(this, transformation, transformation.applyAtNode.getOrElse(node))
 
     if (Settings.timeStrategies)
       StrategyTimer.stopTiming(name)
@@ -188,18 +179,17 @@ class DefaultStrategy(name : String) extends Strategy(name) {
 }
 
 object DefaultStrategy {
-
   /**
     * A Strategy that executes its [[exastencils.datastructures.Transformation]]s sequentially.
     *
-    * @param name name The name of the Strategy. Used for traceability and debugging purposes.
+    * @param name Name of the Strategy. Used for traceability and debugging purposes.
     */
   def apply(name : String) = new DefaultStrategy(name)
 
   /**
     * A Strategy that executes its [[exastencils.datastructures.Transformation]]s sequentially.
     *
-    * @param name            name The name of the Strategy. Used for traceability and debugging purposes.
+    * @param name            Name of the Strategy. Used for traceability and debugging purposes.
     * @param transformations List of transformations for the strategy.
     */
   def apply(name : String, transformations : List[Transformation]) = {

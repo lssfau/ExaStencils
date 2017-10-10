@@ -20,6 +20,7 @@ case class IR_StencilFunctionReference(var name : String, var returnType : IR_Da
 object IR_ResolveStencilFunction extends DefaultStrategy("Resolve stencil functions") {
   var collector = new IR_StackCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve", {
     case fctCall @ IR_FunctionCall(IR_StencilFunctionReference(fctName, _), args) =>

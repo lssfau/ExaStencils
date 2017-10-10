@@ -23,6 +23,7 @@ import exastencils.util.ir.IR_StackCollector
 object HACK_IR_ResolveSpecialFunctionsAndConstants extends DefaultStrategy("ResolveSpecialFunctionsAndConstants") {
   var collector = new IR_StackCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   def calculateDeterminant(m : IR_MatrixExpression) : IR_Expression = {
     if (m.rows != m.columns) {

@@ -25,6 +25,7 @@ object L3_ResolveDslFunctionReferences extends DefaultStrategy("Resolve function
 
   val levelCollector = new L3_LevelCollector
   this.register(levelCollector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Collecting function declarations", PartialFunction.empty)
 

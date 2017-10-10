@@ -62,6 +62,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
   object L4_CollectCommInformation extends QuietDefaultStrategy("Collect information relevant for adding communication statements") {
     val collector = new L4_FieldAccessRangeCollector()
     register(collector)
+    this.onBefore = () => this.resetCollectors()
 
     override def apply(node : Option[Node] = None) = {
       super.apply(node)

@@ -17,6 +17,7 @@ import exastencils.util.ir.IR_FctNameCollector
 object CUDA_AnnotateLoop extends DefaultStrategy("Calculate the annotations for CUDA loops") {
   val collector = new IR_FctNameCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   /**
     * Annotate the inner CUDA loops.
