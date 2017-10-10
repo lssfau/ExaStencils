@@ -41,6 +41,9 @@ object Main {
     // resolve aliases in knowledge, settings and platform
     ResolveAlias.apply()
 
+    // begin writing log to file after potential alias resolution in filename
+    if (Settings.produceHtmlLog) Logger_HTML.beginFileWrite()
+
     if (Settings.cancelIfOutFolderExists) {
       if (new java.io.File(Settings.getOutputPath).exists()) {
         Logger.error(s"Output path ${ Settings.getOutputPath } already exists but cancelIfOutFolderExists is set to true. Shutting down now...")

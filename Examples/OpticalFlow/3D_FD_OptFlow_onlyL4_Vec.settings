@@ -1,0 +1,17 @@
+user                = "Guest"
+
+configName          = "3D_FD_OptFlow_onlyL4_Vec"
+
+basePathPrefix      = "./OpticalFlow/"
+
+l4file              = "$configName$.exa4"
+
+debugL4File         = "../Debug/$configName$_debug.exa4"
+
+htmlLogFile         = "../Debug/$configName$_log.html"
+outputPath          = "../generated/$configName$/"
+
+produceHtmlLog      = true
+timeStrategies      = true
+
+buildfileGenerators = { "MakefileGenerator" }

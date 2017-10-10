@@ -1,0 +1,6 @@
+targetOS                    = "macOS"
+targetCompilerBinary        = "g++"
+targetCompiler              = "GCC"
+targetCompilerVersion       = 4
+targetCompilerVersionMinor  = 8
+

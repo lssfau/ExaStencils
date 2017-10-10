@@ -1,0 +1,201 @@
+
+Globals {
+  Var cflNumber : Real = 0.4
+}
+
+
+Function InitTestcase@finest {
+  loop over h {
+    b = 0.0
+
+    if ( sqrt ( ( vf_cellCenter_x - 500.0 )**2 + ( vf_cellCenter_y - 500.0 )**2 ) < 100.0 ) {
+      hNew = 15.0
+    } else {
+      hNew = 10.0
+    }
+
+    huNew = 0.0 * hNew
+    hvNew = 0.0 * hNew
+  }
+
+  AdvanceTimestep ( )
+}
+
+
+Function applyBC_hu@all ( ) : Unit {
+  // Dirichlet 0
+  loop over hu only ghost [-1, 0] on boundary {
+    hu = -hu@[ 1, 0]
+  }
+  loop over hu only ghost [ 1, 0] on boundary {
+    hu = -hu@[-1, 0]
+  }
+
+  // Neumann
+  loop over hu only ghost [0,  1] on boundary {
+    hu =  hu@[0, -1]
+  }
+  loop over hu only ghost [0, -1] on boundary {
+    hu =  hu@[0,  1]
+  }
+}
+
+Function applyBC_hv@all ( ) : Unit {
+  // Neumann
+  loop over hv only ghost [-1, 0] on boundary {
+    hv =  hv@[ 1, 0]
+  }
+  loop over hv only ghost [ 1, 0] on boundary {
+    hv =  hv@[-1, 0]
+  }
+
+  // Dirichlet 0
+  loop over hv only ghost [0,  1] on boundary {
+    hv = -hv@[0, -1]
+  }
+  loop over hv only ghost [0, -1] on boundary {
+    hv = -hv@[0,  1]
+  }
+}
+
+
+Function Update@all {
+  // TODO: if ( h < 0 ) set everything to zero
+
+  loop over hNew {
+    hNew = h // old time step
+
+    Var flux_F_H_right : Real = 0.5 * ( hu + hu@[ 1,  0] )
+    Var flux_F_H_left  : Real = 0.5 * ( hu + hu@[-1,  0] )
+    Var flux_G_H_right : Real = 0.5 * ( hv + hv@[ 0,  1] )
+    Var flux_G_H_left  : Real = 0.5 * ( hv + hv@[ 0, -1] )
+
+    if ( useLF ) {
+      flux_F_H_right += ( vf_gridWidth_x / ( 4 * dt ) ) * ( h@[ 1,  0] - h )
+      flux_F_H_left  += ( vf_gridWidth_x / ( 4 * dt ) ) * ( h - h@[-1,  0] )
+      flux_G_H_right += ( vf_gridWidth_y / ( 4 * dt ) ) * ( h@[ 0,  1] - h )
+      flux_G_H_left  += ( vf_gridWidth_y / ( 4 * dt ) ) * ( h - h@[ 0, -1] )
+    }
+
+    hNew += ( dt / vf_gridWidth_y ) * ( flux_F_H_right - flux_F_H_left )
+    hNew += ( dt / vf_gridWidth_x ) * ( flux_G_H_right - flux_G_H_left )
+
+    if ( hNew < 0.0 ) {
+      print ( 'negative h at', i0, i1, hNew )
+      hNew = 1e-6
+    }
+  }
+  apply bc to hNew
+
+  loop over huNew {
+    huNew = hu // old time step
+    huNew += integrateOverEastFace ( g * h * b ) - integrateOverWestFace ( g * h * b ) // rhs
+
+    Var flux_F_H_right : Real = 0.5 * ( ( hu@[ 1, 0]**2 / h@[ 1, 0] + 0.5 * g * h@[ 1, 0]**2 ) + ( hu**2 / h + 0.5 * g * h**2 ) )
+    Var flux_F_H_left  : Real = 0.5 * ( ( hu@[-1, 0]**2 / h@[-1, 0] + 0.5 * g * h@[-1, 0]**2 ) + ( hu**2 / h + 0.5 * g * h**2 ) )
+    Var flux_G_H_right : Real = 0.5 * ( ( hu * hv / h ) + ( hu@[0,  1] * hv@[0,  1] / h@[0,  1] ) )
+    Var flux_G_H_left  : Real = 0.5 * ( ( hu * hv / h ) + ( hu@[0, -1] * hv@[0, -1] / h@[0, -1] ) )
+
+    if ( useLF ) {
+      flux_F_H_right += ( vf_gridWidth_x / ( 4 * dt ) ) * ( hu@[ 1,  0] - hu )
+      flux_F_H_left  += ( vf_gridWidth_x / ( 4 * dt ) ) * ( hu - hu@[-1,  0] )
+      flux_G_H_right += ( vf_gridWidth_y / ( 4 * dt ) ) * ( hu@[ 0,  1] - hu )
+      flux_G_H_left  += ( vf_gridWidth_y / ( 4 * dt ) ) * ( hu - hu@[ 0, -1] )
+    }
+
+    huNew += ( dt / vf_gridWidth_y ) * ( flux_F_H_right - flux_F_H_left )
+    huNew += ( dt / vf_gridWidth_x ) * ( flux_G_H_right - flux_G_H_left )
+  }
+  apply bc to huNew
+
+  loop over hvNew {
+    hvNew = hv // old time step
+    hvNew += integrateOverNorthFace ( g * h * b ) - integrateOverSouthFace ( g * h * b ) // rhs
+
+    Var flux_F_H_right : Real = 0.5 * ( ( hu * hv / h ) + ( hu@[ 1, 0] * hv@[ 1, 0] / h@[ 1, 0] ) )
+    Var flux_F_H_left  : Real = 0.5 * ( ( hu * hv / h ) + ( hu@[-1, 0] * hv@[-1, 0] / h@[-1, 0] ) )
+    Var flux_G_H_right : Real = 0.5 * ( ( hv@[ 0,  1]**2 / h@[ 0,  1] + 0.5 * g * h@[ 0,  1]**2 ) + ( hv**2 / h + 0.5 * g * h**2 ) )
+    Var flux_G_H_left  : Real = 0.5 * ( ( hv@[ 0, -1]**2 / h@[ 0, -1] + 0.5 * g * h@[ 0, -1]**2 ) + ( hv**2 / h + 0.5 * g * h**2 ) )
+
+    if ( useLF ) {
+      flux_F_H_right += ( vf_gridWidth_x / ( 4 * dt ) ) * ( hv@[ 1,  0] - hv )
+      flux_F_H_left  += ( vf_gridWidth_x / ( 4 * dt ) ) * ( hv - hv@[-1,  0] )
+      flux_G_H_right += ( vf_gridWidth_y / ( 4 * dt ) ) * ( hv@[ 0,  1] - hv )
+      flux_G_H_left  += ( vf_gridWidth_y / ( 4 * dt ) ) * ( hv - hv@[ 0, -1] )
+    }
+
+    hvNew += ( dt / vf_gridWidth_y ) * ( flux_F_H_right - flux_F_H_left )
+    hvNew += ( dt / vf_gridWidth_x ) * ( flux_G_H_right - flux_G_H_left )
+  }
+  apply bc to hvNew
+}
+
+
+Function Application ( ) : Unit {
+  startTimer ( 'setup' )
+
+  initGlobals ( )
+  initDomain ( )
+  initFieldsWithZero ( )
+  initGeometry ( )
+  InitFields ( )
+
+  InitTestcase@finest ( )
+
+  stopTimer ( 'setup' )
+
+  startTimer ( 'solve' )
+  Solve@finest ( )
+  stopTimer ( 'solve' )
+
+  UpdateVis@finest ( )
+
+  printAllTimers ( )
+  destroyGlobals ( )
+}
+
+Function UpdateTimestepSize@finest {
+  Var maxWaveSpeed : Real = 0.0
+  loop over h with reduction ( max : maxWaveSpeed ) {
+    Var cellVel   : Real = sqrt ( ( hu / h )**2 + ( hv / h )**2 )
+    Var waveSpeed : Real = cellVel + sqrt ( g * h )
+
+    maxWaveSpeed = max ( maxWaveSpeed, waveSpeed )
+  }
+
+  dt = min ( vf_gridWidth_x, vf_gridWidth_y ) / maxWaveSpeed
+  dt *= cflNumber
+}
+
+Function UpdateVis@finest {
+  Var uMax : Real = 0.0
+  loop over hu with reduction( max : uMax ) {
+    uMax = max ( uMax, fabs ( hu / h ) )
+  }
+  Var vMax : Real = 0.0
+  loop over hv with reduction( max : vMax ) {
+    vMax = max ( vMax, fabs ( hv / h ) )
+  }
+  Var hMax : Real = 0.0
+  loop over h with reduction( max : hMax ) {
+    hMax = max ( hMax, fabs ( h ) )
+  }
+  Var hMin : Real = 1.0e30
+  loop over h with reduction( min : hMin ) {
+    hMin = min ( hMin, fabs ( h ) )
+  }
+
+  Val scaleH : Real = 1.0 / ( hMax - hMin )
+  Val scaleVel : Real = 1.0 / max ( uMax, vMax )
+
+  loop over velMag {
+    velMag = scaleVel * sqrt ( ( hu / h )**2  + ( hv / h )**2 )
+    uVis = 0.5 + 0.5 * scaleVel * ( hu / h )
+    vVis = 0.5 + 0.5 * scaleVel * ( hv / h )
+    hVis = scaleH * ( h - hMin )
+  }
+
+  print ( 'hMin:', hMin, 'hMax:', hMax, 'uMax:', uMax, 'vMax:', vMax )
+
+  showMappedImageAndWaitWhen ( curTime < maxTime, uVis, vVis, hVis, velMag )
+}
