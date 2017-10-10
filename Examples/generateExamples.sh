@@ -1,6 +1,10 @@
 #!/bin/bash
 
-platform=lib/linux.platform
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+        platform=lib/linux.platform
+elif [[ "$OSTYPE" == "darwin"* ]]; then
+	platform=lib/mac.platform
+fi
 
 # Stokes
 
