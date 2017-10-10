@@ -566,7 +566,7 @@ object StateManager {
 
     progresses_.+=((t, new TransformationProgress))
     strategies_.push(FindStrategy)
-    replace(HelperNode(node), t)
+    replace(node, t)
     strategies_.pop
     retVal.toList
   }

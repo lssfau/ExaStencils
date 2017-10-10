@@ -113,7 +113,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
     case stmt @ IR_Assignment(dest : IR_VariableAccess, src, _) if (dest.datatype.isInstanceOf[IR_MatrixDatatype]) => {
       // resolve M = M * M into tmp = M * M; M = tmp
       var selfassign = false
-      StateManager.findAll[IR_Multiplication](src).foreach(mult =>
+      StateManager.findAll[IR_Multiplication](HelperNode(src)).foreach(mult =>
         if (mult.factors.exists(p => p.isInstanceOf[IR_VariableAccess] && p.asInstanceOf[IR_VariableAccess].name == dest.name))
           selfassign = true
       )
@@ -149,7 +149,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
     case stmt @ IR_Assignment(dest, src, op) if (src.datatype.isInstanceOf[IR_MatrixDatatype]) => {
       // Extract all function calls into separate variables since any function could have unwanted side effects if called more than once
       var newStmts = ListBuffer[IR_Statement]()
-      StateManager.findAll[IR_FunctionCall](src).filter(f => !resolveFunctions.contains(f.function.name)).foreach(exp => {
+      StateManager.findAll[IR_FunctionCall](src). /*filter(f => !resolveFunctions.contains(f.function.name)).*/ foreach(exp => {
         val decl = IR_VariableDeclaration(exp.datatype, "_fct" + fctCallCounter + "_" + exp.name.replace('<', '_').replace('>', '_'), exp)
         newStmts += decl
         //newStmts += IR_Assignment(IR_VariableAccess(decl), Duplicate(exp))
@@ -192,6 +192,7 @@ object IR_ExtractMatrices extends DefaultStrategy("Extract and split matrix expr
     case exp : IR_FunctionCall if (exp.hasAnnotation(annotationFctCallCounter))    => {
       IR_VariableAccess("_fct" + exp.popAnnotation(annotationFctCallCounter).get + "_" + exp.function.name.replace('<', '_').replace('>', '_'), exp.function.returnType)
     }
+
     case exp : IR_MatrixExpression if (exp.hasAnnotation(annotationMatExpCounter)) => {
       IR_VariableAccess("_matrixExp" + exp.popAnnotation(annotationMatExpCounter).get, exp.datatype)
     }
@@ -650,21 +651,25 @@ object IR_ResolveMatrixFunctions extends DefaultStrategy("Resolve special matrix
       }
 
       val left = call.arguments(0)
+      var transform = true
 
       val lsize = left match {
         case me : IR_MatrixExpression                            => (me.rows, me.columns)
         case va if (va.datatype.isInstanceOf[IR_MatrixDatatype]) => (va.datatype.asInstanceOf[IR_MatrixDatatype].sizeM, va.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
-        case other                                               => Logger.error(s"Element-wise operation argument is of wrong type ${ other.getClass.getTypeName }: $other")
+        case _                                                   => transform = false; (0, 0)
       }
-
-      var me = IR_MatrixExpression(left.datatype, lsize._2, lsize._1)
-      var additions = ListBuffer[IR_Expression]()
-      for (row <- 0 until lsize._1) {
-        for (col <- 0 until lsize._2) {
-          me.set(col, row, getElem(left, row, col))
+      if (transform) {
+        var me = IR_MatrixExpression(left.datatype, lsize._2, lsize._1)
+        var additions = ListBuffer[IR_Expression]()
+        for (row <- 0 until lsize._1) {
+          for (col <- 0 until lsize._2) {
+            me.set(col, row, getElem(left, row, col))
+          }
         }
+        me
+      } else {
+        call
       }
-      me
     }
 
   })

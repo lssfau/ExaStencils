@@ -5,6 +5,8 @@ import scala.collection.GenTraversableOnce
 /** The basic trait every matchable (in terms of [[exastencils.datastructures.Transformation]] matching) entity has to subclass. */
 trait Node extends Annotatable with Product with Serializable
 
+final case class HelperNode(node : Node) extends Node
+
 /** A type for returning more than a single [[exastencils.datastructures.Node]] per [[exastencils.datastructures.Transformation]]. */
 final class NodeList(var nodes : GenTraversableOnce[Node])
 

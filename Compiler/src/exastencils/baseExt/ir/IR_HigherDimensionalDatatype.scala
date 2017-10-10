@@ -75,6 +75,7 @@ case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var si
   override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
 
   override def aliasFor = datatype.prettyprint + '[' + this.resolveFlattendSize + ']'
+  def transposed = IR_MatrixDatatype(datatype, sizeN, sizeM)
 }
 
 object IR_HACK_TypeAliases extends DefaultStrategy("Register type aliases") {
