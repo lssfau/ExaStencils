@@ -4,13 +4,23 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config._
+import exastencils.core.ObjectWithState
 import exastencils.core.StateManager
 
 /// IR_CommunicationFunctions
 
-object IR_CommunicationFunctions {
+object IR_CommunicationFunctions extends ObjectWithState {
+  // buffer looked up reference to reduce execution time
+  var selfRef : Option[IR_CommunicationFunctions] = None
+
+  override def clear() = { selfRef = None }
+
   // looks itself up starting from the current root
-  def get = StateManager.findFirst[IR_CommunicationFunctions]().get
+  def get = {
+    if (selfRef.isEmpty)
+      selfRef = StateManager.findFirst[IR_CommunicationFunctions]()
+    selfRef.get
+  }
 }
 
 case class IR_CommunicationFunctions() extends IR_FunctionCollection("CommFunctions/CommFunctions",

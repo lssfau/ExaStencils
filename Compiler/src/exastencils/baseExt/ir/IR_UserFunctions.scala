@@ -3,15 +3,25 @@ package exastencils.baseExt.ir
 import scala.collection.mutable.ListBuffer
 
 import exastencils.config._
+import exastencils.core.ObjectWithState
 import exastencils.core.StateManager
 import exastencils.field.ir.IR_InitFieldsWithZero
 import exastencils.simd.SIMD_NeonDivision
 
 /// IR_UserFunctions
 
-object IR_UserFunctions {
+object IR_UserFunctions extends ObjectWithState {
+  // buffer looked up reference to reduce execution time
+  var selfRef : Option[IR_UserFunctions] = None
+
+  override def clear() = { selfRef = None }
+
   // looks itself up starting from the current root
-  def get = StateManager.findFirst[IR_UserFunctions]().get
+  def get = {
+    if (selfRef.isEmpty)
+      selfRef = StateManager.findFirst[IR_UserFunctions]()
+    selfRef.get
+  }
 }
 
 case class IR_UserFunctions() extends IR_FunctionCollection("MultiGrid/MultiGrid",
