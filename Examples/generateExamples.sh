@@ -13,7 +13,14 @@ echo
 
 for config in $configList; do
   echo generating $config ... 
-  echo -e '\033]2;'generating $config'\007'
-  time java -cp ../Compiler/Compiler.jar Main $config.settings $config.knowledge $platform > Debug/${config##*/}_generateResult.txt
+  printf "\033]2;generating $config\007"
+  TIME=$( time java -cp ../Compiler/Compiler.jar Main $config.settings $config.knowledge $platform > Debug/${config##*/}_generateResult.txt; exit ${PIPESTATUS[0]} )
+  echo $TIME
+  if [[ "$?" -eq "0" ]]; then
+    printf "\033[32m\033[1mSuccess\033[0m"
+  else
+    printf "\033[31m\033[1mFailure\033[0m"
+  fi
   echo 
 done
+printf "\033]0;\a"
