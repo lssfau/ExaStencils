@@ -13,7 +13,6 @@ object ResolveAlias {
 
   def processString(toProcess : String) : String = {
     if (toProcess.contains('$')) {
-      changed = true
       var inVar = false
       var varName = ""
       var output = ""
@@ -29,7 +28,10 @@ object ResolveAlias {
               output += target.getClass.getMethods.find(_.getName == varName).get.invoke(target)
             }
 
-          if (!found) Logger.warn(s"Trying to replace undefined parameter $varName; ignored")
+          if (!found) {
+            output += "$" + varName + "$"
+            Logger.warn(s"Trying to replace undefined parameter $varName; ignored")
+          }
 
           inVar = false
           varName = ""
@@ -38,6 +40,11 @@ object ResolveAlias {
         case _ if !inVar => output += c
       }
 
+      if (inVar) // ignore unclosed aliases
+        output += "$" + varName
+
+      changed |= output != toProcess
+      
       output
     } else toProcess // nothing to do
   }

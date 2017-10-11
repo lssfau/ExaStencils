@@ -9,8 +9,10 @@ For the latter:
   Build -> Build Artifacts -> Compiler.jar -> build
 
 (optional) adapt platform file used in Examples/generateExamples.sh
-(optional) deactivate unrequired configurations in Examples/generateExamples.sh
+(optional) deactivate unrequired configurations in Examples/examples.sh
 
 afterwards simply run
 cd Examples
 ./generateExamples.sh
+./compileExamples.sh
+./runExamples.sh

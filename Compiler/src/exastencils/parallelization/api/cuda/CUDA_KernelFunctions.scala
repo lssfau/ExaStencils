@@ -12,8 +12,12 @@ import exastencils.prettyprinting._
 
 /// CUDA_KernelFunctions
 
-object CUDA_KernelFunctions {
+object CUDA_KernelFunctions extends ObjectWithState {
+  // buffer looked up reference to reduce execution time
   var selfRef : Option[CUDA_KernelFunctions] = None
+
+  override def clear() = { selfRef = None }
+
   // looks itself up starting from the current root
   def get = {
     if (selfRef.isEmpty)

@@ -82,9 +82,9 @@ object Logger_HTML {
   }
   def <<<(msg : AnyRef) : this.type = {
     if (bufferMode)
-      buffer.write(htmlfy(msg + "\n"))
+      buffer.write(htmlfy(msg) + "\n")
     else
-      log.write(htmlfy(msg + "\n"))
+      log.write(htmlfy(msg) + "\n")
 
     this
   }

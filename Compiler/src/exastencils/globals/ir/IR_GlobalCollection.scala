@@ -6,14 +6,23 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_FunctionCollection
 import exastencils.config._
-import exastencils.core.StateManager
+import exastencils.core._
 import exastencils.prettyprinting._
 
 /// IR_GlobalCollection
 
-object IR_GlobalCollection {
+object IR_GlobalCollection extends ObjectWithState {
+  // buffer looked up reference to reduce execution time
+  var selfRef : Option[IR_GlobalCollection] = None
+
+  override def clear() = { selfRef = None }
+
   // looks itself up starting from the current root
-  def get = StateManager.findFirst[IR_GlobalCollection]().get
+  def get = {
+    if (selfRef.isEmpty)
+      selfRef = StateManager.findFirst[IR_GlobalCollection]()
+    selfRef.get
+  }
 }
 
 case class IR_GlobalCollection(var variables : ListBuffer[IR_VariableDeclaration] = ListBuffer()) extends IR_FunctionCollection("Globals/Globals",
