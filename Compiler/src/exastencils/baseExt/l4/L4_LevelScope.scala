@@ -24,6 +24,7 @@ case class L4_LevelScope(var level : L4_LevelSpecification, var body : ListBuffe
 object L4_ResolveLevelScopes extends DefaultStrategy("Resolve level-specific scopes") {
   var levelCollector = new L4_LevelCollector
   this.register(levelCollector)
+  this.onBefore = () => this.resetCollectors()
 
   // Flatten leveled scope or remove completely
   this += new Transformation("Resolve", {

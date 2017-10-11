@@ -22,6 +22,7 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
   "and annotating for later kernel transformation") {
   val collector = new IR_FctNameCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   var fieldAccesses = HashMap[String, IR_IV_FieldData]()
   var bufferAccesses = HashMap[String, IR_IV_CommBuffer]()

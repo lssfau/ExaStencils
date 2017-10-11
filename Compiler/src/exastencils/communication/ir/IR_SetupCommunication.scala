@@ -32,6 +32,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
 
   var collector = new IR_StackCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   override def apply(node : Option[Node] = None) = {
     if (firstCall) {

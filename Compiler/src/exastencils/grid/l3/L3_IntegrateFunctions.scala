@@ -32,6 +32,7 @@ object L3_IntegrateFunctions {
 object L3_ResolveIntegrateFunctions extends DefaultStrategy("Resolve grid function references (integrate)") {
   val collector = new L3_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve", {
     case L3_FunctionCall(ref : L3_UnresolvedFunctionReference, args) if L3_IntegrateFunctions.exists(ref.name) =>

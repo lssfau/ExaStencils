@@ -70,6 +70,7 @@ case class IR_LoopOverPoints(
 object IR_ResolveLoopOverPoints extends DefaultStrategy("Resolve LoopOverPoints nodes") {
   val collector = new IR_StackCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve", {
     case loop : IR_LoopOverPoints => loop.expandSpecial(collector)
