@@ -201,7 +201,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         var estimatedTimeOps_device = (cyclesPerIt * maxIterations) / Platform.hw_gpu_frequency
         estimatedTimeOps_host /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
         estimatedTimeOps_host /= Platform.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
-        estimatedTimeOps_device /= Platform.hw_gpu_numCores // assumes perfect utilization - TODO: annotate max number of iterations in loop and use it here if smaller than number of cuda cores
+        estimatedTimeOps_device /= Math.min(maxIterations, Platform.hw_gpu_numCores) // assumes perfect utilization as far as possible
 
         val totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
         totalEstimate.device += Platform.sw_cuda_kernelCallOverhead
