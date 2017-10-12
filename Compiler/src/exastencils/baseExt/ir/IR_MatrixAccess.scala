@@ -887,14 +887,16 @@ object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
 
     case access @ IR_HighDimAccess(base, idx : IR_ConstIndex) if idx.indices.length == 2 =>
       val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
-      if (matrix.sizeM == matrix.sizeN == 1 && idx(0) == idx(1) == 0) base
+      if (matrix.sizeM != 1 || matrix.sizeN != 1 || idx(0) != 0 || idx(1) != 0)
+        IR_ArrayAccess(base, matrix.sizeN * idx.indices(0) + idx.indices(1))
       else
-      IR_ArrayAccess(base, matrix.sizeN * idx.indices(0) + idx.indices(1))
+        base
 
     case access @ IR_HighDimAccess(base, idx : IR_ExpressionIndex) if idx.indices.length == 2 =>
       val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
-      if (matrix.sizeM == matrix.sizeN == 1 && idx(0) == idx(1) == 0) base
+      if (matrix.sizeM != 1 || matrix.sizeN != 1)
+        IR_ArrayAccess(base, matrix.sizeN * idx.indices(0) + idx.indices(1))
       else
-      IR_ArrayAccess(base, matrix.sizeN * idx.indices(0) + idx.indices(1))
+        base
   }, false)
 }
