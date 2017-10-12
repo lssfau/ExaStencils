@@ -3,6 +3,7 @@ package exastencils.field.l2
 import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
+import exastencils.field.l3.L3_ActiveSlot
 import exastencils.field.l3.L3_FutureFieldAccess
 import exastencils.knowledge.l2.L2_FutureKnowledgeAccess
 import exastencils.logger.Logger
@@ -24,6 +25,7 @@ case class L2_FutureFieldAccess(
   def progress = {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
     L3_FutureFieldAccess(name, level,
+      L3_ActiveSlot,
       L2_ProgressOption(offset)(_.progress))
   }
 

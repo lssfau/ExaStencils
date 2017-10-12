@@ -123,6 +123,8 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       L3_ResolveFieldFieldConvolutions.apply()
       L3_ResolveOperatorTimesField.apply()
 
+      L3_IntroduceSlots.apply()
+
       L3_FieldCollection.addInitFieldsFunction()
     }
 

@@ -343,7 +343,7 @@ case class L3_SolverForEquation(
         val opApplication = Duplicate(L3_ExpressionStatement(entry.getEq(level - 1).lhs))
         object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses with approximation variants") {
           this += new Transformation("Search and replace", {
-            case access @ L3_FieldAccess(field, _) if entries.exists(field == _.getSolField(level - 1)) =>
+            case access @ L3_FieldAccess(field, _, _) if entries.exists(field == _.getSolField(level - 1)) =>
               access.target = entries.find(field == _.getSolField(level - 1)).get.getSolField(level - 1) // FIXME: approxPerLevel(level - 1)
               access
           })
@@ -397,7 +397,7 @@ case class L3_SolverForEquation(
         // replace accesses to field
         object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses") {
           this += new Transformation("Search and replace", {
-            case access @ L3_FieldAccess(`toReplace`, _) =>
+            case access @ L3_FieldAccess(`toReplace`, _, _) =>
               access.target = replacement
               access
           })

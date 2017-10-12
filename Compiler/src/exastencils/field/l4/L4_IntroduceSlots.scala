@@ -7,6 +7,7 @@ import exastencils.core._
 import exastencils.datastructures._
 import exastencils.logger.Logger
 
+@deprecated("to be deleted", "12.10.17")
 object L4_IntroduceSlots extends DefaultStrategy("Add slots to fields and field accesses") {
   this += new Transformation("Introduce slots", {
     // target assignments to fields

@@ -31,7 +31,7 @@ import exastencils.util.l4._
 
 trait L4_LayerHandler extends LayerHandler
 
-/// L4_DummyLayerHandler 
+/// L4_DummyLayerHandler
 
 object L4_DummyLayerHandler extends L4_LayerHandler {
   def initialize() : Unit = {}
@@ -72,7 +72,6 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 4")
 
     if (ExaRootNode.l4_root.nodes.nonEmpty) {
-      L4_IntroduceSlots.apply()
       L4_WrapFieldFieldConvolutions.apply()
       L4_AddLoopsToFieldAssignments.apply()
       L4_AddLoopsToLocalSolve.apply()
