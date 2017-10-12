@@ -231,9 +231,9 @@ object Platform {
             if (!Knowledge.mpi_enabled)
               "icpc"
             else mpi_variant.toLowerCase() match {
-              case "openmpi"   => "mpicxx"
-              case "intel-mpi" => "mpiicpc"
-              case other       => Logger.error(s"Unsupported mpi variant $other")
+              case "openmpi"                          => "mpicxx"
+              case "intelmpi" | "intel-mpi" | "intel" => "mpiicpc"
+              case other                              => Logger.error(s"Unsupported mpi variant $other")
             }
           } else {
             if (Knowledge.mpi_enabled) "mpicxx" else "icpc"

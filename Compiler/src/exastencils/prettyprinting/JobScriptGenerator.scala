@@ -112,9 +112,9 @@ object JobScriptGenerator {
           printer <<< s"module load intel"
 
         Platform.mpi_variant.toLowerCase() match {
-          case "openmpi"  => printer <<< s"module load openmpi"
-          case "intelmpi" => printer <<< s"module load intel-mpi"
-          case other      => Logger.error(s"Unsupported mpi variant $other")
+          case "openmpi"                          => printer <<< s"module load openmpi"
+          case "intelmpi" | "intel-mpi" | "intel" => printer <<< s"module load intel-mpi"
+          case other                              => Logger.error(s"Unsupported mpi variant $other")
         }
 
         printer <<< ""
@@ -130,9 +130,9 @@ object JobScriptGenerator {
           printer <<< s"./exastencils"
         else
           Platform.mpi_variant.toLowerCase() match {
-            case "openmpi"  => printer <<< s"mpirun -n $numMPI -npernode $tasksPerNode ./exastencils"
-            case "intelmpi" => printer <<< s"mpiexec.hydra -n $numMPI -ppn $tasksPerNode ./exastencils"
-            case other      => Logger.error(s"Unsupported mpi variant $other")
+            case "openmpi"                          => printer <<< s"mpirun -n $numMPI -npernode $tasksPerNode ./exastencils"
+            case "intelmpi" | "intel-mpi" | "intel" => printer <<< s"mpiexec.hydra -n $numMPI -ppn $tasksPerNode ./exastencils"
+            case other                              => Logger.error(s"Unsupported mpi variant $other")
           }
 
         printer <<< ""
