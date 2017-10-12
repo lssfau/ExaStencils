@@ -72,11 +72,6 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
 
-  //###########################################################
-
-  lazy val identifierWithOptDeclLevel = locationize(ident ~ levelDecl.?
-    ^^ { case id ~ level => if (level.isDefined) L4_LeveledIdentifier(id, level.get) else L4_BasicIdentifier(id) })
-
   // ######################################
   // ##### Level Specifications
   // ######################################
