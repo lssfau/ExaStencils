@@ -32,6 +32,7 @@ object L3_EvaluateFunctions {
 object L3_ResolveEvaluateFunctions extends DefaultStrategy("Resolve grid function references (evaluate)") {
   val collector = new L3_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve", {
     case L3_FunctionCall(ref : L3_UnresolvedFunctionReference, args) if L3_EvaluateFunctions.exists(ref.name) =>

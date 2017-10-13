@@ -18,11 +18,9 @@ trait L4_Expression extends L4_Node with L4_Progressable with PrettyPrintable {
   def Modulo(other : L4_Expression) = L4_Modulo(this, other)
 
   // Scala does not allow .{+,-,*,/} and fails with Dot{+,-,*,/}
-  def :+(other : L4_Expression) = L4_ElementwiseAddition(this, other)
-  def :-(other : L4_Expression) = L4_ElementwiseSubtraction(this, other)
   def :*(other : L4_Expression) = L4_ElementwiseMultiplication(this, other)
   def :/(other : L4_Expression) = L4_ElementwiseDivision(this, other)
-
+  def :^(other : L4_Expression) = L4_ElementwisePower(this, other)
   def DotPow(other : L4_Expression) = L4_ElementwisePower(this, other)
   def DotMod(other : L4_Expression) = L4_ElementwiseModulo(this, other)
   def DotModulo(other : L4_Expression) = L4_ElementwiseModulo(this, other)

@@ -7,6 +7,7 @@ import java.io.PrintWriter
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
+import exastencils.core.ObjectWithState
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir._
@@ -29,11 +30,13 @@ object AddPerformanceEstimates {
 
 /// top level strategies
 
-object CollectFunctionStatements extends DefaultStrategy("Collecting internal function statements") {
+object CollectFunctionStatements extends DefaultStrategy("Collecting internal function statements") with ObjectWithState {
   var internalFunctions = HashSet[String]()
 
+  override def clear() = internalFunctions.clear()
+
   override def apply(node : Option[Node] = None) : Unit = {
-    internalFunctions.clear
+    clear()
     super.apply(node)
   }
 
@@ -44,10 +47,16 @@ object CollectFunctionStatements extends DefaultStrategy("Collecting internal fu
   }, false)
 }
 
-object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performance estimates") {
+object EvaluatePerformanceEstimates extends DefaultStrategy("Evaluating performance estimates") with ObjectWithState {
   var completeFunctions = HashMap[String, PerformanceEstimate]()
   var unknownFunctionCalls = true
   var outputStream : PrintWriter = null
+
+  override def clear() = {
+    completeFunctions.clear()
+    unknownFunctionCalls = true
+    outputStream = null
+  }
 
   override def apply(node : Option[Node] = None) : Unit = {
     realApplyAndDo(false, node)
@@ -192,7 +201,7 @@ object EvaluatePerformanceEstimates_SubAST extends QuietDefaultStrategy("Estimat
         var estimatedTimeOps_device = (cyclesPerIt * maxIterations) / Platform.hw_gpu_frequency
         estimatedTimeOps_host /= Math.min(coresPerRank, Knowledge.omp_numThreads) // adapt for omp threading and hardware utilization
         estimatedTimeOps_host /= Platform.simd_vectorSize // adapt for vectorization - assume perfect vectorizability
-        estimatedTimeOps_device /= Platform.hw_gpu_numCores // assumes perfect utilization - TODO: annotate max number of iterations in loop and use it here if smaller than number of cuda cores
+        estimatedTimeOps_device /= Math.min(maxIterations, Platform.hw_gpu_numCores) // assumes perfect utilization as far as possible
 
         val totalEstimate = PerformanceEstimate(Math.max(estimatedTimeOps_host, optimisticTimeMem_host), Math.max(estimatedTimeOps_device, optimisticTimeMem_device))
         totalEstimate.device += Platform.sw_cuda_kernelCallOverhead

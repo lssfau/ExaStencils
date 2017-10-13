@@ -25,6 +25,7 @@ case class L3_FutureDomainAccess(var name : String) extends L3_FutureKnowledgeAc
 object L3_PrepareDomainAccesses extends DefaultStrategy("Prepare accesses to domains") {
   val collector = new L3_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L3_UnresolvedAccess if L3_DomainCollection.existsDecl(access.name) =>

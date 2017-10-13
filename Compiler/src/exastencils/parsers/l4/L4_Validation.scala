@@ -27,10 +27,6 @@ object L4_Validation extends DefaultStrategy("Validate L4 Input") {
 
   // No need to transform Domain- and LayoutDeclarationStatements because their names are not outputted.
   this += Transformation("EscapeCppKeywordsAndInternalIdentifiers", {
-    case x : L4_Identifier if protectedkeywords.contains(x.name)                                              =>
-      x.name = "user_" + x.name; x
-    case x : L4_Identifier if x.name.startsWith("_")                                                          =>
-      x.name = "user_" + x.name; x
     case x : L4_UnresolvedAccess if protectedkeywords.contains(x.name) && !x.hasAnnotation("NO_PROTECT_THIS") =>
       x.name = "user_" + x.name; x
     case x : L4_UnresolvedAccess if x.name.startsWith("_")                                                    =>

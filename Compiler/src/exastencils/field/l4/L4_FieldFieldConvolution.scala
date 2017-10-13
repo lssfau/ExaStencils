@@ -7,6 +7,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_LoopOverField
 import exastencils.communication.l4.L4_Communicate
 import exastencils.core.Duplicate
+import exastencils.core.ObjectWithState
 import exastencils.datastructures._
 import exastencils.prettyprinting.PpStream
 
@@ -83,9 +84,14 @@ object L4_WrapFieldFieldConvolutions extends DefaultStrategy("Wrap field-field-c
     newBody
   }
 
-  object L4_MapReductionVariable extends QuietDefaultStrategy("Map reduction variables for field-field-convolutions") {
+  object L4_MapReductionVariable extends QuietDefaultStrategy("Map reduction variables for field-field-convolutions") with ObjectWithState {
     var tmpVarCounter : Int = 0
     var tmpVarMap = HashMap[L4_VariableAccess, L4_FieldFieldConvolution]()
+
+    override def clear() = {
+      tmpVarCounter = 0
+      tmpVarMap = HashMap()
+    }
 
     this += new Transformation("resolve", {
       case conv : L4_FieldFieldConvolution =>

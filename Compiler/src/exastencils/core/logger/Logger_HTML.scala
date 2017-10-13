@@ -4,16 +4,13 @@ import exastencils.config.Settings
 
 object Logger_HTML {
   var isInit : Boolean = false
+  var bufferMode : Boolean = true
+  var buffer : java.io.StringWriter = null
   var log : java.io.FileWriter = null
 
   def init() = {
-    val targetFile = Settings.getHtmlLogFile
-    if (!new java.io.File(targetFile).exists) {
-      val file = new java.io.File(targetFile)
-      if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
-    }
-
-    log = new java.io.FileWriter(targetFile)
+    buffer = new java.io.StringWriter()
+    bufferMode = true
 
     this <<< "<HEAD><TITLE>ExaStencils Log</TITLE></HEAD>"
     //this <<< "<script type=\"text/JavaScript\">"
@@ -31,9 +28,26 @@ object Logger_HTML {
     isInit = true
   }
 
+  def beginFileWrite() = {
+    val targetFile = Settings.getHtmlLogFile
+    if (!new java.io.File(targetFile).exists) {
+      val file = new java.io.File(targetFile)
+      if (!file.getParentFile.exists()) file.getParentFile.mkdirs()
+    }
+
+    log = new java.io.FileWriter(targetFile)
+
+    log.write(buffer.toString)
+
+    bufferMode = false
+  }
+
   def finish() = {
     if (isInit) {
       this <<< "</table></body>"
+
+      if (bufferMode) beginFileWrite()
+
       log.close()
 
       isInit = false
@@ -59,11 +73,19 @@ object Logger_HTML {
   }
 
   def <<(msg : AnyRef) : this.type = {
-    log.write(htmlfy(msg))
+    if (bufferMode)
+      buffer.write(htmlfy(msg))
+    else
+      log.write(htmlfy(msg))
+
     this
   }
   def <<<(msg : AnyRef) : this.type = {
-    log.write(htmlfy(msg) + '\n')
+    if (bufferMode)
+      buffer.write(htmlfy(msg) + "\n")
+    else
+      log.write(htmlfy(msg) + "\n")
+
     this
   }
 

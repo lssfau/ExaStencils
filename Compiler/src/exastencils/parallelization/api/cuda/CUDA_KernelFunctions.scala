@@ -12,9 +12,18 @@ import exastencils.prettyprinting._
 
 /// CUDA_KernelFunctions
 
-object CUDA_KernelFunctions {
+object CUDA_KernelFunctions extends ObjectWithState {
+  // buffer looked up reference to reduce execution time
+  var selfRef : Option[CUDA_KernelFunctions] = None
+
+  override def clear() = { selfRef = None }
+
   // looks itself up starting from the current root
-  def get = StateManager.findFirst[CUDA_KernelFunctions]().get
+  def get = {
+    if (selfRef.isEmpty)
+      selfRef = StateManager.findFirst[CUDA_KernelFunctions]()
+    selfRef.get
+  }
 }
 
 case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions/KernelFunctions",
@@ -103,7 +112,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
         IR_Assignment(IR_ArrayAccess(data.access, it), IR_BinaryOperators.createExpression(op, IR_ArrayAccess(data.access, it), IR_ArrayAccess(data.access, it + stride.access))))
 
       // compile final kernel function
-      val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */ kernelName, IR_UnitDatatype, ListBuffer(data, numElements, stride), fctBody)
+      val fct = IR_PlainFunction(/* FIXME: IR_LeveledFunction? */ kernelName, IR_UnitDatatype, ListBuffer(data, numElements, stride), fctBody)
 
       fct.allowInlining = false
       fct.allowFortranInterface = false
@@ -145,7 +154,7 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
       fctBody += IR_Return(Some(ret))
 
       // compile final wrapper function
-      val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */
+      val fct = IR_PlainFunction(/* FIXME: IR_LeveledFunction? */
         wrapperName,
         IR_RealDatatype, // TODO: support other types
         ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)),

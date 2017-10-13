@@ -20,6 +20,7 @@ object L3_IterativeSolverForEquation {
       case "bicgstab"                                        => L3_BiCGStabForEquation.generateFor(entries, level)
       case "minres"                                          => L3_MinResForEquation.generateFor(entries, level)
       case "conjugateresidual" | "conjugateresiduals"        => L3_ConjugateResidualForEquation.generateFor(entries, level)
+      case "smoother"                                        => L3_VankaAsSolverForEquation.generateFor(entries, level)
       case _                                                 => Logger.error(s"Unsupported iterative solver: ${ solver }")
     }
   }
@@ -37,7 +38,7 @@ object L3_IterativeSolverForEquation {
 
       entries.foreach(entry =>
         fctBody += L3_Assignment(resNorm,
-          L3_FieldAccess(entry.resPerLevel(level)) * L3_FieldAccess(entry.resPerLevel(level)),
+          L3_FieldFieldConvolution(L3_FieldAccess(entry.resPerLevel(level)), L3_FieldAccess(entry.resPerLevel(level))),
           "+=", None))
 
       fctBody += L3_Return(Some(L3_FunctionCall(L3_MathFunctionReference("sqrt", L3_RealDatatype), resNorm)))
@@ -53,7 +54,7 @@ object L3_IterativeSolverForEquation {
 
     object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses with temporary fields") {
       this += new Transformation("Search and replace", {
-        case access @ L3_FieldAccess(field, _) if entries.exists(field == _.getSolField(level)) =>
+        case access @ L3_FieldAccess(field, _, _) if entries.exists(field == _.getSolField(level)) =>
           access.target = srcMap(entries.find(field == _.getSolField(level)).get)
           access
       })

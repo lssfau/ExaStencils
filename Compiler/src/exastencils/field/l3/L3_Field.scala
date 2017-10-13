@@ -11,12 +11,19 @@ import exastencils.prettyprinting.PpStream
 
 /// L3_Field
 
+object L3_Field {
+  def apply(name : String, level : Int, domain : L3_Domain, datatype : L3_Datatype, localization : L3_Localization,
+      initial : Option[L3_Expression], boundary : L3_BoundaryCondition) =
+    new L3_Field(name, level, domain, datatype, localization, 1, initial, boundary)
+}
+
 case class L3_Field(
     var name : String,
     var level : Int,
     var domain : L3_Domain,
     var datatype : L3_Datatype,
     var localization : L3_Localization,
+    var numSlots : Int,
     var initial : Option[L3_Expression],
     var boundary : L3_BoundaryCondition) extends L3_LeveledKnowledgeObject[L4_Field] {
 
@@ -43,7 +50,7 @@ case class L3_Field(
       -1, // index is to be set later
       domain.getProgressedObj(),
       L4_FieldLayoutCollection.getByIdentifier(fieldLayoutName, level).get, // l3 field layout is not available -> grab l4 layout directly
-      1, // one slot by default - may be increased later
+      numSlots,
       boundary.progress)
   }
 }

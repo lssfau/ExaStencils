@@ -8,6 +8,7 @@ import scala.util.parsing.input._
 import exastencils.base.l3._
 import exastencils.baseExt.l3._
 import exastencils.boundary.l3._
+import exastencils.domain.l3.L3_DomainFromAABBDecl
 import exastencils.field.l3._
 import exastencils.operator.l3._
 import exastencils.parsers._
@@ -50,6 +51,7 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val program = (
     import_
+      ||| domainDeclaration
       ||| fieldDeclaration
       ||| overrideFieldInformation
       ||| stencilDeclaration
@@ -362,6 +364,17 @@ object L3_Parser extends ExaParser with PackratParsers {
     )
 
   // #############################################################################
+  // ################################### DOMAIN ##################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L3_DomainDecl
+  // ######################################
+
+  lazy val domainDeclaration = locationize(("Domain" ~> ident) ~ ("<" ~> expressionIndex <~ "to") ~ (expressionIndex <~ ">")
+    ^^ { case id ~ l ~ u => L3_DomainFromAABBDecl(id, l, u) })
+
+  // #############################################################################
   // #################################### FIELD ##################################
   // #############################################################################
 
@@ -440,6 +453,18 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val solverForEqConfig = (ident <~ "=") ~ literal ^^ { case param ~ value => (param, value) }
   lazy val solverForEqConfigs = solverForEqConfig.*
   lazy val solverForEqEntry = locationize((ident <~ "in") ~ ident ^^ { case sol ~ equation => L3_SolverForEqEntry(sol, equation) })
-  lazy val solverForEq = locationize((("generate" ~ "solver" ~ "for") ~> (solverForEqEntry <~ "and").* ~ solverForEqEntry ~ (("with" ~ "{") ~> solverForEqConfigs <~ "}").?)
-    ^^ { case entries ~ tail ~ options => L3_SolverForEquation(entries :+ tail, options.getOrElse(List())) })
+  lazy val solverForEq = locationize(("generate" ~ "solver" ~ "for") ~> (solverForEqEntry <~ "and").* ~ solverForEqEntry
+    ~ (("with" ~ "{") ~> solverForEqConfigs <~ "}").?
+    ~ (("modifiers" ~ "{") ~> solverModification.* <~ "}").?
+    ^^ { case entries ~ tail ~ options ~ modifiers =>
+    L3_SolverForEquation(entries :+ tail, options.getOrElse(List()), modifiers.getOrElse(List()))
+  })
+
+  /// L3_SolverModification
+
+  lazy val solverModification = (locationize(
+    (("append" <~ "to") | ("prepend" <~ "to") | "replace") ~ stringLit ~ levelDecl.? ~ ("{" ~> statement.* <~ "}")
+      ^^ { case modification ~ target ~ levels ~ statements => L3_SolverModificationForStage(modification, target, statements, levels) })
+    ||| locationize("replace" ~ stringLit ~ levelDecl.? ~ ("with" ~> genericAccess)
+    ^^ { case modification ~ target ~ levels ~ access => L3_SolverModificationForObject(modification, target, access, levels) }))
 }

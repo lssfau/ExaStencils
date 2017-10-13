@@ -75,10 +75,10 @@ object L3_ConjugateGradientForEquation extends L3_IterativeSolverForEquation {
     def alpha = L3_PlainVariableAccess("gen_alpha", L3_RealDatatype, false)
     def beta = L3_PlainVariableAccess("gen_beta", L3_RealDatatype, false)
 
-    entries.foreach(entry => {
-      loopStmts += L3_VariableDeclaration(alphaNom(entry), L3_FieldAccess(entry.resPerLevel(level)) * L3_FieldAccess(entry.resPerLevel(level)))
-      loopStmts += L3_VariableDeclaration(alphaDenom(entry), L3_FieldAccess(tmp0(entry)) * L3_FieldAccess(tmp1(entry)))
-    })
+    entries.foreach(entry => loopStmts += L3_VariableDeclaration(alphaNom(entry),
+      L3_FieldFieldConvolution(L3_FieldAccess(entry.resPerLevel(level)), L3_FieldAccess(entry.resPerLevel(level)))))
+    entries.foreach(entry => loopStmts += L3_VariableDeclaration(alphaDenom(entry),
+      L3_FieldFieldConvolution(L3_FieldAccess(tmp0(entry)), L3_FieldAccess(tmp1(entry)))))
 
     loopStmts += L3_VariableDeclaration(alpha,
       entries.map(alphaNom(_) : L3_Expression).reduce(_ + _) / entries.map(alphaDenom(_) : L3_Expression).reduce(_ + _))

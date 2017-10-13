@@ -2,6 +2,7 @@ package exastencils.baseExt.ir
 
 import exastencils.base.ir._
 import exastencils.datastructures.DefaultStrategy
+import exastencils.datastructures.Node
 import exastencils.datastructures.Transformation
 import exastencils.globals.ir.IR_GlobalCollection
 import exastencils.prettyprinting.PpStream
@@ -74,11 +75,17 @@ case class IR_MatrixDatatype(var datatype : IR_Datatype, var sizeM : Int, var si
   override def typicalByteSize = sizeM * sizeN * datatype.typicalByteSize
 
   override def aliasFor = datatype.prettyprint + '[' + this.resolveFlattendSize + ']'
+  def transposed = IR_MatrixDatatype(datatype, sizeN, sizeM)
 }
 
 object IR_HACK_TypeAliases extends DefaultStrategy("Register type aliases") {
   // FIXME remove this hack for a better data layout
-  val global = IR_GlobalCollection.get
+  var global : IR_GlobalCollection = null
+
+  override def apply(applyAtNode : Option[Node]) = {
+    global = IR_GlobalCollection.get
+    super.apply(applyAtNode)
+  }
 
   this += new Transformation("do", {
     case t : IR_HasTypeAlias => global.registerTypeAlias(t.asInstanceOf[IR_Datatype], t.aliasFor); t

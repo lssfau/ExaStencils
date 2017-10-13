@@ -4,6 +4,17 @@ import exastencils.config._
 import exastencils.logger.Logger
 
 object JobScriptGenerator {
+  def resolveUserMail() : String = {
+    Settings.user.toLowerCase() match {
+      case "sebastian" | "kuckuk" | "sebastiankuckuk"              => "sebastian.kuckuk@fau.de"
+      case "christian" | "schmitt" | "christianschmitt"            => "christian.schmitt@cs.fau.de"
+      case "stefan" | "kronawitter" | "stefankronawitter"          => "kronast@fim.uni-passau.de"
+      case "alex" | "alexander" | "grebhahn" | "alexandergrebhahn" => "grebhahn@fim.uni-passau.de"
+      case "hannah" | "rittich" | "hannahrittich"                  => "rittich@math.uni-wuppertal.de"
+      case _                                                       => "" // no user -> no notifications
+    }
+  }
+
   def write() : Unit = {
     Platform.targetName.toLowerCase() match {
       case "piz_daint" | "pizdaint" =>
@@ -59,6 +70,78 @@ object JobScriptGenerator {
 
         printer.finish()
 
+      case "tsubame" | "tsubame3" =>
+        val filename = "run"
+
+        Logger.dbg(s"Generating job script for Tsubame with filename $filename")
+        val printer = PrettyprintingManager.getPrinter(filename)
+
+        def numMPI = Knowledge.mpi_numThreads
+        def numOMP = Knowledge.omp_numThreads
+        def tasksPerNode = Knowledge.mpi_numThreads / Platform.hw_numNodes
+
+        printer <<< s"#!/bin/sh"
+
+        // use current work directory to ensure correct location of output files
+        printer <<< s"#$$-cwd"
+        printer <<< s"#$$ -l f_node=${ Platform.hw_numNodes }"
+        printer <<< s"#$$ -l h_rt=0:02:30"
+        printer <<< s"#$$ -N generated_${ Settings.configName }"
+        val userMail = resolveUserMail()
+        if (userMail.nonEmpty) {
+          printer <<< s"#$$ -m abe"
+          printer <<< s"#$$ -M $userMail"
+        }
+
+        printer <<< ""
+
+        if (Knowledge.cuda_enabled) {
+          printer <<< s"## cuda path propagation"
+          printer <<< s"#$$ -v LD_LIBRARY_PATH=/apps/t3/sles12sp2/cuda/8.0/lib64"
+          printer <<< ""
+        }
+
+        // load modules
+        printer <<< s". /etc/profile.d/modules.sh"
+
+        // on this machine, mpi depends on cuda
+        if (Knowledge.cuda_enabled || Knowledge.mpi_enabled)
+          printer <<< s"module load cuda"
+
+        if ("ICC" == Platform.targetCompiler)
+          printer <<< s"module load intel"
+
+        Platform.mpi_variant.toLowerCase() match {
+          case "openmpi"                          => printer <<< s"module load openmpi"
+          case "intelmpi" | "intel-mpi" | "intel" => printer <<< s"module load intel-mpi"
+          case other                              => Logger.error(s"Unsupported mpi variant $other")
+        }
+
+        printer <<< ""
+        printer <<< s"cd ~/${ Settings.configName }"
+
+        printer <<< ""
+        printer <<< s"make -j 56"
+
+        if (Knowledge.omp_enabled)
+          printer <<< s"export OMP_NUM_THREADS=$numOMP"
+
+        if (!Knowledge.mpi_enabled)
+          printer <<< s"./exastencils"
+        else
+          Platform.mpi_variant.toLowerCase() match {
+            case "openmpi"                          => printer <<< s"mpirun -n $numMPI -npernode $tasksPerNode ./exastencils"
+            case "intelmpi" | "intel-mpi" | "intel" => printer <<< s"mpiexec.hydra -n $numMPI -ppn $tasksPerNode ./exastencils"
+            case other                              => Logger.error(s"Unsupported mpi variant $other")
+          }
+
+        printer <<< ""
+        printer <<< s"echo done"
+
+        printer <<< ""
+
+        printer.finish()
+
       case _ => write_deprecated()
     }
   }
@@ -79,16 +162,8 @@ object JobScriptGenerator {
         printer <<< "#@ error = $(job_name).$(jobid).out"
         printer <<< "#@ output = $(job_name).$(jobid).out"
         printer <<< s"#@ environment = COPY_ALL"
-        var notify_user : String = null
-        Settings.user.toLowerCase() match {
-          case "sebastian" | "kuckuk" | "sebastiankuckuk"              => notify_user = "sebastian.kuckuk@fau.de"
-          case "christian" | "schmitt" | "christianschmitt"            => notify_user = "christian.schmitt@cs.fau.de"
-          case "stefan" | "kronawitter" | "stefankronawitter"          => notify_user = "kronast@fim.uni-passau.de"
-          case "alex" | "alexander" | "grebhahn" | "alexandergrebhahn" => notify_user = "grebhahn@fim.uni-passau.de"
-          case "hannah" | "rittich" | "hannahrittich"                  => notify_user = "rittich@math.uni-wuppertal.de"
-          case _                                                       => // no user -> no notifications
-        }
-        if (notify_user != null) {
+        val notify_user : String = resolveUserMail()
+        if (notify_user.nonEmpty) {
           printer <<< s"#@ notification = always"
           printer <<< s"#@ notify_user = $notify_user"
         } else

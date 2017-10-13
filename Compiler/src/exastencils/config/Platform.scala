@@ -140,6 +140,11 @@ object Platform {
     }
   }
 
+  /// MPI
+
+  // the target mpi implementation; may currently be "OpenMPI", "IntelMPI" or "MSMPI"
+  var mpi_variant : String = "OpenMPI"
+
   /// hardware options
 
   // available resources
@@ -195,7 +200,7 @@ object Platform {
   /// resolve functions
 
   def resolveCompiler = {
-    if(!targetCompilerBinary.isEmpty) {
+    if (!targetCompilerBinary.isEmpty) {
       targetCompilerBinary
     } else {
       targetCompiler match {
@@ -205,16 +210,34 @@ object Platform {
         case "IBMXL" =>
           if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
         case "GCC"   =>
-          if ("ARM" == targetHardware)
+          if ("ARM" == targetHardware) {
             "arm-linux-gnueabihf-g++"
-          else if (Knowledge.mpi_enabled)
-            "mpicxx"
-          else
-            "g++"
+          } else if ("tsubame" == targetName.toLowerCase() || "tsubame3" == targetName.toLowerCase()) {
+            // special override for Tsubame
+            if (!Knowledge.mpi_enabled)
+              "g++"
+            else mpi_variant.toLowerCase() match {
+              case "openmpi" => "mpicxx"
+              case other     => Logger.error(s"Unsupported mpi variant $other")
+            }
+          } else {
+            if (Knowledge.mpi_enabled) "mpicxx" else "g++"
+          }
         case "MSVC"  =>
           "" // nothing to do
         case "ICC"   =>
-          if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
+          if ("tsubame" == targetName.toLowerCase() || "tsubame3" == targetName.toLowerCase()) {
+            // special override for Tsubame
+            if (!Knowledge.mpi_enabled)
+              "icpc"
+            else mpi_variant.toLowerCase() match {
+              case "openmpi"                          => "mpicxx"
+              case "intelmpi" | "intel-mpi" | "intel" => "mpiicpc"
+              case other                              => Logger.error(s"Unsupported mpi variant $other")
+            }
+          } else {
+            if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
+          }
         case "CLANG" =>
           "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
         case "Cray"  =>

@@ -89,7 +89,9 @@ object L2_PrepareVirtualFieldDeclarations extends DefaultStrategy("Prepare knowl
 
 object L2_ProcessVirtualFieldDeclarations extends DefaultStrategy("Integrate L2 virtual field declarations with knowledge") {
   override def apply(applyAtNode : Option[Node] = None) = {
-    L2_DefaultVirtualFields.assemble().foreach(L2_VirtualFieldCollection.add)
+    L2_DefaultVirtualFields.assemble().foreach(vf =>
+      if (!L2_VirtualFieldCollection.exists(vf.name, vf.level))
+        L2_VirtualFieldCollection.add(vf))
 
     super.apply(applyAtNode)
   }

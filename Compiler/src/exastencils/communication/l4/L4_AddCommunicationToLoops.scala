@@ -28,7 +28,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
 
       for (field <- fieldsToConsider.sortBy(f => f.field.name + f.field.level + f.slot)) {
         var targets = ListBuffer[L4_CommunicateTarget]()
-        targets += L4_CommunicateTarget("ghost", None, None) // FIXME: Some(L4_ConstIndex(collector.readExtentMax(field).map(math.max(_, 0)))))
+        targets += L4_CommunicateTarget("all", None, None) // FIXME: Some(L4_ConstIndex(collector.readExtentMax(field).map(math.max(_, 0)))))
         commStatements += L4_Communicate(
           L4_FieldAccess(field.field, field.slot),
           "both",
@@ -62,6 +62,7 @@ object L4_AddCommunicationToLoops extends DefaultStrategy("Add communication sta
   object L4_CollectCommInformation extends QuietDefaultStrategy("Collect information relevant for adding communication statements") {
     val collector = new L4_FieldAccessRangeCollector()
     register(collector)
+    this.onBefore = () => this.resetCollectors()
 
     override def apply(node : Option[Node] = None) = {
       super.apply(node)

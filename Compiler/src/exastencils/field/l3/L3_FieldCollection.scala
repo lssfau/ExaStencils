@@ -59,7 +59,7 @@ object L3_FieldCollection extends L3_LeveledKnowledgeCollection[L3_Field, L4_Fie
   def addInitFieldsFunction() = {
     val initStmts = ListBuffer[L3_Statement]()
     for (field <- objects)
-      if (field.initial.isDefined)
+      if (field.initial.isDefined) // TODO: honor slots
         initStmts += L3_Assignment(L3_FieldAccess(field), field.initial.get)
     val fct = L3_PlainFunction("InitFields", L3_UnitDatatype, ListBuffer(), initStmts)
     ExaRootNode.l3_root.nodes += fct

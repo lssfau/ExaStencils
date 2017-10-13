@@ -16,6 +16,7 @@ import exastencils.util.ir._
 object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in operations between two grid levels") {
   val collector = new IR_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   // TODO: checking for being inside a valid level scope is currently required for setting up geometric information of grids with varying cell sizes
   // TODO: think about if this case (access outside of a loop) should be supported

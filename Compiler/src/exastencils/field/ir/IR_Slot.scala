@@ -47,6 +47,7 @@ case class IR_AdvanceSlot(var slot : IR_IV_ActiveSlot) extends IR_Statement with
 object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations") {
   var collector = new IR_StackCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve", {
     case slotAccess : IR_SlotAccess => slotAccess.expandSpecial()

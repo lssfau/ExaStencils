@@ -58,8 +58,6 @@ object L4_BinaryOperators extends Enumeration {
     case Power_Alt      => L4_Power(left, right)
     case Modulo         => L4_Modulo(left, right)
 
-    case ElementwiseAddition       => L4_ElementwiseAddition(left, right)
-    case ElementwiseSubtraction    => L4_ElementwiseSubtraction(left, right)
     case ElementwiseMultiplication => L4_ElementwiseMultiplication(left, right)
     case ElementwiseDivision       => L4_ElementwiseDivision(left, right)
     case ElementwisePower          => L4_ElementwisePower(left, right)
@@ -133,18 +131,6 @@ case class L4_Power(var left : L4_Expression, var right : L4_Expression) extends
 }
 
 /// element-wise arithmetic operations
-
-case class L4_ElementwiseAddition(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
-  import L4_BinaryOperators._
-  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .+ " << right << beforeClosingBracket << ')'
-  override def progress = IR_ElementwiseAddition(left.progress, right.progress)
-}
-
-case class L4_ElementwiseSubtraction(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
-  import L4_BinaryOperators._
-  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .+ " << right << beforeClosingBracket << ')'
-  override def progress = IR_ElementwiseSubtraction(left.progress, right.progress)
-}
 
 case class L4_ElementwiseMultiplication(var left : L4_Expression, var right : L4_Expression) extends L4_Expression {
   import L4_BinaryOperators._
@@ -230,7 +216,6 @@ object L4_Minimum {
 }
 
 case class L4_Minimum(var args : ListBuffer[L4_Expression]) extends L4_Expression {
-  import L4_BinaryOperators._
   override def prettyprint(out : PpStream) = out << "min ( " <<< (args, ", ") << " )"
   override def progress = IR_Minimum(args.map(_.progress))
 }
@@ -240,7 +225,6 @@ object L4_Maximum {
 }
 
 case class L4_Maximum(var args : ListBuffer[L4_Expression]) extends L4_Expression {
-  import L4_BinaryOperators._
   override def prettyprint(out : PpStream) = out << "max ( " <<< (args, ", ") << " )"
   override def progress = IR_Maximum(args.map(_.progress))
 }

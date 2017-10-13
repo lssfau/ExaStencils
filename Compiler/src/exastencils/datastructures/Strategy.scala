@@ -61,11 +61,14 @@ object StrategyTimer {
 /**
   * A Strategy encapsulates [[exastencils.datastructures.Transformation]]s to be applied to the program state.
   *
-  * @param name name The name of the Strategy. Used for traceability and debugging purposes.
+  * @param name Name of the Strategy. Used for traceability and debugging purposes.
   */
 abstract class Strategy(val name : String) {
   protected var token : Option[StateManager.TokenType] = None
   private var collectors = ListBuffer[Collector]()
+
+  var onBefore : () => Unit = () => {}
+  var onAfter : () => Unit = () => {}
 
   /** Opens a new Transaction with StateManager. */
   protected def transaction() : Unit = {
@@ -89,7 +92,7 @@ abstract class Strategy(val name : String) {
     *
     * @param collector The [[exastencils.core.collectors.Collector]] to be added.
     */
-  def register(collector : Collector) = { collectors += collector }
+  def register(collector : Collector) = { if (!collectors.contains(collector)) collectors += collector }
 
   /**
     * Notifies the [[exastencils.core.collectors.Collector]]s that a [[exastencils.datastructures.Node]] has been entered.

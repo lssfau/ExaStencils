@@ -28,6 +28,7 @@ object IR_RemoveDupSIMDLoads extends CustomStrategy("Remove duplicate SIMD loads
 
     val annotate = new Analyze()
     this.register(annotate)
+    this.onBefore = () => this.resetCollectors()
     this.execute(new Transformation("analyze", PartialFunction.empty, isParallel = true))
     this.unregister(annotate)
 

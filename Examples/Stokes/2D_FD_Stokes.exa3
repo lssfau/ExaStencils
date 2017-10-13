@@ -1,0 +1,11 @@
+
+generate solver for u in uEquation and v in vEquation and p in pEquation with {
+  solver_smoother_jacobiType    = false
+  solver_smoother_numPre        = 4
+  solver_smoother_numPost       = 4
+  solver_smoother_damping       = 0.8
+  solver_smoother_coloring      = "9-way"
+  solver_cgs                    = "BiCGStab" // "red-black"
+  solver_cgs_maxNumIts          = 128
+  solver_cgs_targetResReduction = 1e-3
+}

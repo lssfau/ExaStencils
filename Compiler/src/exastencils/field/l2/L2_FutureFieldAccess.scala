@@ -3,6 +3,7 @@ package exastencils.field.l2
 import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_UnresolvedAccess
 import exastencils.datastructures._
+import exastencils.field.l3.L3_ActiveSlot
 import exastencils.field.l3.L3_FutureFieldAccess
 import exastencils.knowledge.l2.L2_FutureKnowledgeAccess
 import exastencils.logger.Logger
@@ -24,6 +25,7 @@ case class L2_FutureFieldAccess(
   def progress = {
     Logger.warn(s"Trying to progress future field access to $name on level $level")
     L3_FutureFieldAccess(name, level,
+      L3_ActiveSlot,
       L2_ProgressOption(offset)(_.progress))
   }
 
@@ -35,6 +37,7 @@ case class L2_FutureFieldAccess(
 object L2_PrepareFieldAccesses extends DefaultStrategy("Prepare accesses to fields") {
   val collector = new L2_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L2_UnresolvedAccess if L2_FieldCollection.existsDecl(access.name) =>

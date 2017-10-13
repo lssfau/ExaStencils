@@ -25,6 +25,7 @@ case class L4_FutureFieldLayoutAccess(var name : String, var level : Int) extend
 object L4_PrepareFieldLayoutAccesses extends DefaultStrategy("Prepare accesses to field layouts") {
   val collector = new L4_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L4_UnresolvedAccess if L4_FieldLayoutCollection.existsDecl(access.name) =>

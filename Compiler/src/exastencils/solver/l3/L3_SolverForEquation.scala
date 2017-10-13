@@ -12,7 +12,6 @@ import exastencils.config.Knowledge
 import exastencils.core._
 import exastencils.datastructures._
 import exastencils.field.l3._
-import exastencils.grid.l3.L3_Localization
 import exastencils.logger.Logger
 import exastencils.operator.l3._
 import exastencils.optimization.l3.L3_GeneralSimplifyWrapper
@@ -21,16 +20,20 @@ import exastencils.prettyprinting.PpStream
 /// L3_SolverForEquation
 
 object L3_SolverForEquation {
-  def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)]) = {
+  def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)], modifications : List[L3_SolverModification]) = {
     val newOptions = HashMap[String, Any]()
     options.foreach(newOptions += _)
-    new L3_SolverForEquation(entries.to[ListBuffer], newOptions)
+    new L3_SolverForEquation(entries.to[ListBuffer], newOptions, modifications.to[ListBuffer])
   }
 }
 
 case class L3_SolverForEquation(
     var entries : ListBuffer[L3_SolverForEqEntry],
-    var options : HashMap[String, Any]) extends L3_Statement {
+    var options : HashMap[String, Any],
+    var modifications : ListBuffer[L3_SolverModification]) extends L3_Statement {
+
+  var processed = false
+  var replaceDone = false
 
   def printAnyVal(v : Any) = {
     v match {
@@ -49,19 +52,16 @@ case class L3_SolverForEquation(
       options.foreach(o => out << o._1 << " = " << printAnyVal(o._2) << "\n")
       out << "}"
     }
+    if (modifications.nonEmpty) {
+      out << " modifiers {\n" <<< (modifications, "\n") << "}"
+    }
   }
 
   override def progress : L4_Statement = ???
 
-  def generate() = {
-    updateKnowledge()
+  def prepare() = {
+    // handle options
 
-    generateFields()
-    genOperators()
-    generateFunctions()
-  }
-
-  def updateKnowledge() = {
     for ((option, value) <- options) {
       try {
         UniversalSetter(Knowledge, option, value)
@@ -70,9 +70,44 @@ case class L3_SolverForEquation(
         case _ : java.lang.IllegalArgumentException => Logger.error(s"Trying to set parameter Knowledge.${ option } to ${ value } but data types are incompatible")
       }
     }
+
+    // declare knowledge objects
+    declareFields()
+    declareOperators()
   }
 
-  def genOperators() = {
+  def process() = {
+    generateFields()
+    generateOperators()
+
+    processed = true
+  }
+
+  def getModificationsFor(target : String, level : Int) = {
+    modifications.filter(_.isInstanceOf[L3_SolverModificationForStage]).map(_.asInstanceOf[L3_SolverModificationForStage]).filter(
+      m => target == m.target && (m.levels match {
+        case Some(L3_SingleLevel(`level`)) => true
+        case _                             => false
+      })
+    )
+  }
+
+  def extractStmtsFromMods(modification : String, mods : ListBuffer[L3_SolverModificationForStage]) = {
+    val ret = mods.filter(modification == _.modification).flatMap(_.statements)
+    ret
+  }
+
+  def declareOperators() = {
+    for (level <- Knowledge.levels) {
+      for (entry <- entries) {
+        L3_StencilCollection.addDeclared(s"gen_restrictionForRes_${ entry.solName }", level)
+        L3_StencilCollection.addDeclared(s"gen_restrictionForSol_${ entry.solName }", level)
+        L3_StencilCollection.addDeclared(s"gen_prolongationForSol_${ entry.solName }", level)
+      }
+    }
+  }
+
+  def generateOperators() = {
     def defInterpolation = {
       Knowledge.discr_type.toLowerCase() match {
         case "fd" | "finitedifference" | "finitedifferences" => "linear"
@@ -82,30 +117,42 @@ case class L3_SolverForEquation(
     }
 
     for (level <- Knowledge.levels) {
-      // tuples with number of dimensions and localization
-      val localizations = Set[(Int, L3_Localization)]()
       for (entry <- entries) {
         val field = entry.getSolField(level)
-        localizations += ((field.numDimsGrid, field.localization))
-      }
 
-      for (local <- localizations) {
         // restriction for residual -> can be the value of an integral if FV are used
-        val restrictionForRes = L3_DefaultRestriction.generate(s"gen_restrictionForRes_${ local._1 }D_${ local._2.name }", level, local._1, local._2, defInterpolation)
+        val restrictionForRes = L3_DefaultRestriction.generate(s"gen_restrictionForRes_${ field.name }", level, field.numDimsGrid, field.localization, defInterpolation)
         L3_StencilCollection.add(restrictionForRes)
-        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.restrictForResPerLevel += (level -> restrictionForRes))
+        entry.restrictForResPerLevel += (level -> restrictionForRes)
 
         // restriction for solution -> always use linear
-        val restrictionForSol = L3_DefaultRestriction.generate(s"gen_restrictionForSol_${ local._1 }D_${ local._2.name }", level, local._1, local._2, "linear")
+        val restrictionForSol = L3_DefaultRestriction.generate(s"gen_restrictionForSol_${ field.name }", level, field.numDimsGrid, field.localization, "linear")
         L3_StencilCollection.add(restrictionForSol)
-        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.restrictForSolPerLevel += (level -> restrictionForSol))
+        entry.restrictForSolPerLevel += (level -> restrictionForSol)
 
         // prolongation for solution -> always use linear
-        val prolongationForSol = L3_DefaultProlongation.generate(s"gen_prolongationForSol_${ local._1 }D_${ local._2.name }", level, local._1, local._2, "linear")
+        val prolongationForSol = L3_DefaultProlongation.generate(s"gen_prolongationForSol_${ field.name }", level, field.numDimsGrid, field.localization, "linear")
         L3_StencilCollection.add(prolongationForSol)
-        entries.filter(e => e.getSolField(level).numDimsGrid == local._1 && e.getSolField(level).localization == local._2).foreach(_.prolongForSolPerLevel += (level -> prolongationForSol))
+        entry.prolongForSolPerLevel += (level -> prolongationForSol)
       }
     }
+  }
+
+  def declareFields() = {
+    entries.foreach(entry => {
+      for (level <- Knowledge.levels) {
+        // add a rhs for all levels but the finest (which was already declared on L2 by the user)
+        if (level != Knowledge.maxLevel)
+          L3_FieldCollection.addDeclared(s"gen_rhs_${ entry.solName }", level)
+
+        // add residual fields
+        L3_FieldCollection.addDeclared(s"gen_residual_${ entry.solName }", level)
+
+        // add approximations (if required) for all levels but the finest
+        if (Knowledge.solver_useFAS)
+          L3_FieldCollection.addDeclared(s"gen_approx_${ entry.solName }", level)
+      }
+    })
   }
 
   def generateFields() = {
@@ -156,10 +203,12 @@ case class L3_SolverForEquation(
       entries.transform(L3_GeneralSimplifyWrapper.process)
     }
 
+    L3_IterativeSolverForEquation.resNormFctDoneForLevels.clear()
+
     // add solve function
 
     if (true) {
-      val solveStmts = ListBuffer[L3_Statement]()
+      var solveStmts = ListBuffer[L3_Statement]()
       def level = Knowledge.maxLevel
 
       L3_IterativeSolverForEquation.generateResNormFunction(entries, level)
@@ -193,48 +242,82 @@ case class L3_SolverForEquation(
         L3_StringConstant("Residual after"), curIt, L3_StringConstant("iterations is"), curRes,
         L3_StringConstant("--- convergence factor is"), curRes / prevRes))
 
-      // TODO: error calculation
-
       solveStmts += L3_UntilLoop(
         (curIt >= Knowledge.solver_maxNumIts) OrOr (curRes <= Knowledge.solver_targetResReduction * initRes),
         loopStmts)
+
+      // handle modifications
+      val mods = getModificationsFor("solver", level)
+
+      mods.count("replace" == _.modification) match {
+        case 0 => // nothing to do
+
+        case n =>
+          if (n > 1) Logger.warn(s"Found more than one replace modification for the same target (solver)")
+          solveStmts = extractStmtsFromMods("replace", mods)
+      }
+
+      solveStmts = extractStmtsFromMods("prepend", mods) ++ solveStmts
+      solveStmts ++= extractStmtsFromMods("append", mods)
+
+      // compose function
 
       val fct = L3_LeveledFunction(s"gen_solve", level, L3_UnitDatatype, ListBuffer(), solveStmts)
       ExaRootNode.l3_root.nodes += fct
     }
 
     for (level <- Knowledge.levels) {
-      val solverStmts = ListBuffer[L3_Statement]()
+      var solverStmts = ListBuffer[L3_Statement]()
+
+      def handleStage(name : String, defStmts : ListBuffer[L3_Statement]) = {
+        val mods = getModificationsFor(name, level)
+
+        solverStmts ++= extractStmtsFromMods("prepend", mods)
+
+        mods.count("replace" == _.modification) match {
+          case 0 => solverStmts ++= defStmts
+
+          case n =>
+            if (n > 1) Logger.warn(s"Found more than one replace modification for the same target ($name)")
+            solverStmts ++= extractStmtsFromMods("replace", mods)
+        }
+
+        solverStmts ++= extractStmtsFromMods("append", mods)
+      }
 
       if (level != Knowledge.minLevel) {
         // regular cycle
 
         // smoother
-        solverStmts ++= L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPre)
+        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPre))
 
         // update residual
-        solverStmts ++= entries.map(_.generateUpdateRes(level))
+        handleStage("updateResidual", entries.map(_.generateUpdateRes(level)))
 
         // restriction
-        solverStmts ++= generateRestriction(level)
+        handleStage("restriction", generateRestriction(level))
 
         // update solution@coarser
         if (!Knowledge.solver_useFAS)
-          solverStmts ++= entries.map(_.generateSetSolZero(level - 1))
+          handleStage("setCoarseSolution", entries.map(_.generateSetSolZero(level - 1)))
 
         // recursion
         solverStmts += L3_FunctionCall(L3_LeveledDslFunctionReference("gen_mgCycle", level - 1, L3_UnitDatatype))
 
         // correction
-        solverStmts ++= generateCorrection(level)
+        handleStage("correction", generateCorrection(level))
 
         // smoother
-        solverStmts ++= L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost)
-
+        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost))
       } else {
         // cgs
-        solverStmts ++= L3_IterativeSolverForEquation.generateIterativeSolver(Knowledge.solver_cgs, entries, level)
+        handleStage("cgs", L3_IterativeSolverForEquation.generateIterativeSolver(Knowledge.solver_cgs, entries, level))
       }
+
+      // handle whole cycle as stage
+      val cycleStmts = solverStmts
+      solverStmts = ListBuffer()
+      handleStage("cycle", cycleStmts)
 
       val fct = L3_LeveledFunction(s"gen_mgCycle", level, L3_UnitDatatype, ListBuffer(), solverStmts)
       ExaRootNode.l3_root.nodes += fct
@@ -260,7 +343,7 @@ case class L3_SolverForEquation(
         val opApplication = Duplicate(L3_ExpressionStatement(entry.getEq(level - 1).lhs))
         object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses with approximation variants") {
           this += new Transformation("Search and replace", {
-            case access @ L3_FieldAccess(field, _) if entries.exists(field == _.getSolField(level - 1)) =>
+            case access @ L3_FieldAccess(field, _, _) if entries.exists(field == _.getSolField(level - 1)) =>
               access.target = entries.find(field == _.getSolField(level - 1)).get.getSolField(level - 1) // FIXME: approxPerLevel(level - 1)
               access
           })
@@ -298,42 +381,96 @@ case class L3_SolverForEquation(
 
     stmts
   }
+
+  def replaceObjects() = {
+    val mods = modifications.filter(_.isInstanceOf[L3_SolverModificationForObject]).map(_.asInstanceOf[L3_SolverModificationForObject])
+
+    mods.foreach(mod => {
+      val targetName = mod.target
+      val lvl = mod.levels.get.asInstanceOf[L3_SingleLevel].level
+
+      if (L3_FieldCollection.exists(targetName, lvl)) {
+        // get field to be replaced
+        val toReplace = L3_FieldCollection.getByIdentifier(targetName, lvl).get
+        val replacement = mod.access.asInstanceOf[L3_FieldAccess].target
+
+        // replace accesses to field
+        object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of field accesses") {
+          this += new Transformation("Search and replace", {
+            case access @ L3_FieldAccess(`toReplace`, _, _) =>
+              access.target = replacement
+              access
+          })
+        }
+        L3_ReplaceAccesses.applyStandalone(ExaRootNode.l3_root)
+
+        // replace in entries
+        entries.foreach(e =>
+          List(e.rhsPerLevel, e.resPerLevel, e.approxPerLevel).foreach(coll =>
+            if (coll.contains(lvl) && coll(lvl) == toReplace) coll(lvl) = replacement))
+
+        // remove replaced object from collection
+        L3_FieldCollection.objects -= toReplace
+        L3_FieldCollection.declared -= L3_FieldCollection.NameAndLevel(targetName, lvl)
+      } else if (L3_StencilCollection.exists(targetName, lvl)) {
+        // get stencil to be replaced
+        val toReplace = L3_StencilCollection.getByIdentifier(targetName, lvl).get
+        val replacement = mod.access.asInstanceOf[L3_StencilAccess].target
+
+        // replace accesses to stencil
+        object L3_ReplaceAccesses extends QuietDefaultStrategy("Local replace of stencil accesses") {
+          this += new Transformation("Search and replace", {
+            case access @ L3_StencilAccess(`toReplace`, _, _) =>
+              access.target = replacement
+              access
+          })
+        }
+        L3_ReplaceAccesses.applyStandalone(ExaRootNode.l3_root)
+
+        // replace in entries
+        entries.foreach(e =>
+          List(e.restrictForResPerLevel, e.restrictForSolPerLevel, e.prolongForSolPerLevel).foreach(coll =>
+            if (coll.contains(lvl) && coll(lvl) == toReplace) coll(lvl) = replacement))
+
+        // remove replaced object from collection
+        L3_StencilCollection.objects -= toReplace
+        L3_StencilCollection.declared -= L3_StencilCollection.NameAndLevel(targetName, lvl)
+      } else {
+        Logger.warn(s"Could not locate object $targetName on level $lvl")
+      }
+    })
+
+    replaceDone = true
+  }
 }
 
-/// L3_SolverForEqEntry
+/// L3_PrepareSolverForEquations
 
-case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Node {
-  var rhsPerLevel = HashMap[Int, L3_Field]()
-  var resPerLevel = HashMap[Int, L3_Field]()
-  var approxPerLevel = HashMap[Int, L3_Field]()
+object L3_PrepareSolverForEquations extends DefaultStrategy("Update knowledge with information from solver for equation nodes and prepare declarations") {
+  this += new Transformation("Process", {
+    // check if declaration has already been processed and promote access if possible
+    case solver : L3_SolverForEquation =>
+      solver.prepare()
+      solver // keep for later
+  })
+}
 
-  var restrictForResPerLevel = HashMap[Int, L3_Stencil]()
-  var restrictForSolPerLevel = HashMap[Int, L3_Stencil]()
-  var prolongForSolPerLevel = HashMap[Int, L3_Stencil]()
+/// L3_ProcessSolverForEquations
 
-  var localEqPerLevel = HashMap[Int, L3_Equation]()
+object L3_ProcessSolverForEquations extends DefaultStrategy("Update knowledge with information from solver for equation nodes") {
+  this += new Transformation("Process", {
+    // check if declaration has already been processed and promote access if possible
+    case solver : L3_SolverForEquation if !solver.processed && Knowledge.levels.flatMap(lvl => solver.entries.map(e => L3_FieldCollection.exists(e.solName, lvl))).reduce(_ && _) =>
+      solver.process()
+      solver // keep for later
+  })
 
-  def getSolField(level : Int) = L3_FieldCollection.getByIdentifier(solName, level).get
-  def getEq(level : Int) = {
-    if (!localEqPerLevel.contains(level))
-      localEqPerLevel += (level -> Duplicate(L3_EquationCollection.getByIdentifier(eqName, level).get.equation))
-    localEqPerLevel(level)
-  }
-
-  def prepEqForMG(level : Int) = {
-    getEq(level).rhs += L3_FieldAccess(rhsPerLevel(level))
-  }
-
-  def generateUpdateRes(level : Int) : L3_Statement = {
-    // Residual = RHS - LHS
-    L3_Assignment(L3_FieldAccess(resPerLevel(level)),
-      Duplicate(getEq(level).rhs - getEq(level).lhs))
-  }
-
-  def generateSetSolZero(level : Int) : L3_Statement = {
-    // Solution = 0
-    L3_Assignment(L3_FieldAccess(getSolField(level)), 0.0)
-  }
+  this += new Transformation("Replace", {
+    // check if declaration has already been processed and promote access if possible
+    case solver : L3_SolverForEquation if !solver.replaceDone && L3_MayBlockResolution.isDone(solver) =>
+      solver.replaceObjects()
+      solver // keep for later
+  })
 }
 
 /// L3_ResolveSolverForEquations
@@ -342,7 +479,7 @@ object L3_ResolveSolverForEquations extends DefaultStrategy("Resolve solver for 
   this += new Transformation("Resolve", {
     // check if declaration has already been processed and promote access if possible
     case solver : L3_SolverForEquation if L3_MayBlockResolution.isDone(solver) =>
-      solver.generate()
+      solver.generateFunctions()
       None // consume statement
   })
 }

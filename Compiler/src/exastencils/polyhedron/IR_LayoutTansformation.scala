@@ -189,6 +189,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     Logger.info("Applying strategy " + name)
 
     this.register(ColorCondCollector)
+    this.onBefore = () => this.resetCollectors()
     this.execute(new Transformation("transform", {
       case dfa : IR_DirectFieldAccess =>
         val layout = dfa.fieldSelection.fieldLayout

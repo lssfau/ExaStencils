@@ -8,7 +8,6 @@ import exastencils.core._
 import exastencils.core.logger.Logger_HTML
 import exastencils.datastructures._
 import exastencils.logger._
-import exastencils.parsers.InputReader
 import exastencils.parsers.config._
 import exastencils.prettyprinting._
 import exastencils.util._
@@ -24,31 +23,15 @@ object Main {
     val settingsParser = new Settings_Parser()
     val knowledgeParser = new Knowledge_Parser()
     val platformParser = new Platform_Parser()
-    if (args.length == 1 && args(0) == "--json-stdin") {
-      InputReader.read()
-      settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
-      knowledgeParser.parse(InputReader.knowledge)
-      platformParser.parse(InputReader.platform)
-      Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
-    } else if (args.length == 2 && args(0) == "--json-file") {
-      InputReader.read(args(1))
-      settingsParser.parse(InputReader.settings)
-      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
-      knowledgeParser.parse(InputReader.knowledge)
-      platformParser.parse(InputReader.platform)
-      Knowledge.l3tmp_generateL4 = false // No Layer4 generation with input via JSON
-    } else {
-      if (args.length >= 1)
-        settingsParser.parseFile(args(0))
-      if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
-      if (args.length >= 2)
-        knowledgeParser.parseFile(args(1))
-      if (args.length >= 3)
-        platformParser.parseFile(args(2))
-      if (args.length >= 4)
-        IR_DefaultLayerHandler.polyOptExplID = args(3).toInt
-    }
+    if (args.length >= 1)
+      settingsParser.parseFile(args(0))
+    if (Settings.produceHtmlLog) Logger_HTML.init() // allows emitting errors and warning in knowledge and platform parsers
+    if (args.length >= 2)
+      knowledgeParser.parseFile(args(1))
+    if (args.length >= 3)
+      platformParser.parseFile(args(2))
+    if (args.length >= 4)
+      IR_DefaultLayerHandler.polyOptExplID = args(3).toInt
 
     // validate knowledge, etc.
     Knowledge.update()
@@ -57,6 +40,9 @@ object Main {
 
     // resolve aliases in knowledge, settings and platform
     ResolveAlias.apply()
+
+    // begin writing log to file after potential alias resolution in filename
+    if (Settings.produceHtmlLog) Logger_HTML.beginFileWrite()
 
     if (Settings.cancelIfOutFolderExists) {
       if (new java.io.File(Settings.getOutputPath).exists()) {

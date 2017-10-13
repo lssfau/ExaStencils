@@ -72,11 +72,6 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
 
-  //###########################################################
-
-  lazy val identifierWithOptDeclLevel = locationize(ident ~ levelDecl.?
-    ^^ { case id ~ level => if (level.isDefined) L4_LeveledIdentifier(id, level.get) else L4_BasicIdentifier(id) })
-
   // ######################################
   // ##### Level Specifications
   // ######################################
@@ -369,7 +364,7 @@ object L4_Parser extends ExaParser with PackratParsers {
   // ######################################
 
   lazy val binaryexpression : PackratParser[L4_Expression] = (
-    locationize((binaryexpression ~ ("+" ||| "-" ||| ".+" ||| ".-") ~ term) ^^ { case lhs ~ op ~ rhs => L4_BinaryOperators.createExpression(op, lhs, rhs) })
+    locationize((binaryexpression ~ ("+" ||| "-") ~ term) ^^ { case lhs ~ op ~ rhs => L4_BinaryOperators.createExpression(op, lhs, rhs) })
       ||| term)
 
   lazy val term : PackratParser[L4_Expression] = (
@@ -388,21 +383,24 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| matrixExpression
       ||| locationize("-" ~> matrixExpression ^^ { L4_Negative(_) })
       ||| locationize(stringLit ^^ (s => L4_StringConstant(s)))
-      ||| locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L4_IntegerConstant((s.getOrElse("") + n).toInt) else L4_RealConstant((s.getOrElse("") + n).toDouble) })
+      ||| fieldIteratorAccess
+      ||| locationize(booleanLit ^^ (s => L4_BooleanConstant(s)))
+      ||| numLit
       ||| locationize("-" ~> functionCall ^^ { L4_Negative(_) })
       ||| functionCall
       ||| locationize("-" ~> genericAccess ^^ { L4_Negative(_) })
       ||| genericAccess
-      ||| fieldIteratorAccess
-      ||| locationize(booleanLit ^^ (s => L4_BooleanConstant(s))))
+    )
 
-  lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").+ ~ (binaryexpression <~ "}") ^^ { case x ~ y => L4_VectorExpression(None, x :+ y, true) }
+  lazy val numLit = locationize("-".? ~ numericLit ^^ { case s ~ n => if (isInt(s.getOrElse("") + n)) L4_IntegerConstant((s.getOrElse("") + n).toInt) else L4_RealConstant((s.getOrElse("") + n).toDouble) })
+
+  lazy val rowVectorExpression = locationize("{" ~> (binaryexpression <~ ",").* ~ (binaryexpression <~ "}") ^^ { case x ~ y => L4_VectorExpression(None, x :+ y, true) }
     ||| "[" ~> binaryexpression.+ <~ "]" ^^ { case x => L4_VectorExpression(None, x, true) }) // Alternative version
 
   lazy val columnVectorExpression = locationize(rowVectorExpression <~ "T" ^^ (x => L4_VectorExpression(None, x.expressions, false)) |||
-    "[" ~> (binaryexpression <~ ";").+ ~ binaryexpression <~ "]" ^^ { case x ~ y => L4_VectorExpression(None, x :+ y, false) })
+    "[" ~> (binaryexpression <~ ";").* ~ binaryexpression <~ "]" ^^ { case x ~ y => L4_VectorExpression(None, x :+ y, false) })
 
-  lazy val matrixExpression = locationize("{" ~> (rowVectorExpression <~ ",").+ ~ (rowVectorExpression <~ "}") ^^ { case x ~ y => L4_MatrixExpression(None, (x :+ y).map(_.expressions.toList)) } |||
+  lazy val matrixExpression = locationize("{" ~> (rowVectorExpression <~ ",").* ~ (rowVectorExpression <~ "}") ~ "T".? ^^ { case x ~ y ~ t => val e = L4_MatrixExpression(None, (x :+ y).map(_.expressions.toList)); if(t.isDefined) L4_FunctionCall(L4_UnresolvedFunctionReference("transpose", None, None), e); else e } |||
     ("[" ~> (binaryexpression.+ <~ ";").+) ~ (binaryexpression.+ <~ "]") ^^ { case x ~ y => L4_MatrixExpression(None, x :+ y) })
 
   lazy val booleanexpression : PackratParser[L4_Expression] = (

@@ -19,6 +19,7 @@ import exastencils.util.ir.IR_FctNameCollector
 object CUDA_ExtractHostAndDeviceCode extends DefaultStrategy("Transform annotated CUDA loop in kernel code") {
   val collector = new IR_FctNameCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   /**
     * Collect all loops in the band.

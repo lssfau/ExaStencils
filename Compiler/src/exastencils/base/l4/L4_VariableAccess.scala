@@ -38,6 +38,8 @@ object L4_ResolveVariableAccesses extends DefaultStrategy("Resolve value and var
   val levelCollector = new L4_LevelCollector
   this.register(levelCollector)
 
+  this.onBefore = () => this.resetCollectors()
+
   this += new Transformation("Resolve", {
     case access : L4_UnresolvedAccess if declCollector.exists(access.name) =>
       // check for level in access and decl

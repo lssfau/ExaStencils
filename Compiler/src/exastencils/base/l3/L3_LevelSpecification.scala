@@ -100,6 +100,7 @@ object L3_ResolveLevelSpecifications extends DefaultStrategy("Resolve level spec
 object L3_ResolveRelativeLevels extends DefaultStrategy("Resolve relative level specifications") {
   val collector = new L3_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   def getLevel() : Int = {
     if (collector.inLevelScope)

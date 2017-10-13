@@ -21,7 +21,7 @@ import exastencils.util.l3.L3_ResolveMathFunctions
 
 trait L3_LayerHandler extends LayerHandler
 
-/// L3_DummyLayerHandler 
+/// L3_DummyLayerHandler
 
 object L3_DummyLayerHandler extends L3_LayerHandler {
   def initialize() : Unit = {}
@@ -77,10 +77,12 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
 
       L3_UnfoldKnowledgeDeclarations.apply()
       L3_UnfoldLeveledVariableDeclarations.apply()
+      L3_UnfoldSolverModifications.apply()
 
       // resolve current, etc.
       L3_ResolveRelativeLevels.apply()
 
+      L3_PrepareSolverForEquations.apply()
       L3_PrepareDeclarations.apply()
 
       L3_PrepareAccesses.apply()
@@ -97,6 +99,10 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       do {
         matches = 0
         matches += L3_ProcessDeclarations.applyAndCountMatches()
+
+        L3_ProcessSolverForEquations.apply()
+        matches += (if (L3_ProcessSolverForEquations.results.isEmpty) 0 else L3_ProcessSolverForEquations.results.last._2.matches)
+
         matches += L3_ResolveAccesses.applyAndCountMatches()
 
         if (Knowledge.experimental_l3_resolveVirtualFields) {
@@ -116,6 +122,8 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
 
       L3_ResolveFieldFieldConvolutions.apply()
       L3_ResolveOperatorTimesField.apply()
+
+      L3_IntroduceSlots.apply()
 
       L3_FieldCollection.addInitFieldsFunction()
     }

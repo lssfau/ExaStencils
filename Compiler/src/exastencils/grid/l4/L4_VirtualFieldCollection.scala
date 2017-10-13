@@ -14,10 +14,8 @@ object L4_VirtualFieldCollection extends L4_LeveledKnowledgeCollection[L4_Virtua
 
   L4_KnowledgeContainer.register(this)
 
-  if (true /* TODO: when? */ ) {
-    L4_PrepareDeclarations.strategies += L4_PrepareVirtualFieldDeclarations
-    L4_ProcessDeclarations.strategies += L4_ProcessVirtualFieldDeclarations
-  }
+  L4_PrepareDeclarations.strategies += L4_PrepareVirtualFieldDeclarations
+  L4_ProcessDeclarations.strategies += L4_ProcessVirtualFieldDeclarations
 
   L4_PrepareAccesses.strategies += L4_PrepareVirtualFieldAccesses
   L4_ResolveAccesses.strategies += L4_ResolveVirtualFieldAccesses

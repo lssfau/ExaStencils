@@ -30,22 +30,15 @@ case class IR_VariableDeclaration(var datatype : IR_Datatype, var name : String,
           out << ")"
         }
 
-      case x : IR_MatrixDatatype =>
-        if (exastencils.config.Knowledge.experimental_internalHighDimTypes) {
-//          x.datatype.prettyprint(out)
-//          out << ' ' << name << '[' << x.sizeM << ']' << '[' << x.sizeN << ']'
-          out << x << ' ' << name
-        } else {
-          out << x << ' ' << name
-          if (initialValue.isDefined) {
-            out << "("
-            initialValue.get match {
-              case init : IR_MatrixExpression => init.prettyprintInner(out)
-              case sthElse                    => out << sthElse
-            }
-            out << ")"
-          }
+      case x : IR_MatrixDatatype => if (exastencils.config.Knowledge.experimental_internalHighDimTypes) {
+        x.prettyprint(out)
+        out << ' ' << name
+        initialValue match {
+          case Some(x : IR_MatrixExpression) => out << ' '; x.prettyprintInner(out)
+          case Some(x)                       => out << " = " << x
+          case _                             =>
         }
+      }
 
       case _ =>
         if (alignment > 1 && "MSVC" == Platform.targetCompiler)

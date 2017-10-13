@@ -334,7 +334,8 @@ object L2_Parser extends ExaParser with PackratParsers {
     locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "Stencil" ~ "{") ~> stencilEntries <~ "}")
       ^^ { case id ~ levels ~ entries => L2_BaseStencilDecl(id, levels, entries) })
       ||| locationize(("Operator" ~> ident) ~ levelDecl.? ~ ("from" ~> binaryexpression)
-      ^^ { case id ~ levels ~ expr => L2_StencilFromExpression(id, levels, expr) }))
+      ^^ { case id ~ levels ~ expr => L2_StencilFromExpression(id, levels, expr) })
+      ||| stencilFromDefault)
 
   lazy val stencilEntries = (
     (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }

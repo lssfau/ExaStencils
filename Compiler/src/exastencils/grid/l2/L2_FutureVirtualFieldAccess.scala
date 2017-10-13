@@ -33,6 +33,7 @@ case class L2_FutureVirtualFieldAccess(
 object L2_PrepareVirtualFieldAccesses extends DefaultStrategy("Prepare accesses to virtual fields") {
   val collector = new L2_LevelCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   this += new Transformation("Resolve applicable unresolved accesses", {
     case access : L2_UnresolvedAccess if L2_VirtualFieldCollection.existsDecl(access.name) =>

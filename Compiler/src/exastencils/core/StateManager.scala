@@ -1,6 +1,8 @@
 package exastencils.core
 
-import scala.collection.mutable.{ HashMap, ListBuffer, Stack }
+import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Stack
 import scala.language.existentials
 import scala.reflect.ClassTag
 
@@ -15,6 +17,8 @@ object StateManager {
   private var root_ : RootNode = null
   def root = root_
   def setRoot(n : RootNode) = root_ = n
+
+  case class HelperNode(node : Node) extends Node
 
   // FIXME make this protected
   var strategies_ = Stack[Strategy]()

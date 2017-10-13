@@ -14,10 +14,8 @@ object L3_VirtualFieldCollection extends L3_LeveledKnowledgeCollection[L3_Virtua
 
   L3_KnowledgeContainer.register(this)
 
-  if (false /* TODO: introduce sth like Knowledge.minLayer */ ) {
-    L3_PrepareDeclarations.strategies += L3_PrepareVirtualFieldDeclarations
-    L3_ProcessDeclarations.strategies += L3_ProcessVirtualFieldDeclarations
-  }
+  L3_PrepareDeclarations.strategies += L3_PrepareVirtualFieldDeclarations
+  L3_ProcessDeclarations.strategies += L3_ProcessVirtualFieldDeclarations
 
   L3_PrepareAccesses.strategies += L3_PrepareVirtualFieldAccesses
   L3_ResolveAccesses.strategies += L3_ResolveVirtualFieldAccesses

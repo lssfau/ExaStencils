@@ -1,7 +1,8 @@
 package exastencils.parallelization.api.cuda
 
+import scala.collection.Iterable
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.collection.{ Iterable, mutable }
 
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
@@ -22,6 +23,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
   "and annotating for later kernel transformation") {
   val collector = new IR_FctNameCollector
   this.register(collector)
+  this.onBefore = () => this.resetCollectors()
 
   def syncBeforeHost(access : String, others : Iterable[String]) = {
     var sync = true
