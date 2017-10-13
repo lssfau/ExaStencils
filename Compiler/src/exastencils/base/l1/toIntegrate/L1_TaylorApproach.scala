@@ -1,4 +1,4 @@
-package exastencils.base.l1
+package exastencils.base.l1.toIntegrate
 
 /** Finite Difference Computation via Taylor series expansion
   * resulting in the solution of a eqSystem.

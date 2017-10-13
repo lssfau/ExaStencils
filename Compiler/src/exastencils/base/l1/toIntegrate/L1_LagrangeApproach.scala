@@ -1,4 +1,4 @@
-package exastencils.base.l1
+package exastencils.base.l1.toIntegrate
 
 /** Finite Difference Computation via Lagrange Polynomial
   *

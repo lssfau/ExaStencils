@@ -1,4 +1,4 @@
-package exastencils.base.l1
+package exastencils.base.l1.toIntegrate
 
 /** basic interface for a finite difference approach
   *

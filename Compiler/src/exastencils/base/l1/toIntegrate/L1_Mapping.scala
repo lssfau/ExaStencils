@@ -1,7 +1,6 @@
-package exastencils.base.l1
+package exastencils.base.l1.toIntegrate
 
 import exastencils.datastructures._
-import exastencils.base.l1._
 import exastencils.logger._
 
 case class L1_Mapping(var identifier : String, var set : L1_MathSet) extends L1_Definition

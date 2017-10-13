@@ -1,4 +1,4 @@
-package exastencils.base.l1
+package exastencils.base.l1.toIntegrate
 
 /**
   * Abstract base-class for a binary tree structure of mathematical expressions,
@@ -88,6 +88,7 @@ object L1_MathTree {
 
       //case dev : L1_Differentiable => discretizeDifferentiable(dev, dims)
     }
+
     assert(dims >= 1)
     createStencil(simplify(expr))
   }
@@ -154,6 +155,7 @@ object L1_MathTree {
         case default                                                     => default
       }
     }
+
     expr match {
       case t : L1_Value                   => t
       case t : L1_Function                => t

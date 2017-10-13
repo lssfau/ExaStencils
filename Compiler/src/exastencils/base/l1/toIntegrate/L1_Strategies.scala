@@ -1,6 +1,4 @@
-package exastencils.base.l1
-
-import exastencils.datastructures._
+package exastencils.base.l1.toIntegrate
 
 //object L1_UnifyOperators extends DefaultStrategy("Unification and simplification of mathematical operators") {
 //  def sanitize(s : String) = {

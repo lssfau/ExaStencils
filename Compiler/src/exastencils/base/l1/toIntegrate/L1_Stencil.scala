@@ -1,4 +1,4 @@
-package exastencils.base.l1
+package exastencils.base.l1.toIntegrate
 
 sealed abstract class L1_StencilParameter(val dim : Int, val len : Int) {
   def *(e : L1_StencilEntry) : L1_StencilParameter
@@ -77,6 +77,7 @@ final class L1_Stencil(val entries : Seq[L1_StencilParameter]) extends L1_Stenci
     def buildEmpty(dimensions : Int) : L1_StencilParameter = {
       if (dimensions == 1) L1_StencilEntry(0) else new L1_Stencil(Seq.fill(entries(0).len)(buildEmpty(dimensions - 1)))
     }
+
     val empty = buildEmpty(this.dim)
     val filler = Seq.fill(lenDif / 2)(empty)
     new L1_Stencil(filler ++ this.entries ++ filler)

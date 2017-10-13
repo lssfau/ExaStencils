@@ -1,8 +1,4 @@
-package exastencils.base.l1
-
-import exastencils.logger._
-import exastencils.config._
-import exastencils.base.l1._
+package exastencils.base.l1.toIntegrate
 
 object L1_Dimension {
   implicit def stringsToDimension(left : String, right : String) : L1_Dimension = {

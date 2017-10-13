@@ -4,7 +4,7 @@ import scala.io.Source
 import scala.util.parsing.combinator.PackratParsers
 import scala.util.parsing.combinator.syntactical.StandardTokenParsers
 
-import exastencils.base.l1._
+import exastencils.base.l1.toIntegrate._
 
 /** Main parser of the L1-compiler implemented as token-parser
   *
@@ -169,6 +169,7 @@ object L1_SectionParser {
         case _                                => throw new Exception("code does not match form:\nSectionName1:\nCode1...\nSectionName2:\nCode2...\n...")
       }
     }
+
     splitRec(l1Code)
   }
 }
@@ -583,7 +584,6 @@ object L1_SectionParser {
 //
 //}
 //
-
 
 //
 ////object oldL1_Parser extends ExaParser {

@@ -3,6 +3,7 @@ package exastencils.base.l1
 import exastencils.datastructures._
 import scala.collection.mutable.ListBuffer
 
+import exastencils.base.l1.toIntegrate.L1_Domain
 import exastencils.base.l2.L2_Root
 import exastencils.logger.Logger
 import exastencils.prettyprinting._

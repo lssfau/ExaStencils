@@ -1,4 +1,4 @@
-package exastencils.base.l1
+package exastencils.base.l1.toIntegrate
 
 /** First stage of data-structure received from the main token parser (parsing.L1Parser.scala)
   * Includes the Domain, left and right hand side of the pde
