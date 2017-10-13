@@ -1,8 +1,10 @@
+package devel
+
 import exastencils.base.l2._
 import exastencils.baseExt.l2.L2_FieldIteratorAccess
 import exastencils.config.Knowledge
 
-object Testbed {
+object TestbedSebastian {
   def main(args : Array[String]) : Unit = {
     Knowledge.dimensionality = 2
 

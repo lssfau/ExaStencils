@@ -1,14 +1,17 @@
+package devel
+
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.base.l4.{ L4_ResolveVariableAccesses, _ }
+import exastencils.base.l4.L4_ResolveVariableAccesses
+import exastencils.base.l4._
 import exastencils.baseExt.ir._
 import exastencils.core.StateManager
 import exastencils.datastructures._
 import exastencils.optimization.ir._
 import exastencils.prettyprinting.PrettyPrintable
 
-object MainChristian {
+object TestbedChristian {
 
   case class MyRoot(var nodes : ListBuffer[Node]) extends RootNode {
     def progress = {

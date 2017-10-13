@@ -1,8 +1,7 @@
+package devel
 
-import java.text.DecimalFormat
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.HashMap
 import scala.io.Source
 
 //import org.exastencils.schedopt.exploration.DomainCoeffInfo

@@ -1,3 +1,5 @@
+package devel
+
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ExaRootNode
@@ -42,7 +44,7 @@ import exastencils.timing.l4.L4_ResolveTimerFunctions
 import exastencils.util._
 import exastencils.util.l4._
 
-object MainStefan {
+object TestbedStefan {
   private var polyOptExplID : Int = 0
 
   def initialize(args : Array[String]) = {
