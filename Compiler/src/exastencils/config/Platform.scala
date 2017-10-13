@@ -318,7 +318,7 @@ object Platform {
         }
 
       case "CLANG" =>
-        flags += " -O3 -std=c++11"
+        flags += " -O3 -std=c++11 -Wno-parentheses-equality"
 
         if (Knowledge.omp_enabled) flags += " -fopenmp=libiomp5"
 
