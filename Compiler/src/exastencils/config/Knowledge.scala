@@ -109,7 +109,7 @@ object Knowledge {
   def domain_rect_numFragsTotalAsVec : Array[Int] = Array(domain_rect_numFragsTotal_x, domain_rect_numFragsTotal_y, domain_rect_numFragsTotal_z)
 
   /// Student project - Jeremias -> support for reading domain partitions from file at runtime
-// TODO: refactor and integrate
+  // TODO: refactor and integrate
 
   // atm only "L-Shape", "X-Shape" in 2D possible; needs to be specified in case of onlyRectangular,rect_generate = false
   var domain_useCase : String = ""
@@ -129,7 +129,20 @@ object Knowledge {
   // must be uniform if grid_isUniform; may be "diego", "diego2" or "linearFct" otherwise
   var grid_spacingModel : String = "uniform"
 
-/// discretization information
+  // specifies if staggered control volumes are to be halved at applicable boundaries (ie in the stagger dimension)
+  var grid_halveStagBoundaryVolumes : Boolean = false
+
+  /// discretization information
+
+  // type of discretization
+  // may be one of the following: 'FD' or 'finiteDifferences', 'FV' or 'finiteVolumes'
+  var discr_type : String = "FD"
+
+  // may currently be 1 or 2
+  var discr_defaultNeumannOrder : Int = 1
+  // allows setting the interpolation order for Dirichlet BCs for cell or face localized quantities
+  var discr_defaultDirichletOrder : Int = 1
+
   // TODO: ignore for IDE support for now
 
   // (uniform) grid width per dimension and level
@@ -139,10 +152,50 @@ object Knowledge {
 
   /// === Layer 3 ===
 
+  /// solver setup information
+
+  // target reduction of the residual norm for the whole solver
+  var solver_targetResReduction : Double = 1e-5
+
+  // maximum number of iterations for the whole solver
+  var solver_maxNumIts : Int = 128
+
+  // toggle usage of the full approximation scheme (FAS)
+  var solver_useFAS : Boolean = false
+
+  // coloring mode used in the generated smoother
+  // may be one of the following: 'None', 'RB' or '2-way', '4-way' (2D only), '8-way' (3D only), '9-way' (2D only), '27-way' (3D only)
+  var solver_smoother_coloring : String = "None"
+
+  // damping factor used in the generated smoother
+  var solver_smoother_damping : Double = 0.8
+
+  // number of pre-smoothing steps
+  var solver_smoother_numPre : Int = 3
+
+  // number of post-smoothing steps
+  var solver_smoother_numPost : Int = 3
+
+  // determines if the smoother implements Jacobi-type updates
+  var solver_smoother_jacobiType : Boolean = false
+
+  // coarse grid solver
+  // may be one of the following: 'CG' or 'ConjugateGradient', 'BiCGStab', 'MinRes', 'ConjugateResidual'
+  var solver_cgs : String = "CG"
+
+  // maximum number of coarse grid solver iterations
+  var solver_cgs_maxNumIts : Int = 512
+
+  // target reduction of the residual norm for the coarse grid solver
+  var solver_cgs_targetResReduction : Double = 0.001
+
   /// === Layer 4 ===
 
   // specifies if shared fieldlayouts should be duplicated when progressing from l4 to ir
   var l4_genSepLayoutsPerField : Boolean = true
+
+  // generates a default application assuming a generated solver _if_ no application function is provided
+  var l4_genDefaultApplication : Boolean = true
 
   /// === Post Layer 4 ===
 
@@ -188,6 +241,7 @@ object Knowledge {
   var data_genVariableFieldSizes : Boolean = false
 
   // --- polyhedron optimization ---
+
   // the following polyhedral optimization levels are currently supported:
   //   0: don't do anything  (fastest; obviously)
   //   1: extract a model and recreate an AST after a polyhedral dead code elimination is performed;
@@ -223,12 +277,13 @@ object Knowledge {
   var poly_exploration_filterLevel : Int = 0
   // the following filter levels are currently supported, filter from lower levels are also applied in addition to the one described:
   //   0: no filter
-  //   1: only outer loop in should carry dependencies (textual dependencies are OK)
+  //   1: only outer loop should carry dependencies (textual dependencies are OK)
   //   2: only linear memory accesses allowed (given that the original schedule had linear accesses)
   //   3: only schedules with textual dependencies (if any)
   //   4: do not prevent aligned vectorization
   //   5: traverse memory in the inner loop in the same direction as the original schedule
   //   6: only positive schedule coefficients allowed
+  //   7: only allow schedule coefficients and constants (differences per statement) to be less or equal 2
 
   // [true|false] // specify separately if the outermost loop should be tiled
   var poly_tileOuterLoop : Boolean = false
@@ -261,6 +316,8 @@ object Knowledge {
   var opt_useAddressPrecalc : Boolean = false
   // [true|false] // only relevant for RBGS smoother currently
   var opt_useColorSplitting : Boolean = false
+  // [true|false] // change memory layout from "field of arrays" to "array of fields"
+  var opt_arrayOfFields : Boolean = false
 
   // unrolling
   // [1~5]
@@ -322,7 +379,7 @@ object Knowledge {
   // [true|false]
   var cuda_enabled : Boolean = false
   // device id of the CUDA device to be used; only relevant in multi-GPU systems
-  var cuda_deviceId : Int = 0
+  var cuda_deviceId : String = "0"
   // specifies where kernels should be executed by default; may be "Host", "Device", "Performance" or "Condition"
   var cuda_preferredExecution : String = "Performance"
   // specifies a condition to be used to branch for CPU (true) or GPU (false) execution; only used if cuda_preferredExecution == Condition
@@ -397,16 +454,6 @@ object Knowledge {
 
   /// experimental features
 
-  // highly experimental -> use only if you know what you are doing
-  var experimental_Neumann : Boolean = false
-  // may currently be 1 or 2
-  var experimental_NeumannOrder : Int = 2
-  // normalize solution after each v-cycle
-  var experimental_NeumannNormalize : Boolean = false
-
-  // allows setting the interpolation order for Dirichlet BCs for cell or face localized quantities
-  var experimental_DirichletOrder : Int = 1
-
   // generates call stacks for all employed timers
   var experimental_timerEnableCallStacks : Boolean = false
 
@@ -442,9 +489,6 @@ object Knowledge {
   // Export loop kernels to pseudo-C and kerncraft YAML kernel descriptions.
   var experimental_kerncraftExport : Boolean = false
 
-  // enables support for layers 2 and 3
-  var experimental_layerExtension : Boolean = false
-
   // enables internal handling of high-dimensional data type
   var experimental_internalHighDimTypes : Boolean = true
 
@@ -455,6 +499,15 @@ object Knowledge {
 
   // eliminate occurrences of cudaContext - required for PizDaint
   var experimental_eliminateCudaContext : Boolean = false
+
+  // control inlining of value declarations on applicable layers
+  var experimental_l2_inlineValueDeclarations : Boolean = false
+  var experimental_l3_inlineValueDeclarations : Boolean = false
+  var experimental_l4_inlineValueDeclarations : Boolean = true
+
+  var experimental_l2_resolveVirtualFields : Boolean = true
+  var experimental_l3_resolveVirtualFields : Boolean = true
+  var experimental_l4_resolveVirtualFields : Boolean = true
 
   /// paper project - SISC
 
@@ -475,7 +528,12 @@ object Knowledge {
   var sisc2015_numOMP_z : Int = 2
 
   /// BEGIN HACK config options for generating L4 DSL file
-  var l3tmp_generateL4 : Boolean = true // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
+  var l3tmp_generateL4 : Boolean = false // generates a new Layer 4 file using the corresponding filename from Settings; the generated DSL file can is based on the following parameters
+
+  // activate Neumann bc in generated test cases
+  var l3tmp_Neumann : Boolean = false
+  // normalize solution after each v-cycle
+  var l3tmp_NeumannNormalize : Boolean = false
 
   /// SPL connected
   var l3tmp_smoother : String = "Jac"
@@ -606,7 +664,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa_VC", l3tmp_sisc && l3tmp_genStencilFields, "Kappa_VC is required as l3tmp_exactSolution for variable stencils and l3tmp_sisc")
       Constraints.condEnsureValue(l3tmp_exactSolution, "Kappa", l3tmp_sisc && !l3tmp_genStencilFields, "Kappa is required as l3tmp_exactSolution for constant stencils and l3tmp_sisc")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_sisc && l3tmp_genStencilFields, "l3tmp_genHDepStencils must be true for variable stencils and l3tmp_sisc")
-      Constraints.condEnsureValue(experimental_Neumann, false, l3tmp_sisc, "Neumann boundary conditions are not compatible with l3tmp_sisc")
+      Constraints.condEnsureValue(l3tmp_Neumann, false, l3tmp_sisc, "Neumann boundary conditions are not compatible with l3tmp_sisc")
 
       if (l3tmp_sisc)
         Constraints.updateValue(l3tmp_maxNumCGSSteps, 1024)
@@ -653,6 +711,7 @@ object Knowledge {
     Constraints.condWarn("uniform" == grid_spacingModel && !grid_isUniform, "grid_isUniform should be true for uniform spacing models")
     Constraints.condWarn("diego" == grid_spacingModel, "diego spacing model currently ignores domain bounds set in the DSL")
     Constraints.condWarn("diego2" == grid_spacingModel, "diego2 spacing model currently ignores domain bounds set in the DSL")
+    Constraints.condWarn(grid_halveStagBoundaryVolumes && "uniform" == grid_spacingModel, "halving staggered volumes at the boundary is not supported for uniform grids")
 
     if (l3tmp_generateL4) {
       // l3tmp - problem to solve
@@ -671,12 +730,12 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires non-zero right hand sides")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genPeriodicBounds, "l3tmp_genPeriodicBounds requires grid width dependent stencils")
 
-      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", experimental_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && "Kappa_VC" != l3tmp_exactSolution && !experimental_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
+      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, true, l3tmp_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_exactSolution, "Trigonometric", l3tmp_Neumann, "l3tmp_genNonZeroRhs is required for Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genNonZeroRhs, false, "Polynomial" != l3tmp_exactSolution && "Kappa" != l3tmp_exactSolution && "Kappa_VC" != l3tmp_exactSolution && !l3tmp_Neumann, "non-trivial rhs are currently only supported for Polynomial and Kappa cases")
 
-      Constraints.condEnsureValue(experimental_NeumannOrder, 1, experimental_Neumann && l3tmp_genCellBasedDiscr, "experimental_OrderNeumann must be 1 for cell based discretizations")
-      Constraints.condEnsureValue(experimental_NeumannOrder, 2, experimental_Neumann && experimental_NeumannOrder < 1 || experimental_NeumannOrder > 2, "experimental_OrderNeumann must be between 1 and 2")
+      Constraints.condEnsureValue(discr_defaultNeumannOrder, 1, l3tmp_Neumann && l3tmp_genCellBasedDiscr, "experimental_OrderNeumann must be 1 for cell based discretizations")
+      Constraints.condEnsureValue(discr_defaultNeumannOrder, 2, l3tmp_Neumann && discr_defaultNeumannOrder < 1 || discr_defaultNeumannOrder > 2, "experimental_OrderNeumann must be between 1 and 2")
 
       Constraints.condEnsureValue(l3tmp_initSolWithRand, true, "Zero" == l3tmp_exactSolution && !l3tmp_kelvin, "initial solution of zero corresponds to the exact solution if l3tmp_genFunctionBC is false")
       Constraints.condEnsureValue(l3tmp_initSolWithRand, false, "Zero" != l3tmp_exactSolution, "l3tmp_exactSolution not equal to zero requires initial solution of zero")
@@ -685,17 +744,17 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_numVecDims, 2, l3tmp_genVectorFields && l3tmp_numVecDims <= 1, "vector dimensions must be larger than 1 when using vector fields")
 
       Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genCellBasedDiscr, "FMG is currently not compatible with cell based discretizations")
-      Constraints.condEnsureValue(l3tmp_genFMG, false, experimental_Neumann, "FMG is currently not compatible with Neumann BC")
+      Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_Neumann, "FMG is currently not compatible with Neumann BC")
       Constraints.condEnsureValue(l3tmp_genFMG, false, 1 != l3tmp_numVecDims, "FMG is currently not compatible with vector fields")
       Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_kelvin, "FMG is currently not compatible with Kelvin mode")
       Constraints.condEnsureValue(l3tmp_genFMG, false, l3tmp_genPeriodicBounds, "FMG is currently not compatible with l3tmp_genPeriodicBounds")
 
       // l3tmp - stencils
-      Constraints.condEnsureValue(l3tmp_genStencilFields, false, experimental_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
-      Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, experimental_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genStencilFields, false, l3tmp_Neumann, "l3tmp_genStencilFields is currently not compatible with Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_Neumann, "l3tmp_genStencilStencilConv is currently not compatible with Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genStencilFields, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilFields is currently not compatible with cell based discretizations")
       Constraints.condEnsureValue(l3tmp_genStencilStencilConv, false, l3tmp_genCellBasedDiscr, "l3tmp_genStencilStencilConv is currently not compatible with cell based discretizations")
-      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, experimental_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_Neumann, "l3tmp_genHDepStencils is required for Neumann boundary conditions")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genNonZeroRhs, "non-trivial rhs requires the usage of grid width dependent stencils")
       Constraints.condEnsureValue(l3tmp_genHDepStencils, true, l3tmp_genFMG, "FMG requires the usage of grid width dependent stencils")
 
@@ -720,7 +779,7 @@ object Knowledge {
       Constraints.condEnsureValue(l3tmp_useSlotVariables, false, !l3tmp_useSlotsForJac, "invalid if not using l3tmp_useSlotsForJac")
 
       // l3tmp - temporal blocking
-      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, experimental_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
+      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_Neumann, "l3tmp_genTemporalBlocking is currently not compatible with Neumann boundary conditions")
       //      Constraints.condEnsureValue(l3tmp_genTemporalBlocking, false, l3tmp_genCellBasedDiscr, "l3tmp_genTemporalBlocking is currently not compatible with cell based discretizations")
       Constraints.condWarn(l3tmp_genTemporalBlocking && "RBGS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with RBGS smoothers")
       Constraints.condWarn(l3tmp_genTemporalBlocking && "BS" == l3tmp_smoother, "l3tmp_genTemporalBlocking is currently not compatible with block smoothers")
@@ -765,7 +824,7 @@ object Knowledge {
     Constraints.condWarn(comm_disableLocalCommSync && experimental_allowCommInFragLoops, s"comm_disableLocalCommSynchronization in conjunction with experimental_allowCommInFragLoops is strongly discouraged")
 
     Constraints.condEnsureValue(experimental_addPerformanceEstimate, true, cuda_enabled && "Performance" == cuda_preferredExecution, s"experimental_addPerformanceEstimate is required for performance estimate guided kernel execution")
-    Constraints.condEnsureValue(cuda_deviceId, 0, cuda_enabled && cuda_deviceId >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
+    Constraints.condEnsureValue(cuda_deviceId, "0", cuda_enabled && cuda_deviceId.forall(_.isDigit) && cuda_deviceId.toInt >= Platform.hw_gpu_numDevices, s"CUDA device id must not be exceeding number of installed devices")
 
     Constraints.condEnsureValue(cuda_blockSize_y, 1, cuda_enabled && domain_rect_generate && dimensionality < 2, "experimental_cuda_blockSize_y must be set to 1 for problems with a dimensionality smaller 2")
     Constraints.condEnsureValue(cuda_blockSize_z, 1, cuda_enabled && domain_rect_generate && dimensionality < 3, "experimental_cuda_blockSize_z must be set to 1 for problems with a dimensionality smaller 3")

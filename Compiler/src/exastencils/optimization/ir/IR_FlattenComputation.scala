@@ -39,7 +39,7 @@ object IR_FlattenComputation extends QuietDefaultStrategy("Flatten complex compu
       val add = IR_Addition(sub.left)
       add.summands += IR_Negative(sub.right)
       add
-  })
+  }, isParallel = true)
 
   this += new Transformation("Resolve additions nested in multiplications", {
     // (a + b) * (c + d) => a*c + a*d + b*c + b*d
@@ -66,7 +66,7 @@ object IR_FlattenComputation extends QuietDefaultStrategy("Flatten complex compu
         ret
       } else
         mult
-  })
+  }, isParallel = true)
 
   this += new Transformation("Split divisions with additions and multiplications in the numerator", {
     // (a + b) / c => a/c + b/c
@@ -74,12 +74,11 @@ object IR_FlattenComputation extends QuietDefaultStrategy("Flatten complex compu
       changed = true
       IR_Addition(add.summands.map(ex => IR_Division(ex, Duplicate(div)) : IR_Expression))
 
-    // (a * b) / c => a*c + b*c
+    // (a * b) / c => a * b * (1 / c)
     case IR_Division(mult : IR_Multiplication, div) =>
       changed = true
-      mult.factors += IR_Division(1.0, Duplicate(div))
-      mult
-  })
+      IR_Multiplication(mult.factors :+ IR_Division(1.0, div))
+  }, isParallel = true)
 
   this += new Transformation("Flatten nested multiplications", {
     // a * (b * c) => a * b * c
@@ -114,7 +113,7 @@ object IR_FlattenComputation extends QuietDefaultStrategy("Flatten complex compu
           IR_Multiplication(newSummands)
       } else
         mult
-  })
+  }, isParallel = true)
 
   this += new Transformation("Flatten nested additions", {
     // a + (b + c) => a + b + c
@@ -134,12 +133,12 @@ object IR_FlattenComputation extends QuietDefaultStrategy("Flatten complex compu
         IR_Addition(newSummands)
       } else
         add
-  })
+  }, isParallel = true)
 
   this += new Transformation("Resolve double negatives", {
     // -(-a) => a
     case IR_Negative(IR_Negative(ex)) =>
       changed = true
       ex
-  })
+  }, isParallel = true)
 }

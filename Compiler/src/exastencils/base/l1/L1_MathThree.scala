@@ -26,7 +26,7 @@ case class L1_Access(name : String) extends L1_MathTree
 sealed abstract class L1_Differentiable extends L1_MathTree // leaf
 case class L1_Function() extends L1_Differentiable // Represents the 0th derivative
 case class L1_Derivation(direction : Int, number : Int) extends L1_Differentiable // Single Derivation
-case class L1_asNestedDerivation(devs : Seq[L1_Derivation]) extends L1_Differentiable // Nested Derivations
+case class L1_NestedDerivation(devs : Seq[L1_Derivation]) extends L1_Differentiable // Nested Derivations
 case class L1_Laplace() extends L1_Differentiable // Laplace operator
 
 case class L1_Equation(left : L1_MathTree, right : L1_MathTree); // Root for the PDE

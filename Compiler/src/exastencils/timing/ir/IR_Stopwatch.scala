@@ -1,13 +1,13 @@
 package exastencils.timing.ir
 
+import exastencils.base.ir.IR_Node
 import exastencils.config._
-import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.prettyprinting._
 
 /// IR_Stopwatch
 
-case class IR_Stopwatch() extends Node with FilePrettyPrintable {
+case class IR_Stopwatch() extends IR_Node with FilePrettyPrintable {
   override def printToFile() : Unit = {
     if (Knowledge.experimental_timerEnableCallStacks) {
       IR_CallEntity().printToFile()

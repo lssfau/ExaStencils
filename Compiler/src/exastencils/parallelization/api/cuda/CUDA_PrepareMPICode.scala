@@ -8,18 +8,19 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.ir.IR_IV_CommBuffer
 import exastencils.config.Knowledge
+import exastencils.config.Platform
 import exastencils.core.Duplicate
-import exastencils.core.collectors.FctNameCollector
 import exastencils.datastructures._
 import exastencils.field.ir._
 import exastencils.logger.Logger
 import exastencils.parallelization.api.mpi._
+import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_PrepareMPICode
 
 object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
-  val collector = new FctNameCollector
+  val collector = new IR_FctNameCollector
   this.register(collector)
 
   var fieldAccesses = HashMap[String, IR_IV_FieldData]()
@@ -272,10 +273,11 @@ object CUDA_PrepareMPICode extends DefaultStrategy("Prepare CUDA relevant code b
 
         /// compile final switch
         val defaultChoice : IR_Expression = Knowledge.cuda_preferredExecution match {
-          case "Host"        => 1 // CPU by default
-          case "Device"      => 0 // GPU by default
-          case "Performance" => 1 // FIXME: Knowledge flag
-          case "Condition"   => Knowledge.cuda_executionCondition
+          case _ if !Platform.hw_gpu_gpuDirectAvailable => 1 // if GPUDirect is not available default to CPU
+          case "Host"                                   => 1 // CPU by default
+          case "Device"                                 => 0 // GPU by default
+          case "Performance"                            => 1 // FIXME: Knowledge flag
+          case "Condition"                              => Knowledge.cuda_executionCondition
         }
 
         ListBuffer[IR_Statement](IR_IfCondition(defaultChoice, hostStmts, deviceStmts))

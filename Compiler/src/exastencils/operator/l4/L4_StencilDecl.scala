@@ -1,48 +1,33 @@
 package exastencils.operator.l4
 
-import scala.collection.mutable.ListBuffer
-
-import exastencils.base.l4._
-import exastencils.config.Knowledge
-import exastencils.core.Duplicate
+import exastencils.base.l4.L4_MayBlockResolution
 import exastencils.datastructures._
-import exastencils.knowledge.l4.L4_LeveledKnowledgeDecl
-import exastencils.prettyprinting.PpStream
+import exastencils.knowledge.l4._
+import exastencils.logger._
 
 /// L4_StencilDecl
 
-object L4_StencilDecl {
-  def apply(identifier : L4_Identifier, entries : L4_StencilEntry*) = new L4_StencilDecl(identifier, entries.to[ListBuffer])
-  def apply(identifier : L4_Identifier, entries : List[L4_StencilEntry]) = new L4_StencilDecl(identifier, entries.to[ListBuffer])
+abstract class L4_StencilDecl extends L4_LeveledKnowledgeDecl {
+  override def progress = Logger.error(s"Trying to progress L4 stencil declaration for stencil $name; this is not supported")
+  def addToKnowledge() : Unit
 }
 
-case class L4_StencilDecl(override var identifier : L4_Identifier, var entries : ListBuffer[L4_StencilEntry]) extends L4_LeveledKnowledgeDecl {
-  override def prettyprint(out : PpStream) = {
-    out << "Stencil " << identifier.name << '@' << identifier.asInstanceOf[L4_LeveledIdentifier].level << " {\n"
-    out <<< (entries, "\n")
-    out << "\n}"
-  }
+/// L4_PrepareStencilDeclaration
 
-  override def addToKnowledge() : Unit = {
-    identifier match {
-      case L4_BasicIdentifier(name)                          =>
-        for (level <- Knowledge.levels) {
-          val stencil = L4_Stencil(name, level, Duplicate(entries))
-          L4_StencilCollection.add(stencil)
-        }
-      case L4_LeveledIdentifier(name, L4_SingleLevel(level)) =>
-        val stencil = L4_Stencil(name, level, entries)
-        L4_StencilCollection.add(stencil)
-    }
-  }
-}
-
-/// L4_ProcessStencilDeclarations
-
-object L4_ProcessStencilDeclarations extends DefaultStrategy("Integrating L4 stencil declarations with knowledge") {
+object L4_PrepareStencilDeclarations extends DefaultStrategy("Prepare knowledge for L4 stencils") {
   this += Transformation("Process new stencils", {
-    case stencilDecl : L4_StencilDecl =>
-      stencilDecl.addToKnowledge()
+    case decl : L4_StencilDecl =>
+      L4_StencilCollection.addDeclared(decl.name, decl.levels)
+      decl // preserve declaration statement
+  })
+}
+
+/// L4_ProcessStencilDeclaration
+
+object L4_ProcessStencilDeclarations extends DefaultStrategy("Integrate L4 stencil declarations with knowledge") {
+  this += Transformation("Process new stencils", {
+    case decl : L4_StencilDecl if L4_MayBlockResolution.isDone(decl) =>
+      decl.addToKnowledge()
       None // consume declaration statement
   })
 }

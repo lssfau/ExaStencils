@@ -7,16 +7,17 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.communication.NeighborInfo
 import exastencils.core.Duplicate
-import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
+import exastencils.grid.ir._
 
 /// IR_ApplyBCFunction
 
 case class IR_ApplyBCFunction(
     var name : String,
+    var level : Int,
     var fieldSelection : IR_FieldSelection,
     var neighbors : ListBuffer[NeighborInfo],
-    var insideFragLoop : Boolean) extends IR_AbstractFunction with IR_Expandable {
+    var insideFragLoop : Boolean) extends IR_FutureLeveledFunction {
 
   override def prettyprint_decl() = prettyprint
 
@@ -29,19 +30,13 @@ case class IR_ApplyBCFunction(
     curNeighbors.map(neigh => (neigh, IR_ExpressionIndexRange(
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(dim =>
-          fieldSelection.fieldLayout.discretization match {
-            case discretization if "node" == discretization
-              || ("face_x" == discretization && 0 == dim)
-              || ("face_y" == discretization && 1 == dim)
-              || ("face_z" == discretization && 2 == dim) => dim match {
+          fieldSelection.fieldLayout.localization match {
+            case IR_AtNode | IR_AtFaceCenter(`dim`)   => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
               case i if neigh.dir(i) < 0  => resolveIndex("DLB", i) // DLB, GLB
               case i if neigh.dir(i) > 0  => resolveIndex("DRB", i)
             }
-            case discretization if "cell" == discretization
-              || ("face_x" == discretization && 0 != dim)
-              || ("face_y" == discretization && 1 != dim)
-              || ("face_z" == discretization && 2 != dim) => dim match {
+            case IR_AtCellCenter | IR_AtFaceCenter(_) => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GLB", i) // DLB, GLB
               case i if neigh.dir(i) < 0  => resolveIndex("DLB", i)
               case i if neigh.dir(i) > 0  => resolveIndex("DRB", i) - 1
@@ -49,19 +44,13 @@ case class IR_ApplyBCFunction(
           })),
       IR_ExpressionIndex(
         (0 until numDimsGrid).toArray.map(dim =>
-          fieldSelection.fieldLayout.discretization match {
-            case discretization if "node" == discretization
-              || ("face_x" == discretization && 0 == dim)
-              || ("face_y" == discretization && 1 == dim)
-              || ("face_z" == discretization && 2 == dim) => dim match {
+          fieldSelection.fieldLayout.localization match {
+            case IR_AtNode | IR_AtFaceCenter(`dim`)   => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
               case i if neigh.dir(i) < 0  => resolveIndex("DLE", i)
               case i if neigh.dir(i) > 0  => resolveIndex("DRE", i) // DRE, GRE
             }
-            case discretization if "cell" == discretization
-              || ("face_x" == discretization && 0 != dim)
-              || ("face_y" == discretization && 1 != dim)
-              || ("face_z" == discretization && 2 != dim) => dim match {
+            case IR_AtCellCenter | IR_AtFaceCenter(_) => dim match {
               case i if neigh.dir(i) == 0 => resolveIndex("GRE", i) // DRE, GRE
               case i if neigh.dir(i) < 0  => resolveIndex("DLE", i) + 1
               case i if neigh.dir(i) > 0  => resolveIndex("DRE", i)
@@ -78,7 +67,7 @@ case class IR_ApplyBCFunction(
     body
   }
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() = {
     // compile function arguments
     var fctArgs = ListBuffer[IR_FunctionArgument]()
     fctArgs += IR_FunctionArgument("slot", IR_IntegerDatatype)
@@ -86,6 +75,6 @@ case class IR_ApplyBCFunction(
       fctArgs += IR_FunctionArgument(IR_LoopOverFragments.defIt)
 
     // emit compiled function
-    IR_Function(IR_UnitDatatype, name, fctArgs, compileBody(fieldSelection))
+    IR_LeveledFunction(name, level, IR_UnitDatatype, fctArgs, compileBody(fieldSelection))
   }
 }

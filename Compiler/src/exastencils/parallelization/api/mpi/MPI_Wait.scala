@@ -6,17 +6,18 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ArrayDatatype
 import exastencils.config.Knowledge
-import exastencils.datastructures.Transformation.Output
 import exastencils.parallelization.ir.IR_PotentiallyCritical
 import exastencils.util.ir.IR_RawPrint
 
 /// MPI_WaitForRequest
 
-case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
+case object MPI_WaitForRequest extends IR_FuturePlainFunction {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
+  override var name = "waitForMPIReq"
+  allowInlining = false
+
   override def prettyprint_decl() : String = prettyprint
-  override def name = "waitForMPIReq"
 
   def request = IR_VariableAccess("request", IR_PointerDatatype(IR_SpecialDatatype("MPI_Request")))
   def stat = IR_VariableAccess("stat", IR_SpecialDatatype("MPI_Status"))
@@ -30,14 +31,13 @@ case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
     IR_IfCondition("MPI_ERR_IN_STATUS" EqEq result, ListBuffer[IR_Statement](
       IR_VariableDeclaration(msg),
       IR_VariableDeclaration(len),
-      IR_FunctionCall(MPI_FunctionAccess("MPI_Error_string", IR_IntegerDatatype),
+      IR_FunctionCall(MPI_FunctionReference("MPI_Error_string", IR_IntegerDatatype),
         IR_MemberAccess(stat, "MPI_ERROR"), msg, IR_AddressOf(len)),
       IR_RawPrint("\"MPI Error encountered (\"", msg, "\")\"")))
   }
 
-  override def expand() : Output[IR_Function] = {
-    val fct = IR_Function(IR_UnitDatatype, name, IR_FunctionArgument(request), ListBuffer[IR_Statement]())
-    fct.allowInlining = false
+  override def generateFct() = {
+    val fct = IR_PlainFunction(name, IR_UnitDatatype, IR_FunctionArgument(request), ListBuffer[IR_Statement]())
 
     // add declarations for local variables
     fct.body += IR_VariableDeclaration(stat)
@@ -58,4 +58,6 @@ case object MPI_WaitForRequest extends IR_AbstractFunction with IR_Expandable {
 
     fct
   }
+
+  def generateFctAccess() = IR_PlainInternalFunctionReference(name, IR_UnitDatatype)
 }

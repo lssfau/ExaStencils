@@ -1,15 +1,15 @@
 package exastencils.util
 
 import exastencils.core.Duplicate
-import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.logger.Logger
+import exastencils.util.ir.IR_StackCollector
 
 object DuplicateNodes extends DefaultStrategy("Eliminate multiple usage of node instances") {
   // note: instances must be cleared between runs
   var instances = new java.util.IdentityHashMap[Node, Any]()
 
-  var collector = new StackCollector()
+  var collector = new IR_StackCollector()
   this.register(collector)
 
   var printWarnings = true

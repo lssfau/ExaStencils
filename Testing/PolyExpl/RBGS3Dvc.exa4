@@ -9,7 +9,7 @@ Layout LayoutRHS< Real, Node >@finest {
     ghostLayers = [ 1, 1, 1 ]
     duplicateLayers = [ 1, 1, 1 ]
 }
-Layout LayoutSF< Array<Real><7>, Node >@finest {
+Layout LayoutSF< Vector<Real, 7>, Node >@finest {
     innerPoints = [ 256, 256, 256 ]
     ghostLayers = [ 2, 2, 2 ]
     duplicateLayers = [ 1, 1, 1 ]
@@ -28,8 +28,8 @@ StencilField Laplace< LaplaceCoeff => LaplaceStencil >@finest
 Globals {
     Val kappa : Real = 10.0
 }
-Function getCoefficient(x : Real, y : Real, z : Real) : Real {
-    return exp(kappa * ((x - x ** 2) * (y - y ** 2) * (z - z ** 2)))
+Function getCoefficient(xPos : Real, yPos : Real, zPos : Real) : Real {
+    return exp(kappa * ((xPos - xPos ** 2) * (yPos - yPos ** 2) * (zPos - zPos ** 2)))
 }
 Function InitLaplace() : Unit {
  loop over LaplaceCoeff@finest {
@@ -49,10 +49,10 @@ Globals {
 Function Smoother() : Unit {
     loop over fragments {
         repeat 2 times with contraction [1, 1 , 1] {
-            loop over Solution@finest where 0 == ((x + y + z) % 2) {
+            loop over Solution@finest where 0 == ((i0 + i1 + i2) % 2) {
                 Solution[0]@finest = Solution[0]@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution[0]@finest))
             }
-            loop over Solution@finest where 1 == ((x + y + z) % 2) {
+            loop over Solution@finest where 1 == ((i0 + i1 + i2) % 2) {
                 Solution[0]@finest = Solution[0]@finest + ((0.8 / diag(Laplace@finest)) * (RHS@finest - Laplace@finest * Solution[0]@finest))
             }
         }

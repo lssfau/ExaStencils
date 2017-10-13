@@ -6,8 +6,8 @@ import exastencils.base.l4._
 import exastencils.boundary.l4._
 import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.deprecated.ir.IR_DimToString
 import exastencils.field.l4._
+import exastencils.grid.l4._
 import exastencils.logger.Logger
 
 /// L4_AdaptFieldLayoutsForComm
@@ -20,7 +20,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
     this.register(collector)
     super.apply(node)
     this.unregister(collector)
-    collector.adaptNodeBasedFields()
+    //FIXME: collector.adaptNodeBasedFields()
     actuallyAdapt()
     collector.reset()
   }
@@ -30,7 +30,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
     this.register(collector)
     super.applyStandalone(node)
     this.unregister(collector)
-    collector.adaptNodeBasedFields()
+    //FIXME: collector.adaptNodeBasedFields()
     actuallyAdapt()
     collector.reset()
   }
@@ -100,24 +100,30 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
       // adapt for bc's of field if required
       if (L4_NoBC != field.boundary) { // TODO: update for new bc classes; Neumann for node; warn for fcts
         for (i <- numGhostLayersLeft.indices) {
-          val localization = defLayout.discretization.toLowerCase
-          if ("node" == localization || s"face_${ IR_DimToString(i) }" == localization) {
-            // node type localization doesn't require ghost layers for boundary handling - apart from Neumann
-            field.boundary match {
-              case L4_NeumannBC(order) =>
-                numGhostLayersLeft(i) = math.max(numGhostLayersLeft(i), 1)
-                numGhostLayersRight(i) = math.max(numGhostLayersRight(i), 1)
+          defLayout.localization match {
+            case L4_AtNode | L4_AtFaceCenter(`i`) =>
+              // node type localization doesn't require ghost layers for all boundary handling cases
+              field.boundary match {
+                case L4_NeumannBC(order) =>
+                  numGhostLayersLeft(i) = math.max(numGhostLayersLeft(i), 1)
+                  numGhostLayersRight(i) = math.max(numGhostLayersRight(i), 1)
 
-              case _ =>
-            }
-          } else if ("cell" == localization || "face_x" == localization || "face_y" == localization || "face_z" == localization) {
-            // cell type localization always requires (at least) on ghost layer for implementing boundary conditions
-            numGhostLayersLeft(i) = math.max(numGhostLayersLeft(i), 1)
-            numGhostLayersRight(i) = math.max(numGhostLayersRight(i), 1)
-          } else {
-            Logger.warn(s"Encountered unknown localization: $localization")
+                case _ : L4_FunctionBC => // no info -> assume requirement
+                  numGhostLayersLeft(i) = math.max(numGhostLayersLeft(i), 1)
+                  numGhostLayersRight(i) = math.max(numGhostLayersRight(i), 1)
+
+                case _ : L4_DirichletBC => // nothing to do
+
+                case other => Logger.warn(s"Unsupported boundary condition $other")
+              }
+
+            case L4_AtCellCenter | L4_AtFaceCenter(_) =>
+              // cell type localization always requires (at least) on ghost layer for implementing boundary conditions
+              numGhostLayersLeft(i) = math.max(numGhostLayersLeft(i), 1)
+              numGhostLayersRight(i) = math.max(numGhostLayersRight(i), 1)
+
+            case other => Logger.warn(s"Encountered unknown localization: $other")
           }
-
         }
       }
 
@@ -133,7 +139,7 @@ object L4_AdaptFieldLayoutsForComm extends DefaultStrategy("Adapt field layouts 
         newLayout.name = newLayoutName
         val numGhostLayers = (numGhostLayersLeft, numGhostLayersRight).zipped.map(math.max)
         newLayout.ghostLayers = L4_ConstIndex(numGhostLayers)
-        newLayout.communicatesGhosts = numGhostLayers.count(_ != 0) > 0
+        newLayout.communicatesGhosts = numGhostLayers.exists(_ != 0)
         // FIXME: how to determine if duplicates should communicate? activate by default?
         L4_FieldLayoutCollection.add(newLayout)
 

@@ -3,135 +3,96 @@ package exastencils.base.l3
 import scala.collection.mutable._
 
 import exastencils.base.l4._
-import exastencils.baseExt.l3.L3_UnresolvedAccess
-import exastencils.core._
+import exastencils.core.collectors.Collector
 import exastencils.datastructures._
-import exastencils.knowledge.l3.L3_FieldCollection
-import exastencils.logger.Logger
-import exastencils.operator.l3._
 import exastencils.prettyprinting._
-
-/// L3_FunctionArgument
-
-object L3_FunctionArgument {
-  // generate declaration corresponding to given access
-  def apply(access : L3_VariableAccess) = new L3_FunctionArgument(access.name, access.datatype)
-}
-
-case class L3_FunctionArgument(var name : String, var datatype : L3_Datatype) extends L3_Node with PrettyPrintable with L3_Progressable {
-  override def prettyprint(out : PpStream) = out << name << " : " << datatype
-  override def progress = L4_FunctionArgument(name, datatype.progress)
-}
 
 /// L3_Function
 
 object L3_Function {
-  def apply(name : String, levels : Option[L3_DeclarationLevelSpecification], returntype : Option[L3_Datatype], arguments : Option[Option[List[L3_FunctionArgument]]], statements : List[L3_Statement]) : L3_Function =
-    L3_Function(name, levels, returntype.getOrElse(L3_UnitDatatype), arguments.getOrElse(Some(List())).getOrElse(List()).to[ListBuffer], statements.to[ListBuffer])
 
-  def apply(name : String, levels : Option[L3_DeclarationLevelSpecification], returntype : L3_Datatype, statements : ListBuffer[L3_Statement]) =
-    new L3_Function(name, levels, returntype, ListBuffer(), statements)
-  def apply(name : String, levels : Option[L3_DeclarationLevelSpecification], returntype : L3_Datatype, statements : L3_Statement*) =
-    new L3_Function(name, levels, returntype, ListBuffer(), statements.to[ListBuffer])
+  object Argument {
+    // generate declaration corresponding to given access
+    def apply(access : L3_VariableAccess) = new Argument(access.name, access.datatype)
+  }
+
+  case class Argument(var name : String, var datatype : L3_Datatype) extends L3_Node with PrettyPrintable with L3_Progressable {
+    override def prettyprint(out : PpStream) = out << name << " : " << datatype
+    override def progress = L4_Function.Argument(name, datatype.progress)
+  }
+
 }
 
-// TODO: split into function and function declaration
-case class L3_Function(
+trait L3_Function extends L3_Statement {
+  def name : String
+  def datatype : L3_Datatype
+}
+
+/// L3_PlainFunction
+
+case class L3_PlainFunction(
     var name : String,
-    var levels : Option[L3_DeclarationLevelSpecification],
-    var returntype : L3_Datatype,
-    var arguments : ListBuffer[L3_FunctionArgument],
-    var statements : ListBuffer[L3_Statement]) extends L3_Statement {
+    var datatype : L3_Datatype,
+    var parameters : ListBuffer[L3_Function.Argument],
+    var body : ListBuffer[L3_Statement]) extends L3_Function {
 
-  override def prettyprint(out : PpStream) = { out << "-- FIXME --" }
-  override def progress : L4_Function = {
-    L4_Function(
-      if (levels.isDefined) L4_LeveledIdentifier(name, levels.get.progress) else L4_BasicIdentifier(name),
-      returntype.progress,
-      arguments.map(_.progress),
-      statements.map(_.progress))
-  }
-}
-
-/// L3_FunctionCall
-
-object L3_FunctionCall {
-  def apply(identifier : L3_Access, arguments : Option[List[L3_Expression]]) =
-    new L3_FunctionCall(identifier, arguments.getOrElse(List()).to[ListBuffer])
-}
-
-case class L3_FunctionCall(var identifier : L3_Access, var arguments : ListBuffer[L3_Expression]) extends L3_Expression {
-  def prettyprint(out : PpStream) = { out << identifier << " ( " <<< (arguments, ", ") << " )" }
-  def progress = L4_FunctionCall(identifier.progress, arguments.map(_.progress))
-}
-
-/// L3_Return
-
-case class L3_Return(var expr : Option[L3_Expression]) extends L3_Statement {
   override def prettyprint(out : PpStream) = {
-    out << "return"
-    if (expr.isDefined) out << ' ' << expr.get.prettyprint()
+    out << "Function " << name
+    if (parameters.nonEmpty) out << " ( " <<< (parameters, ", ") << " )"
+    if (datatype != L3_UnitDatatype) out << " : " << datatype
+    out << " {\n" <<< (body, "\n") << "\n}"
   }
 
-  override def progress : L4_Return = {
-    L4_Return(expr.map(_.progress))
-  }
+  override def progress = L4_PlainFunction(name, datatype.progress, parameters.map(_.progress), body.map(_.progress))
 }
 
-/// L3_UnfoldFunctionDeclarations
+/// L3_LeveledFunction
 
-object L3_UnfoldFunctionDeclarations extends DefaultStrategy("Unfold function declarations") {
-  this += Transformation("Duplicate function statements", {
-    case fct : L3_Function if fct.levels.isDefined =>
-      fct.levels.get match {
-        case list : L3_LevelList =>
-          var unfoldedFcts = ListBuffer[L3_Function]()
-          for (level <- list.levels.toList.sortBy(_.asInstanceOf[L3_SingleLevel].level)) {
-            var newFct = Duplicate(fct)
-            newFct.levels = Some(level)
-            L3_HandleLocalLevelSpecifiers.baseLevel = level.asInstanceOf[L3_SingleLevel].level
-            L3_HandleLocalLevelSpecifiers.applyStandalone(newFct)
-            unfoldedFcts += newFct
-          }
-          unfoldedFcts
+case class L3_LeveledFunction(
+    var name : String,
+    var level : Int,
+    var datatype : L3_Datatype,
+    var parameters : ListBuffer[L3_Function.Argument],
+    var body : ListBuffer[L3_Statement]) extends L3_Function {
 
-        case level : L3_SingleLevel =>
-          L3_HandleLocalLevelSpecifiers.baseLevel = level.level
-          L3_HandleLocalLevelSpecifiers.applyStandalone(fct)
-          fct
-
-        case level =>
-          Logger.warn(s"Found l3 function with invalid level specification $level")
-          fct
-      }
-  })
-
-  // TODO: move out of base
-  object L3_HandleLocalLevelSpecifiers extends QuietDefaultStrategy("Handle local level specifiers") {
-    var baseLevel : Int = -1
-    this += Transformation("Process current, coarser and finer", {
-      case L3_CurrentLevel => L3_SingleLevel(baseLevel)
-      case L3_CoarserLevel => L3_SingleLevel(baseLevel - 1)
-      case L3_FinerLevel   => L3_SingleLevel(baseLevel + 1)
-    })
-
-    this += Transformation("Process unresolved field and operator accesses", {
-      case access : L3_UnresolvedAccess if access.level.isEmpty =>
-        // check if access without level is a field
-        if (L3_FieldCollection.exists(access.name))
-          access.level = Some(L3_SingleLevel(baseLevel))
-        // ... or a stencil
-        else if (L3_StencilCollection.exists(access.name))
-          access.level = Some(L3_SingleLevel(baseLevel))
-        // ... or a stencil template
-        else if (L3_StencilTemplateCollection.exists(access.name))
-          access.level = Some(L3_SingleLevel(baseLevel))
-        // ... or a function
-        else if (StateManager.findFirst({ fct : L3_Function => access.name == fct.name && fct.levels.isDefined }).isDefined)
-          access.level = Some(L3_SingleLevel(baseLevel))
-
-        access
-    })
+  override def prettyprint(out : PpStream) = {
+    out << "Function " << name << '@' << level
+    if (parameters.nonEmpty) out << " ( " <<< (parameters, ", ") << " )"
+    if (datatype != L3_UnitDatatype) out << " : " << datatype
+    out << " {\n" <<< (body, "\n") << "\n}"
   }
 
+  override def progress = L4_LeveledFunction(name, level, datatype.progress, parameters.map(_.progress), body.map(_.progress))
+}
+
+/// L3_FunctionCollector
+
+object L3_FunctionCollector extends Collector {
+  var plainFunctions = HashMap[String, L3_Datatype]()
+  var leveledFunctions = HashMap[(String, Int), L3_Datatype]()
+
+  override def enter(node : Node) : Unit = {
+    node match {
+      case fct : L3_PlainFunction   => plainFunctions += (fct.name -> fct.datatype)
+      case fct : L3_LeveledFunction => leveledFunctions += ((fct.name, fct.level) -> fct.datatype)
+
+      case _ =>
+    }
+  }
+
+  override def leave(node : Node) : Unit = {
+    // no need to remove information from collections
+  }
+
+  override def reset() : Unit = {
+    plainFunctions.clear()
+    leveledFunctions.clear()
+  }
+
+  def exists(name : String) = plainFunctions.contains(name) || leveledFunctions.keys.exists(_._1 == name)
+  def existsPlain(name : String) = plainFunctions.contains(name)
+  def existsLeveled(name : String, level : Int) = leveledFunctions.contains((name, level))
+
+  def getDatatype(name : String) = plainFunctions(name)
+  def getDatatype(name : String, level : Int) = leveledFunctions((name, level))
 }

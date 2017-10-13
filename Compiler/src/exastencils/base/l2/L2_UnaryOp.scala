@@ -3,6 +3,8 @@ package exastencils.base.l2
 import exastencils.base.l3._
 import exastencils.prettyprinting._
 
+/// L2_UnaryOperators
+
 object L2_UnaryOperators extends Enumeration {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 

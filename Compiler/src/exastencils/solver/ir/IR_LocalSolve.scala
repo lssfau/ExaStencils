@@ -4,7 +4,6 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
 import exastencils.config.Knowledge
-import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
@@ -19,14 +18,13 @@ object IR_ResolveLocalSolve extends DefaultStrategy("Resolve IR_LocalSolve nodes
   })
 }
 
-/// IR_Equation
-
-// TODO: move eq node to more fitting file/package
-case class IR_Equation(var lhs : IR_Expression, var rhs : IR_Expression) extends IR_Node
-
 /// IR_LocalSolve
 
-case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equations : ListBuffer[IR_Equation], var relax : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
+case class IR_LocalSolve(
+    var unknowns : ListBuffer[IR_FieldAccess],
+    var equations : ListBuffer[IR_Equation],
+    var jacobiType : Boolean,
+    var relax : Option[IR_Expression]) extends IR_Statement with IR_SpecialExpandable {
   var fVals = ListBuffer[IR_Addition]()
   var AVals = ListBuffer[ListBuffer[IR_Addition]]()
 
@@ -125,15 +123,11 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
 
   def sortEquations() = {
     // preparation: bring all entries to left side and simplify
-    var zeroEqs = equations.map(eq => Duplicate(eq.lhs - eq.rhs) : IR_Expression)
-    zeroEqs = zeroEqs.map(IR_SimplifyExpression.simplifyFloatingExpr)
+    val zeroEqs = equations.map(_.asZeroEquation())
 
-    // flatten computations to facilitate further processing
-    // zeroEqs.foreach(eq => IR_FlattenComputation.doUntilDoneStandalone(IR_ExpressionStatement(eq)))
-    // for (_ <- 0 until 10)
-    // zeroEqs.foreach(eq => IR_FlattenComputation.applyStandalone(IR_ExpressionStatement(eq)))
-    //IR_FlattenComputation.applyStandalone(zeroEqs)
+    // flatten computations to facilitate further processing - also flatten unknowns for comparability
     IR_FlattenComputation.doUntilDoneStandalone(zeroEqs)
+    IR_FlattenComputation.doUntilDoneStandalone(unknowns)
 
     // process single expressions (parts of the equations) - build matrix and rhs
     for (eqNumber <- zeroEqs.indices)
@@ -148,26 +142,18 @@ case class IR_LocalSolve(var unknowns : ListBuffer[IR_FieldAccess], var equation
 
     def mapToExp(add : IR_Addition) : IR_Expression = {
       add match {
-        case IR_Addition(ListBuffer()) =>
-          IR_RealConstant(0) // empty entries means zero
-
-        case ex : IR_Expression =>
-          IR_GeneralSimplify.applyStandalone(IR_ExpressionStatement(ex))
-          ex
+        case IR_Addition(ListBuffer()) => IR_RealConstant(0) // empty entries means zero
+        case ex : IR_Expression        => IR_GeneralSimplifyWrapper.process(ex)
       }
     }
-
-    Logger.pushLevel(Logger.WARNING)
 
     val fExp = fVals.map(mapToExp)
     val AExp = AVals.map(_.map(mapToExp))
 
-    Logger.popLevel()
-
     // choose strategy used for inverting local matrix
     if (Knowledge.experimental_applySchurCompl && IR_LocalSchurCompl.suitable(AVals))
-      IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, relax))
+      IR_Scope(IR_LocalSchurCompl(AExp, fExp, unknowns, jacobiType, relax))
     else
-      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, relax))
+      IR_Scope(IR_LocalDirectInvert(AExp, fExp, unknowns, jacobiType, relax))
   }
 }

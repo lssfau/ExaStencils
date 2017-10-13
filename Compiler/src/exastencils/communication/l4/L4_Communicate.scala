@@ -7,8 +7,8 @@ import exastencils.communication.ir._
 import exastencils.core.Duplicate
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.l4.L4_FieldAccess
+import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.prettyprinting._
-import exastencils.stencil.l4.L4_StencilFieldAccess
 
 /// L4_Communicate
 
@@ -26,7 +26,7 @@ case class L4_Communicate(
   override def prettyprint(out : PpStream) = {
     if ("both" != op) out << op + ' '
     out << "communicate " <<< (targets, " ") << (if (targets.isEmpty) "" else " of ") << field
-    if (condition.isDefined) out << " where " << condition
+    if (condition.isDefined) out << " where " << condition.get
   }
 
   override def progress : IR_Communicate = {
@@ -34,9 +34,9 @@ case class L4_Communicate(
     // FIXME: honor component accesses
     val progressedField = Duplicate(field match {
       case f : L4_FieldAccess         => f.progress.fieldSelection
-      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObject().field,
+      case sf : L4_StencilFieldAccess => IR_FieldSelection(sf.target.getProgressedObj().field,
         sf.target.level,
-        L4_FieldAccess.resolveSlot(sf.target.getProgressedObject().field, sf.slot))
+        L4_FieldAccess.resolveSlot(sf.target.getProgressedObj().field, sf.slot))
     })
     val progressedTargets : ListBuffer[IR_CommunicateTarget] = ListBuffer()
 

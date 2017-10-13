@@ -2,16 +2,23 @@ package exastencils.base.l3
 
 import exastencils.base.l4._
 import exastencils.core._
+import exastencils.logger.Logger
+import exastencils.optimization.l3.L3_SimplifyExpression
 import exastencils.prettyprinting._
-
-/// L3_Index
 
 trait L3_Index extends L3_Expression {
   override def progress : L4_Index
-  def toExpressionIndex : L3_ExpressionIndex
-}
 
-/// L3_ArrayBasedIndex
+  // to be implemented by inheriting from L3_ArrayBasedIndex
+  def length() : Int
+
+  // conversion to expression index
+  def toExpressionIndex : L3_ExpressionIndex
+
+  // index arithmetic
+  def +(that : L3_Index) : L3_Index
+  def -(that : L3_Index) : L3_Index
+}
 
 trait L3_ArrayBasedIndex[T] extends Iterable[T] {
   var indices : Array[T]
@@ -35,17 +42,16 @@ case class L3_ExpressionIndex(override var indices : Array[L3_Expression]) exten
   override def prettyprint(out : PpStream) = out << '[' <<< (this, ", ") << ']'
   override def progress = L4_ExpressionIndex(indices.map(_.progress))
 
-  def +(that : L3_Index) = {
-    that match {
-      case that : L3_ExpressionIndex => L3_ExpressionIndex(this, that, _ + _)
-      case that : L3_ConstIndex      => L3_ExpressionIndex(this, that.toExpressionIndex, _ + _)
-    }
-  }
-  def -(that : L3_Index) = {
-    that match {
-      case that : L3_ExpressionIndex => L3_ExpressionIndex(this, that, _ - _)
-      case that : L3_ConstIndex      => L3_ExpressionIndex(this, that.toExpressionIndex, _ - _)
-    }
+  override def +(that : L3_Index) : L3_ExpressionIndex = L3_ExpressionIndex(this, that.toExpressionIndex, _ + _)
+  override def -(that : L3_Index) : L3_ExpressionIndex = L3_ExpressionIndex(this, that.toExpressionIndex, _ - _)
+
+  override def toExpressionIndex = this
+
+  def toConstIndex = {
+    L3_ConstIndex(indices.map(L3_SimplifyExpression.simplifyIntegralExpr(_) match {
+      case L3_IntegerConstant(value) => value.toInt
+      case other                     => Logger.error(s"Unsupported value in (constant) index: $other")
+    }))
   }
 
   override def equals(other : Any) : Boolean = {
@@ -58,10 +64,8 @@ case class L3_ExpressionIndex(override var indices : Array[L3_Expression]) exten
   }
 
   override def hashCode() : Int = {
-    java.util.Arrays.hashCode(indices.asInstanceOf[Array[Object]]) * 41 + 33 // random modification to ensure the hashcode of this element differs from the hashcode of the array itself
+    java.util.Arrays.hashCode(indices.asInstanceOf[Array[Object]]) * 31 + 42 // random modification to ensure the hashcode of this element differs from the hashcode of the array itself
   }
-
-  override def toExpressionIndex = this
 }
 
 /// L3_ConstIndex
@@ -77,10 +81,19 @@ case class L3_ConstIndex(override var indices : Array[Int]) extends L3_Index wit
   override def progress = L4_ConstIndex(indices)
 
   def +(that : L3_ConstIndex) = L3_ConstIndex(this, that, _ + _)
-  def -(that : L3_ConstIndex) = L3_ConstIndex(this, that, _ - _)
+  override def +(that : L3_Index) = L3_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)
 
-  def +(that : L3_ExpressionIndex) = L3_ExpressionIndex(this.toExpressionIndex, that, _ + _)
-  def -(that : L3_ExpressionIndex) = L3_ExpressionIndex(this.toExpressionIndex, that, _ - _)
+  def -(that : L3_ConstIndex) = L3_ConstIndex(this, that, _ - _)
+  override def -(that : L3_Index) = L3_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ - _)
 
   override def toExpressionIndex = L3_ExpressionIndex(indices.map(L3_IntegerConstant(_) : L3_Expression))
+
+  override def equals(other : Any) : Boolean = {
+    if (this eq other.asInstanceOf[AnyRef])
+      return true
+    other match {
+      case L3_ConstIndex(oIndices) => java.util.Arrays.equals(this.indices, oIndices)
+      case _                       => false
+    }
+  }
 }

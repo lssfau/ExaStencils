@@ -7,19 +7,17 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config._
 import exastencils.core.Duplicate
-import exastencils.datastructures.Transformation._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.polyhedron.PolyhedronAccessible
 
 /// IR_InitFieldsWithZero
 
-case class IR_InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandable {
+case class IR_InitFieldsWithZero() extends IR_FuturePlainFunction {
+  override var name = "initFieldsWithZero"
   override def prettyprint_decl() : String = prettyprint
-  override def name = "initFieldsWithZero"
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() = {
     val fields = IR_FieldCollection.sortedObjects
     var statements : ListBuffer[IR_Statement] = new ListBuffer
 
@@ -33,9 +31,9 @@ case class IR_InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandabl
         (0 until field.numSlots).to[ListBuffer].map(slot =>
           IR_Assignment(
             IR_DirectFieldAccess(IR_FieldSelection(field, field.level, slot), Duplicate(index)),
-            0.0) : IR_Statement)) with PolyhedronAccessible
+            0.0) : IR_Statement))
       loopOverDims.parallelization.potentiallyParallel = true
-      loopOverDims.optLevel = 1
+      loopOverDims.polyOptLevel = 1
 
       val wrapped = IR_LoopOverFragments(
         IR_IfCondition(IR_IV_IsValidForDomain(field.domain.index), loopOverDims),
@@ -47,6 +45,6 @@ case class IR_InitFieldsWithZero() extends IR_AbstractFunction with IR_Expandabl
         statements += wrapped
     }
 
-    IR_Function(IR_UnitDatatype, name, statements)
+    IR_PlainFunction(name, IR_UnitDatatype, statements)
   }
 }

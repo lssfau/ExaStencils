@@ -141,17 +141,17 @@ i=0
 while read line
 do
 
-  # stip comments
+  # strip comments
   line2=${line%%\#*}
   if [[ $line2 =~ ^[" \t"]*$ ]]; then
     continue # empty line, nothing to do...
   fi
 
   # extract fields
-  read id main knowledge l4file result nodes cores constraints <<< $line2
+  read id main knowledge exafiles result nodes cores constraints <<< $line2
 
-  # ${knowledge} must present, ${l4file} must be present or "*" and either all of ${result}, ${nodes} and ${cores} must be valid or none of them
-  if [[ ! -f "${TESTING_DIR}/${knowledge}" ]] || [[ ! "${l4file}" = "*" && ! -f "${TESTING_DIR}/${l4file}" ]] || [[ ! ( -f "${TESTING_DIR}/${result}" && ${nodes} =~ ^[0-9]+$ && ${cores} =~ ^[0-9]+$ ) && ! ( -z ${result} && -z ${nodes} && -z ${cores} ) ]]; then
+  # ${knowledge} must present and either all of ${result}, ${nodes} and ${cores} must be valid or not given at all
+  if [[ ! -f "${TESTING_DIR}/${knowledge}" ]] || [[ ! ( -f "${TESTING_DIR}/${result}" && ${nodes} =~ ^[0-9]+$ && ${cores} =~ ^[0-9]+$ ) && ! ( -z ${result} && -z ${nodes} && -z ${cores} ) ]]; then
     echo "ERROR:  Invalid configuration line:  '${line}'"
     touch "${ERROR_MARKER}"
     continue
@@ -163,11 +163,32 @@ do
   TEST_DIR="${TESTS_DIR}/${id}"
   TEST_BIN="exastencils.exe"
 
-  if [[ "${l4file}" = "*" ]]; then
-    l4file="${TEST_DIR}/l4.exa"
-  else
-    l4file="${TESTING_DIR}/${l4file}"
+  if [[ "${exafiles}" = "*" ]]; then
+    exafiles=""
   fi
+  # test if ${exafiles} exist and create absolute paths
+  IFS=';' read -a exaf <<< $exafiles
+  exafiles=""
+  for f in "${exaf[@]}"; do
+    abs="${TESTING_DIR}/${f}"
+    if [[ -f "${abs}" ]]; then
+      case ${abs} in
+        *.exa1) ;;
+        *.exa2) ;;
+        *.exa3) ;;
+        *.exa4) ;;
+        *)
+          echo "<span style=\"color: #FF8000\">WARNING: skip input file '${f}' (unknown file extension)</span>"
+          continue # do not add it to ${exafiles}
+          ;;
+      esac
+      exafiles="${exafiles}${abs};" # place delimiter at the end to ensure the resulting string does not start with it
+    else
+      echo "ERROR:  Invalid configuration line:  '${line}': ExaSlang file '${f}' not found"
+      touch "${ERROR_MARKER}"
+      continue 2 # continue outer while loop
+    fi
+  done
 
   COMPILE_CONSTR=""
   if [[ ${constraints} =~ GPU ]] || [[ ${constraints} = "E5" ]]; then
@@ -185,77 +206,46 @@ do
   echo "Test ID:  ${id}" >> "${TEST_LOG}"
   echo "<a href=./>Back to overview.</a>" >> "${TEST_LOG}"
 
-  echo "Enqueue generation and compilation job for id  ${id}."
+  echo "Enqueue generation and compilation job, as well as execution job for id  ${id}."
   # configuration is fine, start a new job for it
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} ${COMPILE_CONSTR} "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${l4file}" "${TESTING_DIR}/Platform/${PLATFORM}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
+  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etg_${id}" -o ${TEST_LOG} -e ${TEST_LOG} ${COMPILE_CONSTR} "--dependency=afterok:${SLURM_JOB_ID}" "${SCR_DIR}/tests2_single.sh" "${TESTING_DIR}" "${COMPILER_JAR}" ${main} "${TEST_DIR}" "${TEST_BIN}" "${TESTING_DIR}/${knowledge}" "${exafiles}" "${TESTING_DIR}/Platform/${PLATFORM}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
   if [[ $? -eq 0 ]]; then
     SID=${OUT#Submitted batch job }
     DEP_SIDS="${DEP_SIDS}:${SID}"
   else
     touch "${ERROR_MARKER}"
   fi
-  echo "${OUT}"
-  echo "<a href=./${TEST_LOG_REL}>Log...</a>"
-
+  echo "  ${OUT}"
   if [[ -n ${cores} ]]; then
-    TMP_ARRAY[i+0]=${id}
-    TMP_ARRAY[i+1]=${nodes}
-    TMP_ARRAY[i+2]=${cores}
-    TMP_ARRAY[i+3]=${constraints}
-    TMP_ARRAY[i+4]=${result}
-    TMP_ARRAY[i+5]="${TEST_DIR}/${TEST_BIN}"
-    TMP_ARRAY[i+6]=${SID}
-    i=$((i+7))
+    TEST_DEP="--dependency=afterok:${SID}"
+
+    ACC="anywhere"
+    PART="anywhere"
+    CONSTR_PARAM="--constraint=${constraints}"
+    if [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
+      ACC="cl"
+      PART="chimaira"
+      CONSTR_PARAM=""
+    fi
+    if [[ ${constraints} =~ GPU ]]; then
+      ACC="cl"
+      PART="chimaira"
+      CONSTR_PARAM="--gres=gpu:1"
+    fi
+    OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_DIR}/${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEMP_DIR}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
+    if [[ $? -eq 0 ]]; then
+      SID=${OUT#Submitted batch job }
+      DEP_SIDS="${DEP_SIDS}:${SID}"
+    else
+      touch "${ERROR_MARKER}"
+    fi
+    echo "  ${OUT}"
   else
+    echo "  No execution required."
     echo "Test OK (must not be executed)" >> "${TEST_LOG}"
   fi
+  echo "  <a href=./${TEST_LOG_REL}>Log...</a>"
 done < "${TESTING_CONF}"
-
-echo ""
-echo "Enqueue execution jobs:"
-echo ""
-
-# enqueue execution jobs
-for ((i=0;i<${#TMP_ARRAY[@]};i+=7)); do
-
-  id=${TMP_ARRAY[i+0]}
-  nodes=${TMP_ARRAY[i+1]}
-  cores=${TMP_ARRAY[i+2]}
-  constraints=${TMP_ARRAY[i+3]}
-  result=${TMP_ARRAY[i+4]}
-  TEST_BIN=${TMP_ARRAY[i+5]}
-  SID_GEN=${TMP_ARRAY[i+6]}
-
-  TEST_LOG_REL="${id}.html"
-  TEST_LOG="${LOG_DIR}/${TEST_LOG_REL}"
-  TEST_ERROR_MARKER="${TEST_LOG}.${ERROR_MARKER_NAME}"
-
-  TEST_DEP="--dependency=afterok:${SID_GEN}"
-
-  ACC="anywhere"
-  PART="anywhere"
-  CONSTR_PARAM="--constraint=${constraints}"
-  if [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
-    ACC="cl"
-    PART="chimaira"
-    CONSTR_PARAM=""
-  fi
-  if [[ ${constraints} =~ GPU ]]; then
-    ACC="cl"
-    PART="chimaira"
-    CONSTR_PARAM="--gres=gpu:1"
-  fi
-  echo "Enqueue execution job for id  ${id}."
-  OUT=$(unset SLURM_JOB_NAME; sbatch --job-name="etr_${id}" -o ${TEST_LOG} -e ${TEST_LOG} -A ${ACC} -p ${PART} -n ${nodes} -c ${cores} ${TEST_DEP} ${CONSTR_PARAM} "${SCR_DIR}/tests3_generated.sh" "${TEST_BIN}" "${TESTING_DIR}/${result}" "${TEMP_DIR}" "${TEST_ERROR_MARKER}" "${OUT_FILE}" "<a href=./${TEST_LOG_REL}>${id}</a>" "${PROGRESS}" "${BRANCH}")
-  if [[ $? -eq 0 ]]; then
-    SID=${OUT#Submitted batch job }
-    DEP_SIDS="${DEP_SIDS}:${SID}"
-  else
-    touch "${ERROR_MARKER}"
-  fi
-  echo "${OUT}"
-  echo "<a href=./${TEST_LOG_REL}>Log...</a>"
-done
 
 echo ""
 echo "Collect separate logs after all other jobs are finished:"

@@ -37,7 +37,7 @@ case class L4_VectorExpression(
     if (!rowVector)
       out << '[' <<< (expressions, "; ") << ']'
     else
-      out << '[' <<< (expressions, ", ") << ']'
+      out << '{' <<< (expressions, ", ") << '}'
   }
 
   def progress = {

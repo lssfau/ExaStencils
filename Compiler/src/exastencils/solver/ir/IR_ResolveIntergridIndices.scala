@@ -4,18 +4,17 @@ import exastencils.base.ir.IR_FunctionCall
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.core.collectors.IRLevelCollector
 import exastencils.datastructures._
 import exastencils.field.ir.IR_FieldAccess
 import exastencils.logger.Logger
+import exastencils.operator.ir.IR_StencilFieldAccess
 import exastencils.optimization.ir.IR_SimplifyExpression
-import exastencils.stencil.ir.IR_StencilFieldAccess
-import exastencils.util.ir.IR_ReplaceVariableAccess
+import exastencils.util.ir._
 
 /// IR_ResolveIntergridIndices
 
 object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in operations between two grid levels") {
-  val collector = new IRLevelCollector
+  val collector = new IR_LevelCollector
   this.register(collector)
 
   // TODO: checking for being inside a valid level scope is currently required for setting up geometric information of grids with varying cell sizes
@@ -32,8 +31,7 @@ object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in op
         val idxAdaption = fct.arguments(2 + dim)
 
         // insert old index into index adaptation function
-        IR_ReplaceVariableAccess.toReplace = "i"
-        IR_ReplaceVariableAccess.replacement = Duplicate(fieldAccess.index(dim))
+        IR_ReplaceVariableAccess.replace = Map("i" -> Duplicate(fieldAccess.index(dim)))
         val newIdx = Duplicate(idxAdaption)
         IR_ReplaceVariableAccess.applyStandalone(newIdx)
 
@@ -58,14 +56,14 @@ object IR_ResolveIntergridIndices extends DefaultStrategy("Resolve indices in op
       fieldAccess
 
     case access : IR_StencilFieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) < collector.getCurrentLevel =>
+      IR_SimplifyExpression.evalIntegral(access.selection.level) < collector.getCurrentLevel =>
       val stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = stencilFieldAccess.index(i) / 2
       stencilFieldAccess
 
     case access : IR_StencilFieldAccess if collector.inLevelScope &&
-      IR_SimplifyExpression.evalIntegral(access.stencilFieldSelection.level) > collector.getCurrentLevel =>
+      IR_SimplifyExpression.evalIntegral(access.selection.level) > collector.getCurrentLevel =>
       val stencilFieldAccess = Duplicate(access)
       for (i <- 0 until Knowledge.dimensionality) // (n+1)d is reserved
         stencilFieldAccess.index(i) = 2 * stencilFieldAccess.index(i)

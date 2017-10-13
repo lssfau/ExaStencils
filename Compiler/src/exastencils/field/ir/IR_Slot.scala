@@ -4,10 +4,10 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
-import exastencils.core.collectors.StackCollector
 import exastencils.datastructures._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting.PpStream
+import exastencils.util.ir.IR_StackCollector
 
 /// IR_IV_ActiveSlot
 
@@ -45,7 +45,7 @@ case class IR_AdvanceSlot(var slot : IR_IV_ActiveSlot) extends IR_Statement with
 /// IR_ResolveSlotOperations
 
 object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations") {
-  var collector = new StackCollector
+  var collector = new IR_StackCollector
   this.register(collector)
 
   this += new Transformation("Resolve", {
@@ -54,9 +54,9 @@ object IR_ResolveSlotOperations extends DefaultStrategy("Resolve slot operations
     case advanceSlot : IR_AdvanceSlot =>
       // check if already inside a fragment loop - if not wrap the expanded statement
       if (collector.stack.map {
-        case _ : IR_LoopOverFragments                                                                     => true
-        case IR_ForLoop(IR_VariableDeclaration(_, it, _), _, _, _, _) if IR_LoopOverFragments.defIt == it => true
-        case _                                                                                            => false
+        case _ : IR_LoopOverFragments                                                                             => true
+        case IR_ForLoop(IR_VariableDeclaration(_, it, _, _), _, _, _, _) if IR_LoopOverFragments.defIt.name == it => true
+        case _                                                                                                    => false
       }.fold(false)((a, b) => a || b))
         advanceSlot.expandSpecial()
       else

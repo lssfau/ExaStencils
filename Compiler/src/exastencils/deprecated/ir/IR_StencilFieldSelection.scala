@@ -18,7 +18,7 @@ case class IR_StencilFieldSelection(
 
   // shortcuts to stencilField members
   def field = stencilField.field
-  def offsets = stencilField.offsets
+  //def offsets = stencilField.offsets
 
   // shortcuts to Field members
   def codeName = field.codeName

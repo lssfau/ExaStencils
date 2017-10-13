@@ -38,12 +38,12 @@ object Fields {
       Array(s"RHS$postfix@$level")
   }
 
-  def addFields(printer : java.io.PrintWriter, postfix : String, domain : String) = {
+  def addFields(printer : java.io.PrintStream, postfix : String, domain : String) = {
     if ("Zero" != Knowledge.l3tmp_exactSolution || (Knowledge.l3tmp_kelvin && "" == postfix)) {
       var bc = if (Knowledge.l3tmp_kelvin && "" == postfix) "bcSol(vf_nodePosition_x@current, vf_nodePosition_y@current)"
-      else if (Knowledge.experimental_Neumann) "Neumann"
+      else if (Knowledge.l3tmp_Neumann) "Neumann"
       else Functions.solFunction(true)
-      var coarseBC = if (Knowledge.experimental_Neumann) "Neumann" else "0.0"
+      var coarseBC = if (Knowledge.l3tmp_Neumann) "Neumann" else "0.0"
       if ("Jac" == Knowledge.l3tmp_smoother) {
         if (Knowledge.l3tmp_useSlotsForJac) {
           printer.println(s"Field Solution$postfix< $domain, BasicComm, $coarseBC >[2]@(coarsest to ${ Knowledge.l3tmp_tempBlockingMinLevel - 1 })")
@@ -86,7 +86,7 @@ object Fields {
     if (Knowledge.l3tmp_kelvin && "" == postfix)
       printer.println(s"Field SolutionMean< $domain, NoComm, bcSol(vf_nodePosition_x@current, vf_nodePosition_y@current) >@finest")
 
-    printer.println(s"Field Residual$postfix< $domain, BasicComm, ${ if (Knowledge.experimental_Neumann) "Neumann" else "0.0" } >@all")
+    printer.println(s"Field Residual$postfix< $domain, BasicComm, ${ if (Knowledge.l3tmp_Neumann) "Neumann" else "0.0" } >@all")
 
     printer.println(s"Field RHS$postfix< $domain, NoComm, None >@(coarsest to ${ Knowledge.l3tmp_tempBlockingMinLevel - 1 })")
     if (Knowledge.l3tmp_kelvin && "_GMRF" == postfix) {
@@ -98,7 +98,7 @@ object Fields {
     }
 
     if ("CG" == Knowledge.l3tmp_cgs) {
-      val bcVecP = if (Knowledge.experimental_Neumann) "Neumann" else "0.0"
+      val bcVecP = if (Knowledge.l3tmp_Neumann) "Neumann" else "0.0"
       if (Knowledge.l3tmp_genVectorFields) {
         printer.println(s"Field VecP$postfix< $domain, BasicCommScalar, $bcVecP >@coarsest")
         printer.println(s"Field VecGradP$postfix< $domain, NoCommScalar, None >@coarsest")

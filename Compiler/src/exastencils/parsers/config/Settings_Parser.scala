@@ -22,7 +22,7 @@ class Settings_Parser extends ExaParser {
   private val prevDirs = new Stack[java.io.File]().push(null)
   def parseFile(filename : String) : Unit = {
     val file = new java.io.File(prevDirs.top, filename)
-    val lines = io.Source.fromFile(file).getLines
+    val lines = scala.io.Source.fromFile(file).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
 
@@ -59,18 +59,11 @@ class Settings_Parser extends ExaParser {
 
   lazy val settingsfile = setting.*
 
-  lazy val expressionList = /*locationize*/ (expr <~ ("," | newline)).* ~ expr ^^ { case args ~ arg => args :+ arg }
+  lazy val literalList = /*locationize*/ (literal <~ ("," | newline)).* ~ literal ^^ { case args ~ arg => args :+ arg }
 
   lazy val setting = ("import" ~> stringLit ^^ (path => parseFile(path))
-    ||| (ident <~ "=") ~ expr ^^ { case id ~ ex => setParameter(id, ex) }
-    ||| (ident <~ "+=") ~ expr ^^ { case id ~ ex => addParameter(id, ex) }
-    ||| (ident <~ "+=") ~ ("{" ~> expressionList <~ "}") ^^ { case id ~ exs => for (ex <- exs) addParameter(id, ex) }
-    ||| (ident <~ "=") ~ ("{" ~> expressionList <~ "}") ^^ { case id ~ exs => setParameter(id, exs.to[ListBuffer]) })
-
-  lazy val expr = stringLit ^^ { _.toString } |
-    "-".? ~ numericLit ^^ {
-      case s ~ n if isInt(s.getOrElse("") + n) => (s.getOrElse("") + n).toInt : AnyVal
-      case s ~ n                               => (s.getOrElse("") + n).toDouble : AnyVal
-    } |
-    booleanLit ^^ { _.booleanValue() }
+    ||| (ident <~ "=") ~ literal ^^ { case id ~ ex => setParameter(id, ex) }
+    ||| (ident <~ "+=") ~ literal ^^ { case id ~ ex => addParameter(id, ex) }
+    ||| (ident <~ "+=") ~ ("{" ~> literalList <~ "}") ^^ { case id ~ exs => for (ex <- exs) addParameter(id, ex) }
+    ||| (ident <~ "=") ~ ("{" ~> literalList <~ "}") ^^ { case id ~ exs => setParameter(id, exs.to[ListBuffer]) })
 }

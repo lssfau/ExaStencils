@@ -8,10 +8,9 @@ import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.core.collectors.FctNameCollector
 import exastencils.datastructures._
 import exastencils.field.ir._
-import exastencils.polyhedron.PolyhedronAccessible
+import exastencils.util.ir.IR_FctNameCollector
 
 /// CUDA_PrepareHostCode
 
@@ -21,7 +20,7 @@ import exastencils.polyhedron.PolyhedronAccessible
   */
 object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code by adding memory transfer statements " +
   "and annotating for later kernel transformation") {
-  val collector = new FctNameCollector
+  val collector = new IR_FctNameCollector
   this.register(collector)
 
   def syncBeforeHost(access : String, others : Iterable[String]) = {
@@ -162,7 +161,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // 1. this loop is a special one and cannot be optimized in polyhedral model
       // 2. this loop has no parallel potential
       // use the host for dealing with the two exceptional cases
-      val isParallel = containedLoop.isInstanceOf[PolyhedronAccessible] && containedLoop.parallelization.potentiallyParallel
+      val isParallel = containedLoop.parallelization.potentiallyParallel // filter some generate loops?
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(containedLoop.body, isParallel)
@@ -234,7 +233,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       // 1. this loop is a special one and cannot be optimized in polyhedral model
       // 2. this loop has no parallel potential
       // use the host for dealing with the two exceptional cases
-      val isParallel = loop.isInstanceOf[PolyhedronAccessible] && loop.parallelization.potentiallyParallel
+      val isParallel = loop.parallelization.potentiallyParallel // filter some generate loops?
 
       // calculate memory transfer statements for host and device
       val (beforeHost, afterHost, beforeDevice, afterDevice) = getHostDeviceSyncStmts(loop.body, isParallel)
@@ -246,6 +245,7 @@ object CUDA_PrepareHostCode extends DefaultStrategy("Prepare CUDA relevant code 
       if (isParallel) {
         val loopCuda = Duplicate(loop)
         loopCuda.annotate(CUDA_Util.CUDA_LOOP_ANNOTATION, collector.getCurrentName)
+        loopCuda.polyOptLevel = 0 // TODO: is there a way to create only perfectly nested loops using the isl? (check with correction code)
         deviceStmts += loopCuda
       }
 

@@ -9,8 +9,11 @@ object Platform {
   // name of the target system; e.g. name of the cluster
   var targetName : String = "i10staff40"
 
-  // the target operating system: "Linux", "Windows", "OSX"
+  // the target operating system: "Linux", "Windows", "macOS"
   var targetOS : String = "Windows"
+
+  // optionally set name to compiler binary to be used in Makefile
+  var targetCompilerBinary : String = ""
 
   // the target compiler; may atm be "MSVC", "GCC", "IBMXL", "IBMBG", "ICC", "CLANG", "CRAY", "PGI"
   var targetCompiler : String = "MSVC"
@@ -171,6 +174,7 @@ object Platform {
   // in Hz
   var hw_gpu_frequency : Double = 0.475 * 1000 * 1000 * 1000
   var hw_gpu_numCores : Int = 256
+  var hw_gpu_gpuDirectAvailable : Boolean = true
   var hw_cuda_capability : Int = 2
   var hw_cuda_capabilityMinor : Int = 0
   // amount of shared memory in byte
@@ -191,28 +195,32 @@ object Platform {
   /// resolve functions
 
   def resolveCompiler = {
-    targetCompiler match {
-      case "IBMBG" =>
-        val base = if (Knowledge.mpi_enabled) "mpixlcxx" else "bgxlc++"
-        if (Knowledge.omp_enabled) base + "_r" else base
-      case "IBMXL" =>
-        if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
-      case "GCC"   =>
-        if ("ARM" == targetHardware)
-          "arm-linux-gnueabihf-g++"
-        else if (Knowledge.mpi_enabled)
-          "mpicxx"
-        else
-          "g++"
-      case "MSVC"  =>
-        "" // nothing to do
-      case "ICC"   =>
-        if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
-      case "CLANG" =>
-        "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
-      case "Cray"  =>
-        "CC" // no special wrapper required for PizDaint -> might need to be changed later
-      case "PGI"   => ???
+    if(!targetCompilerBinary.isEmpty) {
+      targetCompilerBinary
+    } else {
+      targetCompiler match {
+        case "IBMBG" =>
+          val base = if (Knowledge.mpi_enabled) "mpixlcxx" else "bgxlc++"
+          if (Knowledge.omp_enabled) base + "_r" else base
+        case "IBMXL" =>
+          if (Knowledge.mpi_enabled) "mpixlcxx" else "xlc++"
+        case "GCC"   =>
+          if ("ARM" == targetHardware)
+            "arm-linux-gnueabihf-g++"
+          else if (Knowledge.mpi_enabled)
+            "mpicxx"
+          else
+            "g++"
+        case "MSVC"  =>
+          "" // nothing to do
+        case "ICC"   =>
+          if (Knowledge.mpi_enabled) "mpicxx" else "icpc"
+        case "CLANG" =>
+          "clang++-" + targetCompilerVersion + "." + targetCompilerVersionMinor
+        case "Cray"  =>
+          "CC" // no special wrapper required for PizDaint -> might need to be changed later
+        case "PGI"   => ???
+      }
     }
   }
 

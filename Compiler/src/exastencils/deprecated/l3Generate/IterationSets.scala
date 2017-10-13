@@ -5,7 +5,7 @@ import exastencils.config._
 // NOTE: this is currently obsolete and only kept for reference
 
 object IterationSets {
-  def addIterationSets(printer : java.io.PrintWriter) = {
+  def addIterationSets(printer : java.io.PrintStream) = {
     Knowledge.dimensionality match {
       case 2 =>
         printer.println("Set inner [0, 0]")

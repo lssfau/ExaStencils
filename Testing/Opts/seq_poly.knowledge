@@ -48,4 +48,5 @@ l3tmp_genTemporalBlocking  = true
 l3tmp_tempBlockingMinLevel = 5
 l3tmp_genFragLoops         = true
 
+l3tmp_generateL4           = true
 l3tmp_genForAutoTests      = true

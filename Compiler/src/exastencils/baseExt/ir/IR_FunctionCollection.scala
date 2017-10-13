@@ -11,10 +11,10 @@ import exastencils.prettyprinting._
 abstract class IR_FunctionCollection(var baseName : String,
     var externalDependencies : ListBuffer[String],
     var internalDependencies : ListBuffer[String],
-    var functions : ListBuffer[IR_AbstractFunction] = ListBuffer()) extends IR_Node with FilePrettyPrintable {
+    var functions : ListBuffer[IR_FunctionLike] = ListBuffer()) extends IR_Node with FilePrettyPrintable {
 
   /// add a function to the function collection
-  def +=(fct : IR_AbstractFunction) = {
+  def +=(fct : IR_FunctionLike) = {
     functions += fct
     this
   }

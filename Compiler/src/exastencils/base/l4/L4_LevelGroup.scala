@@ -33,7 +33,13 @@ object L4_LevelList {
 }
 
 case class L4_LevelList(var levels : HashSet[L4_DeclarationLevelSpecification]) extends L4_LevelGroup {
-  override def prettyprint(out : PpStream) = out << '(' <<< (levels, ", ") << ')'
+  override def prettyprint(out : PpStream) = {
+    val (first, second) = levels.partition(!_.isInstanceOf[L4_NegatedLevelList])
+    out << "(" <<< (first, ", ")
+    if (second.size > 1) Logger.error("More than one negation per level list is not supported")
+    if (second.nonEmpty) out << " " << second.head
+    out << ")"
+  }
 
   def flatten() : Unit = {
     levels.foreach {
@@ -56,5 +62,5 @@ object L4_NegatedLevelList {
 }
 
 case class L4_NegatedLevelList(var levels : L4_LevelList) extends L4_LevelGroup {
-  def prettyprint(out : PpStream) = out << "not" << levels
+  def prettyprint(out : PpStream) = out << "but " << levels
 }

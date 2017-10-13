@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object Globals {
-  def addGlobals(printer : java.io.PrintWriter) = {
+  def addGlobals(printer : java.io.PrintStream) = {
     printer.println("Globals {")
     if (Knowledge.l3tmp_genGlobalOmega)
       printer.println(s"\tValue l3tmp_omega : Real = ${ Knowledge.l3tmp_omega }")

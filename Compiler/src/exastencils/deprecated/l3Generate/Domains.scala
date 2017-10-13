@@ -20,7 +20,7 @@ object Domains {
     }
   }
 
-  def addDomains(printer : java.io.PrintWriter) = {
+  def addDomains(printer : java.io.PrintStream) = {
     Knowledge.dimensionality match {
       case 2 =>
         if (!Knowledge.domain_rect_generate) {

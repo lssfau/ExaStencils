@@ -4,60 +4,68 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l3.L3_ImplicitConversion._
 import exastencils.base.l3._
+import exastencils.baseExt.l3.L3_FieldIteratorAccess
+import exastencils.grid.l3._
 
 object L3_DefaultRestriction {
-  type EntryList = ListBuffer[(L3_ConstIndex, L3_Expression)]
+  def stencilNodeLinear(level : Int) : L3_Stencil = {
+    def it = L3_FieldIteratorAccess(0)
+    def itAsIndex = L3_ExpressionIndex(it)
+    L3_Stencil("linearNode", level, 1, Array(2.0), ListBuffer(
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it - 1.0), 0.25),
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it + 0.0), 0.5),
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it + 1.0), 0.25)))
+  }
 
-  def generate(numDims : Int, localization : String, interpolation : String) : ListBuffer[L3_StencilEntry] = {
-    var entries : EntryList = ListBuffer((L3_ConstIndex(), L3_RealConstant(1.0)))
+  def stencilCellLinear(level : Int) : L3_Stencil = {
+    def it = L3_FieldIteratorAccess(0)
+    def itAsIndex = L3_ExpressionIndex(it)
+    L3_Stencil("linearCell", level, 1, Array(2.0), ListBuffer(
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it + 0.0), 0.5),
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it + 1.0), 0.5)))
+  }
 
-    interpolation match {
-      case "linear" =>
-        localization.toLowerCase() match {
-          case "node"   =>
-            for (dim <- 0 until numDims)
-              entries = wrapNodeLinear(entries)
-          case "cell"   =>
-            for (dim <- 0 until numDims)
-              entries = wrapCellLinear(entries)
-          case "face_x" =>
-            for (dim <- 0 until numDims) {
-              if (0 == dim)
-                entries = wrapNodeLinear(entries)
-              else
-                entries = wrapCellLinear(entries)
-            }
-          case "face_y" =>
-            for (dim <- 0 until numDims) {
-              if (1 == dim)
-                entries = wrapNodeLinear(entries)
-              else
-                entries = wrapCellLinear(entries)
-            }
-          case "face_z" =>
-            for (dim <- 0 until numDims) {
-              if (2 == dim)
-                entries = wrapNodeLinear(entries)
-              else
-                entries = wrapCellLinear(entries)
-            }
+  def stencilNodeIntegralLinear(level : Int) : L3_Stencil = {
+    def it = L3_FieldIteratorAccess(0)
+    def itAsIndex = L3_ExpressionIndex(it)
+    L3_Stencil("integralLinearNode", level, 1, Array(2.0), ListBuffer(
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it - 1.0), 0.5),
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it + 0.0), 1.0),
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it + 1.0), 0.5)))
+  }
+
+  def stencilCellIntegralLinear(level : Int) : L3_Stencil = {
+    def it = L3_FieldIteratorAccess(0)
+    def itAsIndex = L3_ExpressionIndex(it)
+    L3_Stencil("integralLinearCell", level, 1, Array(2.0), ListBuffer(
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it + 0.0), 1.0),
+      L3_StencilMappingEntry(itAsIndex, L3_ExpressionIndex(2.0 * it + 1.0), 1.0)))
+  }
+
+  def generate(name : String, level : Int, numDims : Int, localization : L3_Localization, interpolation : String) : L3_Stencil = {
+    val stencils = (0 until numDims).map(dim => {
+      interpolation match {
+        case "linear" => localization match {
+          case L3_AtNode                                  => stencilNodeLinear(level)
+          case L3_AtCellCenter                            => stencilCellLinear(level)
+          case L3_AtFaceCenter(faceDim) if faceDim == dim => stencilNodeLinear(level)
+          case L3_AtFaceCenter(_)                         => stencilCellLinear(level)
         }
-    }
 
-    entries.map(entry => L3_StencilEntry(entry._1, entry._2))
-  }
+        case "integral_linear" => localization match {
+          case L3_AtNode                                  => stencilNodeIntegralLinear(level)
+          case L3_AtCellCenter                            => stencilCellIntegralLinear(level)
+          case L3_AtFaceCenter(faceDim) if faceDim == dim => stencilNodeIntegralLinear(level)
+          case L3_AtFaceCenter(_)                         => stencilCellIntegralLinear(level)
+        }
+      }
+    })
 
-  def wrapNodeLinear(entries : EntryList) : EntryList = {
-    entries.flatMap(entry => ListBuffer(
-      (L3_ConstIndex(entry._1.indices :+ -1), 0.25 * entry._2),
-      (L3_ConstIndex(entry._1.indices :+ 0), 0.5 * entry._2),
-      (L3_ConstIndex(entry._1.indices :+ 1), 0.25 * entry._2)
-    ))
-  }
+    val composed = stencils.reduceLeft(L3_StencilOps.kron)
 
-  def wrapCellLinear(entries : EntryList) : EntryList = {
-    entries.flatMap(entry => ListBuffer(
-      (L3_ConstIndex(entry._1.indices :+ 0), 0.5 * entry._2),
-      (L3_ConstIndex(entry._1.indices :+ 1), 0.5 * entry._2)))
+    composed.name = name
+    composed.level = level
+
+    composed
   }
 }

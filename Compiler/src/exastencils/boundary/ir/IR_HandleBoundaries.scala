@@ -13,11 +13,9 @@ import exastencils.datastructures._
 import exastencils.deprecated.ir._
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_FieldAccess
-import exastencils.grid._
-import exastencils.grid.ir.IR_VirtualFieldAccess
+import exastencils.grid.ir._
 import exastencils.logger._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
-import exastencils.polyhedron.PolyhedronAccessible
 
 /// IR_HandleBoundaries
 
@@ -32,27 +30,22 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
     // apply local trafo and replace boundaryCoord
     val strat = QuietDefaultStrategy("ResolveBoundaryCoordinates")
     strat += new Transformation("SearchAndReplace", {
-      case virtualField : IR_VirtualFieldAccess if virtualField.fieldName.startsWith("boundaryCoord") || virtualField.fieldName.startsWith("vf_boundaryCoord") =>
-        val evalDim = virtualField.fieldName match {
-          case "boundaryCoord_x" | "vf_boundaryCoord_x" => 0
-          case "boundaryCoord_y" | "vf_boundaryCoord_y" => 1
-          case "boundaryCoord_z" | "vf_boundaryCoord_z" => 2
-          case _                                        => Logger.error(s"Invalid virtual field named ${ virtualField.fieldName } found")
-        }
+      case virtualField @ IR_VirtualFieldAccess(target : IR_VF_BoundaryPositionPerDim, index, fragIdx) =>
+        val evalDim = target.dim
 
-        field.fieldLayout.discretization match {
+        field.fieldLayout.localization match {
           // TODO: adapt for grids that are not axis-parallel
-          case discr if "node" == discr || ("face_x" == discr && 0 == evalDim) || ("face_y" == discr && 1 == evalDim) || ("face_z" == discr && 2 == evalDim) =>
-            virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
+          case IR_AtNode | IR_AtFaceCenter(`evalDim`) =>
+            virtualField.target = IR_VF_NodePositionPerDim.find(target.level, evalDim)
 
-          case discr if "cell" == discr || ("face_x" == discr && 0 != evalDim) || ("face_y" == discr && 1 != evalDim) || ("face_z" == discr && 2 != evalDim) =>
+          case IR_AtCellCenter | IR_AtFaceCenter(_) =>
             if (0 == neigh.dir(evalDim)) { // simple projection
-              virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "cellCenter")
+              virtualField.target = IR_VF_CellCenterPerDim.find(target.level, evalDim)
             } else if (neigh.dir(evalDim) < 0) { // snap to left boundary
-              virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
+              virtualField.target = IR_VF_NodePositionPerDim.find(target.level, evalDim)
             } else { // snap to right boundary
-              virtualField.fieldName = virtualField.fieldName.replace("boundaryCoord", "nodePosition")
-              virtualField.index = GridUtil.offsetIndex(virtualField.index, 1, evalDim)
+              virtualField.target = IR_VF_NodePositionPerDim.find(target.level, evalDim)
+              virtualField.index = IR_GridUtil.offsetIndex(virtualField.index, 1, evalDim)
             }
         }
         virtualField
@@ -71,73 +64,71 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
     def offsetIndexWithTrafo(f : (Int => Int)) = IR_ExpressionIndex(neigh.dir.map(f) ++ Array.fill(numDims - field.fieldLayout.numDimsGrid)(0))
 
     bc match {
-      case IR_NeumannBC(order)                 =>
+      case IR_NeumannBC(order) =>
         // TODO: move this logic to the appropriate bc classes
-        field.fieldLayout.discretization match {
-          case d if "node" == d
-            || ("face_x" == d && 0 != neigh.dir(0))
-            || ("face_y" == d && 0 != neigh.dir(1))
-            || ("face_z" == d && 0 != neigh.dir(2)) =>
-            order match {
-              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index), IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
-              case 2 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
-                ((4.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
-                  + ((-1.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i))))
-              case 3 => // TODO: do we want this? what do we do on the coarser levels?
-                statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
-                  ((3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -1 * i)))
-                    + ((-3.0 / 2.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i)))
-                    + ((1.0 / 3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -3 * i))))
-            }
-          case d if "cell" == d
-            || ("face_x" == d && 0 == neigh.dir(0))
-            || ("face_y" == d && 0 == neigh.dir(1))
-            || ("face_z" == d && 0 == neigh.dir(2)) =>
-            order match {
-              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex), IR_FieldAccess(fieldSel, index))
-            }
+
+        def forNode() = order match {
+          case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index), IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+          case 2 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
+            ((4.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+              + ((-1.0 / 3.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i))))
+          case 3 => // TODO: do we want this? what do we do on the coarser levels?
+            statements += IR_Assignment(IR_FieldAccess(fieldSel, index),
+              ((3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -1 * i)))
+                + ((-3.0 / 2.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -2 * i)))
+                + ((1.0 / 3.0 * 6.0 / 11.0) * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -3 * i))))
         }
+
+        def forCell() = order match {
+          case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex), IR_FieldAccess(fieldSel, index))
+        }
+
+        field.fieldLayout.localization match {
+          case IR_AtNode                                           => forNode()
+          case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => forNode()
+          case IR_AtCellCenter                                     => forCell()
+          case IR_AtFaceCenter(_)                                  => forCell()
+        }
+
       case IR_DirichletBC(boundaryExpr, order) =>
-        field.fieldLayout.discretization match {
-          case d if "node" == d
-            || ("face_x" == d && 0 != neigh.dir(0))
-            || ("face_y" == d && 0 != neigh.dir(1))
-            || ("face_z" == d && 0 != neigh.dir(2)) =>
-            statements += IR_Assignment(IR_FieldAccess(fieldSel, index), boundaryExpr)
-          case d if "cell" == d
-            || ("face_x" == d && 0 == neigh.dir(0))
-            || ("face_y" == d && 0 == neigh.dir(1))
-            || ("face_z" == d && 0 == neigh.dir(2)) =>
-            order match {
-              case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
-                (2.0 * boundaryExpr) - IR_FieldAccess(fieldSel, index))
-              case 2 =>
-                // determine weights for interpolation
-                var w_0_5, w_1, w_2 : IR_Expression = 0
-                if (Knowledge.grid_isUniform) {
-                  w_0_5 = 8.0 / 3.0
-                  w_1 = -2
-                  w_2 = 1.0 / 3.0
-                } else {
-                  // non-linear => use Lagrange polynomials
-                  val nonZero = neigh.dir.zipWithIndex.filter(_._1 != 0)
-                  if (nonZero.length != 1) Logger.error("Malformed neighbor index vector " + neigh.dir.mkString(", "))
-                  val dim = nonZero(0)._2
-                  def x = IR_VirtualFieldAccess(s"vf_cellCenter_${ IR_DimToString(dim) }", field.level, index + offsetIndex)
-                  def x_0_5 =
-                    if (neigh.dir(dim) > 0)
-                      IR_VirtualFieldAccess(s"vf_nodePosition_${ IR_DimToString(dim) }", field.level, index + offsetIndex)
-                    else
-                      IR_VirtualFieldAccess(s"vf_nodePosition_${ IR_DimToString(dim) }", field.level, index)
-                  def x_1 = IR_VirtualFieldAccess(s"vf_cellCenter_${ IR_DimToString(dim) }", field.level, index)
-                  def x_2 = IR_VirtualFieldAccess(s"vf_cellCenter_${ IR_DimToString(dim) }", field.level, index + offsetIndexWithTrafo(i => -i))
-                  w_0_5 = ((x - x_1) * (x - x_2)) / ((x_0_5 - x_1) * (x_0_5 - x_2))
-                  w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
-                  w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))
-                }
-                statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
-                  w_0_5 * boundaryExpr + w_1 * IR_FieldAccess(fieldSel, index) + w_2 * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+        def forNode() = statements += IR_Assignment(IR_FieldAccess(fieldSel, index), boundaryExpr)
+
+        def forCell() = order match {
+          case 1 => statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
+            (2.0 * boundaryExpr) - IR_FieldAccess(fieldSel, index))
+          case 2 =>
+            // determine weights for interpolation
+            var w_0_5, w_1, w_2 : IR_Expression = 0
+            if (Knowledge.grid_isUniform) {
+              w_0_5 = 8.0 / 3.0
+              w_1 = -2
+              w_2 = 1.0 / 3.0
+            } else {
+              // non-linear => use Lagrange polynomials
+              val nonZero = neigh.dir.zipWithIndex.filter(_._1 != 0)
+              if (nonZero.length != 1) Logger.error("Malformed neighbor index vector " + neigh.dir.mkString(", "))
+              val dim = nonZero(0)._2
+              def x = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndex)
+              def x_0_5 =
+                if (neigh.dir(dim) > 0)
+                  IR_VF_NodePositionPerDim.access(field.level, dim, index + offsetIndex)
+                else
+                  IR_VF_NodePositionPerDim.access(field.level, dim, index)
+              def x_1 = IR_VF_CellCenterPerDim.access(field.level, dim, index)
+              def x_2 = IR_VF_CellCenterPerDim.access(field.level, dim, index + offsetIndexWithTrafo(i => -i))
+              w_0_5 = ((x - x_1) * (x - x_2)) / ((x_0_5 - x_1) * (x_0_5 - x_2))
+              w_1 = ((x - x_0_5) * (x - x_2)) / ((x_1 - x_0_5) * (x_1 - x_2))
+              w_2 = ((x - x_0_5) * (x - x_1)) / ((x_2 - x_0_5) * (x_2 - x_1))
             }
+            statements += IR_Assignment(IR_FieldAccess(fieldSel, index + offsetIndex),
+              w_0_5 * boundaryExpr + w_1 * IR_FieldAccess(fieldSel, index) + w_2 * IR_FieldAccess(fieldSel, index + offsetIndexWithTrafo(i => -i)))
+        }
+
+        field.fieldLayout.localization match {
+          case IR_AtNode                                           => forNode()
+          case IR_AtFaceCenter(faceDim) if 0 != neigh.dir(faceDim) => forNode()
+          case IR_AtCellCenter                                     => forCell()
+          case IR_AtFaceCenter(_)                                  => forCell()
         }
     }
 
@@ -157,9 +148,9 @@ case class IR_HandleBoundaries(var field : IR_FieldSelection, var neighbors : Li
           val loopOverDims = new IR_LoopOverDimensions(
             numDims,
             adaptedIndexRange,
-            setupFieldUpdate(neigh._1)) with PolyhedronAccessible
+            setupFieldUpdate(neigh._1))
           loopOverDims.parallelization.potentiallyParallel = true
-          loopOverDims.optLevel = 1
+          loopOverDims.polyOptLevel = 1
           IR_IfCondition(IR_Negation(IR_IV_NeighborIsValid(field.domainIndex, neigh._1.index)), loopOverDims) : IR_Statement
         }))), IR_ParallelizationInfo.PotentiallyParallel())
   }

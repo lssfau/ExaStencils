@@ -56,7 +56,7 @@ object L4_WhileLoop {
 
 case class L4_WhileLoop(var comparison : L4_Expression, var body : ListBuffer[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    out << "repeat while " << comparison << "{\n"
+    out << "repeat while " << comparison << " {\n"
     out <<< (body, "\n")
     out << "\n}"
   }
@@ -72,7 +72,7 @@ object L4_UntilLoop {
 
 case class L4_UntilLoop(var comparison : L4_Expression, var body : ListBuffer[L4_Statement]) extends L4_Statement {
   override def prettyprint(out : PpStream) : Unit = {
-    out << "repeat until " << comparison << "{\n"
+    out << "repeat until " << comparison << " {\n"
     out <<< (body, "\n")
     out << "\n}"
   }

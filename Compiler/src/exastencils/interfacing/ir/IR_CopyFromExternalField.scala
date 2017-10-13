@@ -6,16 +6,14 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir._
 import exastencils.config.Knowledge
-import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.field.ir._
-import exastencils.polyhedron.PolyhedronAccessible
 
 /// IR_CopyFromExternalField
 
-case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalField) extends IR_AbstractFunction with IR_Expandable {
+case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalField) extends IR_FuturePlainFunction {
+  override var name = "set" + src.name
   override def prettyprint_decl() : String = prettyprint
-  override def name = "set" + src.name
 
   def getFortranCompDT() : IR_Datatype = {
     var dt : IR_Datatype = src.resolveBaseDatatype
@@ -24,7 +22,7 @@ case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalFi
     dt
   }
 
-  override def expand() : Output[IR_Function] = {
+  override def generateFct() = {
     val externalDT = if (Knowledge.generateFortranInterface)
       getFortranCompDT()
     else
@@ -57,11 +55,16 @@ case class IR_CopyFromExternalField(var dest : IR_Field, var src : IR_ExternalFi
     val loop = new IR_LoopOverDimensions(loopDim, IR_ExpressionIndexRange(
       IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxBegin(dim))),
       IR_ExpressionIndex((0 until loopDim).toArray.map(dim => idxEnd(dim)))),
-      ListBuffer[IR_Statement](loopBody)) with PolyhedronAccessible
+      ListBuffer[IR_Statement](loopBody))
+    loop.polyOptLevel =
+      if (Knowledge.maxLevel - dest.level < Knowledge.poly_numFinestLevels)
+        Knowledge.poly_optLevel_fine
+      else
+        Knowledge.poly_optLevel_coarse
     loop.parallelization.potentiallyParallel = true
 
     // compile final function
-    val fct = IR_Function(IR_UnitDatatype, name,
+    val fct = IR_PlainFunction(name, IR_UnitDatatype,
       ListBuffer(IR_FunctionArgument("src", externalDT), IR_FunctionArgument("slot", IR_IntegerDatatype)),
       loop)
 

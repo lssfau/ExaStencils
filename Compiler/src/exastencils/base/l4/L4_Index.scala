@@ -3,11 +3,21 @@ package exastencils.base.l4
 import exastencils.base.ir._
 import exastencils.core._
 import exastencils.logger.Logger
+import exastencils.optimization.l4.L4_SimplifyExpression
 import exastencils.prettyprinting._
 
 trait L4_Index extends L4_Expression {
   override def progress : IR_Index
+
+  // to be implemented by inheriting from L4_ArrayBasedIndex
+  def length() : Int
+
+  // conversion to expression index
   def toExpressionIndex : L4_ExpressionIndex
+
+  // index arithmetic
+  def +(that : L4_Index) : L4_Index
+  def -(that : L4_Index) : L4_Index
 }
 
 trait L4_ArrayBasedIndex[T] extends Iterable[T] {
@@ -32,17 +42,16 @@ case class L4_ExpressionIndex(override var indices : Array[L4_Expression]) exten
   override def prettyprint(out : PpStream) = out << '[' <<< (this, ", ") << ']'
   override def progress = IR_ExpressionIndex(indices.map(_.progress))
 
-  def +(that : L4_Index) = {
-    that match {
-      case that : L4_ExpressionIndex => L4_ExpressionIndex(this, that, _ + _)
-      case that : L4_ConstIndex      => L4_ExpressionIndex(this, that.toExpressionIndex, _ + _)
-    }
-  }
-  def -(that : L4_Index) = {
-    that match {
-      case that : L4_ExpressionIndex => L4_ExpressionIndex(this, that, _ - _)
-      case that : L4_ConstIndex      => L4_ExpressionIndex(this, that.toExpressionIndex, _ - _)
-    }
+  override def +(that : L4_Index) : L4_ExpressionIndex = L4_ExpressionIndex(this, that.toExpressionIndex, _ + _)
+  override def -(that : L4_Index) : L4_ExpressionIndex = L4_ExpressionIndex(this, that.toExpressionIndex, _ - _)
+
+  override def toExpressionIndex = this
+
+  def toConstIndex = {
+    L4_ConstIndex(indices.map(L4_SimplifyExpression.simplifyIntegralExpr(_) match {
+      case L4_IntegerConstant(value) => value.toInt
+      case other                     => Logger.error(s"Unsupported value in (constant) index: $other")
+    }))
   }
 
   override def equals(other : Any) : Boolean = {
@@ -57,8 +66,6 @@ case class L4_ExpressionIndex(override var indices : Array[L4_Expression]) exten
   override def hashCode() : Int = {
     java.util.Arrays.hashCode(indices.asInstanceOf[Array[Object]]) * 31 + 42 // random modification to ensure the hashcode of this element differs from the hashcode of the array itself
   }
-
-  override def toExpressionIndex = this
 }
 
 /// L4_ConstIndex
@@ -74,12 +81,21 @@ case class L4_ConstIndex(override var indices : Array[Int]) extends L4_Index wit
   override def progress = IR_ConstIndex(indices)
 
   def +(that : L4_ConstIndex) = L4_ConstIndex(this, that, _ + _)
-  def -(that : L4_ConstIndex) = L4_ConstIndex(this, that, _ - _)
+  override def +(that : L4_Index) = L4_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)
 
-  def +(that : L4_ExpressionIndex) = L4_ExpressionIndex(this.toExpressionIndex, that, _ + _)
-  def -(that : L4_ExpressionIndex) = L4_ExpressionIndex(this.toExpressionIndex, that, _ - _)
+  def -(that : L4_ConstIndex) = L4_ConstIndex(this, that, _ - _)
+  override def -(that : L4_Index) = L4_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ - _)
 
   override def toExpressionIndex = L4_ExpressionIndex(indices.map(L4_IntegerConstant(_) : L4_Expression))
+
+  override def equals(other : Any) : Boolean = {
+    if (this eq other.asInstanceOf[AnyRef])
+      return true
+    other match {
+      case L4_ConstIndex(oIndices) => java.util.Arrays.equals(this.indices, oIndices)
+      case _                       => false
+    }
+  }
 }
 
 /// L4_RangeIndex
@@ -99,4 +115,6 @@ case class L4_RangeIndex(override var indices : Array[L4_Range]) extends L4_Inde
   override def progress = ??? // FIXME
 
   override def toExpressionIndex = ??? // FIXME (if a sensible conversion exists at all)
+  override def +(that : L4_Index) : L4_Index = ???
+  override def -(that : L4_Index) : L4_Index = ???
 }

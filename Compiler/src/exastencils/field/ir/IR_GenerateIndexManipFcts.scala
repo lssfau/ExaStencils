@@ -63,12 +63,11 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
         body = ListBuffer[IR_Statement](IR_LoopOverFragments(body))
 
         // set up function
-        functions += IR_Function(
-          IR_UnitDatatype,
+        functions += IR_PlainFunction( /* FIXME: IR_LeveledFunction -> level as Int */
           s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
+          IR_UnitDatatype,
           Knowledge.dimensions.map(dim => IR_FunctionArgument(newInnerSize(dim))).to[ListBuffer],
-          body,
-          false) // no inlining
+          body).withNoInline
       }
 
       // generate a special resize functions for all fields on a given level
@@ -78,17 +77,15 @@ object IR_GenerateIndexManipFcts extends DefaultStrategy("Generate index manipul
 
         // generate function calls with adapted sizes
         for (layout <- layoutMap.filter(level == _._2._2.prettyprint.toInt).toSeq.sortBy(_._1)) {
-          body += IR_FunctionCall(s"resizeInner_${ layout._2._1 }_${ layout._2._2.prettyprint }",
+          body += IR_FunctionCall(IR_LeveledInternalFunctionReference(s"resizeInner_${ layout._2._1 }", level, IR_UnitDatatype),
             Knowledge.dimensions.map(dim => newInnerSize(dim) : IR_Expression).to[ListBuffer])
         }
 
         // set up function
-        functions += IR_Function(
-          IR_UnitDatatype,
-          s"resizeAllInner_${ level.prettyprint() }",
+        functions += IR_LeveledFunction(
+          "resizeAllInner", level, IR_UnitDatatype,
           Knowledge.dimensions.map(dim => IR_FunctionArgument(newInnerSize(dim))).to[ListBuffer],
-          body,
-          false) // no inlining
+          body).withNoInline
       }
 
       // return extended collection

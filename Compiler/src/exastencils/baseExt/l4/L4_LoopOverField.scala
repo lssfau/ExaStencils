@@ -8,9 +8,9 @@ import exastencils.baseExt.ir._
 import exastencils.communication.l4.L4_Communicate
 import exastencils.field.l4.L4_FieldAccess
 import exastencils.logger.Logger
+import exastencils.operator.l4.L4_StencilFieldAccess
 import exastencils.parallelization.ir.IR_ParallelizationInfo
 import exastencils.prettyprinting._
-import exastencils.stencil.l4.L4_StencilFieldAccess
 
 /// L4_RegionSpecification
 
@@ -51,9 +51,9 @@ case class L4_LoopOverField(
 
   override def prettyprint(out : PpStream) = {
     out << "loop over " << field << ' '
-    if (region.isDefined) out << "only " << region.get
+    if (region.isDefined) out << "only " << region.get << ' '
     if (seq) out << "sequentially "
-    if (condition.isDefined) out << "where " << condition.get
+    if (condition.isDefined) out << "where " << condition.get << ' '
     if (startOffset.isDefined) out << "starting " << startOffset.get << ' '
     if (endOffset.isDefined) out << "ending " << endOffset.get << ' '
     if (increment.isDefined) out << "stepping " << increment.get << ' '
@@ -65,8 +65,8 @@ case class L4_LoopOverField(
 
   override def progress : IR_LoopOverPoints = {
     val resolvedField = field match {
-      case access : L4_FieldAccess        => access.target.getProgressedObject()
-      case access : L4_StencilFieldAccess => access.target.getProgressedObject().field
+      case access : L4_FieldAccess        => access.target.getProgressedObj()
+      case access : L4_StencilFieldAccess => access.target.getProgressedObj().field
       case _                              => Logger.error(s"Trying to loop over $field - has to be of type FieldAccess or StencilFieldAccess")
     }
 

@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object FMG {
-  def addFunctions(printer : java.io.PrintWriter) = {
+  def addFunctions(printer : java.io.PrintStream) = {
     // specialized boundary handling functions
     val fields = if ("Jac" == Knowledge.l3tmp_smoother) {
       if (Knowledge.l3tmp_useSlotsForJac)
@@ -46,14 +46,14 @@ object FMG {
     printer.println()
 
     // FMG function itself
-    printer.println(s"Function FMG@(coarsest to (finest - 1)) ( ) : Unit {")
+    printer.println(s"Function FMG@(all but finest) ( ) : Unit {")
     printer.println(s"\tSetFuncDir@current ( )")
     printer.println(s"\tInitRHS@current ( )")
     printer.println(s"\tVCycle@current ( )")
     printer.println(s"\tCorrection@finer ( )")
     printer.println(s"\tResetBC@current ( )")
     printer.println()
-    printer.println(s"\tif ( levels@finer ( ) < levels@finest ( ) ) {")
+    printer.println(s"\t@(all but (finest - 1)) {")
     printer.println(s"\t\tFMG@finer ( )")
     printer.println(s"\t}")
     printer.println(s"}")

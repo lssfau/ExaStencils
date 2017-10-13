@@ -3,7 +3,7 @@ package test.parser.l4
 import exastencils.parsers.l4.L4_Parser
 
 object TestParserL4 {
-  val parser = new L4_Parser
+  val parser = L4_Parser
 
   def out(h : String, s : Any) = {
     println("#######################################################")

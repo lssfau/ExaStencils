@@ -1,12 +1,16 @@
 user						= "Sebastian"
 
 basePathPrefix				= ""
-outputPath					= "\\i10home\home-staff\kuckuk\stokes"
+outputPath					= "\\i10home\home-staff\kuckuk\ExaNS"
 //l4file						= ".\Compiler\dsl\Layer4.exa"
 //l4file						= "Testing\Application\ExaFluids.exa4"
 //l4file						= "Configs\Sebastian\Stokes_Distributed.exa4"
 //l4file						= "Configs\Sebastian\Stokes_HHG.exa4"
-l4file						= "Configs\Sebastian\ExaFluids_Ext.exa4"
+//l4file						= "Configs\Sebastian\ExaFluids_Ext.exa4"
+l1file						= "Configs\Sebastian\ExaNS_2D.exa1"
+l2file						= "Configs\Sebastian\ExaNS_2D.exa2"
+l3file						= "Configs\Sebastian\ExaNS_2D.exa3"
+l4file						= "Configs\Sebastian\ExaNS_2D.exa4"
 htmlLogFile					= ".\Compiler\log\log.html"
 
 produceHtmlLog				= true

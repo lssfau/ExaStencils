@@ -1,0 +1,231 @@
+Domain global< [ 0, 0 ] to [ 1, 1 ] >
+
+
+Globals {
+	// problem specification
+	Var topVel : Real = 1e-4
+	Var gravity : Real = 0.0 // 9.81
+
+	// assume water @25 Celsius
+	Var mue : Real = 8.9e-4
+	Var rho : Real = 997.0479
+	Var rho_0 : Real = 997.0479
+
+	// assume honey
+	// Var mue : Real = 8.0
+	// Var rho : Real = 1.42e3
+	// Var rho_0 : Real = 1.42e3
+
+	Val nue : Real = mue / rho
+	Val Re : Real = topVel * 1.0 / nue
+}
+
+
+Field u with Real on Face_x of global = 0.0
+Field u on boundary = applyBC_u@current ( )
+//Field u@(all but finest) on boundary = 0.0
+
+Field v with Real on Face_y of global = 0.0
+Field v on boundary = 0.0
+
+Field p with Real on Cell of global = 0.0
+Field p on boundary = Neumann // TODO: currently not evaluated outside inner scope
+
+
+Field residual_u with Real on Face_x of global = 0.0
+Field residual_u on boundary = 0.0
+
+Field residual_v with Real on Face_y of global = 0.0
+Field residual_v on boundary = 0.0
+
+Field residual_p with Real on Cell of global = 0.0
+Field residual_p on boundary = Neumann
+
+
+Field rhs_u@all with Real on Face_x of global = 0.0
+Field rhs_v@all with Real on Face_y of global = 0.0
+Field rhs_p@all with Real on Cell of global = 0.0
+
+
+//Field uOld from u
+//Field vOld from v
+//Field pOld from p
+
+
+Field velMag@all with Real on Cell of global = 0.0
+Field uVis@all with Real on Cell of global = 0.0
+Field vVis@all with Real on Cell of global = 0.0
+Field pVis@all with Real on Cell of global = 0.0
+
+/*		Laplace_xStag_xStag:[-1,  0] = - integrateOverXStaggeredWestFace  ( nue ) / vf_cellWidth_x@[-1, 0]
+		Laplace_xStag_xStag:[ 1,  0] = - integrateOverXStaggeredEastFace  ( nue ) / vf_cellWidth_x@[ 0, 0]
+		Laplace_xStag_xStag:[ 0, -1] = - integrateOverXStaggeredSouthFace ( nue ) / vf_stagCVWidth_y@[0, 0]
+		Laplace_xStag_xStag:[ 0,  1] = - integrateOverXStaggeredNorthFace ( nue ) / vf_stagCVWidth_y@[0, 1]
+		Laplace_xStag_xStag:[ 0,  0] = - ( Laplace_xStag_xStag:[-1, 0] + Laplace_xStag_xStag:[1, 0] + Laplace_xStag_xStag:[0, -1] + Laplace_xStag_xStag:[0, 1] )
+
+			Laplace_xStag_xStag:[-1,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( frozen ( u ) )
+			Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( frozen ( u ) )
+			Laplace_xStag_xStag:[ 1,  0] += 0.5 * integrateOverXStaggeredEastFace  ( frozen ( u ) )
+			Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredEastFace  ( frozen ( u ) )
+
+			Laplace_xStag_xStag:[ 0, -1] -= 0.5 * integrateOverXStaggeredSouthFace ( frozen ( v ) )
+			Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredSouthFace ( frozen ( v ) )
+			Laplace_xStag_xStag:[ 0,  1] += 0.5 * integrateOverXStaggeredNorthFace ( frozen ( v ) )
+			Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredNorthFace ( frozen ( v ) )
+*/
+Equation uEquation@finest {
+	Laplace_xStag_xStag * u + A12 * v + B1 * p == rhs_u
+}
+Equation uEquation@(all but finest) {
+	Laplace_xStag_xStag * u + A12 * v + B1 * p == 0.0
+}
+
+Equation vEquation@finest {
+	Laplace_yStag_yStag * v + A21 * u + B2 * p == rhs_v
+}
+Equation vEquation@(all but finest) {
+	Laplace_yStag_yStag * v + A21 * u + B2 * p == 0.0
+}
+
+Equation pEquation@finest {
+	C1 * u + C2 * v == rhs_p
+}
+Equation pEquation@(all but finest) {
+	C1 * u + C2 * v == 0.0
+}
+
+
+
+generate operators @all {
+	equation for u {
+		integrateOverXStaggeredEastFace ( 1.0 / rho_0 ) * p@[0, 0] - integrateOverXStaggeredWestFace ( 1.0 / rho_0 ) * p@[-1, 0] = 0
+	} store in {
+		p => B1
+	}
+	
+	equation for v {
+		integrateOverYStaggeredNorthFace ( 1.0 / rho_0 ) * p@[0,0 ] - integrateOverYStaggeredSouthFace ( 1.0 / rho_0 ) * p@[0, -1] = 0
+	} store in {
+		p => B2
+	}
+	
+	equation for p {
+		integrateOverEastFace ( rho ) * u@[1, 0] - integrateOverWestFace ( rho ) * u@[0, 0] + integrateOverNorthFace ( rho ) * v@[0, 1] - integrateOverSouthFace ( rho ) * v@[0, 0] = 0
+	} store in {
+		u => C1
+		v => C2
+	}
+}
+
+// Operator_AppliedTo_WRT
+
+/*Operator dx_Cell_xStag from Stencil {
+  [-1,  0] => -integrateOverXStaggeredWestFace ( 1.0 / rho_0 )
+  [ 0,  0] =>  integrateOverXStaggeredEastFace ( 1.0 / rho_0 )
+}
+
+Operator dy_Cell_yStag from Stencil {
+  [ 0, -1] => -integrateOverYStaggeredSouthFace ( 1.0 / rho_0 )
+  [ 0,  0] =>  integrateOverYStaggeredNorthFace ( 1.0 / rho_0 )
+}*/
+
+
+/*Operator dx_xStag_Cell from Stencil {
+  [ 0,  0] => -integrateOverWestFace ( rho )
+  [ 1,  0] =>  integrateOverEastFace ( rho )
+}
+
+Operator dy_yStag_Cell from Stencil {
+  [ 0,  0] => -integrateOverSouthFace ( rho )
+  [ 0,  1] =>  integrateOverNorthFace ( rho )
+}*/
+
+
+/*Operator AuStencil  from StencilTemplate on Face_x of global {
+	[ 0,  0,  0] =>
+}*/
+
+Operator Laplace_xStag_xStag from StencilTemplate on Face_x of global {
+  [ 0,  0] => /*(
+	  ( 1.0 / vf_cellWidth_x@[-1, 0]   + 1.0 / vf_cellWidth_x@[0, 0] )   * vf_cellWidth_y
+	+ ( 1.0 / vf_stagCVWidth_y@[0, 0] + 1.0 / vf_stagCVWidth_y@[0, 1] ) * vf_stagCVWidth_x )*/
+  [-1,  0] => //( -1.0 / vf_cellWidth_x@[-1, 0] )   * vf_cellWidth_y
+  [ 1,  0] => //( -1.0 / vf_cellWidth_x@[0, 0] )   * vf_cellWidth_y
+  [ 0, -1] => //( -1.0 / vf_stagCVWidth_y@[0, 0] ) * vf_stagCVWidth_x
+  [ 0,  1] => //( -1.0 / vf_stagCVWidth_y@[0, 1] ) * vf_stagCVWidth_x
+}
+
+Operator Laplace_yStag_yStag from StencilTemplate on Face_y of global {
+  [ 0,  0] => //( 1.0 / vf_stagCVWidth_x + 1.0 / vf_stagCVWidth_x@[1, 0] ) * vf_stagCVWidth_y + ( 1.0 / vf_cellWidth_y@[0, -1] + 1.0 / vf_cellWidth_y@[0, 0] ) * vf_cellWidth_x
+  [-1,  0] => //( -1.0 / vf_stagCVWidth_x@[0, 0] ) * vf_stagCVWidth_y
+  [ 1,  0] => //( -1.0 / vf_stagCVWidth_x@[1, 0] ) * vf_stagCVWidth_y
+  [ 0, -1] => //( -1.0 / vf_cellWidth_y@[0, -1] ) * vf_cellWidth_x
+  [ 0,  1] => //( -1.0 / vf_cellWidth_y@[0, 0] ) * vf_cellWidth_x
+}
+
+Operator A12 from StencilTemplate on Face_x of global {
+  [-1,  0] =>
+  [ 0,  0] =>
+  [-1,  1] =>
+  [ 0,  1] =>
+}
+
+Operator A21 from StencilTemplate on Face_y of global {
+  [ 0, -1] =>
+  [ 0,  0] =>
+  [ 1, -1] =>
+  [ 1,  0] =>
+}
+
+/*
+Operator Laplace_xStag_xStag from Laplace_xSxS + Conv_xSxS + dt_xSxS
+
+Operator Laplace_xSxS from Stencil {
+	[-1,  0] => - integrateOverXStaggeredWestFace  ( nue ) / vf_cellWidth_x@[-1, 0]
+	[ 1,  0] => - integrateOverXStaggeredEastFace  ( nue ) / vf_cellWidth_x@[ 0, 0]
+	[ 0, -1] => - integrateOverXStaggeredSouthFace ( nue ) / vf_stagCVWidth_y@[0, 0]
+	[ 0,  1] => - integrateOverXStaggeredNorthFace ( nue ) / vf_stagCVWidth_y@[0, 1]
+
+	[ 0,  0] => ( integrateOverXStaggeredWestFace  ( nue ) / vf_cellWidth_x@[-1, 0] + integrateOverXStaggeredEastFace  ( nue ) / vf_cellWidth_x@[ 0, 0] + integrateOverXStaggeredSouthFace ( nue ) / vf_stagCVWidth_y@[0, 0] + integrateOverXStaggeredNorthFace ( nue ) / vf_stagCVWidth_y@[0, 1] )
+}
+
+Operator Conv_xSxS from Stencil {
+	[-1,  0] => - 0.5 * integrateOverXStaggeredWestFace  ( u )
+	[ 1,  0] =>   0.5 * integrateOverXStaggeredEastFace  ( u )
+	[ 0, -1] => - 0.5 * integrateOverXStaggeredSouthFace ( v )
+	[ 0,  1] =>   0.5 * integrateOverXStaggeredNorthFace ( v )
+
+	[ 0,  0] => ( 0.5 * integrateOverXStaggeredEastFace  ( u ) - 0.5 * integrateOverXStaggeredWestFace  ( u ) + 0.5 * integrateOverXStaggeredNorthFace ( v ) - 0.5 * integrateOverXStaggeredSouthFace ( v ) )
+}
+
+Operator dt_xSxS from Stencil {
+	[ 0,  0] => vf_xStagCellVolume / dt
+}
+
+Operator Laplace_yStag_yStag from Laplace_ySyS + Conv_ySyS + dt_ySyS
+
+Operator Laplace_ySyS from Stencil {
+	[-1,  0] => - integrateOverYStaggeredWestFace  ( nue ) / vf_stagCVWidth_x@[0, 0]
+	[ 1,  0] => - integrateOverYStaggeredEastFace  ( nue ) / vf_stagCVWidth_x@[1, 0]
+	[ 0, -1] => - integrateOverYStaggeredSouthFace ( nue ) / vf_cellWidth_y@[0, -1]
+	[ 0,  1] => - integrateOverYStaggeredNorthFace ( nue ) / vf_cellWidth_y@[0, 0]
+
+	[ 0,  0] => ( integrateOverYStaggeredWestFace  ( nue ) / vf_stagCVWidth_x@[0, 0] + integrateOverYStaggeredEastFace  ( nue ) / vf_stagCVWidth_x@[1, 0] + integrateOverYStaggeredSouthFace ( nue ) / vf_cellWidth_y@[0, -1] + integrateOverYStaggeredNorthFace ( nue ) / vf_cellWidth_y@[0, 0] )
+}
+
+Operator Conv_ySyS from Stencil {
+	[-1,  0] => - 0.5 * integrateOverYStaggeredWestFace  ( u )
+	[ 1,  0] =>   0.5 * integrateOverYStaggeredEastFace  ( u )
+	[ 0, -1] => - 0.5 * integrateOverYStaggeredSouthFace ( v )
+	[ 0,  1] =>   0.5 * integrateOverYStaggeredNorthFace ( v )
+
+	[ 0,  0] => ( 0.5 * integrateOverYStaggeredEastFace  ( u ) - 0.5 * integrateOverYStaggeredWestFace  ( u ) + 0.5 * integrateOverYStaggeredNorthFace ( v ) - 0.5 * integrateOverYStaggeredSouthFace ( v ) )
+}
+
+Operator dt_ySyS from Stencil {
+	[ 0,  0] => vf_yStagCellVolume / dt
+}
+*/
+
+
+

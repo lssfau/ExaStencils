@@ -1,6 +1,8 @@
 package exastencils.base.ir
 
 import exastencils.core.Duplicate
+import exastencils.logger.Logger
+import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
 
 trait IR_Index extends IR_Expression {
@@ -48,7 +50,7 @@ case class IR_ExpressionIndex(var indices : Array[IR_Expression]) extends IR_Ind
 
   // FIXME
   override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << '[' <<< (this, ", ") << ']'
+  override def prettyprint(out : PpStream) = out << '[' <<< (this, ", ") << ']'
 
   override def +(that : IR_Index) : IR_ExpressionIndex = {
     that match {
@@ -64,6 +66,13 @@ case class IR_ExpressionIndex(var indices : Array[IR_Expression]) extends IR_Ind
   }
 
   override def toExpressionIndex = this
+
+  def toConstIndex = {
+    IR_ConstIndex(indices.map(IR_SimplifyExpression.simplifyIntegralExpr(_) match {
+      case IR_IntegerConstant(value) => value.toInt
+      case other                     => Logger.error(s"Unsupported value in (constant) index: $other")
+    }))
+  }
 
   override def equals(other : Any) : Boolean = {
     if (this eq other.asInstanceOf[AnyRef])
@@ -84,29 +93,29 @@ case class IR_ExpressionIndex(var indices : Array[IR_Expression]) extends IR_Ind
 object IR_ConstIndex {
   def apply(indices : Int*) = new IR_ConstIndex(indices.toArray)
   def apply(left : IR_ConstIndex, right : IR_ConstIndex, f : (Int, Int) => Int) =
-    new IR_ConstIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => Duplicate(f(left(i), right(i)))).toArray)
-  def apply(i1 : Int, i2 : Int) = new IR_ConstIndex(Array(i1, i2))
+    new IR_ConstIndex((0 until math.min(left.indices.length, right.indices.length)).map(i => f(left(i), right(i))).toArray)
 }
 
-case class IR_ConstIndex(var indices : Array[Int]) extends IR_Index with IR_ArrayBasedIndex[Int] {
-  // FIXME
-  override def datatype = IR_UnitDatatype
-  override def prettyprint(out : PpStream) : Unit = out << '[' << indices.mkString(", ") << ']'
+case class IR_ConstIndex(override var indices : Array[Int]) extends IR_Index with IR_ArrayBasedIndex[Int] {
+  override def datatype = /*FIXME*/ IR_UnitDatatype
+  override def prettyprint(out : PpStream) = out << '[' << indices.mkString(", ") << ']'
 
-  override def +(that : IR_Index) = {
-    that match {
-      case that : IR_ConstIndex      => IR_ConstIndex(this, that, _ + _)
-      case that : IR_ExpressionIndex => IR_ExpressionIndex(this.toExpressionIndex, that, _ + _)
+  def +(that : IR_ConstIndex) = IR_ConstIndex(this, that, _ + _)
+  override def +(that : IR_Index) = IR_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ + _)
+
+  def -(that : IR_ConstIndex) = IR_ConstIndex(this, that, _ - _)
+  override def -(that : IR_Index) = IR_ExpressionIndex(this.toExpressionIndex, that.toExpressionIndex, _ - _)
+
+  override def toExpressionIndex = IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
+
+  override def equals(other : Any) : Boolean = {
+    if (this eq other.asInstanceOf[AnyRef])
+      return true
+    other match {
+      case IR_ConstIndex(oIndices) => java.util.Arrays.equals(this.indices, oIndices)
+      case _                       => false
     }
   }
-  override def -(that : IR_Index) = {
-    that match {
-      case that : IR_ConstIndex      => IR_ConstIndex(this, that, _ - _)
-      case that : IR_ExpressionIndex => IR_ExpressionIndex(this.toExpressionIndex, that, _ - _)
-    }
-  }
-
-  def toExpressionIndex = IR_ExpressionIndex(indices.map(IR_IntegerConstant(_) : IR_Expression))
 }
 
 /// IR_HighDimIndex

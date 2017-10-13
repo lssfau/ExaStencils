@@ -1,0 +1,545 @@
+
+Globals {
+	Var curFinest : Int = levels@finest ( )
+	
+	Var useVanka : Boolean = true
+	Var vankaRelax : Real = 0.6
+	Var jacobiRelax : Real = 0.8
+
+	Var handleConvection : Boolean = true
+	Var nonLinearNewton : Boolean = true
+	Var newtonOnlyOnFinest : Boolean = false
+	Var newtonSwitch : Int = 0
+
+	Var dt : Real = 1.0e30
+	Var curTime : Real = 0.0
+	Var maxTime : Real = 10.0
+
+	Var printInterval : Real = 1.0
+	Var nextPrint : Real = 0.0
+
+	Var relaxFactor : Real = 1.0
+
+	Var resThres : Real = 1e-12
+}
+
+Function applyBC_u@all ( ) : Unit {
+	loop over u only dup [-1, 0] on boundary {
+		u = 0.0
+	}
+	loop over u only dup [ 1, 0] on boundary {
+		u = 0.0
+	}
+	// FIXME: higher order bc for non-uniform grids
+	loop over u only ghost [0,  1] on boundary {
+		//u = 2.0 * topVel - u@[0, -1]
+		//u = ( 8.0 / 3.0 ) * topVel * sin ( 100.0 * vf_nodePosition_x * PI ) - 2.0 * u@[0, -1] + ( 1.0 / 3.0 ) * u@[0, -2]
+		u = ( 8.0 / 3.0 ) * topVel - 2.0 * u@[0, -1] + ( 1.0 / 3.0 ) * u@[0, -2]
+	}
+	loop over u only ghost [0, -1] on boundary {
+		//u = -u@[0,  1]
+		u = ( 8.0 / 3.0 ) * 0. - 2.0 * u@[0, 1] + ( 1.0 / 3.0 ) * u@[0, 2]
+	}
+}
+
+/// main functions
+
+Function Application ( ) : Unit {
+	startTimer ( 'setup' )
+
+	initGlobals ( )
+	initDomain ( )
+	initFieldsWithZero ( )
+	initGeometry ( )
+	InitFields ( )
+
+	stopTimer ( 'setup' )
+
+	repeat until ( curTime >= maxTime ) {
+		if ( true ) {
+			if ( curTime >= nextPrint ) {
+				nextPrint += printInterval
+				updateVis@finest ( )
+				Var filename_vel : String
+				buildString ( filename_vel, "vel_", curTime, ".png" )
+				writeMappedImage ( velMag@finest, filename_vel )
+			}
+		}
+		if ( false ) {
+			printField ( "u.csv", u@finest )
+			printField ( "ru.csv", residual_u@finest )
+			printField ( "v.csv", v@finest )
+			printField ( "rv.csv", residual_v@finest )
+			printField ( "p.csv", p@finest )
+		}
+		if ( false ) {
+			showMappedImage ( residual_u@finest, residual_v@finest, residual_p@finest )
+		}
+
+		curTime += dt
+		Advance@finest ( )
+		TimeStep@finest ( )
+	}
+	print ( 'Total time to solve: ', getTotalFromTimer ( 'timeToSolve' ) )
+	print ( 'Mean time per vCycle: ', getMeanFromTimer ( 'cycle' ) )
+
+	print ( 'Reynolds number:', Re )
+
+	if ( true ) {
+		vis@finest ( )
+	}
+
+	//printAllTimers ( )
+	destroyGlobals ( )
+}
+
+Function UpdateRhs@all {
+	loop over rhs_u {
+		rhs_u = uOld * vf_xStagCellVolume / dt
+	}
+
+	loop over rhs_v {
+		rhs_v = vOld * vf_yStagCellVolume / dt
+		rhs_v += gravity * rho * vf_yStagCellVolume * vf_yStagCellVolume
+	}
+	
+	UpdateRhsForNewton( )
+}
+
+Function UpdateRhsForNewton@all {
+	if ( handleConvection and nonLinearNewton and !( newtonOnlyOnFinest and curFinest != levels@current ( ) ) ) {
+		loop over rhs_u {
+			rhs_u += integrateOverXStaggeredEastFace  ( u * u ) - integrateOverXStaggeredWestFace  ( u * u )
+			rhs_u += integrateOverXStaggeredNorthFace ( v * u ) - integrateOverXStaggeredSouthFace ( v * u )
+		}
+
+		loop over rhs_v {
+			rhs_v += integrateOverYStaggeredEastFace  ( u * v ) - integrateOverYStaggeredWestFace  ( u * v )
+			rhs_v += integrateOverYStaggeredNorthFace ( v * v ) - integrateOverYStaggeredSouthFace ( v * v )
+		}
+	}
+}
+
+Function AssembleStencil@all {
+	loop over Laplace_xStag_xStag {
+		Laplace_xStag_xStag:[-1,  0] = - integrateOverXStaggeredWestFace  ( nue ) / vf_cellWidth_x@[-1, 0]
+		Laplace_xStag_xStag:[ 1,  0] = - integrateOverXStaggeredEastFace  ( nue ) / vf_cellWidth_x@[ 0, 0]
+		Laplace_xStag_xStag:[ 0, -1] = - integrateOverXStaggeredSouthFace ( nue ) / vf_stagCVWidth_y@[0, 0]
+		Laplace_xStag_xStag:[ 0,  1] = - integrateOverXStaggeredNorthFace ( nue ) / vf_stagCVWidth_y@[0, 1]
+		Laplace_xStag_xStag:[ 0,  0] = - ( Laplace_xStag_xStag:[-1, 0] + Laplace_xStag_xStag:[1, 0] + Laplace_xStag_xStag:[0, -1] + Laplace_xStag_xStag:[0, 1] )
+
+		if ( handleConvection ) {
+			// FIXME: interpolation factor for non-uniform grids
+			Laplace_xStag_xStag:[-1,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( u )
+			Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( u )
+			Laplace_xStag_xStag:[ 1,  0] += 0.5 * integrateOverXStaggeredEastFace  ( u )
+			Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredEastFace  ( u )
+
+			Laplace_xStag_xStag:[ 0, -1] -= 0.5 * integrateOverXStaggeredSouthFace ( v )
+			Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredSouthFace ( v )
+			Laplace_xStag_xStag:[ 0,  1] += 0.5 * integrateOverXStaggeredNorthFace ( v )
+			Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredNorthFace ( v )
+
+			if ( nonLinearNewton and !( newtonOnlyOnFinest and curFinest != levels@current ( ) ) ) {
+				Laplace_xStag_xStag:[-1,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( u )
+				Laplace_xStag_xStag:[ 0,  0] -= 0.5 * integrateOverXStaggeredWestFace  ( u )
+				Laplace_xStag_xStag:[ 1,  0] += 0.5 * integrateOverXStaggeredEastFace  ( u )
+				Laplace_xStag_xStag:[ 0,  0] += 0.5 * integrateOverXStaggeredEastFace  ( u )
+
+				A12:[-1,  0] = -0.5 * integrateOverXStaggeredSouthFace ( u )
+				A12:[ 0,  0] = -0.5 * integrateOverXStaggeredSouthFace ( u )
+				A12:[-1,  1] =  0.5 * integrateOverXStaggeredNorthFace ( u )
+				A12:[ 0,  1] =  0.5 * integrateOverXStaggeredNorthFace ( u )
+			} else {
+				A12:[-1,  0] = 0
+				A12:[ 0,  0] = 0
+				A12:[-1,  1] = 0
+				A12:[ 0,  1] = 0
+			}
+
+			//Laplace_xStag_xStag:[ 0,  0] -= integrateOverXStaggeredEastFace ( u ) - integrateOverXStaggeredWestFace ( u )
+			//Laplace_xStag_xStag:[ 0,  0] -= integrateOverXStaggeredNorthFace ( v ) - integrateOverXStaggeredSouthFace ( v )
+		}
+
+		Laplace_xStag_xStag:[ 0,  0] += vf_xStagCellVolume / dt
+	}
+
+	loop over Laplace_yStag_yStag {
+		Laplace_yStag_yStag:[-1,  0] = - integrateOverYStaggeredWestFace  ( nue ) / vf_stagCVWidth_x@[0, 0]
+		Laplace_yStag_yStag:[ 1,  0] = - integrateOverYStaggeredEastFace  ( nue ) / vf_stagCVWidth_x@[1, 0]
+		Laplace_yStag_yStag:[ 0, -1] = - integrateOverYStaggeredSouthFace ( nue ) / vf_cellWidth_y@[0, -1]
+		Laplace_yStag_yStag:[ 0,  1] = - integrateOverYStaggeredNorthFace ( nue ) / vf_cellWidth_y@[0, 0]
+		Laplace_yStag_yStag:[ 0,  0] = - ( Laplace_yStag_yStag:[-1, 0] + Laplace_yStag_yStag:[1, 0] + Laplace_yStag_yStag:[0, -1] + Laplace_yStag_yStag:[0, 1] )
+
+		if ( handleConvection ) {
+			// FIXME: interpolation factor for non-uniform grids
+			Laplace_yStag_yStag:[-1,  0] -= 0.5 * integrateOverYStaggeredWestFace  ( u )
+			Laplace_yStag_yStag:[ 0,  0] -= 0.5 * integrateOverYStaggeredWestFace  ( u )
+			Laplace_yStag_yStag:[ 1,  0] += 0.5 * integrateOverYStaggeredEastFace  ( u )
+			Laplace_yStag_yStag:[ 0,  0] += 0.5 * integrateOverYStaggeredEastFace  ( u )
+
+			Laplace_yStag_yStag:[ 0, -1] -= 0.5 * integrateOverYStaggeredSouthFace ( v )
+			Laplace_yStag_yStag:[ 0,  0] -= 0.5 * integrateOverYStaggeredSouthFace ( v )
+			Laplace_yStag_yStag:[ 0,  1] += 0.5 * integrateOverYStaggeredNorthFace ( v )
+			Laplace_yStag_yStag:[ 0,  0] += 0.5 * integrateOverYStaggeredNorthFace ( v )
+
+			if ( nonLinearNewton and !( newtonOnlyOnFinest and curFinest != levels@current ( ) ) ) {
+				A21:[ 0, -1] = -0.5 * integrateOverYStaggeredWestFace ( v )
+				A21:[ 0,  0] = -0.5 * integrateOverYStaggeredWestFace ( v )
+				A21:[ 1, -1] =  0.5 * integrateOverYStaggeredEastFace ( v )
+				A21:[ 1,  0] =  0.5 * integrateOverYStaggeredEastFace ( v )
+
+				Laplace_yStag_yStag:[ 0, -1] -= 0.5 * integrateOverYStaggeredSouthFace ( v )
+				Laplace_yStag_yStag:[ 0,  0] -= 0.5 * integrateOverYStaggeredSouthFace ( v )
+				Laplace_yStag_yStag:[ 0,  1] += 0.5 * integrateOverYStaggeredNorthFace ( v )
+				Laplace_yStag_yStag:[ 0,  0] += 0.5 * integrateOverYStaggeredNorthFace ( v )
+			} else {
+				A21:[ 0, -1] = 0
+				A21:[ 0,  0] = 0
+				A21:[ 1, -1] = 0
+				A21:[ 1,  0] = 0
+			}
+
+			//Laplace_yStag_yStag:[ 0,  0] -= integrateOverYStaggeredEastFace ( u ) - integrateOverYStaggeredWestFace ( u )
+			//Laplace_yStag_yStag:[ 0,  0] -= integrateOverYStaggeredNorthFace ( v ) - integrateOverYStaggeredSouthFace ( v )
+		}
+
+		Laplace_yStag_yStag:[ 0,  0] += vf_yStagCellVolume / dt
+	}
+}
+
+Function RelaxSystem@all {
+	loop over rhs_u {
+		rhs_u = ( 1.0 / relaxFactor ) * rhs_u - ( ( 1.0 - relaxFactor ) / relaxFactor ) * ( Laplace_xStag_xStag * u + A12 * v + B1 * p )
+	}
+
+	loop over rhs_v {
+		rhs_v = ( 1.0 / relaxFactor ) * rhs_v - ( ( 1.0 - relaxFactor ) / relaxFactor ) * ( Laplace_yStag_yStag * v + A21 * u + B2 * p )
+	}
+
+	loop over rhs_p {
+		rhs_p = ( 1.0 / relaxFactor ) * rhs_p - ( ( 1.0 - relaxFactor ) / relaxFactor ) * ( C1 * u + C2 * v )
+	}
+
+	/*loop over rhs_u {
+		@finest {
+			rhs_u -= ( 1.0 - 1.0 / relaxFactor ) * Laplace_xStag_xStag:[0, 0] * u
+		}
+		Laplace_xStag_xStag:[0, 0] /= relaxFactor
+	}
+
+	loop over rhs_v {
+		@finest {
+			rhs_v -= ( 1.0 - 1.0 / relaxFactor ) * Laplace_yStag_yStag:[0, 0] * v
+		}
+		Laplace_yStag_yStag:[0, 0] /= relaxFactor
+	}
+
+	@(all but coarsest) {
+		RelaxSystem@coarser ( )
+	}*/
+}
+
+Function updateVis@finest {
+	Var uMax : Real = 0.0
+	loop over u with reduction( max : uMax ) {
+		uMax = max ( uMax, fabs ( u ) )
+	}
+	Var vMax : Real = 0.0
+	loop over v with reduction( max : vMax ) {
+		vMax = max ( vMax, fabs ( v ) )
+	}
+
+	Val scale : Real = 1.0 / topVel
+	Var pMax : Real = 0.0
+	loop over p with reduction( max : pMax ) {
+		pMax = max ( pMax, fabs ( p ) )
+	}
+	Val scaleP : Real = 1.0 / pMax
+	Var velMagMax : Real = 0.0
+	loop over velMag with reduction( max : velMagMax ) {
+		velMag = sqrt ( ( 0.5 * ( u + u@[1,0] ) ) ** 2 + ( 0.5 * ( v + v@[0,1] ) ) ** 2 )
+		velMagMax = max ( velMagMax, velMag )
+		velMag = scale * velMag
+		uVis = 0.5 + 0.5 * scale * u
+		vVis = 0.5 + 0.5 * scale * v
+		pVis = 0.5 + 0.5 * scaleP * p
+	}
+
+	print ( 'pMax@', levels@current ( ), pMax )
+	print ( 'uMax:', uMax, 'vMax:', vMax, 'velMagMax:', velMagMax )
+	updateVis@coarser ( )
+}
+
+Function updateVis@(all but finest) {
+	Val scale : Real = 1.0 / topVel
+	Var pMax : Real = 0.0
+	loop over pApprox with reduction( max : pMax ) {
+		pMax = max ( pMax, fabs ( pApprox ) )
+	}
+	Val scaleP : Real = 1.0 / pMax
+	loop over velMag {
+		velMag = sqrt ( ( 0.5 * ( uApprox + uApprox@[1,0] ) ) ** 2 + ( 0.5 * ( vApprox + vApprox@[0,1] ) ) ** 2 )
+		velMag = scale * velMag
+		uVis = 0.5 + 0.5 * scale * uApprox
+		vVis = 0.5 + 0.5 * scale * vApprox
+		pVis = 0.5 + 0.5 * scaleP * pApprox
+	}
+
+	print ( 'pMax@', levels@current ( ), pMax )
+	@(all but coarsest) {
+		updateVis@coarser ( )
+	}
+}
+
+Function vis@finest {
+	updateVis ( )
+	//showMappedImage ( pVis, velMag )
+	showMappedImage ( uVis, vVis, pVis, velMag, pVis@coarser, velMag@coarser, pVis@coarsest, velMag@coarsest )
+}
+
+Function printVal ( toPrint : Real ) : Unit {
+    if ( toPrint <= 1e-12 ) {
+		print ( "EFFECTIVELY ZERO" )
+    } else if ( toPrint <= 1e-11 ) {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(1)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    } else if ( toPrint <= 1e-10 ) {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(2)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    } else if ( toPrint <= 1e-9 ) {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(3)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    } else {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(4)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    }
+}
+
+Function NormResidual_max@all ( ) : Real {
+	Var res_u : Real = NormResidual_u ( )
+	Var res_v : Real = NormResidual_v ( )
+	Var res_p : Real = NormResidual_p ( )
+
+	print ( res_u, res_v, res_p )
+	//print ( 'res_u', res_u )
+	//print ( 'res_v', res_v )
+	//print ( 'res_p', res_p )
+
+	// TODO: check with Lisa
+	return max ( res_u, res_v, res_p )
+}
+
+Function NormResidual_L2@all ( ) : Real {
+	Var res_u : Real = NormResidual_u ( )
+	Var res_v : Real = NormResidual_v ( )
+	Var res_p : Real = NormResidual_p ( )
+
+	print ( levels@current ( ), res_u, res_v, res_p )
+	//print ( 'res_u', res_u )
+	//print ( 'res_v', res_v )
+	//print ( 'res_p', res_p )
+
+	// TODO: check with Lisa
+	return sqrt ( res_u * res_u + res_v * res_v + res_p * res_p )
+}
+
+Function Smoother@all ( ) : Unit {
+	repeat 4 times {
+		if ( useVanka ) {
+			Vanka ( )
+		} else {
+			Distributive ( )
+		}
+	}
+}
+
+Function Distributive@all ( ) : Unit {
+	color with {
+		0 == ( i0 + i1 ) % 2,
+		1 == ( i0 + i1 ) % 2,
+
+		loop over u {
+			u += ( ( rhs_u - B1 * p - Laplace_xStag_xStag * u ) / Laplace_xStag_xStag:[0, 0] )
+		}
+
+		communicate u
+		apply bc to u
+	}
+
+	color with {
+		0 == ( i0 + i1 ) % 2,
+		1 == ( i0 + i1 ) % 2,
+
+		loop over v {
+			v += ( ( rhs_v - B2 * p - Laplace_yStag_yStag * v ) / Laplace_yStag_yStag:[0, 0] )
+		}
+
+		communicate v
+		apply bc to v
+	}
+
+	color with {
+		0 == ( i0 + i1 ) % 2,
+		1 == ( i0 + i1 ) % 2,
+
+		loop over p {
+			Var delta : Real = rhs_p - ( C1 * u + C2 * v )
+			//delta /= vf_cellVolume
+
+			Var numNeigh : Int = 4
+			//if ( isOnBoundaryOf ( p@[-1,  0,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@[ 1,  0,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@[ 0, -1,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@[ 0,  1,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@[ 0,  0, -1] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@[ 0,  0,  1] ) ) { numNeigh -= 1 }
+
+			Var fac_x : Real = vf_cellWidth_y
+			Var fac_y : Real = vf_cellWidth_x
+			Var area  : Real = 2.0 * ( fac_x + fac_y )
+			fac_x /= area
+			fac_y /= area
+
+			if ( 1 ) {
+				fac_x = 1.0 / 4.0
+				fac_y = 1.0 / 4.0
+			}
+
+			//delta /= numNeigh
+			//if ( !isOnBoundaryOf ( p@[-1,  0,  0] ) ) {
+				u@[ 0,  0] -= fac_x * delta / ( vf_cellWidth_y ) //* vf_cellWidth_x//@[ 0,  0,  0]
+				p@[-1,  0] -= fac_x * delta / vf_cellVolume
+			//}
+			//if ( !isOnBoundaryOf ( p@[ 1,  0,  0] ) ) {
+				u@[ 1,  0] += fac_x * delta / ( vf_cellWidth_y ) //* vf_cellWidth_x//@[ 1,  0,  0]
+				p@[ 1,  0] -= fac_x * delta / vf_cellVolume
+			//}
+
+			//if ( !isOnBoundaryOf ( p@[ 0, -1,  0] ) ) {
+				v@[ 0,  0] -= fac_y * delta / ( vf_cellWidth_x ) //* vf_cellWidth_y//@[ 0,  0,  0]
+				p@[ 0, -1] -= fac_y * delta / vf_cellVolume
+			//}
+			//if ( !isOnBoundaryOf ( p@[ 0,  1,  0] ) ) {
+				v@[ 0,  1] += fac_y * delta / ( vf_cellWidth_x ) //* vf_cellWidth_y//@[ 0,  1,  0]
+				p@[ 0,  1] -= fac_y * delta / vf_cellVolume
+			//}
+
+			p@[ 0,  0] += delta / vf_cellVolume
+		}
+
+		communicate u
+		apply bc to u
+		communicate v
+		apply bc to v
+		communicate p
+		apply bc to p
+	}
+}
+
+Function Vanka@all ( ) : Unit {
+	// currently allowed: [1,1,1]|[2,1,1] -> TODO: improve code through summarizing equations
+	Val stride_x : Int = 1
+	Val stride_y : Int = 1
+
+	Var useJac : Boolean = false
+
+	if ( useJac ) {
+		loop over p {
+			if ( i0 > 0 or i1 > 0 ) {
+				solve locally with jacobi relax vankaRelax {
+					// FIXME: inherit field access offset in stencil convolution
+
+					u@[0, 0] => Laplace_xStag_xStag@[0, 0] * u@[0, 0] + A12@[0, 0] * v@[0, 0] + B1@[0, 0] * p@[0, 0] == rhs_u@[0, 0]
+					u@[1, 0] => Laplace_xStag_xStag@[1, 0] * u@[1, 0] + A12@[1, 0] * v@[1, 0] + B1@[1, 0] * p@[1, 0] == rhs_u@[1, 0]
+
+					v@[0, 0] => Laplace_yStag_yStag@[0, 0] * v@[0, 0] + A21@[0, 0] * u@[0, 0] + B2@[0, 0] * p@[0, 0] == rhs_v@[0, 0]
+					v@[0, 1] => Laplace_yStag_yStag@[0, 1] * v@[0, 1] + A21@[0, 1] * u@[0, 1] + B2@[0, 1] * p@[0, 1] == rhs_v@[0, 1]
+
+					p@[0, 0] => C1@[0, 0] * u@[0, 0] + C2@[0, 0] * v@[0, 0] == rhs_p@[0, 0]
+				}
+			}
+		}
+
+		advance u
+		advance v
+		advance p
+
+		communicate u
+		apply bc to u
+		communicate v
+		apply bc to v
+		communicate p
+		apply bc to p
+	} else {
+		if ( 1 == stride_x && 1 == stride_y ) {
+			color with {
+				0 == ( i0 + i1 ) % 2,
+				1 == ( i0 + i1 ) % 2,
+
+				/*( 0 == i0 % 3 && 0 == i1 % 3 ) ,
+				( 1 == i0 % 3 && 0 == i1 % 3 ) ,
+				( 2 == i0 % 3 && 0 == i1 % 3 ) ,
+				( 0 == i0 % 3 && 1 == i1 % 3 ) ,
+				( 1 == i0 % 3 && 1 == i1 % 3 ) ,
+				( 2 == i0 % 3 && 1 == i1 % 3 ) ,
+				( 0 == i0 % 3 && 2 == i1 % 3 ) ,
+				( 1 == i0 % 3 && 2 == i1 % 3 ) ,
+				( 2 == i0 % 3 && 2 == i1 % 3 ) ,*/
+
+				loop over p {
+					solve locally relax vankaRelax {
+						// FIXME: inherit field access offset in stencil convolution
+
+						u@[0, 0] => Laplace_xStag_xStag@[0, 0] * u@[0, 0] + A12@[0, 0] * v@[0, 0] + B1@[0, 0] * p@[0, 0] == rhs_u@[0, 0]
+						u@[1, 0] => Laplace_xStag_xStag@[1, 0] * u@[1, 0] + A12@[1, 0] * v@[1, 0] + B1@[1, 0] * p@[1, 0] == rhs_u@[1, 0]
+
+						v@[0, 0] => Laplace_yStag_yStag@[0, 0] * v@[0, 0] + A21@[0, 0] * u@[0, 0] + B2@[0, 0] * p@[0, 0] == rhs_v@[0, 0]
+						v@[0, 1] => Laplace_yStag_yStag@[0, 1] * v@[0, 1] + A21@[0, 1] * u@[0, 1] + B2@[0, 1] * p@[0, 1] == rhs_v@[0, 1]
+
+						p@[0, 0] => C1@[0, 0] * u@[0, 0] + C2@[0, 0] * v@[0, 0] == rhs_p@[0, 0]
+					}
+				}
+
+				communicate u
+				apply bc to u
+				communicate v
+				apply bc to v
+				communicate p
+				apply bc to p
+			}
+		} else if ( 2 == stride_x && 1 == stride_y ) {
+			loop over p stepping [2, 1, 1] {
+				solve locally relax vankaRelax {
+					u@[0, 0] => Laplace_xStag_xStag@[0, 0] * u@[0, 0] + A12@[0, 0] * v@[0, 0] + B1@[0, 0] * p@[0, 0] == rhs_u@[0, 0]
+					u@[1, 0] => Laplace_xStag_xStag@[1, 0] * u@[1, 0] + A12@[1, 0] * v@[1, 0] + B1@[1, 0] * p@[1, 0] == rhs_u@[1, 0]
+					u@[2, 0] => Laplace_xStag_xStag@[2, 0] * u@[2, 0] + A12@[2, 0] * v@[2, 0] + B1@[2, 0] * p@[2, 0] == rhs_u@[2, 0]
+
+					v@[0, 0] => Laplace_yStag_yStag@[0, 0] * v@[0, 0] + A21@[0, 0] * u@[0, 0] + B2@[0, 0] * p@[0, 0] == rhs_v@[0, 0]
+					v@[0, 1] => Laplace_yStag_yStag@[0, 1] * v@[0, 1] + A21@[0, 1] * u@[0, 1] + B2@[0, 1] * p@[0, 1] == rhs_v@[0, 1]
+					v@[1, 0] => Laplace_yStag_yStag@[1, 0] * v@[1, 0] + A21@[1, 0] * u@[1, 0] + B2@[1, 0] * p@[1, 0] == rhs_v@[1, 0]
+					v@[1, 1] => Laplace_yStag_yStag@[1, 1] * v@[1, 1] + A21@[1, 1] * u@[1, 1] + B2@[1, 1] * p@[1, 1] == rhs_v@[1, 1]
+
+					p@[0, 0] => C1@[0, 0] * u@[0, 0] + C2@[0, 0] * v@[0, 0] == rhs_p@[0, 0]
+					p@[1, 0] => C1@[1, 0] * u@[1, 0] + C2@[1, 0] * v@[1, 0] == rhs_p@[1, 0]
+				}
+			}
+		}
+	}
+
+	/*communicate u
+	communicate v
+	communicate p
+
+	apply bc to u
+	apply bc to v
+	apply bc to p*/
+}

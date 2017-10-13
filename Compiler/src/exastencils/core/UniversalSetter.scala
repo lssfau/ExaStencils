@@ -24,13 +24,12 @@ object UniversalSetter {
     val accessible = field.isAccessible
     field.setAccessible(true)
 
-    if (field.get(obj).getClass.equals(None.getClass)) {
-      // Field is Option[T]
+    if (field.get(obj).getClass == None.getClass)      // Field is Option[T]
       obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, Option[T](value))
-    } else {
-      // field is POSO - set directly
+    else if (field.get(obj).getClass == ListBuffer().getClass && value.getClass != ListBuffer().getClass) // Field is a ListBuffer[_], but provided value is not
+      obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, ListBuffer(value))
+    else // field is POSO - set directly
       obj.getClass.getMethods.find(_.getName == ident + "_$eq").get.invoke(obj, value.asInstanceOf[Object])
-    }
 
     field.setAccessible(accessible)
   }

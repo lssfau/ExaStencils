@@ -1,7 +1,5 @@
 timer_type							= "UNIX_TIME"
 
-experimental_Neumann				= true
-experimental_NeumannOrder			= 1
 library_CImg = true
 
 dimensionality						= 3

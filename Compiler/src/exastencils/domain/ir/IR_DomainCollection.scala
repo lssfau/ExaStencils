@@ -11,10 +11,10 @@ object IR_DomainCollection extends IR_KnowledgeCollection[IR_Domain] {
     val global = getByIdentifier("global").get
 
     if (Knowledge.domain_readFromFile)
-      global.shape.asInstanceOf[List[FileInputDomain]].foreach { f => f.shape.initFragments() }
+      global.HACK_shape.asInstanceOf[List[FileInputDomain]].foreach { f => f.HACK_shape.initFragments() }
     else if (Knowledge.domain_useCase != "")
-      global.shape.asInstanceOf[ShapedDomainShape].initFragments()
+      global.HACK_shape.asInstanceOf[ShapedDomainShape].initFragments()
     else
-      global.shape.asInstanceOf[DomainShape].initFragments()
+      global.HACK_shape.asInstanceOf[DomainShape].initFragments()
   }
 }

@@ -1,11 +1,16 @@
 package exastencils.simd
 
-import exastencils.base.ir.IR_AbstractFunction
+import exastencils.base.ir.IR_FunctionLike
 import exastencils.prettyprinting.PpStream
 
 /// SIMD_NeonDivision
 
-case object SIMD_NeonDivision extends IR_AbstractFunction(true) {
+case object SIMD_NeonDivision extends IR_FunctionLike {
+  override var name = "vdivq_f32"
+  isHeaderOnly = true
+
+  override def prettyprint_decl() : String = "\n --- NOT VALID ; no prototype for vdivq_f32\n"
+
   override def prettyprint(out : PpStream) : Unit = {
     out <<
       s"""static inline float32x4_t ${ name }(const float32x4_t &a, const float32x4_t &b) {
@@ -22,6 +27,4 @@ case object SIMD_NeonDivision extends IR_AbstractFunction(true) {
   return vmulq_f32(a,reciprocal);
 }"""
   }
-  override def prettyprint_decl() : String = "\n --- NOT VALID ; no prototype for vdivq_f32\n"
-  override def name = "vdivq_f32"
 }

@@ -87,9 +87,9 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
       // add index calculation
       // FIXME: datatype for VariableAccess
       fctBody += IR_VariableDeclaration(it,
-        IR_MemberAccess(IR_VariableAccess("blockIdx", IR_IntegerDatatype), it.name) *
-          IR_MemberAccess(IR_VariableAccess("blockDim", IR_IntegerDatatype), it.name) +
-          IR_MemberAccess(IR_VariableAccess("threadIdx", IR_IntegerDatatype), it.name))
+        IR_MemberAccess(IR_VariableAccess("blockIdx", IR_IntegerDatatype), "x") *
+          IR_MemberAccess(IR_VariableAccess("blockDim", IR_IntegerDatatype), "x") +
+          IR_MemberAccess(IR_VariableAccess("threadIdx", IR_IntegerDatatype), "x"))
       fctBody += IR_Assignment(it, 2 * stride.access, "*=")
 
       // add index bounds conditions
@@ -103,13 +103,14 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
         IR_Assignment(IR_ArrayAccess(data.access, it), IR_BinaryOperators.createExpression(op, IR_ArrayAccess(data.access, it), IR_ArrayAccess(data.access, it + stride.access))))
 
       // compile final kernel function
-      var fct = IR_Function(
-        IR_UnitDatatype,
-        kernelName,
-        ListBuffer(data, numElements, stride),
-        fctBody,
-        allowInlining = false, allowFortranInterface = false, "__global__")
+      val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */ kernelName, IR_UnitDatatype, ListBuffer(data, numElements, stride), fctBody)
+
+      fct.allowInlining = false
+      fct.allowFortranInterface = false
+      fct.functionQualifiers = "__global__"
+
       fct.annotate("deviceOnly")
+
       functions += fct
     }
 
@@ -144,13 +145,17 @@ case class CUDA_KernelFunctions() extends IR_FunctionCollection("KernelFunctions
       fctBody += IR_Return(Some(ret))
 
       // compile final wrapper function
-      functions += IR_Function(
-        IR_RealDatatype, // TODO: support other types
+      val fct = IR_PlainFunction( /* FIXME: IR_LeveledFunction? */
         wrapperName,
+        IR_RealDatatype, // TODO: support other types
         ListBuffer(data, IR_FunctionArgument("numElements", IR_IntegerDatatype /*FIXME: size_t*/)),
-        fctBody,
-        allowInlining = false, allowFortranInterface = false,
-        "extern \"C\"")
+        fctBody)
+
+      fct.allowInlining = false
+      fct.allowFortranInterface = false
+      fct.functionQualifiers = "extern \"C\""
+
+      functions += fct
     }
   }
 }

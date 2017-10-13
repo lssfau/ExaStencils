@@ -6,6 +6,7 @@ import exastencils.communication.ir._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.domain.ir._
+import exastencils.parallelization.api.omp.OMP_WaitForFlag
 
 /// IR_ResolveConstIVs
 
@@ -52,8 +53,7 @@ object IR_ResolveConstIVs extends DefaultStrategy("Resolve constant internal var
         case IR_Assignment(_ : IR_IV_LocalCommDone, _, _) => IR_NullStatement
         case _ : IR_IV_LocalCommDone                      => IR_BooleanConstant(true)
 
-        // FIXME: IR_UserFunctionAccess
-        case IR_FunctionCall(IR_UserFunctionAccess("waitForFlag", _), _) => IR_NullExpression
+        case IR_FunctionCall(fctAccess, _) if OMP_WaitForFlag.name == fctAccess.name => IR_NullExpression
       }))
     }
 

@@ -6,6 +6,5 @@ import exastencils.parsers.ExaLexer
 
 class Runner_Lexer extends ExaLexer {
   delimiters += ("=", "(", ")", "{", "}", "-", "+=", ",", "~")
-  reserved += ("true", "false")
   reserved += ("Variabilities", "Constraints", "DerivedParameters")
 }

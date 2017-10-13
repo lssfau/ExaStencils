@@ -10,6 +10,9 @@ import exastencils.prettyprinting.PpStream
 object L3_BinaryOperators extends Enumeration {
   exastencils.core.Duplicate.registerImmutable(this.getClass)
 
+  val afterOpeningBracket = " "
+  val beforeClosingBracket = " "
+
   type BinaryOperators = Value
   val Addition = Value("+")
   val Subtraction = Value("-")
@@ -37,6 +40,9 @@ object L3_BinaryOperators extends Enumeration {
   val LowerEqual = Value("<=")
   val Greater = Value(">")
   val GreaterEqual = Value(">=")
+
+  val Maximum = Value("max")
+  val Minimum = Value("min")
 
   //  Conversions for Enumeration:
   // BinaryOperators -> String:  op.toString()
@@ -68,6 +74,9 @@ object L3_BinaryOperators extends Enumeration {
     case LowerEqual             => L3_LowerEqual(left, right)
     case Greater                => L3_Greater(left, right)
     case GreaterEqual           => L3_GreaterEqual(left, right)
+
+    case Maximum => L3_Maximum(left, right)
+    case Minimum => L3_Minimum(left, right)
   }
 
   def progress(op : Value) : L4_BinaryOperators.BinaryOperators = {
@@ -83,12 +92,14 @@ object L3_Addition {
 }
 
 case class L3_Addition(var summands : ListBuffer[L3_Expression]) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' <<< (summands, "+") << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket <<< (summands, " + ") << beforeClosingBracket << ')'
   override def progress = L4_Addition(summands.map(_.progress))
 }
 
 case class L3_Subtraction(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '-' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " - " << right << beforeClosingBracket << ')'
   override def progress = L4_Subtraction(left.progress, right.progress)
 }
 
@@ -97,55 +108,65 @@ object L3_Multiplication {
 }
 
 case class L3_Multiplication(var factors : ListBuffer[L3_Expression]) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' <<< (factors, "*") << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket <<< (factors, " * ") << beforeClosingBracket << ')'
   override def progress = L4_Multiplication(factors.map(_.progress))
 }
 
 case class L3_Division(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '/' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " / " << right << beforeClosingBracket << ')'
   override def progress = L4_Division(left.progress, right.progress)
 }
 
 case class L3_Modulo(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
   // assumes "left >= 0"   if not, generate something like "(left%right + right) % right"
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '%' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " % " << right << beforeClosingBracket << ')'
   override def progress = L4_Modulo(left.progress, right.progress)
 }
 
 case class L3_Power(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << left << "**" << right
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " ** " << right << beforeClosingBracket << ')'
   override def progress = L4_Power(left.progress, right.progress)
 }
 
 /// element-wise arithmetic operations
 
 case class L3_ElementwiseAddition(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .+ " << right << beforeClosingBracket << ')'
   override def progress = L4_ElementwiseAddition(left.progress, right.progress)
 }
 
 case class L3_ElementwiseSubtraction(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '+' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .+ " << right << beforeClosingBracket << ')'
   override def progress = L4_ElementwiseSubtraction(left.progress, right.progress)
 }
 
 case class L3_ElementwiseMultiplication(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '*' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .* " << right << beforeClosingBracket << ')'
   override def progress = L4_ElementwiseMultiplication(left.progress, right.progress)
 }
 
 case class L3_ElementwiseDivision(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '/' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " ./ " << right << beforeClosingBracket << ')'
   override def progress = L4_ElementwiseDivision(left.progress, right.progress)
 }
 
 case class L3_ElementwiseModulo(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '.' << '%' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " .% " << right << beforeClosingBracket << ')'
   override def progress = L4_ElementwiseModulo(left.progress, right.progress)
 }
 
 case class L3_ElementwisePower(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << "dotpow(" << left << ", " << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << "dotpow ( " << left << ", " << right << beforeClosingBracket << ')'
   // FIXME: check for integer constant => use pown
   override def progress = L4_ElementwisePower(left.progress, right.progress)
 }
@@ -153,43 +174,73 @@ case class L3_ElementwisePower(var left : L3_Expression, var right : L3_Expressi
 /// logical comparison operations
 
 case class L3_EqEq(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "==" << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " == " << right << beforeClosingBracket << ')'
   override def progress = L4_EqEq(left.progress, right.progress)
 }
 
 case class L3_Neq(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "!=" << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " != " << right << beforeClosingBracket << ')'
   override def progress = L4_Neq(left.progress, right.progress)
 }
 
 case class L3_Lower(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '<' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " < " << right << beforeClosingBracket << ')'
   override def progress = L4_Lower(left.progress, right.progress)
 }
 
 case class L3_Greater(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << '>' << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " > " << right << beforeClosingBracket << ')'
   override def progress = L4_Greater(left.progress, right.progress)
 }
 
 case class L3_LowerEqual(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "<=" << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " <= " << right << beforeClosingBracket << ')'
   override def progress = L4_LowerEqual(left.progress, right.progress)
 }
 
 case class L3_GreaterEqual(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << ">=" << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " >= " << right << beforeClosingBracket << ')'
   override def progress = L4_GreaterEqual(left.progress, right.progress)
 }
 
 /// (scalar) logical operations
 
 case class L3_AndAnd(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "&&" << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " && " << right << beforeClosingBracket << ')'
   override def progress = L4_AndAnd(left.progress, right.progress)
 }
 
 case class L3_OrOr(var left : L3_Expression, var right : L3_Expression) extends L3_Expression {
-  override def prettyprint(out : PpStream) : Unit = out << '(' << left << "||" << right << ')'
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << '(' << afterOpeningBracket << left << " || " << right << beforeClosingBracket << ')'
   override def progress = L4_OrOr(left.progress, right.progress)
+}
+
+/// min/max operations
+
+object L3_Minimum {
+  def apply(varargs : L3_Expression*) = new L3_Minimum(varargs.to[ListBuffer])
+}
+
+case class L3_Minimum(var args : ListBuffer[L3_Expression]) extends L3_Expression {
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << "min ( " <<< (args, ", ") << " )"
+  override def progress = L4_Minimum(args.map(_.progress))
+}
+
+object L3_Maximum {
+  def apply(varargs : L3_Expression*) = new L3_Maximum(varargs.to[ListBuffer])
+}
+
+case class L3_Maximum(var args : ListBuffer[L3_Expression]) extends L3_Expression {
+  import L3_BinaryOperators._
+  override def prettyprint(out : PpStream) = out << "max ( " <<< (args, ", ") << " )"
+  override def progress = L4_Maximum(args.map(_.progress))
 }

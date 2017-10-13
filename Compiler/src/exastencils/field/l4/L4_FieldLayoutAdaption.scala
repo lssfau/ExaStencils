@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.core.Duplicate
 
-/// L4_AddPaddingToFieldLayouts
+/// L4_DuplicateFieldLayoutsForFields
 
 object L4_DuplicateFieldLayoutsForFields {
   def apply() = {

@@ -7,14 +7,13 @@ dimensionality						= 3
 minLevel							= 1
 maxLevel							= 5
 
-experimental_Neumann				= true
-experimental_NeumannOrder			= 1
-
 grid_isUniform						= false
 grid_isStaggered					= true
 grid_isAxisAligned					= true
 
 grid_spacingModel					= "linearFct"
+
+grid_halveStagBoundaryVolumes		= true
 
 // code generation
 

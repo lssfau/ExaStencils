@@ -11,7 +11,7 @@ class L4_Lexer extends ExaLexer {
   // general delimiters
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", ";", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
-  // for import functionality
+  // import functionality
   reserved += "import"
 
   // function keywords
@@ -20,11 +20,8 @@ class L4_Lexer extends ExaLexer {
   // function instantiation
   reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")
 
-  // declaration keywords - simple
-  reserved += ("Var", "Variable", "Val", "Value")
-
   // declaration keywords - complex
-  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "Globals")
+  reserved += ("Domain", "Layout", "Field", "Stencil", "StencilTemplate", "StencilField", "Set", "external", "from", "with")
 
   // loop keywords
   reserved += ("repeat", "times", "count", "with", "contraction", "break")
@@ -39,9 +36,6 @@ class L4_Lexer extends ExaLexer {
   // language data types
   reserved += ("Unit", "String", "Integer", "Int", "Real", "Complex", "Array", "Vector", "RowVector", "ColumnVector", "RVector", "CVector", "Matrix", "Boolean", "Bool", "T")
   reserved += ("Vec2", "Vec3", "Vec4")
-
-  // boolean keywords
-  reserved += ("true", "false")
 
   // level specification keywords
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
@@ -65,11 +59,24 @@ class L4_Lexer extends ExaLexer {
   reserved += ("advance", "active", "activeSlot", "currentSlot", "next", "nextSlot", "previous", "previousSlot")
 
   // solve keywords
-  reserved += ("solve", "locally", "relax")
+  reserved += ("solve", "locally", "jacobi", "relax")
 
   // math keywords
   //  reserved += ()
 
   // obsolete keywords
   reserved += "steps"
+
+  // base => L4_Declaration
+  reserved += ("Var", "Variable", "Val", "Value")
+
+  // baseExt => L4_FieldIteratorAccess
+  reserved += ("i0", "i1", "i2", "x", "y", "z")
+
+  // baseExt => L4_GlobalSection
+  reserved += ("Globals")
+
+  // baseExt => l4_OperatorDeclarations
+  reserved += ("Operator", "from", "default", "restriction", "prolongation", "on", "with")
+  reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 }

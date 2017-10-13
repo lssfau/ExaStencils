@@ -1,29 +1,49 @@
 package exastencils.operator.l3
 
-import exastencils.baseExt.l3.L3_UnresolvedAccess
+import exastencils.base.l3._
 import exastencils.datastructures._
-import exastencils.knowledge.l3.L3_KnowledgeAccess
 import exastencils.operator.l4.L4_StencilAccess
 import exastencils.prettyprinting.PpStream
 
 /// L3_StencilAccess
 
 object L3_StencilAccess {
-  def apply(stencilName : String, level : Int) =
-    new L3_StencilAccess(L3_StencilCollection.getByIdentifier(stencilName, level).get)
+  def apply(access : L3_FutureStencilAccess) =
+    new L3_StencilAccess(L3_StencilCollection.getByIdentifier(access.name, access.level).get, access.offset, access.dirAccess)
 }
 
-case class L3_StencilAccess(var target : L3_Stencil) extends L3_KnowledgeAccess {
-  override def prettyprint(out : PpStream) = out << target.name << '@' << target.level
-  def progress = L4_StencilAccess(target.getProgressedObject())
+case class L3_StencilAccess(
+    var target : L3_Stencil,
+    var offset : Option[L3_ConstIndex] = None,
+    var dirAccess : Option[L3_ConstIndex] = None) extends L3_OperatorAccess with L3_CanBeOffset {
+
+  override def prettyprint(out : PpStream) = {
+    out << name << '@' << level
+    if (offset.isDefined) out << '@' << offset.get
+    if (dirAccess.isDefined) out << ':' << dirAccess.get
+  }
+
+  override def offsetWith(newOffset : L3_ConstIndex) = {
+    if (offset.isEmpty)
+      offset = Some(newOffset)
+    else
+      offset = Some(offset.get + newOffset)
+  }
+
+  def progress = {
+    L4_StencilAccess(target.getProgressedObj(),
+      L3_ProgressOption(offset)(_.progress),
+      L3_ProgressOption(dirAccess)(_.progress))
+  }
+  override def assembleOffsetMap() = target.assembleOffsetMap()
 }
 
 /// L3_ResolveStencilAccesses
 
 object L3_ResolveStencilAccesses extends DefaultStrategy("Resolve accesses to stencils") {
-  this += new Transformation("Resolve applicable unresolved accesses", {
-    case access : L3_UnresolvedAccess if L3_StencilCollection.exists(access.name) =>
-      L3_StencilAccess(access.name, access.level.get.resolveLevel)
+  this += new Transformation("Resolve applicable future accesses", {
+    // check if declaration has already been processed and promote access if possible
+    case access : L3_FutureStencilAccess if L3_StencilCollection.exists(access.name, access.level) =>
+      access.toStencilAccess
   })
 }
-

@@ -36,7 +36,14 @@ object L3_LevelList {
 }
 
 case class L3_LevelList(var levels : HashSet[L3_DeclarationLevelSpecification]) extends L3_LevelGroup {
-  override def prettyprint(out : PpStream) = out << '(' <<< (levels, ", ") << ')'
+  override def prettyprint(out : PpStream) = {
+    val (first, second) = levels.partition(!_.isInstanceOf[L3_NegatedLevelList])
+    out << "(" <<< (first, ", ")
+    if (second.size > 1) Logger.error("More than one negation per level list is not supported")
+    if (second.nonEmpty) out << " " << second.head
+    out << ")"
+  }
+
   override def progress = L4_LevelList(levels.map(_.progress))
 
   def flatten() : Unit = {
@@ -60,6 +67,6 @@ object L3_NegatedLevelList {
 }
 
 case class L3_NegatedLevelList(var levels : L3_LevelList) extends L3_LevelGroup {
-  def prettyprint(out : PpStream) = out << "not" << levels
+  def prettyprint(out : PpStream) = out << "but " << levels
   override def progress = L4_NegatedLevelList(levels.progress)
 }

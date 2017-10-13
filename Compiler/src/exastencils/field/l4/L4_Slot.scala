@@ -12,10 +12,11 @@ import exastencils.prettyprinting._
 trait L4_SlotSpecification extends L4_Node with PrettyPrintable {}
 
 /// L4_ActiveSlot
+
 case object L4_ActiveSlot extends L4_SlotSpecification {
   exastencils.core.Duplicate.registerConstant(this)
 
-  override def prettyprint(out : PpStream) = out << "activeSlot"
+  override def prettyprint(out : PpStream) = out << "active"
 }
 
 /// L4_NextSlot
@@ -23,7 +24,7 @@ case object L4_ActiveSlot extends L4_SlotSpecification {
 case object L4_NextSlot extends L4_SlotSpecification {
   exastencils.core.Duplicate.registerConstant(this)
 
-  override def prettyprint(out : PpStream) = out << "nextSlot"
+  override def prettyprint(out : PpStream) = out << "next"
 }
 
 /// L4_PreviousSlot
@@ -31,7 +32,7 @@ case object L4_NextSlot extends L4_SlotSpecification {
 case object L4_PreviousSlot extends L4_SlotSpecification {
   exastencils.core.Duplicate.registerConstant(this)
 
-  override def prettyprint(out : PpStream) = out << "previousSlot"
+  override def prettyprint(out : PpStream) = out << "previous"
 }
 
 /// L4_ConstantSlot
@@ -60,7 +61,9 @@ case class L4_AdvanceSlot(var field : L4_Access) extends L4_Statement {
   }
 
   override def progress = {
-    IR_AdvanceSlot(IR_IV_ActiveSlot(field.asInstanceOf[L4_FieldAccess].target.getProgressedObject(),
+    // TODO: check for unsupported modifiers (offset, etc)
+
+    IR_AdvanceSlot(IR_IV_ActiveSlot(field.asInstanceOf[L4_FieldAccess].target.getProgressedObj(),
       IR_LoopOverFragments.defIt))
   }
 }

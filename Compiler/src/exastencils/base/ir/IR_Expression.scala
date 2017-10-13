@@ -2,6 +2,8 @@ package exastencils.base.ir
 
 import exastencils.prettyprinting._
 
+/// IR_Expression
+
 trait IR_Expression extends IR_Node with PrettyPrintable {
   def datatype : IR_Datatype
 
@@ -38,6 +40,8 @@ trait IR_Expression extends IR_Node with PrettyPrintable {
 
   def <<(other : IR_Expression) = IR_LeftShift(this, other)
 }
+
+/// IR_NullExpression
 
 case object IR_NullExpression extends IR_Expression {
   exastencils.core.Duplicate.registerConstant(this)

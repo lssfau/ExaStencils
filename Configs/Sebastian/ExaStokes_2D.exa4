@@ -1,0 +1,521 @@
+
+Globals {
+	Var useVanka : Boolean = true
+	Var vankaRelax : Real = 0.6
+}
+
+/// main functions
+
+Function Application ( ) : Unit {
+	startTimer ( 'setup' )
+
+	initGlobals ( )
+	initDomain ( )
+	initFieldsWithZero ( )
+	initGeometry ( )
+	InitFields ( )
+	InitRhs@finest ( )
+
+	stopTimer ( 'setup' )
+
+	Solve@finest ( )
+
+	//printAllTimers ( )
+	destroyGlobals ( )
+}
+
+Function InitRhs@finest ( ) : Unit {
+	loop over rhs_u@current {
+		rhs_u@current = 4.0 * sin ( 2.0 * vf_cellCenter_y@current ) * cos ( 4.0 * vf_nodePosition_x@current ) - 64.0 * cos ( 4.0 * vf_cellCenter_y@current )
+		rhs_u@current *= vf_xStagCellVolume@current
+	}
+	loop over rhs_v@current {
+		rhs_v@current = 2.0 * sin ( 4.0 * vf_cellCenter_x@current ) * cos ( 2.0 * vf_nodePosition_y@current ) + 8.0 * cos ( 2.0 * vf_cellCenter_x@current )
+		rhs_v@current *= vf_yStagCellVolume@current
+	}
+	loop over rhs_p@current {
+		rhs_p@current = 0.0
+		rhs_p@current *= vf_cellVolume@current
+	}
+
+	// inital application of solution's bc
+
+	apply bc to u@current
+	apply bc to v@current
+	apply bc to p@current
+}
+
+Function Solve@finest ( ) : Unit {
+	// TODO: merge into norm
+	UpdateResidual@finest ( )
+	Var initRes : Real    = NormResidual_L2@current()
+	Var initErr : Real    = NormError_Max@current ( )
+	Var curRes  : Real    = initRes
+	Var prevRes : Real    = curRes
+	Var numIt   : Integer = 0
+
+	//print ( 'Starting residual at 0', initRes )
+	printVal ( initRes )
+	startTimer ( 'timeToSolve' )
+
+	// TODO: check with Lisa
+	repeat until ( curRes <= 1e-8 * initRes || numIt >= 100 ) {
+		startTimer ( 'cycle' )
+		if ( 0 ) {
+			VCycle@finest (  )
+		} else {
+			gen_mgCycle@finest (  )
+		}
+		stopTimer ( 'cycle' )
+
+		startTimer ( 'normalization' )
+		NormalizePressure@finest ( )
+		stopTimer ( 'normalization' )
+
+		if (getTotalFromTimer ( 'cycle' ) > 1200000 ) {
+			print ( 'Aborting solve after', getTotalFromTimer ( 'cycle' ), 'ms which exceeds the limit of', 1200000, 'ms' )
+			return
+		}
+
+		startTimer ( 'convergenceChecking' )
+		prevRes = curRes
+		// TODO: merge into norm
+		UpdateResidual@finest ( )
+		curRes = NormResidual_L2@current()
+		print ( 'Residual:', curRes, 'Residual reduction:', ( initRes / curRes ), 'Convergence factor:', ( curRes / prevRes ) )
+		Var curErr : Real = NormError_Max@current ( )
+		numIt += 1
+		stopTimer ( 'convergenceChecking' )
+	}
+
+	stopTimer ( 'timeToSolve' )
+	print ( 'Total time to solve in', numIt, 'steps :', getTotalFromTimer ( 'timeToSolve' ) )
+	print ( 'Mean time per vCycle: ', getMeanFromTimer ( 'cycle' ) )
+
+	if ( false ) {
+		printField ( "u.csv", u@finest )
+		printField ( "ru.csv", residual_u@finest )
+		printField ( "v.csv", v@finest )
+		printField ( "rv.csv", residual_v@finest )
+		printField ( "p.csv", p@finest )
+	}
+}
+
+Function printVal ( toPrint : Real ) : Unit {
+    if ( toPrint <= 1e-12 ) {
+		print ( "EFFECTIVELY ZERO" )
+    } else if ( toPrint <= 1e-11 ) {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(1)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    } else if ( toPrint <= 1e-10 ) {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(2)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    } else if ( toPrint <= 1e-9 ) {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(3)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    } else {
+		native ( 'std::streamsize oldPrec = std::cout.precision()' )
+		native ( 'std::cout.precision(4)' )
+		print ( toPrint )
+		native ( 'std::cout.precision(oldPrec)' )
+    }
+}
+
+Function NormResidual_max@finest ( ) : Real {
+	Var res_u : Real = NormResidual_u@current ( )
+	Var res_v : Real = NormResidual_v@current ( )
+	Var res_p : Real = NormResidual_p@current ( )
+
+	print ( res_u, res_v, res_p )
+	//print ( 'res_u', res_u )
+	//print ( 'res_v', res_v )
+	//print ( 'res_p', res_p )
+
+	// TODO: check with Lisa
+	return max ( res_u, res_v, res_p )
+}
+
+Function NormResidual_L2@finest ( ) : Real {
+	Var res_u : Real = NormResidual_u@current ( )
+	Var res_v : Real = NormResidual_v@current ( )
+	Var res_p : Real = NormResidual_p@current ( )
+
+	print ( res_u, res_v, res_p )
+	//print ( 'res_u', res_u )
+	//print ( 'res_v', res_v )
+	//print ( 'res_p', res_p )
+
+	// TODO: check with Lisa
+	return sqrt ( res_u * res_u + res_v * res_v + res_p * res_p )
+}
+
+Function NormError_L2@finest ( ) : Real {
+	Var err_u : Real = 0
+	Var err_v : Real = 0
+	Var err_p : Real = 0
+
+	loop over u@current with reduction( + : err_u ){
+		Var curErr : Real = u@current - ( -4.0 * cos ( 4.0 * vf_cellCenter_y@current ) )
+		err_u += curErr * curErr
+	}
+	loop over v@current with reduction( + : err_v ) {
+		Var curErr : Real = v@current - ( 2.0 * cos ( 2.0 * vf_cellCenter_x@current ) )
+		err_v += curErr * curErr
+	}
+	loop over p@current with reduction( + : err_p ) {
+		Var curErr : Real = p@current - ( sin ( 4.0 * vf_cellCenter_x@current ) * sin ( 2.0 * vf_cellCenter_y@current ) )
+		err_p += curErr * curErr
+	}
+
+	Var totalErr : Real = sqrt ( err_u + err_v + err_p )
+
+	print ( 'Error:', totalErr, sqrt ( err_u ), sqrt ( err_v ), sqrt ( err_p ) )
+
+	return totalErr
+}
+
+Function NormError_Max@finest ( ) : Real {
+	Var err_u : Real = 0
+	Var err_v : Real = 0
+	Var err_p : Real = 0
+
+	loop over u@current with reduction( max : err_u ){
+		Var curErr : Real = u@current - ( -4.0 * cos ( 4.0 * vf_cellCenter_y@current ) )
+		err_u = max ( curErr, err_u )
+	}
+	loop over v@current with reduction( max : err_v ) {
+		Var curErr : Real = v@current - ( 2.0 * cos ( 2.0 * vf_cellCenter_x@current ) )
+		err_v = max ( curErr, err_v )
+	}
+	loop over p@current with reduction( max : err_p ) {
+		Var curErr : Real = p@current - ( sin ( 4.0 * vf_cellCenter_x@current ) * sin ( 2.0 * vf_cellCenter_y@current ) )
+		err_p = max ( curErr, err_p )
+	}
+
+	Var totalErr : Real = max ( err_u, err_v, err_p )
+
+	print ( 'Error:', totalErr, err_u, err_v, err_p )
+
+	return totalErr
+}
+
+Function NormalizePressure@finest ( ) : Unit {
+	// TODO: add language shortcut
+	Val numCells_x : Int = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_x' ) * getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
+	Val numCells_y : Int = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_y' ) * getKnowledge ( 'domain_rect_numBlocks_y' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_y' )
+	Val numCells : Int = numCells_x * numCells_y
+
+	Var mean : Real = 0
+	loop over p@current with reduction ( + : mean ) {
+		mean += p@current
+	}
+	Var corr : Real = 0
+	loop over p@current with reduction ( + : corr ) {
+		corr += sin ( 4.0 * vf_cellCenter_x@current ) * sin ( 2.0 * vf_cellCenter_y@current )
+	}
+
+	mean /= numCells
+	corr /= numCells
+	mean -= corr
+
+	loop over p@current {
+		p@current -= mean
+	}
+	communicate p@current
+	apply bc to p@current
+
+	print ( 'Pressure mean:', mean )
+}
+
+Function VCycle@(all but coarsest) ( ) : Unit {
+	Smoother@current ( )
+
+	UpdateResidual@current ( )
+	Restriction@current ( )
+
+	SetSolution@coarser ( 0 )
+	VCycle@coarser ( )
+
+	Correction@current ( )
+
+	Smoother@current ( )
+}
+
+Function VCycle@coarsest ( ) : Unit {
+	// TODO: implement real cgs
+	repeat 4 times {
+		Smoother@current ( )
+	}
+}
+
+Function Smoother@all ( ) : Unit {
+	if ( useVanka ) {
+		repeat 4 times {
+			Vanka@current ( )
+		}
+	} else {
+		repeat 4 times {
+			Distributive@current ( )
+		}
+	}
+}
+
+Function Distributive@all ( ) : Unit {
+	color with {
+		0 == ( x + y ) % 2,
+		1 == ( x + y ) % 2,
+
+		loop over u@current {
+			u@current += ( ( rhs_u@current - B1@current * p@current - A11@current * u@current ) / A11@current:[0, 0] )
+		}
+
+		communicate u@current
+		apply bc to u@current
+	}
+
+	color with {
+		0 == ( x + y ) % 2,
+		1 == ( x + y ) % 2,
+
+		loop over v@current {
+			v@current += ( ( rhs_v@current - B2@current * p@current - A22@current * v@current ) / A22@current:[0, 0] )
+		}
+
+		communicate v@current
+		apply bc to v@current
+	}
+
+	color with {
+		0 == ( x + y ) % 2,
+		1 == ( x + y ) % 2,
+
+		loop over p@current {
+			Var delta : Real = rhs_p@current - ( C1@current * u@current + C2@current * v@current )
+			//delta /= vf_cellVolume@current
+
+			Var numNeigh : Int = 4
+			//if ( isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 1,  0,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 0, -1,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 0,  1,  0] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 0,  0, -1] ) ) { numNeigh -= 1 }
+			//if ( isOnBoundaryOf ( p@current@[ 0,  0,  1] ) ) { numNeigh -= 1 }
+
+			Var fac_x : Real = vf_cellWidth_y@current
+			Var fac_y : Real = vf_cellWidth_x@current
+			Var area  : Real = 2.0 * ( fac_x + fac_y )
+			fac_x /= area
+			fac_y /= area
+
+			if ( 0 ) {
+				fac_x = 1.0 / 4.0
+				fac_y = 1.0 / 4.0
+			}
+
+			//delta /= numNeigh
+			//if ( !isOnBoundaryOf ( p@current@[-1,  0,  0] ) ) {
+				u@current@[ 0,  0] -= fac_x * delta / ( vf_cellWidth_y@current ) //* vf_cellWidth_x@current//@[ 0,  0,  0]
+				p@current@[-1,  0] -= fac_x * delta / vf_cellVolume@current
+			//}
+			//if ( !isOnBoundaryOf ( p@current@[ 1,  0,  0] ) ) {
+				u@current@[ 1,  0] += fac_x * delta / ( vf_cellWidth_y@current ) //* vf_cellWidth_x@current//@[ 1,  0,  0]
+				p@current@[ 1,  0] -= fac_x * delta / vf_cellVolume@current
+			//}
+
+			//if ( !isOnBoundaryOf ( p@current@[ 0, -1,  0] ) ) {
+				v@current@[ 0,  0] -= fac_y * delta / ( vf_cellWidth_x@current ) //* vf_cellWidth_y@current//@[ 0,  0,  0]
+				p@current@[ 0, -1] -= fac_y * delta / vf_cellVolume@current
+			//}
+			//if ( !isOnBoundaryOf ( p@current@[ 0,  1,  0] ) ) {
+				v@current@[ 0,  1] += fac_y * delta / ( vf_cellWidth_x@current ) //* vf_cellWidth_y@current//@[ 0,  1,  0]
+				p@current@[ 0,  1] -= fac_y * delta / vf_cellVolume@current
+			//}
+
+			p@current@[ 0,  0] += delta / vf_cellVolume@current
+		}
+
+		communicate u@current
+		apply bc to u@current
+		communicate v@current
+		apply bc to v@current
+		communicate p@current
+		apply bc to p@current
+	}
+}
+
+Function Vanka@all ( ) : Unit {
+	// currently allowed: [1,1,1]|[2,1,1] -> TODO: improve code through summarizing equations
+	Val stride_x : Int = 1
+	Val stride_y : Int = 1
+
+	if ( 1 == stride_x && 1 == stride_y ) {
+		color with {
+			/*0 == ( x + y ) % 2,
+			1 == ( x + y ) % 2,*/
+
+			( 0 == x % 3 && 0 == y % 3 ) ,
+			( 1 == x % 3 && 0 == y % 3 ) ,
+			( 2 == x % 3 && 0 == y % 3 ) ,
+			( 0 == x % 3 && 1 == y % 3 ) ,
+			( 1 == x % 3 && 1 == y % 3 ) ,
+			( 2 == x % 3 && 1 == y % 3 ) ,
+			( 0 == x % 3 && 2 == y % 3 ) ,
+			( 1 == x % 3 && 2 == y % 3 ) ,
+			( 2 == x % 3 && 2 == y % 3 ) ,
+
+			loop over p@current {
+				solve locally relax vankaRelax {
+					// FIXME: inherit field access offset in stencil convolution
+
+					u@current@[0, 0] => A11@current@[0, 0] * u@current@[0, 0] + B1@current@[0, 0] * p@current@[0, 0] == rhs_u@current@[0, 0]
+					u@current@[1, 0] => A11@current@[1, 0] * u@current@[1, 0] + B1@current@[1, 0] * p@current@[1, 0] == rhs_u@current@[1, 0]
+
+					v@current@[0, 0] => A22@current@[0, 0] * v@current@[0, 0] + B2@current@[0, 0] * p@current@[0, 0] == rhs_v@current@[0, 0]
+					v@current@[0, 1] => A22@current@[0, 1] * v@current@[0, 1] + B2@current@[0, 1] * p@current@[0, 1] == rhs_v@current@[0, 1]
+
+					p@current@[0, 0] => C1@current@[0, 0] * u@current@[0, 0] + C2@current@[0, 0] * v@current@[0, 0] == rhs_p@current@[0, 0]
+				}
+			}
+
+			communicate u@current
+			apply bc to u@current
+			communicate v@current
+			apply bc to v@current
+			communicate p@current
+			apply bc to p@current
+		}
+	} else if ( 2 == stride_x && 1 == stride_y ) {
+		loop over p@current stepping [2, 1, 1] {
+			solve locally relax vankaRelax {
+				u@current@[0, 0] => A11@current@[0, 0] * u@current@[0, 0] + B1@current@[0, 0] * p@current@[0, 0] == rhs_u@current@[0, 0]
+				u@current@[1, 0] => A11@current@[1, 0] * u@current@[1, 0] + B1@current@[1, 0] * p@current@[1, 0] == rhs_u@current@[1, 0]
+				u@current@[2, 0] => A11@current@[2, 0] * u@current@[2, 0] + B1@current@[2, 0] * p@current@[2, 0] == rhs_u@current@[2, 0]
+
+				v@current@[0, 0] => A22@current@[0, 0] * v@current@[0, 0] + B2@current@[0, 0] * p@current@[0, 0] == rhs_v@current@[0, 0]
+				v@current@[0, 1] => A22@current@[0, 1] * v@current@[0, 1] + B2@current@[0, 1] * p@current@[0, 1] == rhs_v@current@[0, 1]
+				v@current@[1, 0] => A22@current@[1, 0] * v@current@[1, 0] + B2@current@[1, 0] * p@current@[1, 0] == rhs_v@current@[1, 0]
+				v@current@[1, 1] => A22@current@[1, 1] * v@current@[1, 1] + B2@current@[1, 1] * p@current@[1, 1] == rhs_v@current@[1, 1]
+
+				p@current@[0, 0] => C1@current@[0, 0] * u@current@[0, 0] + C2@current@[0, 0] * v@current@[0, 0] == rhs_p@current@[0, 0]
+				p@current@[1, 0] => C1@current@[1, 0] * u@current@[1, 0] + C2@current@[1, 0] * v@current@[1, 0] == rhs_p@current@[1, 0]
+			}
+		}
+	}
+
+	/*communicate u@current
+	communicate v@current
+	communicate p@current
+
+	apply bc to u@current
+	apply bc to v@current
+	apply bc to p@current*/
+}
+
+Function UpdateResidual@all ( ) : Unit {
+	// just call component-wise functions
+	UpdateResidual_u@current ( )
+	UpdateResidual_v@current ( )
+	UpdateResidual_p@current ( )
+}
+
+/*Function UpdateResidual_u@all ( ) : Unit {
+	loop over residual_u@current {
+		residual_u@current = rhs_u@current - ( A11@current * u@current + B1@current * p@current )
+	}
+
+	communicate residual_u@current
+}*/
+
+Function UpdateResidual_v@all ( ) : Unit {
+	loop over residual_v@current {
+		residual_v@current = rhs_v@current - ( A22@current * v@current + B2@current * p@current )
+	}
+
+	communicate residual_v@current
+}
+
+Function UpdateResidual_p@all ( ) : Unit {
+	loop over residual_p@current {
+		residual_p@current = rhs_p@current - ( C1@current * u@current + C2@current * v@current )
+	}
+
+	communicate residual_p@current
+}
+
+Function Restriction@( ( coarsest + 1 ) to finest ) ( ) : Real {
+	// just call component-wise functions
+	Restriction_u@current ( )
+	Restriction_v@current ( )
+	Restriction_p@current ( )
+}
+
+Function Correction@( ( coarsest + 1 ) to finest ) ( ) : Real {
+	// just call component-wise functions
+	Correction_u@current ( )
+	Correction_v@current ( )
+	Correction_p@current ( )
+}
+
+Function SetSolution@all ( value : Real ) : Real {
+	// just call component-wise functions
+	SetSolution_u@current ( value )
+	SetSolution_v@current ( value )
+	SetSolution_p@current ( value )
+}
+
+/// templates for (multigrid) solver components
+
+FunctionTemplate NormResidualComponent < residual > ( ) : Real {
+	Variable totalRes : Real = 0
+	loop over residual with reduction( + : totalRes ) {
+		totalRes += residual ** 2
+	}
+	return sqrt ( totalRes )
+}
+
+FunctionTemplate RestrictionComponent < source, dest, restrictionStencil > ( ) : Unit {
+	loop over dest {
+		dest = restrictionStencil * source
+	}
+}
+
+FunctionTemplate CorrectionComponent < source, dest, correctionStencil, requiresBcUpdate > ( ) : Unit {
+	loop over dest {
+		dest += correctionStencil * source
+	}
+
+	communicate dest
+	if ( requiresBcUpdate ) {
+		apply bc to dest
+	}
+}
+
+FunctionTemplate SetFieldComponent < target > ( value : Real ) : Unit {
+	loop over target starting [-1, -1, -1] ending [-1, -1, -1] {
+		target = value
+	}
+}
+
+// instantiations
+
+Instantiate NormResidualComponent < residual_u@current > as NormResidual_u@finest
+Instantiate NormResidualComponent < residual_v@current > as NormResidual_v@finest
+Instantiate NormResidualComponent < residual_p@current > as NormResidual_p@finest
+
+Instantiate RestrictionComponent < residual_u@current, rhs_u@coarser, RestrictionFaceX@current > as Restriction_u@( ( coarsest + 1 ) to finest )
+Instantiate RestrictionComponent < residual_v@current, rhs_v@coarser, RestrictionFaceY@current > as Restriction_v@( ( coarsest + 1 ) to finest )
+Instantiate RestrictionComponent < residual_p@current, rhs_p@coarser, RestrictionCell@current > as Restriction_p@( ( coarsest + 1 ) to finest )
+
+Instantiate CorrectionComponent < u@coarser, u@current, CorrectionFaceX@current, true > as Correction_u@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < v@coarser, v@current, CorrectionFaceY@current, true > as Correction_v@( ( coarsest + 1 ) to finest )
+Instantiate CorrectionComponent < p@coarser, p@current, CorrectionCell@current, true > as Correction_p@( ( coarsest + 1 ) to finest )
+
+Instantiate SetFieldComponent < u@current > as SetSolution_u@all
+Instantiate SetFieldComponent < v@current > as SetSolution_v@all
+Instantiate SetFieldComponent < p@current > as SetSolution_p@all

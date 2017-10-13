@@ -22,8 +22,7 @@ import exastencils.interfacing.ir._
 import exastencils.knowledge.l4._
 import exastencils.logger._
 import exastencils.operator.l4.L4_ProcessStencilDeclarations
-import exastencils.optimization._
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda.CUDA_LinearizeReductionDeviceDataAccess
 import exastencils.parallelization.api.mpi._
 import exastencils.parallelization.api.omp._
@@ -122,8 +121,10 @@ object MainJeremias {
     // Looking for other L3 related code? Check MainL3.scala!
 
     if (Knowledge.l3tmp_generateL4) {
-      var l3gen_root = l3Generate.Root()
-      l3gen_root.printToL4(Settings.getL4file)
+      val l3gen_root = l3Generate.Root()
+      val l4Filenames = Settings.getL4file
+      if (l4Filenames.length != 1) Logger.error("l3tmp_generateL4 requires exactly one Layer4 file provided in settings")
+      l3gen_root.printToL4(l4Filenames.head)
     }
 
     if (Settings.timeStrategies)
@@ -134,7 +135,8 @@ object MainJeremias {
     if (Settings.timeStrategies)
       StrategyTimer.startTiming("Handling Layer 4")
 
-    ExaRootNode.l4_root = (new L4_Parser).parseFile(Settings.getL4file)
+    ExaRootNode.l4_root = L4_Root(Settings.getL4file.map(L4_Parser.parseFile(_) : L4_Node))
+    ExaRootNode.l4_root.flatten()
     L4_Validation.apply()
 
     if (false) // re-print the merged L4 state
@@ -146,7 +148,7 @@ object MainJeremias {
       outFile.close()
 
       // re-parse the file to check for errors
-      var parserl4 = new L4_Parser
+      var parserl4 = L4_Parser
       ExaRootNode.l4_root = parserl4.parseFile(Settings.getL4file + "_rep.exa")
       L4_Validation.apply()
     }
@@ -159,18 +161,14 @@ object MainJeremias {
 
     L4_ResolveLevelSpecifications.apply()
 
-    L4_UnfoldLeveledFunctions.apply()
-    L4_UnfoldLeveledDeclarations.apply()
-    L4_UnfoldLeveledKnowledgeDecls.apply()
-    L4_ResolveLeveledScopes.apply()
+    L4_ResolveLevelScopes.apply()
 
-    L4_ResolveCurrentLevels.apply()
     L4_ResolveSpecialConstants.apply()
     L4_ResolveKnowledgeParameterAccess.apply()
 
     L4_ProcessStencilDeclarations.apply()
 
-    ExaRootNode.ProgressToIR()
+    ExaRootNode.progressToIR()
 
     if (!Knowledge.domain_rect_generate) {
       if (Knowledge.domain_readFromFile) {
@@ -269,15 +267,12 @@ object MainJeremias {
     else
       IR_Expand.doUntilDone()
 
-    MergeConditions.apply()
+    IR_MergeConditions.apply()
     if (Knowledge.poly_optLevel_fine > 0)
-      PolyOpt.apply()
+      IR_PolyOpt.apply()
     IR_ResolveLoopOverDimensions.apply()
 
-    TypeInference.apply()
-
-    if (Knowledge.opt_useColorSplitting)
-      ColorSplitting.apply()
+    IR_TypeInference.apply()
 
     IR_ResolveSlotOperations.apply()
     IR_ResolveBoundedScalar.apply()
@@ -300,18 +295,18 @@ object MainJeremias {
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_useAddressPrecalc)
-      AddressPrecalculation.apply()
+      IR_AddressPrecalculation.apply()
 
-    SimplifyFloatExpressions.apply()
+    IR_SimplifyFloatExpressions.apply()
 
     if (Knowledge.opt_vectorize)
-      Vectorization.apply()
+      IR_Vectorization.apply()
 
     if (Knowledge.opt_unroll > 1)
-      Unrolling.apply()
+      IR_Unrolling.apply()
 
     if (Knowledge.opt_vectorize)
-      RemoveDupSIMDLoads.apply()
+      IR_RemoveDupSIMDLoads.apply()
 
     IR_AddInternalVariables.apply()
     if (Knowledge.useFasterExpand)
@@ -341,7 +336,7 @@ object MainJeremias {
     IR_GeneralSimplify.doUntilDone()
 
     if (Knowledge.opt_maxInliningSize > 0)
-      Inlining.apply()
+      IR_Inlining.apply()
 
     PrintToFile.apply()
     PrettyprintingManager.finish()

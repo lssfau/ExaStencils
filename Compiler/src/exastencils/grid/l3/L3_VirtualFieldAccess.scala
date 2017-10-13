@@ -1,27 +1,70 @@
 package exastencils.grid.l3
 
 import exastencils.base.l3._
-import exastencils.base.l4._
-import exastencils.baseExt.l3.L3_UnresolvedAccess
+import exastencils.baseExt.l3._
+import exastencils.config.Knowledge
+import exastencils.core.Duplicate
 import exastencils.datastructures._
-import exastencils.grid.VirtualField
-import exastencils.grid.l4.L4_VirtualFieldAccess
+import exastencils.grid.l4._
+import exastencils.knowledge.l3.L3_LeveledKnowledgeAccess
+import exastencils.optimization.l3.L3_GeneralSimplifyWrapper
 import exastencils.prettyprinting.PpStream
 
-case class L3_VirtualFieldAccess(var name : String, var level : Int) extends L3_Access {
-  def prettyprint(out : PpStream) = out << name << '@' << level
-  def progress = L4_VirtualFieldAccess(name, L4_SingleLevel(level), None, None)
+/// L3_VirtualFieldAccess
+
+object L3_VirtualFieldAccess {
+  def apply(access : L3_FutureVirtualFieldAccess) = {
+    val target = L3_VirtualFieldCollection.getByIdentifier(access.name, access.level).get
+    val offset = access.offset
+
+    var index = L3_FieldIteratorAccess.fullIndex(target.numDims)
+    if (offset.isDefined) index += offset.get
+
+    new L3_VirtualFieldAccess(target, index)
+  }
+}
+
+case class L3_VirtualFieldAccess(
+    var target : L3_VirtualField,
+    var index : L3_ExpressionIndex) extends L3_LeveledKnowledgeAccess with L3_CanBeOffset with L3_MayBlockResolution {
+
+  allDone = !(target.resolutionPossible && Knowledge.experimental_l3_resolveVirtualFields)
+
+  def prettyprint(out : PpStream) = {
+    out << target.name << '@' << target.level << '@' << extractOffset
+  }
+
+  override def offsetWith(offset : L3_ConstIndex) = index += offset
+
+  def extractOffset = {
+    var offset = Duplicate(index) - L3_FieldIteratorAccess.fullIndex(target.numDims)
+    offset = L3_GeneralSimplifyWrapper.process(offset)
+    offset.toConstIndex
+  }
+
+  def tryResolve : L3_Expression = {
+    if (!target.resolutionPossible)
+      return this // do nothing
+
+    target match {
+      case scalar : L3_VirtualFieldWithScalar => scalar.resolve(index)
+      case vector : L3_VirtualFieldWithVec    => this // FIXME: L3_VectorExpression(vector.listPerDim.zipWithIndex.map((va, dim) => L3_VirtualFieldAccess(va, Duplicate(offset), dim)))
+    }
+  }
+
+  def progress = L4_VirtualFieldAccess(target.getProgressedObj(), index.progress)
 }
 
 /// L3_ResolveVirtualFieldAccesses
 
 object L3_ResolveVirtualFieldAccesses extends DefaultStrategy("Resolve accesses to virtual fields") {
-  val collector = new L3_LevelCollector
-  this.register(collector)
+  this += new Transformation("Resolve applicable future accesses", {
+    // check if declaration has already been processed and promote access if possible
+    case access : L3_FutureVirtualFieldAccess if L3_VirtualFieldCollection.exists(access.name, access.level) =>
+      access.toVirtualFieldAccess
 
-  this += new Transformation("Resolve applicable unresolved accesses", {
-    case access : L3_UnresolvedAccess if VirtualField.fields.contains(access.name.toLowerCase()) =>
-      val level = if (access.level.isDefined) access.level.get.resolveLevel else collector.getCurrentLevel
-      L3_VirtualFieldAccess(access.name, level)
+    // attempt further resolution if requested
+    case access : L3_VirtualFieldAccess if !access.allDone =>
+      access.tryResolve
   })
 }

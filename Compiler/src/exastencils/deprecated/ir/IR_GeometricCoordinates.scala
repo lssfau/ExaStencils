@@ -22,7 +22,7 @@ case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var 
     if (Knowledge.domain_fragmentTransformation) {
       // TODO: integrate into the new grid class family
       ListBuffer[IR_Statement](
-        IR_VariableDeclaration(IR_RealDatatype, "xPosTMP", field.fieldLayout.discretization match {
+        IR_VariableDeclaration(IR_RealDatatype, "xPosTMP", field.fieldLayout.localization.name.toLowerCase() match {
           case "node" | "face_x"            =>
             Some(((if (directCoords) "x" - field.referenceOffset(0) else "x" : IR_Expression) + offset(0))
               / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 0) - field.fieldLayout.idxById("DLB", 0) - 1)
@@ -34,7 +34,7 @@ case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var 
         }),
         IR_VariableDeclaration(IR_RealDatatype, "yPosTMP",
           if (Knowledge.dimensionality > 1) {
-            field.fieldLayout.discretization match {
+            field.fieldLayout.localization.name.toLowerCase() match {
               case "node" | "face_y"            =>
                 (((if (directCoords) "y" - field.referenceOffset(1) else "y" : IR_Expression) + offset(1))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 1) - field.fieldLayout.idxById("DLB", 1) - 1)
@@ -47,7 +47,7 @@ case class InitGeomCoords(var field : IR_Field, var directCoords : Boolean, var 
           } else IR_IntegerConstant(1)),
         IR_VariableDeclaration(IR_RealDatatype, "zPosTMP",
           if (Knowledge.dimensionality > 2) {
-            field.fieldLayout.discretization match {
+            field.fieldLayout.localization.name.toLowerCase() match {
               case "node" | "face_z"            =>
                 (((if (directCoords) "z" - field.referenceOffset(2) else "z" : IR_Expression) + offset(2))
                   / IR_Cast(IR_RealDatatype, field.fieldLayout.idxById("DRE", 2) - field.fieldLayout.idxById("DLB", 2) - 1)

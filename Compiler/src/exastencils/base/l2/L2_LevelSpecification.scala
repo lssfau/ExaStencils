@@ -5,6 +5,7 @@ import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
+import exastencils.util.l2.L2_LevelCollector
 
 /// L2_LevelSpecification
 
@@ -13,7 +14,7 @@ object L2_LevelSpecification {
     levels match {
       case None                        => defForNone
       case Some(L2_SingleLevel(level)) => List(level)
-      case Some(L2_LevelList(levels))  => levels.map(_.asInstanceOf[L2_SingleLevel].level).toList
+      case Some(L2_LevelList(lvls))    => lvls.map(_.resolveLevel).toList
       case other                       => Logger.error("Trying to extract level list from unsupported instance " + other)
     }
   }
@@ -23,6 +24,14 @@ object L2_LevelSpecification {
 
   // assumes empty level list as default
   def extractLevelListDefEmpty(levels : Option[L2_LevelSpecification]) : List[Int] = extractLevelList(levels, List())
+
+  def asSingleLevel(level : Option[L2_LevelSpecification]) : Int = {
+    level match {
+      case Some(L2_SingleLevel(lvl)) => lvl
+      case None                      => Logger.error("Missing level specification")
+      case Some(other)               => Logger.error(s"Invalid level specification: $other")
+    }
+  }
 }
 
 trait L2_LevelSpecification extends L2_Node with L2_Progressable with PrettyPrintable {
@@ -83,5 +92,26 @@ object L2_ResolveLevelSpecifications extends DefaultStrategy("Resolve level spec
       }
 
       levels
+  })
+}
+
+/// L2_ResolveRelativeLevels
+
+object L2_ResolveRelativeLevels extends DefaultStrategy("Resolve relative level specifications") {
+  val collector = new L2_LevelCollector
+  this.register(collector)
+
+  def getLevel() : Int = {
+    if (collector.inLevelScope)
+      collector.getCurrentLevel
+    else
+      Logger.error("Trying to access current outside of a valid level scope")
+  }
+
+  // resolve level identifiers "coarsest", "finest"
+  this += new Transformation("Resolve relative level aliases", {
+    case L2_CurrentLevel => L2_SingleLevel(getLevel())
+    case L2_CoarserLevel => L2_SingleLevel(getLevel() - 1)
+    case L2_FinerLevel   => L2_SingleLevel(getLevel() + 1)
   })
 }

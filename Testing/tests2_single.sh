@@ -17,7 +17,7 @@ MAIN=${3}
 TEST_DIR=${4}
 BIN=${5}
 KNOWLEDGE=${6}
-L4FILE=${7}
+EXAFILES=${7}
 PLATFORM=${8}
 ERROR_MARKER=${9}
 LOG_ALL=${10}
@@ -88,9 +88,17 @@ trap cleanup EXIT
 rm -f "${SETTINGS}"
 touch "${SETTINGS}"
 echo "outputPath = \"${TEST_DIR}\"" >> "${SETTINGS}"
-echo "l4file = \"${L4FILE}\"" >> "${SETTINGS}"
 echo "binary = \"${BIN}\"" >> "${SETTINGS}"
 echo "poly_explorationConfig = \"${EXPL_CFG}\"" >> "${SETTINGS}"
+IFS=';' read -a files <<< $EXAFILES
+for f in "${files[@]}"; do
+  case ${f} in
+    *.exa1)  echo "l1file += \"${f}\"" >> "${SETTINGS}";;
+    *.exa2)  echo "l2file += \"${f}\"" >> "${SETTINGS}";;
+    *.exa3)  echo "l3file += \"${f}\"" >> "${SETTINGS}";;
+    *.exa4)  echo "l4file += \"${f}\"" >> "${SETTINGS}";;
+  esac
+done
 
 
 echo "Run generator:"

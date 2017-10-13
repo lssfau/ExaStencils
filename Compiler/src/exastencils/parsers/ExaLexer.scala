@@ -32,4 +32,6 @@ class ExaLexer extends StdLexical {
     case Some(sign) => sign
   }
   def sign = chr('+') | chr('-')
+
+  reserved += ("true", "false", "import")
 }

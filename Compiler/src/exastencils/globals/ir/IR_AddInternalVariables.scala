@@ -12,7 +12,6 @@ import exastencils.datastructures._
 import exastencils.domain.ir.IR_IV_IsValidForDomain
 import exastencils.field.ir.IR_IV_FieldData
 import exastencils.logger.Logger
-import exastencils.optimization.IR_IV_LoopCarriedCSBuffer
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
 import exastencils.parallelization.ir.IR_ParallelizationInfo
@@ -227,7 +226,7 @@ object IR_AddInternalVariables extends DefaultStrategy("Add internal variables")
   })
 
   this += new Transformation("Extend SetupBuffers function", {
-    case func @ IR_Function(_, IR_AllocateDataFunction.fctName, _, _, _, _, _) =>
+    case func : IR_Function if IR_AllocateDataFunction.fctName == func.name =>
       for (genericAlloc <- bufferAllocs.toSeq.sortBy(_._1) ++ fieldAllocs.toSeq.sortBy(_._1) ++ deviceFieldAllocs.toSeq.sortBy(_._1) ++ deviceBufferAllocs.toSeq.sortBy(_._1))
         if ("MSVC" == Platform.targetCompiler /*&& Platform.targetCompilerVersion <= 11*/ ) // fix for https://support.microsoft.com/en-us/kb/315481
           func.body += IR_Scope(genericAlloc._2)

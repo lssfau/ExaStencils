@@ -1,12 +1,37 @@
 package exastencils.base.l4
 
 import exastencils.config.Knowledge
-import exastencils.core.collectors.L4LevelCollector
 import exastencils.datastructures._
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
+import exastencils.util.l4.L4_LevelCollector
 
 /// L4_LevelSpecification
+
+object L4_LevelSpecification {
+  def extractLevelList(levels : Option[L4_LevelSpecification], defForNone : List[Int]) : List[Int] = {
+    levels match {
+      case None                        => defForNone
+      case Some(L4_SingleLevel(level)) => List(level)
+      case Some(L4_LevelList(lvls))    => lvls.map(_.resolveLevel).toList
+      case other                       => Logger.error("Trying to extract level list from unsupported instance " + other)
+    }
+  }
+
+  // assumes list of all levels as default
+  def extractLevelListDefAll(levels : Option[L4_LevelSpecification]) : List[Int] = extractLevelList(levels, (Knowledge.minLevel to Knowledge.maxLevel).toList)
+
+  // assumes empty level list as default
+  def extractLevelListDefEmpty(levels : Option[L4_LevelSpecification]) : List[Int] = extractLevelList(levels, List())
+
+  def asSingleLevel(level : Option[L4_LevelSpecification]) : Int = {
+    level match {
+      case Some(L4_SingleLevel(lvl)) => lvl
+      case None                      => Logger.error("Missing level specification")
+      case Some(other)               => Logger.error(s"Invalid level specification: $other")
+    }
+  }
+}
 
 trait L4_LevelSpecification extends L4_Node with PrettyPrintable {
   def resolveLevel : Int
@@ -64,17 +89,24 @@ object L4_ResolveLevelSpecifications extends DefaultStrategy("Resolve level spec
   })
 }
 
-/// L4_ResolveCurrentLevels
+/// L4_ResolveRelativeLevels
 
-object L4_ResolveCurrentLevels extends DefaultStrategy("Resolve current level references") {
-  var levelCollector = new L4LevelCollector
-  this.register(levelCollector)
+object L4_ResolveRelativeLevels extends DefaultStrategy("Resolve relative level specifications") {
+  val collector = new L4_LevelCollector
+  this.register(collector)
 
-  // resolve level specifications
-  this += new Transformation("Resolve relative level specifications", {
-    case L4_CurrentLevel => L4_SingleLevel(levelCollector.getCurrentLevel)
-    case L4_CoarserLevel => L4_SingleLevel(levelCollector.getCurrentLevel - 1)
-    case L4_FinerLevel   => L4_SingleLevel(levelCollector.getCurrentLevel + 1)
+  def getLevel() : Int = {
+    if (collector.inLevelScope)
+      collector.getCurrentLevel
+    else
+      Logger.error("Trying to access current outside of a valid level scope")
+  }
+
+  // resolve level identifiers "coarsest", "finest"
+  this += new Transformation("Resolve relative level aliases", {
+    case L4_CurrentLevel => L4_SingleLevel(getLevel())
+    case L4_CoarserLevel => L4_SingleLevel(getLevel() - 1)
+    case L4_FinerLevel   => L4_SingleLevel(getLevel() + 1)
   })
 }
 

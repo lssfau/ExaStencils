@@ -1,14 +1,11 @@
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.base.l1.L1_MathTree
-import exastencils.base.l4.L4_ResolveVariableAccesses
-import exastencils.base.l4._
+import exastencils.base.l4.{ L4_ResolveVariableAccesses, _ }
 import exastencils.baseExt.ir._
 import exastencils.core.StateManager
 import exastencils.datastructures._
 import exastencils.optimization.ir._
-import exastencils.parsers.l1.L1_Parser
 import exastencils.prettyprinting.PrettyPrintable
 
 object MainChristian {
@@ -20,24 +17,11 @@ object MainChristian {
   }
 
   def main(args : Array[String]) : Unit = {
-
-    val parserResult = L1_Parser.parseFile("/home/schmittch/test01.exa1")
-    val lhs = parserResult.lhs
-    try {
-      println(lhs)
-      val stencil = L1_MathTree.createStencil(lhs, parserResult.dimCount)
-      println(stencil)
-    } catch {
-      case e : Exception => throw e
-    }
-
-    System.exit(0)
-
     exastencils.config.Knowledge.experimental_internalHighDimTypes = true
     exastencils.config.Knowledge.experimental_resolveInverseFunctionCall = "Runtime"
 
     //var tpdl = scala.xml.XML.loadFile("")
-    val parser = new exastencils.parsers.l4.L4_Parser()
+    val parser = exastencils.parsers.l4.L4_Parser
     val prog = "Function Application() : Unit { \n" +
       "//Var m : Matrix<Real, 2, 2>\n" +
       "//Var m2 : Matrix<Real, 2, 2>\n" +
@@ -73,7 +57,7 @@ object MainChristian {
     val root = MyRoot(ListBuffer(ast))
     StateManager.setRoot(root)
     L4_ResolveVariableAccesses.apply()
-    L4_ResolveFunctionAccesses.apply()
+    L4_ResolveDslFunctionReferences.apply()
     root.progress
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].baseName = ""
     root.nodes(0).asInstanceOf[IR_Root].nodes(0).asInstanceOf[IR_UserFunctions].externalDependencies.clear()

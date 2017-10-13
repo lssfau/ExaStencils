@@ -1,36 +1,33 @@
 package exastencils.operator.l3
 
-import scala.collection.mutable._
-
-import exastencils.base.l3._
-import exastencils.config.Knowledge
+import exastencils.base.l3.L3_MayBlockResolution
 import exastencils.datastructures._
+import exastencils.knowledge.l3._
 import exastencils.logger._
-import exastencils.prettyprinting._
 
 /// L3_StencilDecl
 
-object L3_StencilDecl {
-  def apply(name : String, entries : List[L3_StencilEntry]) = new L3_StencilDecl(name, entries.to[ListBuffer])
+abstract class L3_StencilDecl extends L3_LeveledKnowledgeDecl {
+  override def progress = Logger.error(s"Trying to progress L3 stencil declaration for stencil $name; this is not supported")
+  def addToKnowledge() : Unit
 }
 
-case class L3_StencilDecl(var name : String, var entries : ListBuffer[L3_StencilEntry]) extends L3_Statement {
-  override def prettyprint(out : PpStream) = out << "Stencil" << ' ' << name << ' ' << "{\n" <<< (entries, "\n") << "}\n"
-  override def progress = Logger.error(s"Trying to progress l3 stencil $name; this is not supported")
-}
+/// L3_PrepareStencilDeclaration
 
-/// L3_ProcessStencilDeclarations
-
-object L3_ProcessStencilDeclarations extends DefaultStrategy("Integrate Layer3 stencil declarations with knowledge") {
+object L3_PrepareStencilDeclarations extends DefaultStrategy("Prepare knowledge for L3 stencils") {
   this += Transformation("Process new stencils", {
-    case stencil : L3_StencilDecl =>
-      for (level <- Knowledge.levels) // TODO: how to choose levels?
-        L3_StencilCollection.add(L3_Stencil(stencil.name, level, stencil.entries)) // defer level determination
-      None // consume declaration statement
+    case decl : L3_StencilDecl =>
+      L3_StencilCollection.addDeclared(decl.name, decl.levels)
+      decl // preserve declaration statement
+  })
+}
 
-    case stencil : L3_StencilFromDefault =>
-      for (level <- Knowledge.levels) // TODO: how to choose levels?
-        L3_StencilCollection.add(L3_Stencil(stencil.name, level, stencil.generateEntries())) // defer level determination
+/// L3_ProcessStencilDeclaration
+
+object L3_ProcessStencilDeclarations extends DefaultStrategy("Integrate L3 stencil declarations with knowledge") {
+  this += Transformation("Process new stencils", {
+    case decl : L3_StencilDecl if L3_MayBlockResolution.isDone(decl) =>
+      decl.addToKnowledge()
       None // consume declaration statement
   })
 }

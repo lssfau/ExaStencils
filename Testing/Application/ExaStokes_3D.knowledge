@@ -4,9 +4,6 @@ minLevel							= 1 // must not be smaller than 1 or the coarse grid system canno
 maxLevel							= 6
 comm_strategyFragment				= 6
 
-experimental_Neumann				= true
-experimental_NeumannOrder			= 1
-
 grid_isUniform						= true
 grid_isStaggered					= true
 grid_isAxisAligned					= true

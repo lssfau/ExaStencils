@@ -8,7 +8,7 @@ import exastencils.baseExt.ir._
 import exastencils.boundary.ir.IR_IsValidComputationPoint
 import exastencils.config.Knowledge
 import exastencils.core.Duplicate
-import exastencils.field.ir.IR_FieldAccess
+import exastencils.field.ir._
 
 /// IR_LocalDirectInvert
 
@@ -30,11 +30,11 @@ object IR_LocalDirectInvert {
   }
 
   def apply(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      relax : Option[IR_Expression]) =
-    invert(AVals, fVals, unknowns, relax)
+      jacobiType : Boolean, relax : Option[IR_Expression]) =
+    invert(AVals, fVals, unknowns, jacobiType, relax)
 
   def invert(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
-      relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
+      jacobiType : Boolean, relax : Option[IR_Expression]) : ListBuffer[IR_Statement] = {
     if (true && Knowledge.experimental_internalHighDimTypes) {
 
       def isNonZeroEntry(ex : IR_Expression) = {
@@ -101,14 +101,18 @@ object IR_LocalDirectInvert {
       stmts += IR_Assignment(u, IR_Multiplication(IR_FunctionCall("inverse", AMat), f))
 
       // write back results
-      for (i <- unknowns.indices)
+      for (i <- unknowns.indices) {
+        val dest = Duplicate(unknowns(i))
+        if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
+
         stmts += IR_IfCondition( // don't write back result on boundaries
           IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
           if (relax.isEmpty)
-            IR_Assignment(Duplicate(unknowns(i)), vecComponentAccess(u, i))
+            IR_Assignment(dest, vecComponentAccess(u, i))
           else
-            IR_Assignment(Duplicate(unknowns(i)), Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u, i))
+            IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u, i))
         )
+      }
 
       stmts
     } else {
@@ -172,14 +176,18 @@ object IR_LocalDirectInvert {
         stmts += IR_Assignment(u, IR_Multiplication(IR_MemberFunctionCall(A, "inverse"), f))
 
       // write back results
-      for (i <- unknowns.indices)
+      for (i <- unknowns.indices) {
+        val dest = Duplicate(unknowns(i))
+        if (jacobiType) dest.fieldSelection.slot.asInstanceOf[IR_SlotAccess].offset += 1
+
         stmts += IR_IfCondition( // don't write back result on boundaries
           IR_IsValidComputationPoint(Duplicate(unknowns(i).fieldSelection), Duplicate(unknowns(i).index)),
           if (relax.isEmpty)
-            IR_Assignment(Duplicate(unknowns(i)), vecComponentAccess(u, i))
+            IR_Assignment(dest, vecComponentAccess(u, i))
           else
-            IR_Assignment(Duplicate(unknowns(i)), Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u, i))
+            IR_Assignment(dest, Duplicate(unknowns(i)) * (1.0 - relax.get) + relax.get * vecComponentAccess(u, i))
         )
+      }
 
       stmts
     }

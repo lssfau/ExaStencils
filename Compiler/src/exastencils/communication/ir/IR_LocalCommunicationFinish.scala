@@ -11,6 +11,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
+import exastencils.parallelization.api.omp.OMP_WaitForFlag
 
 /// IR_LocalCommunicationFinish
 
@@ -27,7 +28,7 @@ case class IR_LocalCommunicationFinish(
         IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor._1.index)
           AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domainIndex, neighbor._1.index)),
           ListBuffer[IR_Statement](
-            IR_FunctionCall("waitForFlag", IR_AddressOf(IR_IV_LocalCommDone(
+            IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommDone(
               field.field,
               DefaultNeighbors.getOpposingNeigh(neighbor._1).index,
               IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor._1.index))))))),

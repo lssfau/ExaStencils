@@ -1,6 +1,6 @@
 package exastencils.util.ir
 
-import exastencils.base.ir.IR_RealDatatype
+import exastencils.base.ir._
 
 object IR_MathFunctions {
   val signatures = Map(
@@ -26,4 +26,16 @@ object IR_MathFunctions {
     "atan2" -> (List(IR_RealDatatype, IR_RealDatatype) -> IR_RealDatatype),
 
     "fabs" -> (List(IR_RealDatatype) -> IR_RealDatatype))
+
+  def getDatatype(fctName : String) = signatures(fctName)
+  def exists(fctName : String) = signatures.contains(fctName)
 }
+
+/// IR_MathFunctionReference
+
+object IR_MathFunctionReference {
+  def fabs = new IR_MathFunctionReference("fabs", IR_MathFunctions.getDatatype("fabs")._2)
+  def pow = new IR_MathFunctionReference("pow", IR_MathFunctions.getDatatype("pow")._2)
+}
+
+case class IR_MathFunctionReference(var name : String, var returnType : IR_Datatype) extends IR_FunctionReference

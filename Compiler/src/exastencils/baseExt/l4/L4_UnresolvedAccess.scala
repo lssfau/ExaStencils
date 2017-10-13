@@ -8,13 +8,19 @@ import exastencils.prettyprinting.PpStream
 
 /// L4_UnresolvedAccess
 
+object L4_UnresolvedAccess {
+  def apply(name : String) = new L4_UnresolvedAccess(name, None, None, None, None, None)
+  def apply(name : String, level : Option[L4_AccessLevelSpecification]) = new L4_UnresolvedAccess(name, level, None, None, None, None)
+}
+
 case class L4_UnresolvedAccess(
     var name : String,
-    var slot : Option[L4_SlotSpecification],
     var level : Option[L4_AccessLevelSpecification],
-    var offset : Option[L4_ExpressionIndex],
-    var arrayIndex : Option[Int],
-    var dirAccess : Option[L4_ExpressionIndex]) extends L4_Access {
+    var slot : Option[L4_SlotSpecification],
+    var offset : Option[L4_ConstIndex],
+    var dirAccess : Option[L4_ConstIndex],
+    var arrayIndex : Option[Int]) extends L4_Access {
+
   def prettyprint(out : PpStream) = {
     out << name
     if (slot.isDefined) out << '[' << slot.get << ']'
@@ -25,7 +31,7 @@ case class L4_UnresolvedAccess(
   }
 
   def progress : IR_Expression = {
-    Logger.warn(s"Progressing UnresolvedAccess $name")
+    Logger.warn(s"Progressing unresolved access on L4: $name" + (if (level.isDefined) s"@${ level.get }" else ""))
 
     if (slot.isDefined) Logger.warn("Discarding meaningless slot access on basic or leveled access")
     if (offset.isDefined) Logger.warn("Discarding meaningless offset access on basic or leveled access")

@@ -21,13 +21,14 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
           func.functionQualifiers.isEmpty &&
             func.parameters.isEmpty &&
             func.body.forall {
-              s => s == IR_NullStatement ||
-                s.isInstanceOf[IR_Scope] ||
-                s.isInstanceOf[IR_Comment] ||
-                s.isInstanceOf[IR_Switch] ||
-                s.isInstanceOf[IR_IfCondition] ||
-                s.isInstanceOf[IR_WhileLoop] ||
-                s.isInstanceOf[IR_ForLoop]
+              s =>
+                s == IR_NullStatement ||
+                  s.isInstanceOf[IR_Scope] ||
+                  s.isInstanceOf[IR_Comment] ||
+                  s.isInstanceOf[IR_Switch] ||
+                  s.isInstanceOf[IR_IfCondition] ||
+                  s.isInstanceOf[IR_WhileLoop] ||
+                  s.isInstanceOf[IR_ForLoop]
             } &&
             func.body.length >= threshold
         case _                  =>
@@ -38,17 +39,17 @@ object Compiler extends DefaultStrategy("Compiler workarounds") {
 
         val func = node.asInstanceOf[IR_Function]
         var remaining = func.body
-        func.body = new ListBuffer[IR_Statement]()
+        func.body = ListBuffer[IR_Statement]()
         func.allowInlining = true
 
-        val funcs = new ListBuffer[IR_Function]()
+        val funcs = ListBuffer[IR_Function]()
         funcs += func
         var i : Int = 0
         do {
           i += 1
           val newFuncName = func.name + i
           val (pref, rest) = remaining.splitAt(threshold)
-          funcs += new IR_Function(func.returntype, newFuncName, new ListBuffer[IR_FunctionArgument](), pref)
+          funcs += IR_PlainFunction(newFuncName, func.datatype, ListBuffer[IR_FunctionArgument](), pref)
           func.body += IR_FunctionCall(newFuncName)
           remaining = rest
         } while (remaining.nonEmpty)

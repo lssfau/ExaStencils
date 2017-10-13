@@ -1,6 +1,6 @@
 package exastencils.baseExt.l4
 
-import scala.collection.mutable._
+import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
 import exastencils.core._
@@ -11,12 +11,20 @@ import exastencils.prettyprinting._
 /// L4_FunctionInstantiation
 
 object L4_FunctionInstantiation {
-  def apply(templateName : String, args : List[L4_Expression], targetFct : L4_Identifier) =
-    new L4_FunctionInstantiation(templateName, args.to[ListBuffer], targetFct)
+  def apply(templateName : String, args : List[L4_Expression], targetFct : String, targetFctLevel : Option[L4_DeclarationLevelSpecification]) : L4_FunctionInstantiation =
+    L4_FunctionInstantiation(templateName, args.to[ListBuffer], targetFct, targetFctLevel)
 }
 
-case class L4_FunctionInstantiation(var templateName : String, args : ListBuffer[L4_Expression], targetFct : L4_Identifier) extends L4_Node with PrettyPrintable {
-  override def prettyprint(out : PpStream) = out << "Instantiate " << templateName << " < " <<< (args, ", ") << " > " << " as " << targetFct
+case class L4_FunctionInstantiation(
+    var templateName : String,
+    var args : ListBuffer[L4_Expression],
+    var targetFct : String,
+    var targetFctLevel : Option[L4_DeclarationLevelSpecification]) extends L4_Node with PrettyPrintable {
+
+  override def prettyprint(out : PpStream) = {
+    out << "Instantiate " << templateName << " < " <<< (args, ", ") << " > " << " as " << targetFct
+    if (targetFctLevel.isDefined) out << '@' << targetFctLevel.get
+  }
 }
 
 /// L4_ResolveFunctionInstantiations
@@ -27,7 +35,8 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
       val templateOpt = StateManager.findFirst({ f : L4_FunctionTemplate => f.name == functionInst.templateName })
       if (templateOpt.isEmpty) Logger.warn(s"Trying to instantiate unknown function template ${ functionInst.templateName }")
       val template = templateOpt.get
-      val instantiated = Duplicate(L4_Function(functionInst.targetFct, template.returntype, template.functionArgs, template.statements))
+      val instantiated = Duplicate(L4_FunctionDecl(functionInst.targetFct, functionInst.targetFctLevel,
+        template.datatype, template.functionArgs, template.statements))
 
       L4_ReplaceUnresolvedAccess.replacements = Map() ++ (template.templateArgs zip functionInst.args).toMap[String, L4_Expression]
       L4_ReplaceUnresolvedAccess.applyStandalone(instantiated)
@@ -36,22 +45,14 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
   })
 
   this += new Transformation("Remove function templates", {
-    case functionTemplate : L4_FunctionTemplate => None
+    case _ : L4_FunctionTemplate => None
   })
 
-  object L4_ReplaceUnresolvedAccess extends DefaultStrategy("Replace something with something else") {
+  object L4_ReplaceUnresolvedAccess extends QuietDefaultStrategy("Replace something with something else") {
     var replacements : Map[String, L4_Expression] = Map()
-
-    override def applyStandalone(node : Node) = {
-      val oldLvl = Logger.getLevel
-      Logger.setLevel(Logger.WARNING)
-      super.applyStandalone(node)
-      Logger.setLevel(oldLvl)
-    }
 
     this += new Transformation("Search and replace", {
       case origAccess : L4_UnresolvedAccess if replacements.exists(_._1 == origAccess.name) =>
-        // includes accesses used as identifiers in function calls
         val newAccess = Duplicate(replacements(origAccess.name))
         newAccess match {
           case newAccess : L4_UnresolvedAccess =>
@@ -79,6 +80,30 @@ object L4_ResolveFunctionInstantiations extends DefaultStrategy("Resolving funct
           case _ =>
         }
         newAccess
+
+      case origRef : L4_UnresolvedFunctionReference if replacements.exists(_._1 == origRef.name) =>
+        replacements(origRef.name) match {
+          case access : L4_UnresolvedAccess =>
+            val newRef = L4_UnresolvedFunctionReference(access.name, Duplicate(access.level), Duplicate(access.offset))
+
+            if (origRef.level.isDefined) {
+              if (newRef.level.isDefined) Logger.warn("Overriding level on reference in function instantiation")
+              newRef.level = origRef.level
+            }
+
+            if (origRef.offset.isDefined) {
+              if (newRef.offset.isDefined) Logger.warn("Overriding offset on reference in function instantiation")
+              newRef.offset = origRef.offset
+            }
+
+            if (access.slot.isDefined) Logger.warn("Ignoring slot on access in function instantiation")
+            if (access.arrayIndex.isDefined) Logger.warn("Ignoring array index on access in function instantiation")
+            if (access.dirAccess.isDefined) Logger.warn("Ignoring direction access on access in function instantiation")
+
+            newRef
+
+          case _ => ???
+        }
     })
   }
 

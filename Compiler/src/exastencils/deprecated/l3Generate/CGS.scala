@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object CGS {
-  def addFunction(printer : java.io.PrintWriter, postfix : String) = {
+  def addFunction(printer : java.io.PrintStream, postfix : String) = {
     printer.println(s"Function VCycle$postfix@coarsest ( ) : Unit {")
 
     if (Knowledge.l3tmp_genTimersPerFunction)
@@ -48,7 +48,7 @@ object CGS {
       if (Knowledge.l3tmp_genCellBasedDiscr)
         printer.println(s"\t\tloop over VecP$postfix@current with reduction( + : alphaDenom ) {")
       else
-        printer.println(s"\t\tloop over VecP$postfix@current where x > 0 && y > 0 ${ if (Knowledge.dimensionality > 2) "&& z > 0 " else "" }with reduction( + : alphaDenom ) {")
+        printer.println(s"\t\tloop over VecP$postfix@current where i0 > 0 && i1 > 0 ${ if (Knowledge.dimensionality > 2) "&& i2 > 0 " else "" }with reduction( + : alphaDenom ) {")
       printer.println(s"\t\t\talphaDenom += VecP$postfix@current * VecGradP$postfix@current")
       printer.println(s"\t\t}")
 

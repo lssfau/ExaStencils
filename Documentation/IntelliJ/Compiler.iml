@@ -21,27 +21,27 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
-      <library name="scala-parser-combinators_2.11-1.0.4">
+      <library name="scala-parser-combinators_2.11-1.0.6">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/scala-parser-combinators_2.11-1.0.4.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/scala-parser-combinators_2.11-1.0.6.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
       </library>
     </orderEntry>
     <orderEntry type="module-library">
-      <library name="cloning-1.9.1">
+      <library name="cloning-1.9.6">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/cloning-1.9.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/cloning-1.9.6.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
       </library>
     </orderEntry>
     <orderEntry type="module-library">
-      <library name="objenesis-2.1">
+      <library name="objenesis-2.6">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/objenesis-2.1.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/objenesis-2.6.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

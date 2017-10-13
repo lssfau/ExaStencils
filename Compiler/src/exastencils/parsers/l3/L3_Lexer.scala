@@ -9,10 +9,13 @@ object L3_Lexer extends ExaLexer {
   // general delimiters
   delimiters += ("=", "(", ")", "{", "}", ":", "+", "-", "*", "/", "^", "**", "%", ".+", ".-", ".*", "./", ".**", ".%", "!", "+=", "-=", "*=", "/=", "|", "[", "]", ",", "<", ">", "<=", ">=", "@", "=>", "!=", "==", "&&", "||")
 
-  // base => l3_Assignment
+  // import functionality
+  reserved += "import"
+
+  // base => L3_Assignment
   reserved += ("where")
 
-  // base => l3_Datatypes
+  // base => L3_Datatypes
   reserved += ("Unit", "unit",
     "String", "string",
     "Integer", "integer", "Int", "int",
@@ -21,31 +24,43 @@ object L3_Lexer extends ExaLexer {
     "Array", "array",
     "Boolean", "boolean", "Bool", "bool")
 
-  // base => l3_LevelSpecifications
+  // base => L3_LevelSpecifications
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
-  // baseExt => l3_Conditional
+  // baseExt => L3_Conditional
   reserved += ("if", "else", "and", "or")
 
-  // baseExt => l3_LocalDeclarations
+  // base => L3_Declaration
   reserved += ("Var", "Variable", "Val", "Value")
 
-  // baseExt => l3_Loops
+  // baseExt => L3_Loops
   reserved += ("repeat", "until", "while", "times", "count")
 
-  // baseExt => l3_FieldDeclarations
+  // baseExt => L3_FieldDeclarations
   reserved += ("Field", "from", "L2", "override", "bc", "for", "with")
 
-  // baseExt => l3_Functions
+  // baseExt => L3_FieldIteratorAccess
+  reserved += ("i0", "i1", "i2", "x", "y", "z")
+
+  // baseExt => L3_Functions
   reserved += ("Func", "Function", "return")
 
-  // baseExt => l3_FunctionInstantiation
+  // baseExt => L3_FunctionInstantiation
   reserved += ("FuncTemplate", "FunctionTemplate", "Inst", "Instantiate", "as")
 
-  // baseExt => l3_OperatorDeclarations
-  reserved += ("Operator", "from", "L2", "default", "restriction", "prolongation", "on", "with")
+  // baseExt => L3_GlobalSection
+  reserved += ("Globals")
+
+  // baseExt => L3_OperatorDeclarations
+  reserved += ("Operator", "from", "default", "restriction", "prolongation", "on", "with")
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
-  // baseExt => l3_StencilDeclarations
+  // baseExt => L3_StencilDeclarations
   reserved += ("Stencil")
+
+  // boundary
+  reserved += ("None", "Neumann")
+
+  /// TO BE INTEGRATED
+  reserved += ("generate", "solver", "for", "in", "and")
 }

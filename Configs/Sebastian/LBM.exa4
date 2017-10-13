@@ -1,0 +1,356 @@
+
+Domain global <[0, 0] to [1, 1]>
+
+Layout ScalarCell < Real, Cell > @all {
+	duplicateLayers = [ 0, 0, 0 ]
+	ghostLayers     = [ 1, 1, 1 ] with communication
+}
+
+Layout Vec2Cell < Vector<Real, 2>, Cell > @all {
+	duplicateLayers = [ 0, 0, 0 ]
+	ghostLayers     = [ 1, 1, 1 ] with communication
+}
+
+Layout IntCell < Int, Cell > @all {
+	duplicateLayers = [ 0, 0, 0 ]
+	ghostLayers     = [ 1, 1, 1 ] with communication
+}
+
+Field Pdf_C  < global, ScalarCell, None >[2] @all
+Field Pdf_N  < global, ScalarCell, None >[2] @all
+Field Pdf_E  < global, ScalarCell, None >[2] @all
+Field Pdf_S  < global, ScalarCell, None >[2] @all
+Field Pdf_W  < global, ScalarCell, None >[2] @all
+Field Pdf_NE < global, ScalarCell, None >[2] @all
+Field Pdf_SE < global, ScalarCell, None >[2] @all
+Field Pdf_SW < global, ScalarCell, None >[2] @all
+Field Pdf_NW < global, ScalarCell, None >[2] @all
+Field den    < global, ScalarCell, None >@all
+Field vel    < global, Vec2Cell,   None >@all
+Field flag   < global, IntCell,    None >@all
+Field velVis < global, ScalarCell, None >@all
+Field denVis < global, ScalarCell, None >@all
+
+Globals {
+	Var maxTime : Int  = 10000
+  Var tau     : Real = 1.0
+
+	Val latticeWeight_C  : Real = 4./9.
+	Val latticeWeight_N  : Real = 1./9.
+	Val latticeWeight_E  : Real = 1./9.
+	Val latticeWeight_S  : Real = 1./9.
+	Val latticeWeight_W  : Real = 1./9.
+	Val latticeWeight_NE : Real = 1./36.
+	Val latticeWeight_SE : Real = 1./36.
+	Val latticeWeight_SW : Real = 1./36.
+	Val latticeWeight_NW : Real = 1./36.
+	
+	Val latticeVel_C  : Vec2 = { 0,  0}T
+	Val latticeVel_N  : Vec2 = { 0,  1}T
+	Val latticeVel_E  : Vec2 = { 1,  0}T
+	Val latticeVel_S  : Vec2 = { 0, -1}T
+	Val latticeVel_W  : Vec2 = {-1,  0}T
+	Val latticeVel_NE : Vec2 = { 1,  1}T
+	Val latticeVel_SE : Vec2 = { 1, -1}T
+	Val latticeVel_SW : Vec2 = {-1, -1}T
+	Val latticeVel_NW : Vec2 = {-1,  1}T
+	
+	Var topVel  : Real = 0.1
+	Val ubb1Vel : Vec2 = { topVel, 0.0 }T
+}
+
+Function SetBoundaries@finest ( ) {
+	// east
+	loop over flag only ghost [ 1,  0] on boundary {
+		flag = 1
+	}
+
+	// west
+	loop over flag only ghost [-1,  0] on boundary {
+		flag = 1
+	}
+
+	// north
+	loop over flag only ghost [ 0,  1] on boundary {
+		flag = 2
+	}
+
+	// south
+	loop over flag only ghost [ 0, -1] on boundary {
+		flag = 1
+	}
+}
+
+Function InitFields@finest ( ) {
+	Val initDen : Real = 1.0
+	loop over Pdf_C {
+		Pdf_C  = latticeWeight_C  * initDen * (1. + 3. * dot ( vel, latticeVel_C  ) + 9. * ( dot ( vel, latticeVel_C  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Pdf_N  = latticeWeight_N  * initDen * (1. + 3. * dot ( vel, latticeVel_N  ) + 9. * ( dot ( vel, latticeVel_N  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Pdf_E  = latticeWeight_E  * initDen * (1. + 3. * dot ( vel, latticeVel_E  ) + 9. * ( dot ( vel, latticeVel_E  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Pdf_S  = latticeWeight_S  * initDen * (1. + 3. * dot ( vel, latticeVel_S  ) + 9. * ( dot ( vel, latticeVel_S  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Pdf_W  = latticeWeight_W  * initDen * (1. + 3. * dot ( vel, latticeVel_W  ) + 9. * ( dot ( vel, latticeVel_W  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Pdf_NE = latticeWeight_NE * initDen * (1. + 3. * dot ( vel, latticeVel_NE ) + 9. * ( dot ( vel, latticeVel_NE ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Pdf_SE = latticeWeight_SE * initDen * (1. + 3. * dot ( vel, latticeVel_SE ) + 9. * ( dot ( vel, latticeVel_SE ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Pdf_SW = latticeWeight_SW * initDen * (1. + 3. * dot ( vel, latticeVel_SW ) + 9. * ( dot ( vel, latticeVel_SW ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Pdf_NW = latticeWeight_NW * initDen * (1. + 3. * dot ( vel, latticeVel_NW ) + 9. * ( dot ( vel, latticeVel_NW ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+	}
+	            
+	SetBoundaries ( )
+}
+
+Function CollideStep@all ( ) {
+	loop over den {
+		den = Pdf_C + Pdf_N + Pdf_E + Pdf_S + Pdf_W + Pdf_NE + Pdf_SE + Pdf_SW + Pdf_NW
+	}
+	
+	loop over vel {
+		Val momDen : Real = ( Pdf_C * latticeVel_C
+			+ Pdf_N  * latticeVel_N  + Pdf_E  * latticeVel_E  + Pdf_S  * latticeVel_S  + Pdf_W  * latticeVel_W
+			+ Pdf_NE * latticeVel_NE + Pdf_SE * latticeVel_SE + Pdf_SW * latticeVel_SW + Pdf_NW * latticeVel_NW )
+
+		vel = momDen / den
+	}
+	
+	loop over Pdf_C {
+		Val feq_C  : Real = latticeWeight_C  * den * (1. + 3. * dot ( vel, latticeVel_C  ) + 9. * ( dot ( vel, latticeVel_C  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Val feq_N  : Real = latticeWeight_N  * den * (1. + 3. * dot ( vel, latticeVel_N  ) + 9. * ( dot ( vel, latticeVel_N  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Val feq_E  : Real = latticeWeight_E  * den * (1. + 3. * dot ( vel, latticeVel_E  ) + 9. * ( dot ( vel, latticeVel_E  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Val feq_S  : Real = latticeWeight_S  * den * (1. + 3. * dot ( vel, latticeVel_S  ) + 9. * ( dot ( vel, latticeVel_S  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Val feq_W  : Real = latticeWeight_W  * den * (1. + 3. * dot ( vel, latticeVel_W  ) + 9. * ( dot ( vel, latticeVel_W  ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Val feq_NE : Real = latticeWeight_NE * den * (1. + 3. * dot ( vel, latticeVel_NE ) + 9. * ( dot ( vel, latticeVel_NE ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Val feq_SE : Real = latticeWeight_SE * den * (1. + 3. * dot ( vel, latticeVel_SE ) + 9. * ( dot ( vel, latticeVel_SE ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Val feq_SW : Real = latticeWeight_SW * den * (1. + 3. * dot ( vel, latticeVel_SW ) + 9. * ( dot ( vel, latticeVel_SW ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		Val feq_NW : Real = latticeWeight_NW * den * (1. + 3. * dot ( vel, latticeVel_NW ) + 9. * ( dot ( vel, latticeVel_NW ) ** 2 ) / 2. - 3. * dot ( vel, vel ) / 2. )
+		
+		Pdf_C  = Pdf_C  - 1. / tau * ( Pdf_C  - feq_C  )
+		Pdf_N  = Pdf_N  - 1. / tau * ( Pdf_N  - feq_N  )
+		Pdf_E  = Pdf_E  - 1. / tau * ( Pdf_E  - feq_E  )
+		Pdf_S  = Pdf_S  - 1. / tau * ( Pdf_S  - feq_S  )
+		Pdf_W  = Pdf_W  - 1. / tau * ( Pdf_W  - feq_W  )
+		Pdf_NE = Pdf_NE - 1. / tau * ( Pdf_NE - feq_NE )
+		Pdf_SE = Pdf_SE - 1. / tau * ( Pdf_SE - feq_SE )
+		Pdf_SW = Pdf_SW - 1. / tau * ( Pdf_SW - feq_SW )
+		Pdf_NW = Pdf_NW - 1. / tau * ( Pdf_NW - feq_NW )
+	}
+}
+
+Function TreatBoundaries@all ( ) {
+	loop over flag {
+		if ( 0 == flag ) {
+			// north
+			Val flag_N : Int = flag@[ 0,  1]
+			if ( 0 != flag_N ) {
+				if ( 1 == flag_N ) { // NoSlip
+					Pdf_S@[ 0,  1] = Pdf_N
+				} else if ( 2 == flag_N ) { // ubb
+					Pdf_S@[ 0,  1] = Pdf_N - 6. * latticeWeight_N * dot ( latticeVel_N, ubb1Vel )
+				} else {
+					print ( 'Unknown BC flag encountered' )
+				}
+			}
+
+			// east
+			Val flag_E : Int = flag@[ 1,  0]
+			if ( 0 != flag_E ) {
+				if ( 1 == flag_E ) { // NoSlip
+					Pdf_W@[ 1,  0] = Pdf_E
+				} else if ( 2 == flag_E ) { // ubb
+					Pdf_W@[ 1,  0] = Pdf_E - 6. * latticeWeight_E * dot ( latticeVel_E, ubb1Vel )
+				} else {
+					print ( 'Unknown BC flag encountered' )
+				}
+			}
+
+			// south
+			Val flag_S : Int = flag@[ 0, -1]
+			if ( 0 != flag_S ) {
+				if ( 1 == flag_S ) { // NoSlip
+					Pdf_N@[ 0, -1] = Pdf_S
+				} else if ( 2 == flag_S ) { // ubb
+					Pdf_N@[ 0, -1] = Pdf_S - 6. * latticeWeight_S * dot ( latticeVel_S, ubb1Vel )
+				} else {
+					print ( 'Unknown BC flag encountered' )
+				}
+			}
+
+			// west
+			Val flag_W : Int = flag@[-1,  0]
+			if ( 0 != flag_W ) {
+				if ( 1 == flag_W ) { // NoSlip
+					Pdf_E@[-1,  0] = Pdf_W
+				} else if ( 2 == flag_W ) { // ubb
+					Pdf_E@[-1,  0] = Pdf_W - 6. * latticeWeight_W * dot ( latticeVel_W, ubb1Vel )
+				} else {
+					print ( 'Unknown BC flag encountered' )
+				}
+			}
+
+			// northeast
+			Val flag_NE : Int = flag@[ 1,  1]
+			if ( 0 != flag_NE ) {
+				if ( 1 == flag_NE ) { // NoSlip
+					Pdf_SW@[ 1,  1] = Pdf_NE
+				} else if ( 2 == flag_NE ) { // ubb
+					Pdf_SW@[ 1,  1] = Pdf_NE - 6. * latticeWeight_NE * dot ( latticeVel_NE, ubb1Vel )
+				} else {
+					print ( 'Unknown BC flag encountered' )
+				}
+			}
+
+			// southeast
+			Val flag_SE : Int = flag@[ 1, -1]
+			if ( 0 != flag_SE ) {
+				if ( 1 == flag_SE ) { // NoSlip
+					Pdf_NW@[ 1, -1] = Pdf_SE
+				} else if ( 2 == flag_SE ) { // ubb
+					Pdf_NW@[ 1, -1] = Pdf_SE - 6. * latticeWeight_SE * dot ( latticeVel_SE, ubb1Vel )
+				} else {
+					print ( 'Unknown BC flag encountered' )
+				}
+			}
+
+			// southwest
+			Val flag_SW : Int = flag@[-1, -1]
+			if ( 0 != flag_SW ) {
+				if ( 1 == flag_SW ) { // NoSlip
+					Pdf_NE@[-1, -1] = Pdf_SW
+				} else if ( 2 == flag_SW ) { // ubb
+					Pdf_NE@[-1, -1] = Pdf_SW - 6. * latticeWeight_SW * dot ( latticeVel_SW, ubb1Vel )
+				} else {
+					print ( 'Unknown BC flag encountered' )
+				}
+			}
+
+			// northwest
+			Val flag_NW : Int = flag@[-1,  1]
+			if ( 0 != flag_NW ) {
+				if ( 1 == flag_NW ) { // NoSlip
+					Pdf_SE@[-1,  1] = Pdf_NW
+				} else if ( 2 == flag_NW ) { // ubb
+					Pdf_SE@[-1,  1] = Pdf_NW - 6. * latticeWeight_NW * dot ( latticeVel_NW, ubb1Vel )
+				} else {
+					print ( 'Unknown BC flag encountered' )
+				}
+			}
+		}
+	}
+}
+
+Function TreatBoundariesNoFlags@all ( ) {
+	// ubb for north wall
+	loop over Pdf_S only ghost [ 0,  1] on boundary {
+		Pdf_SE = Pdf_NW@[ 1, -1] - 6. * latticeWeight_NW * dot ( latticeVel_NW, ubb1Vel )
+		Pdf_S  = Pdf_N @[ 0, -1] - 6. * latticeWeight_N  * dot ( latticeVel_N,  ubb1Vel )
+		Pdf_SW = Pdf_NE@[-1, -1] - 6. * latticeWeight_NE * dot ( latticeVel_NE, ubb1Vel )
+	}
+
+	// no slip for east wall
+	loop over Pdf_W only ghost [ 1,  0] on boundary {
+		Pdf_NW = Pdf_SE@[-1,  1]
+		Pdf_W  = Pdf_E @[-1,  0]
+		Pdf_SW = Pdf_NE@[-1, -1]
+	}
+
+	// no slip for south wall
+	loop over Pdf_N only ghost [ 0, -1] on boundary {
+		Pdf_NE = Pdf_SW@[ 1,  1]
+		Pdf_N  = Pdf_S @[ 0,  1]
+		Pdf_NW = Pdf_SE@[-1,  1]
+	}
+
+	// no slip for west wall
+	loop over Pdf_E only ghost [-1,  0] on boundary {
+		Pdf_NE = Pdf_SW@[ 1,  1]
+		Pdf_E  = Pdf_W @[ 1,  0]
+		Pdf_SE = Pdf_NW@[ 1, -1]
+	}
+}
+
+Function StreamStep@all ( ) {
+	// pull stream
+	
+	loop over Pdf_C {
+		Pdf_C[next]  = Pdf_C[active]
+		Pdf_S[next]  = Pdf_S[active] @[ 0,  1]
+		Pdf_W[next]  = Pdf_W[active] @[ 1,  0]
+		Pdf_N[next]  = Pdf_N[active] @[ 0, -1]
+		Pdf_E[next]  = Pdf_E[active] @[-1,  0]
+		Pdf_SW[next] = Pdf_SW[active]@[ 1,  1]
+		Pdf_NW[next] = Pdf_NW[active]@[ 1, -1]
+		Pdf_NE[next] = Pdf_NE[active]@[-1, -1]
+		Pdf_SE[next] = Pdf_SE[active]@[-1,  1]
+	}
+}
+
+Function TimeLoop@finest ( ) {
+	Var t : Int = 0
+	repeat until maxTime == t {
+		if ( 0 == t % 200 ) {
+			print ( t, ' / ', maxTime )
+		}
+		
+		CollideStep ( )
+		
+		TreatBoundaries ( )
+		
+		StreamStep ( )
+		
+		advance Pdf_C
+		advance Pdf_N
+		advance Pdf_E
+		advance Pdf_S
+		advance Pdf_W
+		advance Pdf_NE
+		advance Pdf_SE
+		advance Pdf_SW
+		advance Pdf_NW
+		
+		t += 1
+	}
+	
+	print ( t, ' / ', maxTime )
+}
+
+Function Application ( ) {
+	initGlobals ( )
+	initDomain ( )
+	initFieldsWithZero ( )
+	initGeometry ( )
+
+	InitFields@finest ( )
+
+	startTimer ( 'timeloop' )
+	TimeLoop@finest ( )
+	stopTimer ( 'timeloop' )
+	
+	Val numCells_x : Real = getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' ) * getKnowledge ( 'domain_fragmentLength_x' ) * ( 2 ** levels@finest ( ) )
+	Val numCells_y : Real = getKnowledge ( 'domain_rect_numBlocks_y' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_y' ) * getKnowledge ( 'domain_fragmentLength_y' ) * ( 2 ** levels@finest ( ) )
+	Val numCells   : Real = numCells_x * numCells_y
+	Val timeSpent  : Real = getTotalTime ( 'timeloop' ) / 1000
+	print ( maxTime, 'iterations took', timeSpent, 's' )
+	print ( '#cells:', numCells )
+	print ( 'MLUpS:', 1e-6 * numCells * maxTime / timeSpent )
+
+	Visualize@finest ( )
+
+	destroyGlobals ( )
+}
+
+Function Visualize@finest ( ) {
+	Val scale : Real = 1.0 / topVel
+	loop over velVis {
+		velVis = sqrt ( dot ( vel, vel ) )
+		velVis = scale * velVis
+	}
+
+	Var denMax : Real = 0.0
+	loop over den with reduction( max : denMax ) {
+		denMax = max ( denMax, fabs ( den ) )
+	}
+	Val scaleDen : Real = 1.0 / denMax
+	loop over denVis {
+		denVis = 0.5 + 0.5 * scaleDen * den
+	}
+	
+	showMappedImage ( den, velVis, flag )
+}

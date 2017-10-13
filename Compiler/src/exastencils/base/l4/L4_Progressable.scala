@@ -11,7 +11,7 @@ trait L4_Progressable {
 /// L4_ProgressOption
 
 object L4_ProgressOption {
-  def apply[L4Type <: L4_Progressable, IRType <: IR_Node](toProgress : Option[L4Type])(progFct : (L4Type => IRType)) : Option[IRType] = {
+  def apply[L4_Type <: L4_Progressable, IR_Type <: IR_Node](toProgress : Option[L4_Type])(progFct : (L4_Type => IR_Type)) : Option[IR_Type] = {
     if (toProgress.isDefined)
       Some(progFct(toProgress.get))
     else

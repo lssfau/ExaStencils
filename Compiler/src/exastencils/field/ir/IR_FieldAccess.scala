@@ -1,5 +1,7 @@
 package exastencils.field.ir
 
+import scala.collection.mutable.StringBuilder
+
 import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_MatrixDatatype
@@ -7,6 +9,7 @@ import exastencils.config._
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.logger.Logger
+import exastencils.polyhedron.IR_PolyArrayAccessLike
 
 /// IR_MultiDimFieldAccess
 
@@ -21,7 +24,7 @@ trait IR_MultiDimFieldAccess extends IR_Expression with IR_SpecialExpandable {
 
 case class IR_DirectFieldAccess(
     var fieldSelection : IR_FieldSelection,
-    var index : IR_ExpressionIndex) extends IR_MultiDimFieldAccess {
+    var index : IR_ExpressionIndex) extends IR_MultiDimFieldAccess with IR_PolyArrayAccessLike {
 
   override def datatype = {
     val layout = fieldSelection.field.fieldLayout
@@ -33,6 +36,19 @@ case class IR_DirectFieldAccess(
     // FIXME: find a reasonable way to deal with this case and remove this HACK
       layout.datatype.resolveBaseDatatype
     else Logger.error(s"Trying to resolve data type with invalid index ${ index.prettyprint() }; field data type is ${ layout.datatype }")
+  }
+
+  // TODO: refactor
+  override def uniqueID : String = {
+    val name = new StringBuilder("field")
+    name.append('_').append(fieldSelection.field.name).append(fieldSelection.field.index).append('_').append(fieldSelection.field.level)
+    name.append("_l").append(fieldSelection.level).append('a')
+    name.append('_').append(fieldSelection.fragIdx.prettyprint()).append('_')
+    fieldSelection.slot match {
+      case IR_SlotAccess(_, offset) => name.append('s').append(offset)
+      case s                        => name.append(s.prettyprint())
+    }
+    replaceSpecial(name).toString()
   }
 
   def linearize = IR_LinearizedFieldAccess(fieldSelection, fieldSelection.fieldLayout.linearizeIndex(index))
@@ -51,7 +67,7 @@ object IR_LinearizeDirectFieldAccess extends DefaultStrategy("Linearize DirectFi
 case class IR_FieldAccess(
     var fieldSelection : IR_FieldSelection,
     var index : IR_ExpressionIndex,
-    var offset : Option[IR_ExpressionIndex] = None) extends IR_MultiDimFieldAccess {
+    var offset : Option[IR_ConstIndex] = None) extends IR_MultiDimFieldAccess with IR_CanBeOffset {
 
   override def datatype = {
     val layout = fieldSelection.field.fieldLayout
@@ -62,6 +78,9 @@ case class IR_FieldAccess(
     else if (index.length == layout.numDimsData - 1 && layout.datatype.isInstanceOf[IR_MatrixDatatype] && 1 == layout.datatype.asInstanceOf[IR_MatrixDatatype].sizeM)
     // FIXME: find a reasonable way to deal with this case and remove this HACK
       layout.datatype.resolveBaseDatatype
+    else if (index.length == layout.numDimsData - 1 && layout.datatype.isInstanceOf[IR_MatrixDatatype] && 1 == layout.datatype.asInstanceOf[IR_MatrixDatatype].sizeN)
+    // FIXME: find a reasonable way to deal with this case and remove this HACK
+      layout.datatype.resolveBaseDatatype
     else Logger.error(s"Trying to resolve data type with invalid index ${ index.prettyprint() }; field ${ fieldSelection.field.name } has data type ${ layout.datatype }")
   }
 
@@ -69,6 +88,8 @@ case class IR_FieldAccess(
     if (offset.isDefined) Logger.warn(s"IR_FieldAccess with unresolved offset ${ offset.get.prettyprint() } found")
     IR_DirectFieldAccess(fieldSelection, index + fieldSelection.referenceOffset)
   }
+
+  override def offsetWith(offset : IR_ConstIndex) = { index += offset }
 }
 
 /// IR_ResolveFieldAccess

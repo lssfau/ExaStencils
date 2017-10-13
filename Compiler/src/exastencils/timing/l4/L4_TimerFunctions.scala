@@ -3,10 +3,9 @@ package exastencils.timing.l4
 import scala.collection.immutable.HashMap
 
 import exastencils.base.l4._
-import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.datastructures._
 import exastencils.logger.Logger
-import exastencils.timing.ir.IR_TimerFunctionAccess
+import exastencils.timing.ir.IR_TimerFunctionReference
 
 // L4_TimerFunctions
 
@@ -25,35 +24,28 @@ object L4_TimerFunctions {
     "printAllTimersToFile" -> L4_UnitDatatype
   )
 
-  def getValue(fctName : String) = functions.get(fctName)
+  def getDatatype(fctName : String) = functions(fctName)
   def exists(fctName : String) = functions.contains(fctName)
 }
 
-/// L4_TimerFunctionAccess
+/// L4_TimerFunctionReference
 
-object L4_TimerFunctionAccess {
-  def apply(name : String, datatype : L4_Datatype) =
-    new L4_TimerFunctionAccess(name, None, datatype)
-  def apply(name : String, level : Int, datatype : L4_Datatype) =
-    new L4_TimerFunctionAccess(name, Some(level), datatype)
-}
-
-case class L4_TimerFunctionAccess(var name : String, level : Option[Int], var datatype : L4_Datatype) extends L4_FunctionAccess {
-  override def progress = IR_TimerFunctionAccess(resolvedName(), datatype.progress)
+case class L4_TimerFunctionReference(var name : String, var returnType : L4_Datatype) extends L4_PlainFunctionReference {
+  override def progress = IR_TimerFunctionReference(name, returnType.progress)
 }
 
 /// L4_ResolveTimerFunctions
 
-object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function accesses") {
-  this += new Transformation("Resolve function accesses", {
-    case access @ L4_UnresolvedAccess(accessName, _, level, _, _, _) if L4_TimerFunctions.exists(accessName) =>
-      if (level.isDefined)
-        Logger.warn(s"Found leveled timing function $accessName with level ${ level.get }; level is ignored")
-      L4_TimerFunctionAccess(accessName, L4_TimerFunctions.getValue(accessName).get)
+object L4_ResolveTimerFunctions extends DefaultStrategy("Resolve timer function references") {
+  this += new Transformation("Resolve", {
+    case L4_UnresolvedFunctionReference(fctName, level, offset) if L4_TimerFunctions.exists(fctName) =>
+      if (level.isDefined) Logger.warn(s"Found leveled timing function ${ fctName } with level ${ level.get }; level is ignored")
+      if (offset.isDefined) Logger.warn(s"Found timing function ${ fctName } with offset; offset is ignored")
+      L4_TimerFunctionReference(fctName, L4_TimerFunctions.getDatatype(fctName))
   })
 
   this += new Transformation("Convert string constants in function call arguments", {
-    case fctCall @ L4_FunctionCall(_ : L4_TimerFunctionAccess, args) =>
+    case fctCall @ L4_FunctionCall(_ : L4_TimerFunctionReference, args) =>
       L4_ConvertStringConstantsToLiterals.applyStandalone(args)
       fctCall
   })

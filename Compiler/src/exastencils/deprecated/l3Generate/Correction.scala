@@ -3,7 +3,7 @@ package exastencils.deprecated.l3Generate
 import exastencils.config._
 
 object Correction {
-  def addFunction(printer : java.io.PrintWriter, postfix : String) = {
+  def addFunction(printer : java.io.PrintStream, postfix : String) = {
     printer.println(s"Function Correction$postfix@((coarsest + 1) to finest) ( ) : Unit {")
 
     if (Knowledge.l3tmp_genTemporalBlocking)

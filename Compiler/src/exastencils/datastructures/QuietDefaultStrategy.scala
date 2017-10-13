@@ -37,7 +37,7 @@ object QuietDefaultStrategy {
     * @param name            name The name of the Strategy. Used for traceability and debugging purposes.
     * @param transformations List of transformations for the strategy.
     */
-  def apply(name : String, transformations : List[Transformation]) = {
+  def apply(name : String, transformations : Transformation*) = {
     val s = new QuietDefaultStrategy(name)
     s ++= transformations
     s

@@ -32,9 +32,8 @@ l3tmp_genCellBasedDiscr		= true
 l3tmp_genNonZeroRhs			= true
 l3tmp_genHDepStencils		= true
 
-experimental_Neumann			= true
-experimental_NeumannNormalize	= true
-experimental_NeumannOrder		= 1
+l3tmp_Neumann				= true
+l3tmp_NeumannNormalize		= true
 
 l3tmp_printError			= true
 

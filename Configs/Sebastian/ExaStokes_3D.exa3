@@ -1,0 +1,108 @@
+
+Stencil RestrictionCell@all from default restriction on Cell with 'integral_linear'
+Stencil CorrectionCell@all from default prolongation on Cell with 'integral_linear'
+
+Stencil RestrictionFaceX@all from default restriction on Face_x with 'integral_linear'
+Stencil CorrectionFaceX@all from default prolongation on Face_x with 'integral_linear'
+
+Stencil RestrictionFaceY@all from default restriction on Face_y with 'integral_linear'
+Stencil CorrectionFaceY@all from default prolongation on Face_y with 'integral_linear'
+
+Stencil RestrictionFaceZ@all from default restriction on Face_z with 'integral_linear'
+Stencil CorrectionFaceZ@all from default prolongation on Face_z with 'integral_linear'
+
+
+
+Function VCycle@(all but coarsest) ( ) : Unit {
+	Smoother ( )
+	
+	UpdateResidual ( )
+	Restriction ( )
+	
+	SetSolution@coarser ( 0 )
+	VCycle@coarser ( )
+	
+	Correction ( )
+	
+	Smoother ( )
+}
+
+Function VCycle@coarsest ( ) : Unit {
+	// TODO: implement real cgs
+	repeat 4 times {
+		Smoother ( )
+	}
+}
+
+Function Smoother@all ( ) : Unit {
+	if ( useVanka ) {
+		repeat 4 times {
+			Vanka@current ( )
+		}
+	} else {
+		repeat 4 times {
+			Distributive@current ( )
+		}
+	}
+}
+
+Function UpdateResidual@all {
+	residual_u = rhs_u - ( Laplace_xStag_xStag * u + dx_Cell_xStag * p )
+	residual_v = rhs_v - ( Laplace_yStag_yStag * v + dy_Cell_yStag * p )
+	residual_w = rhs_w - ( Laplace_zStag_zStag * w + dz_Cell_zStag * p )
+	residual_p = rhs_p - ( dx_xStag_Cell * u + dy_yStag_Cell * v + dz_zStag_Cell * w )
+}
+
+Function Restriction@(all but coarsest) {
+	rhs_u@coarser = RestrictionFaceX * residual_u
+	rhs_v@coarser = RestrictionFaceY * residual_v
+	rhs_w@coarser = RestrictionFaceZ * residual_w
+	rhs_p@coarser = RestrictionCell  * residual_p
+}
+
+Function Correction@(all but coarsest) {
+	u += CorrectionFaceX@coarser * u@coarser
+	v += CorrectionFaceY@coarser * v@coarser
+	w += CorrectionFaceZ@coarser * w@coarser
+	p += CorrectionCell@coarser  * p@coarser
+}
+
+Function SetSolution@all ( value : Real ) {
+	u = value
+	v = value
+	w = value
+	p = value
+}
+
+FunctionTemplate NormResidualComponent < residual > ( ) : Real {
+	return sqrt ( residual * residual )
+}
+
+Instantiate NormResidualComponent < residual_u > as NormResidual_u@finest
+Instantiate NormResidualComponent < residual_v > as NormResidual_v@finest
+Instantiate NormResidualComponent < residual_w > as NormResidual_w@finest
+Instantiate NormResidualComponent < residual_p > as NormResidual_p@finest
+
+Function NormResidual_max@finest : Real {
+	Var res_u : Real = NormResidual_u ( )
+	Var res_v : Real = NormResidual_v ( )
+	Var res_w : Real = NormResidual_w ( )
+	Var res_p : Real = NormResidual_p ( )
+
+	print ( res_u, res_v, res_w, res_p )
+
+	// TODO: check with Lisa
+	return max ( res_u, res_v, res_w, res_p )
+}
+
+Function NormResidual_L2@finest : Real {
+	Var res_u : Real = NormResidual_u ( )
+	Var res_v : Real = NormResidual_v ( )
+	Var res_w : Real = NormResidual_w ( )
+	Var res_p : Real = NormResidual_p ( )
+
+	print ( res_u, res_v, res_w, res_p )
+
+	// TODO: check with Lisa
+	return sqrt ( res_u * res_u + res_v * res_v + res_w * res_w + res_p * res_p )
+}

@@ -1,7 +1,6 @@
 package exastencils.polyhedron.exploration
 
 import exastencils.polyhedron.Isl.TypeAliases._
-import isl.Conversions._
 
 object DomainCoeffInfo {
   def apply(domain : isl.UnionSet) : DomainCoeffInfo = {

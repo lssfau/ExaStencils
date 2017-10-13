@@ -2,26 +2,25 @@ package exastencils.util
 
 import scala.io.Source
 
-import exastencils.config.Knowledge
-import exastencils.config.Platform
-import exastencils.datastructures._
+import exastencils.base.ir.IR_Node
+import exastencils.config._
 import exastencils.prettyprinting._
 
 object CImg {
-  def resolveLdLibs ():String= {
+  def resolveLdLibs() : String = {
     var flags = ""
 
     if (Knowledge.library_CImg)
       Platform.targetOS match {
         case "Windows"       => flags += " -lgdi32 "
-        case "Linux" | "OSX" => flags += " -lm -lpthread -lX11"
+        case "Linux" | "macOS" => flags += " -lm -lpthread -lX11"
       }
 
     flags
   }
 }
 
-case class CImg() extends Node with FilePrettyPrintable {
+case class CImg() extends IR_Node with FilePrettyPrintable {
   override def printToFile() : Unit = {
     if (!Knowledge.library_CImg) {
       return

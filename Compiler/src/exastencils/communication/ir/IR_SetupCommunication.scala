@@ -9,25 +9,28 @@ import exastencils.boundary.ir._
 import exastencils.communication.DefaultNeighbors
 import exastencils.config._
 import exastencils.core._
-import exastencils.core.collectors.StackCollector
 import exastencils.datastructures.Transformation._
 import exastencils.datastructures._
 import exastencils.field.ir.IR_SlotAccess
 import exastencils.logger._
 import exastencils.parallelization.api.mpi.MPI_WaitForRequest
 import exastencils.parallelization.api.omp.OMP_WaitForFlag
+import exastencils.util.ir.IR_StackCollector
 
 /// IR_SetupCommunication
 
 // TODO: refactor
 object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
+
+  case class NameAndLevel(name : String, level : Int)
+
   var commFunctions = IR_CommunicationFunctions()
-  var addedFunctions : ListBuffer[String] = ListBuffer()
+  var addedFunctions : ListBuffer[NameAndLevel] = ListBuffer()
 
   var firstCall = true
   var condCounter = 0
 
-  var collector = new StackCollector
+  var collector = new IR_StackCollector
   this.register(collector)
 
   override def apply(node : Option[Node] = None) = {
@@ -52,6 +55,8 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
 
     case communicateStatement : IR_Communicate =>
       val numDims = communicateStatement.field.field.fieldLayout.numDimsData
+
+      val level = communicateStatement.field.level
 
       var commDup = false
       var dupBegin = IR_ExpressionIndex(Array.fill(numDims)(0))
@@ -92,9 +97,9 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       }
 
       var functionName = communicateStatement.op match {
-        case "begin"  => s"beginExch${ communicateStatement.field.codeName }"
-        case "finish" => s"finishExch${ communicateStatement.field.codeName }"
-        case "both"   => s"exch${ communicateStatement.field.codeName }"
+        case "begin"  => s"beginExch${ communicateStatement.field.field.name }_"
+        case "finish" => s"finishExch${ communicateStatement.field.field.name }_"
+        case "both"   => s"exch${ communicateStatement.field.field.name }_"
       }
       functionName += /*s"_${ communicateStatement.field.arrayIndex.getOrElse("a") }_" +*/
         communicateStatement.targets.map(t => s"${ t.target }_${
@@ -112,11 +117,11 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
         condCounter += 1
       }
 
-      if (!addedFunctions.contains(functionName)) {
-        addedFunctions += functionName
+      if (!addedFunctions.contains(NameAndLevel(functionName, level))) {
+        addedFunctions += NameAndLevel(functionName, level)
         val fieldSelection = Duplicate(communicateStatement.field)
         fieldSelection.slot = IR_VariableAccess("slot", IR_IntegerDatatype)
-        commFunctions += IR_CommunicateFunction(functionName,
+        commFunctions += IR_CommunicateFunction(functionName, level,
           fieldSelection, DefaultNeighbors.neighbors,
           "begin" == communicateStatement.op || "both" == communicateStatement.op,
           "finish" == communicateStatement.op || "both" == communicateStatement.op,
@@ -136,7 +141,7 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
-      IR_FunctionCall(functionName, fctArgs) : IR_Statement
+      IR_FunctionCall(IR_LeveledInternalFunctionReference(functionName, level, IR_UnitDatatype), fctArgs) : IR_Statement
 
     case applyBCsStatement : IR_ApplyBC =>
       var insideFragLoop = collector.stack.map(_.isInstanceOf[IR_LoopOverFragments]).reduce(_ || _)
@@ -145,14 +150,16 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
         insideFragLoop = false
       }
 
-      var functionName = s"applyBCs${ applyBCsStatement.field.codeName }"
+      val level = applyBCsStatement.field.level
+
+      var functionName = s"applyBCs${ applyBCsStatement.field.field.name }"
       if (insideFragLoop) functionName += "_ifl"
 
-      if (!addedFunctions.contains(functionName)) {
-        addedFunctions += functionName
+      if (!addedFunctions.contains(NameAndLevel(functionName, level))) {
+        addedFunctions += NameAndLevel(functionName, level)
         val fieldSelection = Duplicate(applyBCsStatement.field)
         fieldSelection.slot = "slot"
-        commFunctions += IR_ApplyBCFunction(functionName, fieldSelection, DefaultNeighbors.neighbors, insideFragLoop)
+        commFunctions += IR_ApplyBCFunction(functionName, level, fieldSelection, DefaultNeighbors.neighbors, insideFragLoop)
       }
 
       applyBCsStatement.field.slot match {
@@ -165,6 +172,6 @@ object IR_SetupCommunication extends DefaultStrategy("Set up communication") {
       if (insideFragLoop)
         fctArgs += IR_LoopOverFragments.defIt
 
-      IR_FunctionCall(functionName, fctArgs) : IR_Statement
+      IR_FunctionCall(IR_LeveledInternalFunctionReference(functionName, level, IR_UnitDatatype), fctArgs) : IR_Statement
   }, false)
 }

@@ -209,14 +209,14 @@ object IR_SimplifyExpression {
         (simplifyIntegralExpr(IR_Division(x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
 
       case IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))) if floor && "floord" == function.name                                                     =>
-        (IR_FunctionCall("floord", ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
+        (IR_FunctionCall(IR_InternalFunctionReference.floord, ListBuffer(x, IR_IntegerConstant(divs * divs2))), 1L)
       case IR_Addition(ListBuffer(IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))), IR_IntegerConstant(const))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(IR_FunctionCall(IR_InternalFunctionReference.floord, x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
       case IR_Addition(ListBuffer(IR_IntegerConstant(const), IR_FunctionCall(function, ListBuffer(x, IR_IntegerConstant(divs2))))) if floor && "floord" == function.name =>
-        (simplifyIntegralExpr(IR_FunctionCall("floord", x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
+        (simplifyIntegralExpr(IR_FunctionCall(IR_InternalFunctionReference.floord, x + IR_IntegerConstant(const * divs2), IR_IntegerConstant(divs * divs2))), 1L)
       case divd                                                                                                                                                          =>
         if (floor)
-          (IR_FunctionCall("floord", divd, IR_IntegerConstant(divs)), 1L)
+          (IR_FunctionCall(IR_InternalFunctionReference.floord, divd, IR_IntegerConstant(divs)), 1L)
         else
           (IR_Division(divd, IR_IntegerConstant(divs)), 1L)
     }
@@ -414,7 +414,14 @@ object IR_SimplifyExpression {
       case ((IR_VariableAccess(v1, _), _), (IR_VariableAccess(v2, _), _)) => v1 < v2
       case ((v1 : IR_VariableAccess, _), _)                               => true
       case (_, (v2 : IR_VariableAccess, _))                               => false
-      case ((e1, _), (e2, _))                                             => e1.prettyprint() < e2.prettyprint()
+      case ((e1, _), (e2, _))                                             =>
+        val (e1PP, e2PP) = (e1.prettyprint(), e2.prettyprint())
+        if (e1PP == e2PP) {
+          // Logger.warn(e1PP)
+          e1.toString < e2.toString
+        } else {
+          e1PP < e2PP
+        }
     })
 
     if (sumSeq.isEmpty)
@@ -749,7 +756,14 @@ object IR_SimplifyExpression {
       case ((IR_VariableAccess(v1, _), _), (IR_VariableAccess(v2, _), _)) => v1 < v2
       case ((v1 : IR_VariableAccess, _), _)                               => true
       case (_, (v2 : IR_VariableAccess, _))                               => false
-      case ((e1, _), (e2, _))                                             => e1.prettyprint() < e2.prettyprint()
+      case ((e1, _), (e2, _))                                             =>
+        val (e1PP, e2PP) = (e1.prettyprint(), e2.prettyprint())
+        if (e1PP == e2PP) {
+          // Logger.warn(e1PP)
+          e1.toString < e2.toString
+        } else {
+          e1PP < e2PP
+        }
     })
 
     if (sumSeq.isEmpty)

@@ -1,81 +1,33 @@
 package exastencils.field.l2
 
-import exastencils.base.l2._
-import exastencils.boundary.l2._
+import exastencils.base.l2.L2_MayBlockResolution
 import exastencils.datastructures._
-import exastencils.domain.l2.L2_DomainCollection
+import exastencils.knowledge.l2._
 import exastencils.logger._
-import exastencils.prettyprinting._
 
-/// L2_FieldDeclaration
+/// L2_FieldDecl
 
-trait L2_FieldDecl extends L2_Statement {
-  def name : String
-  override def progress = { Logger.error(s"Trying to progress l2 field declaration for field $name; this is not supported") }
+abstract class L2_FieldDecl extends L2_LeveledKnowledgeDecl {
+  override def progress = Logger.error(s"Trying to progress L2 field declaration for field $name; this is not supported")
+  def addToKnowledge() : Unit
 }
 
-/// L2_BaseFieldDeclaration
+/// L2_PrepareFieldDeclaration
 
-object L2_BaseFieldDecl {
-  def apply(identifier : String, levels : Option[L2_LevelSpecification], datatype : Option[L2_Datatype], localization : String, domain : String, initial : Option[L2_Expression]) : L2_BaseFieldDecl =
-    L2_BaseFieldDecl(identifier, levels, datatype.getOrElse(L2_RealDatatype), localization, domain, initial)
-}
-
-case class L2_BaseFieldDecl(
-    var name : String,
-    var levels : Option[L2_LevelSpecification],
-    var datatype : L2_Datatype,
-    var localization : String,
-    var domain : String,
-    var initial : Option[L2_Expression]) extends L2_FieldDecl {
-
-  override def prettyprint(out : PpStream) = {
-    out << "--- FIXME ---"
-  }
-}
-
-/// L2_BoundaryFieldDeclaration
-
-case class L2_BoundaryFieldDecl(
-    var name : String,
-    var levels : Option[L2_LevelSpecification],
-    var boundary : L2_BoundaryCondition) extends L2_FieldDecl {
-
-  override def prettyprint(out : PpStream) = {
-    out << "--- FIXME ---"
-  }
+object L2_PrepareFieldDeclarations extends DefaultStrategy("Prepare knowledge for L2 fields") {
+  this += Transformation("Process new fields", {
+    case decl : L2_FieldDecl =>
+      L2_FieldCollection.addDeclared(decl.name, decl.levels)
+      decl // preserve declaration statement
+  })
 }
 
 /// L2_ProcessFieldDeclarations
 
-object L2_ProcessFieldDeclarations extends DefaultStrategy("Integrate Layer2 field declarations with knowledge") {
-  this += Transformation("Process new fields", {
-    case field : L2_BaseFieldDecl =>
-      val levelList = L2_LevelSpecification.extractLevelListDefAll(field.levels)
-      for (level <- levelList) {
-        val newField = L2_Field(
-          field.name,
-          level,
-          L2_DomainCollection.getByIdentifier(field.domain).get,
-          field.datatype,
-          field.localization,
-          field.initial,
-          L2_NoBC)
-
-        L2_FieldCollection.add(newField)
-      }
-
-      None // consume declaration statement
-  })
-
-  this += Transformation("Adapt bc's of new fields", {
-    case field : L2_BoundaryFieldDecl =>
-      val levelList = L2_LevelSpecification.extractLevelListDefAll(field.levels)
-      for (level <- levelList) {
-        val fieldToAdapt = L2_FieldCollection.getByIdentifier(field.name, level).get
-        fieldToAdapt.boundary = field.boundary
-      }
-
+object L2_ProcessFieldDeclarations extends DefaultStrategy("Integrate L2 field declarations with knowledge") {
+  this += Transformation("Process field declarations", {
+    case decl : L2_FieldDecl if L2_MayBlockResolution.isDone(decl) =>
+      decl.addToKnowledge()
       None // consume declaration statement
   })
 }

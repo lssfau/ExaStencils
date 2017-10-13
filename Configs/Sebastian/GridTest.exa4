@@ -1,0 +1,858 @@
+
+Domain global< [ 0, 0, 0 ] to [ 0.05, 0.05, 0.05 ] >
+
+Layout DefCellLayout < Real , Cell > @all {
+	duplicateLayers	= [ 0, 0, 0 ]
+	ghostLayers		= [ 3, 3, 3 ] with communication
+}
+
+Layout DefFaceXLayout < Real , Face_x > @all {
+	duplicateLayers	= [ 1, 0, 0 ] with communication
+	ghostLayers		= [ 3, 3, 3 ] with communication
+}
+
+Layout DefFaceYLayout < Real , Face_y > @all {
+	duplicateLayers	= [ 0, 1, 0 ] with communication
+	ghostLayers		= [ 3, 3, 3 ] with communication
+}
+
+Layout DefFaceZLayout < Real , Face_z > @all {
+	duplicateLayers	= [ 0, 0, 1 ] with communication
+	ghostLayers		= [ 3, 3, 3 ] with communication
+}
+
+Field u < global, DefFaceXLayout, 0.0 > @all
+Field v < global, DefFaceYLayout, 0.0 > @all
+Field w < global, DefFaceZLayout, 0.0 > @all
+Field p < global, DefCellLayout, Neumann > @all
+
+Stencil IntegrateCellWest {
+  [-1,  0,  0] => integrateOverWestFace   ( 1.0 )
+}
+Stencil IntegrateCellEast {
+  [ 1,  0,  0] => integrateOverEastFace   ( 1.0 )
+}
+Stencil IntegrateCellSouth {
+  [ 0, -1,  0] => integrateOverSouthFace  ( 1.0 )
+}
+Stencil IntegrateCellNorth {
+  [ 0,  1,  0] => integrateOverNorthFace  ( 1.0 )
+}
+Stencil IntegrateCellBottom {
+  [ 0,  0, -1] => integrateOverBottomFace ( 1.0 )
+}
+Stencil IntegrateCellTop {
+  [ 0,  0,  1] => integrateOverTopFace    ( 1.0 )
+}
+
+Stencil IntegrateFaceXWest {
+  [-1,  0,  0] => integrateOverXStaggeredWestFace   ( 1.0 )
+}
+Stencil IntegrateFaceXEast {
+  [ 1,  0,  0] => integrateOverXStaggeredEastFace   ( 1.0 )
+}
+Stencil IntegrateFaceXSouth {
+  [ 0, -1,  0] => integrateOverXStaggeredSouthFace  ( 1.0 )
+}
+Stencil IntegrateFaceXNorth {
+  [ 0,  1,  0] => integrateOverXStaggeredNorthFace  ( 1.0 )
+}
+Stencil IntegrateFaceXBottom {
+  [ 0,  0, -1] => integrateOverXStaggeredBottomFace ( 1.0 )
+}
+Stencil IntegrateFaceXTop {
+  [ 0,  0,  1] => integrateOverXStaggeredTopFace    ( 1.0 )
+}
+
+Stencil IntDiffFaceXWest {
+  [ 0,  0,  0] =>  integrateOverXStaggeredWestFace   ( 1.0 ) / vf_cellWidth_x@[0, 0, 0]
+  [-1,  0,  0] => -integrateOverXStaggeredWestFace   ( 1.0 ) / vf_cellWidth_x@[0, 0, 0]
+}
+Stencil IntDiffFaceXEast {
+  [ 0,  0,  0] =>  integrateOverXStaggeredEastFace   ( 1.0 ) / vf_cellWidth_x@[1, 0, 0]
+  [ 1,  0,  0] => -integrateOverXStaggeredEastFace   ( 1.0 ) / vf_cellWidth_x@[1, 0, 0]
+}
+Stencil IntDiffFaceXSouth {
+  [ 0,  0,  0] =>  integrateOverXStaggeredSouthFace  ( 1.0 ) / vf_stagCVWidth_y@[0, 0, 0]
+  [ 0, -1,  0] => -integrateOverXStaggeredSouthFace  ( 1.0 ) / vf_stagCVWidth_y@[0, 0, 0]
+}
+Stencil IntDiffFaceXNorth {
+  [ 0,  0,  0] =>  integrateOverXStaggeredNorthFace  ( 1.0 ) / vf_stagCVWidth_y@[0, 1, 0]
+  [ 0,  1,  0] => -integrateOverXStaggeredNorthFace  ( 1.0 ) / vf_stagCVWidth_y@[0, 1, 0]
+}
+Stencil IntDiffFaceXBottom {
+  [ 0,  0,  0] =>  integrateOverXStaggeredBottomFace ( 1.0 ) / vf_stagCVWidth_z@[0, 0, 0]
+  [ 0,  0, -1] => -integrateOverXStaggeredBottomFace ( 1.0 ) / vf_stagCVWidth_z@[0, 0, 0]
+}
+Stencil IntDiffFaceXTop {
+  [ 0,  0,  0] =>  integrateOverXStaggeredTopFace    ( 1.0 ) / vf_stagCVWidth_z@[0, 0, 1]
+  [ 0,  0,  1] => -integrateOverXStaggeredTopFace    ( 1.0 ) / vf_stagCVWidth_z@[0, 0, 1]
+}
+
+Stencil IntLaplaceFaceX {
+  [ 0,  0,  0] => (
+	  ( 1.0 / vf_cellWidth_x@[0, 0, 0]   + 1.0 / vf_cellWidth_x@[1, 0, 0] )   * vf_cellWidth_y   * vf_cellWidth_z
+    + ( 1.0 / vf_stagCVWidth_y@[0, 0, 0] + 1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_stagCVWidth_x * vf_cellWidth_z
+    + ( 1.0 / vf_stagCVWidth_z@[0, 0, 0] + 1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_stagCVWidth_x * vf_cellWidth_y )
+
+  [-1,  0,  0] => - vf_cellWidth_y   * vf_cellWidth_z / vf_cellWidth_x@[0, 0, 0]
+  [ 1,  0,  0] => - vf_cellWidth_y   * vf_cellWidth_z / vf_cellWidth_x@[1, 0, 0]
+  [ 0, -1,  0] => - vf_stagCVWidth_x * vf_cellWidth_z / vf_stagCVWidth_y@[0, 0, 0]
+  [ 0,  1,  0] => - vf_stagCVWidth_x * vf_cellWidth_z / vf_stagCVWidth_y@[0, 1, 0]
+  [ 0,  0, -1] => - vf_stagCVWidth_x * vf_cellWidth_y / vf_stagCVWidth_z@[0, 0, 0]
+  [ 0,  0,  1] => - vf_stagCVWidth_x * vf_cellWidth_y / vf_stagCVWidth_z@[0, 0, 1]
+}
+
+Stencil IntLaplaceFaceX2 {
+  [ 0,  0,  0] => (
+	  ( 1.0 / vf_cellWidth_x@[0, 0, 0]   + 1.0 / vf_cellWidth_x@[1, 0, 0] )   * vf_cellWidth_y   * vf_cellWidth_z
+    + ( 1.0 / vf_stagCVWidth_y@[0, 0, 0] + 1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_stagCVWidth_x * vf_cellWidth_z
+    + ( 1.0 / vf_stagCVWidth_z@[0, 0, 0] + 1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_stagCVWidth_x * vf_cellWidth_y )
+
+  [-1,  0,  0] => integrateOverXStaggeredWestFace   ( -1.0 ) / vf_cellWidth_x@[0, 0, 0]
+  [ 1,  0,  0] => integrateOverXStaggeredEastFace   ( -1.0 ) / vf_cellWidth_x@[1, 0, 0]
+  [ 0, -1,  0] => integrateOverXStaggeredSouthFace  ( -1.0 ) / vf_stagCVWidth_y@[0, 0, 0]
+  [ 0,  1,  0] => integrateOverXStaggeredNorthFace  ( -1.0 ) / vf_stagCVWidth_y@[0, 1, 0]
+  [ 0,  0, -1] => integrateOverXStaggeredBottomFace ( -1.0 ) / vf_stagCVWidth_z@[0, 0, 0]
+  [ 0,  0,  1] => integrateOverXStaggeredTopFace    ( -1.0 ) / vf_stagCVWidth_z@[0, 0, 1]
+}
+
+
+Function Application ( ) : Unit {
+	initGlobals ( )
+	initDomain ( )
+	initFieldsWithZero ( )
+
+	initGeometry ( )
+
+	Randomize@finest ( )
+
+	TestCellIntegrateConst@finest ( )
+	TestCellIntegrate@finest ( )
+	TestCellIntegrateStencil@finest ( )
+
+	TestFaceXIntegrateConst@finest ( )
+	TestFaceXIntegrateStencil@finest ( )
+
+	TestFaceXIntDiffStencil@finest ( )
+	TestFaceXIntLaplaceStencil@finest ( )
+
+	destroyGlobals ( )
+}
+
+Function Randomize@finest ( ) : Unit {
+	loop over p@current sequentially {
+		p = native('((double)std::rand()/RAND_MAX)')
+	}
+	loop over u@current sequentially {
+		u = native('((double)std::rand()/RAND_MAX)')
+	}
+	loop over v@current sequentially {
+		v = native('((double)std::rand()/RAND_MAX)')
+	}
+	loop over w@current sequentially {
+		w = native('((double)std::rand()/RAND_MAX)')
+	}
+}
+
+Function compare ( fctName : String, actual : Real, target : Real ) {
+	if ( fabs ( ( actual - target ) / target ) > 1e-10 ) {
+		print ( actual, 'is not', target, 'at', i0, i1, i2, 'for', fctName )
+	}
+}
+
+Function TestCellIntegrateConst@finest ( ) : Unit {
+	loop over p@current {
+		Val actual : Real = integrateOverWestFace ( 1.0 )
+		Val target : Real = vf_cellWidth_y * vf_cellWidth_z * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverWestFace', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = integrateOverEastFace ( 1.0 )
+		Val target : Real = vf_cellWidth_y@[1,0,0] * vf_cellWidth_z@[1,0,0] * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverEastFace', actual, target )
+	}
+
+	loop over p@current {
+		Val actual : Real = integrateOverSouthFace ( 1.0 )
+		Val target : Real = vf_cellWidth_x * vf_cellWidth_z * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverSouthFace', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = integrateOverNorthFace ( 1.0 )
+		Val target : Real = vf_cellWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverNorthFace', actual, target )
+	}
+
+	loop over p@current {
+		Val actual : Real = integrateOverBottomFace ( 1.0 )
+		Val target : Real = vf_cellWidth_x * vf_cellWidth_y * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverBottomFace', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = integrateOverTopFace ( 1.0 )
+		Val target : Real = vf_cellWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverTopFace', actual, target )
+	}
+}
+
+Function TestFaceXIntegrateConst@finest ( ) : Unit {
+	loop over u@current {
+		Val actual : Real = integrateOverXStaggeredWestFace ( 1.0 )
+		Val target : Real = vf_cellWidth_y * vf_cellWidth_z * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverXStaggeredWestFace', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = integrateOverXStaggeredEastFace ( 1.0 )
+		Val target : Real = vf_cellWidth_y@[1,0,0] * vf_cellWidth_z@[1,0,0] * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverXStaggeredEastFace', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = integrateOverXStaggeredSouthFace ( 1.0 )
+		Val target : Real = vf_stagCVWidth_x * vf_cellWidth_z * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverXStaggeredSouthFace', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = integrateOverXStaggeredNorthFace ( 1.0 )
+		Val target : Real = vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverXStaggeredNorthFace', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = integrateOverXStaggeredBottomFace ( 1.0 )
+		Val target : Real = vf_stagCVWidth_x * vf_cellWidth_y * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverXStaggeredBottomFace', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = integrateOverXStaggeredTopFace ( 1.0 )
+		Val target : Real = vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] * 1.0
+		Var diff : Real = actual - target
+		compare ( 'integrateOverXStaggeredTopFace', actual, target )
+	}
+}
+
+Function TestCellIntegrate@finest ( ) : Unit {
+	loop over p@current {
+		Val actual : Real = integrateOverWestFace ( u )
+		Val target : Real = vf_cellWidth_y * vf_cellWidth_z * u
+		Var diff : Real = actual - target
+		compare ( 'integrateOverWestFace', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = integrateOverEastFace ( u )
+		Val target : Real = vf_cellWidth_y@[1,0,0] * vf_cellWidth_z@[1,0,0] * u@[1,0,0]
+		Var diff : Real = actual - target
+		compare ( 'integrateOverEastFace', actual, target )
+	}
+
+	loop over p@current {
+		Val actual : Real = integrateOverSouthFace ( v )
+		Val target : Real = vf_cellWidth_x * vf_cellWidth_z * v
+		Var diff : Real = actual - target
+		compare ( 'integrateOverSouthFace', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = integrateOverNorthFace ( v )
+		Val target : Real = vf_cellWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] * v@[0,1,0]
+		Var diff : Real = actual - target
+		compare ( 'integrateOverNorthFace', actual, target )
+	}
+
+	loop over p@current {
+		Val actual : Real = integrateOverBottomFace ( w )
+		Val target : Real = vf_cellWidth_x * vf_cellWidth_y * w
+		Var diff : Real = actual - target
+		compare ( 'integrateOverBottomFace', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = integrateOverTopFace ( w )
+		Val target : Real = vf_cellWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] * w@[0,0,1]
+		Var diff : Real = actual - target
+		compare ( 'integrateOverTopFace', actual, target )
+	}
+}
+
+Function TestCellIntegrateStencil@finest ( ) : Unit {
+	loop over p@current {
+		Val actual : Real = IntegrateCellWest * p
+		Val target : Real = vf_cellWidth_y * vf_cellWidth_z * p@[-1,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellWest', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellWest@[1,0,0] * p@[1,0,0]
+		Val target : Real = vf_cellWidth_y@[1,0,0] * vf_cellWidth_z@[1,0,0] * p@[0,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellWest@[1,0,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellWest@[0,1,0] * p@[0,1,0]
+		Val target : Real = vf_cellWidth_y@[0,1,0] * vf_cellWidth_z@[0,1,0] * p@[-1,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellWest@[0,1,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellWest@[0,0,1] * p@[0,0,1]
+		Val target : Real = vf_cellWidth_y@[0,0,1] * vf_cellWidth_z@[0,0,1] * p@[-1,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellWest@[0,0,1]', actual, target )
+	}
+
+	loop over p@current {
+		Val actual : Real = IntegrateCellEast * p
+		Val target : Real = vf_cellWidth_y@[1,0,0] * vf_cellWidth_z@[1,0,0] * p@[1,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellEast', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellEast@[1,0,0] * p@[1,0,0]
+		Val target : Real = vf_cellWidth_y@[2,0,0] * vf_cellWidth_z@[2,0,0] * p@[2,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellEast@[1,0,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellEast@[0,1,0] * p@[0,1,0]
+		Val target : Real = vf_cellWidth_y@[1,1,0] * vf_cellWidth_z@[1,1,0] * p@[1,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellEast@[0,1,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellEast@[0,0,1] * p@[0,0,1]
+		Val target : Real = vf_cellWidth_y@[1,0,1] * vf_cellWidth_z@[1,0,1] * p@[1,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellEast@[0,0,1]', actual, target )
+	}
+
+	loop over p@current {
+		Val actual : Real = IntegrateCellSouth * p
+		Val target : Real = vf_cellWidth_x * vf_cellWidth_z * p@[0,-1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellSouth', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellSouth@[1,0,0] * p@[1,0,0]
+		Val target : Real = vf_cellWidth_x@[1,0,0] * vf_cellWidth_z@[1,0,0] * p@[1,-1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellSouth@[1,0,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellSouth@[0,1,0] * p@[0,1,0]
+		Val target : Real = vf_cellWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] * p@[0,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellSouth@[0,1,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellSouth@[0,0,1] * p@[0,0,1]
+		Val target : Real = vf_cellWidth_x@[0,0,1] * vf_cellWidth_z@[0,0,1] * p@[0,-1,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellSouth@[0,0,1]', actual, target )
+	}
+
+	loop over p@current {
+		Val actual : Real = IntegrateCellNorth * p
+		Val target : Real = vf_cellWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] * p@[0,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellNorth', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellNorth@[1,0,0] * p@[1,0,0]
+		Val target : Real = vf_cellWidth_x@[1,1,0] * vf_cellWidth_z@[1,1,0] * p@[1,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellNorth@[1,0,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellNorth@[0,1,0] * p@[0,1,0]
+		Val target : Real = vf_cellWidth_x@[0,2,0] * vf_cellWidth_z@[0,2,0] * p@[0,2,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellNorth@[0,1,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellNorth@[0,0,1] * p@[0,0,1]
+		Val target : Real = vf_cellWidth_x@[0,1,1] * vf_cellWidth_z@[0,1,1] * p@[0,1,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellNorth@[0,0,1]', actual, target )
+	}
+
+	loop over p@current {
+		Val actual : Real = IntegrateCellBottom * p
+		Val target : Real = vf_cellWidth_x * vf_cellWidth_y * p@[0,0,-1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellBottom', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellBottom@[1,0,0] * p@[1,0,0]
+		Val target : Real = vf_cellWidth_x@[1,0,0] * vf_cellWidth_y@[1,0,0] * p@[1,0,-1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellBottom@[1,0,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellBottom@[0,1,0] * p@[0,1,0]
+		Val target : Real = vf_cellWidth_x@[0,1,0] * vf_cellWidth_y@[0,1,0] * p@[0,1,-1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellBottom@[0,1,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellBottom@[0,0,1] * p@[0,0,1]
+		Val target : Real = vf_cellWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] * p@[0,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellBottom@[0,0,1]', actual, target )
+	}
+
+	loop over p@current {
+		Val actual : Real = IntegrateCellTop * p
+		Val target : Real = vf_cellWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] * p@[0,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellTop', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellTop@[1,0,0] * p@[1,0,0]
+		Val target : Real = vf_cellWidth_x@[1,0,1] * vf_cellWidth_y@[1,0,1] * p@[1,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellTop@[1,0,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellTop@[0,1,0] * p@[0,1,0]
+		Val target : Real = vf_cellWidth_x@[0,1,1] * vf_cellWidth_y@[0,1,1] * p@[0,1,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellTop@[0,1,0]', actual, target )
+	}
+	loop over p@current {
+		Val actual : Real = IntegrateCellTop@[0,0,1] * p@[0,0,1]
+		Val target : Real = vf_cellWidth_x@[0,0,2] * vf_cellWidth_y@[0,0,2] * p@[0,0,2]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateCellTop@[0,0,1]', actual, target )
+	}
+}
+
+Function TestFaceXIntegrateStencil@finest ( ) : Unit {
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXWest * u
+		Val target : Real = vf_cellWidth_y * vf_cellWidth_z * u@[-1,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXWest', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXWest@[1,0,0] * u@[1,0,0]
+		Val target : Real = vf_cellWidth_y@[1,0,0] * vf_cellWidth_z@[1,0,0] * u@[0,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXWest@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXWest@[0,1,0] * u@[0,1,0]
+		Val target : Real = vf_cellWidth_y@[0,1,0] * vf_cellWidth_z@[0,1,0] * u@[-1,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXWest@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXWest@[0,0,1] * u@[0,0,1]
+		Val target : Real = vf_cellWidth_y@[0,0,1] * vf_cellWidth_z@[0,0,1] * u@[-1,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXWest@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXEast * u
+		Val target : Real = vf_cellWidth_y@[1,0,0] * vf_cellWidth_z@[1,0,0] * u@[1,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXEast', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXEast@[1,0,0] * u@[1,0,0]
+		Val target : Real = vf_cellWidth_y@[2,0,0] * vf_cellWidth_z@[2,0,0] * u@[2,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXEast@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXEast@[0,1,0] * u@[0,1,0]
+		Val target : Real = vf_cellWidth_y@[1,1,0] * vf_cellWidth_z@[1,1,0] * u@[1,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXEast@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXEast@[0,0,1] * u@[0,0,1]
+		Val target : Real = vf_cellWidth_y@[1,0,1] * vf_cellWidth_z@[1,0,1] * u@[1,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXEast@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXSouth * u
+		Val target : Real = vf_stagCVWidth_x * vf_cellWidth_z * u@[0,-1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXSouth', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXSouth@[1,0,0] * u@[1,0,0]
+		Val target : Real = vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_z@[1,0,0] * u@[1,-1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXSouth@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXSouth@[0,1,0] * u@[0,1,0]
+		Val target : Real = vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] * u@[0,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXSouth@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXSouth@[0,0,1] * u@[0,0,1]
+		Val target : Real = vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_z@[0,0,1] * u@[0,-1,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXSouth@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXNorth * u
+		Val target : Real = vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] * u@[0,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXNorth', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXNorth@[1,0,0] * u@[1,0,0]
+		Val target : Real = vf_stagCVWidth_x@[1,1,0] * vf_cellWidth_z@[1,1,0] * u@[1,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXNorth@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXNorth@[0,1,0] * u@[0,1,0]
+		Val target : Real = vf_stagCVWidth_x@[0,2,0] * vf_cellWidth_z@[0,2,0] * u@[0,2,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXNorth@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXNorth@[0,0,1] * u@[0,0,1]
+		Val target : Real = vf_stagCVWidth_x@[0,1,1] * vf_cellWidth_z@[0,1,1] * u@[0,1,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXNorth@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXBottom * u
+		Val target : Real = vf_stagCVWidth_x * vf_cellWidth_y * u@[0,0,-1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXBottom', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXBottom@[1,0,0] * u@[1,0,0]
+		Val target : Real = vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_y@[1,0,0] * u@[1,0,-1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXBottom@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXBottom@[0,1,0] * u@[0,1,0]
+		Val target : Real = vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_y@[0,1,0] * u@[0,1,-1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXBottom@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXBottom@[0,0,1] * u@[0,0,1]
+		Val target : Real = vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] * u@[0,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXBottom@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXTop * u
+		Val target : Real = vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] * u@[0,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXTop', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXTop@[1,0,0] * u@[1,0,0]
+		Val target : Real = vf_stagCVWidth_x@[1,0,1] * vf_cellWidth_y@[1,0,1] * u@[1,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXTop@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXTop@[0,1,0] * u@[0,1,0]
+		Val target : Real = vf_stagCVWidth_x@[0,1,1] * vf_cellWidth_y@[0,1,1] * u@[0,1,1]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXTop@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntegrateFaceXTop@[0,0,1] * u@[0,0,1]
+		Val target : Real = vf_stagCVWidth_x@[0,0,2] * vf_cellWidth_y@[0,0,2] * u@[0,0,2]
+		Var diff : Real = actual - target
+		compare ( 'IntegrateFaceXTop@[0,0,1]', actual, target )
+	}
+}
+
+Function TestFaceXIntDiffStencil@finest ( ) : Unit {
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXWest * u
+		Val factor : Real = vf_cellWidth_y * vf_cellWidth_z / vf_cellWidth_x
+		Val target : Real = factor * u - factor * u@[-1,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXWest', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXWest@[1,0,0] * u@[1,0,0]
+		Val factor : Real = vf_cellWidth_y@[1,0,0] * vf_cellWidth_z@[1,0,0] / vf_cellWidth_x@[1,0,0]
+		Val target : Real = factor * u@[1,0,0] - factor * u@[0,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXWest@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXWest@[0,1,0] * u@[0,1,0]
+		Val factor : Real = vf_cellWidth_y@[0,1,0] * vf_cellWidth_z@[0,1,0] / vf_cellWidth_x@[0,1,0]
+		Val target : Real = factor * u@[0,1,0] - factor * u@[-1,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXWest@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXWest@[0,0,1] * u@[0,0,1]
+		Val factor : Real = vf_cellWidth_y@[0,0,1] * vf_cellWidth_z@[0,0,1] / vf_cellWidth_x@[0,0,1]
+		Val target : Real = factor * u@[0,0,1] - factor * u@[-1,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXWest@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXEast * u
+		Val factor : Real = vf_cellWidth_y@[1,0,0] * vf_cellWidth_z@[1,0,0] / vf_cellWidth_x@[1, 0, 0]
+		Val target : Real = factor * u - factor * u@[1,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXEast', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXEast@[1,0,0] * u@[1,0,0]
+		Val factor : Real = vf_cellWidth_y@[2,0,0] * vf_cellWidth_z@[2,0,0] / vf_cellWidth_x@[2, 0, 0]
+		Val target : Real = factor * u@[1,0,0] - factor * u@[2,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXEast@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXEast@[0,1,0] * u@[0,1,0]
+		Val factor : Real = vf_cellWidth_y@[1,1,0] * vf_cellWidth_z@[1,1,0] / vf_cellWidth_x@[1, 1, 0]
+		Val target : Real = factor * u@[0,1,0] - factor * u@[1,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXEast@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXEast@[0,0,1] * u@[0,0,1]
+		Val factor : Real = vf_cellWidth_y@[1,0,1] * vf_cellWidth_z@[1,0,1] / vf_cellWidth_x@[1, 0, 1]
+		Val target : Real = factor * u@[0,0,1] - factor * u@[1,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXEast@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXSouth * u
+		Val factor : Real = vf_stagCVWidth_x * vf_cellWidth_z / vf_stagCVWidth_y
+		Val target : Real = factor * u - factor * u@[0,-1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXSouth', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXSouth@[1,0,0] * u@[1,0,0]
+		Val factor : Real = vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_z@[1,0,0] / vf_stagCVWidth_y@[1,0,0]
+		Val target : Real = factor * u@[1,0,0] - factor * u@[1,-1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXSouth@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXSouth@[0,1,0] * u@[0,1,0]
+		Val factor : Real = vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] / vf_stagCVWidth_y@[0,1,0]
+		Val target : Real = factor * u@[0,1,0] - factor * u@[0,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXSouth@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXSouth@[0,0,1] * u@[0,0,1]
+		Val factor : Real = vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_z@[0,0,1] / vf_stagCVWidth_y@[0,0,1]
+		Val target : Real = factor * u@[0,0,1] - factor * u@[0,-1,1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXSouth@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXNorth * u
+		Val factor : Real = vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] / vf_stagCVWidth_y@[0, 1, 0]
+		Val target : Real = factor * u - factor * u@[0,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXNorth', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXNorth@[1,0,0] * u@[1,0,0]
+		Val factor : Real = vf_stagCVWidth_x@[1,1,0] * vf_cellWidth_z@[1,1,0] / vf_stagCVWidth_y@[1, 1, 0]
+		Val target : Real = factor * u@[1,0,0] - factor * u@[1,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXNorth@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXNorth@[0,1,0] * u@[0,1,0]
+		Val factor : Real = vf_stagCVWidth_x@[0,2,0] * vf_cellWidth_z@[0,2,0] / vf_stagCVWidth_y@[0, 2, 0]
+		Val target : Real = factor * u@[0,1,0] - factor * u@[0,2,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXNorth@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXNorth@[0,0,1] * u@[0,0,1]
+		Val factor : Real = vf_stagCVWidth_x@[0,1,1] * vf_cellWidth_z@[0,1,1] / vf_stagCVWidth_y@[0, 1, 1]
+		Val target : Real = factor * u@[0,0,1] - factor * u@[0,1,1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXNorth@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXBottom * u
+		Val factor : Real = vf_stagCVWidth_x * vf_cellWidth_y / vf_stagCVWidth_z
+		Val target : Real = factor * u - factor * u@[0,0,-1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXBottom', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXBottom@[1,0,0] * u@[1,0,0]
+		Val factor : Real = vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_y@[1,0,0] / vf_stagCVWidth_z@[1,0,0]
+		Val target : Real = factor * u@[1,0,0] - factor * u@[1,0,-1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXBottom@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXBottom@[0,1,0] * u@[0,1,0]
+		Val factor : Real = vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_y@[0,1,0] / vf_stagCVWidth_z@[0,1,0]
+		Val target : Real = factor * u@[0,1,0] - factor * u@[0,1,-1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXBottom@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXBottom@[0,0,1] * u@[0,0,1]
+		Val factor : Real = vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] / vf_stagCVWidth_z@[0,0,1]
+		Val target : Real = factor * u@[0,0,1] - factor * u@[0,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXBottom@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXTop * u
+		Val factor : Real = vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] / vf_stagCVWidth_z@[0, 0, 1]
+		Val target : Real = factor * u - factor * u@[0,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXTop', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXTop@[1,0,0] * u@[1,0,0]
+		Val factor : Real = vf_stagCVWidth_x@[1,0,1] * vf_cellWidth_y@[1,0,1] / vf_stagCVWidth_z@[1, 0, 1]
+		Val target : Real = factor * u@[1,0,0] - factor * u@[1,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXTop@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXTop@[0,1,0] * u@[0,1,0]
+		Val factor : Real = vf_stagCVWidth_x@[0,1,1] * vf_cellWidth_y@[0,1,1] / vf_stagCVWidth_z@[0, 1, 1]
+		Val target : Real = factor * u@[0,1,0] - factor * u@[0,1,1]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXTop@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntDiffFaceXTop@[0,0,1] * u@[0,0,1]
+		Val factor : Real = vf_stagCVWidth_x@[0,0,2] * vf_cellWidth_y@[0,0,2] / vf_stagCVWidth_z@[0, 0, 2]
+		Val target : Real = factor * u@[0,0,1] - factor * u@[0,0,2]
+		Var diff : Real = actual - target
+		compare ( 'IntDiffFaceXTop@[0,0,1]', actual, target )
+	}
+}
+
+Function TestFaceXIntLaplaceStencil@finest ( ) : Unit {
+	loop over u@current {
+		Val actual : Real = IntLaplaceFaceX * u
+		Val center : Real = (
+			  ( 1.0 / vf_cellWidth_x@[0, 0, 0]   + 1.0 / vf_cellWidth_x@[1, 0, 0] )   * vf_cellWidth_y   * vf_cellWidth_z
+			+ ( 1.0 / vf_stagCVWidth_y@[0, 0, 0] + 1.0 / vf_stagCVWidth_y@[0, 1, 0] ) * vf_stagCVWidth_x * vf_cellWidth_z
+			+ ( 1.0 / vf_stagCVWidth_z@[0, 0, 0] + 1.0 / vf_stagCVWidth_z@[0, 0, 1] ) * vf_stagCVWidth_x * vf_cellWidth_y )
+		Val target : Real = ( center * u
+			- ( vf_cellWidth_y   * vf_cellWidth_z / vf_cellWidth_x@[0, 0, 0] ) * u@[-1,0,0]
+			- ( vf_cellWidth_y   * vf_cellWidth_z / vf_cellWidth_x@[1, 0, 0] ) * u@[1,0,0]
+			- ( vf_stagCVWidth_x * vf_cellWidth_z / vf_stagCVWidth_y@[0, 0, 0] ) * u@[0,-1,0]
+			- ( vf_stagCVWidth_x * vf_cellWidth_z / vf_stagCVWidth_y@[0, 1, 0] ) * u@[0,1,0]
+			- ( vf_stagCVWidth_x * vf_cellWidth_y / vf_stagCVWidth_z@[0, 0, 0] ) * u@[0,0,-1]
+			- ( vf_stagCVWidth_x * vf_cellWidth_y / vf_stagCVWidth_z@[0, 0, 1] ) * u@[0,0,1] )
+		Var diff : Real = actual - target
+		compare ( 'IntLaplaceFaceX', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntLaplaceFaceX@[1,0,0] * u@[1,0,0]
+		Val center : Real = (
+			  ( 1.0 / vf_cellWidth_x@[1, 0, 0]   + 1.0 / vf_cellWidth_x@[2, 0, 0] )   * vf_cellWidth_y@[1,0,0]   * vf_cellWidth_z@[1,0,0]
+			+ ( 1.0 / vf_stagCVWidth_y@[1, 0, 0] + 1.0 / vf_stagCVWidth_y@[1, 1, 0] ) * vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_z@[1,0,0]
+			+ ( 1.0 / vf_stagCVWidth_z@[1, 0, 0] + 1.0 / vf_stagCVWidth_z@[1, 0, 1] ) * vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_y@[1,0,0] )
+		Val target : Real = ( center * u@[1,0,0]
+			- ( vf_cellWidth_y@[1,0,0]   * vf_cellWidth_z@[1,0,0] / vf_cellWidth_x@[1, 0, 0] ) * u@[0,0,0]
+			- ( vf_cellWidth_y@[1,0,0]   * vf_cellWidth_z@[1,0,0] / vf_cellWidth_x@[2, 0, 0] ) * u@[2,0,0]
+			- ( vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_z@[1,0,0] / vf_stagCVWidth_y@[1, 0, 0] ) * u@[1,-1,0]
+			- ( vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_z@[1,0,0] / vf_stagCVWidth_y@[1, 1, 0] ) * u@[1,1,0]
+			- ( vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_y@[1,0,0] / vf_stagCVWidth_z@[1, 0, 0] ) * u@[1,0,-1]
+			- ( vf_stagCVWidth_x@[1,0,0] * vf_cellWidth_y@[1,0,0] / vf_stagCVWidth_z@[1, 0, 1] ) * u@[1,0,1] )
+		Var diff : Real = actual - target
+		compare ( 'IntLaplaceFaceX@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntLaplaceFaceX@[0,1,0] * u@[0,1,0]
+		Val center : Real = (
+			  ( 1.0 / vf_cellWidth_x@[0, 1, 0]   + 1.0 / vf_cellWidth_x@[1, 1, 0] )   * vf_cellWidth_y@[0,1,0]   * vf_cellWidth_z@[0,1,0]
+			+ ( 1.0 / vf_stagCVWidth_y@[0, 1, 0] + 1.0 / vf_stagCVWidth_y@[0, 2, 0] ) * vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0]
+			+ ( 1.0 / vf_stagCVWidth_z@[0, 1, 0] + 1.0 / vf_stagCVWidth_z@[0, 1, 1] ) * vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_y@[0,1,0] )
+		Val target : Real = ( center * u@[0,1,0]
+			- ( vf_cellWidth_y@[0,1,0]   * vf_cellWidth_z@[0,1,0] / vf_cellWidth_x@[0, 1, 0] ) * u@[-1,1,0]
+			- ( vf_cellWidth_y@[0,1,0]   * vf_cellWidth_z@[0,1,0] / vf_cellWidth_x@[1, 1, 0] ) * u@[1,1,0]
+			- ( vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] / vf_stagCVWidth_y@[0, 1, 0] ) * u@[0,0,0]
+			- ( vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_z@[0,1,0] / vf_stagCVWidth_y@[0, 2, 0] ) * u@[0,2,0]
+			- ( vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_y@[0,1,0] / vf_stagCVWidth_z@[0, 1, 0] ) * u@[0,1,-1]
+			- ( vf_stagCVWidth_x@[0,1,0] * vf_cellWidth_y@[0,1,0] / vf_stagCVWidth_z@[0, 1, 1] ) * u@[0,1,1] )
+		Var diff : Real = actual - target
+		compare ( 'IntLaplaceFaceX@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntLaplaceFaceX@[0,0,1] * u@[0,0,1]
+		Val center : Real = (
+			  ( 1.0 / vf_cellWidth_x@[0, 0, 1]   + 1.0 / vf_cellWidth_x@[1, 0, 1] )   * vf_cellWidth_y@[0,0,1]   * vf_cellWidth_z@[0,0,1]
+			+ ( 1.0 / vf_stagCVWidth_y@[0, 0, 1] + 1.0 / vf_stagCVWidth_y@[0, 1, 1] ) * vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_z@[0,0,1]
+			+ ( 1.0 / vf_stagCVWidth_z@[0, 0, 1] + 1.0 / vf_stagCVWidth_z@[0, 0, 2] ) * vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] )
+		Val target : Real = ( center * u@[0,0,1]
+			- ( vf_cellWidth_y@[0,0,1]   * vf_cellWidth_z@[0,0,1] / vf_cellWidth_x@[0, 0, 1] ) * u@[-1,0,1]
+			- ( vf_cellWidth_y@[0,0,1]   * vf_cellWidth_z@[0,0,1] / vf_cellWidth_x@[1, 0, 1] ) * u@[1,0,1]
+			- ( vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_z@[0,0,1] / vf_stagCVWidth_y@[0, 0, 1] ) * u@[0,-1,1]
+			- ( vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_z@[0,0,1] / vf_stagCVWidth_y@[0, 1, 1] ) * u@[0,1,1]
+			- ( vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] / vf_stagCVWidth_z@[0, 0, 1] ) * u@[0,0,0]
+			- ( vf_stagCVWidth_x@[0,0,1] * vf_cellWidth_y@[0,0,1] / vf_stagCVWidth_z@[0, 0, 2] ) * u@[0,0,2] )
+		Var diff : Real = actual - target
+		compare ( 'IntLaplaceFaceX@[0,0,1]', actual, target )
+	}
+
+	loop over u@current {
+		Val actual : Real = IntLaplaceFaceX2 * u
+		Val target : Real = IntLaplaceFaceX * u
+		Var diff : Real = actual - target
+		compare ( 'IntLaplaceFaceX2', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntLaplaceFaceX2@[1,0,0] * u@[1,0,0]
+		Val target : Real = IntLaplaceFaceX@[1,0,0] * u@[1,0,0]
+		Var diff : Real = actual - target
+		compare ( 'IntLaplaceFaceX2@[1,0,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntLaplaceFaceX2@[0,1,0] * u@[0,1,0]
+		Val target : Real = IntLaplaceFaceX@[0,1,0] * u@[0,1,0]
+		Var diff : Real = actual - target
+		compare ( 'IntLaplaceFaceX2@[0,1,0]', actual, target )
+	}
+	loop over u@current {
+		Val actual : Real = IntLaplaceFaceX2@[0,0,1] * u@[0,0,1]
+		Val target : Real = IntLaplaceFaceX@[0,0,1] * u@[0,0,1]
+		Var diff : Real = actual - target
+		compare ( 'IntLaplaceFaceX2@[0,0,1]', actual, target )
+	}
+}
+

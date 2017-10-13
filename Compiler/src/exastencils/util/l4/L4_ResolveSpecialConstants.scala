@@ -6,6 +6,7 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4.L4_UnresolvedAccess
 import exastencils.config.Knowledge
 import exastencils.datastructures._
+import exastencils.logger.Logger
 
 object L4_ResolveSpecialConstants extends DefaultStrategy("Resolve special constants") {
   this += new Transformation("special functions and constants", {
@@ -14,11 +15,16 @@ object L4_ResolveSpecialConstants extends DefaultStrategy("Resolve special const
       L4_RealConstant(math.Pi)
 
     // access to level information
-    case L4_FunctionCall(L4_UnresolvedAccess("levels", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())      =>
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("levels", Some(L4_SingleLevel(level)), offset), ListBuffer()) =>
+      if (offset.isDefined) Logger.warn(s"Found levels function with offset; offset is ignored")
       L4_IntegerConstant(level)
-    case L4_FunctionCall(L4_UnresolvedAccess("levelIndex", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer())  =>
+
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("levelIndex", Some(L4_SingleLevel(level)), offset), ListBuffer()) =>
+      if (offset.isDefined) Logger.warn(s"Found levelIndex function with offset; offset is ignored")
       L4_IntegerConstant(level - Knowledge.minLevel)
-    case L4_FunctionCall(L4_UnresolvedAccess("levelString", _, Some(L4_SingleLevel(level)), _, _, _), ListBuffer()) =>
+
+    case L4_FunctionCall(L4_UnresolvedFunctionReference("levelString", Some(L4_SingleLevel(level)), offset), ListBuffer()) =>
+      if (offset.isDefined) Logger.warn(s"Found levelString function with offset; offset is ignored")
       L4_StringConstant(level.toString)
   })
 }

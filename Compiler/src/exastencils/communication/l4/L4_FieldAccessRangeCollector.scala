@@ -6,9 +6,11 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures.Node
-import exastencils.field.l4.{ L4_Field, L4_SlotSpecification, _ }
+import exastencils.field.l4._
+import exastencils.grid.l4._
 import exastencils.logger.Logger
-import exastencils.stencil.l4._
+import exastencils.operator.l4._
+import exastencils.solver.l4.L4_LocalSolve
 
 /// L4_FieldAccessRangeCollector
 
@@ -41,14 +43,12 @@ class L4_FieldAccessRangeCollector() extends Collector {
   def adaptNodeBasedFields() = {
     def adapt(map : HashMap[L4_FieldWithSlot, Array[Int]]) = {
       for (field <- map) {
-        // deduct offset due to node-based discretizations
-        field._1.fieldLayout.discretization.toLowerCase match {
-          case "node"   => field._2.transform(_ - 1)
-          case "face_x" => field._2(0) -= 1
-          case "face_y" => field._2(1) -= 1
-          case "face_z" => field._2(2) -= 1
-          case "cell"   =>
-          case other    => Logger.warn(s"Found unknown discretization $other")
+        // deduct offset due to node-based localization
+        field._1.fieldLayout.localization match {
+          case L4_AtNode                => field._2.transform(_ - 1)
+          case L4_AtFaceCenter(faceDim) => field._2(faceDim) -= 1
+          case L4_AtCellCenter          =>
+          case other                    => Logger.warn(s"Found unknown localization $other")
         }
       }
     }
@@ -87,25 +87,24 @@ class L4_FieldAccessRangeCollector() extends Collector {
     }
   }
 
-  def extractMinOffsetArray(numDims : Int, offset : Option[L4_ExpressionIndex]) : Array[Int] = {
+  def extractMinOffsetArray(numDims : Int, offset : Option[L4_Index]) : Array[Int] = {
     if (offset.isEmpty)
       Array.fill(numDims)(0)
     else
-      minValuesForExprIndex(offset.get)
+      minValuesForAnyIndex(offset.get)
   }
 
-  def extractMaxOffsetArray(numDims : Int, offset : Option[L4_ExpressionIndex]) : Array[Int] = {
+  def extractMaxOffsetArray(numDims : Int, offset : Option[L4_Index]) : Array[Int] = {
     if (offset.isEmpty)
       Array.fill(numDims)(0)
     else
-      maxValuesForExprIndex(offset.get)
+      maxValuesForAnyIndex(offset.get)
   }
 
-  def processReadExtent(field : L4_FieldWithSlot, offset : Option[L4_ExpressionIndex], offset2 : Option[L4_Index] = None) = {
+  def processReadExtent(field : L4_FieldWithSlot, offset : Option[L4_Index], offset2 : Option[L4_Index] = None) = {
     // honor offsets in field accesses if present - otherwise assume zero
     var minOffset = extractMinOffsetArray(field.numDimsGrid, offset)
     var maxOffset = extractMaxOffsetArray(field.numDimsGrid, offset)
-
 
     if (offset2.isDefined) {
       minOffset = (minOffset, minValuesForAnyIndex(offset2.get)).zipped.map(_ + _)
@@ -128,7 +127,7 @@ class L4_FieldAccessRangeCollector() extends Collector {
       readExtentMax.update(field, (readExtentMax(field), maxOffset).zipped.map(math.max))
   }
 
-  def processWriteExtent(field : L4_FieldWithSlot, offset : Option[L4_ExpressionIndex]) = {
+  def processWriteExtent(field : L4_FieldWithSlot, offset : Option[L4_ConstIndex]) = {
     // honor offsets in field accesses if present - otherwise assume zero
     var minOffset = extractMinOffsetArray(field.numDimsGrid, offset)
     var maxOffset = extractMaxOffsetArray(field.numDimsGrid, offset)
@@ -168,14 +167,12 @@ class L4_FieldAccessRangeCollector() extends Collector {
         beginOffset = extractMinOffsetArray(numDims, loop.startOffset)
         endOffset = extractMaxOffsetArray(numDims, loop.endOffset).map(-1 * _) // invert due to specification in DSL
 
-        // count cell iterations -> increase end offset for each dimension where node discretization is present
-        field.fieldLayout.discretization.toLowerCase match {
-          case "node"   => endOffset = endOffset.map(_ + 1)
-          case "face_x" => endOffset(0) += 1
-          case "face_y" => endOffset(1) += 1
-          case "face_z" => endOffset(2) += 1
-          case "cell"   =>
-          case other    => Logger.warn(s"Encountered unknown localization $other")
+        // count cell iterations -> increase end offset for each dimension where node localization is present
+        field.fieldLayout.localization match {
+          case L4_AtNode                => endOffset = endOffset.map(_ + 1)
+          case L4_AtFaceCenter(faceDim) => endOffset(faceDim) += 1
+          case L4_AtCellCenter          =>
+          case other                    => Logger.warn(s"Found unknown localization $other")
         }
 
         // account for contracting loops
@@ -192,29 +189,37 @@ class L4_FieldAccessRangeCollector() extends Collector {
 
       // TODO: find a way to ignore recursive match on (lhs) L4_FieldAccess and the wrongfully detected read access
 
-      case L4_StencilConvolution(stencil, field) =>
-        if (ignore) Logger.warn("Found stencil convolution outside kernel")
-
-        // process each entry (offset) of the stencil
-        for (entry <- stencil.target.entries)
-          processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset, Some(entry.offset))
-
-      // TODO: find a way to ignore recursive match on L4_FieldAccess - issues if (0,0,0) entry is not present
-
-      case L4_StencilFieldConvolution(op, field) =>
+      case L4_OperatorTimesField(op, field) =>
         if (ignore) Logger.warn("Found stencil field convolution outside kernel")
 
         // process each entry (offset) of the stencil template
-        for (offset <- op.target.offsets)
-          processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset, Some(offset))
+        op.assembleOffsetMap().values.foreach(_.foreach(offset =>
+          processReadExtent(L4_FieldWithSlot(field.target, field.slot), field.offset, Some(offset))))
 
+      case access : L4_StencilFieldAccess =>
         // process access to stencil coefficients - no slot
-        processReadExtent(L4_FieldWithSlot(op.target.field, L4_ActiveSlot), op.offset)
+        processReadExtent(L4_FieldWithSlot(access.target.field, L4_ActiveSlot), access.offset)
 
       // TODO: find a way to ignore recursive match on L4_FieldAccess - issues if (0,0,0) entry is not present
 
       // TODO: other convolutions - or unify convolutions
       // TODO: model StencilFieldAccesses
+
+      case solve : L4_LocalSolve =>
+        if (ignore) Logger.warn("Found local solve outside kernel")
+
+        def slot(field : L4_FieldAccess) : L4_SlotSpecification = {
+          field.slot match {
+            case sth if !solve.jacobiType => sth
+            case L4_ActiveSlot            => L4_NextSlot
+            case c : L4_ConstantSlot      => L4_ConstantSlot(c.number + 1)
+            case other                    => Logger.error(s"Unsupported slot modifier ${ other.prettyprint() }")
+          }
+        }
+
+        solve.unknowns.map(_.asInstanceOf[L4_FieldAccess]).foreach(field => processWriteExtent(L4_FieldWithSlot(field.target, slot(field)), field.offset))
+
+      // accesses in equations are handled recursively
 
       case field : L4_FieldAccess =>
         if (!ignore)

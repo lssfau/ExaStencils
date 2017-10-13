@@ -2,17 +2,17 @@ package exastencils.parsers.l2
 
 import scala.collection.immutable.PagedSeq
 import scala.collection.mutable._
-import scala.io._
 import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 
 import exastencils.base.l2._
 import exastencils.baseExt.l2._
 import exastencils.boundary.l2._
-import exastencils.domain.l2.L2_DomainDecl
+import exastencils.domain.l2._
 import exastencils.field.l2._
 import exastencils.operator.l2._
 import exastencils.parsers._
+import exastencils.solver.l2.L2_EquationDecl
 
 object L2_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = L2_Lexer
@@ -21,12 +21,17 @@ object L2_Parser extends ExaParser with PackratParsers {
     parseTokens(new lexical.Scanner(s))
   }
 
+  private val prevDirs = new Stack[java.io.File]().push(null)
   def parseFile(filename : String) : L2_Root = {
-    val lines = Source.fromFile(filename).getLines
+    val file = new java.io.File(prevDirs.top, filename)
+    val lines = scala.io.Source.fromFile(file).getLines
     val reader = new PagedSeqReader(PagedSeq.fromLines(lines))
     val scanner = new lexical.Scanner(reader)
 
-    parseTokens(scanner)
+    prevDirs.push(file.getAbsoluteFile.getParentFile)
+    val ret = parseTokens(scanner)
+    prevDirs.pop()
+    ret.asInstanceOf[L2_Root]
   }
 
   protected def parseTokens(tokens : lexical.Scanner) : L2_Root = {
@@ -45,10 +50,17 @@ object L2_Parser extends ExaParser with PackratParsers {
   //###########################################################
 
   lazy val program = (
-    domainDeclaration
+    import_
+      ||| domainDeclaration
       ||| fieldDeclaration
       ||| stencilDeclaration
-      ||| stencilTemplateDeclaration).* ^^ { nodes => L2_Root(nodes) }
+      ||| stencilTemplateDeclaration
+      ||| globals
+      ||| operatorFromEq
+      ||| equationDeclaration
+    ).* ^^ { L2_Root(_) }
+
+  lazy val import_ = "import" ~> stringLit ^^ { parseFile }
 
   //###########################################################
 
@@ -84,6 +96,7 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| functionCall
       ||| locationize("-" ~> genericAccess ^^ { x => L2_UnaryOperators.createExpression("-", x) })
       ||| genericAccess
+      ||| fieldIteratorAccess
       ||| locationize(booleanLit ^^ { s => L2_BooleanConstant(s) }))
 
   lazy val booleanexpression : PackratParser[L2_Expression] = (
@@ -131,11 +144,26 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| ("Double" ||| "double") ^^ { _ => L2_DoubleDatatype })
 
   // ######################################
+  // ##### L2_VariableDeclaration
+  // ######################################
+
+  lazy val localDeclaration = variableDeclaration ||| valueDeclaration
+
+  lazy val variableDeclaration = locationize((("Var" ||| "Variable") ~> ident) ~ levelDecl.? ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ levels ~ dt ~ exp => L2_VariableDeclaration(id, levels, dt, exp, false) })
+
+  lazy val valueDeclaration = locationize((("Val" ||| "Value") ~> ident) ~ levelDecl.? ~ (":" ~> datatype) ~ ("=" ~> (binaryexpression ||| booleanexpression))
+    ^^ { case id ~ levels ~ dt ~ exp => L2_VariableDeclaration(id, levels, dt, Some(exp), true) })
+
+  // ######################################
   // ##### L2_Function
   // ######################################
 
+  lazy val functionReference = locationize(ident ~ levelAccess.? ~ ("@" ~> constIndex).?
+    ^^ { case id ~ level ~ offset => L2_UnresolvedFunctionReference(id, level, offset) })
+
   lazy val functionCallArgumentList = /*locationize*/ ((binaryexpression ||| booleanexpression) <~ ("," | newline)).* ~ (binaryexpression ||| booleanexpression) ^^ { case exps ~ ex => exps :+ ex }
-  lazy val functionCall = locationize(genericAccess ~ ("(" ~> functionCallArgumentList.? <~ ")") ^^ { case id ~ args => L2_FunctionCall(id, args) })
+  lazy val functionCall = locationize(functionReference ~ ("(" ~> functionCallArgumentList.? <~ ")") ^^ { case id ~ args => L2_FunctionCall(id, args) })
 
   // ######################################
   // ##### L2_Index
@@ -150,55 +178,100 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_LevelSpecification
   // ######################################
 
-  lazy val level = (
-    locationize("@" ~> (levelsingle ||| levelall) ^^ { l => l })
-      ||| locationize("@" ~ "(" ~> levellist <~ ")" ^^ { l => l }))
+  lazy val levelDecl = locationize("@" ~> (
+    directDeclLevel ||| ("(" ~> relativeDeclLevel <~ ")")
+      ||| allLevels ||| ("(" ~> (levelDeclRange ||| levelDeclList ||| levelDeclNegList) <~ ")")) ^^ { l => l })
 
-  lazy val levelAccess = (
-    locationize("@" ~> levelsingle ^^ { l => l })
-      ||| locationize("@" ~ "(" ~> levelsingle <~ ")" ^^ { l => l }))
+  lazy val levelAccess = locationize("@" ~> (directAccessLevel ||| ("(" ~> relativeAccessLevel <~ ")")))
 
-  lazy val levellist = locationize(((levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation) <~ ("," ||| "and")).* ~ (levelall ||| levelsingle ||| levelrange ||| levelrelative ||| levelnegation)
-    ^^ { case a ~ b => L2_LevelList(a :+ b) })
+  lazy val levelDeclGroup = (
+    levelDeclRange
+      ||| levelDeclList
+      ||| allLevels
+      ||| singleDeclLevel
+    )
 
-  lazy val levelsublist = locationize(((levelsingle ||| levelrange ||| levelrelative) <~ ("," ||| "and")).* ~ (levelsingle ||| levelrange ||| levelrelative)
-    ^^ { case a ~ b => L2_LevelList(a :+ b) })
+  lazy val allLevels = locationize("all" ^^ { _ => L2_AllLevels })
 
-  lazy val levelnegation = (locationize((("not" ||| "but") ~ "(") ~> levelsublist <~ ")" ^^ { l => L2_NegatedLevelList(l) })
-    ||| locationize(("not" ||| "but") ~> levelsingle ^^ { l => L2_NegatedLevelList(l) }))
+  lazy val levelDeclRange = locationize((singleDeclLevel <~ "to") ~ singleDeclLevel ^^ { case b ~ e => L2_LevelRange(b, e) })
 
-  lazy val levelrange = locationize((levelsingle ||| "(" ~> levelrelative <~ ")") ~ "to" ~ (levelsingle ||| "(" ~> levelrelative <~ ")")
-    ^^ { case b ~ _ ~ e => L2_LevelRange(b, e) })
+  lazy val levelDeclList : Parser[L2_DeclarationLevelSpecification] = (
+    locationize((singleDeclLevel <~ ("," ||| "and")).+ ~ singleDeclLevel ^^ { case a ~ b => L2_LevelList(a :+ b) })
+      ||| locationize("(" ~> levelDeclList <~ ")") ^^ { l => l })
 
-  lazy val levelrelative = locationize(levelsingle ~ ("+" ||| "-") ~ integerLit
-    ^^ { case l ~ op ~ i => L2_RelativeLevel(l, op, i) })
+  lazy val levelDeclNegList : Parser[L2_LevelList] = (
+    locationize((levelDeclGroup <~ ("but" ||| "not")) ~ levelDeclGroup ^^ { case in ~ out => L2_LevelList(List(in, L2_NegatedLevelList(out))) })
+      ||| locationize("(" ~> levelDeclNegList <~ ")") ^^ { l => l })
 
-  lazy val levelall = locationize("all" ^^ { _ => L2_AllLevels })
+  lazy val singleAccessLevel : Parser[L2_AccessLevelSpecification] = (
+    directAccessLevel
+      ||| relativeAccessLevel
+      ||| locationize("(" ~> singleAccessLevel <~ ")") ^^ { l => l })
 
-  lazy val levelsingle = (
+  lazy val singleDeclLevel : Parser[L2_DeclarationLevelSpecification] = (
+    directDeclLevel
+      ||| relativeDeclLevel
+      ||| locationize("(" ~> singleDeclLevel <~ ")") ^^ { l => l })
+
+  lazy val relativeAccessLevel = locationize(directAccessLevel ~ ("+" ||| "-") ~ integerLit ^^ { case l ~ op ~ i => L2_RelativeLevel(l, op, i) })
+  lazy val relativeDeclLevel = locationize(directDeclLevel ~ ("+" ||| "-") ~ integerLit ^^ { case l ~ op ~ i => L2_RelativeLevel(l, op, i) })
+
+  lazy val directAccessLevel : Parser[L2_AccessLevelSpecification] = (
     locationize("current" ^^ { _ => L2_CurrentLevel })
       ||| locationize("coarser" ^^ { _ => L2_CoarserLevel })
       ||| locationize("finer" ^^ { _ => L2_FinerLevel })
       ||| locationize("coarsest" ^^ { _ => L2_CoarsestLevel })
       ||| locationize("finest" ^^ { _ => L2_FinestLevel })
-      ||| locationize(integerLit ^^ { L2_SingleLevel }))
+      ||| locationize(integerLit ^^ { l => L2_SingleLevel(l) })
+      ||| locationize("(" ~> directAccessLevel <~ ")" ^^ { l => l }))
+
+  lazy val directDeclLevel : Parser[L2_DeclarationLevelSpecification] = (
+    locationize("coarsest" ^^ { _ => L2_CoarsestLevel })
+      ||| locationize("finest" ^^ { _ => L2_FinestLevel })
+      ||| locationize(integerLit ^^ { l => L2_SingleLevel(l) })
+      ||| locationize("(" ~> directDeclLevel <~ ")" ^^ { l => l }))
 
   // #############################################################################
   // ################################## BASE_EXT #################################
   // #############################################################################
 
   // ######################################
+  // ##### L2_FieldIteratorAccess
+  // ######################################
+
+  lazy val fieldIteratorAccess = (
+    locationize(("i0" | "i1" | "i2") ^^ { id => L2_FieldIteratorAccess(id) })
+      ||| locationize(("x" | "y" | "z") ^^ { id => L2_FieldIteratorAccess(id) })
+    )
+
+  // ######################################
+  // ##### L2_GlobalSection
+  // ######################################
+
+  lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L2_GlobalSection(_) })
+  lazy val globalEntry : PackratParser[L2_VariableDeclaration] = locationize(valueDeclaration ||| variableDeclaration)
+
+  // ######################################
   // ##### L2_HigherOrderDatatype
   // ######################################
 
-  lazy val higherOrderDatatype : Parser[L2_Datatype] = (("Array" ||| "array") ~> ("<" ~> datatype <~ ">") ~ ("<" ~> integerLit <~ ">")
-    ^^ { case x ~ s => L2_ArrayDatatype(x, s) })
+  lazy val higherOrderDatatype : Parser[L2_Datatype] = (
+    "Vector" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L2_VectorDatatype(x, s) }
+      ||| ("RowVector" ||| "RVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L2_VectorDatatype(x, s, true) }
+      ||| ("ColumnVector" ||| "CVector") ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ s => L2_VectorDatatype(x, s, false) }
+      ||| numericDatatype ~ ("<" ~> integerLit <~ ">") ^^ { case x ~ s => L2_VectorDatatype(x, s) }
+      ||| "Vec2" ^^ { _ => L2_VectorDatatype(L2_RealDatatype, 2) }
+      ||| "Vec3" ^^ { _ => L2_VectorDatatype(L2_RealDatatype, 3) }
+      ||| "Vec4" ^^ { _ => L2_VectorDatatype(L2_RealDatatype, 4) }
+      ||| "Matrix" ~ ("<" ~> numericDatatype <~ ",") ~ (integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case _ ~ x ~ m ~ n => L2_MatrixDatatype(x, m, n) }
+      ||| numericDatatype ~ ("<" ~> integerLit <~ ",") ~ (integerLit <~ ">") ^^ { case x ~ m ~ n => L2_MatrixDatatype(x, m, n) })
 
   // ######################################
   // ##### L2_UnresolvedAccess
   // ######################################
 
-  lazy val genericAccess = locationize(ident ~ levelAccess.? ^^ { case id ~ level => L2_UnresolvedAccess(id, level) })
+  lazy val genericAccess = locationize(ident ~ levelAccess.? ~ ("@" ~> constIndex).? ~ (":" ~> constIndex).?
+    ^^ { case id ~ level ~ offset ~ dirAccess => L2_UnresolvedAccess(id, level, None, offset, dirAccess, None) })
 
   // #############################################################################
   // ################################## BOUNDARY #################################
@@ -218,7 +291,8 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_DomainDecl
   // ######################################
 
-  lazy val domainDeclaration = locationize("Domain" ~> ident ^^ { L2_DomainDecl })
+  lazy val domainDeclaration = locationize(("Domain" ~> ident) ~ ("<" ~> expressionIndex <~ "to") ~ (expressionIndex <~ ">")
+    ^^ { case id ~ l ~ u => L2_DomainFromAABBDecl(id, l, u) })
 
   // #############################################################################
   // #################################### FIELD ##################################
@@ -235,9 +309,9 @@ object L2_Parser extends ExaParser with PackratParsers {
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ (l => l))
 
-  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ level.? ~ ("with" ~> datatype).? ~ ("on" ~> localization) ~ ("of" ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("with" ~> datatype).? ~ ("on" ~> localization) ~ ("of" ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ levels ~ datatype ~ localization ~ domain ~ initial => L2_BaseFieldDecl(id, levels, datatype, localization, domain, initial) })
-  lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ level.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
+  lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ("on" ~> "boundary") ~ ("=" ~> fieldBoundary)
     ^^ { case id ~ levels ~ _ ~ bc => L2_BoundaryFieldDecl(id, levels, bc) })
 
   // #############################################################################
@@ -256,22 +330,59 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_StencilDecl
   // ######################################
 
-  lazy val stencilDeclaration = locationize(("Operator" ~> ident <~ ("from" ~ "Stencil")) ~ ("{" ~> stencilEntries <~ "}")
-    ^^ { case id ~ entries => L2_StencilDecl(id, entries) })
+  lazy val stencilDeclaration = (
+    locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "Stencil" ~ "{") ~> stencilEntries <~ "}")
+      ^^ { case id ~ levels ~ entries => L2_BaseStencilDecl(id, levels, entries) })
+      ||| locationize(("Operator" ~> ident) ~ levelDecl.? ~ ("from" ~> binaryexpression)
+      ^^ { case id ~ levels ~ expr => L2_StencilFromExpression(id, levels, expr) }))
+
   lazy val stencilEntries = (
     (stencilEntry <~ ",").+ ~ stencilEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilEntry.+)
-  lazy val stencilEntry = locationize((index ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_StencilEntry(offset, coeff) })
+
+  lazy val stencilEntry = (
+    locationize((constIndex ~ ("=>" ~> binaryexpression)) ^^ { case offset ~ coeff => L2_StencilOffsetEntry(offset, coeff) })
+      ||| locationize(((expressionIndex <~ "from") ~ expressionIndex ~ ("with" ~> binaryexpression)) ^^ { case row ~ col ~ coeff => L2_StencilMappingEntry(row, col, coeff) }))
+
+  lazy val stencilFromDefault = (
+    locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "restriction" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+      ^^ { case id ~ level ~ local ~ interpolation => L2_DefaultRestrictionStencil(id, level, local, interpolation) })
+      ||| locationize(("Stencil" ~> ident) ~ levelDecl.? ~ (("from" ~ "default" ~ "prolongation" ~ "on") ~> localization) ~ ("with" ~> stringLit)
+      ^^ { case id ~ level ~ local ~ interpolation => L2_DefaultProlongationStencil(id, level, local, interpolation) }))
 
   // ######################################
   // ##### L2_StencilTemplateDecl
   // ######################################
 
-  lazy val stencilTemplateDeclaration = locationize(("Operator" ~> ident) ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization) ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
-    ^^ { case id ~ local ~ domain ~ offsets => L2_StencilTemplateDecl(id, local, domain, offsets) })
+  lazy val stencilTemplateDeclaration = locationize(("Operator" ~> ident) ~ levelDecl.? ~ (("from" ~ "StencilTemplate" ~ "on") ~> localization)
+    ~ ("of" ~> ident) ~ ("{" ~> stencilTemplateEntries <~ "}")
+    ^^ { case id ~ levels ~ local ~ domain ~ entries => L2_StencilFieldDecl(id, levels, local, domain, entries) })
   lazy val stencilTemplateEntries = (
     (stencilTemplateEntry <~ ",").+ ~ stencilTemplateEntry ^^ { case entries ~ entry => entries.::(entry) }
       ||| stencilTemplateEntry.+)
-  lazy val stencilTemplateEntry = locationize((index <~ "=>") ^^ { offset => offset })
+  lazy val stencilTemplateEntry = (stencilEntry
+    ||| locationize((constIndex <~ "=>") ^^ { offset => L2_StencilOffsetEntry(offset, L2_NullExpression) }))
 
+  // #############################################################################
+  // ################################### SOLVER ##################################
+  // #############################################################################
+
+  lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equation <~ "}")
+    ^^ { case id ~ levels ~ eq => L2_EquationDecl(id, levels, eq) })
+
+  /// TO BE INTEGRATED
+
+  lazy val equation = locationize((binaryexpression <~ ("=" | "==")) ~ binaryexpression ^^ { case lhs ~ rhs => L2_Equation(lhs, rhs) })
+  lazy val operatorMapping = locationize((genericAccess <~ "=>") ~ ident ~ levelDecl.? ^^ { case field ~ name ~ level => L2_OperatorMapping(name, level, field) })
+
+  lazy val operatorFromInlineEq = locationize((("equation" ~ "for") ~> genericAccess) ~ ("{" ~> equation <~ "}") ~ (("store" ~ "in" ~ "{") ~> operatorMapping.* <~ "}")
+    ^^ { case field ~ eq ~ map => L2_OperatorFromInlineEq(field, eq, map) })
+
+  lazy val operatorFromNamedEq = locationize((("equation" ~ "for") ~> genericAccess) ~ ("is" ~> genericAccess) ~ (("store" ~ "in" ~ "{") ~> operatorMapping.* <~ "}")
+    ^^ { case field ~ eq ~ map => L2_OperatorFromNamedEq(field, eq, map) })
+
+  lazy val operatorFromEqEntry = operatorFromInlineEq | operatorFromNamedEq
+
+  lazy val operatorFromEq = locationize((("generate" ~ "operators") ~> levelDecl.?) ~ ("{" ~> operatorFromEqEntry.* <~ "}")
+    ^^ { case level ~ entries => L2_OperatorFromEquation(level, entries) })
 }

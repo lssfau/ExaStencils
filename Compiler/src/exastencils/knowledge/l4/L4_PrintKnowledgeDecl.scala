@@ -3,9 +3,8 @@ package exastencils.knowledge.l4
 import exastencils.domain.l4.L4_DomainCollection
 import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldCollection
-import exastencils.operator.l4.L4_StencilCollection
+import exastencils.operator.l4._
 import exastencils.prettyprinting.PpStream
-import exastencils.stencil.l4._
 
 object L4_PrintKnowledgeDecl {
   def apply(out : PpStream) = {

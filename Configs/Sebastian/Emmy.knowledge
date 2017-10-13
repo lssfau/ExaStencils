@@ -9,6 +9,7 @@ maxLevel							= 8
 
 experimental_Neumann				= true
 experimental_NeumannOrder			= 1
+experimental_DirichletOrder			= 2
 
 grid_isUniform						= true
 grid_isStaggered					= true
@@ -55,7 +56,7 @@ omp_parallelizeLoopOverDimensions	= true
 
 // optimization
 
-mpi_useCustomDatatypes				= false
+mpi_useCustomDatatypes				= true
 poly_optLevel_fine					= 0
 opt_useAddressPrecalc				= true
 opt_vectorize						= false
@@ -68,8 +69,10 @@ experimental_applySchurCompl		= true
 experimental_trimBoundsForReductionLoops = true
 experimental_generateParaviewFiles	= true
 
-opt_conventionalCSE					= false
+opt_conventionalCSE					= true
 opt_loopCarriedCSE					= false
+
+//poly_HACK							= true
 
 //opt_maxInliningSize					= 0
 /*

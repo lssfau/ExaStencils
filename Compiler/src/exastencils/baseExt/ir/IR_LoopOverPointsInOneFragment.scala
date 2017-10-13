@@ -11,13 +11,12 @@ import exastencils.core.Duplicate
 import exastencils.datastructures.Transformation.Output
 import exastencils.datastructures._
 import exastencils.datastructures.ir._
-import exastencils.deprecated.ir.IR_DimToString
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_Field
+import exastencils.grid.ir._
 import exastencils.logger.Logger
-import exastencils.optimization.ir.IR_GeneralSimplify
+import exastencils.optimization.ir._
 import exastencils.parallelization.ir._
-import exastencils.polyhedron.PolyhedronAccessible
 
 // FIXME: refactor: extract functionality, reduce complexity
 case class IR_LoopOverPointsInOneFragment(var domain : Int,
@@ -55,11 +54,8 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
     } else {
       // basic case -> just eliminate 'real' boundaries
       for (dim <- 0 until numDims) {
-        field.fieldLayout.discretization match {
-          case discr if "node" == discr
-            || ("face_x" == discr && 0 == dim)
-            || ("face_y" == discr && 1 == dim)
-            || ("face_z" == discr && 2 == dim) =>
+        field.fieldLayout.localization match {
+          case IR_AtNode | IR_AtFaceCenter(`dim`) =>
             if (Knowledge.experimental_useStefanOffsets) {
               start(dim) = field.fieldLayout.idxById("IB", dim) - field.referenceOffset(dim) + startOffset(dim)
               stop(dim) = field.fieldLayout.idxById("IE", dim) - field.referenceOffset(dim) - endOffset(dim)
@@ -87,10 +83,8 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
                 stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
               //              }
             }
-          case discr if "cell" == discr
-            || ("face_x" == discr && 0 != dim)
-            || ("face_y" == discr && 1 != dim)
-            || ("face_z" == discr && 2 != dim) =>
+
+          case IR_AtCellCenter | IR_AtFaceCenter(_) =>
             start(dim) = field.fieldLayout.idxById("DLB", dim) - field.referenceOffset(dim) + startOffset(dim)
             stop(dim) = field.fieldLayout.idxById("DRE", dim) - field.referenceOffset(dim) - endOffset(dim)
         }
@@ -109,15 +103,15 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
         || ("face_x" == field.fieldLayout.discretization && 0 == dim)
         || ("face_y" == field.fieldLayout.discretization && 1 == dim)
         || ("face_z" == field.fieldLayout.discretization && 2 == dim))*/
-          condition = Some(IR_AndAnd(condition.get, IR_GreaterEqual(IR_VariableAccess(IR_DimToString(dim), IR_IntegerDatatype), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
+          condition = Some(IR_AndAnd(condition.get, IR_GreaterEqual(IR_FieldIteratorAccess(dim), field.fieldLayout.layoutsPerDim(dim).numDupLayersLeft)))
     }
 
     var loop : IR_LoopOverDimensions = {
       if (!parallelization.potentiallyParallel)
         IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition)
       else {
-        val ret = new IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition) with PolyhedronAccessible
-        ret.optLevel =
+        val ret = new IR_LoopOverDimensions(numDims, indexRange, body, increment, parallelization, condition)
+        ret.polyOptLevel =
           if (Knowledge.maxLevel - field.level < Knowledge.poly_numFinestLevels)
             Knowledge.poly_optLevel_fine
           else
@@ -168,7 +162,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
         val newLowerBounds = (0 until numDims).map(dim => {
           var ret : IR_Expression = new IR_Minimum(IR_GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_ (dim)))
           ret = 1 - ret
-          IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(ret))
+          ret = IR_GeneralSimplifyWrapper.process(ret)
           start(dim) + ret
         })
 
@@ -179,7 +173,7 @@ case class IR_LoopOverPointsInOneFragment(var domain : Int,
         val newUpperBounds = (0 until numDims).map(dim => {
           var ret : IR_Expression = new IR_Maximum(IR_GatherFieldAccessOffsets.accesses.getOrElse(cs.field.codeName, ListBuffer()).map(_ (dim)))
           ret = 1 + ret
-          IR_GeneralSimplify.doUntilDoneStandalone(IR_ExpressionStatement(ret))
+          ret = IR_GeneralSimplifyWrapper.process(ret)
           stop(dim) - ret
         })
 

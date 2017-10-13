@@ -24,7 +24,7 @@ object SIMD_MathFunctions {
   def addUsage(func : String) : String = {
     val nrArgs = IR_MathFunctions.signatures(func)._1.length // expected fail if !isAllowed(func)
     functionNameMapping.getOrElseUpdate(func, {
-      val funcStmt : IR_AbstractFunction = SIMD_MathFunc(func, nrArgs)
+      val funcStmt : IR_FunctionLike = SIMD_MathFunc(func, nrArgs)
       functions += funcStmt
       funcStmt.name
     })
@@ -33,8 +33,9 @@ object SIMD_MathFunctions {
 
 /// SIMD_MathFunc
 
-case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_AbstractFunction(true) {
-  override val name : String = "_simd_" + libmName
+case class SIMD_MathFunc(libmName : String, nrArgs : Int) extends IR_FunctionLike {
+  override var name : String = "_simd_" + libmName
+  isHeaderOnly = true
 
   override def prettyprint(out : PpStream) : Unit = {
     Platform.simd_mathLibrary match {

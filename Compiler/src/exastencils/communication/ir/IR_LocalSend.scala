@@ -11,7 +11,7 @@ import exastencils.datastructures.Transformation.Output
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.domain.ir._
 import exastencils.field.ir.IR_DirectFieldAccess
-import exastencils.polyhedron.PolyhedronAccessible
+import exastencils.parallelization.api.omp.OMP_WaitForFlag
 
 /// IR_LocalSend
 
@@ -34,13 +34,15 @@ case class IR_LocalSend(
     if (condition.isDefined)
       innerStmt = IR_IfCondition(condition.get, innerStmt)
 
-    val loop = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt)) with PolyhedronAccessible
+    val loop = new IR_LoopOverDimensions(numDims, dest, ListBuffer[IR_Statement](innerStmt))
+    loop.polyOptLevel = 1
     loop.parallelization.potentiallyParallel = true
 
     IR_IfCondition(IR_IV_NeighborIsValid(field.domainIndex, neighbor.index) AndAnd IR_Negation(IR_IV_NeighborIsRemote(field.domainIndex, neighbor.index)),
       ListBuffer[IR_Statement](
         // wait until the fragment to be written to is ready for communication
-        IR_FunctionCall("waitForFlag", IR_AddressOf(IR_IV_LocalCommReady(field.field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))),
+        IR_FunctionCall(OMP_WaitForFlag.generateFctAccess(), IR_AddressOf(IR_IV_LocalCommReady(
+          field.field, DefaultNeighbors.getOpposingNeigh(neighbor.index).index, IR_IV_NeighborFragmentIdx(field.domainIndex, neighbor.index)))),
         loop,
         // signal other threads that the data reading step is completed
         IR_Assignment(IR_IV_LocalCommDone(field.field, neighbor.index), IR_BooleanConstant(true))))
