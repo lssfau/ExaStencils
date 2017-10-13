@@ -111,6 +111,7 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
     case IR_Negative(m : IR_MatrixExpression) => m.expressions = m.expressions.map { y => IR_Negative(y) : IR_Expression }; m
 
     case m @ IR_MatrixExpression(_, 1, 1) => m.get(0, 0)
+    case m @ IR_MatrixDatatype(dt, 1, 1)  => dt
 
     case IR_Scope(ListBuffer(IR_Scope(body))) => IR_Scope(body)
 

@@ -849,11 +849,9 @@ object IR_ResolveMatrixAssignments extends DefaultStrategy("Resolve assignments 
 object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to matrices and vectors to MatrixExpressions") {
   def duplicateExpressions(access : IR_Expression, dt : IR_MatrixDatatype) = {
     var expressions = ListBuffer[IR_Expression]()
-
     for (row <- 0 until dt.sizeM)
       for (col <- 0 until dt.sizeN)
         expressions += IR_HighDimAccess(Duplicate(access), IR_ConstIndex(row, col))
-
     expressions.toArray
   }
 
@@ -874,6 +872,8 @@ object IR_SetupMatrixExpressions extends DefaultStrategy("Convert accesses to ma
 
 object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
   this += Transformation("Linearize", {
+    case access @ IR_HighDimAccess(base, _) if (!base.datatype.isInstanceOf[IR_MatrixDatatype]) => base
+
     case access @ IR_HighDimAccess(base : IR_MultiDimFieldAccess, idx : IR_Index) =>
       val hoIdx = idx.toExpressionIndex
       val fieldLayout = base.fieldSelection.field.fieldLayout
@@ -887,7 +887,7 @@ object IR_LinearizeMatrices extends DefaultStrategy("Linearize matrices") {
 
     case access @ IR_HighDimAccess(base, idx : IR_ConstIndex) if idx.indices.length == 2 =>
       val matrix = base.datatype.asInstanceOf[IR_MatrixDatatype]
-      if (matrix.sizeM != 1 || matrix.sizeN != 1 || idx(0) != 0 || idx(1) != 0)
+      if (matrix.sizeM > 1 || matrix.sizeN > 1 || idx(0) > 0 || idx(1) > 0)
         IR_ArrayAccess(base, matrix.sizeN * idx.indices(0) + idx.indices(1))
       else
         base
