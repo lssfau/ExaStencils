@@ -40,11 +40,11 @@ class ExaParser extends StandardTokenParsers with PackratParsers {
 
   lazy val integerLit = (
     numericLit ^^ { case n if isInt(n) => n.toInt }
-      ||| ("-" ~> numericLit ^^ { case n if isInt(n) => -n.toInt }))
+    ||| ("-" ~> numericLit ^^ { case n if isInt(n) => -n.toInt }))
 
   lazy val realLit = (
     numericLit ^^ { case n if isReal(n) => n.toDouble }
-      ||| ("-" ~> numericLit ^^ { case n if isReal(n) => -n.toDouble }))
+    ||| ("-" ~> numericLit ^^ { case n if isReal(n) => -n.toDouble }))
 
   lazy val booleanLit : Parser[Boolean] = ("true" ||| "false") ^^ (b => b == "true")
 }
