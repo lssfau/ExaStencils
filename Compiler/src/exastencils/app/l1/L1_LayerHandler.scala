@@ -2,9 +2,12 @@ package exastencils.app.l1
 
 import exastencils.app.LayerHandler
 import exastencils.base.ExaRootNode
+import exastencils.base.l1.L1_Node
 import exastencils.base.l1.L1_Root
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
+import exastencils.knowledge.l1.L1_KnowledgeContainer
+import exastencils.parsers.l1.L1_Parser
 import exastencils.prettyprinting.Indenter
 
 /// L1_LayerHandler
@@ -29,7 +32,7 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
   }
 
   override def shutdown() : Unit = {
-    // nothing to do here yet
+    L1_KnowledgeContainer.clear()
   }
 
   override def print() : Unit = {
@@ -44,11 +47,16 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     if (Settings.timeStrategies) StrategyTimer.startTiming("Handling Layer 1")
 
     // add L1 code here
-    ExaRootNode.l1_root = L1_Root() // dummy node
+    ExaRootNode.l1_root = L1_Root(Settings.getL1file.map(L1_Parser.parseFile(_) : L1_Node))
     ExaRootNode.l1_root.flatten()
     print()
 
-    // add more code here
+    if (ExaRootNode.l1_root.nodes.nonEmpty) {
+      // add more code here
+    }
+
+    // progress knowledge to L2
+    L1_KnowledgeContainer.progress()
 
     ExaRootNode.progressToL2()
 
