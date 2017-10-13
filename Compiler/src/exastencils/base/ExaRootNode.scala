@@ -17,7 +17,7 @@ case object ExaRootNode extends RootNode {
   var ir_root : IR_Root = null
 
   // TODO: this should not be required // replace with sth like
-  //    def nodes = l1_root.nodes ++ l2_root.nodes ++ etc 
+  //    def nodes = l1_root.nodes ++ l2_root.nodes ++ etc
   def nodes = myNodes
   private val myNodes = ListBuffer[Node]()
 
