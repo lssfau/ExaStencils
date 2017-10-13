@@ -14,8 +14,9 @@ for config in $configList; do
   printf "\033]2;compiling $config\007"
   cd $callPath/generated/${config##*/}
   TIME=$( time make -j 8 > $callPath/Debug/${config##*/}_makeResult.txt; exit ${PIPESTATUS[0]} )
+  RET=$?
   echo $TIME
-  if [[ "$?" -eq "0" ]]; then
+  if [[ "$RET" -eq "0" ]]; then
     printf "\033[32m\033[1mSuccess\033[0m"
   else
     printf "\033[31m\033[1mFailure\033[0m"
