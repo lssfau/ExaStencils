@@ -1,7 +1,6 @@
-package exastencils.parsers.l1
+package exastencils.parsers.l1.toIntegrate
 
 import scala.util.parsing.combinator.lexical.StdLexical
-import scala.util.parsing.input.CharSequenceReader.EofCh
 
 object L1_Lexer extends StdLexical {
 

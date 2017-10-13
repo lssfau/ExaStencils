@@ -1,11 +1,12 @@
 package test.parser.l1
 
-import exastencils.parsers.l1.L1_Parser
+import exastencils.parsers.l1.toIntegrate.L1_Parser
 
 object TestParserL1 {
   val parser = L1_Parser
 
-  val file = """Domain:
+  val file =
+    """Domain:
    //this is a comment
    Ω = (0,2) \times (0,2) // \times (0,4)
 

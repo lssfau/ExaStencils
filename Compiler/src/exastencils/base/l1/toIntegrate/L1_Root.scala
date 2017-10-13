@@ -1,9 +1,9 @@
-package exastencils.base.l1
+package exastencils.base.l1.toIntegrate
 
-import exastencils.datastructures._
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.l1.toIntegrate.L1_Domain
+import exastencils.base.l1.L1_Node
+import exastencils.base.l1.L1_Progressable
 import exastencils.base.l2.L2_Root
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
