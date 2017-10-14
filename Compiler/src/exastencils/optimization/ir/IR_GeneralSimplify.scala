@@ -258,8 +258,16 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
       if (posSums.isEmpty && negSums.isEmpty) {
         matExpr
       } else {
-        if (!matPos) matExpr.expressions = matExpr.expressions.map { x => IR_Negative(x) }
-        IR_Addition(ListBuffer(matExpr) ++ posSums ++ negSums.transform(IR_Negative(_)))
+        if (!matPos) matExpr.expressions.transform { x => IR_Negative(x) }
+        posSums.transform {
+          case exp : IR_Expression if exp.datatype.isInstanceOf[IR_ScalarDatatype] => IR_MatrixExpression.fromSingleExpression(exp.datatype, matExpr.rows, matExpr.columns, exp)
+          case other                                                               => other
+        }
+        negSums.transform {
+          case exp : IR_Expression if exp.datatype.isInstanceOf[IR_ScalarDatatype] => IR_MatrixExpression.fromSingleExpression(exp.datatype, matExpr.rows, matExpr.columns, IR_Negative(exp))
+          case other                                                               => IR_Negative(other)
+        }
+        IR_Addition(ListBuffer(matExpr) ++ posSums ++ negSums)
       }
 
     } else if (posSums.length + negSums.length <= 1) { // result is only one summand (either a positive, or a negative, or 0)
@@ -299,18 +307,25 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
             if (div == null)
               div = d
             remA += d
-          case _ : IR_VectorExpression | _ : IR_MatrixExpression =>
-            if (remA.isEmpty)
-              remA += expr
+          //          case _ : IR_VectorExpression | _ : IR_MatrixExpression =>
+          //            if (remA.isEmpty)
+          //              remA += expr
+          //            else {
+          //              // merging with one previous only is sufficient, if simplifyMult only matches first arg with vect/mat types
+          //              val last = remA.last
+          //              remA.trimEnd(1)
+          //              remA ++= simplifyBinMult(last, expr)
+          //            }
+          // case r : IR_Expression => remA += r
+          case r : IR_Expression =>
+            if (remA.isEmpty) remA += r
             else {
-              // merging with one previous only is sufficient, if simplifyMult only matches first arg with vect/mat types
               val last = remA.last
               remA.trimEnd(1)
               remA ++= simplifyBinMult(last, expr)
             }
-          case r : IR_Expression                                 =>
-            remA += r
         }
+
       } while (workQ.nonEmpty)
     }
     val rem = remA.to[ListBuffer]
@@ -383,6 +398,15 @@ object IR_GeneralSimplify extends DefaultStrategy("Simplify general expressions"
           }
         }
         List(m)
+
+      case (m : IR_MatrixExpression, v : IR_Expression) if (v.datatype.isInstanceOf[IR_ScalarDatatype]) => {
+        m.expressions.transform(_ * Duplicate(v))
+        List(m)
+      }
+      case (v : IR_Expression, m : IR_MatrixExpression) if (v.datatype.isInstanceOf[IR_ScalarDatatype]) => {
+        m.expressions.transform(Duplicate(v) * _)
+        List(m)
+      }
 
       case _ => List(le, ri)
     }
