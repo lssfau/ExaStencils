@@ -5,7 +5,8 @@ import scala.collection.mutable._
 import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 
-import exastencils.base.l1.L1_Root
+import exastencils.base.l1._
+import exastencils.domain.l1._
 import exastencils.parsers._
 
 object L1_Parser extends ExaParser with PackratParsers {
@@ -43,12 +44,42 @@ object L1_Parser extends ExaParser with PackratParsers {
 
   //###########################################################
 
+  /** implicit conversion for (latex, unicode)string-pairs */
+  implicit def stringPairToParser(pair : (String, String)) = pair._1 | pair._2
+
+  //###########################################################
+
   lazy val program = (
     import_
+      ||| domainDeclaration
     ).* ^^ { L1_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
 
   //###########################################################
 
+  // #############################################################################
+  // #################################### BASE ###################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L1_Interval
+  // ######################################
+
+  lazy val interval = locationize(("(" ~> realLit <~ ",") ~ (realLit <~ ")")
+    ^^ { case begin ~ end => L1_Interval(begin, end) })
+
+  // #############################################################################
+  // ################################### DOMAIN ##################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L1_DomainDecl
+  // ######################################
+
+  lazy val realIndex = /*locationize*/ "[" ~> realLit ~ ("," ~> realLit).* <~ "]" ^^ { case b ~ l => (List(b) ++ l).toArray }
+  lazy val domainDeclaration = (locationize(("Domain" ~> ident <~ "=") ~ interval ~ (L1_ReservedSigns.times ~> interval).*
+    ^^ { case id ~ head ~ tail => L1_DomainFromIntervalsDecl(id, List(head) ++ tail) })
+    ||| locationize(("Domain" ~> ident <~ "=") ~ (realIndex <~ "to") ~ realIndex ^^ { case id ~ l ~ u => L1_DomainFromAABBDecl(id, l, u) })
+    )
 }

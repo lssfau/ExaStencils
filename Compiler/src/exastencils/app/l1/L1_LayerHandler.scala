@@ -2,11 +2,12 @@ package exastencils.app.l1
 
 import exastencils.app.LayerHandler
 import exastencils.base.ExaRootNode
-import exastencils.base.l1.L1_Node
-import exastencils.base.l1.L1_Root
+import exastencils.base.l1._
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
-import exastencils.knowledge.l1.L1_KnowledgeContainer
+import exastencils.domain.l1.L1_DomainCollection
+import exastencils.knowledge.l1.L1_KnowledgeContainer._
+import exastencils.knowledge.l1._
 import exastencils.parsers.l1.L1_Parser
 import exastencils.prettyprinting.Indenter
 
@@ -28,7 +29,8 @@ object L1_DummyLayerHandler extends L1_LayerHandler {
 object L1_DefaultLayerHandler extends L1_LayerHandler {
   override def initialize() : Unit = {
     // activate default knowledge collections
-    // nothing to do here yet
+
+    L1_DomainCollection
   }
 
   override def shutdown() : Unit = {
@@ -52,7 +54,30 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     print()
 
     if (ExaRootNode.l1_root.nodes.nonEmpty) {
-      // add more code here
+      L1_UnfoldKnowledgeDeclarations.apply()
+      L1_PrepareDeclarations.apply()
+
+      L1_PrepareAccesses.apply()
+
+//      L1_ResolveMathFunctions.apply()
+//      L1_ResolveEvaluateFunctions.apply()
+//      L1_ResolveIntegrateFunctions.apply()
+
+      var matches = 0
+      do {
+        matches = 0
+        matches += L1_ProcessDeclarations.applyAndCountMatches()
+        matches += L1_ResolveAccesses.applyAndCountMatches()
+
+//        if (Knowledge.experimental_l1_resolveVirtualFields) {
+//          // integrate before evaluate -> might be nested
+//          L1_ResolveIntegrateOnGrid.apply()
+//          matches += (if (L1_ResolveIntegrateOnGrid.results.isEmpty) 0 else L1_ResolveIntegrateOnGrid.results.last._2.matches)
+//
+//          L1_ResolveEvaluateOnGrid.apply()
+//          matches += (if (L1_ResolveEvaluateOnGrid.results.isEmpty) 0 else L1_ResolveEvaluateOnGrid.results.last._2.matches)
+//        }
+      } while (matches > 0)
     }
 
     // progress knowledge to L2
