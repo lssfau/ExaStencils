@@ -371,7 +371,8 @@ object L3_Parser extends ExaParser with PackratParsers {
   // ##### L3_DomainDecl
   // ######################################
 
-  lazy val domainDeclaration = locationize(("Domain" ~> ident) ~ ("<" ~> expressionIndex <~ "to") ~ (expressionIndex <~ ">")
+  lazy val realIndex = /*locationize*/ "[" ~> realLit ~ ("," ~> realLit).* <~ "]" ^^ { case b ~ l => (List(b) ++ l).toArray }
+  lazy val domainDeclaration = locationize(("Domain" ~> ident) ~ ("<" ~> realIndex <~ "to") ~ (realIndex <~ ">")
     ^^ { case id ~ l ~ u => L3_DomainFromAABBDecl(id, l, u) })
 
   // #############################################################################

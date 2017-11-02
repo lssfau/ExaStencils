@@ -1,22 +1,15 @@
 package exastencils.util.ir
 
 import exastencils.base.ir._
-import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting._
 
 /// IR_AABB
 
-case class IR_AABB(var lower : IR_ExpressionIndex, var upper : IR_ExpressionIndex) extends IR_Node with PrettyPrintable {
-
-  IR_ReplaceIntWithReal.applyStandalone(lower)
-  IR_ReplaceIntWithReal.applyStandalone(upper)
-
-  override def prettyprint(out : PpStream) = out << lower << " to " << upper
+case class IR_AABB(var lower : Array[Double], var upper : Array[Double]) extends IR_Node with PrettyPrintable {
+  override def prettyprint(out : PpStream) = out << "[" << lower.mkString(", ") << "] to [" << upper.mkString(", ") << "]"
 
   def numDims = math.min(lower.length, upper.length)
 
-  def width() = upper - lower
+  def width() = upper.zip(lower).map(i => i._1 - i._2)
   def width(dim : Int) = upper(dim) - lower(dim)
-
-  def widthAsDouble(dim : Int) = IR_SimplifyExpression.evalFloating(upper(dim) - lower(dim))
 }

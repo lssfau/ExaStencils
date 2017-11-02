@@ -117,13 +117,13 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
 
       if (Knowledge.domain_rect_generate) {
         Knowledge.discr_hx = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-          level => globalSize.widthAsDouble(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
+          level => globalSize.width(0) / (Knowledge.domain_rect_numFragsTotal_x * Knowledge.domain_fragmentLength_x * (1 << level)))
         if (Knowledge.dimensionality > 1)
           Knowledge.discr_hy = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-            level => globalSize.widthAsDouble(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
+            level => globalSize.width(1) / (Knowledge.domain_rect_numFragsTotal_y * Knowledge.domain_fragmentLength_y * (1 << level)))
         if (Knowledge.dimensionality > 2)
           Knowledge.discr_hz = (Knowledge.minLevel to Knowledge.maxLevel).toArray.map(
-            level => globalSize.widthAsDouble(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
+            level => globalSize.width(2) / (Knowledge.domain_rect_numFragsTotal_z * Knowledge.domain_fragmentLength_z * (1 << level)))
       }
     }
 

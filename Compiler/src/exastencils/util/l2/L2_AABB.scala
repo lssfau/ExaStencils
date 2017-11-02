@@ -6,16 +6,12 @@ import exastencils.util.l3.L3_AABB
 
 /// L2_AABB
 
-case class L2_AABB(var lower : L2_ExpressionIndex, var upper : L2_ExpressionIndex) extends L2_Node with L2_Progressable with PrettyPrintable {
-
-  L2_ReplaceIntWithReal.applyStandalone(lower)
-  L2_ReplaceIntWithReal.applyStandalone(upper)
-
-  override def prettyprint(out : PpStream) = out << lower << " to " << upper
-  override def progress = L3_AABB(lower.progress, upper.progress)
+case class L2_AABB(var lower : Array[Double], var upper : Array[Double]) extends L2_Node with L2_Progressable with PrettyPrintable {
+  override def prettyprint(out : PpStream) = out << "[" << lower.mkString(", ") << "] to [" << upper.mkString(", ") << "]"
+  override def progress = L3_AABB(lower, upper)
 
   def numDims = math.min(lower.length, upper.length)
 
-  def width() = upper - lower
+  def width() = upper.zip(lower).map(i => i._1 - i._2)
   def width(dim : Int) = upper(dim) - lower(dim)
 }
