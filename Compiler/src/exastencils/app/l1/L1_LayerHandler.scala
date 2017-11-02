@@ -3,6 +3,7 @@ package exastencils.app.l1
 import exastencils.app.LayerHandler
 import exastencils.base.ExaRootNode
 import exastencils.base.l1._
+import exastencils.baseExt.l1.L1_UnifyGlobalSections
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l1.L1_DomainCollection
@@ -10,6 +11,7 @@ import exastencils.knowledge.l1.L1_KnowledgeContainer._
 import exastencils.knowledge.l1._
 import exastencils.parsers.l1.L1_Parser
 import exastencils.prettyprinting.Indenter
+import exastencils.util.l1.L1_ResolveMathFunctions
 
 /// L1_LayerHandler
 
@@ -54,12 +56,23 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     print()
 
     if (ExaRootNode.l1_root.nodes.nonEmpty) {
+      L1_UnifyGlobalSections.apply()
+
+      // pre-process level specifications in declarations
+      L1_ResolveLevelSpecifications.apply()
+
       L1_UnfoldKnowledgeDeclarations.apply()
+      L1_UnfoldLeveledVariableDeclarations.apply()
+
+      // resolve current, etc.
+      L1_ResolveRelativeLevels.apply()
+
       L1_PrepareDeclarations.apply()
 
       L1_PrepareAccesses.apply()
+      L1_ResolveVariableAccesses.apply()
 
-//      L1_ResolveMathFunctions.apply()
+      L1_ResolveMathFunctions.apply()
 //      L1_ResolveEvaluateFunctions.apply()
 //      L1_ResolveIntegrateFunctions.apply()
 

@@ -501,6 +501,7 @@ object Knowledge {
   var experimental_eliminateCudaContext : Boolean = false
 
   // control inlining of value declarations on applicable layers
+  var experimental_l1_inlineValueDeclarations : Boolean = false
   var experimental_l2_inlineValueDeclarations : Boolean = false
   var experimental_l3_inlineValueDeclarations : Boolean = false
   var experimental_l4_inlineValueDeclarations : Boolean = true
