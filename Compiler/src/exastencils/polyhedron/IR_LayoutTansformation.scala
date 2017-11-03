@@ -22,87 +22,84 @@ import exastencils.polyhedron.Isl.TypeAliases._
 object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
   import scala.language.implicitConversions
-
   implicit def long2val(l : Long) : isl.Val = isl.Val.intFromSi(Isl.ctx, l)
 
   private val tmpNamePrefix : String = "__ir_layout_toReplace_"
   private def tmpName(i : Int) : String = tmpNamePrefix + i
   private def tmpNameIdx(s : String) : Int = s.substring(tmpNamePrefix.length()).toInt
 
-  private val nrColors : Long = 2
+//  private val nrColors : Long = 2
+//
+//  private var trafo : isl.MultiAff = null
+//
+//  private def getTrafo(gridDim : Int, dataDim : Int) : isl.MultiAff = {
+//    if (trafo != null)
+//      return trafo
+//
+//    // perm must contain every integer between 0 and dataDim-1 exactly once
+//    var perm : Seq[Int] = 0 until dataDim
+//    if (Knowledge.opt_arrayOfFields) {
+//      perm = (gridDim until dataDim) ++ (0 until gridDim)
+//      trafo = createPermuteMAff(perm)
+//    }
+//    if (Knowledge.opt_useColorSplitting) {
+//      val cSplit = createColorSplittingMAff(dataDim, perm)
+//      // A.pullbackMultiAff(B) means B is applied before A, so pullback them in reverse order
+//      trafo = if (trafo == null) cSplit else cSplit.pullbackMultiAff(trafo)
+//    }
+//
+//    // name dimensions (required by the AST generation later)
+//    for (i <- 0 until trafo.dim(T_IN))
+//      trafo = trafo.setDimName(T_IN, i, tmpName(i))
+//    trafo
+//  }
+//
+//  private def createColorSplittingMAff(gridDim : Int, perm : Seq[Int]) : isl.MultiAff = {
+//
+//    val gridIts = new Array[Int](gridDim)
+//    var min : Int = Int.MaxValue
+//    var n : Int = 0
+//    for ((p, i) <- perm.zipWithIndex)
+//      if (p < gridDim) {
+//        gridIts(n) = i
+//        min = math.min(min, i)
+//        n += 1
+//      }
+//
+//    val dim = perm.size
+//    var trafo = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, dim, dim + 1))
+//    val lSpace = isl.LocalSpace.fromSpace(trafo.getDomainSpace())
+//    for (i <- 0 until dim)
+//      trafo = trafo.setAff(i, isl.Aff.varOnDomain(lSpace, T_SET, i))
+//
+//    // color index
+//    var aff = isl.Aff.zeroOnDomain(lSpace)
+//    for (i <- gridIts)
+//      aff = aff.setCoefficientSi(T_IN, i, 1)
+//    aff = aff.modVal(nrColors)
+//    trafo = trafo.setAff(dim, aff)
+//
+//    // compressed access for innermost loop
+//    aff = isl.Aff.varOnDomain(lSpace, T_SET, min)
+//    aff = aff.sub(aff.modVal(nrColors))
+//    aff = aff.scaleDownUi(nrColors.toInt)
+//    trafo = trafo.setAff(min, aff)
+//
+//    trafo
+//  }
+//
+//  private def createPermuteMAff(perm : Seq[Int]) : isl.MultiAff = {
+//    val dim = perm.size
+//    var trafo = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, dim, dim))
+//    val lSpace = isl.LocalSpace.fromSpace(trafo.getDomainSpace())
+//    for ((p, i) <- perm.zipWithIndex) {
+//      val aff = isl.Aff.varOnDomain(lSpace, T_SET, p)
+//      trafo = trafo.setAff(i, aff)
+//    }
+//    trafo
+//  }
 
-  private var trafo : isl.MultiAff = null
-
-  private def getTrafo(gridDim : Int, dataDim : Int) : isl.MultiAff = {
-    if (trafo != null)
-      return trafo
-
-    // perm must contain every integer between 0 and dataDim-1 exactly once
-    var perm : Seq[Int] = 0 until dataDim
-    if (Knowledge.opt_arrayOfFields) {
-      perm = (gridDim until dataDim) ++ (0 until gridDim)
-      trafo = createPermuteMAff(perm)
-    }
-    if (Knowledge.opt_useColorSplitting) {
-      val cSplit = createColorSplittingMAff(dataDim, perm)
-      // A.pullbackMultiAff(B) means B is applied before A, so pullback them in reverse order
-      trafo = if (trafo == null) cSplit else cSplit.pullbackMultiAff(trafo)
-    }
-
-    // name dimensions (required by the AST generation later)
-    for (i <- 0 until trafo.dim(T_IN))
-      trafo = trafo.setDimName(T_IN, i, tmpName(i))
-    trafo
-  }
-
-  private def createColorSplittingMAff(gridDim : Int, perm : Seq[Int]) : isl.MultiAff = {
-
-    val gridIts = new Array[Int](gridDim)
-    var min : Int = Int.MaxValue
-    var n : Int = 0
-    for ((p, i) <- perm.zipWithIndex)
-      if (p < gridDim) {
-        gridIts(n) = i
-        min = math.min(min, i)
-        n += 1
-      }
-
-    val dim = perm.size
-    var trafo = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, dim, dim + 1))
-    val lSpace = isl.LocalSpace.fromSpace(trafo.getDomainSpace())
-    for (i <- 0 until dim)
-      trafo = trafo.setAff(i, isl.Aff.varOnDomain(lSpace, T_SET, i))
-
-    // color index
-    var aff = isl.Aff.zeroOnDomain(lSpace)
-    for (i <- gridIts)
-      aff = aff.setCoefficientSi(T_IN, i, 1)
-    aff = aff.modVal(nrColors)
-    trafo = trafo.setAff(dim, aff)
-
-    // compressed access for innermost loop
-    aff = isl.Aff.varOnDomain(lSpace, T_SET, min)
-    aff = aff.sub(aff.modVal(nrColors))
-    aff = aff.scaleDownUi(nrColors.toInt)
-    trafo = trafo.setAff(min, aff)
-
-    trafo
-  }
-
-  private def createPermuteMAff(perm : Seq[Int]) : isl.MultiAff = {
-    val dim = perm.size
-    var trafo = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, dim, dim))
-    val lSpace = isl.LocalSpace.fromSpace(trafo.getDomainSpace())
-    for ((p, i) <- perm.zipWithIndex) {
-      val aff = isl.Aff.varOnDomain(lSpace, T_SET, p)
-      trafo = trafo.setAff(i, aff)
-    }
-    trafo
-  }
-
-  private val processedLayouts = new IdentityHashMap[IR_FieldLayout, IR_Expression]()
-
-  private def adaptLayout(layout : IR_FieldLayout) : (isl.MultiAff, Array[Long]) = {
+  private def adaptLayout(layout : IR_FieldLayout, trafo : isl.MultiAff) : Array[Long] = {
     val ensure = { (b : Boolean, msg : String) =>
       if (!b) {
         Logger.warn(msg)
@@ -122,7 +119,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       domain = domain.lowerBoundVal(T_SET, i, 0L)
       domain = domain.upperBoundVal(T_SET, i, total - 1)
     }
-    val trafo : isl.MultiAff = getTrafo(layout.numDimsGrid, layout.numDimsData)
+//    val trafo : isl.MultiAff = getTrafo(layout.numDimsGrid, layout.numDimsData)
     domain = domain.apply(isl.Map.fromMultiAff(trafo))
     dim = domain.dim(T_SET)
     val extents = new Array[Long](dim)
@@ -134,7 +131,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       d = d.projectOut(T_SET, 0, i)
       val min : isl.PwAff = d.dimMin(0)
       ensure(min.nPiece() == 1 && min.isCst(), "Min of transformed domain is not a constant: " + min)
-      min.foreachPiece({
+      min.foreachPiece({ // there is only one
         (_, aff) =>
           val c = aff.getConstantVal()
           ensure(c.getDenSi() == 1, "Lower bound of transformed memory layout is not an integral number?! " + c)
@@ -142,12 +139,12 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       })
       val max : isl.PwAff = d.dimMax(0)
       ensure(max.nPiece() == 1 && max.isCst(), "Max of transformed domain is not a constant: " + max)
-      max.foreachPiece({
+      max.foreachPiece({ // there is only one
         (_, aff) =>
           val c = aff.getConstantVal()
           ensure(c.getDenSi() == 1, "upper bound of transformed memory layout is not an integral number?! " + c)
           val cl : Long = c.getNumSi()
-          ensure(cl <= Int.MaxValue, "upper bound of transformed memory layout is larger than Int.MaxValue?! " + cl)
+          ensure(cl <= Int.MaxValue, "upper bound of transformed memory layout is greater or equal Int.MaxValue?! " + cl)
           extents(i) = c.getNumSi() + 1 // from 0 to c inclusive
         val flpd = IR_FieldLayoutPerDim(0, 0, 0, extents(i).toInt, 0, 0, 0)
           flpd.updateTotal()
@@ -156,13 +153,12 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     }
     layout.layoutsPerDim = newLayoutsPerDim
     layout.referenceOffset = null // not valid anymore
-    return (trafo, extents)
+    return extents
   }
 
-  private def createASTforMultiAff(arg : (isl.MultiAff, Array[Long])) : IR_Expression = {
-    if (arg == null) return null
-    var maff : isl.MultiAff = arg._1
-    val extents : Array[Long] = arg._2
+  private def createASTforMultiAff(trafo : isl.MultiAff, extents : Array[Long]) : IR_Expression = {
+    if (extents == null) return null
+    var maff : isl.MultiAff = trafo
 
     val dim = maff.dim(T_IN)
     maff = maff.moveDims(T_PAR, 0, T_IN, 0, dim)
@@ -188,34 +184,59 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.transaction()
     Logger.info("Applying strategy " + name)
 
-    this.register(ColorCondCollector)
-    this.onBefore = () => this.resetCollectors()
+    val transformations = new mutable.HashMap[(String, Int), isl.MultiAff]()
+
+    // TODO: search for them here? or extract transformation statements earlier
+    this.execute(new Transformation("collect transformation statements", {
+      case trafo : IR_GenericTransform =>
+        val key = (trafo.fieldSelection.field.name, trafo.fieldSelection.level)
+        val oldMaff = transformations.get(key)
+        var maff : isl.MultiAff = trafo.getIslTrafo()
+        if (oldMaff.isDefined)
+          maff = maff.pullbackMultiAff(oldMaff.get)
+        transformations(key) = maff
+        trafo
+    }))
+
+    // name transformation dimensions (required by the AST generation later)
+    transformations.transform {
+      (_, t) =>
+        var trafo = t
+        for (i <- 0 until trafo.dim(T_IN))
+          trafo = trafo.setDimName(T_IN, i, tmpName(i))
+        trafo
+    }
+
+    val processedLayouts = new IdentityHashMap[IR_FieldLayout, IR_Expression]()
+    val colCondColl = new ColorCondCollector()
+    this.register(colCondColl)
     this.execute(new Transformation("transform", {
       case dfa : IR_DirectFieldAccess =>
         val layout = dfa.fieldSelection.fieldLayout
-        val newIndex : IR_Expression =
-          if (processedLayouts.containsKey(layout)) {
-            processedLayouts.get(layout)
-          } else {
-            val trafoExtents = adaptLayout(layout)
-            val exprs = createASTforMultiAff(trafoExtents)
-            processedLayouts.put(layout, exprs)
-            exprs
-          }
+        val trafoKey = (layout.name, layout.level)
+        var newIndex : IR_Expression = null
+        if (processedLayouts.containsKey(layout)) {
+          newIndex = processedLayouts.get(layout)
+        } else for (trafo <- transformations.get(trafoKey)) {
+          val extents = adaptLayout(layout, trafo)
+          val exprs = createASTforMultiAff(trafo, extents)
+          processedLayouts.put(layout, exprs)
+          newIndex = exprs
+        }
         if (newIndex != null) {
           val wrappedIndex = IR_ExpressionStatement(Duplicate(newIndex))
           QuietDefaultStrategy("replace", new Transformation("now", {
-            case IR_StringLiteral(id) if id.startsWith(tmpNamePrefix)     => Duplicate(dfa.index(tmpNameIdx(id)))
-            case IR_VariableAccess(id, _) if id.startsWith(tmpNamePrefix) => Duplicate(dfa.index(tmpNameIdx(id))) // HACK to deal with the HACK in IR_ExpressionIndex
+            case IR_StringLiteral(id) if id.startsWith(tmpNamePrefix)     => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // IntelliJ workaround: specify IR_Expression explicitly
+            case IR_VariableAccess(id, _) if id.startsWith(tmpNamePrefix) => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // HACK to deal with the HACK in IR_ExpressionIndex
           })).applyStandalone(wrappedIndex)
-          val cSumMap : mutable.HashMap[IR_Expression, Long] = ColorCondCollector.sum
-          if (cSumMap != null && ColorCondCollector.nrCol == nrColors) {
+          val cSumMap : mutable.HashMap[IR_Expression, Long] = colCondColl.sum
+          if (cSumMap != null) {
             QuietDefaultStrategy("simplify color", new Transformation("now", {
-              case mod @ IR_Modulo(sum, IR_IntegerConstant(nr)) if nrColors == nr =>
+              case mod @ IR_Modulo(sum, IR_IntegerConstant(nrCol)) if colCondColl.nrCol == nrCol =>
                 val sumMap : mutable.HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sum)
                 val sumCst : Long = sumMap.remove(IR_SimplifyExpression.constName).getOrElse(0L)
                 if (sumMap == cSumMap)
-                  IR_IntegerConstant((sumCst + ColorCondCollector.color) % nrColors)
+                  IR_IntegerConstant((sumCst + colCondColl.color) % nrCol)
                 else
                   mod
             })).applyStandalone(wrappedIndex)
@@ -225,15 +246,15 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
         } else
           dfa
     }))
-    this.unregister(ColorCondCollector)
+    this.unregister(colCondColl)
 
     this.commit()
   }
 }
 
-object ColorCondCollector extends Collector {
+class ColorCondCollector extends Collector {
 
-  private final val TMP_ANNOT : String = "tmp"
+  private final val TMP_ANNOT : String = "CCCtmp"
   var sum : mutable.HashMap[IR_Expression, Long] = null
   var color : Long = -1
   var nrCol : Long = 0
