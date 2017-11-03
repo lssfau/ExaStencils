@@ -314,10 +314,6 @@ object Knowledge {
 
   // [true|false]
   var opt_useAddressPrecalc : Boolean = false
-  // [true|false] // only relevant for RBGS smoother currently
-  var opt_useColorSplitting : Boolean = false
-  // [true|false] // change memory layout from "field of arrays" to "array of fields"
-  var opt_arrayOfFields : Boolean = false
 
   // unrolling
   // [1~5]
@@ -860,10 +856,6 @@ object Knowledge {
     Constraints.condEnsureValue(poly_optLevel_coarse, poly_optLevel_fine, poly_optLevel_coarse > poly_optLevel_fine, "optimization level for coarse grids must smaller or equal to the one for the fine levels")
     Constraints.condEnsureValue(poly_numFinestLevels, numLevels, poly_numFinestLevels > numLevels, "number of fine levels (for optimization) cannot exceed the number of all levels")
     Constraints.condEnsureValue(poly_maximizeBandDepth, true, poly_serializeSCCs, "poly_maximizeBandDepth has no effect if poly_serializeSCCs is set")
-
-    Constraints.condEnsureValue(opt_useColorSplitting, false, l3tmp_smoother != "RBGS", "color splitting is only relevant for RBGS smoother")
-
-    Constraints.condEnsureValue(l4_genSepLayoutsPerField, true, opt_useColorSplitting, "color splitting requires separate field layouts")
 
     Constraints.condWarn(l3tmp_genTemporalBlocking && opt_loopCarriedCSE, "temporal blocking may interfere with loop carried CSE and therefore generated code may be broken")
     Constraints.condEnsureValue(opt_loopCarriedCSE_skipOuter, 0, !opt_loopCarriedCSE, "loop-carried cse disbaled, set its configuration parameter to default")
