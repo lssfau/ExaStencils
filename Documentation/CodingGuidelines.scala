@@ -10,7 +10,7 @@
 // don't use curly braces for one-line/ inline functions
   override def pp (out : ...) = out << "foo"
 
-// avoid using new keyword / avoid overloading the this() operator
+// avoid using new keyword / avoid adding auxiliary constructors (defining "this" methods)
 // -> overload apply method of companion objects instead
 
 
