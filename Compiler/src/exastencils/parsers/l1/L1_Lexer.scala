@@ -33,6 +33,9 @@ object L1_Lexer extends ExaLexer {
 
   // grid
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
+
+  // solver
+  reserved += ("Equation")
 }
 
 object L1_ReservedSigns {

@@ -13,6 +13,7 @@ import exastencils.knowledge.l1.L1_KnowledgeContainer._
 import exastencils.knowledge.l1._
 import exastencils.parsers.l1.L1_Parser
 import exastencils.prettyprinting.Indenter
+import exastencils.solver.l1.L1_EquationCollection
 import exastencils.util.l1.L1_ResolveMathFunctions
 
 /// L1_LayerHandler
@@ -36,6 +37,7 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
 
     L1_DomainCollection
     L1_FieldCollection
+    L1_EquationCollection
   }
 
   override def shutdown() : Unit = {
