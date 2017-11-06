@@ -15,7 +15,7 @@ object L1_DomainFromIntervalsDecl {
 
 case class L1_DomainFromIntervalsDecl(var name : String, intervals : ListBuffer[L1_Interval]) extends L1_DomainDecl {
   override def prettyprint(out : PpStream) = {
-    out << "Domain " << name << " = " << intervals.map(_.prettyprint()).mkString(s" ${ L1_ReservedSigns.times._1 } ")
+    out << "Domain " << name << " = " << intervals.map(_.prettyprint()).mkString(s" ${ L1_ReservedSigns.times._2 } ")
   }
 
   override def addToKnowledge() = {

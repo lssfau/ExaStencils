@@ -7,6 +7,7 @@ import exastencils.baseExt.l1.L1_UnifyGlobalSections
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
 import exastencils.domain.l1.L1_DomainCollection
+import exastencils.field.l1.L1_FieldCollection
 import exastencils.knowledge.l1.L1_KnowledgeContainer._
 import exastencils.knowledge.l1._
 import exastencils.parsers.l1.L1_Parser
@@ -33,6 +34,7 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     // activate default knowledge collections
 
     L1_DomainCollection
+    L1_FieldCollection
   }
 
   override def shutdown() : Unit = {

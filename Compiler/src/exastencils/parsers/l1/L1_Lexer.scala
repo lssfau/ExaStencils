@@ -21,6 +21,8 @@ object L1_Lexer extends ExaLexer {
   // domain => L1_DomainDecl
   reserved += ("Domain", "to")
 
+  // field => L1_FieldDecl
+  reserved += ("Field")
 }
 
 object L1_ReservedSigns {

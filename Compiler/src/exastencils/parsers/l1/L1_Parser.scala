@@ -8,6 +8,7 @@ import scala.util.parsing.input._
 import exastencils.base.l1._
 import exastencils.baseExt.l1.L1_UnresolvedAccess
 import exastencils.domain.l1._
+import exastencils.field.l1.L1_BaseFieldDecl
 import exastencils.parsers._
 
 object L1_Parser extends ExaParser with PackratParsers {
@@ -53,6 +54,7 @@ object L1_Parser extends ExaParser with PackratParsers {
   lazy val program = (
     import_
       ||| domainDeclaration
+      ||| fieldDeclaration
     ).* ^^ { L1_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -206,4 +208,15 @@ object L1_Parser extends ExaParser with PackratParsers {
     ^^ { case id ~ head ~ tail => L1_DomainFromIntervalsDecl(id, List(head) ++ tail) })
     ||| locationize(("Domain" ~> ident <~ "=") ~ (realIndex <~ "to") ~ realIndex ^^ { case id ~ l ~ u => L1_DomainFromAABBDecl(id, l, u) })
     )
+
+  // #############################################################################
+  // #################################### FIELD ##################################
+  // #############################################################################
+
+  // ######################################
+  // ##### l2_FieldDeclarations
+  // ######################################
+
+  lazy val fieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ (L1_ReservedSigns.elemOf ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+    ^^ { case id ~ levels ~ domain ~ initial => L1_BaseFieldDecl(id, levels, domain, initial) })
 }
