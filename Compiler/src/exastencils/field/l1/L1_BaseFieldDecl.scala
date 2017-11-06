@@ -9,8 +9,8 @@ import exastencils.prettyprinting._
 /// L1_BaseFieldDecl
 
 object L1_BaseFieldDecl {
-  def apply(identifier : String, levels : Option[L1_LevelSpecification], domain : String, initial : Option[L1_Expression]) : L1_BaseFieldDecl =
-    L1_BaseFieldDecl(identifier, levels, L1_FutureDomainAccess(domain), initial)
+  def apply(identifier : String, levels : Option[L1_LevelSpecification], domain : String, initial : Option[L1_Expression]) =
+    new L1_BaseFieldDecl(identifier, levels, L1_FutureDomainAccess(domain), initial)
 }
 
 case class L1_BaseFieldDecl(

@@ -13,6 +13,8 @@ object L1_Lexer extends ExaLexer {
   delimiters += ("\u2208", "\\in")
   delimiters += ("\u2209", "\\notin")
 
+  delimiters += ("\u2202", "\\partial") // partial differential
+
   delimiters += ("\u00D7", "\\times") // cartesian product or cross product
 
   // import functionality
@@ -41,6 +43,8 @@ object L1_Lexer extends ExaLexer {
 object L1_ReservedSigns {
   val elemOf = ("\u2208", "\\in")
   val notElemOf = ("\u2209", "\\notin")
+
+  val partial = ("\u2202", "\\partial")
 
   val times = ("\u00D7", "\\times") // cartesian product or cross product
 }

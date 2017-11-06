@@ -7,9 +7,10 @@ import scala.util.parsing.input._
 
 import exastencils.base.l1._
 import exastencils.baseExt.l1.L1_UnresolvedAccess
+import exastencils.boundary.l1._
 import exastencils.discretization.l1._
 import exastencils.domain.l1._
-import exastencils.field.l1.L1_BaseFieldDecl
+import exastencils.field.l1._
 import exastencils.parsers._
 import exastencils.solver.l1.L1_EquationDecl
 
@@ -200,6 +201,16 @@ object L1_Parser extends ExaParser with PackratParsers {
   lazy val genericAccess = locationize(ident ~ levelAccess.? ^^ { case id ~ level => L1_UnresolvedAccess(id, level) })
 
   // #############################################################################
+  // ################################## BOUNDARY #################################
+  // #############################################################################
+
+  lazy val fieldBoundary = (
+    "Neumann" ~> ("(" ~> integerLit <~ ")").? ^^ { L1_NeumannBC(_) }
+      ||| "None" ^^ { _ => L1_NoBC }
+      ||| binaryexpression ^^ { L1_DirichletBC }
+    )
+
+  // #############################################################################
   // ############################### DISCRETIZATION ##############################
   // #############################################################################
 
@@ -244,8 +255,12 @@ object L1_Parser extends ExaParser with PackratParsers {
   // ##### L1_FieldDeclarations
   // ######################################
 
-  lazy val fieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ (L1_ReservedSigns.elemOf ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
+  lazy val fieldDeclaration = baseFieldDeclaration ||| boundaryFieldDeclaration
+
+  lazy val baseFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ (L1_ReservedSigns.elemOf ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ levels ~ domain ~ initial => L1_BaseFieldDecl(id, levels, domain, initial) })
+  lazy val boundaryFieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ ((L1_ReservedSigns.elemOf ~ L1_ReservedSigns.partial) ~> ident) ~ ("=" ~> fieldBoundary)
+    ^^ { case id ~ levels ~ domain ~ bc => L1_BoundaryFieldDecl(id, levels, domain, bc) })
 
   // #############################################################################
   // #################################### GRID ###################################

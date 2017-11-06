@@ -8,7 +8,7 @@ import exastencils.config._
 import exastencils.datastructures.StrategyTimer
 import exastencils.discretization.l1.L1_ProcessDiscretizeBlocks
 import exastencils.domain.l1.L1_DomainCollection
-import exastencils.field.l1.L1_FieldCollection
+import exastencils.field.l1._
 import exastencils.knowledge.l1.L1_KnowledgeContainer._
 import exastencils.knowledge.l1._
 import exastencils.parsers.l1.L1_Parser
@@ -96,6 +96,8 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
 //          matches += (if (L1_ResolveEvaluateOnGrid.results.isEmpty) 0 else L1_ResolveEvaluateOnGrid.results.last._2.matches)
 //        }
       } while (matches > 0)
+
+      L1_ProcessBoundaryDeclarations.apply()
     }
 
     // process discretization
