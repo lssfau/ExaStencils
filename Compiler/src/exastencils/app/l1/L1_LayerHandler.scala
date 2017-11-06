@@ -6,6 +6,7 @@ import exastencils.base.l1._
 import exastencils.baseExt.l1.L1_UnifyGlobalSections
 import exastencils.config._
 import exastencils.datastructures.StrategyTimer
+import exastencils.discretization.l1.L1_ProcessDiscretizeBlocks
 import exastencils.domain.l1.L1_DomainCollection
 import exastencils.field.l1.L1_FieldCollection
 import exastencils.knowledge.l1.L1_KnowledgeContainer._
@@ -94,6 +95,9 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
 //        }
       } while (matches > 0)
     }
+
+    // process discretization
+    L1_ProcessDiscretizeBlocks.apply()
 
     // progress knowledge to L2
     L1_KnowledgeContainer.progress()

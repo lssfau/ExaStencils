@@ -7,6 +7,7 @@ import scala.util.parsing.input._
 
 import exastencils.base.l1._
 import exastencils.baseExt.l1.L1_UnresolvedAccess
+import exastencils.discretization.l1._
 import exastencils.domain.l1._
 import exastencils.field.l1.L1_BaseFieldDecl
 import exastencils.parsers._
@@ -55,6 +56,7 @@ object L1_Parser extends ExaParser with PackratParsers {
     import_
       ||| domainDeclaration
       ||| fieldDeclaration
+      ||| discretizeBlock
     ).* ^^ { L1_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -196,6 +198,26 @@ object L1_Parser extends ExaParser with PackratParsers {
   lazy val genericAccess = locationize(ident ~ levelAccess.? ^^ { case id ~ level => L1_UnresolvedAccess(id, level) })
 
   // #############################################################################
+  // ############################### DISCRETIZATION ##############################
+  // #############################################################################
+
+  // ######################################
+  // ##### L1_DiscretizationStatement
+  // ######################################
+
+  lazy val discretizationStmt = fieldDiscr // ||| ...
+
+  lazy val fieldDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("on" ~> localization)
+    ^^ { case src ~ levels ~ map ~ local => L1_FieldDiscretization(src, levels, map, local) })
+
+  // ######################################
+  // ##### L1_DiscretizeBlock
+  // ######################################
+
+  lazy val discretizeBlock = locationize(("Discretize" ~ "{") ~> discretizationStmt.* <~ "}"
+    ^^ (L1_DiscretizeBlock(_)))
+
+  // #############################################################################
   // ################################### DOMAIN ##################################
   // #############################################################################
 
@@ -214,9 +236,22 @@ object L1_Parser extends ExaParser with PackratParsers {
   // #############################################################################
 
   // ######################################
-  // ##### l2_FieldDeclarations
+  // ##### L1_FieldDeclarations
   // ######################################
 
   lazy val fieldDeclaration = locationize(("Field" ~> ident) ~ levelDecl.? ~ (L1_ReservedSigns.elemOf ~> ident) ~ ("=" ~> (binaryexpression ||| booleanexpression)).?
     ^^ { case id ~ levels ~ domain ~ initial => L1_BaseFieldDecl(id, levels, domain, initial) })
+
+  // #############################################################################
+  // #################################### GRID ###################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L1_Localization
+  // ######################################
+
+  lazy val localization = ("Node" ||| "node" ||| "Cell" ||| "cell"
+    ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
+    ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
+    ^^ (l => l))
 }

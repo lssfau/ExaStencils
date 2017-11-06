@@ -18,11 +18,21 @@ object L1_Lexer extends ExaLexer {
   // import functionality
   reserved += "import"
 
+  // base => L1_LevelSpecification
+  reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
+
+  // discretization
+  reserved += ("Discretize")
+  reserved += ("on", "with")
+
   // domain => L1_DomainDecl
   reserved += ("Domain", "to")
 
   // field => L1_FieldDecl
   reserved += ("Field")
+
+  // grid
+  reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 }
 
 object L1_ReservedSigns {
