@@ -11,6 +11,7 @@ import exastencils.boundary.l1._
 import exastencils.discretization.l1._
 import exastencils.domain.l1._
 import exastencils.field.l1._
+import exastencils.operator.l1.L1_OperatorDecl
 import exastencils.parsers._
 import exastencils.solver.l1.L1_EquationDecl
 
@@ -58,6 +59,7 @@ object L1_Parser extends ExaParser with PackratParsers {
     import_
       ||| domainDeclaration
       ||| fieldDeclaration
+      ||| operatorDeclaration
       ||| equationDeclaration
       ||| discretizeBlock
     ).* ^^ { L1_Root(_) }
@@ -218,10 +220,13 @@ object L1_Parser extends ExaParser with PackratParsers {
   // ##### L1_DiscretizationStatement
   // ######################################
 
-  lazy val discretizationStmt = fieldDiscr ||| equationDiscr
+  lazy val discretizationStmt = fieldDiscr ||| operatorDiscr ||| equationDiscr
 
   lazy val fieldDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("on" ~> localization)
     ^^ { case src ~ levels ~ map ~ local => L1_FieldDiscretization(src, levels, map, local) })
+
+  lazy val operatorDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("with" ~> stringLit)
+    ^^ { case src ~ levels ~ map ~ discr => L1_OperatorDiscretization(src, levels, map, L1_StringConstant(discr)) })
 
   lazy val equationDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).?
     ^^ { case src ~ levels ~ map => L1_EquationDiscretization(src, levels, map) })
@@ -274,6 +279,17 @@ object L1_Parser extends ExaParser with PackratParsers {
     ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ (l => l))
+
+  // #############################################################################
+  // ################################## OPERATOR #################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L1_OperatorDecl
+  // ######################################
+
+  lazy val operatorDeclaration = locationize(("Operator" ~> ident) ~ levelDecl.? ~ ("=" ~> binaryexpression)
+    ^^ { case id ~ levels ~ expr => L1_OperatorDecl(id, levels, expr) })
 
   // #############################################################################
   // ################################### SOLVER ##################################
