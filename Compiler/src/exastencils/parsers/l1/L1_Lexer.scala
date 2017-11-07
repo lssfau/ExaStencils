@@ -38,6 +38,7 @@ object L1_Lexer extends ExaLexer {
 
   // operator
   reserved += ("Operator")
+  reserved += "_"
 
   // solver
   reserved += ("Equation")
@@ -48,6 +49,7 @@ object L1_ReservedSigns {
   val notElemOf = ("\u2209", "\\notin")
 
   val partial = ("\u2202", "\\partial")
+  val partialWithUnderscore = ("\u2202_", "\\partial_")
 
   val times = ("\u00D7", "\\times") // cartesian product or cross product
 }

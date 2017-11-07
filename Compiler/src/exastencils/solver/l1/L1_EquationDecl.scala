@@ -13,7 +13,7 @@ case class L1_EquationDecl(var name : String, var levels : Option[L1_LevelSpecif
   override def prettyprint(out : PpStream) = {
     out << "Equation " << name
     if (levels.isDefined) out << '@' << levels.get
-    out << " {\n" << equation << "\n}"
+    out << " " << equation
   }
 
   override def addToKnowledge() = L1_EquationCollection.add(L1_NamedEquation(name, L1_LevelSpecification.asSingleLevel(levels), equation))
