@@ -100,6 +100,7 @@ object L1_Parser extends ExaParser with PackratParsers {
       ||| functionCall
       ||| locationize("-" ~> genericAccess ^^ { x => L1_UnaryOperators.createExpression("-", x) })
       ||| genericAccess
+      ||| locationize("-" ~> partialDerivative ^^ { x => L1_UnaryOperators.createExpression("-", x) })
       ||| partialDerivative
       ||| locationize(booleanLit ^^ { s => L1_BooleanConstant(s) }))
 
@@ -296,7 +297,9 @@ object L1_Parser extends ExaParser with PackratParsers {
   // ##### L1_PartialDerivative
   // ######################################
 
-  lazy val partialDerivative = locationize((L1_ReservedSigns.partial ~ "_".? ~ "{") ~> ident <~ "}" ^^ (L1_PartialDerivative(_)))
+  lazy val partialDerivative = (
+    locationize((L1_ReservedSigns.partial ~ "_".? ~ "{") ~> ident <~ "}" ^^ (L1_PartialDerivative(_)))
+      ||| locationize(L1_ReservedSigns.capitalDelta ^^ { _ => L1_Laplace }))
 
   // #############################################################################
   // ################################### SOLVER ##################################

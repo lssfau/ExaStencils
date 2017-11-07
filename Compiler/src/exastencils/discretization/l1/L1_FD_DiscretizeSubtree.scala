@@ -19,6 +19,10 @@ object L1_FD_DiscretizeSubtree extends QuietDefaultStrategy("Discretize expressi
 
   def numDims = domain.numDims
 
+  this += new Transformation("Resolve Laplace operators", {
+    case L1_Laplace => (0 until numDims).map(dim => L1_PartialDerivative(2, dim) : L1_Expression).reduce(_ + _)
+  })
+
   this += new Transformation("Search and replace", {
     case L1_PartialDerivative(derOrder, dim) =>
       val domainExtends = domain.asInstanceOf[L1_DomainFromAABB].aabb

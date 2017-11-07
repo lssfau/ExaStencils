@@ -22,3 +22,12 @@ case class L1_PartialDerivative(order : Int, dim : Int) extends L1_Expression {
   override def prettyprint(out : PpStream) = out << L1_ReservedSigns.partial._2 << "_{" << L1_Localization.dimToString(dim).toString * order << "}"
   override def progress = Logger.error("Trying to progress L1 partial derivative; unsupported")
 }
+
+/// L1_Laplace
+
+case object L1_Laplace extends L1_Expression {
+  exastencils.core.Duplicate.registerConstant(this)
+
+  override def prettyprint(out : PpStream) = out << L1_ReservedSigns.capitalDelta._2
+  override def progress = Logger.error("Trying to progress L1 Laplace; unsupported")
+}
