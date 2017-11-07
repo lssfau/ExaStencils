@@ -24,6 +24,8 @@ trait L1_KnowledgeObject[L2_Equivalent <: L2_KnowledgeObject[_]] {
 
   // alias for progress -> progress object if not already progressed
   def getProgressedObj() : L2_Equivalent = progress()
+
+  def overwriteProgressed(newObj : L2_Equivalent) = { progressed = Some(newObj) }
 }
 
 /// L1_LeveledKnowledgeObject
