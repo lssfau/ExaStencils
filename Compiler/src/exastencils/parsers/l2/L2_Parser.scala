@@ -12,7 +12,7 @@ import exastencils.domain.l2._
 import exastencils.field.l2._
 import exastencils.operator.l2._
 import exastencils.parsers._
-import exastencils.solver.l2.L2_EquationDecl
+import exastencils.solver.l2._
 
 object L2_Parser extends ExaParser with PackratParsers {
   override val lexical : ExaLexer = L2_Lexer
@@ -58,6 +58,7 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| globals
       ||| operatorFromEq
       ||| equationDeclaration
+      ||| solverHints
     ).* ^^ { L2_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -371,6 +372,23 @@ object L2_Parser extends ExaParser with PackratParsers {
 
   lazy val equationDeclaration = locationize(("Equation" ~> ident) ~ levelDecl.? ~ ("{" ~> equation <~ "}")
     ^^ { case id ~ levels ~ eq => L2_EquationDecl(id, levels, eq) })
+
+  // ######################################
+  // ##### L2_SolverForEquation
+  // ######################################
+
+  lazy val solverForEqEntry = locationize((ident <~ "in") ~ ident ^^ { case unknownName ~ eqName => L2_SolverForEqEntry(unknownName, eqName) })
+  lazy val solverForEq = locationize(("generate" ~ "solver" ~ "for") ~> (solverForEqEntry <~ "and").* ~ solverForEqEntry
+    ^^ { case entries ~ tail => L2_SolverForEquation(entries :+ tail) })
+
+  // ######################################
+  // ##### L2_SolverHints
+  // ######################################
+
+  lazy val solverHint = solverForEq /// ||| ...
+
+  lazy val solverHints = locationize((("solve" ||| "SolverHint" ||| "L3Hint") ~ "{") ~> solverHint.* <~ "}"
+    ^^ (L2_SolverHints(_)))
 
   /// TO BE INTEGRATED
 

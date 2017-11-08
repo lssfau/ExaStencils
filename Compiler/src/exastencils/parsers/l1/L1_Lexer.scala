@@ -44,6 +44,8 @@ object L1_Lexer extends ExaLexer {
 
   // solver
   reserved += ("Equation")
+  reserved += ("Solve", "SolverHint", "L3Hint")
+  reserved += ("generate", "solver", "for", "in")
 }
 
 object L1_ReservedSigns {

@@ -25,6 +25,8 @@ object L3_SolverForEquation {
     options.foreach(newOptions += _)
     new L3_SolverForEquation(entries.to[ListBuffer], newOptions, modifications.to[ListBuffer])
   }
+
+  def apply(entries : ListBuffer[L3_SolverForEqEntry]) = new L3_SolverForEquation(entries, HashMap(), ListBuffer())
 }
 
 case class L3_SolverForEquation(
@@ -44,9 +46,7 @@ case class L3_SolverForEquation(
   }
 
   override def prettyprint(out : PpStream) = {
-    out << "generate solver for "
-    entries.foreach(e => out << e.solName << " in " << e.eqName << " and ")
-    out.removeLast(" and ".length)
+    out << "generate solver for " <<< (entries, " and ")
     if (options.nonEmpty) {
       out << " with {\n"
       options.foreach(o => out << o._1 << " = " << printAnyVal(o._2) << "\n")
@@ -209,6 +209,7 @@ case class L3_SolverForEquation(
 
     if (true) {
       var solveStmts = ListBuffer[L3_Statement]()
+
       def level = Knowledge.maxLevel
 
       L3_IterativeSolverForEquation.generateResNormFunction(entries, level)
@@ -216,8 +217,11 @@ case class L3_SolverForEquation(
       solveStmts ++= entries.map(_.generateUpdateRes(level))
 
       def initRes = L3_PlainVariableAccess("gen_initRes", L3_RealDatatype, false)
+
       def prevRes = L3_PlainVariableAccess("gen_prevRes", L3_RealDatatype, false)
+
       def curRes = L3_PlainVariableAccess("gen_curRes", L3_RealDatatype, false)
+
       def callResNorm = L3_FunctionCall(L3_LeveledDslFunctionReference("gen_resNorm", level, L3_RealDatatype))
 
       solveStmts += L3_VariableDeclaration(initRes, callResNorm)
@@ -228,7 +232,9 @@ case class L3_SolverForEquation(
         L3_StringConstant("Starting residual: "), initRes))
 
       val loopStmts = ListBuffer[L3_Statement]()
+
       def curIt = L3_PlainVariableAccess("gen_curIt", L3_IntegerDatatype, false)
+
       solveStmts += L3_VariableDeclaration(curIt, 0)
 
       loopStmts += L3_Assignment(curIt, 1, "+=", None)

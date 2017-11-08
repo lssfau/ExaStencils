@@ -14,7 +14,7 @@ import exastencils.knowledge.l1._
 import exastencils.operator.l1.L1_OperatorCollection
 import exastencils.parsers.l1.L1_Parser
 import exastencils.prettyprinting.Indenter
-import exastencils.solver.l1.L1_EquationCollection
+import exastencils.solver.l1._
 import exastencils.util.l1.L1_ResolveMathFunctions
 
 /// L1_LayerHandler

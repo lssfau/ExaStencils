@@ -7,10 +7,11 @@ import exastencils.base.l3._
 import exastencils.core.Duplicate
 import exastencils.field.l3._
 import exastencils.operator.l3.L3_Stencil
+import exastencils.prettyprinting._
 
 /// L3_SolverForEqEntry
 
-case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Node {
+case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Node with PrettyPrintable {
   var rhsPerLevel = HashMap[Int, L3_Field]()
   var resPerLevel = HashMap[Int, L3_Field]()
   var approxPerLevel = HashMap[Int, L3_Field]()
@@ -20,6 +21,8 @@ case class L3_SolverForEqEntry(solName : String, eqName : String) extends L3_Nod
   var prolongForSolPerLevel = HashMap[Int, L3_Stencil]()
 
   var localEqPerLevel = HashMap[Int, L3_Equation]()
+
+  override def prettyprint(out : PpStream) = out << solName << " in " << eqName
 
   def getSolField(level : Int) = L3_FieldCollection.getByIdentifier(solName, level).get
   def getEq(level : Int) = {

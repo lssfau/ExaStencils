@@ -15,7 +15,7 @@ import exastencils.knowledge.l2._
 import exastencils.operator.l2._
 import exastencils.parsers.l2.L2_Parser
 import exastencils.prettyprinting.Indenter
-import exastencils.solver.l2.L2_EquationCollection
+import exastencils.solver.l2._
 import exastencils.util.l2.L2_ResolveMathFunctions
 
 /// L2_LayerHandler
@@ -116,6 +116,9 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
 
       L2_ProcessBoundaryDeclarations.apply()
     }
+
+    // process solver
+    L2_ProcessSolverHints.apply()
 
     // progress knowledge to L3
     L2_KnowledgeContainer.progress()
