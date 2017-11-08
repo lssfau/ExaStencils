@@ -2,15 +2,7 @@ package exastencils.polyhedron
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.ir.IR_Addition
-import exastencils.base.ir.IR_Division
-import exastencils.base.ir.IR_Expression
-import exastencils.base.ir.IR_ExpressionIndex
-import exastencils.base.ir.IR_IntegerConstant
-import exastencils.base.ir.IR_Multiplication
-import exastencils.base.ir.IR_Node
-import exastencils.base.ir.IR_Subtraction
-import exastencils.base.ir.IR_VariableAccess
+import exastencils.base.ir._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.logger.Logger
 import exastencils.polyhedron.Isl.TypeAliases._
@@ -64,6 +56,13 @@ case class IR_GenericTransform(fieldSelection : IR_FieldSelection, its : Array[I
 
       case IR_Division(divid : IR_Expression, divis : IR_Expression) =>
         aff = exprToIslAff(divid, lSpace).div(exprToIslAff(divis, lSpace)).floor()
+
+      case IR_Modulo(divid : IR_Expression, divis : IR_Expression) =>
+        val divisIsl = exprToIslAff(divis, lSpace)
+        if (divisIsl.isCst())
+          aff = exprToIslAff(divid, lSpace).modVal(divisIsl.getConstantVal())
+
+      case _ =>
     }
 
     if (aff == null)

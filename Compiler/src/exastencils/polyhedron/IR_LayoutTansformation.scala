@@ -212,8 +212,8 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.register(colCondColl)
     this.execute(new Transformation("transform", {
       case dfa : IR_DirectFieldAccess =>
+        val trafoKey = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
         val layout = dfa.fieldSelection.fieldLayout
-        val trafoKey = (layout.name, layout.level)
         var newIndex : IR_Expression = null
         if (processedLayouts.containsKey(layout)) {
           newIndex = processedLayouts.get(layout)
