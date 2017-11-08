@@ -385,7 +385,9 @@ object L2_Parser extends ExaParser with PackratParsers {
   // ##### L2_SolverHints
   // ######################################
 
-  lazy val solverHint = solverForEq /// ||| ...
+  lazy val solverHint = solverForEq ||| solverParameter
+
+  lazy val solverParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L2_SolverParameter(param, value) })
 
   lazy val solverHints = locationize((("solve" ||| "SolverHint" ||| "L3Hint") ~ "{") ~> solverHint.* <~ "}"
     ^^ (L2_SolverHints(_)))

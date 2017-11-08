@@ -223,7 +223,7 @@ object L1_Parser extends ExaParser with PackratParsers {
   // ##### L1_DiscretizationHints
   // ######################################
 
-  lazy val discretizationHint = fieldDiscr ||| operatorDiscr ||| equationDiscr
+  lazy val discretizationHint = fieldDiscr ||| operatorDiscr ||| equationDiscr ||| discretizationParameter
 
   lazy val fieldDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("on" ~> localization)
     ^^ { case src ~ levels ~ map ~ local => L1_FieldDiscretization(src, levels, map, local) })
@@ -233,6 +233,8 @@ object L1_Parser extends ExaParser with PackratParsers {
 
   lazy val equationDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).?
     ^^ { case src ~ levels ~ map => L1_EquationDiscretization(src, levels, map) })
+
+  lazy val discretizationParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L1_DiscretizationParameter(param, value) })
 
   lazy val discretizationHints = locationize((("Discretize" ||| "DiscretizationHint" ||| "L2Hint") ~ "{") ~> discretizationHint.* <~ "}"
     ^^ (L1_DiscretizationHints(_)))
@@ -327,7 +329,9 @@ object L1_Parser extends ExaParser with PackratParsers {
   // ##### L1_SolverHints
   // ######################################
 
-  lazy val solverHint = solverForEq /// ||| ...
+  lazy val solverHint = solverForEq ||| solverParameter
+
+  lazy val solverParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L1_SolverParameter(param, value) })
 
   lazy val solverHints = locationize((("solve" ||| "SolverHint" ||| "L3Hint") ~ "{") ~> solverHint.* <~ "}"
     ^^ (L1_SolverHints(_)))
