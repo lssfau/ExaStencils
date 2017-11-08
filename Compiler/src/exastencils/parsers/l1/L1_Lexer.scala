@@ -26,7 +26,7 @@ object L1_Lexer extends ExaLexer {
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
   // discretization
-  reserved += ("Discretize")
+  reserved += ("Discretize", "DiscretizationHint", "L2Hint")
   reserved += ("on", "with")
 
   // domain => L1_DomainDecl

@@ -22,7 +22,7 @@ case class L1_OperatorDiscretization(
     var levels : Option[L1_DeclarationLevelSpecification],
     var mapping : Option[String],
     var discretization : String,
-    var domain : L1_Access) extends L1_DiscretizationStatement {
+    var domain : L1_Access) extends L1_DiscretizationHint {
 
   override def prettyprint(out : PpStream) = {
     out << src

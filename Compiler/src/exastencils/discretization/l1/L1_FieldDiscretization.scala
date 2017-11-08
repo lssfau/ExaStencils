@@ -18,7 +18,7 @@ case class L1_FieldDiscretization(
     var src : String,
     var levels : Option[L1_DeclarationLevelSpecification],
     var mapping : Option[String],
-    var localization : L1_Localization) extends L1_DiscretizationStatement {
+    var localization : L1_Localization) extends L1_DiscretizationHint {
 
   override def prettyprint(out : PpStream) = {
     out << src

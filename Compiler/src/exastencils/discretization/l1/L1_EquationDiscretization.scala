@@ -11,7 +11,7 @@ import exastencils.solver.l1.L1_EquationCollection
 case class L1_EquationDiscretization(
     var src : String,
     var levels : Option[L1_DeclarationLevelSpecification],
-    var mapping : Option[String]) extends L1_DiscretizationStatement {
+    var mapping : Option[String]) extends L1_DiscretizationHint {
 
   override def prettyprint(out : PpStream) = {
     out << src

@@ -237,8 +237,8 @@ object L1_Parser extends ExaParser with PackratParsers {
   // ##### L1_DiscretizeBlock
   // ######################################
 
-  lazy val discretizeBlock = locationize(("Discretize" ~ "{") ~> discretizationStmt.* <~ "}"
-    ^^ (L1_DiscretizeBlock(_)))
+  lazy val discretizeBlock = locationize((("Discretize" ||| "DiscretizationHint" ||| "L2Hint") ~ "{") ~> discretizationStmt.* <~ "}"
+    ^^ (L1_DiscretizationHints(_)))
 
   // #############################################################################
   // ################################### DOMAIN ##################################
