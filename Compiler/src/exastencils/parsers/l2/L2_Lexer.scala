@@ -53,6 +53,9 @@ object L2_Lexer extends ExaLexer {
   // boundary
   reserved += ("None", "Neumann")
 
+  // knowledge
+  reserved += ("Knowledge")
+
   // solver
   reserved += ("Equation")
   reserved += ("Solve", "SolverHint", "L3Hint")

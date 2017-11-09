@@ -64,6 +64,8 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
     print()
 
     if (ExaRootNode.l3_root.nodes.nonEmpty) {
+      L3_ProcessInlineKnowledge.apply()
+
       L3_UnifyGlobalSections.apply()
 
       print()

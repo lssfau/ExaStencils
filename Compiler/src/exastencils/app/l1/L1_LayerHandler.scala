@@ -63,6 +63,8 @@ object L1_DefaultLayerHandler extends L1_LayerHandler {
     print()
 
     if (ExaRootNode.l1_root.nodes.nonEmpty) {
+      L1_ProcessInlineKnowledge.apply()
+
       L1_UnifyGlobalSections.apply()
 
       // pre-process level specifications in declarations

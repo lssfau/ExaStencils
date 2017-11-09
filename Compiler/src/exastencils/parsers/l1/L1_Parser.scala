@@ -11,6 +11,7 @@ import exastencils.boundary.l1._
 import exastencils.discretization.l1._
 import exastencils.domain.l1._
 import exastencils.field.l1._
+import exastencils.knowledge.l1._
 import exastencils.operator.l1._
 import exastencils.parsers._
 import exastencils.solver.l1._
@@ -57,6 +58,7 @@ object L1_Parser extends ExaParser with PackratParsers {
 
   lazy val program = (
     import_
+      ||| inlineKnowledge
       ||| domainDeclaration
       ||| fieldDeclaration
       ||| operatorDeclaration
@@ -280,6 +282,17 @@ object L1_Parser extends ExaParser with PackratParsers {
     ||| "Face_x" ||| "face_x" ||| "Face_y" ||| "face_y" ||| "Face_z" ||| "face_z"
     ||| "Edge_Node" ||| "edge_node" ||| "Edge_Cell" ||| "edge_cell"
     ^^ (l => l))
+
+  // #############################################################################
+  // ################################# KNOWLEDGE #################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L1_InlineKnowledge
+  // ######################################
+
+  lazy val knowledgeParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L1_KnowledgeParameter(param, value) })
+  lazy val inlineKnowledge = locationize(("Knowledge" ~ "{") ~> knowledgeParameter.* <~ "}" ^^ (L1_InlineKnowledge(_)))
 
   // #############################################################################
   // ################################## OPERATOR #################################

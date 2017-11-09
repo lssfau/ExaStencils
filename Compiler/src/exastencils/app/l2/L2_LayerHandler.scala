@@ -77,6 +77,8 @@ object L2_DefaultLayerHandler extends L2_LayerHandler {
     print()
 
     if (ExaRootNode.l2_root.nodes.nonEmpty) {
+      L2_ProcessInlineKnowledge.apply()
+
       L2_UnifyGlobalSections.apply()
 
       // pre-process level specifications in declarations

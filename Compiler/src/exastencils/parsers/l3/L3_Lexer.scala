@@ -65,7 +65,10 @@ object L3_Lexer extends ExaLexer {
   // boundary
   reserved += ("None", "Neumann")
 
-  // L3_Solver
+  // knowledge
+  reserved += ("Knowledge")
+
+  // solver
   reserved += ("generate", "solver", "for", "in", "and")
   reserved += ("modifiers", "replace", "append", "to", "prepend", "with")
 }

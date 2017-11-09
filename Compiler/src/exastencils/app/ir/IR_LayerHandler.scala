@@ -15,7 +15,7 @@ import exastencils.globals.ir._
 import exastencils.grid.ir._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
-import exastencils.knowledge.ir.IR_ClearKnowledge
+import exastencils.knowledge.ir._
 import exastencils.operator.ir.IR_ApplyOffsetToStencilFieldAccess
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._
@@ -61,6 +61,8 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
   }
 
   override def handle() : Unit = {
+    IR_ProcessInlineKnowledge.apply()
+
     // add some more nodes
     IR_AddDefaultGlobals.apply()
 

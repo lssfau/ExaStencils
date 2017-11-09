@@ -1,10 +1,10 @@
-package exastencils.util.l2
+package exastencils.util.ir
 
 import exastencils.config.Knowledge
 import exastencils.core.UniversalSetter
 import exastencils.logger.Logger
 
-trait L2_GeneralParameter {
+trait IR_GeneralParameter {
   def name : String
   def value : Any
 

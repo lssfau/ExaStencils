@@ -33,7 +33,7 @@ case class L2_SolverParameter(var name : String, var value : Any) extends L2_Sol
   override def progress = Logger.error(s"Trying to progress L2 solver parameter; this is not supported")
 }
 
-/// L2_ProcessDiscretizeBlocks
+/// L2_ProcessSolverHints
 
 object L2_ProcessSolverHints extends DefaultStrategy("Process solver hints") {
   this += Transformation("Process", {

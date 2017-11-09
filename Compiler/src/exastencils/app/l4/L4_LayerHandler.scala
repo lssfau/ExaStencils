@@ -110,6 +110,8 @@ object L4_DefaultLayerHandler extends L4_LayerHandler {
     ExaRootNode.l4_root.flatten()
 
     if (ExaRootNode.l4_root.nodes.nonEmpty) {
+      L4_ProcessInlineKnowledge.apply()
+
       if (Knowledge.l4_genDefaultApplication)
         L4_AddDefaultApplication.apply()
 

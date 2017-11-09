@@ -10,6 +10,7 @@ import exastencils.baseExt.l3._
 import exastencils.boundary.l3._
 import exastencils.domain.l3.L3_DomainFromAABBDecl
 import exastencils.field.l3._
+import exastencils.knowledge.l3._
 import exastencils.operator.l3._
 import exastencils.parsers._
 import exastencils.solver.l3._
@@ -51,6 +52,7 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val program = (
     import_
+      ||| inlineKnowledge
       ||| domainDeclaration
       ||| fieldDeclaration
       ||| overrideFieldInformation
@@ -404,6 +406,17 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val overrideFieldInformation = locationize(("override" ~ "bc" ~ "for") ~> ident ~ levelDecl.? ~ ("with" ~> fieldBoundary)
     ^^ { case field ~ level ~ newBC => L3_OverrideFieldBC(field, level, newBC) })
+
+  // #############################################################################
+  // ################################# KNOWLEDGE #################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L3_InlineKnowledge
+  // ######################################
+
+  lazy val knowledgeParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L3_KnowledgeParameter(param, value) })
+  lazy val inlineKnowledge = locationize(("Knowledge" ~ "{") ~> knowledgeParameter.* <~ "}" ^^ (L3_InlineKnowledge(_)))
 
   // #############################################################################
   // ################################## OPERATOR #################################

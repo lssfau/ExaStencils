@@ -3,6 +3,7 @@ package exastencils.solver.l1
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l1.L1_Statement
+import exastencils.knowledge.l1.L1_KnowledgeParameter
 import exastencils.prettyprinting.PpStream
 import exastencils.solver.l2._
 import exastencils.util.l1.L1_GeneralParameter
@@ -28,5 +29,5 @@ abstract class L1_SolverHint extends L1_Statement {
 
 case class L1_SolverParameter(var name : String, var value : Any) extends L1_SolverHint with L1_GeneralParameter {
   override def prettyprint(out : PpStream) = out << name << " = " << printVal
-  override def progress() = L2_SolverParameter(name, value)
+  override def progress = L2_SolverParameter(name, value)
 }

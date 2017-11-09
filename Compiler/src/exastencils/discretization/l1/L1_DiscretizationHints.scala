@@ -33,7 +33,7 @@ case class L1_DiscretizationParameter(var name : String, var value : Any) extend
   override def process() = set()
 }
 
-/// L1_ProcessDiscretizeBlocks
+/// L1_ProcessDiscretizationHints
 
 object L1_ProcessDiscretizationHints extends DefaultStrategy("Process discretization hints") {
   this += Transformation("Process", {
