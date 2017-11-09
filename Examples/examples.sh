@@ -9,7 +9,9 @@ configList+="Stokes/2D_FV_Stokes "
 
 # Poisson
 
-configList+="Poisson/2D_FD_Poisson "
+configList+="Poisson/2D_FD_Poisson_usingL1 "
+configList+="Poisson/2D_FD_Poisson_usingL2 "
+
 configList+="Poisson/2D_FV_Poisson "
 configList+="Poisson/3D_FD_Poisson "
 configList+="Poisson/3D_FV_Poisson "

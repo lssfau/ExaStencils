@@ -4,7 +4,6 @@ configName          = "3D_FD_Poisson"
 
 basePathPrefix      = "./Poisson/"
 
-l1file              = "$configName$.exa1"
 l2file              = "$configName$.exa2"
 l3file              = "$configName$.exa3"
 l4file              = "$configName$.exa4"

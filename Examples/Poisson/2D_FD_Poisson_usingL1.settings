@@ -1,12 +1,10 @@
 user                = "Guest"
 
-configName          = "3D_FD_OptFlow"
+configName          = "2D_FD_Poisson_usingL1"
 
-basePathPrefix      = "./OpticalFlow/"
+basePathPrefix      = "./Poisson/"
 
-l2file              = "$configName$.exa2"
-l3file              = "$configName$.exa3"
-l4file              = "$configName$.exa4"
+l1file              = "$configName$.exa1"
 
 debugL1File         = "../Debug/$configName$_debug.exa1"
 debugL2File         = "../Debug/$configName$_debug.exa2"
