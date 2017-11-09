@@ -143,7 +143,11 @@ object Knowledge {
   // allows setting the interpolation order for Dirichlet BCs for cell or face localized quantities
   var discr_defaultDirichletOrder : Int = 1
 
-  // TODO: ignore for IDE support for now
+  // may currently be "Taylor" or "Lagrange"
+  var discr_fd_scheme : String = "Taylor"
+
+  // target error order for FD discretizations
+  var discr_fd_order : Int = 2
 
   // (uniform) grid width per dimension and level
   var discr_hx : Array[Double] = Array()
