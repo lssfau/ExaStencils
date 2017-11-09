@@ -16,7 +16,7 @@ case class L4_DomainFromAABB(var name : String, aabb : L4_AABB) extends L4_Domai
 /// L4_DomainFromAABBDecl
 
 case class L4_DomainFromAABBDecl(var name : String, lower : Array[Double], upper : Array[Double]) extends L4_DomainDecl {
-  override def prettyprint(out : PpStream) = out << "Domain " << name << "< " << lower << " to " << upper << " >"
+  override def prettyprint(out : PpStream) = out << "Domain " << name << "< [" << lower.mkString(", ") << "] to [" << upper.mkString(", ") << "] >"
 
   override def addToKnowledge() = {
     L4_DomainCollection.add(L4_DomainFromAABB(name, L4_AABB(lower, upper)))
