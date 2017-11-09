@@ -39,13 +39,13 @@ object L1_FD_DiscretizeSubtree extends QuietDefaultStrategy("Discretize expressi
       for (offsetInDim <- -reach to reach) {
         val offset = L1_ConstIndex(Array.fill(numDims)(0))
         offset(dim) = offsetInDim
-        tmpStencil.entries += L1_StencilOffsetEntry(offset, weights(offsetInDim + reach))
+        tmpStencil.entries += L1_StencilEntry(offset, weights(offsetInDim + reach))
       }
 
       L1_StencilAccess(tmpStencil)
 
     case c : L1_Number =>
-      val tmpStencil = L1_Stencil("tmp_const", level, numDims, ListBuffer(L1_StencilOffsetEntry(L1_ConstIndex(Array.fill(numDims)(0)), c)))
+      val tmpStencil = L1_Stencil("tmp_const", level, numDims, ListBuffer(L1_StencilEntry(L1_ConstIndex(Array.fill(numDims)(0)), c)))
       L1_StencilAccess(tmpStencil)
   })
 }

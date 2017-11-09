@@ -35,7 +35,7 @@ object L1_StencilOps {
 
     for (left <- left.entries; right <- right.entries) {
       val offset = left.offset + right.offset
-      newStencil.entries += L1_StencilOffsetEntry(offset, Duplicate(left.coefficient) * Duplicate(right.coefficient))
+      newStencil.entries += L1_StencilEntry(offset, Duplicate(left.coefficient) * Duplicate(right.coefficient))
     }
 
     newStencil.entries.foreach(L1_GeneralSimplify.doUntilDoneStandalone(_))

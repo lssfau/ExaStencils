@@ -7,4 +7,3 @@ import exastencils.knowledge.ir.IR_LeveledKnowledgeCollection
 object IR_StencilFieldCollection extends IR_LeveledKnowledgeCollection[IR_StencilField] {
   exastencils.core.Duplicate.registerConstant(this)
 }
-

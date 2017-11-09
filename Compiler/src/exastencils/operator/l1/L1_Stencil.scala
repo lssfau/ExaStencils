@@ -17,7 +17,7 @@ case class L1_Stencil(
     var name : String, // will be used to find the stencil
     var level : Int, // the level the stencil lives on
     var numDims : Int, // number of dimensions in the coefficients
-    var entries : ListBuffer[L1_StencilOffsetEntry]) extends L1_LeveledKnowledgeObject[L2_Stencil] {
+    var entries : ListBuffer[L1_StencilEntry]) extends L1_LeveledKnowledgeObject[L2_Stencil] {
 
   override def prettyprintDecl(out : PpStream) : Unit = {
     out << "Operator " << name << "@" << level << " from Stencil {\n"
@@ -29,7 +29,7 @@ case class L1_Stencil(
   def assembleOffsetMap() = entries.map(_.offset)
   def getReach(dim : Int) = assembleOffsetMap().map(_.indices(dim)).max
 
-  def findStencilEntry(offset : L1_ConstIndex) : Option[L1_StencilOffsetEntry] = {
+  def findStencilEntry(offset : L1_ConstIndex) : Option[L1_StencilEntry] = {
     val index = findStencilEntryIndex(offset)
     if (index.isDefined)
       Some(entries(index.get))
@@ -63,7 +63,7 @@ case class L1_Stencil(
               case index if index.length >= numDims =>
                 (0 until numDims).map(d => index(d) == it(d)).reduce(_ && _)
               case _                                => false
-            }).getOrElse(L1_StencilOffsetEntry(L1_ConstIndex(), 0)).coefficient.prettyprint
+            }).getOrElse(L1_StencilEntry(L1_ConstIndex(), 0)).coefficient.prettyprint
       }
 
       numDims match {
@@ -92,7 +92,7 @@ case class L1_Stencil(
   }
 
   def squash() = {
-    val newEntries = ListBuffer[L1_StencilOffsetEntry]()
+    val newEntries = ListBuffer[L1_StencilEntry]()
 
     for (entry <- entries) {
       val dup = newEntries.find(_.offset == entry.offset)
