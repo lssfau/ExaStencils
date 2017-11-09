@@ -31,7 +31,7 @@ object L2_Lexer extends ExaLexer {
   reserved += ("Var", "Variable", "Val", "Value")
 
   // baseExt => L2_ApplicationHints
-  reserved += ("ApplicationHint", "L4Hint")
+  reserved += ("ApplicationHint", "ApplicationHints", "L4Hint", "L4Hints")
 
   // baseExt => L2_FieldIteratorAccess
   reserved += ("i0", "i1", "i2", "x", "y", "z")
@@ -61,7 +61,7 @@ object L2_Lexer extends ExaLexer {
 
   // solver
   reserved += ("Equation")
-  reserved += ("Solve", "SolverHint", "L3Hint")
+  reserved += ("Solve", "SolverHint", "SolverHints", "L3Hint", "L3Hints")
   reserved += ("generate", "solver", "for", "in")
 
   /// TO BE INTEGRATED

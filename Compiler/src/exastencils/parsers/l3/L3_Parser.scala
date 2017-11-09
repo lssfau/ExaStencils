@@ -301,7 +301,7 @@ object L3_Parser extends ExaParser with PackratParsers {
 
   lazy val applicationHint = applicationParameter
   lazy val applicationParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L3_ApplicationParameter(param, value) })
-  lazy val applicationHints = locationize((("ApplicationHint" ||| "L4Hint") ~ "{") ~> applicationHint.* <~ "}"
+  lazy val applicationHints = locationize((("ApplicationHint" ||| "ApplicationHints" ||| "L4Hint" ||| "L4Hints") ~ "{") ~> applicationHint.* <~ "}"
     ^^ (L3_ApplicationHints(_)))
 
   // ######################################

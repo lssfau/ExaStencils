@@ -44,7 +44,7 @@ object L3_Lexer extends ExaLexer {
   reserved += ("Node", "Cell", "node", "cell", "Face_x", "face_x", "Face_y", "face_y", "Face_z", "face_z")
 
   // baseExt => L3_ApplicationHints
-  reserved += ("ApplicationHint", "L4Hint")
+  reserved += ("ApplicationHint", "ApplicationHints", "L4Hint", "L4Hints")
 
   // baseExt => L3_FieldIteratorAccess
   reserved += ("i0", "i1", "i2", "x", "y", "z")

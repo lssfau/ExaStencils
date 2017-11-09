@@ -245,7 +245,7 @@ object L2_Parser extends ExaParser with PackratParsers {
 
   lazy val applicationHint = applicationParameter
   lazy val applicationParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L2_ApplicationParameter(param, value) })
-  lazy val applicationHints = locationize((("ApplicationHint" ||| "L4Hint") ~ "{") ~> applicationHint.* <~ "}"
+  lazy val applicationHints = locationize((("ApplicationHint" ||| "ApplicationHints" ||| "L4Hint" ||| "L4Hints") ~ "{") ~> applicationHint.* <~ "}"
     ^^ (L2_ApplicationHints(_)))
 
   // ######################################
@@ -412,7 +412,7 @@ object L2_Parser extends ExaParser with PackratParsers {
 
   lazy val solverParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L2_SolverParameter(param, value) })
 
-  lazy val solverHints = locationize((("solve" ||| "SolverHint" ||| "L3Hint") ~ "{") ~> solverHint.* <~ "}"
+  lazy val solverHints = locationize((("Solve" ||| "SolverHint" ||| "SolverHints" ||| "L3Hint" ||| "L3Hints") ~ "{") ~> solverHint.* <~ "}"
     ^^ (L2_SolverHints(_)))
 
   /// TO BE INTEGRATED

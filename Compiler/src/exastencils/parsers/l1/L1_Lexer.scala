@@ -26,10 +26,10 @@ object L1_Lexer extends ExaLexer {
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
   // baseExt => L1_ApplicationHints
-  reserved += ("ApplicationHint", "L4Hint")
+  reserved += ("ApplicationHint", "ApplicationHints", "L4Hint", "L4Hints")
 
   // discretization
-  reserved += ("Discretize", "DiscretizationHint", "L2Hint")
+  reserved += ("Discretize", "DiscretizationHint", "DiscretizationHints", "L2Hint", "L2Hints")
   reserved += ("on", "with")
 
   // domain => L1_DomainDecl
@@ -50,7 +50,7 @@ object L1_Lexer extends ExaLexer {
 
   // solver
   reserved += ("Equation")
-  reserved += ("Solve", "SolverHint", "L3Hint")
+  reserved += ("Solve", "SolverHint", "SolverHints", "L3Hint", "L3Hints")
   reserved += ("generate", "solver", "for", "in")
 }
 
