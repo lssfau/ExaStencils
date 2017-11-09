@@ -1,6 +1,6 @@
 package test.parser.l1
 
-import exastencils.parsers.l1.toIntegrate.L1_Parser
+import exastencils.deprecated.ewald.L1_Parser
 
 object TestParserL1 {
   val parser = L1_Parser
