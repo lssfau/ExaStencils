@@ -1,20 +1,11 @@
-package exastencils.base.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 import scala.collection.mutable.ListBuffer
 
-import exastencils.base.l1.L1_Node
-import exastencils.base.l1.L1_Progressable
+import exastencils.base.l1._
 import exastencils.base.l2.L2_Root
 import exastencils.logger.Logger
 import exastencils.prettyprinting._
-
-/// L1_Root
-
-object L1_Root {
-  def apply() = new L1_Root(ListBuffer())
-  def apply(node : L1_Node) = new L1_Root(ListBuffer(node))
-  def apply(nodes : List[L1_Node]) = new L1_Root(nodes.to[ListBuffer])
-}
 
 case class L1_Root(var nodes : ListBuffer[L1_Node]) extends L1_Node with L1_Progressable with PrettyPrintable {
   var domains = ListBuffer[L1_Domain]()

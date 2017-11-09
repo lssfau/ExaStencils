@@ -1,4 +1,4 @@
-package exastencils.base.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 sealed abstract class L1_StencilParameter(val dim : Int, val len : Int) {
   def *(e : L1_StencilEntry) : L1_StencilParameter

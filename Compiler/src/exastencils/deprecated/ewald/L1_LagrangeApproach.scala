@@ -1,4 +1,4 @@
-package exastencils.base.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 /** Finite Difference Computation via Lagrange Polynomial
   *
@@ -38,6 +38,7 @@ class L1_LagrangeApproach(N : Int, M : Int, h : Double, val x0 : Double = 0.0) e
       val w_i = for (j <- gridPoints.indices if (j != i)) yield gridPoints(i) - gridPoints(j)
       1.0 / (w_i reduce { _ * _ })
     }
+
     for (i <- gridPoints.indices) yield product(i)
   }
 
@@ -52,6 +53,7 @@ class L1_LagrangeApproach(N : Int, M : Int, h : Double, val x0 : Double = 0.0) e
       val c_m = for (l <- 0 to m) yield a(l) * b(m - l)
       c_m reduce { _ + _ }
     }
+
     assert(a.length == b.length)
     val c = for (m <- a.indices) yield sum(m)
     c.toArray

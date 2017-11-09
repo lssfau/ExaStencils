@@ -1,4 +1,4 @@
-package exastencils.base.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 import exastencils.datastructures.Node
 

@@ -1,4 +1,4 @@
-package exastencils.base.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 object L1_Dimension {
   implicit def stringsToDimension(left : String, right : String) : L1_Dimension = {

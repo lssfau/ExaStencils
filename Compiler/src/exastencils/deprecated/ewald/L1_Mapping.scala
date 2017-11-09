@@ -1,4 +1,4 @@
-package exastencils.base.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 import exastencils.datastructures._
 import exastencils.logger._
@@ -28,7 +28,7 @@ object L1_MathSet {
       case ("C", "1") => return L1_MathSetC1()
       case ("C", "2") => return L1_MathSetC2()
       case ("C", "3") => return L1_MathSetC3()
-      case _          => Logger.error(s"Unknown math set ${id}${exponent}")
+      case _          => Logger.error(s"Unknown math set ${ id }${ exponent }")
     }
   }
 

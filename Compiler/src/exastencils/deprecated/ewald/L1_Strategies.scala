@@ -1,4 +1,4 @@
-package exastencils.base.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 //object L1_UnifyOperators extends DefaultStrategy("Unification and simplification of mathematical operators") {
 //  def sanitize(s : String) = {

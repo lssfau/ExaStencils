@@ -1,4 +1,4 @@
-package exastencils.parsers.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 import scala.util.parsing.combinator.lexical.StdLexical
 

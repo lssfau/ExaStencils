@@ -1,4 +1,4 @@
-package exastencils.base.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 /**
   * Abstract base-class for a binary tree structure of mathematical expressions,

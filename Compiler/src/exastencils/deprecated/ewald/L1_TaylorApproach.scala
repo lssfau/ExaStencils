@@ -1,4 +1,4 @@
-package exastencils.base.l1.toIntegrate
+package exastencils.deprecated.ewald
 
 /** Finite Difference Computation via Taylor series expansion
   * resulting in the solution of a eqSystem.
