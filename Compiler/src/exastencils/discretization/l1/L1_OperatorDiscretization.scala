@@ -4,6 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l1.L1_ImplicitConversion._
 import exastencils.base.l1._
+import exastencils.config.Knowledge
 import exastencils.domain.l1._
 import exastencils.logger.Logger
 import exastencils.operator.l1._
@@ -13,7 +14,7 @@ import exastencils.prettyprinting.PpStream
 /// L1_OperatorDiscretization
 
 object L1_OperatorDiscretization {
-  def apply(src : String, levels : Option[L1_DeclarationLevelSpecification], mapping : Option[String], discretization : String, domain : String) =
+  def apply(src : String, levels : Option[L1_DeclarationLevelSpecification], mapping : Option[String], discretization : Option[String], domain : String) =
     new L1_OperatorDiscretization(src, levels, mapping, discretization, L1_FutureDomainAccess(domain))
 }
 
@@ -21,13 +22,14 @@ case class L1_OperatorDiscretization(
     var src : String,
     var levels : Option[L1_DeclarationLevelSpecification],
     var mapping : Option[String],
-    var discretization : String,
+    var discretization : Option[String],
     var domain : L1_Access) extends L1_DiscretizationHint {
 
   override def prettyprint(out : PpStream) = {
     out << src
     if (mapping.isDefined) out << " => " << mapping.get
-    out << " with " << L1_StringConstant(discretization)
+    if (discretization.isDefined) out << " with " << L1_StringConstant(discretization.get)
+    out << " on " << domain
   }
 
   def squashStencilExpr(expr : L1_Expression) : L1_Stencil = {
@@ -47,7 +49,7 @@ case class L1_OperatorDiscretization(
   }
 
   def discretizeExpression(level : Int, expr : L1_Expression) : L1_Stencil = {
-    discretization.toLowerCase() match {
+    discretization.getOrElse(Knowledge.discr_type).toLowerCase() match {
       case "fd" | "finitedifference" | "finitedifferences" | "finite_difference" | "finite_differences" | "finite difference" | "finite differences" =>
         L1_FD_DiscretizeSubtree.domain = domain.asInstanceOf[L1_DomainAccess].target
         L1_FD_DiscretizeSubtree.level = level
