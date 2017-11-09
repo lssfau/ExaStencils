@@ -33,7 +33,7 @@ import exastencils.util._
 
 trait IR_LayerHandler extends LayerHandler
 
-/// IR_DummyLayerHandler 
+/// IR_DummyLayerHandler
 
 object IR_DummyLayerHandler extends IR_LayerHandler {
   def initialize() : Unit = {}
@@ -249,8 +249,7 @@ object IR_DefaultLayerHandler extends IR_LayerHandler {
       CUDA_HandleReductions.apply()
     }
 
-    if (Knowledge.opt_useColorSplitting || Knowledge.opt_arrayOfFields)
-      IR_LayoutTansformation.apply()
+    IR_LayoutTansformation.apply()
 
     // before converting kernel functions -> requires linearized accesses
     IR_LinearizeDirectFieldAccess.apply()

@@ -80,7 +80,7 @@ fi
 echo ""
 echo ""
 echo "Tests finished at $(date -R)."
-echo "New tests can be triggered <a href=../../trigger-eg-tests.html>here</a>."
+echo "New tests can be triggered <a href=../trigger-eg-tests.html>here</a>."
 echo ""
 echo "============================================================================"
 
