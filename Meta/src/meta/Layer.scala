@@ -5,7 +5,12 @@ import scala.collection.mutable.ListBuffer
 /// Layer
 
 object Layer {
-  def all = ListBuffer(L2, L3, L4, IR)
+  def all = ListBuffer(L1, L2, L3, L4, IR)
+  def allButIR = ListBuffer(L1, L2, L3, L4)
+  def L2AndUp = ListBuffer(L2, L3, L4, IR)
+  def L3AndUp = ListBuffer(L3, L4, IR)
+  def L4AndUp = ListBuffer(L4, IR)
+  def L1_L2_L3 = ListBuffer(L1, L2, L3)
   def L2_L3 = ListBuffer(L2, L3)
   def L3_L4 = ListBuffer(L3, L4)
   def L2_L3_L4 = ListBuffer(L2, L3, L4)
