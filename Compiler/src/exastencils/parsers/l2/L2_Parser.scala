@@ -61,6 +61,7 @@ object L2_Parser extends ExaParser with PackratParsers {
       ||| operatorFromEq
       ||| equationDeclaration
       ||| solverHints
+      ||| applicationHints
     ).* ^^ { L2_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -237,6 +238,15 @@ object L2_Parser extends ExaParser with PackratParsers {
   // #############################################################################
   // ################################## BASE_EXT #################################
   // #############################################################################
+
+  // ######################################
+  // ##### L2_ApplicationHints
+  // ######################################
+
+  lazy val applicationHint = applicationParameter
+  lazy val applicationParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L2_ApplicationParameter(param, value) })
+  lazy val applicationHints = locationize((("ApplicationHint" ||| "L4Hint") ~ "{") ~> applicationHint.* <~ "}"
+    ^^ (L2_ApplicationHints(_)))
 
   // ######################################
   // ##### L2_FieldIteratorAccess

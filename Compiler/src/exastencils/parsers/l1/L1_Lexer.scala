@@ -25,6 +25,9 @@ object L1_Lexer extends ExaLexer {
   // base => L1_LevelSpecification
   reserved += ("current", "coarser", "finer", "coarsest", "finest", "to", "not", "but", "all", "and")
 
+  // baseExt => L1_ApplicationHints
+  reserved += ("ApplicationHint", "L4Hint")
+
   // discretization
   reserved += ("Discretize", "DiscretizationHint", "L2Hint")
   reserved += ("on", "with")

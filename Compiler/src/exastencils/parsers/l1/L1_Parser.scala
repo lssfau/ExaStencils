@@ -6,7 +6,7 @@ import scala.util.parsing.combinator._
 import scala.util.parsing.input._
 
 import exastencils.base.l1._
-import exastencils.baseExt.l1.L1_UnresolvedAccess
+import exastencils.baseExt.l1._
 import exastencils.boundary.l1._
 import exastencils.discretization.l1._
 import exastencils.domain.l1._
@@ -65,6 +65,7 @@ object L1_Parser extends ExaParser with PackratParsers {
       ||| equationDeclaration
       ||| discretizationHints
       ||| solverHints
+      ||| applicationHints
     ).* ^^ { L1_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -200,6 +201,19 @@ object L1_Parser extends ExaParser with PackratParsers {
       ||| locationize("finest" ^^ { _ => L1_FinestLevel })
       ||| locationize(integerLit ^^ { l => L1_SingleLevel(l) })
       ||| locationize("(" ~> directDeclLevel <~ ")" ^^ { l => l }))
+
+  // #############################################################################
+  // ################################## BASE_EXT #################################
+  // #############################################################################
+
+  // ######################################
+  // ##### L1_ApplicationHints
+  // ######################################
+
+  lazy val applicationHint = applicationParameter
+  lazy val applicationParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L1_ApplicationParameter(param, value) })
+  lazy val applicationHints = locationize((("ApplicationHint" ||| "L4Hint") ~ "{") ~> applicationHint.* <~ "}"
+    ^^ (L1_ApplicationHints(_)))
 
   // ######################################
   // ##### L1_UnresolvedAccess

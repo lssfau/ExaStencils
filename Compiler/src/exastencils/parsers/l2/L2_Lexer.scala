@@ -30,6 +30,9 @@ object L2_Lexer extends ExaLexer {
   // base => L2_Declaration
   reserved += ("Var", "Variable", "Val", "Value")
 
+  // baseExt => L2_ApplicationHints
+  reserved += ("ApplicationHint", "L4Hint")
+
   // baseExt => L2_FieldIteratorAccess
   reserved += ("i0", "i1", "i2", "x", "y", "z")
 

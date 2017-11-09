@@ -130,6 +130,9 @@ object L3_DefaultLayerHandler extends L3_LayerHandler {
       L3_FieldCollection.addInitFieldsFunction()
     }
 
+    // process application Hints
+    L3_ProcessApplicationHints.apply()
+
     // progress knowledge to L4
     L3_KnowledgeContainer.progress()
 

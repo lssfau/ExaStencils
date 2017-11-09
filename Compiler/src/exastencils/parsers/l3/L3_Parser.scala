@@ -64,6 +64,7 @@ object L3_Parser extends ExaParser with PackratParsers {
       ||| functionTemplate
       ||| functionInstantiation
       ||| solverForEq
+      ||| applicationHints
     ).* ^^ { L3_Root(_) }
 
   lazy val import_ = "import" ~> stringLit ^^ { parseFile }
@@ -293,6 +294,15 @@ object L3_Parser extends ExaParser with PackratParsers {
   // #############################################################################
   // ################################## BASE_EXT #################################
   // #############################################################################
+
+  // ######################################
+  // ##### L3_ApplicationHints
+  // ######################################
+
+  lazy val applicationHint = applicationParameter
+  lazy val applicationParameter = locationize((ident <~ "=") ~ literal ^^ { case param ~ value => L3_ApplicationParameter(param, value) })
+  lazy val applicationHints = locationize((("ApplicationHint" ||| "L4Hint") ~ "{") ~> applicationHint.* <~ "}"
+    ^^ (L3_ApplicationHints(_)))
 
   // ######################################
   // ##### L3_FieldIteratorAccess
