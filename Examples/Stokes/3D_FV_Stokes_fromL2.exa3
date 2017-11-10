@@ -4,7 +4,7 @@ generate solver for u in uEquation and v in vEquation and w in wEquation and p i
   solver_smoother_numPre        = 4
   solver_smoother_numPost       = 4
   solver_smoother_damping       = 0.8
-  solver_smoother_coloring      = "27-way" // "red-black"
+  solver_smoother_coloring      = "red-black" // "27-way"
   solver_cgs                    = "BiCGStab"
   solver_cgs_maxNumIts          = 128
   solver_cgs_targetResReduction = 1e-3
