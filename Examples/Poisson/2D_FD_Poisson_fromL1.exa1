@@ -1,10 +1,10 @@
 /// inline knowledge
 
 Knowledge {
-	dimensionality = 2
+  dimensionality = 2
 
-	minLevel       = 2
-	maxLevel       = 8
+  minLevel       = 2
+  maxLevel       = 8
 }
 
 /// problem specification
@@ -25,25 +25,25 @@ Equation uEq@(all but finest) op * u == 0.0
 /// configuration of inter-layer transformations
 
 DiscretizationHints { // alt: Discretize, L2Hint(s)
-	f on Node
-	u on Node
+  f on Node
+  u on Node
 
-	op on global
+  op on global
 
-	uEq
+  uEq
 
-	// paramters
+  // paramters
   discr_type = "FiniteDifferences"
 }
 
 SolverHints { // alt: Solve, L3Hint(s)
-	generate solver for u in uEq
+  generate solver for u in uEq
 
-	// parameters
+  // parameters
   solver_targetResReduction = 1e-6
 }
 
 ApplicationHints { // alt L4Hint(s)
-	// parameters
-	l4_genDefaultApplication = true
+  // parameters
+  l4_genDefaultApplication = true
 }

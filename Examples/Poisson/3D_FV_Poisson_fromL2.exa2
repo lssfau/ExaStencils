@@ -3,7 +3,7 @@ Domain global< [ 0, 0, 0 ] to [ 1, 1, 1 ] >
 
 Field Solution with Real on Node of global = 0.0
 
-Field Solution@finest on boundary = vf_boundaryCoord_x@current * vf_boundaryCoord_x@current - 0.5 * vf_boundaryCoord_y@current * vf_boundaryCoord_y@current - 0.5 * vf_boundaryCoord_z@current * vf_boundaryCoord_z@current
+Field Solution@finest on boundary = vf_boundaryCoord_x * vf_boundaryCoord_x - 0.5 * vf_boundaryCoord_y * vf_boundaryCoord_y - 0.5 * vf_boundaryCoord_z * vf_boundaryCoord_z
 Field Solution@(all but finest) on boundary = 0.0
 
 Field RHS with Real on Node of global = 0.0

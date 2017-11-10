@@ -1,10 +1,11 @@
 user                = "Guest"
 
-configName          = "2D_FD_Poisson_usingL1"
+configName          = "2D_FD_Poisson_fromL2"
 
 basePathPrefix      = "./Poisson/"
 
-l1file              = "$configName$.exa1"
+l2file              = "$configName$.exa2"
+l3file              = "$configName$.exa3"
 
 debugL1File         = "../Debug/$configName$_debug.exa1"
 debugL2File         = "../Debug/$configName$_debug.exa2"
