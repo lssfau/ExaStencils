@@ -14,11 +14,11 @@ Field p with Real on Cell of global = 0.0
 Field p on boundary = Neumann // TODO: currently not evaluated outside inner scope
 
 
-Field rhs_u@finest with Real on Face_x of global = 4.0 * sin ( 2.0 * vf_cellCenter_y ) * cos ( 4.0 * vf_nodePosition_x ) - 64.0 * cos ( 4.0 * vf_cellCenter_y )
+Field rhs_u@finest with Real on Face_x of global = vf_xStagCellVolume * ( 4.0 * sin ( 2.0 * vf_cellCenter_y ) * cos ( 4.0 * vf_nodePosition_x ) - 64.0 * cos ( 4.0 * vf_cellCenter_y ) )
 
-Field rhs_v@finest with Real on Face_y of global = 2.0 * sin ( 4.0 * vf_cellCenter_x ) * cos ( 2.0 * vf_nodePosition_y ) + 8.0 * cos ( 2.0 * vf_cellCenter_x )
+Field rhs_v@finest with Real on Face_y of global = vf_yStagCellVolume * ( 2.0 * sin ( 4.0 * vf_cellCenter_x ) * cos ( 2.0 * vf_nodePosition_y ) + 8.0  * cos ( 2.0 * vf_cellCenter_x ) )
 
-Field rhs_p@finest with Real on Cell of global = 0.0
+Field rhs_p@finest with Real on Cell of global = vf_cellVolume * ( 0.0 )
 
 
 Equation uEquation@finest {
@@ -74,12 +74,12 @@ generate operators @all {
     u => A11
     p => B1
   }
-  
+
   equation for v is vEquation store in {
     v => A22
     p => B2
   }
-  
+
   equation for p is pEquation store in {
     u => C1
     v => C2

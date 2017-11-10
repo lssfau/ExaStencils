@@ -58,12 +58,12 @@ generate operators @all {
     u => A11
     p => B1
   }
-  
+
   equation for v is vEquation store in {
     v => A22
     p => B2
   }
-  
+
   equation for p is pEquation store in {
     u => C1
     v => C2

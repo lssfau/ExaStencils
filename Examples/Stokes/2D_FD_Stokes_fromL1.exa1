@@ -1,0 +1,80 @@
+
+/// problem specification
+
+Domain global = ( 0, 3 ) \times ( 0, 3 )
+
+Field u \in global = 0.0
+Field v \in global = 0.0
+Field p \in global = 0.0
+
+Field u@finest \in \partial global = -4.0 * cos ( 4.0 * vf_boundaryCoord_y )
+Field u@(all but finest) \in \partial global = 0.0
+Field v@finest \in \partial global = 2.0 * cos ( 2.0 * vf_boundaryCoord_x )
+Field v@(all but finest) \in \partial global = 0.0
+Field p \in \partial global = Neumann
+
+// TODO: handle virtual fields properly and make @current implicit again
+Field f_u@finest \in global = 4.0 * sin ( 2.0 * vf_cellCenter_y@current ) * cos ( 4.0 * vf_nodePosition_x@current ) - 64.0 * cos ( 4.0 * vf_cellCenter_y@current )
+Field f_v@finest \in global = 2.0 * sin ( 4.0 * vf_cellCenter_x@current ) * cos ( 2.0 * vf_nodePosition_y@current ) + 8.0  * cos ( 2.0 * vf_cellCenter_x@current )
+Field f_p@finest \in global = 0.0
+
+Operator Laplace = - \Delta // alt: - ( \partial_{xx} + \partial_{yy} )
+
+Operator dxBwd = \partial_{x}
+Operator dyBwd = \partial_{y}
+Operator dxFwd = \partial_{x}
+Operator dyFwd = \partial_{y}
+
+Equation uEq@finest           Laplace * u + dxBwd * p == f_u
+Equation uEq@(all but finest) Laplace * u + dxBwd * p == 0.0
+
+Equation vEq@finest           Laplace * v + dyBwd * p == f_v
+Equation vEq@(all but finest) Laplace * v + dyBwd * p == 0.0
+
+Equation pEq@finest           dxFwd   * u + dyFwd * v == f_p
+Equation pEq@(all but finest) dxFwd   * u + dyFwd * v == 0.0
+
+/// configuration of inter-layer transformations
+
+DiscretizationHints { // alt: Discretize, L2Hint(s)
+  u on Face_x
+  v on Face_y
+  p on Cell
+
+  f_u on Face_x
+  f_v on Face_y
+  f_p on Cell
+
+  Laplace on global order 2
+  dxFwd   on global order 1 direction 1
+  dyFwd   on global order 1 direction 1
+  dxBwd   on global order 1 direction -1
+  dyBwd   on global order 1 direction -1
+
+  uEq
+  vEq
+  pEq
+
+  // paramters
+  discr_type = "FiniteDifferences"
+}
+
+SolverHints {
+  generate solver for u in uEq and v in vEq and p in pEq
+
+  // parameters
+  solver_targetResReduction     = 1e-6
+  solver_smoother_jacobiType    = false
+  solver_smoother_numPre        = 4
+  solver_smoother_numPost       = 4
+  solver_smoother_damping       = 0.8
+  solver_smoother_coloring      = "9-way"
+  solver_cgs                    = "BiCGStab"
+  solver_cgs_maxNumIts          = 128
+  solver_cgs_targetResReduction = 1e-3
+}
+
+ApplicationHints {
+  // parameters
+  l4_genDefaultApplication = true
+}
