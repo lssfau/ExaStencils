@@ -7,6 +7,7 @@ import exastencils.base.l1._
 import exastencils.config.Knowledge
 import exastencils.datastructures._
 import exastencils.domain.l1._
+import exastencils.logger.Logger
 import exastencils.operator.l1._
 
 /// L1_FD_DiscretizeSubtree
@@ -14,6 +15,9 @@ import exastencils.operator.l1._
 object L1_FD_DiscretizeSubtree extends QuietDefaultStrategy("Discretize expressions recursively") {
   var domain : L1_Domain = _
   var level : Int = 0
+
+  var errOrder : Int = 2
+  var direction : Int = 0
 
   def numDims = domain.numDims
 
@@ -25,21 +29,30 @@ object L1_FD_DiscretizeSubtree extends QuietDefaultStrategy("Discretize expressi
     case L1_PartialDerivative(derOrder, dim) =>
       val domainExtends = domain.asInstanceOf[L1_DomainFromAABB].aabb
       val gridWidth = domainExtends.width(dim) / (Knowledge.domain_rect_numFragsTotalAsVec(dim) * Knowledge.domain_fragmentLengthAsVec(dim) * (1 << level))
-      val errOrder = Knowledge.discr_fd_order
 
-      val n = if ((derOrder + errOrder) % 2 == 1) derOrder + errOrder else derOrder + errOrder - 1
-      val weights = Knowledge.discr_fd_scheme.toLowerCase() match {
-        case "taylor"   => new L1_FD_TaylorApproach(n, derOrder, gridWidth, errOrder, 0).getWeights
-        case "lagrange" => new L1_FD_LagrangeApproach(n, derOrder, gridWidth, 0).getWeights
+      Logger.warn(dim + " : " + gridWidth)
+
+      var n = derOrder + errOrder
+      if (0 == direction && (derOrder + errOrder) % 2 != 1) n -= 1
+
+      val approach = Knowledge.discr_fd_scheme.toLowerCase() match {
+        case "taylor" =>
+          new L1_FD_TaylorApproach(n, derOrder, gridWidth, errOrder, direction)
+
+        case "lagrange" =>
+          if (0 != direction) Logger.error(s"Lagrange approach only supports direction 0; $direction was given")
+          new L1_FD_LagrangeApproach(n, derOrder, gridWidth, 0)
       }
 
       val tmpStencil = L1_Stencil(s"partDer_${ derOrder }_$dim", level, numDims, ListBuffer())
 
-      val reach = (n - 1) / 2
-      for (offsetInDim <- -reach to reach) {
+      val weights = approach.getWeights
+      val offsets = approach.getOffsets
+
+      for (i <- weights.indices) {
         val offset = L1_ConstIndex(Array.fill(numDims)(0))
-        offset(dim) = offsetInDim
-        tmpStencil.entries += L1_StencilEntry(offset, weights(offsetInDim + reach))
+        offset(dim) = offsets(i)
+        tmpStencil.entries += L1_StencilEntry(offset, weights(i))
       }
 
       L1_StencilAccess(tmpStencil)

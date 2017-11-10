@@ -14,4 +14,5 @@ abstract class L1_FD_Approach(val N : Int, val M : Int, val h : Double) {
   assert(h > 0)
 
   def getWeights : List[Double]
+  def getOffsets : List[Int]
 }

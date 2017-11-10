@@ -65,12 +65,6 @@ class L1_FD_TaylorApproach(N : Int, M : Int, h : Double, val e : Int, val direct
     eqSys
   }
 
-  def getWeights : List[Double] = {
-    if (direction == 1)
-      List.fill(i_max)(0.0) ++ weights // prepend zeros for central difference stencil notation
-    else if (direction == -1)
-      weights ++ List.fill(-1 * i_min)(0.0) // append zeros for central difference stencil notation
-    else
-      weights
-  }
+  override def getWeights : List[Double] = weights
+  override def getOffsets : List[Int] = range.toList
 }

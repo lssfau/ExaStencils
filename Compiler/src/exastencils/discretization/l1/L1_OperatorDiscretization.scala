@@ -14,8 +14,8 @@ import exastencils.prettyprinting.PpStream
 /// L1_OperatorDiscretization
 
 object L1_OperatorDiscretization {
-  def apply(src : String, levels : Option[L1_DeclarationLevelSpecification], mapping : Option[String], discretization : Option[String], domain : String) =
-    new L1_OperatorDiscretization(src, levels, mapping, discretization, L1_FutureDomainAccess(domain))
+  def apply(src : String, levels : Option[L1_DeclarationLevelSpecification], mapping : Option[String], discretization : Option[String], domain : String, order : Option[Int], direction : Option[Int]) =
+    new L1_OperatorDiscretization(src, levels, mapping, discretization, L1_FutureDomainAccess(domain), order, direction)
 }
 
 case class L1_OperatorDiscretization(
@@ -23,7 +23,9 @@ case class L1_OperatorDiscretization(
     var levels : Option[L1_DeclarationLevelSpecification],
     var mapping : Option[String],
     var discretization : Option[String],
-    var domain : L1_Access) extends L1_DiscretizationHint {
+    var domain : L1_Access,
+    var order : Option[Int],
+    var direction : Option[Int]) extends L1_DiscretizationHint {
 
   override def prettyprint(out : PpStream) = {
     out << src
@@ -53,6 +55,8 @@ case class L1_OperatorDiscretization(
       case "fd" | "finitedifference" | "finitedifferences" | "finite_difference" | "finite_differences" | "finite difference" | "finite differences" =>
         L1_FD_DiscretizeSubtree.domain = domain.asInstanceOf[L1_DomainAccess].target
         L1_FD_DiscretizeSubtree.level = level
+        L1_FD_DiscretizeSubtree.errOrder = order.getOrElse(Knowledge.discr_fd_order)
+        L1_FD_DiscretizeSubtree.direction = direction.getOrElse(0)
 
         val wrapped = L1_ExpressionStatement(expr)
         L1_GeneralSimplify.applyStandalone(wrapped)

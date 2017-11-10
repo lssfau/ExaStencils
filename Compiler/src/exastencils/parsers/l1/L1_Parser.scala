@@ -244,8 +244,8 @@ object L1_Parser extends ExaParser with PackratParsers {
   lazy val fieldDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("on" ~> localization)
     ^^ { case src ~ levels ~ map ~ local => L1_FieldDiscretization(src, levels, map, local) })
 
-  lazy val operatorDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("with" ~> stringLit).? ~ ("on" ~> ident)
-    ^^ { case src ~ levels ~ map ~ discr ~ domain => L1_OperatorDiscretization(src, levels, map, discr, domain) })
+  lazy val operatorDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).? ~ ("with" ~> stringLit).? ~ ("on" ~> ident) ~ ("order" ~> integerLit).? ~ ("direction" ~> integerLit).?
+    ^^ { case src ~ levels ~ map ~ discr ~ domain ~ order ~ dir => L1_OperatorDiscretization(src, levels, map, discr, domain, order, dir) })
 
   lazy val equationDiscr = locationize(ident ~ levelDecl.? ~ ("=>" ~> ident).?
     ^^ { case src ~ levels ~ map => L1_EquationDiscretization(src, levels, map) })

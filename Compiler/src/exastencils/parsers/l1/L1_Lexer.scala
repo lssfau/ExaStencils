@@ -30,7 +30,7 @@ object L1_Lexer extends ExaLexer {
 
   // discretization
   reserved += ("Discretize", "DiscretizationHint", "DiscretizationHints", "L2Hint", "L2Hints")
-  reserved += ("on", "with")
+  reserved += ("on", "with", "order", "direction")
 
   // domain => L1_DomainDecl
   reserved += ("Domain", "to")

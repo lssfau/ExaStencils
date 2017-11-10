@@ -69,5 +69,6 @@ class L1_FD_LagrangeApproach(N : Int, M : Int, h : Double, val x0 : Double = 0.0
 
   def computeWeightsAt(x : Double) : Unit = { weights = setX0(x) }
 
-  override def getWeights = weights
+  override def getWeights : List[Double] = weights
+  override def getOffsets : List[Int] = gridPoints.toList.map(_.toInt)
 }
