@@ -11,6 +11,8 @@ source examples.sh
 echo generating code for $configList
 echo 
 
+mkdir Debug 2>/dev/null
+
 for config in $configList; do
   echo generating $config ... 
   printf "\033]2;generating $config\007"
