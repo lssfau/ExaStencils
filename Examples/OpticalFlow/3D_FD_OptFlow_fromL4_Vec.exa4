@@ -92,12 +92,12 @@ Stencil Laplace@all {
     { 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ), 0, 0 },
     { 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ), 0 },
     { 0, 0, 2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 ) + 2.0 / ( vf_gridWidth_z ** 2 ) } }
-  
+
   [-1,  0,  0] => {
     { -1.0 / ( vf_gridWidth_x ** 2 ), 0, 0 },
     { 0, -1.0 / ( vf_gridWidth_x ** 2 ), 0 },
     { 0, 0, -1.0 / ( vf_gridWidth_x ** 2 ) } }
-  
+
   [ 1,  0,  0] => {
     { -1.0 / ( vf_gridWidth_x ** 2 ), 0, 0 },
     { 0, -1.0 / ( vf_gridWidth_x ** 2 ), 0 },

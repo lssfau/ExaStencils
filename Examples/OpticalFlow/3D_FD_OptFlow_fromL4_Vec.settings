@@ -1,6 +1,6 @@
 user                = "Guest"
 
-configName          = "3D_FD_OptFlow_onlyL4_Vec"
+configName          = "3D_FD_OptFlow_fromL4_Vec"
 
 basePathPrefix      = "./OpticalFlow/"
 
