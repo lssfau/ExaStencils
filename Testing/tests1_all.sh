@@ -250,7 +250,7 @@ done < "${TESTING_CONF}"
 echo ""
 echo "Collect separate logs after all other jobs are finished:"
 LOG_DEPS="--dependency=afterany${DEP_SIDS}"
-(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${SCR_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}" "${BRANCH}")
+(unset SLURM_JOB_NAME; sbatch -o "${OUT_FILE}" -e "${OUT_FILE}" ${LOG_DEPS} "${SCR_DIR}/tests4_logs.sh" "${FAILURE_MAIL}" "${OUT_FILE}" "${OUT_FILE_URL}" "${ERROR_MARKER_NAME}" "${ERROR_MARKER}" "${LOG_DIR}" "${PROGRESS}" "${BRANCH}" "${TESTS_DIR}")
 echo ""
 
 update_progress 2
