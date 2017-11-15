@@ -3,14 +3,10 @@ package exastencils.polyhedron
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.ir._
-import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.logger.Logger
 import exastencils.polyhedron.Isl.TypeAliases._
 
-case class IR_GenericTransform(fieldSelection : IR_FieldSelection, its : Array[IR_VariableAccess], trafo : IR_ExpressionIndex) extends IR_Node {
-
-  if (fieldSelection.fieldLayout.numDimsData != its.length)
-    Logger.error("Number of dummy variables does not match the dimensionality of the associated field.")
+case class IR_GenericTransform(field : String, level : Int, its : Array[IR_VariableAccess], trafo : IR_ExpressionIndex) extends IR_Node {
 
   def getIslTrafo() : isl.MultiAff = {
     var maff = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, its.length, trafo.length))
@@ -19,8 +15,8 @@ case class IR_GenericTransform(fieldSelection : IR_FieldSelection, its : Array[I
       try {
         maff = maff.setAff(i, exprToIslAff(trafo(i), lSpace))
       } catch {
-        case ExtractionException(msg) => Logger.warn("cannot deal with transformation expression: " + msg)
-          return null
+        case ExtractionException(msg) =>
+          Logger.error("cannot deal with transformation expression " + trafo(i).prettyprint() + ": " + msg)
       }
     maff
   }
@@ -30,10 +26,8 @@ case class IR_GenericTransform(fieldSelection : IR_FieldSelection, its : Array[I
     expr match {
       case va : IR_VariableAccess =>
         val itID : Int = its.indexOf(va)
-        if (itID < 0) {
-          Logger.warn(this.getClass().getSimpleName() + " not valid, unkown variable access: " + va)
-          return null
-        }
+          if (itID < 0)
+          throw new ExtractionException("unkown variable access: " + va.prettyprint())
         aff = isl.Aff.varOnDomain(lSpace, T_SET, itID)
 
       case IR_IntegerConstant(c) =>
