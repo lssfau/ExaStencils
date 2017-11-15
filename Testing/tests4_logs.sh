@@ -74,14 +74,16 @@ else
   echo ""
   echo "Create error log archive and send email:"
   ERROR_ARCHIVE="${LOG_DIR}/ErrorLogs.7z"
-  srun (7z a tmp.7z ${TO_ZIP} && mv tmp.7z "${ERROR_ARCHIVE}")
+  srun 7z a tmp.7z ${TO_ZIP}
+  srun mv tmp.7z "${ERROR_ARCHIVE}"
   echo "Errors in automatic tests!  See log (or attachment) for details: ${OUT_FILE_URL}" | mail -s "TestBot Error" -A "${ERROR_ARCHIVE}" ${FAILURE_MAIL}
 fi
 
 echo ""
 echo ""
 echo "Compress generated C++ and CUDA code:"
-srun (7z a tmp.7z "${TESTS_DIR}" '-xr!*.o' '-xr!*.exe' > /dev/null && mv tmp.7z "$(dirname \"${OUT_FILE}\")/generated.7z")
+srun 7z a tmp.7z "${TESTS_DIR}" '-xr!*.o' '-xr!*.exe' > /dev/null
+srun mv tmp.7z "$(dirname \"${OUT_FILE}\")/generated.7z"
 echo ""
 echo "Archive can be found <a href=./generated.7z>here</a>."
 
