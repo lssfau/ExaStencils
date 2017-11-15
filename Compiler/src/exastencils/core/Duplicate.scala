@@ -103,6 +103,7 @@ object Duplicate {
       c.registerConstant(Nil)
       c.registerConstant(scala.Array)
       c.registerImmutable(classOf[scala.Int])
+      c.registerImmutable(classOf[scala.Long])
       c.registerImmutable(classOf[scala.Double])
       c.registerImmutable(classOf[scala.Float])
     }
