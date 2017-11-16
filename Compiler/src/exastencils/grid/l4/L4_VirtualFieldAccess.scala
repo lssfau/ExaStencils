@@ -53,7 +53,8 @@ case class L4_VirtualFieldAccess(
       case scalar : L4_VirtualFieldWithScalar => scalar.resolve(index)
 
       case vector : L4_VirtualFieldWithVec =>
-        L4_MatrixExpression(Some(target.datatype), List(vector.listPerDim.map(L4_VirtualFieldAccess(_, Duplicate(index))).toList))
+        L4_VectorExpression(Some(target.datatype.asInstanceOf[L4_VectorDatatype].datatype),
+          vector.listPerDim.map(L4_VirtualFieldAccess(_, Duplicate(index))).toList)
     }
   }
 

@@ -3,7 +3,7 @@ package exastencils.grid.l4
 import scala.collection.mutable.ListBuffer
 
 import exastencils.base.l4._
-import exastencils.baseExt.l4.L4_MatrixDatatype
+import exastencils.baseExt.l4._
 import exastencils.domain.l4.L4_Domain
 import exastencils.grid.ir.IR_VirtualField
 import exastencils.knowledge.l4.L4_LeveledKnowledgeObject
@@ -33,7 +33,7 @@ trait L4_VirtualField extends L4_LeveledKnowledgeObject[IR_VirtualField] {
 /// L4_VirtualFieldWithVec
 
 trait L4_VirtualFieldWithVec extends L4_VirtualField {
-  override def datatype = L4_MatrixDatatype(L4_RealDatatype, numDims, 1)
+  override def datatype = L4_VectorDatatype(L4_RealDatatype, numDims)
 
   def listPerDim : ListBuffer[L4_VirtualField]
 }
