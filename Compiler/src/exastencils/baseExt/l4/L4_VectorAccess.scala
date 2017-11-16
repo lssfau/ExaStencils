@@ -30,7 +30,7 @@ object L4_VectorExpression {
 case class L4_VectorExpression(
     var datatype : Option[L4_Datatype],
     var expressions : List[L4_Expression],
-    var rowVector : Boolean) extends L4_Expression {
+    var rowVector : Boolean = false) extends L4_Expression {
   // rowVector == false: Column
 
   def prettyprint(out : PpStream) = {

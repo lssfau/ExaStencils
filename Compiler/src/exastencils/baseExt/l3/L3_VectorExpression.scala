@@ -8,7 +8,7 @@ import exastencils.prettyprinting.PpStream
 
 /// L3_VectorExpression
 
-case class L3_VectorExpression(var entries : ListBuffer[L3_Expression], var rowVector : Boolean = true) extends L3_Expression {
+case class L3_VectorExpression(var entries : ListBuffer[L3_Expression], var rowVector : Boolean = false) extends L3_Expression {
   override def prettyprint(out : PpStream) : Unit = ???
   override def progress = L4_VectorExpression(None, entries.map(_.progress).toList, rowVector)
 }
