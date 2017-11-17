@@ -82,8 +82,9 @@ fi
 echo ""
 echo ""
 echo "Compress generated C++ and CUDA code:"
-srun 7z a "$(dirname "${OUT_FILE}")/generated.7z" "${TESTS_DIR}" '-xr!*.o' '-xr!*.exe' > /dev/null
-echo "  Archive can be found <a href=./generated.7z>here</a>."
+RND_SUFFIX="${RANDOM}"
+srun 7z a "$(dirname "${OUT_FILE}")/generated_${RND_SUFFIX}.7z" "${TESTS_DIR}" '-xr!*.o' '-xr!*.exe' > /dev/null
+echo "  Archive can be found <a href=./generated_${RND_SUFFIX}.7z>here</a>. (Random file suffix ${RND_SUFFIX} is used to prevent accessing an old cached version.)"
 
 echo ""
 echo ""
