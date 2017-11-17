@@ -83,8 +83,7 @@ echo ""
 echo ""
 echo "Compress generated C++ and CUDA code:"
 srun 7z a "$(dirname "${OUT_FILE}")/generated.7z" "${TESTS_DIR}" '-xr!*.o' '-xr!*.exe' > /dev/null
-echo ""
-echo "Archive can be found <a href=./generated.7z>here</a>."
+echo "  Archive can be found <a href=./generated.7z>here</a>."
 
 echo ""
 echo ""

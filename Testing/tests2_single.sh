@@ -100,6 +100,10 @@ for f in "${files[@]}"; do
   esac
 done
 
+for i in 1 2 3 4; do
+  echo "debugL${i}File += ${TEST_DIR}/debug.exa${i}" >> "${SETTINGS}"
+done
+
 
 echo "Run generator:"
 echo "  Created  ${RESULT}: run generator and save its stdout and stderr."
