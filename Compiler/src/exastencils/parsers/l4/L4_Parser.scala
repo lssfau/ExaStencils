@@ -14,6 +14,7 @@ import exastencils.domain.l4._
 import exastencils.field.l4._
 import exastencils.interfacing.l4.L4_ExternalFieldDecl
 import exastencils.knowledge.l4._
+import exastencils.layoutTransformation.l4._
 import exastencils.operator.l4._
 import exastencils.parsers._
 import exastencils.solver.l4._
@@ -66,6 +67,7 @@ object L4_Parser extends ExaParser with PackratParsers {
       ||| stencilDeclaration
       ||| stencilFromDefault
       ||| globals
+      ||| layoutTrafos
       ||| function
       ||| functionTemplate
       ||| functionInstantiation
@@ -283,6 +285,24 @@ object L4_Parser extends ExaParser with PackratParsers {
 
   lazy val globals = locationize(("Globals" ~> "{" ~> globalEntry.* <~ "}") ^^ { L4_GlobalSection(_) })
   lazy val globalEntry : PackratParser[L4_VariableDeclaration] = locationize(valueDeclaration ||| variableDeclaration)
+
+  // ######################################
+  // ##### Layout Transformations
+  // ######################################
+
+  lazy val layoutTrafos = locationize(("LayoutTransformations" ~> "{" ~> layoutEntry.* <~ "}") ^^ { stmts => L4_LayoutSection(stmts.to) })
+  lazy val layoutEntry : PackratParser[L4_LayoutTransformStatement] = locationize(aliasStmt ||| transformStmt ||| concatFieldsStmt)
+  lazy val aliasStmt = locationize(("rename" ~> genericAccess) ~ ("as" ~> ident)
+    ^^ { case old ~ nju => L4_ExternalFieldAlias(nju, old) })
+  lazy val transformStmt = locationize(("transform" ~> ident) ~ ("@" ~> integerLit) ~ ("with" ~> "[" ~> repsep(genericAccess ||| fieldIteratorAccess, ",") <~ "]") ~ ("=>" ~> expressionIndex) ^^ {
+    case fieldName ~ level ~ its ~ trafo =>
+      L4_GenericTransform(fieldName, level, its.view.map { // HACK: to allow x, y, z as identifiers (they will be renamed in expressionIndex, so ensure they are renamed here, too)
+        case a : L4_UnresolvedAccess    => L4_PlainVariableAccess(a.name, L4_IntegerDatatype, true)
+        case a : L4_PlainVariableAccess => a
+      }.toArray, trafo)
+  })
+  lazy val concatFieldsStmt = locationize(("concat" ~> repsep(genericAccess, "and")) ~ ("into" ~> ident)
+    ^^ { case fields ~ nju => L4_FieldConcatenation(nju, fields.view.map(_.asInstanceOf[L4_Access]).to) })
 
   // ######################################
   // ##### Object Declarations

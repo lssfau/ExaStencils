@@ -6,6 +6,8 @@ import exastencils.base.l4._
 import exastencils.baseExt.l4._
 import exastencils.core.collectors.Collector
 import exastencils.datastructures._
+import exastencils.layoutTransformation.l4.L4_GenericTransform
+import exastencils.layoutTransformation.l4.L4_LayoutSection
 
 class L4_VariableDeclarationCollector extends Collector {
   var plainDeclarations = ListBuffer[HashMap[String, L4_VariableDeclaration]]()
@@ -40,8 +42,9 @@ class L4_VariableDeclarationCollector extends Collector {
 
   override def enter(node : Node) : Unit = {
     node match {
-      // handle global sections as any other scope
+      // handle global and layout sections as any other scope
       case _ : L4_GlobalSection => openNewScope()
+      case _ : L4_LayoutSection => openNewScope()
 
       case _ : L4_Function          => openNewScope()
       case _ : L4_LoopOverFragments => openNewScope()
@@ -52,6 +55,7 @@ class L4_VariableDeclarationCollector extends Collector {
 
       case decl : L4_VariableDeclaration => addDecl(decl)
       case decl : L4_Function.Argument   => addDecl(L4_VariableDeclaration(decl.name, None, decl.datatype, None, false))
+      case decl : L4_GenericTransform    => for (it <- decl.its) addDecl(L4_VariableDeclaration(it.name, None, it.datatype, None, false))
 
       case _ =>
     }
@@ -60,6 +64,7 @@ class L4_VariableDeclarationCollector extends Collector {
   override def leave(node : Node) : Unit = {
     node match {
       case _ : L4_GlobalSection => closeScope()
+      case _ : L4_LayoutSection => closeScope()
 
       case _ : L4_Function          => closeScope()
       case _ : L4_LoopOverFragments => closeScope()

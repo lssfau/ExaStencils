@@ -1,4 +1,4 @@
-package exastencils.polyhedron
+package exastencils.layoutTransformation.ir
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -21,6 +21,9 @@ import exastencils.interfacing.ir.IR_CopyFromExternalField
 import exastencils.interfacing.ir.IR_CopyToExternalField
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
+import exastencils.polyhedron.IR_ASTExpressionBuilder
+import exastencils.polyhedron.IR_PolyOpt
+import exastencils.polyhedron.Isl
 import exastencils.polyhedron.Isl.TypeAliases._
 
 object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
