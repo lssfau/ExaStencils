@@ -36,6 +36,18 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
   private def tmpName(i : Int) : String = tmpNamePrefix + i
   private def tmpNameIdx(s : String) : Int = s.substring(tmpNamePrefix.length()).toInt
 
+  private def createIslTrafo(trafos : Seq[IR_GenericTransform]) : isl.MultiAff = {
+    var trafoMaff : isl.MultiAff = null
+    for (trafo <- trafos) {
+      val maff = trafo.getIslTrafo()
+      if (trafoMaff == null)
+        trafoMaff = maff
+      else
+        trafoMaff = maff.pullbackMultiAff(trafoMaff)
+    }
+    trafoMaff
+  }
+
   private def adaptLayout(layout : IR_FieldLayout, trafo : isl.MultiAff, fieldID : (String, Int)) : Unit = {
     val ensure : (Boolean, => String) => Unit = { (b, msg) =>
       if (!b)
@@ -222,14 +234,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     if (processedLayouts.containsKey(layout)) {
       newIndex = Duplicate(processedLayouts.get(layout))
     } else for (trafos <- transformations.get(fName)) {
-      var trafoMaff : isl.MultiAff = null
-      for (trafo <- trafos) {
-        val maff = trafo.getIslTrafo()
-        if (trafoMaff == null)
-          trafoMaff = maff
-        else
-          trafoMaff = maff.pullbackMultiAff(trafoMaff)
-      }
+      val trafoMaff : isl.MultiAff = createIslTrafo(trafos)
       val fLevel = dfa.fieldSelection.field.level
       adaptLayout(layout, trafoMaff, (fName, fLevel))
       val exprs : IR_ExpressionIndex = createASTforMultiAff(trafoMaff)
