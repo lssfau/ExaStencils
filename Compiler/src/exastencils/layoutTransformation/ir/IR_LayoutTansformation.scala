@@ -37,7 +37,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
   private def tmpNameIdx(s : String) : Int = s.substring(tmpNamePrefix.length()).toInt
 
   private def adaptLayout(layout : IR_FieldLayout, trafo : isl.MultiAff, fieldID : (String, Int)) : Unit = {
-    val ensure = { (b : Boolean, msg : String) =>
+    val ensure : (Boolean, => String) => Unit = { (b, msg) =>
       if (!b)
         Logger.error(msg)
     }
@@ -116,15 +116,14 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.transaction()
     Logger.info("Applying strategy " + name)
 
-    val transformations = new mutable.HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]]()
+    val transformations = new mutable.HashMap[String, ArrayBuffer[IR_GenericTransform]]()
     val fieldConcs = new ArrayBuffer[IR_FieldConcatenation]()
     val fieldAliass = new ArrayBuffer[IR_ExternalFieldAlias]()
 
     // TODO: search for them here? or extract transformation statements earlier
     this.execute(new Transformation("collect transformation statements", {
       case trafo : IR_GenericTransform       =>
-        val key = (trafo.field, trafo.level)
-        val trafos = transformations.getOrElseUpdate(key, ArrayBuffer[IR_GenericTransform]())
+        val trafos = transformations.getOrElseUpdate(trafo.field, ArrayBuffer[IR_GenericTransform]())
         trafos += trafo
         None
       case fieldConc : IR_FieldConcatenation =>
@@ -145,17 +144,12 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     }))
 
     val fieldReplace = new IdentityHashMap[IR_Field, (IR_Field, Int)]()
-    for (fConc <- fieldConcs) {
-      val newField = fConc.computeNewField()
-      IR_FieldCollection.add(newField)
-      for ((field, i) <- fConc.fieldsToMerge.zipWithIndex) {
-        fieldReplace.put(field, (newField, i))
-        IR_FieldCollection.remove(field)
-      }
-    }
+    for (fConc <- fieldConcs)
+      fConc.addFieldReplacements(fieldReplace)
 
     for (alias <- fieldAliass)
-      alias.field.name = alias.newName
+      for (field <- IR_FieldCollection.getAllByIdentifier(alias.oldName))
+        field.name = alias.newName
 
     if (!fieldReplace.isEmpty()) {
       colCondColl.reset()
@@ -221,13 +215,13 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.commit()
   }
 
-  def processDFA(dfa : IR_DirectFieldAccess, transformations : mutable.HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]], processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
-    val trafoKey = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
+  def processDFA(dfa : IR_DirectFieldAccess, transformations : mutable.HashMap[String, ArrayBuffer[IR_GenericTransform]], processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
+    val fName = dfa.fieldSelection.field.name
     val layout = dfa.fieldSelection.fieldLayout
     var newIndex : IR_ExpressionIndex = null
     if (processedLayouts.containsKey(layout)) {
       newIndex = Duplicate(processedLayouts.get(layout))
-    } else for (trafos <- transformations.get(trafoKey)) {
+    } else for (trafos <- transformations.get(fName)) {
       var trafoMaff : isl.MultiAff = null
       for (trafo <- trafos) {
         val maff = trafo.getIslTrafo()
@@ -236,7 +230,8 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
         else
           trafoMaff = maff.pullbackMultiAff(trafoMaff)
       }
-      adaptLayout(layout, trafoMaff, trafoKey)
+      val fLevel = dfa.fieldSelection.field.level
+      adaptLayout(layout, trafoMaff, (fName, fLevel))
       val exprs : IR_ExpressionIndex = createASTforMultiAff(trafoMaff)
       processedLayouts.put(layout, exprs)
       newIndex = Duplicate(exprs)
