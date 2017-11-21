@@ -8,7 +8,7 @@ import exastencils.prettyprinting.PpStream
 /// supported operators
 
 object L3_BinaryOperators extends Enumeration {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
 
   val afterOpeningBracket = " "
   val beforeClosingBracket = " "

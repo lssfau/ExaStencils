@@ -5,13 +5,13 @@ import exastencils.prettyprinting.PpStream
 /// MPI_Init
 
 case object MPI_Init extends MPI_Statement {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Init(&argc, &argv);"
 }
 
 /// MPI_Finalize
 
 case object MPI_Finalize extends MPI_Statement {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Finalize();"
 }

@@ -7,7 +7,7 @@ import exastencils.baseExt.ir._
 /// IR_IV_MpiRank
 
 case object MPI_IV_MpiRank extends IR_UnduplicatedVariable {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
 
   override def resolveName() = "mpiRank"
   override def resolveDatatype() = IR_IntegerDatatype

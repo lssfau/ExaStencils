@@ -14,7 +14,7 @@ trait L1_LevelAlias extends L1_DeclarationLevelSpecification with L1_AccessLevel
 /// L1_CurrentLevel
 
 case object L1_CurrentLevel extends L1_LevelAlias {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   def prettyprint(out : PpStream) = out << "current"
   override def progress = L2_CurrentLevel
 }
@@ -22,7 +22,7 @@ case object L1_CurrentLevel extends L1_LevelAlias {
 /// L1_CoarserLevel
 
 case object L1_CoarserLevel extends L1_LevelAlias {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   def prettyprint(out : PpStream) = out << "coarser"
   override def progress = L2_CoarserLevel
 }
@@ -30,7 +30,7 @@ case object L1_CoarserLevel extends L1_LevelAlias {
 /// L1_FinerLevel
 
 case object L1_FinerLevel extends L1_LevelAlias {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   def prettyprint(out : PpStream) = out << "finer"
   override def progress = L2_FinerLevel
 }
@@ -38,7 +38,7 @@ case object L1_FinerLevel extends L1_LevelAlias {
 /// L1_CoarsestLevel
 
 case object L1_CoarsestLevel extends L1_LevelAlias {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   def prettyprint(out : PpStream) = out << "coarsest"
   override def progress = L2_CoarsestLevel
 }
@@ -46,7 +46,7 @@ case object L1_CoarsestLevel extends L1_LevelAlias {
 /// L1_FinestLevel
 
 case object L1_FinestLevel extends L1_LevelAlias {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   def prettyprint(out : PpStream) = out << "finest"
   override def progress = L2_FinestLevel
 }

@@ -6,7 +6,7 @@ import exastencils.prettyprinting._
 /// L4_UnaryOperators
 
 object L4_UnaryOperators extends Enumeration {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
 
   type UnaryOperators = Value
   val Negative = Value("-")

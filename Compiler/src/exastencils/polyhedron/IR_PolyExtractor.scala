@@ -22,7 +22,7 @@ object IR_PolyExtractor {
     final val ANNOT : String = "PolyAcc"
     final val READ, WRITE, UPDATE = Value
 
-    exastencils.core.Duplicate.registerImmutable(this.getClass)
+    exastencils.core.Duplicate.registerConstant(this)
   }
 
   /** annotation id used to indicate that this subtree should be skipped */

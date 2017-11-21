@@ -15,7 +15,7 @@ trait L3_LevelGroup extends L3_DeclarationLevelSpecification {
 /// L3_AllLevels
 
 case object L3_AllLevels extends L3_LevelGroup {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   def prettyprint(out : PpStream) = out << "all"
   override def progress = L4_AllLevels
 }

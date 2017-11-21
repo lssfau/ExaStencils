@@ -5,7 +5,7 @@ import scala.collection.mutable.ListBuffer
 import exastencils.base.ir._
 
 case object OMP_WaitForFlag extends IR_FuturePlainFunction {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
 
   override var name = "waitForFlag"
   allowInlining = false

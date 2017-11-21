@@ -10,7 +10,7 @@ import exastencils.util.ir.IR_ResultingDatatype
 /// supported operators
 
 object IR_BinaryOperators extends Enumeration {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
 
   type BinaryOperators = Value
   val Addition = Value("+")
