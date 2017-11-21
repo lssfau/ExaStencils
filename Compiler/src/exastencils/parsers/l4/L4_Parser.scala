@@ -294,14 +294,14 @@ object L4_Parser extends ExaParser with PackratParsers {
   lazy val layoutEntry : PackratParser[L4_LayoutTransformStatement] = locationize(aliasStmt ||| transformStmt ||| concatFieldsStmt)
   lazy val aliasStmt = locationize(("rename" ~> ident) ~ ("as" ~> ident)
     ^^ { case old ~ nju => L4_ExternalFieldAlias(nju, old) })
-  lazy val transformStmt = locationize(("transform" ~> ident) ~ ("with" ~> "[" ~> repsep(genericAccess ||| fieldIteratorAccess, ",") <~ "]") ~ ("=>" ~> expressionIndex) ^^ {
-    case fieldName ~ its ~ trafo =>
-      L4_GenericTransform(fieldName, its.view.map { // HACK: to allow x, y, z as identifiers (they will be renamed in expressionIndex, so ensure they are renamed here, too)
+  lazy val transformStmt = locationize(("transform" ~> repsep(ident, "and" ||| ",")) ~ ("with" ~> "[" ~> repsep(genericAccess ||| fieldIteratorAccess, ",") <~ "]") ~ ("=>" ~> expressionIndex) ^^ {
+    case fieldNames ~ its ~ trafo =>
+      L4_GenericTransform(fieldNames, its.view.map { // HACK: to allow x, y, z as identifiers (they will be renamed in expressionIndex, so ensure they are renamed here, too)
         case a : L4_UnresolvedAccess    => L4_PlainVariableAccess(a.name, L4_IntegerDatatype, true)
         case a : L4_PlainVariableAccess => a
       }.toArray, trafo)
   })
-  lazy val concatFieldsStmt = locationize(("concat" ~> repsep(ident, "and")) ~ ("into" ~> ident)
+  lazy val concatFieldsStmt = locationize(("concat" ~> repsep(ident, "and" ||| ",")) ~ ("into" ~> ident)
     ^^ { case fields ~ nju => L4_FieldConcatenation(nju, fields.to) })
 
   // ######################################

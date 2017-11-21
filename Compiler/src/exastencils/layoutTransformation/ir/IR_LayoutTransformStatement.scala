@@ -19,7 +19,7 @@ sealed abstract class IR_LayoutTransformStatement extends IR_Statement with IR_S
 
 case class IR_ExternalFieldAlias(newName : String, oldName : String) extends IR_LayoutTransformStatement
 
-case class IR_GenericTransform(field : String, its : Array[IR_VariableAccess], trafo : IR_ExpressionIndex) extends IR_LayoutTransformStatement {
+case class IR_GenericTransform(fields : Seq[String], its : Array[IR_VariableAccess], trafo : IR_ExpressionIndex) extends IR_LayoutTransformStatement {
 
   def getIslTrafo() : isl.MultiAff = {
     var maff = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, its.length, trafo.length))

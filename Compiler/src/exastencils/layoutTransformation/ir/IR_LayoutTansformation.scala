@@ -123,8 +123,8 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     // TODO: search for them here? or extract transformation statements earlier
     this.execute(new Transformation("collect transformation statements", {
       case trafo : IR_GenericTransform       =>
-        val trafos = transformations.getOrElseUpdate(trafo.field, ArrayBuffer[IR_GenericTransform]())
-        trafos += trafo
+        for (field <- trafo.fields)
+          transformations.getOrElseUpdate(field, ArrayBuffer[IR_GenericTransform]()) += trafo
         None
       case fieldConc : IR_FieldConcatenation =>
         fieldConcs += fieldConc

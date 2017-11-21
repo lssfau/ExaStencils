@@ -23,13 +23,11 @@ case class L4_ExternalFieldAlias(newName : String, oldName : String) extends L4_
   override def progress : IR_ExternalFieldAlias = IR_ExternalFieldAlias(newName, oldName)
 }
 
-case class L4_GenericTransform(field : String, its : Array[L4_PlainVariableAccess], trafo : L4_ExpressionIndex) extends L4_LayoutTransformStatement {
+case class L4_GenericTransform(fields : Seq[String], its : Array[L4_PlainVariableAccess], trafo : L4_ExpressionIndex) extends L4_LayoutTransformStatement {
 
-  override def prettyprint(out : PpStream) : Unit = out << "transform " << field << " with [" <<< (its, ", ") << "] => " << trafo
+  override def prettyprint(out : PpStream) = out << "transform " << fields.mkString(", ") << " with [" <<< (its, ", ") << "] => " << trafo
 
-  override def progress : IR_GenericTransform = {
-    IR_GenericTransform(field, its.map(_.progress), trafo.progress)
-  }
+  override def progress = IR_GenericTransform(fields, its.map(_.progress), trafo.progress)
 }
 
 case class L4_FieldConcatenation(mergedFieldName : String, fieldsToMerge : ListBuffer[String]) extends L4_LayoutTransformStatement {
@@ -37,14 +35,7 @@ case class L4_FieldConcatenation(mergedFieldName : String, fieldsToMerge : ListB
   if (fieldsToMerge.size < 2)
     Logger.error(s"there must be at least two fields to merge (for $mergedFieldName)")
 
-  override def prettyprint(out : PpStream) : Unit = {
-    out << "concat "
-    val it = fieldsToMerge.iterator
-    out << it.next()
-    while (it.hasNext)
-      out << " and " << it.next()
-    out << " into " << mergedFieldName
-  }
+  override def prettyprint(out : PpStream) = out << "concat " << fieldsToMerge.mkString(", ") << " into " << mergedFieldName
 
   override def progress : IR_FieldConcatenation = IR_FieldConcatenation(mergedFieldName, fieldsToMerge)
 }
