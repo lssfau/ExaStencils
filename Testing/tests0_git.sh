@@ -7,8 +7,8 @@
 #SBATCH -c 1
 #SBATCH --time=5
 #SBATCH --signal=INT@5
-#SBATCH -o /dev/null
-#SBATCH -e /dev/null
+#SBATCH -o /scratch/exatest/exastencils_tests/tests0_git.out
+#SBATCH -e /scratch/exatest/exastencils_tests/tests0_git.out
 
 
 BASE_DIR=${1}
