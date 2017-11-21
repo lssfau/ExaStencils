@@ -2,9 +2,13 @@ package exastencils.knowledge.ir
 
 /// IR_KnowledgeObject
 
+object IR_KnowledgeObject {
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[IR_KnowledgeObject])
+}
+
 trait IR_KnowledgeObject {
 
-  exastencils.core.Duplicate.dontClone(this.getClass)
+  IR_KnowledgeObject
 
   def name : String
 }

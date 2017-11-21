@@ -5,9 +5,13 @@ import exastencils.prettyprinting.PpStream
 
 /// L4_KnowledgeObject
 
+object L4_KnowledgeObject {
+  exastencils.core.Duplicate.dontCloneHierarchy(classOf[L4_KnowledgeObject[_]])
+}
+
 trait L4_KnowledgeObject[IR_Equivalent <: IR_KnowledgeObject] {
 
-  exastencils.core.Duplicate.dontClone(this.getClass)
+  L4_KnowledgeObject
 
   def name : String
   def progressImpl() : IR_Equivalent
