@@ -43,7 +43,7 @@ echo ""
 rm -f ${ERROR_MARKER} # remove error marker from old job run if we were requeued
 
 mkdir -p "${TEST_DIR}"
-SETTINGS="${TEST_DIR}/settings.txt"
+SETTINGS="${TEST_DIR}/debug.settings"
 
 
 RESULT=$(mktemp --tmpdir=/dev/shm || mktemp --tmpdir=/tmp) || {
@@ -99,6 +99,13 @@ for f in "${files[@]}"; do
     *.exa4)  echo "l4file += \"${f}\"" >> "${SETTINGS}";;
   esac
 done
+
+for i in 1 2 3 4; do
+  echo "debugL${i}File = \"${TEST_DIR}/debug.exa${i}\"" >> "${SETTINGS}"
+done
+
+cp "${KNOWLEDGE}" "${TEST_DIR}/debug.knowledge"
+cp "${PLATFORM}" "${TEST_DIR}/debug.platform"
 
 
 echo "Run generator:"

@@ -28,7 +28,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
 
   private val DEBUG : Boolean = false
 
-  private var skipSubTree = new DynamicVariable[Boolean](false)
+  private val skipSubTree = new DynamicVariable[Boolean](false)
 
   override def isDefinedAt(node : Node) : Boolean = {
     // do not vectorize device code!
@@ -486,49 +486,36 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
       case IR_ArrayAccess(base, index, alignedBase) =>
         val (vecTmp : String, njuTmp : Boolean) = ctx.getName(expr)
         if (njuTmp) {
-          val ind : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
-          val const : Option[Long] = ind.remove(IR_SimplifyExpression.constName)
+          val inds : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(index)
+          val const : Option[Long] = inds.remove(IR_SimplifyExpression.constName)
           var access1 : Boolean = true
-          for ((expr, value) <- ind)
-            expr match {
-              case IR_VariableAccess(name, IR_IntegerDatatype) =>
-                if (name == ctx.itName) {
-                  if (value != 1L || ctx.incr != 1L)
-                    throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
-                  access1 = false
-                }
+          for (ind <- inds) ind match {
+            case (IR_VariableAccess(name, IR_IntegerDatatype), value) =>
+              if (name == ctx.itName) {
+                if (value != 1L || ctx.incr != 1L)
+                  throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
+                access1 = false
+              }
 
-              case IR_Division(
-              IR_VariableAccess(name, IR_IntegerDatatype),
-              IR_IntegerConstant(divs)) =>
-                if (name == ctx.itName) {
-                  if (value != 1L || ctx.incr != divs)
-                    throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
-                  access1 = false
-                }
+            case (IR_Division(divd, IR_IntegerConstant(divs)), 1L) if (ctx.incr == divs) =>
+              val summands : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(divd)
+              summands.remove(IR_SimplifyExpression.constName)
+              for (s <- summands) s match {
+                case (IR_VariableAccess(name, IR_IntegerDatatype), coeff) =>
+                  if (name == ctx.itName) {
+                    if (coeff != 1L)
+                      throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
+                    access1 = false
+                  }
+                case (e, _)                                               =>
+                  if (containsVarAcc(e, ctx.itName))
+                    throw new VectorizationException("no linear memory access;  " + index.prettyprint())
+              }
 
-              case IR_Division(
-              IR_Addition(ListBuffer(IR_VariableAccess(name, IR_IntegerDatatype), IR_IntegerConstant(_))),
-              IR_IntegerConstant(divs)) =>
-                if (name == ctx.itName) {
-                  if (value != 1L || ctx.incr != divs)
-                    throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
-                  access1 = false
-                }
-
-              case IR_Division(
-              IR_Addition(ListBuffer(IR_IntegerConstant(_), IR_VariableAccess(name, IR_IntegerDatatype))),
-              IR_IntegerConstant(divs)) =>
-                if (name == ctx.itName) {
-                  if (value != 1L || ctx.incr != divs)
-                    throw new VectorizationException("no linear memory access;  loop increment: " + ctx.incr + "  index: " + index.prettyprint())
-                  access1 = false
-                }
-
-              case _ =>
-                if (containsVarAcc(expr, ctx.itName))
-                  throw new VectorizationException("no linear memory access;  " + index.prettyprint())
-            }
+            case (e, _) =>
+              if (containsVarAcc(e, ctx.itName))
+                throw new VectorizationException("no linear memory access;  " + index.prettyprint())
+          }
           if (ctx.ignIncr) // that means we basically only compute a scalar value
             access1 = true
 
@@ -541,7 +528,7 @@ private object VectorizeInnermost extends PartialFunction[Node, Transformation.O
               ctx.addStmtPostLoop(IR_Assignment(expr, SIMD_ExtractScalar(IR_VariableAccess(vecTmp, SIMD_RealDatatype), vs - 1)))
             // ------------------------------------------------------
             case _ if ctx.isLoad() && !ctx.isStore() =>
-              val init = Some(createLoadExpression(expr, base, ind, const.getOrElse(0L), access1, aligned, alignedBase, ctx))
+              val init = Some(createLoadExpression(expr, base, inds, const.getOrElse(0L), access1, aligned, alignedBase, ctx))
               ctx.addStmt(new IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, init))
             case _ if !ctx.isLoad() && ctx.isStore() =>
               ctx.addStmt(new IR_VariableDeclaration(SIMD_RealDatatype, vecTmp, None))

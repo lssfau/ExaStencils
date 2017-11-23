@@ -76,17 +76,42 @@ object Duplicate {
     */
   def debugOutput(output : Boolean) = cloner.setDumpClonedClasses(output)
 
-  def dontClone(t : Class[_]) = cloner.dontClone(t)
-  def dontCloneHierarchy(t : Class[_]) = cloner.dontCloneInstanceOf(t)
-  def nullInsteadOfClone(t : Class[_]) = cloner.nullInsteadOfClone(t)
+  def dontClone(t : Class[_], forceToo : Boolean = false) = {
+    cloner.dontClone(t)
+    if (forceToo)
+      forceCloner.dontClone(t)
+  }
+  def dontCloneHierarchy(t : Class[_], forceToo : Boolean = false) = {
+    cloner.dontCloneInstanceOf(t)
+    if (forceToo)
+      forceCloner.dontCloneInstanceOf(t)
+  }
+  def nullInsteadOfClone(t : Class[_], forceToo : Boolean = false) = {
+    cloner.nullInsteadOfClone(t)
+    if (forceToo)
+      forceCloner.nullInsteadOfClone(t)
+  }
 
   /**
     * Register a class as immutable, which does not need to be cloned.
     *
     * @param t The class to be registered as immutable.
+    * @param forceToo If set, it is not cloned via forceClone(..), too.
     */
-  def registerImmutable(t : Class[_]) = cloner.registerImmutable(t)
-  def registerConstant(field : Any) = cloner.registerConstant(field)
+  def registerImmutable(t : Class[_], forceToo : Boolean = false) = {
+    cloner.registerImmutable(t)
+    if (forceToo)
+      forceCloner.registerImmutable(t)
+  }
+  /**
+    * Register a constant, which must not be cloned. (Even forceClone(..) is not allowed to clone these.)
+    *
+    * @param field The object to be registered as constant.
+    */
+  def registerConstant(field : Any) = {
+    cloner.registerConstant(field)
+    forceCloner.registerConstant(field)
+  }
   // the following is hard/impossible to deal with in willBeCloned, but since it is not used/required yet...
   // def registerConstant(t : Class[_], field : String) : Unit = cloner.registerConstant(t, field)
 

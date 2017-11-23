@@ -14,7 +14,7 @@ trait L4_LevelGroup extends L4_DeclarationLevelSpecification {
 /// L4_AllLevels
 
 case object L4_AllLevels extends L4_LevelGroup {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   def prettyprint(out : PpStream) = out << "all"
 }
 

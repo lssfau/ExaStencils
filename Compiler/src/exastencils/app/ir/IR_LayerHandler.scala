@@ -15,6 +15,7 @@ import exastencils.grid.ir._
 import exastencils.hack.ir.HACK_IR_ResolveSpecialFunctionsAndConstants
 import exastencils.interfacing.ir._
 import exastencils.knowledge.ir._
+import exastencils.layoutTransformation.ir.IR_LayoutTansformation
 import exastencils.operator.ir.IR_ApplyOffsetToStencilFieldAccess
 import exastencils.optimization.ir._
 import exastencils.parallelization.api.cuda._

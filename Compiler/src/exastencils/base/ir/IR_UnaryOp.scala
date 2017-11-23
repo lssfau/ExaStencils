@@ -3,7 +3,7 @@ package exastencils.base.ir
 import exastencils.prettyprinting._
 
 object IR_UnaryOperators extends Enumeration {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
 
   type UnaryOperators = Value
 

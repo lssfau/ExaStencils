@@ -10,7 +10,7 @@ import exastencils.prettyprinting.PpStream
 
 /// MPI_Barrier
 case object MPI_Barrier extends MPI_Statement {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
   override def prettyprint(out : PpStream) : Unit = out << "MPI_Barrier(mpiCommunicator);"
 }
 

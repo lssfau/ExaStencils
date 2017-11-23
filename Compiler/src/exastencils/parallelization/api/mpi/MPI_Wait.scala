@@ -12,7 +12,7 @@ import exastencils.util.ir.IR_RawPrint
 /// MPI_WaitForRequest
 
 case object MPI_WaitForRequest extends IR_FuturePlainFunction {
-  exastencils.core.Duplicate.registerImmutable(this.getClass)
+  exastencils.core.Duplicate.registerConstant(this)
 
   override var name = "waitForMPIReq"
   allowInlining = false
