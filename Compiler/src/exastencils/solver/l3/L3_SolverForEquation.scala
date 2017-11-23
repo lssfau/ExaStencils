@@ -20,19 +20,20 @@ import exastencils.prettyprinting.PpStream
 /// L3_SolverForEquation
 
 object L3_SolverForEquation {
-  def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)], modifications : List[L3_SolverModification]) = {
+  def apply(entries : List[L3_SolverForEqEntry], options : List[(String, Any)], modifications : List[L3_SolverModification], smootherHint : Option[L3_GenerateSmootherHint]) = {
     val newOptions = HashMap[String, Any]()
     options.foreach(newOptions += _)
-    new L3_SolverForEquation(entries.to[ListBuffer], newOptions, modifications.to[ListBuffer])
+    new L3_SolverForEquation(entries.to[ListBuffer], newOptions, modifications.to[ListBuffer], smootherHint)
   }
 
-  def apply(entries : ListBuffer[L3_SolverForEqEntry]) = new L3_SolverForEquation(entries, HashMap(), ListBuffer())
+  def apply(entries : ListBuffer[L3_SolverForEqEntry]) = new L3_SolverForEquation(entries, HashMap(), ListBuffer(), None)
 }
 
 case class L3_SolverForEquation(
     var entries : ListBuffer[L3_SolverForEqEntry],
     var options : HashMap[String, Any],
-    var modifications : ListBuffer[L3_SolverModification]) extends L3_Statement {
+    var modifications : ListBuffer[L3_SolverModification],
+    var smootherHint : Option[L3_GenerateSmootherHint]) extends L3_Statement {
 
   var processed = false
   var replaceDone = false
@@ -295,7 +296,7 @@ case class L3_SolverForEquation(
         // regular cycle
 
         // smoother
-        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPre))
+        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPre, smootherHint))
 
         // update residual
         handleStage("updateResidual", entries.map(_.generateUpdateRes(level)))
@@ -314,10 +315,10 @@ case class L3_SolverForEquation(
         handleStage("correction", generateCorrection(level))
 
         // smoother
-        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost))
+        handleStage("smoother", L3_VankaForEquation.generateFor(entries, level, Knowledge.solver_smoother_numPost, smootherHint))
       } else {
         // cgs
-        handleStage("cgs", L3_IterativeSolverForEquation.generateIterativeSolver(Knowledge.solver_cgs, entries, level))
+        handleStage("cgs", L3_IterativeSolverForEquation.generateIterativeSolver(Knowledge.solver_cgs, entries, level, smootherHint))
       }
 
       // handle whole cycle as stage

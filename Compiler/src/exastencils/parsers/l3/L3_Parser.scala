@@ -480,8 +480,9 @@ object L3_Parser extends ExaParser with PackratParsers {
   lazy val solverForEq = locationize(("generate" ~ "solver" ~ "for") ~> (solverForEqEntry <~ "and").* ~ solverForEqEntry
     ~ (("with" ~ "{") ~> solverForEqConfigs <~ "}").?
     ~ (("modifiers" ~ "{") ~> solverModification.* <~ "}").?
-    ^^ { case entries ~ tail ~ options ~ modifiers =>
-    L3_SolverForEquation(entries :+ tail, options.getOrElse(List()), modifiers.getOrElse(List()))
+    ~ smootherHint.?
+    ^^ { case entries ~ tail ~ options ~ modifiers ~ smoother =>
+    L3_SolverForEquation(entries :+ tail, options.getOrElse(List()), modifiers.getOrElse(List()), smoother)
   })
 
   /// L3_SolverModification
@@ -491,4 +492,7 @@ object L3_Parser extends ExaParser with PackratParsers {
       ^^ { case modification ~ target ~ levels ~ statements => L3_SolverModificationForStage(modification, target, statements, levels) })
     ||| locationize("replace" ~ stringLit ~ levelDecl.? ~ ("with" ~> genericAccess)
     ^^ { case modification ~ target ~ levels ~ access => L3_SolverModificationForObject(modification, target, access, levels) }))
+
+  lazy val smootherHint = locationize((("smootherHint" ~ "{") ~> ("loopBase" ~> genericAccess).?) ~ ((("solveFor" ~ "{") ~> genericAccess.* <~ "}").? <~ "}")
+    ^^ { case loopBase ~ solveFor => L3_GenerateSmootherHint(loopBase, solveFor) })
 }

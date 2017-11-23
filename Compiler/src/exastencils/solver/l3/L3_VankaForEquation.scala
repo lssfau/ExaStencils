@@ -50,11 +50,14 @@ object L3_VankaForEquation {
 
     for (entry <- entries) {
       def numDims = /* FIXME */ Knowledge.dimensionality
+
       def defOffset = L3_ConstIndex(Array.fill(numDims)(0))
+
       val offsets = entry.getSolField(level).localization match {
         case L3_AtCellCenter     => ListBuffer(defOffset)
         case L3_AtFaceCenter(fd) => ListBuffer(defOffset, L3_GridUtil.offsetIndex(defOffset, 1, fd))
-        case other               => Logger.error(s"Unsupported localization in local solver: $other")
+
+        case other => Logger.error(s"Unsupported localization in local solver: $other")
 
       }
 
@@ -73,18 +76,50 @@ object L3_VankaForEquation {
     L3_LocalSolve(unknowns, equations, Knowledge.solver_smoother_jacobiType, Some(omega), L3_FieldAccess(entryAtCell.get.getSolField(level)))
   }
 
-  def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int, numSteps : Int) = {
+  def generateLocalSolverFromHints(entries : ListBuffer[L3_SolverForEqEntry], smootherHint : L3_GenerateSmootherHint, level : Int) = {
+    val loopField = entries.find(_.getSolField(level).name == smootherHint.loopBase.get.name)
+
+    val unknowns = ListBuffer[L3_Expression]()
+    val equations = ListBuffer[L3_Equation]()
+
+    for (entry <- entries) {
+      def numDims = /* FIXME */ Knowledge.dimensionality
+
+      def defOffset = L3_ConstIndex(Array.fill(numDims)(0))
+
+      val offsets = smootherHint.solveFor.filter(_.name == entry.solName).map(_.asInstanceOf[L3_FieldAccess].offset.getOrElse(defOffset))
+
+      for (offset <- offsets) {
+        val unknown = L3_FieldAccess(entry.getSolField(level))
+        unknown.offsetWith(Duplicate(offset))
+        unknowns += unknown
+
+        val equation = Duplicate(entry.getEq(level))
+        L3_OffsetAllApplicable.offset = offset
+        L3_OffsetAllApplicable.applyStandalone(equation)
+        equations += equation
+      }
+    }
+
+    L3_LocalSolve(unknowns, equations, Knowledge.solver_smoother_jacobiType, Some(omega), L3_FieldAccess(loopField.get.getSolField(level)))
+  }
+
+  def generateFor(entries : ListBuffer[L3_SolverForEqEntry], level : Int, numSteps : Int, smootherHint : Option[L3_GenerateSmootherHint]) = {
     val stmts = ListBuffer[L3_Statement]()
 
     /// generate local solve statement
 
     var localSolve : L3_Statement = {
-      if (1 == entries.length)
-        generateLocalSolveForScalar(entries.head, level)
-      else if (entries.map(_.getSolField(level).localization.name).distinct.length == 1)
-        generateLocalSolveForAligned(entries, level)
-      else
-        generateLocalSolveForMixed(entries, level)
+      if (smootherHint.isEmpty) {
+        if (1 == entries.length)
+          generateLocalSolveForScalar(entries.head, level)
+        else if (entries.map(_.getSolField(level).localization.name).distinct.length == 1)
+          generateLocalSolveForAligned(entries, level)
+        else
+          generateLocalSolveForMixed(entries, level)
+      } else {
+        generateLocalSolverFromHints(entries, smootherHint.get, level)
+      }
     }
 
     /// add coloring
@@ -111,7 +146,9 @@ object L3_VankaForEquation {
 
       case "red-black" | "rb" | "2-way" =>
         val colors = ListBuffer[L3_Expression]()
+
         def numColors = 2
+
         for (c <- 0 until numColors)
           colors += L3_EqEq(c, L3_Modulo(L3_Addition((0 until numDims).map(L3_FieldIteratorAccess(_) : L3_Expression).to[ListBuffer]), numColors))
         localSolve = L3_ColorLoops(colors, ListBuffer(localSolve))

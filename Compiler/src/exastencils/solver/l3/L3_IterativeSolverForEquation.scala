@@ -14,13 +14,13 @@ import exastencils.util.l3.L3_MathFunctionReference
 object L3_IterativeSolverForEquation {
   var generateDebugPrints : Boolean = false
 
-  def generateIterativeSolver(solver : String, entries : ListBuffer[L3_SolverForEqEntry], level : Int) = {
+  def generateIterativeSolver(solver : String, entries : ListBuffer[L3_SolverForEqEntry], level : Int, smootherHint : Option[L3_GenerateSmootherHint]) = {
     solver.toLowerCase() match {
       case "cg" | "conjugategradient" | "conjugategradients" => L3_ConjugateGradientForEquation.generateFor(entries, level)
       case "bicgstab"                                        => L3_BiCGStabForEquation.generateFor(entries, level)
       case "minres"                                          => L3_MinResForEquation.generateFor(entries, level)
       case "conjugateresidual" | "conjugateresiduals"        => L3_ConjugateResidualForEquation.generateFor(entries, level)
-      case "smoother"                                        => L3_VankaAsSolverForEquation.generateFor(entries, level)
+      case "smoother"                                        => L3_VankaAsSolverForEquation.generateFor(entries, level, smootherHint)
       case _                                                 => Logger.error(s"Unsupported iterative solver: ${ solver }")
     }
   }
@@ -34,12 +34,15 @@ object L3_IterativeSolverForEquation {
       val fctBody = ListBuffer[L3_Statement]()
 
       def resNorm = L3_PlainVariableAccess("gen_resNorm", L3_RealDatatype, false)
+
       fctBody += L3_VariableDeclaration(resNorm, 0.0)
 
-      entries.foreach(entry =>
+      entries.foreach(entry => {
+        //fctBody += L3_FunctionCall(L3_PlainInternalFunctionReference("print", L3_UnitDatatype), L3_FieldFieldConvolution(L3_FieldAccess(entry.resPerLevel(level)), L3_FieldAccess(entry.resPerLevel(level))))
         fctBody += L3_Assignment(resNorm,
           L3_FieldFieldConvolution(L3_FieldAccess(entry.resPerLevel(level)), L3_FieldAccess(entry.resPerLevel(level))),
-          "+=", None))
+          "+=", None)
+      })
 
       fctBody += L3_Return(Some(L3_FunctionCall(L3_MathFunctionReference("sqrt", L3_RealDatatype), resNorm)))
 
