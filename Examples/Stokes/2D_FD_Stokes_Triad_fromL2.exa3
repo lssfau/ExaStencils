@@ -1,11 +1,11 @@
 
 generate solver for u in uEquation and v in vEquation and p in pEquation with {
   //solver_smoother_jacobiType    = false
-  solver_smoother_numPre        = 1
-  solver_smoother_numPost       = 1
+  solver_smoother_numPre        = 5
+  solver_smoother_numPost       = 5
   //solver_smoother_damping       = 0.8
   //solver_smoother_coloring      = "9-way" // "red-black"
-  solver_cgs                    = "BiCGStab"
+  solver_cgs                    = "Smoother"
   solver_cgs_maxNumIts          = 128
   solver_cgs_targetResReduction = 1e-3
 } modifiers {
@@ -14,9 +14,14 @@ generate solver for u in uEquation and v in vEquation and p in pEquation with {
   replace 'gen_rhs_p' with rhs_p
 
   replace 'smoother' @all {
-    //VankaSmoother@current ( )
-    TriadSmoother@current ( )
+    VankaSmoother@current ( )
+    //TriadSmoother@current ( )
   }
+	
+	append to 'cycle' @finest {
+		NormalizePressure@finest ( )
+		NormError_Max@finest ( )
+	}
 }
 
 Globals {

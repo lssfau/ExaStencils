@@ -113,3 +113,115 @@ Function TriadSmoother@all ( ) {
     apply bc to p
   }
 }
+
+//// TEST PROBLEM 1 ////
+// u = sin ( PI * x ) * sin ( PI * y )
+// v = cos ( PI * x ) * cos ( PI * y )
+// p = sin ( PI * x ) * sin ( PI * y )
+
+Function NormalizePressure@finest ( ) {
+	Val numCells_x : Int = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_x' ) * getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
+	Val numCells_y : Int = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_y' ) * getKnowledge ( 'domain_rect_numBlocks_y' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_y' )
+	Val numCells : Int = numCells_x * numCells_y
+
+	Var mean : Real = 0
+	loop over p@current with reduction ( + : mean ) {
+		mean += p@current
+	}
+	Var corr : Real = 0
+	loop over p@current with reduction ( + : corr ) {
+		corr += sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y )
+	}
+
+	mean /= numCells
+	corr /= numCells
+	mean -= corr
+
+	loop over p@current {
+		p@current -= mean
+	}
+	communicate p@current
+	apply bc to p@current
+}
+
+Function NormError_Max@finest ( ) : Real {
+	Var err_u : Real = 0
+	Var err_v : Real = 0
+	Var err_p : Real = 0
+
+	loop over u with reduction( max : err_u ){
+		Var curErr : Real = u - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_cellCenter_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	loop over v with reduction( max : err_v ) {
+		Var curErr : Real = v - ( cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_nodePos_y ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+	loop over p with reduction( max : err_p ) {
+		Var curErr : Real = p - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) )
+		err_p = max ( fabs ( curErr ), err_p )
+	}
+
+	Var totalErr : Real = max ( err_u, err_v, err_p )
+
+	print ( 'Error:', totalErr, err_u, err_v, err_p )
+
+	return totalErr
+}
+
+
+//// TEST PROBLEM 2 ////
+// u = -4.0 * cos ( 4.0 * y )
+// v =  2.0 * cos ( 2.0 * x )
+// p =  sin ( 4.0 * x ) * sin ( 2.0 * y )
+/*
+Function NormalizePressure@finest ( ) {
+	Val numCells_x : Int = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_x' ) * getKnowledge ( 'domain_rect_numBlocks_x' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_x' )
+	Val numCells_y : Int = ( 2 ** levels@current ( ) ) * getKnowledge ( 'domain_fragmentLength_y' ) * getKnowledge ( 'domain_rect_numBlocks_y' ) * getKnowledge ( 'domain_rect_numFragsPerBlock_y' )
+	Val numCells : Int = numCells_x * numCells_y
+
+	Var mean : Real = 0
+	loop over p@current with reduction ( + : mean ) {
+		mean += p@current
+	}
+	Var corr : Real = 0
+	loop over p@current with reduction ( + : corr ) {
+		corr += sin ( 4.0 * vf_cellCenter_x ) * sin ( 2.0 * vf_cellCenter_y )
+	}
+
+	mean /= numCells
+	corr /= numCells
+	mean -= corr
+
+	loop over p@current {
+		p@current -= mean
+	}
+	communicate p@current
+	apply bc to p@current
+}
+
+Function NormError_Max@finest ( ) : Real {
+	Var err_u : Real = 0
+	Var err_v : Real = 0
+	Var err_p : Real = 0
+
+	loop over u with reduction( max : err_u ){
+		Var curErr : Real = u - ( -4.0 * cos ( 4.0 * vf_cellCenter_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	loop over v with reduction( max : err_v ) {
+		Var curErr : Real = v - ( 2.0 * cos ( 2.0 * vf_cellCenter_x ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+	loop over p with reduction( max : err_p ) {
+		Var curErr : Real = p - ( sin ( 4.0 * vf_cellCenter_x ) * sin ( 2.0 * vf_cellCenter_y ) )
+		err_p = max ( fabs ( curErr ), err_p )
+	}
+
+	Var totalErr : Real = max ( err_u, err_v, err_p )
+
+	print ( 'Error:', totalErr, err_u, err_v, err_p )
+
+	return totalErr
+}
+*/

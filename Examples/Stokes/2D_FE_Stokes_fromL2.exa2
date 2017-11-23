@@ -31,8 +31,8 @@ Field vEdgeD@(all but finest) on boundary = 0.0
 // u = sin ( PI * x ) * sin ( PI * y )
 // v = cos ( PI * x ) * cos ( PI * y )
 // p = sin ( PI * x ) * sin ( PI * y )
-// rhs_u = 2 * PI**2 * sin ( PI * x ) * sin ( PI * y ) + PI * cos ( PI * x )
-// rhs_v = 2 * PI**2 * cos ( PI * x ) * cos ( PI * y ) - PI * sin ( PI * y )
+// rhs_u = 2 * PI**2 * sin ( PI * x ) * sin ( PI * y ) + PI * cos ( PI * x ) * sin ( PI * y )
+// rhs_v = 2 * PI**2 * cos ( PI * x ) * cos ( PI * y ) + PI * sin ( PI * x ) * cos ( PI * y )
 // rhs_p = 0
 /*
 Field uNode@finest  on boundary = sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y )
@@ -48,16 +48,16 @@ Field vEdgeD@finest on boundary = cos ( PI * vf_boundaryCoord_x ) * cos ( PI * v
 Field rhs_p with Real on Node of global = 0.0 // TODO: might require stencil if != 0
 
 // 2 * PI**2 * sin ( PI * x ) * sin ( PI * y ) + PI * cos ( PI * x )
-Field rhs_uNode@finest  with Real on Node   of global = 2.0 * ( PI**2 ) * sin ( PI * vf_nodePos_x    ) * sin ( PI * vf_nodePos_y    ) + PI * cos ( PI * vf_nodePos_x    ) // 0.0
-Field rhs_uEdgeX@finest with Real on Face_x of global = 2.0 * ( PI**2 ) * sin ( PI * vf_nodePos_x    ) * sin ( PI * vf_cellCenter_y ) + PI * cos ( PI * vf_nodePos_x    ) // 0.0
-Field rhs_uEdgeY@finest with Real on Face_y of global = 2.0 * ( PI**2 ) * sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y    ) + PI * cos ( PI * vf_cellCenter_x ) // 0.0
-Field rhs_uEdgeD@finest with Real on Cell   of global = 2.0 * ( PI**2 ) * sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) + PI * cos ( PI * vf_cellCenter_x ) // 0.0
+Field rhs_uNode@finest  with Real on Node   of global = 2.0 * ( PI**2 ) * sin ( PI * vf_nodePos_x    ) * sin ( PI * vf_nodePos_y    ) + PI * cos ( PI * vf_nodePos_x    ) * sin ( PI * vf_nodePos_y    ) // 0.0
+Field rhs_uEdgeX@finest with Real on Face_x of global = 2.0 * ( PI**2 ) * sin ( PI * vf_nodePos_x    ) * sin ( PI * vf_cellCenter_y ) + PI * cos ( PI * vf_nodePos_x    ) * sin ( PI * vf_cellCenter_y ) // 0.0
+Field rhs_uEdgeY@finest with Real on Face_y of global = 2.0 * ( PI**2 ) * sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y    ) + PI * cos ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y    ) // 0.0
+Field rhs_uEdgeD@finest with Real on Cell   of global = 2.0 * ( PI**2 ) * sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) + PI * cos ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) // 0.0
 
 // 2 * PI**2 * cos ( PI * x ) * cos ( PI * y ) - PI * sin ( PI * y )
-Field rhs_vNode@finest  with Real on Node   of global = 2.0 * ( PI**2 ) * cos ( PI * vf_nodePos_x    ) * cos ( PI * vf_nodePos_y    ) - PI * sin ( PI * vf_nodePos_y    ) // 0.0
-Field rhs_vEdgeX@finest with Real on Face_x of global = 2.0 * ( PI**2 ) * cos ( PI * vf_nodePos_x    ) * cos ( PI * vf_cellCenter_y ) - PI * sin ( PI * vf_cellCenter_y ) // 0.0
-Field rhs_vEdgeY@finest with Real on Face_y of global = 2.0 * ( PI**2 ) * cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_nodePos_y    ) - PI * sin ( PI * vf_nodePos_y    ) // 0.0
-Field rhs_vEdgeD@finest with Real on Cell   of global = 2.0 * ( PI**2 ) * cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_cellCenter_y ) - PI * sin ( PI * vf_cellCenter_y ) // 0.0
+Field rhs_vNode@finest  with Real on Node   of global = 2.0 * ( PI**2 ) * cos ( PI * vf_nodePos_x    ) * cos ( PI * vf_nodePos_y    ) + PI * sin ( PI * vf_nodePos_x    ) * cos ( PI * vf_nodePos_y    ) // 0.0
+Field rhs_vEdgeX@finest with Real on Face_x of global = 2.0 * ( PI**2 ) * cos ( PI * vf_nodePos_x    ) * cos ( PI * vf_cellCenter_y ) + PI * sin ( PI * vf_nodePos_x    ) * cos ( PI * vf_cellCenter_y ) // 0.0
+Field rhs_vEdgeY@finest with Real on Face_y of global = 2.0 * ( PI**2 ) * cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_nodePos_y    ) + PI * sin ( PI * vf_cellCenter_x ) * cos ( PI * vf_nodePos_y    ) // 0.0
+Field rhs_vEdgeD@finest with Real on Cell   of global = 2.0 * ( PI**2 ) * cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_cellCenter_y ) + PI * sin ( PI * vf_cellCenter_x ) * cos ( PI * vf_cellCenter_y ) // 0.0
 */
 //// END OF TEST PROBLEM 1 ////
 

@@ -1,7 +1,7 @@
 dimensionality                 = 2
 
 minLevel                       = 1
-maxLevel                       = 5
+maxLevel                       = 6
 
 discr_type                     = "FiniteDifferences"
 discr_defaultNeumannOrder      = 1
