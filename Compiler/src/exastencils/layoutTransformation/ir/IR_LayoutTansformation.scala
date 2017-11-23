@@ -1,7 +1,7 @@
 package exastencils.layoutTransformation.ir
 
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.HashMap
 
 import java.util.IdentityHashMap
 
@@ -54,7 +54,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
         Logger.error(msg)
     }
     var dim = layout.numDimsData
-    ensure(dim == trafo.dim(T_IN), s"Number of dimensions of layout transformation (${trafo.dim(T_IN)}) does not match actual layout dimensionality ($dim) for field $fieldID and trafo: $trafo")
+    ensure(dim == trafo.dim(T_IN), s"Number of dimensions of layout transformation (${ trafo.dim(T_IN) }) does not match actual layout dimensionality ($dim) for field $fieldID and trafo: $trafo")
     var domain = isl.Set.universe(isl.Space.setAlloc(Isl.ctx, 0, dim))
     for (i <- 0 until dim) {
       val total : Long =
@@ -128,7 +128,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.transaction()
     Logger.info("Applying strategy " + name)
 
-    val transformations = new mutable.HashMap[String, ArrayBuffer[IR_GenericTransform]]()
+    val transformations = new HashMap[String, ArrayBuffer[IR_GenericTransform]]()
     val fieldConcs = new ArrayBuffer[IR_FieldConcatenation]()
     val fieldAliass = new ArrayBuffer[IR_ExternalFieldAlias]()
 
@@ -227,7 +227,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.commit()
   }
 
-  def processDFA(dfa : IR_DirectFieldAccess, transformations : mutable.HashMap[String, ArrayBuffer[IR_GenericTransform]], processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
+  def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[String, ArrayBuffer[IR_GenericTransform]], processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
     val fName = dfa.fieldSelection.field.name
     val layout = dfa.fieldSelection.fieldLayout
     var newIndex : IR_ExpressionIndex = null
@@ -246,14 +246,14 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
         case IR_StringLiteral(id) if id.startsWith(tmpNamePrefix)     => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // IntelliJ workaround: specify IR_Expression explicitly
         case IR_VariableAccess(id, _) if id.startsWith(tmpNamePrefix) => Duplicate.apply[IR_Expression](dfa.index(tmpNameIdx(id))) // HACK to deal with the HACK in IR_ExpressionIndex
       })).applyStandalone(newIndex)
-      val cSumMap : mutable.HashMap[IR_Expression, Long] = colColl.sum
+      val cSumMap : HashMap[IR_Expression, Long] = colColl.sum
       if (cSumMap != null) {
         QuietDefaultStrategy("simplify color", new Transformation("now", {
           case mod @ IR_Modulo(sum, IR_IntegerConstant(nrCol)) if colColl.nrCol == nrCol =>
-            val sumMap : mutable.HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sum)
+            val sumMap : HashMap[IR_Expression, Long] = IR_SimplifyExpression.extractIntegralSum(sum)
             val sumCst : Long = sumMap.remove(IR_SimplifyExpression.constName).getOrElse(0L)
             if (sumMap == cSumMap)
-              IR_IntegerConstant((sumCst + colColl.color) % nrCol)
+              IR_IntegerConstant(((sumCst + colColl.color) % nrCol + nrCol) % nrCol)
             else
               mod
         })).applyStandalone(newIndex)
@@ -268,7 +268,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 class ColorCondCollector extends Collector {
 
   private final val TMP_ANNOT : String = "CCCtmp"
-  var sum : mutable.HashMap[IR_Expression, Long] = null
+  var sum : HashMap[IR_Expression, Long] = null
   var color : Long = -1
   var nrCol : Long = 0
 
@@ -286,19 +286,25 @@ class ColorCondCollector extends Collector {
           cond = annot.get.asInstanceOf[IR_Expression]
     }
 
+    var fixCst = false
     cond match {
       case IR_EqEq(IR_IntegerConstant(c), IR_Modulo(s, IR_IntegerConstant(nr))) =>
         sum = IR_SimplifyExpression.extractIntegralSum(s)
         color = c
         nrCol = nr
         node.annotate(TMP_ANNOT)
+        fixCst = true
       case IR_EqEq(IR_Modulo(s, IR_IntegerConstant(nr)), IR_IntegerConstant(c)) =>
         sum = IR_SimplifyExpression.extractIntegralSum(s)
         color = c
         nrCol = nr
         node.annotate(TMP_ANNOT)
+        fixCst = true
       case _                                                                    =>
     }
+    if (fixCst)
+      for (cst <- sum.remove(IR_SimplifyExpression.constName))
+        color = ((color - cst) % nrCol + nrCol) % nrCol
   }
 
   override def leave(node : Node) : Unit = {
