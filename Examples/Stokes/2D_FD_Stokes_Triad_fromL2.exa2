@@ -1,0 +1,74 @@
+
+Domain global< [ 0, 0 ] to [ 3, 3 ] >
+
+
+Field u with Real on Face_x of global = 0.0
+Field u@finest on boundary = -4.0 * cos ( 4.0 * vf_boundaryCoord_y )
+Field u@(all but finest) on boundary = 0.0
+
+Field v with Real on Face_y of global = 0.0
+Field v@finest on boundary = 2.0 * cos ( 2.0 * vf_boundaryCoord_x )
+Field v@(all but finest) on boundary = 0.0
+
+Field p with Real on Cell of global = 0.0
+Field p on boundary = Neumann // TODO: currently not evaluated outside inner scope
+
+
+Field rhs_u@finest with Real on Face_x of global = 4.0 * sin ( 2.0 * vf_cellCenter_y ) * cos ( 4.0 * vf_nodePosition_x ) - 64.0 * cos ( 4.0 * vf_cellCenter_y )
+Field rhs_u@(all but finest) with Real on Face_x of global = 0.0
+
+Field rhs_v@finest with Real on Face_y of global = 2.0 * sin ( 4.0 * vf_cellCenter_x ) * cos ( 2.0 * vf_nodePosition_y ) + 8.0 * cos ( 2.0 * vf_cellCenter_x )
+Field rhs_v@(all but finest) with Real on Face_y of global = 0.0
+
+Field rhs_p@finest with Real on Cell of global = 0.0
+Field rhs_p@(all but finest) with Real on Cell of global = 0.0
+
+
+Operator Laplace from Stencil {
+  [ 0,  0] =>  2.0 / ( vf_gridWidth_x ** 2 ) + 2.0 / ( vf_gridWidth_y ** 2 )
+  [-1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 1,  0] => -1.0 / ( vf_gridWidth_x ** 2 )
+  [ 0, -1] => -1.0 / ( vf_gridWidth_y ** 2 )
+  [ 0,  1] => -1.0 / ( vf_gridWidth_y ** 2 )
+}
+
+
+// TODO: adapt for non-uniform grids
+Equation uEquation@finest {
+  Laplace * u + ( p@[0, 0] - p @[-1, 0] ) / vf_gridWidth_x == rhs_u
+}
+Equation uEquation@(all but finest) {
+  Laplace * u + ( p@[0, 0] - p @[-1, 0] ) / vf_gridWidth_x == 0.0
+}
+
+Equation vEquation@finest {
+  Laplace * v + ( p@[0, 0] - p @[0, -1] ) / vf_gridWidth_y == rhs_v
+}
+Equation vEquation@(all but finest) {
+  Laplace * v + ( p@[0, 0] - p @[0, -1] ) / vf_gridWidth_y == 0.0
+}
+
+Equation pEquation@finest {
+  ( u@[1, 0] - u @[0, 0] ) / vf_gridWidth_x + ( v@[0, 1] - v @[0, 0] ) / vf_gridWidth_y == rhs_p
+}
+Equation pEquation@(all but finest) {
+  ( u@[1, 0] - u @[0, 0] ) / vf_gridWidth_x + ( v@[0, 1] - v @[0, 0] ) / vf_gridWidth_y == 0.0
+}
+
+
+generate operators @all {
+  equation for u is uEquation store in {
+    u => A11
+    p => B1
+  }
+
+  equation for v is vEquation store in {
+    v => A22
+    p => B2
+  }
+
+  equation for p is pEquation store in {
+    u => C1
+    v => C2
+  }
+}

@@ -1,0 +1,115 @@
+Function VankaSmoother@all ( ) {
+  repeat 4 times {
+    color with {
+      ( 0 == (x + y) % 2 ) ,
+      ( 1 == (x + y) % 2 ) ,
+
+      loop over p {
+        solve locally relax omega {
+          u@[0, 0] => A11 * u@[0, 0] + B1 * p@[0, 0] == rhs_u@[0, 0]
+          u@[1, 0] => A11 * u@[1, 0] + B1 * p@[1, 0] == rhs_u@[1, 0]
+          v@[0, 0] => A22 * v@[0, 0] + B2 * p@[0, 0] == rhs_v@[0, 0]
+          v@[0, 1] => A22 * v@[0, 1] + B2 * p@[0, 1] == rhs_v@[0, 1]
+          p@[0, 0] => C1  * u@[0, 0] + C2 * v@[0, 0] == rhs_p@[0, 0]
+        }
+      }
+    }
+
+    communicate u
+    communicate v
+    communicate p
+
+    apply bc to u
+    apply bc to v
+    apply bc to p
+  }
+}
+
+Function TriadSmoother@all ( ) {
+  Var it : Int = 0
+  repeat 4 times count it {
+    if ( 0 == it % 4 ) {
+      color with {
+        ( 0 == (x + y) % 2 ) ,
+        ( 1 == (x + y) % 2 ) ,
+
+        loop over p { // { starting [0, 1] ending [1, 0] {
+          if ( ! ( isOnBoundaryOf ( u@[1, 0] ) || isOnBoundaryOf ( v@[0, 0] ) ) ) {
+            solve locally relax omega {
+              //u@[0, 0] => A11 * u@[0, 0] + B1 * p@[0, 0] == rhs_u@[0, 0]
+              u@[1, 0] => A11 * u@[1, 0] + B1 * p@[1, 0] == rhs_u@[1, 0]
+              v@[0, 0] => A22 * v@[0, 0] + B2 * p@[0, 0] == rhs_v@[0, 0]
+              //v@[0, 1] => A22 * v@[0, 1] + B2 * p@[0, 1] == rhs_v@[0, 1]
+              p@[0, 0] => C1  * u@[0, 0] + C2 * v@[0, 0] == rhs_p@[0, 0]
+            }
+          }
+        }
+      }
+    }
+
+    if ( 1 == it % 4 ) {
+      color with {
+        ( 0 == (x + y) % 2 ) ,
+        ( 1 == (x + y) % 2 ) ,
+
+        loop over p { // { starting [1, 0] ending [0, 1] {
+          if ( ! ( isOnBoundaryOf ( u@[0, 0] ) || isOnBoundaryOf ( v@[0, 1] ) ) ) {
+            solve locally relax omega {
+              u@[0, 0] => A11 * u@[0, 0] + B1 * p@[0, 0] == rhs_u@[0, 0]
+              //u@[1, 0] => A11 * u@[1, 0] + B1 * p@[1, 0] == rhs_u@[1, 0]
+              //v@[0, 0] => A22 * v@[0, 0] + B2 * p@[0, 0] == rhs_v@[0, 0]
+              v@[0, 1] => A22 * v@[0, 1] + B2 * p@[0, 1] == rhs_v@[0, 1]
+              p@[0, 0] => C1  * u@[0, 0] + C2 * v@[0, 0] == rhs_p@[0, 0]
+            }
+          }
+        }
+      }
+    }
+
+    if ( 2 == it % 4 ) {
+      color with {
+        ( 0 == (x + y) % 2 ) ,
+        ( 1 == (x + y) % 2 ) ,
+
+        loop over p { // { starting [0, 0] ending [1, 1] {
+          if ( ! ( isOnBoundaryOf ( u@[1, 0] ) || isOnBoundaryOf ( v@[0, 1] ) ) ) {
+            solve locally relax omega {
+              //u@[0, 0] => A11 * u@[0, 0] + B1 * p@[0, 0] == rhs_u@[0, 0]
+              u@[1, 0] => A11 * u@[1, 0] + B1 * p@[1, 0] == rhs_u@[1, 0]
+              //v@[0, 0] => A22 * v@[0, 0] + B2 * p@[0, 0] == rhs_v@[0, 0]
+              v@[0, 1] => A22 * v@[0, 1] + B2 * p@[0, 1] == rhs_v@[0, 1]
+              p@[0, 0] => C1  * u@[0, 0] + C2 * v@[0, 0] == rhs_p@[0, 0]
+            }
+          }
+        }
+      }
+    }
+
+    if ( 3 == it % 4 ) {
+      color with {
+        ( 0 == (x + y) % 2 ) ,
+        ( 1 == (x + y) % 2 ) ,
+
+        loop over p { // { starting [1, 1] ending [0, 0] {
+          if ( ! ( isOnBoundaryOf ( u@[0, 0] ) || isOnBoundaryOf ( v@[0, 0] ) ) ) {
+            solve locally relax omega {
+              u@[0, 0] => A11 * u@[0, 0] + B1 * p@[0, 0] == rhs_u@[0, 0]
+              //u@[1, 0] => A11 * u@[1, 0] + B1 * p@[1, 0] == rhs_u@[1, 0]
+              v@[0, 0] => A22 * v@[0, 0] + B2 * p@[0, 0] == rhs_v@[0, 0]
+              //v@[0, 1] => A22 * v@[0, 1] + B2 * p@[0, 1] == rhs_v@[0, 1]
+              p@[0, 0] => C1  * u@[0, 0] + C2 * v@[0, 0] == rhs_p@[0, 0]
+            }
+          }
+        }
+      }
+    }
+
+    communicate u
+    communicate v
+    communicate p
+
+    apply bc to u
+    apply bc to v
+    apply bc to p
+  }
+}
