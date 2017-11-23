@@ -1,8 +1,17 @@
 Function VankaSmoother@all ( ) {
   repeat 4 times {
+		// TODO: set fragLen to 3
+		
     color with {
-      ( 0 == (x + y) % 2 ) ,
-      ( 1 == (x + y) % 2 ) ,
+      ( 0 == x % 3 && 0 == y % 3 ) ,
+      ( 1 == x % 3 && 0 == y % 3 ) ,
+      ( 2 == x % 3 && 0 == y % 3 ) ,
+      ( 0 == x % 3 && 1 == y % 3 ) ,
+      ( 1 == x % 3 && 1 == y % 3 ) ,
+      ( 2 == x % 3 && 1 == y % 3 ) ,
+      ( 0 == x % 3 && 2 == y % 3 ) ,
+      ( 1 == x % 3 && 2 == y % 3 ) ,
+      ( 2 == x % 3 && 2 == y % 3 ) ,
 
       loop over p {
         solve locally relax omega {
@@ -27,11 +36,11 @@ Function VankaSmoother@all ( ) {
 
 Function TriadSmoother@all ( ) {
   Var it : Int = 0
-  repeat 4 times count it {
+  repeat 20 times count it {
     if ( 0 == it % 4 ) {
       color with {
         ( 0 == (x + y) % 2 ) ,
-        ( 1 == (x + y) % 2 ) ,
+				( 1 == (x + y) % 2 ) ,
 
         loop over p { // { starting [0, 1] ending [1, 0] {
           if ( ! ( isOnBoundaryOf ( u@[1, 0] ) || isOnBoundaryOf ( v@[0, 0] ) ) ) {
@@ -50,7 +59,7 @@ Function TriadSmoother@all ( ) {
     if ( 1 == it % 4 ) {
       color with {
         ( 0 == (x + y) % 2 ) ,
-        ( 1 == (x + y) % 2 ) ,
+				( 1 == (x + y) % 2 ) ,
 
         loop over p { // { starting [1, 0] ending [0, 1] {
           if ( ! ( isOnBoundaryOf ( u@[0, 0] ) || isOnBoundaryOf ( v@[0, 1] ) ) ) {
@@ -69,7 +78,7 @@ Function TriadSmoother@all ( ) {
     if ( 2 == it % 4 ) {
       color with {
         ( 0 == (x + y) % 2 ) ,
-        ( 1 == (x + y) % 2 ) ,
+				( 1 == (x + y) % 2 ) ,
 
         loop over p { // { starting [0, 0] ending [1, 1] {
           if ( ! ( isOnBoundaryOf ( u@[1, 0] ) || isOnBoundaryOf ( v@[0, 1] ) ) ) {
@@ -88,7 +97,7 @@ Function TriadSmoother@all ( ) {
     if ( 3 == it % 4 ) {
       color with {
         ( 0 == (x + y) % 2 ) ,
-        ( 1 == (x + y) % 2 ) ,
+				( 1 == (x + y) % 2 ) ,
 
         loop over p { // { starting [1, 1] ending [0, 0] {
           if ( ! ( isOnBoundaryOf ( u@[0, 0] ) || isOnBoundaryOf ( v@[0, 0] ) ) ) {
@@ -112,6 +121,76 @@ Function TriadSmoother@all ( ) {
     apply bc to v
     apply bc to p
   }
+}
+
+Function Distributive@all ( ) {
+  repeat 5 times {
+		// solve u
+		color with {
+			0 == ( x + y ) % 2,
+			1 == ( x + y ) % 2,
+
+				loop over u {
+					solve locally relax omega {
+						u => A11 * u + B1 * p == rhs_u
+					}
+				}
+
+				communicate u
+				apply bc to u
+		}
+
+		// solve v
+		color with {
+			0 == ( x + y ) % 2,
+			1 == ( x + y ) % 2,
+
+				loop over v {
+					solve locally relax omega {
+						v => A22 * v + B2 * p == rhs_v
+					}
+				}
+				
+				communicate v
+				apply bc to v
+		}
+
+		// 'solve' p
+		color with {
+      ( 0 == x % 3 && 0 == y % 3 ) ,
+      ( 1 == x % 3 && 0 == y % 3 ) ,
+      ( 2 == x % 3 && 0 == y % 3 ) ,
+      ( 0 == x % 3 && 1 == y % 3 ) ,
+      ( 1 == x % 3 && 1 == y % 3 ) ,
+      ( 2 == x % 3 && 1 == y % 3 ) ,
+      ( 0 == x % 3 && 2 == y % 3 ) ,
+      ( 1 == x % 3 && 2 == y % 3 ) ,
+      ( 2 == x % 3 && 2 == y % 3 ) ,
+
+			loop over p {
+				Var delta : Real = ( vf_cellWidth_x / 4.0 ) * ( rhs_p - ( C1 * u + C2 * v ) )
+
+				u@[ 0,  0] -= delta
+				u@[ 1,  0] += delta
+				v@[ 0,  0] -= delta
+				v@[ 0,  1] += delta
+
+				p@[ 0,  0] += delta * 4.0 / vf_cellWidth_x
+
+				p@[-1,  0] -= delta / vf_cellWidth_x
+				p@[ 1,  0] -= delta / vf_cellWidth_x
+				p@[ 0, -1] -= delta / vf_cellWidth_x
+				p@[ 0,  1] -= delta / vf_cellWidth_x
+			}
+
+			communicate u
+			apply bc to u
+			communicate v
+			apply bc to v
+			communicate p
+			apply bc to p
+		}
+	}
 }
 
 //// TEST PROBLEM 1 ////
