@@ -18,16 +18,16 @@ generate solver for
   solver_cgs_maxNumIts          = 1280
   solver_cgs_targetResReduction = 1e-3
 } modifiers {
-  //replace 'gen_rhs_u' with rhs_u
-  //replace 'gen_rhs_v' with rhs_v
-  //replace 'gen_rhs_p' with rhs_p
-
   replace 'restriction' @all {
     myRestr@current ( )
   }
   replace 'correction' @all {
     myCorr@current ( )
   }
+
+	append to 'cycle' @finest {
+		NormError_Max@finest ( )
+	}
 } smootherHint {
 	loopBase p
 	solveFor {

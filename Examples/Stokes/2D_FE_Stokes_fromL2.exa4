@@ -228,3 +228,116 @@ Function myCorr@(all but coarsest) {
 		p@[ 1,-1] += 0.25 * p@coarser
 	}
 }
+
+//// TEST PROBLEM 1 ////
+// u = sin ( PI * x ) * sin ( PI * y )
+// v = cos ( PI * x ) * cos ( PI * y )
+// p = sin ( PI * x ) * sin ( PI * y )
+
+Function NormError_Max@finest ( ) : Real {
+	Var err_u : Real = 0
+	Var err_v : Real = 0
+	Var err_p : Real = 0
+
+	loop over uNode with reduction( max : err_u ){
+		Var curErr : Real = uNode - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_nodePos_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	loop over uEdgeX with reduction( max : err_u ){
+		Var curErr : Real = uEdgeX - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_cellCenter_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	loop over uEdgeY with reduction( max : err_u ){
+		Var curErr : Real = uEdgeY - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	loop over uEdgeD with reduction( max : err_u ){
+		Var curErr : Real = uEdgeD - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	
+	loop over vNode with reduction( max : err_v ) {
+		Var curErr : Real = vNode - ( cos ( PI * vf_nodePos_x ) * cos ( PI * vf_nodePos_y ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+	loop over vEdgeX with reduction( max : err_v ) {
+		Var curErr : Real = vEdgeX - ( cos ( PI * vf_nodePos_x ) * cos ( PI * vf_cellCenter_y ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+	loop over vEdgeY with reduction( max : err_v ) {
+		Var curErr : Real = vEdgeY - ( cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_nodePos_y ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+	loop over vEdgeD with reduction( max : err_v ) {
+		Var curErr : Real = vEdgeD - ( cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_cellCenter_y ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+
+	loop over p with reduction( max : err_p ) {
+		Var curErr : Real = p - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) )
+		err_p = max ( fabs ( curErr ), err_p )
+	}
+
+	Var totalErr : Real = max ( err_u, err_v, err_p )
+
+	print ( 'Error:', totalErr, err_u, err_v, err_p )
+
+	return totalErr
+}
+
+//// TEST PROBLEM 2 ////
+// u = -4.0 * cos ( 4.0 * y )
+// v =  2.0 * cos ( 2.0 * x )
+// p =  sin ( 4.0 * x ) * sin ( 2.0 * y )
+/*
+Function NormError_Max@finest ( ) : Real {
+	Var err_u : Real = 0
+	Var err_v : Real = 0
+	Var err_p : Real = 0
+
+	loop over uNode with reduction( max : err_u ){
+		Var curErr : Real = uNode - ( -4.0 * cos ( 4.0 * vf_nodePos_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	loop over uEdgeX with reduction( max : err_u ){
+		Var curErr : Real = uEdgeX - ( -4.0 * cos ( 4.0 * vf_nodePos_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	loop over uEdgeY with reduction( max : err_u ){
+		Var curErr : Real = uEdgeY - ( -4.0 * cos ( 4.0 * vf_cellCenter_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	loop over uEdgeD with reduction( max : err_u ){
+		Var curErr : Real = uEdgeD - ( -4.0 * cos ( 4.0 * vf_cellCenter_y ) )
+		err_u = max ( fabs ( curErr ), err_u )
+	}
+	
+	loop over vNode with reduction( max : err_v ) {
+		Var curErr : Real = vNode - ( 2.0 * cos ( 2.0 * vf_nodePos_x ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+	loop over vEdgeX with reduction( max : err_v ) {
+		Var curErr : Real = vEdgeX - ( 2.0 * cos ( 2.0 * vf_nodePos_x ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+	loop over vEdgeY with reduction( max : err_v ) {
+		Var curErr : Real = vEdgeY - ( 2.0 * cos ( 2.0 * vf_cellCenter_x ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+	loop over vEdgeD with reduction( max : err_v ) {
+		Var curErr : Real = vEdgeD - ( 2.0 * cos ( 2.0 * vf_cellCenter_x ) )
+		err_v = max ( fabs ( curErr ), err_v )
+	}
+	
+	loop over p with reduction( max : err_p ) {
+		Var curErr : Real = p - ( sin ( 4.0 * vf_cellCenter_x ) * sin ( 2.0 * vf_cellCenter_y ) )
+		err_p = max ( fabs ( curErr ), err_p )
+	}
+
+	Var totalErr : Real = max ( err_u, err_v, err_p )
+
+	print ( 'Error:', totalErr, err_u, err_v, err_p )
+
+	return totalErr
+}
+*/
