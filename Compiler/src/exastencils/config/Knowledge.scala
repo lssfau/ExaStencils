@@ -172,7 +172,7 @@ object Knowledge {
   var solver_smoother_coloring : String = "None"
 
   // damping factor used in the generated smoother
-  var solver_smoother_damping : Double = 0.8
+  var solver_smoother_damping : Double = 1.0
 
   // number of pre-smoothing steps
   var solver_smoother_numPre : Int = 3
