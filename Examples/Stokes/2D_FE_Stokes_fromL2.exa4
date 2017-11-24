@@ -274,7 +274,7 @@ Function NormError_Max@finest ( ) : Real {
 	}
 
 	loop over p with reduction( max : err_p ) {
-		Var curErr : Real = p - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) )
+		Var curErr : Real = p - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_nodePos_y ) )
 		err_p = max ( fabs ( curErr ), err_p )
 	}
 
@@ -330,7 +330,7 @@ Function NormError_Max@finest ( ) : Real {
 	}
 	
 	loop over p with reduction( max : err_p ) {
-		Var curErr : Real = p - ( sin ( 4.0 * vf_cellCenter_x ) * sin ( 2.0 * vf_cellCenter_y ) )
+		Var curErr : Real = p - ( sin ( 4.0 * vf_nodePos_x ) * sin ( 2.0 * vf_nodePos_y ) )
 		err_p = max ( fabs ( curErr ), err_p )
 	}
 

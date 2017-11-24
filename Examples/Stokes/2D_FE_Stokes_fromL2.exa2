@@ -53,11 +53,21 @@ Field rhs_uEdgeX@finest with Real on Face_x of global = 2.0 * ( PI**2 ) * sin ( 
 Field rhs_uEdgeY@finest with Real on Face_y of global = 2.0 * ( PI**2 ) * sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y    ) + PI * cos ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y    ) // 0.0
 Field rhs_uEdgeD@finest with Real on Cell   of global = 2.0 * ( PI**2 ) * sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) + PI * cos ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) // 0.0
 
+Field rhs_uNode@finest  on boundary = 2.0 * ( PI**2 ) * sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y ) + PI * cos ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y ) // 0.0
+Field rhs_uEdgeX@finest on boundary = 2.0 * ( PI**2 ) * sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y ) + PI * cos ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y ) // 0.0
+Field rhs_uEdgeY@finest on boundary = 2.0 * ( PI**2 ) * sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y ) + PI * cos ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y ) // 0.0
+Field rhs_uEdgeD@finest on boundary = 2.0 * ( PI**2 ) * sin ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y ) + PI * cos ( PI * vf_boundaryCoord_x ) * sin ( PI * vf_boundaryCoord_y ) // 0.0
+
 // 2 * PI**2 * cos ( PI * x ) * cos ( PI * y ) + PI * sin ( PI * x ) * cos ( PI * y )
 Field rhs_vNode@finest  with Real on Node   of global = 2.0 * ( PI**2 ) * cos ( PI * vf_nodePos_x    ) * cos ( PI * vf_nodePos_y    ) + PI * sin ( PI * vf_nodePos_x    ) * cos ( PI * vf_nodePos_y    ) // 0.0
 Field rhs_vEdgeX@finest with Real on Face_x of global = 2.0 * ( PI**2 ) * cos ( PI * vf_nodePos_x    ) * cos ( PI * vf_cellCenter_y ) + PI * sin ( PI * vf_nodePos_x    ) * cos ( PI * vf_cellCenter_y ) // 0.0
 Field rhs_vEdgeY@finest with Real on Face_y of global = 2.0 * ( PI**2 ) * cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_nodePos_y    ) + PI * sin ( PI * vf_cellCenter_x ) * cos ( PI * vf_nodePos_y    ) // 0.0
 Field rhs_vEdgeD@finest with Real on Cell   of global = 2.0 * ( PI**2 ) * cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_cellCenter_y ) + PI * sin ( PI * vf_cellCenter_x ) * cos ( PI * vf_cellCenter_y ) // 0.0
+
+Field rhs_vNode@finest  on boundary = 2.0 * ( PI**2 ) * cos ( PI * vf_boundaryCoord_x ) * cos ( PI * vf_boundaryCoord_y ) + PI * sin ( PI * vf_boundaryCoord_x ) * cos ( PI * vf_boundaryCoord_y ) // 0.0
+Field rhs_vEdgeX@finest on boundary = 2.0 * ( PI**2 ) * cos ( PI * vf_boundaryCoord_x ) * cos ( PI * vf_boundaryCoord_y ) + PI * sin ( PI * vf_boundaryCoord_x ) * cos ( PI * vf_boundaryCoord_y ) // 0.0
+Field rhs_vEdgeY@finest on boundary = 2.0 * ( PI**2 ) * cos ( PI * vf_boundaryCoord_x ) * cos ( PI * vf_boundaryCoord_y ) + PI * sin ( PI * vf_boundaryCoord_x ) * cos ( PI * vf_boundaryCoord_y ) // 0.0
+Field rhs_vEdgeD@finest on boundary = 2.0 * ( PI**2 ) * cos ( PI * vf_boundaryCoord_x ) * cos ( PI * vf_boundaryCoord_y ) + PI * sin ( PI * vf_boundaryCoord_x ) * cos ( PI * vf_boundaryCoord_y ) // 0.0
 
 //// END OF TEST PROBLEM 1 ////
 
