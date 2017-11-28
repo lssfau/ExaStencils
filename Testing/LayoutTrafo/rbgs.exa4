@@ -1,7 +1,7 @@
 LayoutTransformations {
   transform Solution@finest, RHS@(4 to finest)  with [x, y, z] => [x/2, y, z, (x+y+z)%2]
   concat @(0 to 3) Solution, RHS, Residual into Merged
-  rename Residual@all to Toll
+  rename VecGradP@all to Toll
   transform Merged@(coarsest + 1)  with [x, y, z, i] => [y, z, x, i]
 }
 
@@ -216,7 +216,6 @@ Function Application {
 	apply bc to Solution@4
 	apply bc to Solution@5
 	apply bc to Solution@6
-	apply bc to Solution@7
 	apply bc to VecP@coarsest
 	Solve (  )
 	destroyGlobals (  )
