@@ -5,6 +5,7 @@
 #SBATCH --time=15
 #SBATCH --signal=INT@5
 #SBATCH --open-mode=append
+#SBATCH -x "cayman[1-8]"
 
 
 BIN=${1}
