@@ -28,6 +28,8 @@ import exastencils.polyhedron.Isl.TypeAliases._
 
 object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
+  private val DEBUG : Boolean = false
+
   import scala.language.implicitConversions
 
   implicit def long2val(l : Long) : isl.Val = isl.Val.intFromSi(Isl.ctx, l)
@@ -218,10 +220,15 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
           for ((newField, _) <- Option(fieldReplace.get(node.src)))
             node.src = newField
           node
+        case node : IR_IV_ActiveSlot           =>
+          for ((newField, _) <- Option(fieldReplace.get(node.field)))
+            node.field = newField
+          node
         case x : Product                       =>
-          for (f <- x.productIterator)
-            if (f.isInstanceOf[IR_Field])
-              println("  der hatn field: " + x)
+          if (DEBUG)
+            for (f <- x.productIterator)
+              if (f.isInstanceOf[IR_Field])
+                Logger.error("unexpected IR_Field found in:  " + x)
           x
       }))
     }
