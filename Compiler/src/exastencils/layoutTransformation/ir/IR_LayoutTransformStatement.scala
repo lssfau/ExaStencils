@@ -94,7 +94,7 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
     val toRemove = ArrayBuffer[IR_Field]()
 
     for (field <- IR_FieldCollection.objects)
-      for (id <- idMap.get((field.name, field.level))) {
+      for (id <- idMap.remove((field.name, field.level))) {
 
         val dim : Int = field.fieldLayout.numDimsData + 1
 
@@ -134,6 +134,8 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[S
         replace.put(field, (newField, id))
         toRemove += field
       }
+    if (!idMap.isEmpty)
+      Logger.error("merge failed, did not find fields for: " + idMap.keySet)
 
     // update all total values and register new fields to IR_FieldCollection
     for (field <- newFields)
