@@ -22,6 +22,12 @@ case class IR_ExternalFieldAlias(newName : String, oldName : String, oldLevels :
 
 case class IR_GenericTransform(fields : Seq[(String, Int)], its : Array[IR_VariableAccess], trafo : IR_ExpressionIndex) extends IR_LayoutTransformStatement {
 
+  // TODO: adapt custom datatypes to be aware of the transformations?
+  if (Knowledge.mpi_useCustomDatatypes) {
+    Knowledge.mpi_useCustomDatatypes = false
+    Logger.warn("custom mpi datatypes are currently not supported when layout transformations are used, disable custom mpi datatypes for this run!")
+  }
+
   def getIslTrafo() : isl.MultiAff = {
     var maff = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, its.length, trafo.length))
     val lSpace = isl.LocalSpace.fromSpace(maff.getDomainSpace())
@@ -80,6 +86,12 @@ case class IR_GenericTransform(fields : Seq[(String, Int)], its : Array[IR_Varia
 }
 
 case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[String], levels : Seq[Int]) extends IR_LayoutTransformStatement {
+
+  // TODO: adapt custom datatypes to be aware of the transformations?
+  if (Knowledge.mpi_useCustomDatatypes) {
+    Knowledge.mpi_useCustomDatatypes = false
+    Logger.warn("custom mpi datatypes are currently not supported when layout transformations are used, disable custom mpi datatypes for this run!")
+  }
 
   if (fieldsToMerge.size < 2)
     Logger.error(s"there must be at least two fields to merge (for $mergedFieldName)")
