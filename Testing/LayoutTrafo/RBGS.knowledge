@@ -1,4 +1,3 @@
 import "../Smoothers/RBGS.knowledge"
 
-l3tmp_generateL4       = false
-mpi_useCustomDatatypes = true
+l3tmp_generateL4 = false
