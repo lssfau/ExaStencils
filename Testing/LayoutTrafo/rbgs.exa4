@@ -1,8 +1,8 @@
 LayoutTransformations {
-  transform Solution@finest, RHS@(4 to finest)  with [x, y, z] => [x/2, y, z, (x+y+z)%2]
-  concat @(0 to 3) Solution, RHS, Residual into Merged
-  rename VecGradP@coarsest to Toll
-  transform Merged@(coarsest + 1)  with [x, y, z, i] => [y, z, x, i]
+  transform Solution@finest  with [x, y, z] => [x/2, y, z, x%2]
+ // concat @(0 to 3) Solution, RHS, Residual into Merged
+ // rename VecGradP@coarsest to Toll
+ // transform Merged@(coarsest + 1)  with [x, y, z, i] => [y, z, x, i]
 }
 
 Domain global< [0.0, 0.0, 0.0] to [1.0, 1.0, 1.0] >
@@ -176,8 +176,35 @@ Function Solve {
 	Var resStart_0 : Real = NormResidual_0@finest (  )
 	Var res_0 : Real = resStart_0
 	Var resOld_0 : Real = 0
-	print ( "Starting residual at 0", resStart_0 )
-	startTimer ( "timeToSolve" )
+	if ( ( resStart_0 <= 1.0E-12 ) ) {
+		print ( "EFFECTIVELY ZERO" )
+	} else {
+		if ( ( resStart_0 <= 1.0E-11 ) ) {
+			native ( "std::streamsize oldPrec = std::cout.precision()" )
+			native ( "std::cout.precision(1)" )
+			print ( resStart_0 )
+			native ( "std::cout.precision(oldPrec)" )
+		} else {
+			if ( ( resStart_0 <= 9.999999999999999E-11 ) ) {
+				native ( "std::streamsize oldPrec = std::cout.precision()" )
+				native ( "std::cout.precision(2)" )
+				print ( resStart_0 )
+				native ( "std::cout.precision(oldPrec)" )
+			} else {
+				if ( ( resStart_0 <= 9.999999999999999E-10 ) ) {
+					native ( "std::streamsize oldPrec = std::cout.precision()" )
+					native ( "std::cout.precision(3)" )
+					print ( resStart_0 )
+					native ( "std::cout.precision(oldPrec)" )
+				} else {
+					native ( "std::streamsize oldPrec = std::cout.precision()" )
+					native ( "std::cout.precision(4)" )
+					print ( resStart_0 )
+					native ( "std::cout.precision(oldPrec)" )
+				}
+			}
+		}
+	}
 	Var numIt : Integer = 0
 	repeat until ( ( res_0 < ( 1.0E-5 * resStart_0 ) ) || ( numIt >= 100 ) ) {
 		numIt += 1
@@ -188,25 +215,46 @@ Function Solve {
 			print ( "Aborting solve after", getTotalFromTimer ( "cycle" ), "ms which exceeds the limit of", 1200000, "ms" )
 			return
 		}
-		startTimer ( "convergenceChecking" )
 		UpResidual@finest (  )
 		resOld_0 = res_0
 		res_0 = NormResidual_0@finest (  )
-		print ( "Residual at 0:", res_0, "Residual reduction:", ( resStart_0 / res_0 ), "Convergence factor:", ( res_0 / resOld_0 ) )
-		stopTimer ( "convergenceChecking" )
+		if ( ( res_0 <= 1.0E-12 ) ) {
+			print ( "EFFECTIVELY ZERO" )
+		} else {
+			if ( ( res_0 <= 1.0E-11 ) ) {
+				native ( "std::streamsize oldPrec = std::cout.precision()" )
+				native ( "std::cout.precision(1)" )
+				print ( res_0 )
+				native ( "std::cout.precision(oldPrec)" )
+			} else {
+				if ( ( res_0 <= 9.999999999999999E-11 ) ) {
+					native ( "std::streamsize oldPrec = std::cout.precision()" )
+					native ( "std::cout.precision(2)" )
+					print ( res_0 )
+					native ( "std::cout.precision(oldPrec)" )
+				} else {
+					if ( ( res_0 <= 9.999999999999999E-10 ) ) {
+						native ( "std::streamsize oldPrec = std::cout.precision()" )
+						native ( "std::cout.precision(3)" )
+						print ( res_0 )
+						native ( "std::cout.precision(oldPrec)" )
+					} else {
+						native ( "std::streamsize oldPrec = std::cout.precision()" )
+						native ( "std::cout.precision(4)" )
+						print ( res_0 )
+						native ( "std::cout.precision(oldPrec)" )
+					}
+				}
+			}
+		}
 	}
-	stopTimer ( "timeToSolve" )
-	print ( "Total time to solve in", numIt, "steps :", getTotalFromTimer ( "timeToSolve" ) )
-	print ( "Mean time per vCycle: ", getMeanFromTimer ( "cycle" ) )
+	print ( numIt )
 }
 
 Function Application {
-	startTimer ( "setup" )
 	initGlobals (  )
 	initDomain (  )
 	initFieldsWithZero (  )
-	stopTimer ( "setup" )
-	print ( "Total time to setup: ", getTotalFromTimer ( "setup" ) )
 	InitRHS@finest (  )
 	InitSolution (  )
 	apply bc to Solution@0
@@ -214,8 +262,6 @@ Function Application {
 	apply bc to Solution@2
 	apply bc to Solution@3
 	apply bc to Solution@4
-	apply bc to Solution@5
-	apply bc to Solution@6
 	apply bc to VecP@coarsest
 	Solve (  )
 	destroyGlobals (  )
