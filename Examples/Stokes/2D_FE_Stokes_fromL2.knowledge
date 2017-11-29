@@ -1,7 +1,7 @@
 dimensionality                 = 2
 
-minLevel                       = 4
-maxLevel                       = 5
+minLevel                       = 1
+maxLevel                       = 6
 
 discr_type                     = "FiniteDifferences"
 discr_defaultNeumannOrder      = 1
@@ -25,8 +25,8 @@ omp_parallelizeLoopOverFragments  = false
 omp_parallelizeLoopOverDimensions = true
 
 // adapt fragments for 9-way coloring (length should be divisible by 3)
-//domain_fragmentLength_x         = 3
-//domain_fragmentLength_y         = 3
+domain_fragmentLength_x         = 1
+domain_fragmentLength_y         = 1
 
 
 experimental_resolveInverseFunctionCall = "Runtime"
