@@ -1,0 +1,67 @@
+
+/// problem specification
+
+Domain global = ( 0, 3 )
+
+// TODO: handle virtual fields properly and make @current implicit again
+Field u@finest \in global = sin ( 3 * PI * vf_nodePosition_x@current ) // fake initial value -> solve for 0 solution
+Field u@(all but finest) \in global = 0.0
+Field p \in global = 0.0
+
+Field u@finest \in \partial global = 0.0
+Field u@(all but finest) \in \partial global = 0.0
+Field p \in \partial global = Neumann
+
+Field f_u@finest \in global = 0.0
+Field f_p@finest \in global = 0.0
+
+Operator Laplace = - \Delta // alt: - \partial_{xx}
+
+Operator dxBwd = \partial_{x}
+Operator dxFwd = \partial_{x}
+
+Equation uEq@finest           Laplace * u + dxBwd * p == f_u
+Equation uEq@(all but finest) Laplace * u + dxBwd * p == 0.0
+
+Equation pEq@finest           dxFwd   * u == f_p
+Equation pEq@(all but finest) dxFwd   * u == 0.0
+
+/// configuration of inter-layer transformations
+
+DiscretizationHints { // alt: Discretize, L2Hint(s)
+  u on Face_x
+  p on Cell
+
+  f_u on Face_x
+  f_p on Cell
+
+  Laplace on global order 2
+  dxFwd   on global order 1 direction 1
+  dxBwd   on global order 1 direction -1
+
+  uEq
+  pEq
+
+  // paramters
+  discr_type = "FiniteDifferences"
+}
+
+SolverHints {
+  generate solver for u in uEq and p in pEq
+
+  // parameters
+  solver_targetResReduction     = 1e-6
+  solver_smoother_jacobiType    = false
+  solver_smoother_numPre        = 4
+  solver_smoother_numPost       = 4
+  solver_smoother_damping       = 0.8
+  solver_smoother_coloring      = "3-way"
+  solver_cgs                    = "BiCGStab"
+  solver_cgs_maxNumIts          = 1280
+  solver_cgs_targetResReduction = 1e-3
+}
+
+ApplicationHints {
+  // parameters
+  l4_genDefaultApplication = true
+}
