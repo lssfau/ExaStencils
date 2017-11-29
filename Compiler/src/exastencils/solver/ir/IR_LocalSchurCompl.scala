@@ -40,49 +40,35 @@ object IR_LocalSchurCompl {
   }
 
   def suitable(AVals : ListBuffer[ListBuffer[IR_Addition]]) : Boolean = {
-    // TODO: currently assumes special case of 2D/3D velocity-pressure coupling
+    // TODO: currently assumes special case of ordered velocity-pressure coupling
 
-    Knowledge.dimensionality match {
-      case 2 =>
-        // check matrix dimensions
-        if (5 != AVals.size)
-          return false
+    val numDims = Knowledge.dimensionality // FIXME
 
-        var onlyZeros = true
-        for (i <- 0 until 5; j <- 0 until 5; if (
-          i != 4 // ignore last row
-            && j != 4 // ignore last column
-            && i / 2 != j / 2 // ignore local blocks
-          )) AVals(i)(j).summands.foreach {
-          case IR_RealConstant(0.0)  =>
-          case IR_IntegerConstant(0) =>
-          case other                 =>
-            Logger.warn(s"Schur complement not possible due to entry $i, $j: $other")
-            onlyZeros = false
-        }
+    if (numDims < 2) // ignore small systems
+      return false
 
-        onlyZeros
+    val numBlocks = numDims
+    val blockSize = 2
+    val systemSize = numBlocks * blockSize + 1
 
-      case 3 =>
-        // check matrix dimensions
-        if (7 != AVals.size)
-          return false
+    // check matrix dimensions
+    if (systemSize != AVals.size)
+      return false
 
-        var onlyZeros = true
-        for (i <- 0 until 7; j <- 0 until 7; if (
-          i != 6 // ignore last row
-            && j != 6 // ignore last column
-            && i / 2 != j / 2 // ignore local blocks
-          )) AVals(i)(j).summands.foreach {
-          case IR_RealConstant(0.0)  =>
-          case IR_IntegerConstant(0) =>
-          case other                 =>
-            Logger.warn(s"Schur complement not possible due to entry $i, $j: $other")
-            onlyZeros = false
-        }
-
-        onlyZeros
+    var onlyZeros = true
+    for (i <- 0 until systemSize; j <- 0 until systemSize; if (
+      i != systemSize - 1 // ignore last row
+        && j != systemSize - 1 // ignore last column
+        && i / 2 != j / 2 // ignore local blocks
+      )) AVals(i)(j).summands.foreach {
+      case IR_RealConstant(0.0)  =>
+      case IR_IntegerConstant(0) =>
+      case other                 =>
+        Logger.warn(s"Schur complement not possible due to entry $i, $j: $other")
+        onlyZeros = false
     }
+
+    onlyZeros
   }
 
   def invert2D(AVals : ListBuffer[ListBuffer[IR_Expression]], fVals : ListBuffer[IR_Expression], unknowns : ListBuffer[IR_FieldAccess],
@@ -113,6 +99,7 @@ object IR_LocalSchurCompl {
       case 2 | 3 => F2
       case 4     => G
     }
+
     def u(i : Int) = i match {
       case 0 | 1 => U1
       case 2 | 3 => U2
@@ -181,6 +168,7 @@ object IR_LocalSchurCompl {
 
     // pre-compute inverse's of local sub-matrices
     def A11Inv = IR_VariableAccess("_local_A11Inv", IR_MatrixDatatype(IR_RealDatatype, 2, 2))
+
     def A22Inv = IR_VariableAccess("_local_A22Inv", IR_MatrixDatatype(IR_RealDatatype, 2, 2))
 
     if (Knowledge.experimental_internalHighDimTypes) {
@@ -193,6 +181,7 @@ object IR_LocalSchurCompl {
     }
 
     def S = IR_VariableAccess("_local_S", IR_MatrixDatatype(IR_RealDatatype, 1, 1))
+
     def GTilde = IR_VariableAccess("_local_GTilde", IR_MatrixDatatype(IR_RealDatatype, 1, 1))
 
     stmts += IR_VariableDeclaration(S, D - (C1 * A11Inv * B1 + C2 * A22Inv * B2))
@@ -256,6 +245,7 @@ object IR_LocalSchurCompl {
       case 4 | 5 => F3
       case 6     => G
     }
+
     def u(i : Int) = i match {
       case 0 | 1 => U1
       case 2 | 3 => U2
@@ -338,7 +328,9 @@ object IR_LocalSchurCompl {
 
     // pre-compute inverse's of local sub-matrices
     def A11Inv = IR_VariableAccess("_local_A11Inv", IR_MatrixDatatype(IR_RealDatatype, 2, 2))
+
     def A22Inv = IR_VariableAccess("_local_A22Inv", IR_MatrixDatatype(IR_RealDatatype, 2, 2))
+
     def A33Inv = IR_VariableAccess("_local_A33Inv", IR_MatrixDatatype(IR_RealDatatype, 2, 2))
 
     if (Knowledge.experimental_internalHighDimTypes) {
@@ -353,6 +345,7 @@ object IR_LocalSchurCompl {
     }
 
     def S = IR_VariableAccess("_local_S", IR_MatrixDatatype(IR_RealDatatype, 1, 1))
+
     def GTilde = IR_VariableAccess("_local_GTilde", IR_MatrixDatatype(IR_RealDatatype, 1, 1))
 
     stmts += IR_VariableDeclaration(S, D - (C1 * A11Inv * B1 + C2 * A22Inv * B2 + C3 * A33Inv * B3))
