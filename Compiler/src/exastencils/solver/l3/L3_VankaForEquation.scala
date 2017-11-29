@@ -153,11 +153,17 @@ object L3_VankaForEquation {
           colors += L3_EqEq(c, L3_Modulo(L3_Addition((0 until numDims).map(L3_FieldIteratorAccess(_) : L3_Expression).to[ListBuffer]), numColors))
         localSolve = L3_ColorLoops(colors, ListBuffer(localSolve))
 
+      //case "2-way" if 1 == numDims =>
+      //  localSolve = L3_ColorLoops(generateColors(2), ListBuffer(localSolve))
+
       case "4-way" if 2 == numDims =>
         localSolve = L3_ColorLoops(generateColors(2), ListBuffer(localSolve))
 
       case "8-way" if 3 == numDims =>
         localSolve = L3_ColorLoops(generateColors(2), ListBuffer(localSolve))
+
+      case "3-way" if 1 == numDims =>
+        localSolve = L3_ColorLoops(generateColors(3), ListBuffer(localSolve))
 
       case "9-way" if 2 == numDims =>
         localSolve = L3_ColorLoops(generateColors(3), ListBuffer(localSolve))
