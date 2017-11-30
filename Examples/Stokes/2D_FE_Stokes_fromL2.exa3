@@ -30,6 +30,17 @@ generate solver for
   append to 'cycle' @finest {
     NormError_Max@finest ( )
   }
+  /*append to 'solver' {
+    printField ( "uNode.txt", uNode@finest )
+    printField ( "uVert.txt", uEdgeX@finest )
+    printField ( "uHori.txt", uEdgeY@finest )
+    printField ( "uDiag.txt", uEdgeD@finest )
+    printField ( "vNode.txt", vNode@finest )
+    printField ( "vVert.txt", vEdgeX@finest )
+    printField ( "vHori.txt", vEdgeY@finest )
+    printField ( "vDiag.txt", vEdgeD@finest )
+    printField ( "p.txt", p@finest )
+  }*/
 } smootherHint {
   loopBase p
   /*solveFor {
