@@ -148,11 +148,11 @@ Used as [level access](#level-access):
 * finer, shorthand for @(current + 1)
 * coarser, shorthand for @(current - 1)
 
-used as [level access](#level-access) and [level declaration](#level-declaration):
+Used as [level access](#level-access) and [level declaration](#level-declaration):
 * finest, denoting the finest level as specified by Knowledge.maxLevel
 * coarest, denoting the coarsest level as specified by Knowledge.minLevel
 
-used as [level declaration](#level-declaration):
+Used as [level declaration](#level-declaration):
 * all, denoting all levels as specified by the range between Knowledge.minLevel and Knowledge.maxLevel
 
 #### Example
@@ -435,6 +435,300 @@ Var someVar : Real = 0.5
 if ( 0. == someVar or 1. == someVar ) {
   // ...
 }
+</pre>
+
+
+
+# Knowledge Objects
+
+
+
+## Domains
+
+
+
+### Domain Declaration
+Declares a new domain with the given *name*.
+
+#### Syntax
+<pre>
+Domain <i>name</i> &lt; <i>lower</i> to <i>upper</i> &gt;
+</pre>
+
+#### Details
+*lower* and *upper* are coordinates of the axis-aligned bounding box surrounding the domain. Their dimensionalty must match. **Currently it must also be identical to Knowledge.dimesionality**.
+In case of multiple domains, the boundaries of all (sub-)domains must coincide with the doamin partitioning.
+There must be at least one domain named 'global'. This domain must include all other domains.
+
+#### Example
+<pre>Domain unitSquare &lt; [0., 0.] to [1., 1.] &gt;</pre>
+<pre>Domain global &lt; [0, 0, 0] to [2, 4, 6] &gt;</pre>
+
+
+
+## Fields
+
+
+
+### Field Layout Declaration
+Declares a new field layout with the given *name* and *options*.
+
+#### Syntax
+<pre>
+Layout <i>name</i> &lt; <i>dataType</i> , <i>localization</i> &gt; 
+  /* optionally */ <i>levels</i>
+  { <i>options</i> }
+</pre>
+
+#### Details
+Specifies that quatities of the given *dataType* are stored at specific parts of the grid chosen by *localization*.
+*dataType* must be a valid [language datatype](#data-types).
+*localization* must be one of the following:
+* Node
+* Cell
+* Face_x
+* Face_y if dimensionality at least 2
+* Face_z if dimensionality at least 3
+
+The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+*layoutOptions* is a list of [layout options](#layout-option) which may be separated by comma. May be empty.
+
+#### Example
+<pre>
+Layout CellLayout &lt; Real , Cell &gt; @all {
+  duplicateLayers = [ 0, 0, 0 ]
+  ghostLayers     = [ 1, 1, 1 ] with communication
+}
+</pre>
+
+
+
+### Layout Option
+Specification of an option to be used for [field layouts](#field-layout-declaration).
+
+#### Syntax
+<pre>
+<i>option</i> = <i>index</i>
+  /* optionally */ with communication
+</pre>
+
+#### Details
+*option* may be one of the following:
+* duplicateLayers
+* ghostLayers
+* innerPoints
+
+*index* specifies the number of layers per dimension for the chosen option.
+with communication marks the chosen layers for communication. **Layers that are not marked here will not be communicated, even when communicate statements are given**.
+
+#### Example
+cf example for [field layout declarations](#field-layout-declaration)
+
+
+
+
+### Field Declaration
+Declares a new field with the given *name* and the provided options.
+
+#### Syntax
+<pre>
+Field <i>name</i> &lt; <i>domain</i> , <i>layout</i> , <i>boundaryCondition</i> &gt;
+  /* optionally */ [ <i>numSlots</i> ]
+  /* optionally */ <i>levels</i>
+</pre>
+
+#### Details
+Each field is tied to a specific *domain* accessed through its name.
+Data type, localization of the field, etc is controlled by the linked *layout*. An implicit [@current](#level-alias) is always assumed. **This is only a name - providing a level in addition is not supported**.
+*boundaryCondition* may be a valid [boundary condition](#boundary condition).
+If *numSlots* is specified, the field is slotted with the given number. Must be an integer constant.
+The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+
+#### Example
+<pre>Field vis &lt; global, CellLayout, None &gt;</pre>
+<pre>Field rho &lt; global, CellLayout, Neumann &gt; [2] @all</pre>
+
+
+
+### Boundary Condition
+Specifies the boundary conditions to be used for a given [field](#field-declaration)
+
+#### Syntax
+<pre>None</pre>
+<pre>
+Neumann
+  /* optionally */ ( <i>order</i> )
+</pre>
+<pre><i>dirichlet</i></pre>
+<pre><i>bcFunction</i> ( )</pre>
+
+#### Details
+None corresponds to no boundary handling.
+Neumann corresponds to Neumann-0 boundary conditions. If *order* is not specified it is defaulted to Knowledge.discr_defaultNeumannOrder.
+*dirichlet* may take the shape of an arbirtrary expression evaluating to the data type of the field. 
+*bcFunction* is a function reference, with optional level, to a user function implementing the boundary handling routine. The function's return type must be Unit.
+
+**Since *dirchlet* can be a function call, an thus may look like a call to a *bcFunction*, the return type of the called function must be known at generation time. It is used to switch both cases.**
+
+#### Example
+<pre>Neumann ( 1 )</pre>
+<pre>sin ( vf_boundaryPosition_x )</pre>
+<pre>applyBoundaries ( )</pre>
+
+
+
+## Stencils
+
+
+
+### Direct Stencil Declaration
+Declares a new stencil with the given *name* and the provided *entries*.
+
+#### Syntax
+<pre>
+Stencil <i>name</i>
+  /* optionally */ <i>levels</i>
+  { <i>entries</i> }
+</pre>
+
+#### Details
+The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+*entries* is a list of [offset entries](#stencil-offset-entry) or [mapping entries](#stencil-mapping-entry). May be separated by comma. May be empty.
+
+#### Example
+<pre>
+Stencil FivePoint@all {
+  [ 0,  0] =&gt;  4.0
+  [-1,  0] =&gt; -1.0
+  [ 1,  0] =&gt; -1.0
+  [ 0, -1] =&gt; -1.0
+  [ 0,  1] =&gt; -1.0
+}
+</pre>
+<pre>
+Stencil RestrictCell {
+  [i0, i1] from [ 2 * i0,     2 * i1     ] with 0.25
+  [i0, i1] from [ 2 * i0,     2 * i1 + 1 ] with 0.25
+  [i0, i1] from [ 2 * i0 + 1, 2 * i1     ] with 0.25
+  [i0, i1] from [ 2 * i0 + 1, 2 * i1 + 1 ] with 0.25
+}
+</pre>
+
+
+
+### Stencil Offset Entry
+A single [stencil](#direct-stencil-declaration) entry in offset notation.
+
+#### Syntax
+<pre>
+<i>offset</i> =&gt; <i>coefficient</i>
+</pre>
+
+#### Details
+*offset* must be a const index.
+*coefficient* may be an arbitrary expression.
+
+#### Example
+<pre>
+[ 0,  0] =&gt;  4.0 * alpha + epsilon
+</pre>
+
+
+
+### Stencil Mapping Entry
+A single [stencil](#direct-stencil-declaration) entry in mapping notation.
+
+#### Syntax
+<pre>
+<i>row</i> from <i>col</i> with <i>coefficient</i>
+</pre>
+
+#### Details
+*row* and *col* can be interpreted as the corresponding row and column positions for the coefficient were the matrix represented by the stencil constructed explicitly.
+*coefficient* may be an arbitrary expression.
+
+#### Example
+<pre>
+[i0, i1] from [ 2 * i0, 2 * i1 ] with 1.0
+</pre>
+
+
+
+### Stencil From Expression
+Declares a new stencil with the given *name* and constructs it based on *expression*
+
+#### Syntax
+<pre>
+Stencil <i>name</i>
+  /* optionally */ <i>levels</i>
+  from <i>expression</i>
+</pre>
+
+#### Details
+*expression* may be an arbitrary expression evaluating to a stencil.
+Supported operations on stencils are:
+* scaling
+* addition
+* multiplication
+* transpose
+* kron (Kronecker product)
+
+#### Example
+<pre>
+Stencil Horizontal { /* ... */ }
+Stencil Vertical   { /* ... */ }
+Stencil Combined from 2.0 * ( Horizontal + Vertical )
+</pre>
+
+
+
+### Stencil From Default
+Declares a new stencil with the given *name* and constructs it based on the specified default *operation*.
+
+#### Syntax
+<pre>
+Stencil <i>name</i>
+  /* optionally */ <i>levels</i>
+  from default <i>operation</i> on <i>localization</i> with <i>parameter</i>
+</pre>
+
+#### Details
+*operation* may be either restriction or prolongation.
+*localization* specifies where the operator will be applied. Allowed values are the same as for [field layout declarations](#field-layout-declaration).
+For restriction and prolongation, *parameter* specifies the interpolation scheme. It may be 'linear' for values of discretized functions and 'integral_linear' for values of integrals over discretized functions. The former is usually applied in finite difference contexts, while the latter finds application in finite volume contexts.
+
+#### Example
+<pre>
+RestrictNode from default restriction on Node with 'linear'
+</pre>
+
+
+
+### Stencil Field Declaration
+Declares a new stencil field with the given *name*, using the shape of *stencil* and storing the data in *field*.
+
+#### Syntax
+<pre>
+StencilField <i>name</i> &lt; field =&gt; stencil &gt;
+  /* optionally */ <i>levels</i>
+</pre>
+
+#### Details
+For *stencil* and *field*, an implicit [@current](#level-alias) is always assumed. **This is only a name - providing a level in addition is not supported**.
+The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+The order of coefficients in the linked *stencil* will remain and be mapped to the entries of the linked *field*'s data.
+The data type of the linked *field* has to be vector. The vector size must match the number of coefficients in the linked *stencil*.
+The coefficients of the stencil are used to initialize the field's data.
+
+#### Example
+<pre>
+Layout SfLayout &lt; Vector &lt; Real, 5 &gt; , Cell &gt; { /* ... */ }
+Field StencilData &lt; global, SfLayout, None &gt;
+
+Stencil FivePointShape { /* ... */ }
+
+StencilField StoredFivePoint &lt; StencilData =&gt; FivePointShape &gt;
+</pre>
 
 
 
