@@ -20,6 +20,31 @@ examples of usage
 
 
 
+# Language Structure
+
+
+
+## Top-Level Statements
+The following statements are allowed:
+* [import](#import)
+* [inline knowledge](#inline-knowledge)
+* declarations of knowledge objects
+    * [domain declaration](#domain-declaration)
+    * [field layout declaration](#field-layout-declaration)
+    * [field declaration](#field-declaration)
+    * [external field declaration](#external-field-declaration)
+    * [direct stencil declaration](#direct-stencil-declaration)
+    * [stencil declaration from expression](#stencil-from-expression)
+    * [stencil declaration from defau](#stencil-from-default)
+* [stencil field declaration](#stencil-field-declaration)
+* [global section](#global-section)
+* function declarations
+    * [function declaration](#function-declaration)
+    * [function template declaration](#function-template)
+    * [function instantiation](#function-instantiation)
+
+
+
 # Basic Language Constructs
 
 
@@ -577,6 +602,33 @@ Neumann corresponds to Neumann-0 boundary conditions. If *order* is not specifie
 
 
 
+### External Field Declaration
+Declares a new external field with the given *name* and the provided options.
+
+#### Syntax
+<pre>
+external Field <i>name</i> &lt; <i>layout</i> &gt; =&gt; <i>internal</i>
+</pre>
+
+#### Details
+Used to transfer data from external program parts to fields declared in the DSL.
+*layout* must describe the layout of the external counterpart.
+*internal* is a refernece to a declared field. A level specification is necessary.
+Using this information, copy-in and copy-out functions are set up. These can be called from the external program.
+If Knowledge.generateFortranInterface is set, the external counterpart is assumed to be in Fortran-compilant ordering, otherwise lexicographic ordering is assumed.
+
+#### Example
+<pre>
+Layout CellLayout &lt; Real , Cell &gt; { /* ... */ }
+Layout ExternalLayout &lt; Real , Cell &gt; @finest { /* ... */ }
+
+Field p &lt; global, CellLayout, Neumann &gt;
+
+external Field p_0 &lt; ExternalLayout &gt; =&gt; p@finest
+</pre>
+
+
+
 ## Stencils
 
 
@@ -729,6 +781,128 @@ Stencil FivePointShape { /* ... */ }
 
 StencilField StoredFivePoint &lt; StencilData =&gt; FivePointShape &gt;
 </pre>
+
+
+
+# Language Extensions
+
+
+
+## Top-Level statements
+
+
+
+### Import
+Imports the content of another DSL file.
+
+#### Syntax
+<pre>
+import <i>filename</i>
+</pre>
+
+#### Details
+*filename* is relative to the location of the current DSL file. The location is automatically adapted for nested imports.
+Multiple import statements in the same file are supported.
+
+#### Example
+<pre>
+import '../lib/defaultGlobals.exa4'
+</pre>
+
+
+
+### Inline Knowledge
+Allows specifying knowledge parameters in the DSL.
+
+#### Syntax
+<pre>
+Knowledge { <i>parameters</i> }
+</pre>
+
+#### Details
+*parameters* must be a list of key-value assigments. Separation by comma is not supported. May be empty.
+Multiple knowledge inlines in the same file are supported.
+
+#### Example
+<pre>
+Knowledge {
+  opt_useAddressPrecalc = true
+  opt_unroll            = 2
+}
+</pre>
+
+
+
+### Global Section
+Opens a new global section holding declarations of global [variables](#variable-declaration) and [values](#value-declaration).
+
+#### Syntax
+<pre>
+Globals { <i>entries</i> }
+</pre>
+
+#### Details
+*entries* must be a list of valid [variable declarations](#variable-declaration) and [value declarations](#value-declaration). May be empty.
+Multiple global sections in one DSL document are supported.
+
+#### Example
+<pre>
+Globals {
+  Var omega     : Real = 0.8
+  Val maxNumIts : Int  = 128
+}
+</pre>
+
+
+
+### Function Template
+Declares a new function template with the given *name*.
+
+#### Syntax
+<pre>
+FunctionTemplate <i>name</i> &lt; <i>templateParams</i> &gt; ( <i>functionParams</i> ) : <i>returnType</i> { <i>body</i> }
+</pre>
+
+#### Details
+FuncTemplate can be used instead of FunctionTemplate.
+*templateParams* must be a list of identifiers that must be separated by comma or newline. May be empty.
+*functionParams* must be a list of [function arguments](#function-argument). May be separated by comma. May be empty.
+*returnType* must be a valid [language data type](#data-types).
+This statement will not map to a function without suitable [function instantiations](#function-instantiation).
+
+#### Example
+<pre>
+FunctionTemplate SetFieldComponent &lt; target &gt; ( value : Real ) : Unit {
+  loop over target {
+    target = value
+  }
+}
+</pre>
+
+
+
+### Function Instantiation
+Instantiates a [function template](#function-template) as a new function with the given *name*.
+
+#### Syntax
+<pre>
+Instantiate <i>template</i> &lt; <i>templateArgs</i> &gt; as <i>name</i>
+  /* optionally */ <i>levels</i>
+</pre>
+
+#### Details
+Inst can be used instead of Instantiate.
+*template* must be the name of a declared [function template](#function-template).
+*templateArgs* must be a list of expressions that must be separted by comma or newline. Its length must match the length on the template parameter list of the linked function template.
+*name* is the name of the newly created function. If a suitable [level declaration](#level-declaration) is given, the new function inherits it.
+In the instantion, occurences of each function template parameter in the function template body are replaced with the corresponding given argument. Modifiers such as level, offset or direction accesses are merged.
+
+#### Example
+<pre>
+Instantiate SetFieldComponent &lt; u@current &gt; as SetSolution_u@all
+Instantiate SetFieldComponent &lt; v@current &gt; as SetSolution_v@all
+</pre>
+
 
 
 
@@ -903,6 +1077,8 @@ preComm and postComm can be one or more expressions in the form of [pre- and pos
 
 
 # TODO
+
+### Layout Transformations
 
 DS features
 Features from other languages
