@@ -222,6 +222,10 @@ do
     ACC="anywhere"
     PART="anywhere"
     CONSTR_PARAM="--constraint=${constraints}"
+    if [[ ${constraints} =~ mem[0-9]* ]]; then
+      CONSTR_PARAM="--mem-per-cpu=${constraints#mem} --constraint="
+      constraints=""
+    fi
     if [[ ${nodes} -gt 1 ]]; then # use the clusters only if MPI is required
       if [[ -n ${constraints} ]]; then
         CONSTR_PARAM="${CONSTR_PARAM}|"
