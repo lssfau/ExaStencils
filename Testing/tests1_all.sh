@@ -222,11 +222,17 @@ do
     ACC="anywhere"
     PART="anywhere"
     CONSTR_PARAM="--constraint=${constraints}"
-    if [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
-      ACC="cl"
-      PART="chimaira"
-      CONSTR_PARAM=""
+    if [[ ${nodes} -gt 1 ]]; then # use the clusters only if MPI is required
+      if [[ -n ${constraints} ]]; then
+        CONSTR_PARAM="${CONSTR_PARAM}|"
+      fi
+      CONSTR_PARAM="${CONSTR_PARAM}chimaira|zmiy|zeus" # cayman still suffers from an MPI bug...
     fi
+#    if [[ ${constraints} = "E5" ]]; then # HACK to ensure jobs are executed even if the cluster is in use
+#      ACC="cl"
+#      PART="chimaira"
+#      CONSTR_PARAM=""
+#    fi
     if [[ ${constraints} =~ GPU ]]; then
       ACC="cl"
       PART="chimaira"
