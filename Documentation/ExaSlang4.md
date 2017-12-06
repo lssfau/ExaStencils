@@ -1,17 +1,738 @@
+# Template
 
-### template
+
+
+### Template
 brief
 
 #### Syntax
 <pre>
+definition of syntax
 </pre>
+
+#### Details
+more details; explanation of parameters if required
+
+#### Example
+<pre>
+examples of usage
+</pre>
+
+
+
+# Basic Language Constructs
+
+
+
+## Comments
+Comments are offered with C-like syntax.
+
+#### Syntax
+<pre>
+// <i>comment</i>
+/* <i>comment</i> */
+</pre>
+
+#### Details
+
+
+#### Example
+<pre>
+// this is a comment
+</pre>
+<pre>
+/* this is a
+   multiline
+   comment
+*/
+</pre>
+
+
+
+
+## Data types
+Represents a simple data type.
+
+#### Syntax
+<pre>
+<i>dataType</i>
+</pre>
+
+#### Details
+*dataType* may be one of the following:
+* Unit (must not be used in declarations)
+* Real
+* Integer or Int
+* String
+* Boolean or Bool
+* a [higher dimensional data type](#higher-dimensional-data-types)
+
+#### Example
+cf examples for [variable declarations](#variable-declaration) and [function declarations](#function-declaration)
+
+
+
+## Levels
+
+
+
+### Level Access
+Access to a single level.
+
+#### Syntax
+<pre>
+@<i>level</i>
+</pre>
+
+#### Details
+*level* may be on of the following
+* a constant
+* a [relative level](#relative-level)
+* a suitable [level alias](#level-alias) evaluating to a single level
+
+#### Example
+<pre>@10</pre>
+
+
+
+### Level Declaration
+A group of levels used for declarations.
+
+#### Syntax
+<pre>
+@<i>levels</i>
+</pre>
+
+#### Details
+*levels* may be on of the following
+* a constant
+* a [relative level](#relative-level)
+* a [level list](#level-list)
+* a suitable [level alias](#level-alias)
+
+#### Example
+<pre>@10</pre>
+
+
+
+### Relative Level
+Access to a level relative to another.
+
+#### Syntax
+<pre>(<i>base</i> + <i>offset</i>)</pre>
+<pre>(<i>base</i> - <i>offset</i>)</pre>
+
+#### Details
+*base* must be a constant or a suitable [level alias](#level-alias) evaluating to a single level.
+*offset* must be an integer constant
+
+#### Example
+<pre>
+(finest - 1)
+</pre>
+
+
+
+### Level Alias
+Aliases for commonly used cases.
+
+#### Syntax
+<pre>
+<i>alias</i>
+</pre>
+
+#### Details
+*alias* may be on of the following:
+Used as [level access](#level-access):
+* current, denoting that the level of the surrounding construct should be used
+* finer, shorthand for @(current + 1)
+* coarser, shorthand for @(current - 1)
+
+Used as [level access](#level-access) and [level declaration](#level-declaration):
+* finest, denoting the finest level as specified by Knowledge.maxLevel
+* coarest, denoting the coarsest level as specified by Knowledge.minLevel
+
+Used as [level declaration](#level-declaration):
+* all, denoting all levels as specified by the range between Knowledge.minLevel and Knowledge.maxLevel
+
+#### Example
+<pre>@all</pre>
+
+
+
+### Level List
+A list of levels used for [level declarations](#level-declaration).
+
+#### Syntax
+<pre>
+(
+  <i>levels</i>
+  /* optionally */ but <i>exclude</i>
+  )
+</pre>
+
+#### Details
+*levels* must be a non-empty list of levels separated by comma or the and keyword, or a [level range](#level-range).
+*exclude*, if provided, must be a valid [level list](#level-list) without any nested *exclude*. The not keyword may be used instead of the but keyword.
+
+#### Example
+<pre>@(0, 2, 4)</pre>
+<pre>@(all but finest)</pre>
+
+
+
+### Level Range
+A range of levels used for [level declarations](#level-declaration).
+
+#### Syntax
+<pre>
+( <i>begin</i> to <i>end</i> )
+</pre>
+
+#### Details
+*begin* and *end* must be constants or suitable [level aliases](#level-alias) evaluating to single levels.
+
+#### Example
+<pre>@(coarsest to finest)</pre>
+
+
+
+## Functions
+
+
+
+### Function Declaration
+
+Declares a new function with the given *name*, taking the provided *arguments* and with the given *returnType*.
+
+#### Syntax
+<pre>
+/* optional */ noinline
+  Function <i>name</i>
+  /* optional */ <i>levels</i>
+  /* optional */ ( <i>arguments</i> )
+  /* optional */ : <i>returnType</i>
+  { <i>body</i> }
+</pre>
+
+#### Details
+Func may be used instead of Function.
+noinline may be used to disallow inling for this function.
+The function declaration is regarded as leveled if *levels* is specified. Must be a valid [level selection for declarations](#level-declaration).
+*arguments*, if provided, has to be a list of [function arguments](#function-argument). May be empty.
+*returnType*, if provided, has to be a valid [language datatype](#data-types). In this case, at least one [return statement](#return-statement) must be present in the *body*. If *returnType* is not provided, an implicit Unit type is assumed.
+
+#### Example
+<pre>
+Function F ( xPos : Real, yPos : Real ) : Real {
+  return sin ( xPos ) * cos ( yPos )
+}
+</pre>
+<pre>
+Function Smoother@all {
+  /* ... */
+}
+</pre>
+
+
+
+### Function Argument
+Specifies a function argument with the given *name* and *dataType*.
+
+#### Syntax
+<pre>
+<i>name</i> : <i>dataType</i>
+</pre>
+
+#### Details
+*dataType* must be a valid [language datatype](#data-types).
+
+#### Example
+<pre>
+someParam : Real
+</pre>
+
+
+
+### Return Statement
+Statement used to exit a function and to optionally return a value.
+
+#### Syntax
+<pre>
+return
+  /* optionally */ <i>returnValue</i>
+</pre>
+
+#### Details
+*returnValue* may be an arbitray expression. Its data type must match the surrounding functions return type. In case of Unit *returnValue* must not be specified.
+
+#### Example
+<pre>
+return
+</pre>
+<pre>
+return sin ( xPos ) * cos ( yPos )
+</pre>
+
+
+
+### Function Call
+
+Call a function with the given *name* and the provided *parameters*.
+
+#### Syntax
+<pre>
+<i>name</i>
+  /* optional */ <i>levels</i>
+  /* optional */ <i>offset</i>
+  ( <i>parameters</i> )
+</pre>
+
+#### Details
+If the called function is leveled and *levels* is not provided, an implicit [@current](#current) is assumed. *levels*, if provided, must be a valid [level access](#level-access).
+*parameter* is a list of arbitrary expressions. May be empty.
+If the function call is used as a statement, it is implicitly wrapped in an expression statement.
+
+#### Example
+<pre>
+Var res : Real = F ( 0.5, 0.5 )
+</pre>
+<pre>
+Smoother@current ( )
+</pre>
+
+
+
+
+## Local Declarations
+
+
+
+### Variable Declaration
+Declares a new variable
+
+#### Syntax
+<pre>
+Var <i>name</i> : <i>dataType</i>
+  /* optional */ levels
+  /* optional */ = <i>initial</i>
+</pre>
+
+#### Details
+Variable may be used instead of Var.
+*dataType* must be a valid [language datatype](#data-types).
+The declaration is regarded as leveled if *levels* is specified. Must be a valid [level selection for declarations](#level-declaration).
+*initial* may be an arbitrary expression. It is used to initialize the variable in the generated code if provided.
+
+#### Example
+<pre>
+Var cnt : Int = 0
+Var curError : Real = 0
+</pre>
+
+
+
+### Value Declaration
+Declares a new constant variable
+
+#### Syntax
+<pre>
+Val <i>name</i> : <i>dataType</i>
+  /* optional */ levels
+  = <i>initial</i>
+</pre>
+
+#### Details
+Value may be used instead of Val.
+*dataType* must be a valid [language datatype](#datatype).
+The declaration is regarded as leveled if *levels* is specified. Must be a valid [level selection for declarations](#level-declaration).
+*initial* may be an arbitrary expression.
+**Right now values are propagated by default and without check for side efffects. This effectively means that they work like a C define.** Can be controlled via Knowledge.experimental_l4_inlineValueDeclarations
+
+#### Example
+<pre>
+Val maxNumIts : Int = 128
+Val a : Real = 10.5 * 4.
+</pre>
+
+
+
+## Basic Loops
+
+
+
+### Fixed-Length Loop
+Executes statements a constant number of times.
+
+#### Syntax
+<pre>
+repeat <i>n</i> times
+  /* optional */ count <i>variable</i>
+{ <i>body</i> }
+</pre>
+
+#### Details
+*n* must be an integral number. *body* must be a non-empty list of statements.
+The current iteration number is stored in *variable*, if provided, which needs to be declared beforehand.
+
+#### Example
+<pre>
+Var cnt : Int = 0
+repeat 10 times count cnt {
+  print ( 'Iteration', cnt )
+}
+</pre>
+
+
+
+### Conditional Loop
+Executes statements while or until a given condition is met.
+
+#### Syntax
+<pre> repeat until <i>condition</i> { body } </pre>
+<pre> repeat while <i>condition</i> { body } </pre>
 
 #### Details
 
 #### Example
 <pre>
+Var cnt : Int = 0
+repeat until 10 == cnt {
+  print ( 'Iteration', cnt )
+  cnt += 1
+}
 </pre>
 
+
+
+## Conditional
+brief
+
+#### Syntax
+<pre>
+if ( <i>condition</i> ) { ifBranch }
+  /* optionally */ else <i>elseBranch</i>
+</pre>
+
+#### Details
+Exectues *ifBranch* if *condition* evaluates to true, *elseBranch* otherwise (if it is specified).
+*condition* may be an arbitrart expression evaluating to a Boolean.
+*ifBranch* may be any list of statements or nothing.
+*elseBranch* may be
+* another [conditional](#conditional)
+* a list of statements surrounded by curly brackets; the list may be empty
+
+#### Example
+<pre>
+if ( true ) {
+  print ( 'always true' )
+} else {
+  print ( 'will not be evaluated' )
+}
+</pre>
+<pre>
+Var someVar : Real = 0.5
+if ( 0. == someVar or 1. == someVar ) {
+  // ...
+}
+</pre>
+
+
+
+# Knowledge Objects
+
+
+
+## Domains
+
+
+
+### Domain Declaration
+Declares a new domain with the given *name*.
+
+#### Syntax
+<pre>
+Domain <i>name</i> &lt; <i>lower</i> to <i>upper</i> &gt;
+</pre>
+
+#### Details
+*lower* and *upper* are coordinates of the axis-aligned bounding box surrounding the domain. Their dimensionalty must match. **Currently it must also be identical to Knowledge.dimesionality**.
+In case of multiple domains, the boundaries of all (sub-)domains must coincide with the doamin partitioning.
+There must be at least one domain named 'global'. This domain must include all other domains.
+
+#### Example
+<pre>Domain unitSquare &lt; [0., 0.] to [1., 1.] &gt;</pre>
+<pre>Domain global &lt; [0, 0, 0] to [2, 4, 6] &gt;</pre>
+
+
+
+## Fields
+
+
+
+### Field Layout Declaration
+Declares a new field layout with the given *name* and *options*.
+
+#### Syntax
+<pre>
+Layout <i>name</i> &lt; <i>dataType</i> , <i>localization</i> &gt; 
+  /* optionally */ <i>levels</i>
+  { <i>options</i> }
+</pre>
+
+#### Details
+Specifies that quatities of the given *dataType* are stored at specific parts of the grid chosen by *localization*.
+*dataType* must be a valid [language datatype](#data-types).
+*localization* must be one of the following:
+* Node
+* Cell
+* Face_x
+* Face_y if dimensionality at least 2
+* Face_z if dimensionality at least 3
+
+The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+*layoutOptions* is a list of [layout options](#layout-option) which may be separated by comma. May be empty.
+
+#### Example
+<pre>
+Layout CellLayout &lt; Real , Cell &gt; @all {
+  duplicateLayers = [ 0, 0, 0 ]
+  ghostLayers     = [ 1, 1, 1 ] with communication
+}
+</pre>
+
+
+
+### Layout Option
+Specification of an option to be used for [field layouts](#field-layout-declaration).
+
+#### Syntax
+<pre>
+<i>option</i> = <i>index</i>
+  /* optionally */ with communication
+</pre>
+
+#### Details
+*option* may be one of the following:
+* duplicateLayers
+* ghostLayers
+* innerPoints
+
+*index* specifies the number of layers per dimension for the chosen option.
+with communication marks the chosen layers for communication. **Layers that are not marked here will not be communicated, even when communicate statements are given**.
+
+#### Example
+cf example for [field layout declarations](#field-layout-declaration)
+
+
+
+
+### Field Declaration
+Declares a new field with the given *name* and the provided options.
+
+#### Syntax
+<pre>
+Field <i>name</i> &lt; <i>domain</i> , <i>layout</i> , <i>boundaryCondition</i> &gt;
+  /* optionally */ [ <i>numSlots</i> ]
+  /* optionally */ <i>levels</i>
+</pre>
+
+#### Details
+Each field is tied to a specific *domain* accessed through its name.
+Data type, localization of the field, etc is controlled by the linked *layout*. An implicit [@current](#level-alias) is always assumed. **This is only a name - providing a level in addition is not supported**.
+*boundaryCondition* may be a valid [boundary condition](#boundary condition).
+If *numSlots* is specified, the field is slotted with the given number. Must be an integer constant.
+The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+
+#### Example
+<pre>Field vis &lt; global, CellLayout, None &gt;</pre>
+<pre>Field rho &lt; global, CellLayout, Neumann &gt; [2] @all</pre>
+
+
+
+### Boundary Condition
+Specifies the boundary conditions to be used for a given [field](#field-declaration)
+
+#### Syntax
+<pre>None</pre>
+<pre>
+Neumann
+  /* optionally */ ( <i>order</i> )
+</pre>
+<pre><i>dirichlet</i></pre>
+<pre><i>bcFunction</i> ( )</pre>
+
+#### Details
+None corresponds to no boundary handling.
+Neumann corresponds to Neumann-0 boundary conditions. If *order* is not specified it is defaulted to Knowledge.discr_defaultNeumannOrder.
+*dirichlet* may take the shape of an arbirtrary expression evaluating to the data type of the field. 
+*bcFunction* is a function reference, with optional level, to a user function implementing the boundary handling routine. The function's return type must be Unit.
+
+**Since *dirchlet* can be a function call, an thus may look like a call to a *bcFunction*, the return type of the called function must be known at generation time. It is used to switch both cases.**
+
+#### Example
+<pre>Neumann ( 1 )</pre>
+<pre>sin ( vf_boundaryPosition_x )</pre>
+<pre>applyBoundaries ( )</pre>
+
+
+
+## Stencils
+
+
+
+### Direct Stencil Declaration
+Declares a new stencil with the given *name* and the provided *entries*.
+
+#### Syntax
+<pre>
+Stencil <i>name</i>
+  /* optionally */ <i>levels</i>
+  { <i>entries</i> }
+</pre>
+
+#### Details
+The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+*entries* is a list of [offset entries](#stencil-offset-entry) or [mapping entries](#stencil-mapping-entry). May be separated by comma. May be empty.
+
+#### Example
+<pre>
+Stencil FivePoint@all {
+  [ 0,  0] =&gt;  4.0
+  [-1,  0] =&gt; -1.0
+  [ 1,  0] =&gt; -1.0
+  [ 0, -1] =&gt; -1.0
+  [ 0,  1] =&gt; -1.0
+}
+</pre>
+<pre>
+Stencil RestrictCell {
+  [i0, i1] from [ 2 * i0,     2 * i1     ] with 0.25
+  [i0, i1] from [ 2 * i0,     2 * i1 + 1 ] with 0.25
+  [i0, i1] from [ 2 * i0 + 1, 2 * i1     ] with 0.25
+  [i0, i1] from [ 2 * i0 + 1, 2 * i1 + 1 ] with 0.25
+}
+</pre>
+
+
+
+### Stencil Offset Entry
+A single [stencil](#direct-stencil-declaration) entry in offset notation.
+
+#### Syntax
+<pre>
+<i>offset</i> =&gt; <i>coefficient</i>
+</pre>
+
+#### Details
+*offset* must be a const index.
+*coefficient* may be an arbitrary expression.
+
+#### Example
+<pre>
+[ 0,  0] =&gt;  4.0 * alpha + epsilon
+</pre>
+
+
+
+### Stencil Mapping Entry
+A single [stencil](#direct-stencil-declaration) entry in mapping notation.
+
+#### Syntax
+<pre>
+<i>row</i> from <i>col</i> with <i>coefficient</i>
+</pre>
+
+#### Details
+*row* and *col* can be interpreted as the corresponding row and column positions for the coefficient were the matrix represented by the stencil constructed explicitly.
+*coefficient* may be an arbitrary expression.
+
+#### Example
+<pre>
+[i0, i1] from [ 2 * i0, 2 * i1 ] with 1.0
+</pre>
+
+
+
+### Stencil From Expression
+Declares a new stencil with the given *name* and constructs it based on *expression*
+
+#### Syntax
+<pre>
+Stencil <i>name</i>
+  /* optionally */ <i>levels</i>
+  from <i>expression</i>
+</pre>
+
+#### Details
+*expression* may be an arbitrary expression evaluating to a stencil.
+Supported operations on stencils are:
+* scaling
+* addition
+* multiplication
+* transpose
+* kron (Kronecker product)
+
+#### Example
+<pre>
+Stencil Horizontal { /* ... */ }
+Stencil Vertical   { /* ... */ }
+Stencil Combined from 2.0 * ( Horizontal + Vertical )
+</pre>
+
+
+
+### Stencil From Default
+Declares a new stencil with the given *name* and constructs it based on the specified default *operation*.
+
+#### Syntax
+<pre>
+Stencil <i>name</i>
+  /* optionally */ <i>levels</i>
+  from default <i>operation</i> on <i>localization</i> with <i>parameter</i>
+</pre>
+
+#### Details
+*operation* may be either restriction or prolongation.
+*localization* specifies where the operator will be applied. Allowed values are the same as for [field layout declarations](#field-layout-declaration).
+For restriction and prolongation, *parameter* specifies the interpolation scheme. It may be 'linear' for values of discretized functions and 'integral_linear' for values of integrals over discretized functions. The former is usually applied in finite difference contexts, while the latter finds application in finite volume contexts.
+
+#### Example
+<pre>
+RestrictNode from default restriction on Node with 'linear'
+</pre>
+
+
+
+### Stencil Field Declaration
+Declares a new stencil field with the given *name*, using the shape of *stencil* and storing the data in *field*.
+
+#### Syntax
+<pre>
+StencilField <i>name</i> &lt; field =&gt; stencil &gt;
+  /* optionally */ <i>levels</i>
+</pre>
+
+#### Details
+For *stencil* and *field*, an implicit [@current](#level-alias) is always assumed. **This is only a name - providing a level in addition is not supported**.
+The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+The order of coefficients in the linked *stencil* will remain and be mapped to the entries of the linked *field*'s data.
+The data type of the linked *field* has to be vector. The vector size must match the number of coefficients in the linked *stencil*.
+The coefficients of the stencil are used to initialize the field's data.
+
+#### Example
+<pre>
+Layout SfLayout &lt; Vector &lt; Real, 5 &gt; , Cell &gt; { /* ... */ }
+Field StencilData &lt; global, SfLayout, None &gt;
+
+Stencil FivePointShape { /* ... */ }
+
+StencilField StoredFivePoint &lt; StencilData =&gt; FivePointShape &gt;
+</pre>
+
+
+
+# DONE
 
 ### LevelScope
 Conditional execution of statements depending on the surrounding scope's level.
@@ -32,48 +753,6 @@ Function recursiveFct@all () {
   @(all but coarsest) {
     recursiveFct@coarser ( )
   }
-}
-</pre>
-
-## basic loops
-
-### fixed-length loop
-Executes statements a constant number of times.
-
-#### Syntax
-<pre>
-repeat <i>n</i> times
-  /* optional */ count <i>variable</i>
-{ <i>body</i> }
-</pre>
-
-#### Details
-*n* must be an integral number. *body* must be a non-empty list of statements.
-`count variable`: the current iteration number is stored in *variable*, which needs to be declared beforehand.
-
-#### Example
-<pre>
-Var cnt : Int = 0
-repeat 10 times count cnt {
-  print ( 'Iteration', cnt )
-}
-</pre>
-
-### conditional loops
-Executes statements while or until a given condition is met.
-
-#### Syntax
-<pre> repeat until <i>condition</i> { body } </pre>
-<pre> repeat while <i>condition</i> { body } </pre>
-
-#### Details
-
-#### Example
-<pre>
-Var cnt : Int = 0
-repeat until 10 == cnt {
-  print ( 'Iteration', cnt )
-  cnt += 1
 }
 </pre>
 
@@ -139,56 +818,6 @@ precomm all of Solution@current
 postcomm dup of Solution where 0 == ( i0 + i1 ) % 2
 </pre>
 
-
-
-### loop over fields
-Loops over a given field and executes statements at each point.
-
-#### Syntax
-<pre>
-loop over <i>field</i>
-  /* optional */ only <i>region</i>
-  /* optional */ sequentially
-  /* optional */ where <i>condition</i>
-  /* optional */ starting <i>offsetBegin</i>
-  /* optional */ ending <i>offsetEnd</i>
-  /* optional */ stepping <i>stepSize</i>
-  /* optional */ with <i>reduction</i>
-  /* optional */ <i>preComm</i>
-  /* optional */ <i>postComm</i>
-{ <i>body</i> }
-</pre>
-
-preComm and postComm can be one or more expressions in the form of [pre- and postcomm](#pre-and-postcomm)
-
-#### Details
-
-
-#### Example
-<pre>
-</pre>
-
-
-
-
-DS features
-Levels and leveled objects
-Features from other languages
-expression/statement
-variableDeclaration
-valueDeclaration
-Basic data types
-Loops
-breakStatement
-assignment
-Operatorassignment TODO: assignment vs compound assignment
-Functions and functionCall
-returnStatement
-conditional
-binop
-Literals
-Language extensions
-
 ## Higher-Dimensional Data Types
 ### Vectors
 Represents a one-dimensional number of scalar elements
@@ -233,7 +862,7 @@ Var m2 : Matrix&lt;Real, 2, 3&gt; = [1 2 3; 4 5 6]
    Matrices up to 3x3 are inverted directly at generation time. For larger matrices, a strategy can be selected via the Knowledge parameter`experimental_resolveInverseFunctionCall`:
    * *Cofactors*: Invert at generation-time using cofactors matrix
    * *GaussJordan*: Invert at generation-time using the Gauss-Jordan algorithm
-   *  *Runtime* Invert only at run-time of the program time
+   * *Runtime* Invert only at run-time of the program time
 * `transpose()` to transpose a matrix
 * `dot()` and `cross()` to calculate dot or cross product of two matrices
 * `det()` to calculate the determinant
@@ -242,6 +871,48 @@ Var m2 : Matrix&lt;Real, 2, 3&gt; = [1 2 3; 4 5 6]
 
 
 
+# IN PROGRESS
+
+### loop over fields
+Loops over a given field and executes statements at each point.
+
+#### Syntax
+<pre>
+loop over <i>field</i>
+  /* optional */ only <i>region</i>
+  /* optional */ sequentially
+  /* optional */ where <i>condition</i>
+  /* optional */ starting <i>offsetBegin</i>
+  /* optional */ ending <i>offsetEnd</i>
+  /* optional */ stepping <i>stepSize</i>
+  /* optional */ with <i>reduction</i>
+  /* optional */ <i>preComm</i>
+  /* optional */ <i>postComm</i>
+{ <i>body</i> }
+</pre>
+
+preComm and postComm can be one or more expressions in the form of [pre- and postcomm](#pre-and-postcomm)
+
+#### Details
+
+
+#### Example
+<pre>
+</pre>
+
+
+
+# TODO
+
+DS features
+Features from other languages
+expression/statement
+breakStatement
+assignment
+Operatorassignment TODO: assignment vs compound assignment
+binop
+Literals
+Language extensions
 
 Globals
 Index
@@ -272,4 +943,3 @@ solveLocallyStatement
 colorWithStatement
 parallelization/partitioning
 communicate
-

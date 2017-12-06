@@ -6,9 +6,11 @@ import exastencils.base.ir.IR_ImplicitConversion._
 import exastencils.base.ir._
 import exastencils.baseExt.ir.IR_ExpressionIndexRange
 import exastencils.config.Knowledge
+import exastencils.core.StateManager
 import exastencils.datastructures._
 import exastencils.deprecated.ir.IR_FieldSelection
 import exastencils.globals.ir.IR_GlobalCollection
+import exastencils.layoutTransformation.ir._
 import exastencils.logger.Logger
 import exastencils.optimization.ir.IR_SimplifyExpression
 import exastencils.prettyprinting.PpStream
@@ -29,6 +31,19 @@ object MPI_DataType {
     // skip vector and matrix fields for now
     if (field.fieldLayout.numDimsData > field.fieldLayout.numDimsGrid)
       return false
+
+    // skip fields targeted by layout transformations
+    StateManager.findAll[IR_LayoutTransformStatement]().foreach {
+      case _ : IR_ExternalFieldAlias => // nothing to do
+
+      case trafo : IR_GenericTransform =>
+        if (trafo.fields.exists(f => f._1 == field.field.name && f._2 == field.level))
+          return false
+
+      case trafo : IR_FieldConcatenation =>
+        if (trafo.fieldsToMerge.contains(field.field.name) && trafo.levels.contains(field.level))
+          return false
+    }
 
     // count the number of dimensions with more than one entry - size in the zero dimension is irrelevant
     val numNonDummyDims = (1 until indexRange.length).map(dim =>

@@ -1,232 +1,581 @@
 
-Function myRestr@(all but coarsest) {
-	loop over gen_rhs_uNode@coarser {
-		gen_rhs_uNode@coarser = 
-			  1.0/4.0  * gen_residual_uNode@[ 0,  0]
-			+ 1.0/8.0  * gen_residual_uEdgeY@[ 0,  0]
-			+ 1.0/8.0  * gen_residual_uEdgeY@[-1,  0]
-			+ 1.0/8.0  * gen_residual_uEdgeX@[ 0,  0]
-			+ 1.0/8.0  * gen_residual_uEdgeX@[ 0, -1]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 0,  0]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[-1,  0]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 0, -1]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[-1, -1]
-	}
-	
-	loop over gen_rhs_uEdgeX@coarser {
-		gen_rhs_uEdgeX@coarser = 
-			  1.0/4.0  * gen_residual_uNode@[ 0,  1]
-			+ 1.0/8.0  * gen_residual_uEdgeY@[ 0,  1]
-			+ 1.0/8.0  * gen_residual_uEdgeY@[-1,  1]
-			+ 1.0/8.0  * gen_residual_uEdgeX@[ 0,  1]
-			+ 1.0/8.0  * gen_residual_uEdgeX@[ 0,  0]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 0,  1]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[-1,  1]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 0,  0]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[-1,  0]
-	}
-	
-	loop over gen_rhs_uEdgeY@coarser {
-		gen_rhs_uEdgeY@coarser = 
-			  1.0/4.0  * gen_residual_uNode@[ 1,  0]
-			+ 1.0/8.0  * gen_residual_uEdgeY@[ 1,  0]
-			+ 1.0/8.0  * gen_residual_uEdgeY@[ 0,  0]
-			+ 1.0/8.0  * gen_residual_uEdgeX@[ 1,  0]
-			+ 1.0/8.0  * gen_residual_uEdgeX@[ 1, -1]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 1,  0]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 0,  0]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 1, -1]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 0, -1]
-	}
-	
-	loop over gen_rhs_uEdgeD@coarser {
-		gen_rhs_uEdgeD@coarser = 
-			  1.0/4.0  * gen_residual_uNode@[ 1,  1]
-			+ 1.0/8.0  * gen_residual_uEdgeY@[ 1,  1]
-			+ 1.0/8.0  * gen_residual_uEdgeY@[ 0,  1]
-			+ 1.0/8.0  * gen_residual_uEdgeX@[ 1,  1]
-			+ 1.0/8.0  * gen_residual_uEdgeX@[ 1,  0]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 1,  1]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 0,  1]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 1,  0]
-			+ 1.0/16.0 * gen_residual_uEdgeD@[ 0,  0]
-	}
-	
-	loop over gen_rhs_vNode@coarser {
-		gen_rhs_vNode@coarser = 
-			  1.0/4.0  * gen_residual_vNode@[ 0,  0]
-			+ 1.0/8.0  * gen_residual_vEdgeY@[ 0,  0]
-			+ 1.0/8.0  * gen_residual_vEdgeY@[-1,  0]
-			+ 1.0/8.0  * gen_residual_vEdgeX@[ 0,  0]
-			+ 1.0/8.0  * gen_residual_vEdgeX@[ 0, -1]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 0,  0]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[-1,  0]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 0, -1]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[-1, -1]
-	}
-	
-	loop over gen_rhs_vEdgeX@coarser {
-		gen_rhs_vEdgeX@coarser = 
-			  1.0/4.0  * gen_residual_vNode@[ 0,  1]
-			+ 1.0/8.0  * gen_residual_vEdgeY@[ 0,  1]
-			+ 1.0/8.0  * gen_residual_vEdgeY@[-1,  1]
-			+ 1.0/8.0  * gen_residual_vEdgeX@[ 0,  1]
-			+ 1.0/8.0  * gen_residual_vEdgeX@[ 0,  0]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 0,  1]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[-1,  1]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 0,  0]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[-1,  0]
-	}
-	
-	loop over gen_rhs_vEdgeY@coarser {
-		gen_rhs_vEdgeY@coarser = 
-			  1.0/4.0  * gen_residual_vNode@[ 1,  0]
-			+ 1.0/8.0  * gen_residual_vEdgeY@[ 1,  0]
-			+ 1.0/8.0  * gen_residual_vEdgeY@[ 0,  0]
-			+ 1.0/8.0  * gen_residual_vEdgeX@[ 1,  0]
-			+ 1.0/8.0  * gen_residual_vEdgeX@[ 1, -1]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 1,  0]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 0,  0]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 1, -1]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 0, -1]
-	}
-	
-	loop over gen_rhs_vEdgeD@coarser {
-		gen_rhs_vEdgeD@coarser = 
-			  1.0/4.0  * gen_residual_vNode@[ 1,  1]
-			+ 1.0/8.0  * gen_residual_vEdgeY@[ 1,  1]
-			+ 1.0/8.0  * gen_residual_vEdgeY@[ 0,  1]
-			+ 1.0/8.0  * gen_residual_vEdgeX@[ 1,  1]
-			+ 1.0/8.0  * gen_residual_vEdgeX@[ 1,  0]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 1,  1]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 0,  1]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 1,  0]
-			+ 1.0/16.0 * gen_residual_vEdgeD@[ 0,  0]
-	}
+Function myRestr_FD@(all but coarsest) {
+  loop over gen_rhs_uNode@coarser {
+    gen_rhs_uNode@coarser =
+        1.0/4.0  * gen_residual_uNode@[ 0,  0]
+      + 1.0/8.0  * gen_residual_uEdgeY@[ 0,  0]
+      + 1.0/8.0  * gen_residual_uEdgeY@[-1,  0]
+      + 1.0/8.0  * gen_residual_uEdgeX@[ 0,  0]
+      + 1.0/8.0  * gen_residual_uEdgeX@[ 0, -1]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 0,  0]
+      + 1.0/16.0 * gen_residual_uEdgeD@[-1,  0]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 0, -1]
+      + 1.0/16.0 * gen_residual_uEdgeD@[-1, -1]
+  }
 
-	loop over gen_rhs_p@coarser {
-		gen_rhs_p@coarser = 
-			  1.0/4.0  * gen_residual_p@[ 0,  0]
-			+ 1.0/8.0  * gen_residual_p@[-1,  0]
-			+ 1.0/8.0  * gen_residual_p@[ 1,  0]
-			+ 1.0/8.0  * gen_residual_p@[ 0, -1]
-			+ 1.0/8.0  * gen_residual_p@[ 0,  1]
-			+ 1.0/16.0 * gen_residual_p@[-1,  1]
-			+ 1.0/16.0 * gen_residual_p@[-1, -1]
-			+ 1.0/16.0 * gen_residual_p@[ 1, -1]
-			+ 1.0/16.0 * gen_residual_p@[ 1,  1]
-	}	
+  loop over gen_rhs_uEdgeX@coarser {
+    gen_rhs_uEdgeX@coarser =
+        1.0/4.0  * gen_residual_uNode@[ 0,  1]
+      + 1.0/8.0  * gen_residual_uEdgeY@[ 0,  1]
+      + 1.0/8.0  * gen_residual_uEdgeY@[-1,  1]
+      + 1.0/8.0  * gen_residual_uEdgeX@[ 0,  1]
+      + 1.0/8.0  * gen_residual_uEdgeX@[ 0,  0]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 0,  1]
+      + 1.0/16.0 * gen_residual_uEdgeD@[-1,  1]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 0,  0]
+      + 1.0/16.0 * gen_residual_uEdgeD@[-1,  0]
+  }
+
+  loop over gen_rhs_uEdgeY@coarser {
+    gen_rhs_uEdgeY@coarser =
+        1.0/4.0  * gen_residual_uNode@[ 1,  0]
+      + 1.0/8.0  * gen_residual_uEdgeY@[ 1,  0]
+      + 1.0/8.0  * gen_residual_uEdgeY@[ 0,  0]
+      + 1.0/8.0  * gen_residual_uEdgeX@[ 1,  0]
+      + 1.0/8.0  * gen_residual_uEdgeX@[ 1, -1]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 1,  0]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 0,  0]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 1, -1]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 0, -1]
+  }
+
+  loop over gen_rhs_uEdgeD@coarser {
+    gen_rhs_uEdgeD@coarser =
+        1.0/4.0  * gen_residual_uNode@[ 1,  1]
+      + 1.0/8.0  * gen_residual_uEdgeY@[ 1,  1]
+      + 1.0/8.0  * gen_residual_uEdgeY@[ 0,  1]
+      + 1.0/8.0  * gen_residual_uEdgeX@[ 1,  1]
+      + 1.0/8.0  * gen_residual_uEdgeX@[ 1,  0]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 1,  1]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 0,  1]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 1,  0]
+      + 1.0/16.0 * gen_residual_uEdgeD@[ 0,  0]
+  }
+
+  loop over gen_rhs_vNode@coarser {
+    gen_rhs_vNode@coarser =
+        1.0/4.0  * gen_residual_vNode@[ 0,  0]
+      + 1.0/8.0  * gen_residual_vEdgeY@[ 0,  0]
+      + 1.0/8.0  * gen_residual_vEdgeY@[-1,  0]
+      + 1.0/8.0  * gen_residual_vEdgeX@[ 0,  0]
+      + 1.0/8.0  * gen_residual_vEdgeX@[ 0, -1]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 0,  0]
+      + 1.0/16.0 * gen_residual_vEdgeD@[-1,  0]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 0, -1]
+      + 1.0/16.0 * gen_residual_vEdgeD@[-1, -1]
+  }
+
+  loop over gen_rhs_vEdgeX@coarser {
+    gen_rhs_vEdgeX@coarser =
+        1.0/4.0  * gen_residual_vNode@[ 0,  1]
+      + 1.0/8.0  * gen_residual_vEdgeY@[ 0,  1]
+      + 1.0/8.0  * gen_residual_vEdgeY@[-1,  1]
+      + 1.0/8.0  * gen_residual_vEdgeX@[ 0,  1]
+      + 1.0/8.0  * gen_residual_vEdgeX@[ 0,  0]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 0,  1]
+      + 1.0/16.0 * gen_residual_vEdgeD@[-1,  1]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 0,  0]
+      + 1.0/16.0 * gen_residual_vEdgeD@[-1,  0]
+  }
+
+  loop over gen_rhs_vEdgeY@coarser {
+    gen_rhs_vEdgeY@coarser =
+        1.0/4.0  * gen_residual_vNode@[ 1,  0]
+      + 1.0/8.0  * gen_residual_vEdgeY@[ 1,  0]
+      + 1.0/8.0  * gen_residual_vEdgeY@[ 0,  0]
+      + 1.0/8.0  * gen_residual_vEdgeX@[ 1,  0]
+      + 1.0/8.0  * gen_residual_vEdgeX@[ 1, -1]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 1,  0]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 0,  0]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 1, -1]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 0, -1]
+  }
+
+  loop over gen_rhs_vEdgeD@coarser {
+    gen_rhs_vEdgeD@coarser =
+        1.0/4.0  * gen_residual_vNode@[ 1,  1]
+      + 1.0/8.0  * gen_residual_vEdgeY@[ 1,  1]
+      + 1.0/8.0  * gen_residual_vEdgeY@[ 0,  1]
+      + 1.0/8.0  * gen_residual_vEdgeX@[ 1,  1]
+      + 1.0/8.0  * gen_residual_vEdgeX@[ 1,  0]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 1,  1]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 0,  1]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 1,  0]
+      + 1.0/16.0 * gen_residual_vEdgeD@[ 0,  0]
+  }
+
+  loop over gen_rhs_p@coarser {
+    gen_rhs_p@coarser =
+        1.0/4.0  * gen_residual_p@[ 0,  0]
+      + 1.0/8.0  * gen_residual_p@[-1,  0]
+      + 1.0/8.0  * gen_residual_p@[ 1,  0]
+      + 1.0/8.0  * gen_residual_p@[ 0, -1]
+      + 1.0/8.0  * gen_residual_p@[ 0,  1]
+      + 1.0/16.0 * gen_residual_p@[-1,  1]
+      + 1.0/16.0 * gen_residual_p@[-1, -1]
+      + 1.0/16.0 * gen_residual_p@[ 1, -1]
+      + 1.0/16.0 * gen_residual_p@[ 1,  1]
+  }
 }
-	
 
-Function myCorr@(all but coarsest) {
-	loop over uNode@coarser {
-		uNode @[ 0, 0] +=        uNode@coarser
-		uEdgeX@[ 0, 0] += 0.5  * uNode@coarser
-		uEdgeX@[ 0,-1] += 0.5  * uNode@coarser
-		uEdgeY@[ 0, 0] += 0.5  * uNode@coarser
-		uEdgeY@[-1, 0] += 0.5  * uNode@coarser
-		uEdgeD@[ 0, 0] += 0.25 * uNode@coarser
-		uEdgeD@[-1, 0] += 0.25 * uNode@coarser
-		uEdgeD@[ 0,-1] += 0.25 * uNode@coarser
-		uEdgeD@[-1,-1] += 0.25 * uNode@coarser
-	}
-	
-	loop over uEdgeX@coarser {
-		uNode @[ 0, 1] +=        uEdgeX@coarser
-		uEdgeX@[ 0, 1] += 0.5  * uEdgeX@coarser
-		uEdgeX@[ 0, 0] += 0.5  * uEdgeX@coarser
-		uEdgeY@[ 0, 1] += 0.5  * uEdgeX@coarser
-		uEdgeY@[-1, 1] += 0.5  * uEdgeX@coarser
-		uEdgeD@[ 0, 1] += 0.25 * uEdgeX@coarser
-		uEdgeD@[-1, 1] += 0.25 * uEdgeX@coarser
-		uEdgeD@[ 0, 0] += 0.25 * uEdgeX@coarser
-		uEdgeD@[-1, 0] += 0.25 * uEdgeX@coarser
-	}
-	
-	loop over uEdgeY@coarser {
-		uNode  @[ 1, 0] +=       uEdgeY@coarser
-		uEdgeX@[ 1, 0] += 0.5  * uEdgeY@coarser
-		uEdgeX@[ 1,-1] += 0.5  * uEdgeY@coarser
-		uEdgeY@[ 1, 0] += 0.5  * uEdgeY@coarser
-		uEdgeY@[ 0, 0] += 0.5  * uEdgeY@coarser
-		uEdgeD@[ 1, 0] += 0.25 * uEdgeY@coarser
-		uEdgeD@[ 0, 0] += 0.25 * uEdgeY@coarser
-		uEdgeD@[ 1,-1] += 0.25 * uEdgeY@coarser
-		uEdgeD@[ 0,-1] += 0.25 * uEdgeY@coarser
-	}
-	
-	loop over uEdgeD@coarser {
-		uNode  @[ 1, 1] +=       uEdgeD@coarser
-		uEdgeX@[ 1, 1] += 0.5  * uEdgeD@coarser
-		uEdgeX@[ 1, 0] += 0.5  * uEdgeD@coarser
-		uEdgeY@[ 1, 1] += 0.5  * uEdgeD@coarser
-		uEdgeY@[ 0, 1] += 0.5  * uEdgeD@coarser
-		uEdgeD@[ 1, 1] += 0.25 * uEdgeD@coarser
-		uEdgeD@[ 0, 1] += 0.25 * uEdgeD@coarser
-		uEdgeD@[ 1, 0] += 0.25 * uEdgeD@coarser
-		uEdgeD@[ 0, 0] += 0.25 * uEdgeD@coarser
-	}
 
-	loop over vNode@coarser {
-		vNode  @[ 0, 0] +=       vNode@coarser
-		vEdgeX@[ 0, 0] += 0.5  * vNode@coarser
-		vEdgeX@[ 0,-1] += 0.5  * vNode@coarser
-		vEdgeY@[ 0, 0] += 0.5  * vNode@coarser
-		vEdgeY@[-1, 0] += 0.5  * vNode@coarser
-		vEdgeD@[ 0, 0] += 0.25 * vNode@coarser
-		vEdgeD@[-1, 0] += 0.25 * vNode@coarser
-		vEdgeD@[ 0,-1] += 0.25 * vNode@coarser
-		vEdgeD@[-1,-1] += 0.25 * vNode@coarser
-	}
-	
-	loop over vEdgeX@coarser {
-		vNode  @[ 0, 1] +=       vEdgeX@coarser
-		vEdgeX@[ 0, 1] += 0.5  * vEdgeX@coarser
-		vEdgeX@[ 0, 0] += 0.5  * vEdgeX@coarser
-		vEdgeY@[ 0, 1] += 0.5  * vEdgeX@coarser
-		vEdgeY@[-1, 1] += 0.5  * vEdgeX@coarser
-		vEdgeD@[ 0, 1] += 0.25 * vEdgeX@coarser
-		vEdgeD@[-1, 1] += 0.25 * vEdgeX@coarser
-		vEdgeD@[ 0, 0] += 0.25 * vEdgeX@coarser
-		vEdgeD@[-1, 0] += 0.25 * vEdgeX@coarser
-	}
-	
-	loop over vEdgeY@coarser {
-		vNode  @[ 1, 0] +=       vEdgeY@coarser
-		vEdgeX@[ 1, 0] += 0.5  * vEdgeY@coarser
-		vEdgeX@[ 1,-1] += 0.5  * vEdgeY@coarser
-		vEdgeY@[ 1, 0] += 0.5  * vEdgeY@coarser
-		vEdgeY@[ 0, 0] += 0.5  * vEdgeY@coarser
-		vEdgeD@[ 1, 0] += 0.25 * vEdgeY@coarser
-		vEdgeD@[ 0, 0] += 0.25 * vEdgeY@coarser
-		vEdgeD@[ 1,-1] += 0.25 * vEdgeY@coarser
-		vEdgeD@[ 0,-1] += 0.25 * vEdgeY@coarser
-	}
-	
-	loop over vEdgeD@coarser {
-		vNode  @[ 1, 1] +=       vEdgeD@coarser
-		vEdgeX@[ 1, 1] += 0.5  * vEdgeD@coarser
-		vEdgeX@[ 1, 0] += 0.5  * vEdgeD@coarser
-		vEdgeY@[ 1, 1] += 0.5  * vEdgeD@coarser
-		vEdgeY@[ 0, 1] += 0.5  * vEdgeD@coarser
-		vEdgeD@[ 1, 1] += 0.25 * vEdgeD@coarser
-		vEdgeD@[ 0, 1] += 0.25 * vEdgeD@coarser
-		vEdgeD@[ 1, 0] += 0.25 * vEdgeD@coarser
-		vEdgeD@[ 0, 0] += 0.25 * vEdgeD@coarser
-	}
+Function myCorr_FD@(all but coarsest) {
+  loop over uNode@coarser {
+    uNode @[ 0, 0] +=        uNode@coarser
+    uEdgeX@[ 0, 0] += 0.5  * uNode@coarser
+    uEdgeX@[ 0,-1] += 0.5  * uNode@coarser
+    uEdgeY@[ 0, 0] += 0.5  * uNode@coarser
+    uEdgeY@[-1, 0] += 0.5  * uNode@coarser
+    uEdgeD@[ 0, 0] += 0.25 * uNode@coarser
+    uEdgeD@[-1, 0] += 0.25 * uNode@coarser
+    uEdgeD@[ 0,-1] += 0.25 * uNode@coarser
+    uEdgeD@[-1,-1] += 0.25 * uNode@coarser
+  }
 
-	loop over p@coarser {
-		p@[ 0, 0] +=        p@coarser
-		p@[ 1, 0] += 0.5  * p@coarser
-		p@[-1, 0] += 0.5  * p@coarser
-		p@[ 0, 1] += 0.5  * p@coarser
-		p@[ 0,-1] += 0.5  * p@coarser
-		p@[-1, 1] += 0.25 * p@coarser
-		p@[-1,-1] += 0.25 * p@coarser
-		p@[ 1, 1] += 0.25 * p@coarser
-		p@[ 1,-1] += 0.25 * p@coarser
-	}
+  loop over uEdgeX@coarser {
+    uNode @[ 0, 1] +=        uEdgeX@coarser
+    uEdgeX@[ 0, 1] += 0.5  * uEdgeX@coarser
+    uEdgeX@[ 0, 0] += 0.5  * uEdgeX@coarser
+    uEdgeY@[ 0, 1] += 0.5  * uEdgeX@coarser
+    uEdgeY@[-1, 1] += 0.5  * uEdgeX@coarser
+    uEdgeD@[ 0, 1] += 0.25 * uEdgeX@coarser
+    uEdgeD@[-1, 1] += 0.25 * uEdgeX@coarser
+    uEdgeD@[ 0, 0] += 0.25 * uEdgeX@coarser
+    uEdgeD@[-1, 0] += 0.25 * uEdgeX@coarser
+  }
+
+  loop over uEdgeY@coarser {
+    uNode  @[ 1, 0] +=       uEdgeY@coarser
+    uEdgeX@[ 1, 0] += 0.5  * uEdgeY@coarser
+    uEdgeX@[ 1,-1] += 0.5  * uEdgeY@coarser
+    uEdgeY@[ 1, 0] += 0.5  * uEdgeY@coarser
+    uEdgeY@[ 0, 0] += 0.5  * uEdgeY@coarser
+    uEdgeD@[ 1, 0] += 0.25 * uEdgeY@coarser
+    uEdgeD@[ 0, 0] += 0.25 * uEdgeY@coarser
+    uEdgeD@[ 1,-1] += 0.25 * uEdgeY@coarser
+    uEdgeD@[ 0,-1] += 0.25 * uEdgeY@coarser
+  }
+
+  loop over uEdgeD@coarser {
+    uNode  @[ 1, 1] +=       uEdgeD@coarser
+    uEdgeX@[ 1, 1] += 0.5  * uEdgeD@coarser
+    uEdgeX@[ 1, 0] += 0.5  * uEdgeD@coarser
+    uEdgeY@[ 1, 1] += 0.5  * uEdgeD@coarser
+    uEdgeY@[ 0, 1] += 0.5  * uEdgeD@coarser
+    uEdgeD@[ 1, 1] += 0.25 * uEdgeD@coarser
+    uEdgeD@[ 0, 1] += 0.25 * uEdgeD@coarser
+    uEdgeD@[ 1, 0] += 0.25 * uEdgeD@coarser
+    uEdgeD@[ 0, 0] += 0.25 * uEdgeD@coarser
+  }
+
+  loop over vNode@coarser {
+    vNode  @[ 0, 0] +=       vNode@coarser
+    vEdgeX@[ 0, 0] += 0.5  * vNode@coarser
+    vEdgeX@[ 0,-1] += 0.5  * vNode@coarser
+    vEdgeY@[ 0, 0] += 0.5  * vNode@coarser
+    vEdgeY@[-1, 0] += 0.5  * vNode@coarser
+    vEdgeD@[ 0, 0] += 0.25 * vNode@coarser
+    vEdgeD@[-1, 0] += 0.25 * vNode@coarser
+    vEdgeD@[ 0,-1] += 0.25 * vNode@coarser
+    vEdgeD@[-1,-1] += 0.25 * vNode@coarser
+  }
+
+  loop over vEdgeX@coarser {
+    vNode  @[ 0, 1] +=       vEdgeX@coarser
+    vEdgeX@[ 0, 1] += 0.5  * vEdgeX@coarser
+    vEdgeX@[ 0, 0] += 0.5  * vEdgeX@coarser
+    vEdgeY@[ 0, 1] += 0.5  * vEdgeX@coarser
+    vEdgeY@[-1, 1] += 0.5  * vEdgeX@coarser
+    vEdgeD@[ 0, 1] += 0.25 * vEdgeX@coarser
+    vEdgeD@[-1, 1] += 0.25 * vEdgeX@coarser
+    vEdgeD@[ 0, 0] += 0.25 * vEdgeX@coarser
+    vEdgeD@[-1, 0] += 0.25 * vEdgeX@coarser
+  }
+
+  loop over vEdgeY@coarser {
+    vNode  @[ 1, 0] +=       vEdgeY@coarser
+    vEdgeX@[ 1, 0] += 0.5  * vEdgeY@coarser
+    vEdgeX@[ 1,-1] += 0.5  * vEdgeY@coarser
+    vEdgeY@[ 1, 0] += 0.5  * vEdgeY@coarser
+    vEdgeY@[ 0, 0] += 0.5  * vEdgeY@coarser
+    vEdgeD@[ 1, 0] += 0.25 * vEdgeY@coarser
+    vEdgeD@[ 0, 0] += 0.25 * vEdgeY@coarser
+    vEdgeD@[ 1,-1] += 0.25 * vEdgeY@coarser
+    vEdgeD@[ 0,-1] += 0.25 * vEdgeY@coarser
+  }
+
+  loop over vEdgeD@coarser {
+    vNode  @[ 1, 1] +=       vEdgeD@coarser
+    vEdgeX@[ 1, 1] += 0.5  * vEdgeD@coarser
+    vEdgeX@[ 1, 0] += 0.5  * vEdgeD@coarser
+    vEdgeY@[ 1, 1] += 0.5  * vEdgeD@coarser
+    vEdgeY@[ 0, 1] += 0.5  * vEdgeD@coarser
+    vEdgeD@[ 1, 1] += 0.25 * vEdgeD@coarser
+    vEdgeD@[ 0, 1] += 0.25 * vEdgeD@coarser
+    vEdgeD@[ 1, 0] += 0.25 * vEdgeD@coarser
+    vEdgeD@[ 0, 0] += 0.25 * vEdgeD@coarser
+  }
+
+  loop over p@coarser {
+    p@[ 0, 0] +=        p@coarser
+    p@[ 1, 0] += 0.5  * p@coarser
+    p@[-1, 0] += 0.5  * p@coarser
+    p@[ 0, 1] += 0.5  * p@coarser
+    p@[ 0,-1] += 0.5  * p@coarser
+    p@[-1, 1] += 0.25 * p@coarser
+    p@[-1,-1] += 0.25 * p@coarser
+    p@[ 1, 1] += 0.25 * p@coarser
+    p@[ 1,-1] += 0.25 * p@coarser
+  }
+}
+
+Function myRestr_FE@(all but coarsest) {
+  Var uFactor : Real = 1./5.
+  Var vFactor : Real = uFactor
+  Var pFactor : Real = 1./4.
+
+  loop over gen_rhs_uNode@coarser {
+    gen_rhs_uNode@coarser  = uFactor * (
+       1.0   * gen_residual_uNode @[ 0,  0]
+
+      -0.125 * gen_residual_uEdgeX@[ 0, -2]
+      +0.375 * gen_residual_uEdgeX@[ 0, -1]
+      +0.375 * gen_residual_uEdgeX@[ 0,  0]
+      -0.125 * gen_residual_uEdgeX@[ 0,  1]
+
+      -0.125 * gen_residual_uEdgeY@[-2,  0]
+      +0.375 * gen_residual_uEdgeY@[-1,  0]
+      +0.375 * gen_residual_uEdgeY@[ 0,  0]
+      -0.125 * gen_residual_uEdgeY@[ 1,  0]
+
+      -0.125 * gen_residual_uEdgeD@[-2, -2]
+      +0.375 * gen_residual_uEdgeD@[-1, -1]
+      +0.375 * gen_residual_uEdgeD@[ 0,  0]
+      -0.125 * gen_residual_uEdgeD@[ 1,  1]
+
+      -0.125 * gen_residual_uEdgeD@[ 0,  1]
+      -0.125 * gen_residual_uEdgeX@[ 1,  1]
+      -0.125 * gen_residual_uEdgeY@[ 1,  1]
+      -0.125 * gen_residual_uEdgeD@[ 1,  0]
+      -0.125 * gen_residual_uEdgeX@[ 1, -1]
+      -0.125 * gen_residual_uEdgeY@[ 0, -1]
+      -0.125 * gen_residual_uEdgeD@[-1, -2]
+      -0.125 * gen_residual_uEdgeX@[-1, -2]
+      -0.125 * gen_residual_uEdgeY@[-2, -1]
+      -0.125 * gen_residual_uEdgeD@[-2, -1]
+      -0.125 * gen_residual_uEdgeX@[-1,  0]
+      -0.125 * gen_residual_uEdgeY@[-1,  1]
+    )
+  }
+
+  loop over gen_rhs_uEdgeX@coarser {
+    gen_rhs_uEdgeX@coarser = uFactor * (
+        1.0  * gen_residual_uNode @[ 0,  1]
+
+      + 0.75 * gen_residual_uEdgeX@[ 0,  0]
+      + 0.75 * gen_residual_uEdgeX@[ 0,  1]
+
+      + 0.5  * gen_residual_uEdgeY@[ 0,  1]
+      + 0.5  * gen_residual_uEdgeY@[-1,  1]
+      + 0.5  * gen_residual_uEdgeD@[ 0,  1]
+      + 0.5  * gen_residual_uEdgeD@[-1,  0]
+
+      + 0.25 * gen_residual_uEdgeX@[ 1,  1]
+      + 0.25 * gen_residual_uEdgeX@[-1,  0]
+    )
+  }
+
+  loop over gen_rhs_uEdgeY@coarser {
+    gen_rhs_uEdgeY@coarser = uFactor * (
+        1.0  * gen_residual_uNode @[ 1,  0]
+
+      + 0.75 * gen_residual_uEdgeY@[ 0,  0]
+      + 0.75 * gen_residual_uEdgeY@[ 1,  0]
+
+      + 0.5  * gen_residual_uEdgeX@[ 1,  0]
+      + 0.5  * gen_residual_uEdgeX@[ 1, -1]
+      + 0.5  * gen_residual_uEdgeD@[ 1,  0]
+      + 0.5  * gen_residual_uEdgeD@[ 0, -1]
+
+      + 0.25 * gen_residual_uEdgeY@[ 1,  1]
+      + 0.25 * gen_residual_uEdgeY@[ 0, -1]
+    )
+  }
+
+  loop over gen_rhs_uEdgeD@coarser {
+    gen_rhs_uEdgeD@coarser = uFactor * (
+        1.0  * gen_residual_uNode @[ 1,  1]
+
+      + 0.75 * gen_residual_uEdgeD@[ 0,  0]
+      + 0.75 * gen_residual_uEdgeD@[ 1,  1]
+
+      + 0.5  * gen_residual_uEdgeX@[ 1,  0]
+      + 0.5  * gen_residual_uEdgeX@[ 1,  1]
+      + 0.5  * gen_residual_uEdgeY@[ 0,  1]
+      + 0.5  * gen_residual_uEdgeY@[ 1,  1]
+
+      + 0.25 * gen_residual_uEdgeD@[ 1,  0]
+      + 0.25 * gen_residual_uEdgeD@[ 0,  1]
+    )
+  }
+
+  loop over gen_rhs_vNode@coarser {
+    gen_rhs_vNode@coarser  = vFactor * (
+       1.0   * gen_residual_vNode @[ 0,  0]
+
+      -0.125 * gen_residual_vEdgeX@[ 0, -2]
+      +0.375 * gen_residual_vEdgeX@[ 0, -1]
+      +0.375 * gen_residual_vEdgeX@[ 0,  0]
+      -0.125 * gen_residual_vEdgeX@[ 0,  1]
+
+      -0.125 * gen_residual_vEdgeY@[-2,  0]
+      +0.375 * gen_residual_vEdgeY@[-1,  0]
+      +0.375 * gen_residual_vEdgeY@[ 0,  0]
+      -0.125 * gen_residual_vEdgeY@[ 1,  0]
+
+      -0.125 * gen_residual_vEdgeD@[-2, -2]
+      +0.375 * gen_residual_vEdgeD@[-1, -1]
+      +0.375 * gen_residual_vEdgeD@[ 0,  0]
+      -0.125 * gen_residual_vEdgeD@[ 1,  1]
+
+      -0.125 * gen_residual_vEdgeD@[ 0,  1]
+      -0.125 * gen_residual_vEdgeX@[ 1,  1]
+      -0.125 * gen_residual_vEdgeY@[ 1,  1]
+      -0.125 * gen_residual_vEdgeD@[ 1,  0]
+      -0.125 * gen_residual_vEdgeX@[ 1, -1]
+      -0.125 * gen_residual_vEdgeY@[ 0, -1]
+      -0.125 * gen_residual_vEdgeD@[-1, -2]
+      -0.125 * gen_residual_vEdgeX@[-1, -2]
+      -0.125 * gen_residual_vEdgeY@[-2, -1]
+      -0.125 * gen_residual_vEdgeD@[-2, -1]
+      -0.125 * gen_residual_vEdgeX@[-1,  0]
+      -0.125 * gen_residual_vEdgeY@[-1,  1]
+    )
+  }
+
+  loop over gen_rhs_vEdgeX@coarser {
+    gen_rhs_vEdgeX@coarser = vFactor * (
+        1.0  * gen_residual_vNode @[ 0,  1]
+
+      + 0.75 * gen_residual_vEdgeX@[ 0,  0]
+      + 0.75 * gen_residual_vEdgeX@[ 0,  1]
+
+      + 0.5  * gen_residual_vEdgeY@[ 0,  1]
+      + 0.5  * gen_residual_vEdgeY@[-1,  1]
+      + 0.5  * gen_residual_vEdgeD@[ 0,  1]
+      + 0.5  * gen_residual_vEdgeD@[-1,  0]
+
+      + 0.25 * gen_residual_vEdgeX@[ 1,  1]
+      + 0.25 * gen_residual_vEdgeX@[-1,  0]
+    )
+  }
+
+  loop over gen_rhs_vEdgeY@coarser {
+    gen_rhs_vEdgeY@coarser = vFactor * (
+        1.0  * gen_residual_vNode @[ 1,  0]
+
+      + 0.75 * gen_residual_vEdgeY@[ 0,  0]
+      + 0.75 * gen_residual_vEdgeY@[ 1,  0]
+
+      + 0.5  * gen_residual_vEdgeX@[ 1,  0]
+      + 0.5  * gen_residual_vEdgeX@[ 1, -1]
+      + 0.5  * gen_residual_vEdgeD@[ 1,  0]
+      + 0.5  * gen_residual_vEdgeD@[ 0, -1]
+
+      + 0.25 * gen_residual_vEdgeY@[ 1,  1]
+      + 0.25 * gen_residual_vEdgeY@[ 0, -1]
+    )
+  }
+
+  loop over gen_rhs_vEdgeD@coarser {
+    gen_rhs_vEdgeD@coarser = vFactor * (
+        1.0  * gen_residual_vNode @[ 1,  1]
+
+      + 0.75 * gen_residual_vEdgeD@[ 0,  0]
+      + 0.75 * gen_residual_vEdgeD@[ 1,  1]
+
+      + 0.5  * gen_residual_vEdgeX@[ 1,  0]
+      + 0.5  * gen_residual_vEdgeX@[ 1,  1]
+      + 0.5  * gen_residual_vEdgeY@[ 0,  1]
+      + 0.5  * gen_residual_vEdgeY@[ 1,  1]
+
+      + 0.25 * gen_residual_vEdgeD@[ 1,  0]
+      + 0.25 * gen_residual_vEdgeD@[ 0,  1]
+    )
+  }
+
+  loop over gen_rhs_p@coarser {
+    gen_rhs_p@coarser = pFactor * (
+        1.0 * gen_residual_p@[ 0,  0]
+      + 0.5 * gen_residual_p@[-1,  0]
+      + 0.5 * gen_residual_p@[ 1,  0]
+      + 0.5 * gen_residual_p@[ 0, -1]
+      + 0.5 * gen_residual_p@[ 0,  1]
+      + 0.5 * gen_residual_p@[-1, -1]
+      + 0.5 * gen_residual_p@[ 1,  1]
+    )
+  }
+}
+
+
+Function myCorr_FE@(all but coarsest) {
+  loop over uNode@coarser {
+    uNode @[ 0,  0] +=  1.0   * uNode@coarser
+
+    uEdgeX@[ 0, -2] += -0.125 * uNode@coarser
+    uEdgeX@[ 0, -1] +=  0.375 * uNode@coarser
+    uEdgeX@[ 0,  0] +=  0.375 * uNode@coarser
+    uEdgeX@[ 0,  1] += -0.125 * uNode@coarser
+
+    uEdgeY@[-2,  0] += -0.125 * uNode@coarser
+    uEdgeY@[-1,  0] +=  0.375 * uNode@coarser
+    uEdgeY@[ 0,  0] +=  0.375 * uNode@coarser
+    uEdgeY@[ 1,  0] += -0.125 * uNode@coarser
+
+    uEdgeD@[-2, -2] += -0.125 * uNode@coarser
+    uEdgeD@[-1, -1] +=  0.375 * uNode@coarser
+    uEdgeD@[ 0,  0] +=  0.375 * uNode@coarser
+    uEdgeD@[ 1,  1] += -0.125 * uNode@coarser
+
+    uEdgeD@[ 0,  1] += -0.125 * uNode@coarser
+    uEdgeX@[ 1,  1] += -0.125 * uNode@coarser
+    uEdgeY@[ 1,  1] += -0.125 * uNode@coarser
+    uEdgeD@[ 1,  0] += -0.125 * uNode@coarser
+    uEdgeX@[ 1, -1] += -0.125 * uNode@coarser
+    uEdgeY@[ 0, -1] += -0.125 * uNode@coarser
+    uEdgeD@[-1, -2] += -0.125 * uNode@coarser
+    uEdgeX@[-1, -2] += -0.125 * uNode@coarser
+    uEdgeY@[-2, -1] += -0.125 * uNode@coarser
+    uEdgeD@[-2, -1] += -0.125 * uNode@coarser
+    uEdgeX@[-1,  0] += -0.125 * uNode@coarser
+    uEdgeY@[-1,  1] += -0.125 * uNode@coarser
+  }
+
+  loop over uEdgeX@coarser {
+    uNode @[ 0,  1] += 1.0  * uEdgeX@coarser
+    uEdgeX@[ 0,  0] += 0.75 * uEdgeX@coarser
+    uEdgeX@[ 0,  1] += 0.75 * uEdgeX@coarser
+    uEdgeY@[ 0,  1] += 0.5  * uEdgeX@coarser
+    uEdgeY@[-1,  1] += 0.5  * uEdgeX@coarser
+    uEdgeD@[ 0,  1] += 0.5  * uEdgeX@coarser
+    uEdgeD@[-1,  0] += 0.5  * uEdgeX@coarser
+    uEdgeX@[ 1,  1] += 0.25 * uEdgeX@coarser
+    uEdgeX@[-1,  0] += 0.25 * uEdgeX@coarser
+  }
+
+  loop over uEdgeY@coarser {
+    uNode @[ 1,  0] += 1.0  * uEdgeY@coarser
+    uEdgeY@[ 0,  0] += 0.75 * uEdgeY@coarser
+    uEdgeY@[ 1,  0] += 0.75 * uEdgeY@coarser
+    uEdgeX@[ 1,  0] += 0.5  * uEdgeY@coarser
+    uEdgeX@[ 1, -1] += 0.5  * uEdgeY@coarser
+    uEdgeD@[ 1,  0] += 0.5  * uEdgeY@coarser
+    uEdgeD@[ 0, -1] += 0.5  * uEdgeY@coarser
+    uEdgeY@[ 1,  1] += 0.25 * uEdgeY@coarser
+    uEdgeY@[ 0, -1] += 0.25 * uEdgeY@coarser
+  }
+
+  loop over uEdgeD@coarser {
+    uNode @[ 1,  1] += 1.0  * uEdgeD@coarser
+    uEdgeD@[ 0,  0] += 0.75 * uEdgeD@coarser
+    uEdgeD@[ 1,  1] += 0.75 * uEdgeD@coarser
+    uEdgeX@[ 1,  0] += 0.5  * uEdgeD@coarser
+    uEdgeX@[ 1,  1] += 0.5  * uEdgeD@coarser
+    uEdgeY@[ 0,  1] += 0.5  * uEdgeD@coarser
+    uEdgeY@[ 1,  1] += 0.5  * uEdgeD@coarser
+    uEdgeD@[ 1,  0] += 0.25 * uEdgeD@coarser
+    uEdgeD@[ 0,  1] += 0.25 * uEdgeD@coarser
+  }
+
+  loop over vNode@coarser {
+    vNode @[ 0,  0] +=  1.0   * vNode@coarser
+
+    vEdgeX@[ 0, -2] += -0.125 * vNode@coarser
+    vEdgeX@[ 0, -1] +=  0.375 * vNode@coarser
+    vEdgeX@[ 0,  0] +=  0.375 * vNode@coarser
+    vEdgeX@[ 0,  1] += -0.125 * vNode@coarser
+
+    vEdgeY@[-2,  0] += -0.125 * vNode@coarser
+    vEdgeY@[-1,  0] +=  0.375 * vNode@coarser
+    vEdgeY@[ 0,  0] +=  0.375 * vNode@coarser
+    vEdgeY@[ 1,  0] += -0.125 * vNode@coarser
+
+    vEdgeD@[-2, -2] += -0.125 * vNode@coarser
+    vEdgeD@[-1, -1] +=  0.375 * vNode@coarser
+    vEdgeD@[ 0,  0] +=  0.375 * vNode@coarser
+    vEdgeD@[ 1,  1] += -0.125 * vNode@coarser
+
+    vEdgeD@[ 0,  1] += -0.125 * vNode@coarser
+    vEdgeX@[ 1,  1] += -0.125 * vNode@coarser
+    vEdgeY@[ 1,  1] += -0.125 * vNode@coarser
+    vEdgeD@[ 1,  0] += -0.125 * vNode@coarser
+    vEdgeX@[ 1, -1] += -0.125 * vNode@coarser
+    vEdgeY@[ 0, -1] += -0.125 * vNode@coarser
+    vEdgeD@[-1, -2] += -0.125 * vNode@coarser
+    vEdgeX@[-1, -2] += -0.125 * vNode@coarser
+    vEdgeY@[-2, -1] += -0.125 * vNode@coarser
+    vEdgeD@[-2, -1] += -0.125 * vNode@coarser
+    vEdgeX@[-1,  0] += -0.125 * vNode@coarser
+    vEdgeY@[-1,  1] += -0.125 * vNode@coarser
+  }
+
+  loop over vEdgeX@coarser {
+    vNode @[ 0,  1] += 1.0  * vEdgeX@coarser
+    vEdgeX@[ 0,  0] += 0.75 * vEdgeX@coarser
+    vEdgeX@[ 0,  1] += 0.75 * vEdgeX@coarser
+    vEdgeY@[ 0,  1] += 0.5  * vEdgeX@coarser
+    vEdgeY@[-1,  1] += 0.5  * vEdgeX@coarser
+    vEdgeD@[ 0,  1] += 0.5  * vEdgeX@coarser
+    vEdgeD@[-1,  0] += 0.5  * vEdgeX@coarser
+    vEdgeX@[ 1,  1] += 0.25 * vEdgeX@coarser
+    vEdgeX@[-1,  0] += 0.25 * vEdgeX@coarser
+  }
+
+  loop over vEdgeY@coarser {
+    vNode @[ 1,  0] += 1.0  * vEdgeY@coarser
+    vEdgeY@[ 0,  0] += 0.75 * vEdgeY@coarser
+    vEdgeY@[ 1,  0] += 0.75 * vEdgeY@coarser
+    vEdgeX@[ 1,  0] += 0.5  * vEdgeY@coarser
+    vEdgeX@[ 1, -1] += 0.5  * vEdgeY@coarser
+    vEdgeD@[ 1,  0] += 0.5  * vEdgeY@coarser
+    vEdgeD@[ 0, -1] += 0.5  * vEdgeY@coarser
+    vEdgeY@[ 1,  1] += 0.25 * vEdgeY@coarser
+    vEdgeY@[ 0, -1] += 0.25 * vEdgeY@coarser
+  }
+
+  loop over vEdgeD@coarser {
+    vNode @[ 1,  1] += 1.0  * vEdgeD@coarser
+    vEdgeD@[ 0,  0] += 0.75 * vEdgeD@coarser
+    vEdgeD@[ 1,  1] += 0.75 * vEdgeD@coarser
+    vEdgeX@[ 1,  0] += 0.5  * vEdgeD@coarser
+    vEdgeX@[ 1,  1] += 0.5  * vEdgeD@coarser
+    vEdgeY@[ 0,  1] += 0.5  * vEdgeD@coarser
+    vEdgeY@[ 1,  1] += 0.5  * vEdgeD@coarser
+    vEdgeD@[ 1,  0] += 0.25 * vEdgeD@coarser
+    vEdgeD@[ 0,  1] += 0.25 * vEdgeD@coarser
+  }
+
+  loop over p@coarser {
+    p@[ 0,  0] += 1.0 * p@coarser
+    p@[ 1,  0] += 0.5 * p@coarser
+    p@[-1,  0] += 0.5 * p@coarser
+    p@[ 0,  1] += 0.5 * p@coarser
+    p@[ 0, -1] += 0.5 * p@coarser
+    p@[-1, -1] += 0.5 * p@coarser
+    p@[ 1,  1] += 0.5 * p@coarser
+  }
+
+  apply bc to uNode
+  apply bc to uEdgeX
+  apply bc to uEdgeY
+  apply bc to uEdgeD
+
+  apply bc to vNode
+  apply bc to vEdgeX
+  apply bc to vEdgeY
+  apply bc to vEdgeD
+
+  apply bc to p
 }
 
 //// TEST PROBLEM 1 ////
@@ -235,54 +584,54 @@ Function myCorr@(all but coarsest) {
 // p = sin ( PI * x ) * sin ( PI * y )
 
 Function NormError_Max@finest ( ) : Real {
-	Var err_u : Real = 0
-	Var err_v : Real = 0
-	Var err_p : Real = 0
+  Var err_u : Real = 0
+  Var err_v : Real = 0
+  Var err_p : Real = 0
 
-	loop over uNode with reduction( max : err_u ){
-		Var curErr : Real = uNode - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_nodePos_y ) )
-		err_u = max ( fabs ( curErr ), err_u )
-	}
-	loop over uEdgeX with reduction( max : err_u ){
-		Var curErr : Real = uEdgeX - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_cellCenter_y ) )
-		err_u = max ( fabs ( curErr ), err_u )
-	}
-	loop over uEdgeY with reduction( max : err_u ){
-		Var curErr : Real = uEdgeY - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y ) )
-		err_u = max ( fabs ( curErr ), err_u )
-	}
-	loop over uEdgeD with reduction( max : err_u ){
-		Var curErr : Real = uEdgeD - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) )
-		err_u = max ( fabs ( curErr ), err_u )
-	}
-	
-	loop over vNode with reduction( max : err_v ) {
-		Var curErr : Real = vNode - ( cos ( PI * vf_nodePos_x ) * cos ( PI * vf_nodePos_y ) )
-		err_v = max ( fabs ( curErr ), err_v )
-	}
-	loop over vEdgeX with reduction( max : err_v ) {
-		Var curErr : Real = vEdgeX - ( cos ( PI * vf_nodePos_x ) * cos ( PI * vf_cellCenter_y ) )
-		err_v = max ( fabs ( curErr ), err_v )
-	}
-	loop over vEdgeY with reduction( max : err_v ) {
-		Var curErr : Real = vEdgeY - ( cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_nodePos_y ) )
-		err_v = max ( fabs ( curErr ), err_v )
-	}
-	loop over vEdgeD with reduction( max : err_v ) {
-		Var curErr : Real = vEdgeD - ( cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_cellCenter_y ) )
-		err_v = max ( fabs ( curErr ), err_v )
-	}
+  loop over uNode with reduction( max : err_u ){
+    Var curErr : Real = uNode - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_nodePos_y ) )
+    err_u = max ( fabs ( curErr ), err_u )
+  }
+  loop over uEdgeX with reduction( max : err_u ){
+    Var curErr : Real = uEdgeX - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_cellCenter_y ) )
+    err_u = max ( fabs ( curErr ), err_u )
+  }
+  loop over uEdgeY with reduction( max : err_u ){
+    Var curErr : Real = uEdgeY - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_nodePos_y ) )
+    err_u = max ( fabs ( curErr ), err_u )
+  }
+  loop over uEdgeD with reduction( max : err_u ){
+    Var curErr : Real = uEdgeD - ( sin ( PI * vf_cellCenter_x ) * sin ( PI * vf_cellCenter_y ) )
+    err_u = max ( fabs ( curErr ), err_u )
+  }
 
-	loop over p with reduction( max : err_p ) {
-		Var curErr : Real = p - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_nodePos_y ) )
-		err_p = max ( fabs ( curErr ), err_p )
-	}
+  loop over vNode with reduction( max : err_v ) {
+    Var curErr : Real = vNode - ( cos ( PI * vf_nodePos_x ) * cos ( PI * vf_nodePos_y ) )
+    err_v = max ( fabs ( curErr ), err_v )
+  }
+  loop over vEdgeX with reduction( max : err_v ) {
+    Var curErr : Real = vEdgeX - ( cos ( PI * vf_nodePos_x ) * cos ( PI * vf_cellCenter_y ) )
+    err_v = max ( fabs ( curErr ), err_v )
+  }
+  loop over vEdgeY with reduction( max : err_v ) {
+    Var curErr : Real = vEdgeY - ( cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_nodePos_y ) )
+    err_v = max ( fabs ( curErr ), err_v )
+  }
+  loop over vEdgeD with reduction( max : err_v ) {
+    Var curErr : Real = vEdgeD - ( cos ( PI * vf_cellCenter_x ) * cos ( PI * vf_cellCenter_y ) )
+    err_v = max ( fabs ( curErr ), err_v )
+  }
 
-	Var totalErr : Real = max ( err_u, err_v, err_p )
+  loop over p with reduction( max : err_p ) {
+    Var curErr : Real = p - ( sin ( PI * vf_nodePos_x ) * sin ( PI * vf_nodePos_y ) )
+    err_p = max ( fabs ( curErr ), err_p )
+  }
 
-	print ( 'Error:', totalErr, err_u, err_v, err_p )
+  Var totalErr : Real = max ( err_u, err_v, err_p )
 
-	return totalErr
+  print ( 'Error:', totalErr, err_u, err_v, err_p )
+
+  return totalErr
 }
 
 //// TEST PROBLEM 2 ////
@@ -291,53 +640,53 @@ Function NormError_Max@finest ( ) : Real {
 // p =  sin ( 4.0 * x ) * sin ( 2.0 * y )
 /*
 Function NormError_Max@finest ( ) : Real {
-	Var err_u : Real = 0
-	Var err_v : Real = 0
-	Var err_p : Real = 0
+  Var err_u : Real = 0
+  Var err_v : Real = 0
+  Var err_p : Real = 0
 
-	loop over uNode with reduction( max : err_u ){
-		Var curErr : Real = uNode - ( -4.0 * cos ( 4.0 * vf_nodePos_y ) )
-		err_u = max ( fabs ( curErr ), err_u )
-	}
-	loop over uEdgeX with reduction( max : err_u ){
-		Var curErr : Real = uEdgeX - ( -4.0 * cos ( 4.0 * vf_nodePos_y ) )
-		err_u = max ( fabs ( curErr ), err_u )
-	}
-	loop over uEdgeY with reduction( max : err_u ){
-		Var curErr : Real = uEdgeY - ( -4.0 * cos ( 4.0 * vf_cellCenter_y ) )
-		err_u = max ( fabs ( curErr ), err_u )
-	}
-	loop over uEdgeD with reduction( max : err_u ){
-		Var curErr : Real = uEdgeD - ( -4.0 * cos ( 4.0 * vf_cellCenter_y ) )
-		err_u = max ( fabs ( curErr ), err_u )
-	}
-	
-	loop over vNode with reduction( max : err_v ) {
-		Var curErr : Real = vNode - ( 2.0 * cos ( 2.0 * vf_nodePos_x ) )
-		err_v = max ( fabs ( curErr ), err_v )
-	}
-	loop over vEdgeX with reduction( max : err_v ) {
-		Var curErr : Real = vEdgeX - ( 2.0 * cos ( 2.0 * vf_nodePos_x ) )
-		err_v = max ( fabs ( curErr ), err_v )
-	}
-	loop over vEdgeY with reduction( max : err_v ) {
-		Var curErr : Real = vEdgeY - ( 2.0 * cos ( 2.0 * vf_cellCenter_x ) )
-		err_v = max ( fabs ( curErr ), err_v )
-	}
-	loop over vEdgeD with reduction( max : err_v ) {
-		Var curErr : Real = vEdgeD - ( 2.0 * cos ( 2.0 * vf_cellCenter_x ) )
-		err_v = max ( fabs ( curErr ), err_v )
-	}
-	
-	loop over p with reduction( max : err_p ) {
-		Var curErr : Real = p - ( sin ( 4.0 * vf_nodePos_x ) * sin ( 2.0 * vf_nodePos_y ) )
-		err_p = max ( fabs ( curErr ), err_p )
-	}
+  loop over uNode with reduction( max : err_u ){
+    Var curErr : Real = uNode - ( -4.0 * cos ( 4.0 * vf_nodePos_y ) )
+    err_u = max ( fabs ( curErr ), err_u )
+  }
+  loop over uEdgeX with reduction( max : err_u ){
+    Var curErr : Real = uEdgeX - ( -4.0 * cos ( 4.0 * vf_cellCenter_y ) )
+    err_u = max ( fabs ( curErr ), err_u )
+  }
+  loop over uEdgeY with reduction( max : err_u ){
+    Var curErr : Real = uEdgeY - ( -4.0 * cos ( 4.0 * vf_nodePos_y ) )
+    err_u = max ( fabs ( curErr ), err_u )
+  }
+  loop over uEdgeD with reduction( max : err_u ){
+    Var curErr : Real = uEdgeD - ( -4.0 * cos ( 4.0 * vf_cellCenter_y ) )
+    err_u = max ( fabs ( curErr ), err_u )
+  }
 
-	Var totalErr : Real = max ( err_u, err_v, err_p )
+  loop over vNode with reduction( max : err_v ) {
+    Var curErr : Real = vNode - ( 2.0 * cos ( 2.0 * vf_nodePos_x ) )
+    err_v = max ( fabs ( curErr ), err_v )
+  }
+  loop over vEdgeX with reduction( max : err_v ) {
+    Var curErr : Real = vEdgeX - ( 2.0 * cos ( 2.0 * vf_nodePos_x ) )
+    err_v = max ( fabs ( curErr ), err_v )
+  }
+  loop over vEdgeY with reduction( max : err_v ) {
+    Var curErr : Real = vEdgeY - ( 2.0 * cos ( 2.0 * vf_cellCenter_x ) )
+    err_v = max ( fabs ( curErr ), err_v )
+  }
+  loop over vEdgeD with reduction( max : err_v ) {
+    Var curErr : Real = vEdgeD - ( 2.0 * cos ( 2.0 * vf_cellCenter_x ) )
+    err_v = max ( fabs ( curErr ), err_v )
+  }
 
-	print ( 'Error:', totalErr, err_u, err_v, err_p )
+  loop over p with reduction( max : err_p ) {
+    Var curErr : Real = p - ( sin ( 4.0 * vf_nodePos_x ) * sin ( 2.0 * vf_nodePos_y ) )
+    err_p = max ( fabs ( curErr ), err_p )
+  }
 
-	return totalErr
+  Var totalErr : Real = max ( err_u, err_v, err_p )
+
+  print ( 'Error:', totalErr, err_u, err_v, err_p )
+
+  return totalErr
 }
 */

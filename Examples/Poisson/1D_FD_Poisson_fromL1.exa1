@@ -1,0 +1,49 @@
+/// inline knowledge
+
+Knowledge {
+  dimensionality = 1
+
+  minLevel       = 5
+  maxLevel       = 15
+}
+
+/// problem specification
+
+Domain global = ( 0, 1 )
+
+Field f@finest \in global = 0.0
+Field u \in global = 0.0
+
+Field u@finest \in \partial global = sin ( 0.5 * PI * vf_boundaryCoord_x )
+Field u@(all but finest) \in \partial global = 0.0
+
+Operator op = - \Delta // alt: - \partial_{xx}
+
+Equation uEq@finest           op * u == f
+Equation uEq@(all but finest) op * u == 0.0
+
+/// configuration of inter-layer transformations
+
+DiscretizationHints { // alt: Discretize, L2Hint(s)
+  f on Node
+  u on Node
+
+  op on global
+
+  uEq
+
+  // paramters
+  discr_type = "FiniteDifferences"
+}
+
+SolverHints { // alt: Solve, L3Hint(s)
+  generate solver for u in uEq
+
+  // parameters
+  solver_targetResReduction = 1e-6
+}
+
+ApplicationHints { // alt L4Hint(s)
+  // parameters
+  l4_genDefaultApplication = true
+}

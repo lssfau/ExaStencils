@@ -1,6 +1,7 @@
 package exastencils.layoutTransformation.ir
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 import java.util.IdentityHashMap
@@ -17,9 +18,9 @@ import exastencils.polyhedron.Isl.TypeAliases.T_SET
 
 sealed abstract class IR_LayoutTransformStatement extends IR_Statement with IR_SpecialExpandable
 
-case class IR_ExternalFieldAlias(newName : String, oldName : String) extends IR_LayoutTransformStatement
+case class IR_ExternalFieldAlias(newName : String, oldName : String, oldLevels : Seq[Int]) extends IR_LayoutTransformStatement
 
-case class IR_GenericTransform(fields : Seq[String], its : Array[IR_VariableAccess], trafo : IR_ExpressionIndex) extends IR_LayoutTransformStatement {
+case class IR_GenericTransform(fields : Seq[(String, Int)], its : Array[IR_VariableAccess], trafo : IR_ExpressionIndex) extends IR_LayoutTransformStatement {
 
   def getIslTrafo() : isl.MultiAff = {
     var maff = isl.MultiAff.zero(isl.Space.alloc(Isl.ctx, 0, its.length, trafo.length))
@@ -78,7 +79,7 @@ case class IR_GenericTransform(fields : Seq[String], its : Array[IR_VariableAcce
   }
 }
 
-case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : ListBuffer[String]) extends IR_LayoutTransformStatement {
+case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : Seq[String], levels : Seq[Int]) extends IR_LayoutTransformStatement {
 
   if (fieldsToMerge.size < 2)
     Logger.error(s"there must be at least two fields to merge (for $mergedFieldName)")
@@ -86,11 +87,14 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : ListB
   def addFieldReplacements(replace : IdentityHashMap[IR_Field, (IR_Field, Int)]) : Unit = {
 
     val newFields = new Array[IR_Field](Knowledge.maxLevel + 1)
-    val idMap = fieldsToMerge.view.zipWithIndex.toMap
+    val idMap = new HashMap[(String, Int), Int]()
+    for ((name, ind) <- fieldsToMerge.view.zipWithIndex)
+      for (lvl <- levels)
+        idMap((name, lvl)) = ind
     val toRemove = ArrayBuffer[IR_Field]()
 
     for (field <- IR_FieldCollection.objects)
-      for (id <- idMap.get(field.name)) {
+      for (id <- idMap.remove((field.name, field.level))) {
 
         val dim : Int = field.fieldLayout.numDimsData + 1
 
@@ -130,6 +134,8 @@ case class IR_FieldConcatenation(mergedFieldName : String, fieldsToMerge : ListB
         replace.put(field, (newField, id))
         toRemove += field
       }
+    if (!idMap.isEmpty)
+      Logger.error("merge failed, did not find fields for: " + idMap.keySet)
 
     // update all total values and register new fields to IR_FieldCollection
     for (field <- newFields)

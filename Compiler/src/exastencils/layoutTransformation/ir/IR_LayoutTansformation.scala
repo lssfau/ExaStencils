@@ -28,6 +28,8 @@ import exastencils.polyhedron.Isl.TypeAliases._
 
 object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
 
+  private val DEBUG : Boolean = false
+
   import scala.language.implicitConversions
 
   implicit def long2val(l : Long) : isl.Val = isl.Val.intFromSi(Isl.ctx, l)
@@ -128,7 +130,7 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.transaction()
     Logger.info("Applying strategy " + name)
 
-    val transformations = new HashMap[String, ArrayBuffer[IR_GenericTransform]]()
+    val transformations = new HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]]()
     val fieldConcs = new ArrayBuffer[IR_FieldConcatenation]()
     val fieldAliass = new ArrayBuffer[IR_ExternalFieldAlias]()
 
@@ -160,8 +162,11 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
       fConc.addFieldReplacements(fieldReplace)
 
     for (alias <- fieldAliass)
-      for (field <- IR_FieldCollection.getAllByIdentifier(alias.oldName))
-        field.name = alias.newName
+      for (level <- alias.oldLevels)
+        IR_FieldCollection.getByIdentifier(alias.oldName, level) match {
+          case Some(field) => field.name = alias.newName
+          case None        => Logger.error(s"field ${alias.oldName}@$level should be renamed, but does not exist")
+        }
 
     if (!fieldReplace.isEmpty()) {
       colCondColl.reset()
@@ -215,10 +220,15 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
           for ((newField, _) <- Option(fieldReplace.get(node.src)))
             node.src = newField
           node
+        case node : IR_IV_ActiveSlot           =>
+          for ((newField, _) <- Option(fieldReplace.get(node.field)))
+            node.field = newField
+          node
         case x : Product                       =>
-          for (f <- x.productIterator)
-            if (f.isInstanceOf[IR_Field])
-              println("  der hatn field: " + x)
+          if (DEBUG)
+            for (f <- x.productIterator)
+              if (f.isInstanceOf[IR_Field])
+                Logger.error("unexpected IR_Field found in:  " + x)
           x
       }))
     }
@@ -227,16 +237,15 @@ object IR_LayoutTansformation extends CustomStrategy("Layout Transformation") {
     this.commit()
   }
 
-  def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[String, ArrayBuffer[IR_GenericTransform]], processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
-    val fName = dfa.fieldSelection.field.name
-    val layout = dfa.fieldSelection.fieldLayout
+  def processDFA(dfa : IR_DirectFieldAccess, transformations : HashMap[(String, Int), ArrayBuffer[IR_GenericTransform]], processedLayouts : IdentityHashMap[IR_FieldLayout, IR_ExpressionIndex], colColl : ColorCondCollector) : Unit = {
+    val fieldID : (String, Int) = (dfa.fieldSelection.field.name, dfa.fieldSelection.field.level)
+    val layout : IR_FieldLayout = dfa.fieldSelection.fieldLayout
     var newIndex : IR_ExpressionIndex = null
     if (processedLayouts.containsKey(layout)) {
       newIndex = Duplicate(processedLayouts.get(layout))
-    } else for (trafos <- transformations.get(fName)) {
+    } else for (trafos <- transformations.get(fieldID)) {
       val trafoMaff : isl.MultiAff = createIslTrafo(trafos)
-      val fLevel = dfa.fieldSelection.field.level
-      adaptLayout(layout, trafoMaff, (fName, fLevel))
+      adaptLayout(layout, trafoMaff, fieldID)
       val exprs : IR_ExpressionIndex = createASTforMultiAff(trafoMaff)
       processedLayouts.put(layout, exprs)
       newIndex = Duplicate(exprs)

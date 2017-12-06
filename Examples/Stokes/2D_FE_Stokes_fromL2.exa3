@@ -1,44 +1,68 @@
 
-generate solver for 
-	uNode  in uNodeEquation  and
-	uEdgeX in uEdgeXEquation and
-	uEdgeY in uEdgeYEquation and
-	uEdgeD in uEdgeDEquation and
-	vNode  in vNodeEquation  and
-	vEdgeX in vEdgeXEquation and
-	vEdgeY in vEdgeYEquation and
-	vEdgeD in vEdgeDEquation and
-	p in pEquation with {
+generate solver for
+  uNode  in uNodeEquation  and
+  uEdgeX in uEdgeXEquation and
+  uEdgeY in uEdgeYEquation and
+  uEdgeD in uEdgeDEquation and
+  vNode  in vNodeEquation  and
+  vEdgeX in vEdgeXEquation and
+  vEdgeY in vEdgeYEquation and
+  vEdgeD in vEdgeDEquation and
+  p in pEquation with {
+  solver_targetResReduction     = 1e-8
+  solver_maxNumIts              = 100
   //solver_smoother_jacobiType    = false
   solver_smoother_numPre        = 10
   solver_smoother_numPost       = 10
-  //solver_smoother_damping       = 0.8
-	//solver_smoother_coloring      = "9-way" // "red-black"
+  solver_smoother_damping       = 0.6667
+  //solver_smoother_coloring      = "9-way" // "red-black"
   solver_cgs                    = "BiCGStab"
-  solver_cgs_maxNumIts          = 1280
+  solver_cgs_maxNumIts          = 10000
   solver_cgs_targetResReduction = 1e-3
 } modifiers {
   replace 'restriction' @all {
-    myRestr@current ( )
+    myRestr_FE@current ( )
   }
   replace 'correction' @all {
-    myCorr@current ( )
+    myCorr_FE@current ( )
   }
 
-	append to 'cycle' @finest {
-		NormError_Max@finest ( )
-	}
+  append to 'cycle' @finest {
+    NormError_Max@finest ( )
+  }
+  /*append to 'solver' {
+    printField ( "uNode.txt", uNode@finest )
+    printField ( "uVert.txt", uEdgeX@finest )
+    printField ( "uHori.txt", uEdgeY@finest )
+    printField ( "uDiag.txt", uEdgeD@finest )
+    printField ( "vNode.txt", vNode@finest )
+    printField ( "vVert.txt", vEdgeX@finest )
+    printField ( "vHori.txt", vEdgeY@finest )
+    printField ( "vDiag.txt", vEdgeD@finest )
+    printField ( "p.txt", p@finest )
+  }*/
 } smootherHint {
-	loopBase p
-	solveFor {
-		p
-		uNode@[0,0] uNode@[-1,0] uNode@[0,-1] uNode@[1,0] uNode@[0,1] uNode@[-1,-1] uNode@[1,1]
-		uEdgeX@[0,0] uEdgeX@[1,0] uEdgeX@[0,-1] uEdgeX@[-1,-1]
-		uEdgeY@[0,0] uEdgeY@[0,1] uEdgeY@[-1,0] uEdgeY@[-1,-1]
-		uEdgeD@[0,0] uEdgeD@[-1,0] uEdgeD@[0,-1] uEdgeD@[-1,-1]
-		vNode@[0,0] vNode@[-1,0] vNode@[0,-1] vNode@[1,0] vNode@[0,1] vNode@[-1,-1] vNode@[1,1]
-		vEdgeX@[0,0] vEdgeX@[1,0] vEdgeX@[0,-1] vEdgeX@[-1,-1]
-		vEdgeY@[0,0] vEdgeY@[0,1] vEdgeY@[-1,0] vEdgeY@[-1,-1]
-		vEdgeD@[0,0] vEdgeD@[-1,0] vEdgeD@[0,-1] vEdgeD@[-1,-1]
-	}
+  loopBase p
+  /*solveFor {
+    p
+    uNode@[0,0] uNode@[-1,0] uNode@[0,-1] uNode@[1,0] uNode@[0,1] uNode@[-1,-1] uNode@[1,1]
+    uEdgeX@[0,0] uEdgeX@[1,0] uEdgeX@[0,-1] uEdgeX@[-1,-1]
+    uEdgeY@[0,0] uEdgeY@[0,1] uEdgeY@[-1,0] uEdgeY@[-1,-1]
+    uEdgeD@[0,0] uEdgeD@[-1,0] uEdgeD@[0,-1] uEdgeD@[-1,-1]
+    vNode@[0,0] vNode@[-1,0] vNode@[0,-1] vNode@[1,0] vNode@[0,1] vNode@[-1,-1] vNode@[1,1]
+    vEdgeX@[0,0] vEdgeX@[1,0] vEdgeX@[0,-1] vEdgeX@[-1,-1]
+    vEdgeY@[0,0] vEdgeY@[0,1] vEdgeY@[-1,0] vEdgeY@[-1,-1]
+    vEdgeD@[0,0] vEdgeD@[-1,0] vEdgeD@[0,-1] vEdgeD@[-1,-1]
+  }*/
+  solveFor {
+    p
+    uNode
+    uEdgeX@[0,0] uEdgeX@[0,-1]
+    uEdgeY@[0,0] uEdgeY@[-1,0]
+    uEdgeD@[0,0] uEdgeD@[-1,0] uEdgeD@[0,-1] uEdgeD@[-1,-1]
+    vNode
+    vEdgeX@[0,0] vEdgeX@[0,-1]
+    vEdgeY@[0,0] vEdgeY@[-1,0]
+    vEdgeD@[0,0] vEdgeD@[-1,0] vEdgeD@[0,-1] vEdgeD@[-1,-1]
+  }
 }

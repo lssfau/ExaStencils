@@ -17,6 +17,7 @@
 # NumCoresPerRank  is the number of physical cores to be associated with each MPI rank
 # Constraint  specifies features the nodes must have when executing the generated test code
 #  for hardware definitions and available flags see hwinfo.txt
+#  "memXG" specifies that X GB RAM should be available per requested CPU core; this cannot be used in conjunction with other constraints
 
 # if the last four fields are not set (as in the first structure above), the
 # generated code is only compiled, but not executed
@@ -60,7 +61,7 @@ CommBasic_Strategy26Cell  Main  CommBasic/Strategy26Cell.knowledge  *  CommBasic
 #################################################################################################
 
 # 10 OMP threads
-Large_Hybrid  Main  Large/Hybrid.knowledge  *  Large/Hybrid.results  4  10  E5
+Large_Hybrid  Main  Large/Hybrid.knowledge  *  Large/Hybrid.results  4  10  mem6G
 
 #################################################################################################
 # OPTIMIZATION TESTS                                                                            #
@@ -240,6 +241,17 @@ LC_CSE_SISC_3D_VarCoeff    Main  CSE/3D_VarCoeff_lc.knowledge    *  SISC/3D_VarC
 # both conventional and loop carried CSE
 Both_CSE_SISC_2D_VarCoeff  Main  CSE/2D_VarCoeff_both.knowledge  *  SISC/2D_VarCoeff.results     4  4
 Both_CSE_SISC_3D_VarCoeff  Main  CSE/3D_VarCoeff_both.knowledge  *  SISC/3D_VarCoeff.results     8  4
+
+#################################################################################################
+# LAYOUT TRANSFORMATION TESTS                                                                   #
+#################################################################################################
+
+# borrowed from OPTIMIZATION TESTS, shares results! (may be changed, when generated exa4 code changes)
+Layout_Seq_Test_naive  Main  LayoutTrafo/seq_naive.knowledge  LayoutTrafo/opts.exa4  Opts/seq.results         1  1  AVX
+Layout_Par_Test_all    Main  LayoutTrafo/par_all.knowledge    LayoutTrafo/opts.exa4  Opts/par.results         8  4  AVX
+
+# borrowed from SMOOTHER TESTS, shares results! (may be changed, when generated exa4 code changes)
+Layout_Smoothers_RBGS  Main  LayoutTrafo/RBGS.knowledge       LayoutTrafo/rbgs.exa4  Smoothers/RBGS.results  27  2
 
 #################################################################################################
 # NON-LINEAR TESTS                                                                              #
