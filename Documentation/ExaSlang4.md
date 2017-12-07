@@ -1,4 +1,4 @@
-# Template
+<!---
 
 
 
@@ -17,6 +17,10 @@ more details; explanation of parameters if required
 <pre>
 examples of usage
 </pre>
+
+
+
+--->
 
 
 
@@ -47,7 +51,7 @@ The following statements are supported:
 
 ## Inner Statements
 The following statements are supported:
-* local declartions
+* local declarations
     * [variable declaration](#variable-declaration)
     * [value declaration](#value-declaration)
 * [assignment](#basic-assignment) and [compound assignment](#compound-assignment)
@@ -105,7 +109,7 @@ Comments are offered with C-like syntax.
 </pre>
 <pre>
 /* this is a
-   multiline
+   multi-line
    comment
 */
 </pre>
@@ -212,7 +216,8 @@ Access to a level relative to another.
 
 #### Details
 *base* must be a constant or a suitable [level alias](#level-alias) evaluating to a single level.
-*offset* must be an integer constant
+
+*offset* must be an integer constant.
 
 #### Example
 <pre>
@@ -238,7 +243,7 @@ Used as [level access](#level-access):
 
 Used as [level access](#level-access) and [level declaration](#level-declaration):
 * finest, denoting the finest level as specified by Knowledge.maxLevel
-* coarest, denoting the coarsest level as specified by Knowledge.minLevel
+* coarsest, denoting the coarsest level as specified by Knowledge.minLevel
 
 Used as [level declaration](#level-declaration):
 * all, denoting all levels as specified by the range between Knowledge.minLevel and Knowledge.maxLevel
@@ -261,6 +266,7 @@ A list of levels used for [level declarations](#level-declaration).
 
 #### Details
 *levels* must be a non-empty list of levels separated by comma or the and keyword, or a [level range](#level-range).
+
 *exclude*, if provided, must be a valid [level list](#level-list) without any nested *exclude*. The not keyword may be used instead of the but keyword.
 
 #### Example
@@ -305,10 +311,15 @@ Declares a new function with the given *name*, taking the provided *arguments* a
 
 #### Details
 Func may be used instead of Function.
-noinline may be used to disallow inling for this function.
+
+noinline may be used to disallow inlining for this function.
+
 The function declaration is regarded as leveled if *levels* is specified. Must be a valid [level selection for declarations](#level-declaration).
+
 *arguments*, if provided, has to be a list of [function arguments](#function-argument). May be empty.
+
 *returnType*, if provided, has to be a valid [language datatype](#data-types). In this case, at least one [return statement](#return-statement) must be present in the *body*. If *returnType* is not provided, an implicit Unit type is assumed.
+
 *body* must be a list of suitable [statements](#inner-statements). May be empty.
 
 #### Example
@@ -353,7 +364,7 @@ return
 </pre>
 
 #### Details
-*returnValue* may be an arbitray expression. Its data type must match the surrounding functions return type. In case of Unit *returnValue* must not be specified.
+*returnValue* may be an arbitrary expression. Its data type must match the surrounding functions return type. In case of Unit *returnValue* must not be specified.
 
 #### Example
 <pre>
@@ -379,7 +390,9 @@ Call a function with the given *name* and the provided *parameters*.
 
 #### Details
 If the called function is leveled and *levels* is not provided, an implicit [@current](#current) is assumed. *levels*, if provided, must be a valid [level access](#level-access).
+
 *parameter* is a list of arbitrary expressions. May be empty.
+
 If the function call is used as a statement, it is implicitly wrapped in an expression statement.
 
 #### Example
@@ -409,8 +422,11 @@ Var <i>name</i> : <i>dataType</i>
 
 #### Details
 Variable may be used instead of Var.
+
 *dataType* must be a valid [language datatype](#data-types).
+
 The declaration is regarded as leveled if *levels* is specified. Must be a valid [level selection for declarations](#level-declaration).
+
 *initial* may be an arbitrary expression. It is used to initialize the variable in the generated code if provided.
 
 #### Example
@@ -433,10 +449,14 @@ Val <i>name</i> : <i>dataType</i>
 
 #### Details
 Value may be used instead of Val.
+
 *dataType* must be a valid [language datatype](#datatype).
+
 The declaration is regarded as leveled if *levels* is specified. Must be a valid [level selection for declarations](#level-declaration).
+
 *initial* may be an arbitrary expression.
-**Right now values are propagated by default and without check for side efffects. This effectively means that they work like a C define.** Can be controlled via Knowledge.experimental_l4_inlineValueDeclarations
+
+**Right now values are propagated by default and without check for side effects. This effectively means that they work like a C define.** Can be controlled via Knowledge.experimental_l4_inlineValueDeclarations.
 
 #### Example
 <pre>
@@ -460,6 +480,7 @@ Assigns *src* to *dest*.
 
 #### Details
 *dest* must be a valid access.
+
 *src* maybe an arbitrary expression evaluating to the data type of *dest*.
 
 #### Example
@@ -481,6 +502,7 @@ Performs a compound assignment from *src* to *dest* with the specified operation
 
 #### Details
 *dest* must be a valid access.
+
 *src* maybe an arbitrary expression evaluating to the data type of *dest*.
 
 #### Example
@@ -570,7 +592,9 @@ repeat <i>n</i> times
 
 #### Details
 *n* must be an integral number.
+
 The current iteration number is stored in *variable*, if provided, which needs to be declared beforehand.
+
 *body* must be a list of suitable [statements](#inner-statements). May be empty.
 
 #### Example
@@ -592,6 +616,7 @@ Executes statements while or until a given condition is met.
 
 #### Details
 *condition* may be an arbitrary expression evaluating to a Boolean value.
+
 *body* must be a list of suitable [statements](#inner-statements). May be empty.
 
 #### Example
@@ -616,8 +641,11 @@ if ( <i>condition</i> ) { ifBranch }
 
 #### Details
 Exectues *ifBranch* if *condition* evaluates to true, *elseBranch* otherwise (if it is specified).
-*condition* may be an arbitrart expression evaluating to a Boolean.
+
+*condition* may be an arbitrary expression evaluating to a Boolean.
+
 *ifBranch* must be a list of suitable [statements](#inner-statements). May be empty.
+
 *elseBranch* may be
 * another [conditional](#conditional)
 * a list of suitable [statements](#inner-statements); may be empty
@@ -694,8 +722,10 @@ Domain <i>name</i> &lt; <i>lower</i> to <i>upper</i> &gt;
 </pre>
 
 #### Details
-*lower* and *upper* are coordinates of the axis-aligned bounding box surrounding the domain. Their dimensionalty must match. **Currently it must also be identical to Knowledge.dimesionality**.
-In case of multiple domains, the boundaries of all (sub-)domains must coincide with the doamin partitioning.
+*lower* and *upper* are coordinates of the axis-aligned bounding box surrounding the domain. Their dimensionality must match. **Currently it must also be identical to Knowledge.dimesionality**.
+
+In case of multiple domains, the boundaries of all (sub-)domains must coincide with the domain partitioning.
+
 There must be at least one domain named 'global'. This domain must include all other domains.
 
 #### Example
@@ -719,8 +749,10 @@ Layout <i>name</i> &lt; <i>dataType</i> , <i>localization</i> &gt;
 </pre>
 
 #### Details
-Specifies that quatities of the given *dataType* are stored at specific parts of the grid chosen by *localization*.
+Specifies that quantities of the given *dataType* are stored at specific parts of the grid chosen by *localization*.
+
 *dataType* must be a valid [language datatype](#data-types).
+
 *localization* must be one of the following:
 * Node
 * Cell
@@ -729,6 +761,7 @@ Specifies that quatities of the given *dataType* are stored at specific parts of
 * Face_z if dimensionality at least 3
 
 The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+
 *layoutOptions* is a list of [layout options](#layout-option) which may be separated by comma. May be empty.
 
 #### Example
@@ -757,10 +790,11 @@ Specification of an option to be used for [field layouts](#field-layout-declarat
 * innerPoints
 
 *index* specifies the number of layers per dimension for the chosen option.
+
 with communication marks the chosen layers for communication. **Layers that are not marked here will not be communicated, even when communicate statements are given**.
 
 #### Example
-cf example for [field layout declarations](#field-layout-declaration)
+cf example for [field layout declarations](#field-layout-declaration).
 
 
 
@@ -777,9 +811,13 @@ Field <i>name</i> &lt; <i>domain</i> , <i>layout</i> , <i>boundaryCondition</i> 
 
 #### Details
 Each field is tied to a specific *domain* accessed through its name.
+
 Data type, localization of the field, etc is controlled by the linked *layout*. An implicit [@current](#level-alias) is always assumed. **This is only a name - providing a level in addition is not supported**.
-*boundaryCondition* may be a valid [boundary condition](#boundary condition).
+
+*boundaryCondition* may be a valid [boundary condition](#boundary-condition).
+
 If *numSlots* is specified, the field is slotted with the given number. Must be an integer constant.
+
 The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
 
 #### Example
@@ -802,8 +840,11 @@ Neumann
 
 #### Details
 None corresponds to no boundary handling.
+
 Neumann corresponds to Neumann-0 boundary conditions. If *order* is not specified it is defaulted to Knowledge.discr_defaultNeumannOrder.
-*dirichlet* may take the shape of an arbirtrary expression evaluating to the data type of the field. 
+
+*dirichlet* may take the shape of an arbitrary expression evaluating to the data type of the field. 
+
 *bcFunction* is a function reference, with optional level, to a user function implementing the boundary handling routine. The function's return type must be Unit.
 
 **Since *dirchlet* can be a function call, an thus may look like a call to a *bcFunction*, the return type of the called function must be known at generation time. It is used to switch both cases.**
@@ -825,10 +866,14 @@ external Field <i>name</i> &lt; <i>layout</i> &gt; =&gt; <i>internal</i>
 
 #### Details
 Used to transfer data from external program parts to fields declared in the DSL.
+
 *layout* must describe the layout of the external counterpart.
-*internal* is a refernece to a declared field. A level specification is necessary.
+
+*internal* is a reference to a declared field. A level specification is necessary.
+
 Using this information, copy-in and copy-out functions are set up. These can be called from the external program.
-If Knowledge.generateFortranInterface is set, the external counterpart is assumed to be in Fortran-compilant ordering, otherwise lexicographic ordering is assumed.
+
+If Knowledge.generateFortranInterface is set, the external counterpart is assumed to be in Fortran-compliant ordering, otherwise lexicographic ordering is assumed.
 
 #### Example
 <pre>
@@ -858,6 +903,7 @@ Stencil <i>name</i>
 
 #### Details
 The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+
 *entries* is a list of [offset entries](#stencil-offset-entry) or [mapping entries](#stencil-mapping-entry). May be separated by comma. May be empty.
 
 #### Example
@@ -910,6 +956,7 @@ A single [stencil](#direct-stencil-declaration) entry in mapping notation.
 
 #### Details
 *row* and *col* can be interpreted as the corresponding row and column positions for the coefficient were the matrix represented by the stencil constructed explicitly.
+
 *coefficient* may be an arbitrary expression.
 
 #### Example
@@ -959,7 +1006,9 @@ Stencil <i>name</i>
 
 #### Details
 *operation* may be either restriction or prolongation.
+
 *localization* specifies where the operator will be applied. Allowed values are the same as for [field layout declarations](#field-layout-declaration).
+
 For restriction and prolongation, *parameter* specifies the interpolation scheme. It may be 'linear' for values of discretized functions and 'integral_linear' for values of integrals over discretized functions. The former is usually applied in finite difference contexts, while the latter finds application in finite volume contexts.
 
 #### Example
@@ -980,9 +1029,13 @@ StencilField <i>name</i> &lt; field =&gt; stencil &gt;
 
 #### Details
 For *stencil* and *field*, an implicit [@current](#level-alias) is always assumed. **This is only a name - providing a level in addition is not supported**.
+
 The declaration is always regarded as leveled. If *levels* is specified it must be a valid [level selection for declarations](#level-declaration). If it is not specified, an implicit [@all](#level-declaration) is assumed.
+
 The order of coefficients in the linked *stencil* will remain and be mapped to the entries of the linked *field*'s data.
+
 The data type of the linked *field* has to be vector. The vector size must match the number of coefficients in the linked *stencil*.
+
 The coefficients of the stencil are used to initialize the field's data.
 
 #### Example
@@ -1016,7 +1069,7 @@ Access to a [variable](#variable-declaration), a [value](#value-declaration) or 
 
 #### Details
 
-The actual type of access is defered by the code generator. Depending on the type, invalid modifiers will be ignored.
+The actual type of access is deferred by the code generator. Depending on the type, invalid modifiers will be ignored.
 
 *slot*, if specified, must be a valid [slot access](#slot-access). It is only valid if *target* is a field. The field may be un-slotted.
 
@@ -1068,11 +1121,11 @@ only *region* may be used to restrict iteration to a specific [region](#region).
 
 sequentially prevents shared memory parallelization. **This is only a temporary workaround**.
 
-where *condition* may be used to restrict the execution of *body* to only cases where condition is fullfilled. Prominent applications are [colored kernels](#color-with).
+where *condition* may be used to restrict the execution of *body* to only cases where condition is fulfilled. Prominent applications are [colored kernels](#color-with).
 
 *offsetBegin* and *offsetEnd* may be used to extend or restrict the iteration space. [Constant indices](#constant-index) are required. *offsetBegin* is added to the loop start while *offsetEnd* is subtracted from the loop end.
 
-*stepSize* may be used to adapt the geneated loops' step size. It must be a positive, non-zero [constant indices](#constant-index).
+*stepSize* may be used to adapt the generated loops' step size. It must be a positive, non-zero [constant indices](#constant-index).
 
 *reduction* must be a valid [reduction](#reduction).
 
@@ -1164,7 +1217,7 @@ reduction ( <i>op</i> : <i>target</i> )
 
 *target* must be the name of a previously declared variable.
 
-If Knowledge.experimental_trimBoundsForReductionLoops is enabled, iteration spaces are adapted such that duplicate points are only handled on one fragment. This prevents adding the contibution of the same duplicate point mulitple times.
+If Knowledge.experimental_trimBoundsForReductionLoops is enabled, iteration spaces are adapted such that duplicate points are only handled on one fragment. This prevents adding the contribution of the same duplicate point multiple times.
 
 #### Example
 <pre>
@@ -1224,7 +1277,7 @@ communicating can be used instead of communicate.
 
 *targets* must be a list of valid [communicate targets](#communicate-target). It may be empty in which case all is assumed.
 
-*field* must be a valid reference to a field to be communicated. An implicit [@current](#level-alias) is assumed if no level specification is given. Slot modifiers are honored. Other modifiers such as offst and direction access are ignored.
+*field* must be a valid reference to a field to be communicated. An implicit [@current](#level-alias) is assumed if no level specification is given. Slot modifiers are honored. Other modifiers such as offset and direction access are ignored.
 
 *condition* can be used to restrict exchange to data points fulfilling the given *condition*. It may be an arbitrary expression evaluating to a Boolean. **NOT IMPLEMENTED YET**
 
@@ -1315,7 +1368,7 @@ apply bc to <i>field</i>
 </pre>
 
 #### Details
-*field* must be a valid reference to a field to be updated. An implicit [@current](#level-alias) is assumed if no level specification is given. Slot modifiers are honored. Other modifiers such as offst and direction access are ignored.
+*field* must be a valid reference to a field to be updated. An implicit [@current](#level-alias) is assumed if no level specification is given. Slot modifiers are honored. Other modifiers such as offset and direction access are ignored.
 
 #### Example
 <pre>
@@ -1377,7 +1430,7 @@ advance <i>field</i>
 </pre>
 
 #### Details
-*field* must be a valid reference to a field. An implicit [@current](#level-alias) is assumed if no level specification is given. Slot modifiers and other modifiers such as offst and direction access are ignored.
+*field* must be a valid reference to a field. An implicit [@current](#level-alias) is assumed if no level specification is given. Slot modifiers and other modifiers such as offset and direction access are ignored.
 
 #### Example
 <pre>
@@ -1403,7 +1456,7 @@ solve locally
 
 #### Details
 
-Internally, a system of equations based on the given *components* is construced and solved. The solution to the system is then written back to the unknowns.
+Internally, a system of equations based on the given *components* is constructed and solved. The solution to the system is then written back to the unknowns.
 
 with jacobi specifies that the writeback should be performed to the next slot of the unknowns' fields.
 
@@ -1490,6 +1543,7 @@ import <i>filename</i>
 
 #### Details
 *filename* is relative to the location of the current DSL file. The location is automatically adapted for nested imports.
+
 Multiple import statements in the same file are supported.
 
 #### Example
@@ -1508,7 +1562,8 @@ Knowledge { <i>parameters</i> }
 </pre>
 
 #### Details
-*parameters* must be a list of key-value assigments. Separation by comma is not supported. May be empty.
+*parameters* must be a list of key-value assignments. Separation by comma is not supported. May be empty.
+
 Multiple knowledge inlines in the same file are supported.
 
 #### Example
@@ -1531,6 +1586,7 @@ Globals { <i>entries</i> }
 
 #### Details
 *entries* must be a list of valid [variable declarations](#variable-declaration) and [value declarations](#value-declaration). May be empty.
+
 Multiple global sections in one DSL document are supported.
 
 #### Example
@@ -1553,10 +1609,15 @@ FunctionTemplate <i>name</i> &lt; <i>templateParams</i> &gt; ( <i>functionParams
 
 #### Details
 FuncTemplate can be used instead of FunctionTemplate.
+
 *templateParams* must be a list of identifiers that must be separated by comma or newline. May be empty.
+
 *functionParams* must be a list of [function arguments](#function-argument). May be separated by comma. May be empty.
+
 *returnType* must be a valid [language data type](#data-types).
+
 This statement will not map to a function without suitable [function instantiations](#function-instantiation).
+
 *body* must be a list of suitable [statements](#inner-statements). May be empty.
 
 #### Example
@@ -1581,10 +1642,14 @@ Instantiate <i>template</i> &lt; <i>templateArgs</i> &gt; as <i>name</i>
 
 #### Details
 Inst can be used instead of Instantiate.
+
 *template* must be the name of a declared [function template](#function-template).
-*templateArgs* must be a list of expressions that must be separted by comma or newline. Its length must match the length on the template parameter list of the linked function template.
+
+*templateArgs* must be a list of expressions that must be separated by comma or newline. Its length must match the length on the template parameter list of the linked function template.
+
 *name* is the name of the newly created function. If a suitable [level declaration](#level-declaration) is given, the new function inherits it.
-In the instantion, occurences of each function template parameter in the function template body are replaced with the corresponding given argument. Modifiers such as level, offset or direction accesses are merged.
+
+In the instantiation, occurrences of each function template parameter in the function template body are replaced with the corresponding given argument. Modifiers such as level, offset or direction accesses are merged.
 
 #### Example
 <pre>
